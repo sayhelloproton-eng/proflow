@@ -24,14 +24,24 @@ Expected ProFlow workspace instance root:
 proton-workspace/.proflow/
 ```
 
+## Project context isolation
+
+```text
+DEFAULT_PROJECT = repos/proflow
+LEGACY_DEFAULT_ACCESS = DENY
+LEGACY_REFERENCE_ALLOWED only when the current task explicitly says so
+```
+
+Do not inherit `../ai-agent-platform/AGENTS.md` or any legacy repository rule.
+
 ## Truth order
 
 For Phase 3 implementation, use this order of authority:
 
-1. FINAL FROZEN Phase 3 DDD/SDD baseline.
-2. FINAL FROZEN Phase 3 pre-development Test Plan.
+1. FINAL FROZEN Phase 3 DDD/SDD under `spec/frozen/phase3/source/`.
+2. FINAL FROZEN Phase 3 pre-development Test Plan under the same directory.
 3. Current ProFlow code that has passed the required TDD gates.
-4. `../ai-agent-platform/` as legacy/reference-only evidence.
+4. `../ai-agent-platform/` evidence only after the current task explicitly authorizes legacy reference access.
 
 The legacy repository is never a current contract, architecture, state, package-layout, or directory truth source.
 
@@ -56,6 +66,9 @@ The legacy repository is never a current contract, architecture, state, package-
 17. Never add a runtime/package dependency on `../ai-agent-platform/`.
 18. Do not copy legacy architecture wholesale.
 19. Do not silently change frozen DDD/SDD/Test Plan semantics to make implementation easier.
+20. Do not copy the legacy package layout or use legacy code to rewrite a Frozen Contract.
+21. Do not create runtime, workspace, relative, or link dependencies on the legacy repository.
+22. Do not read legacy implementation as default project context.
 
 ## TDD implementation gate
 
@@ -85,6 +98,5 @@ Never silently mutate frozen semantics.
 
 ## Repository bootstrap scope
 
-Until the frozen architecture and test-plan artifacts are imported into this repository, this repository is in bootstrap state only.
-
-Do not start domain/module implementation from README, memory, or the legacy repository alone.
+The Frozen architecture and Test Plan are landed under `spec/frozen/phase3/source/`.
+Do not start domain/module implementation until a separate task explicitly opens the applicable Wave/TDD gate.

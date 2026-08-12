@@ -1,0 +1,55 @@
+{
+  "sourceMode": "FROZEN_DIRECTORY_FALLBACK",
+  "originalSourcePath": "/Users/agent/Desktop/proton-workspace/repos/ai-agent-platform/docs/technical/技术方案/第三阶段",
+  "legacyRepositoryHEAD": "7ca116faa93463164b7b3af7df76cd28d9b0060d",
+  "copiedAt": "2026-08-12T16:54:34Z",
+  "expectedOriginalZipSha256": {
+    "dddSdd": "69fdfbac8a5ee36b700bcb10c0b8a9a61f0a5aa3367386cb5bc7e98118a4a875",
+    "testPlan": "766663725f95ae4cecb71d3bc5bc2e6311f3ba7d150a0d12b387d67cb0e75669"
+  },
+  "originalArtifactAvailable": false,
+  "originalArtifactShaReverified": false,
+  "originalArtifactShaStatement": "Original Frozen ZIP SHA values were not reverified in this landing and must not be reported as PASS.",
+  "directoryVerificationStatement": "Frozen directory content was independently verified against the final frozen metrics.",
+  "independentlyVerifiedMetrics": {
+    "sourceDirectoryDirty": false,
+    "sourceFilesTracked": 222,
+    "totalFiles": 222,
+    "markdownFiles": 215,
+    "dddSdd": {
+      "status": "PASS",
+      "lifecycle": "FROZEN",
+      "totalFiles": 184,
+      "markdownFiles": 178,
+      "manifestEntries": 183,
+      "manifestMissing": 0,
+      "manifestChanged": 0,
+      "moduleRegistryEntries": 20,
+      "externalResourceEntries": 4,
+      "syntheticCapabilityIds": 0,
+      "unresolvedRequires": 0,
+      "ambiguousProviders": 0,
+      "dependencyCycles": 0,
+      "todoTasks": 98,
+      "todoGoalsChanged": 0,
+      "brokenInternalLinks": 0
+    },
+    "testPlan": {
+      "status": "FINAL_FROZEN",
+      "codexTddReadiness": "PASS",
+      "newFiles": 38,
+      "indexedDocuments": 37,
+      "moduleTestPlans": 20,
+      "frozenTodoTraceability": "98/98",
+      "criticalProofs": 111,
+      "boundCriticalProofs": 111,
+      "unboundCriticalProofs": 0,
+      "p0Issues": 0,
+      "p1Issues": 0,
+      "p2Issues": 0,
+      "specGaps": 0
+    }
+  },
+  "copiedFileCount": 222,
+  "frozenSourceMutation": 0
+}

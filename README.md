@@ -41,4 +41,4 @@ Examples:
 
 Do not begin Phase 3 implementation merely because this repository exists.
 
-Before implementation, the FINAL FROZEN Phase 3 DDD/SDD baseline and FINAL FROZEN pre-development Test Plan must be placed into this repository from the authoritative frozen artifacts. Implementation then proceeds TDD-first against those frozen sources.
+The FINAL FROZEN Phase 3 DDD/SDD baseline and FINAL FROZEN pre-development Test Plan are available through the [Frozen truth entrypoint](spec/README.md). This landing used an independently verified directory fallback because the original ZIP artifacts were unavailable; provenance records that their expected SHA values were not reverified. Implementation proceeds TDD-first only when a separate task opens the applicable Wave/TDD gate.
