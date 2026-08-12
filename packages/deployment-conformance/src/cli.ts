@@ -4,23 +4,63 @@ import { readFile } from "node:fs/promises";
 
 import { runStaticConformance } from "./index.ts";
 
-const descriptorPath = process.argv[2];
-if (descriptorPath === undefined) {
-	process.stdout.write(
-		`${JSON.stringify({ status: "FAIL", error: "descriptor path required" })}\n`,
-	);
-	process.exitCode = 2;
-} else {
+const moduleRef = "deployment-conformance";
+const moduleVersion = "0.1.0";
+
+export async function runCli(args: readonly string[]): Promise<string> {
+	if (!args.includes("--json")) throw new TypeError("--json is required");
+	const descriptorPath = args.find((argument) => argument !== "--json");
+	if (descriptorPath === undefined) {
+		return JSON.stringify({
+			contract: "deployment.result.v1",
+			ok: true,
+			status: "SUCCEEDED",
+			moduleRef,
+			moduleVersion,
+		});
+	}
 	try {
 		const input: unknown = JSON.parse(await readFile(descriptorPath, "utf8"));
 		const result = runStaticConformance(input);
-		process.stdout.write(`${JSON.stringify(result)}\n`);
-		if (result.status === "FAIL") process.exitCode = 1;
+		return JSON.stringify({
+			contract: "deployment.result.v1",
+			ok: result.status === "PASS",
+			status: result.status === "PASS" ? "SUCCEEDED" : "FAILED",
+			moduleRef,
+			moduleVersion,
+			data: result,
+			...(result.status === "FAIL"
+				? {
+						error: {
+							code: "CONFORMANCE_FAILED",
+							message: "Static conformance failed",
+							retryable: false,
+						},
+					}
+				: {}),
+		});
 	} catch (error: unknown) {
 		const message = error instanceof Error ? error.message : "unknown error";
-		process.stdout.write(
-			`${JSON.stringify({ status: "FAIL", error: message })}\n`,
-		);
-		process.exitCode = 2;
+		return JSON.stringify({
+			contract: "deployment.result.v1",
+			ok: false,
+			status: "FAILED",
+			moduleRef,
+			moduleVersion,
+			error: { code: "INVALID_REQUEST", message, retryable: false },
+		});
+	}
+}
+
+if (import.meta.main) {
+	const output = await runCli(process.argv.slice(2));
+	process.stdout.write(`${output}\n`);
+	const parsed: unknown = JSON.parse(output);
+	if (
+		typeof parsed === "object" &&
+		parsed !== null &&
+		Reflect.get(parsed, "ok") === false
+	) {
+		process.exitCode = 1;
 	}
 }

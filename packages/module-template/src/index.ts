@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import {
 	type ModuleDescriptor,
@@ -22,7 +23,40 @@ export interface MaterializeModuleResult {
 	packageDirectory: string;
 	descriptor: ModuleDescriptor;
 	files: string[];
+	packageMetadata: GeneratedPackageMetadata;
+	machineEntry?: string;
 }
+
+export interface GeneratedPackageMetadata {
+	name: string;
+	version: string;
+	type: "module";
+	private?: boolean;
+	publishConfig: { access: "public" };
+	exports: Record<string, string>;
+}
+
+export interface GeneratedBehaviorObservation {
+	result: {
+		contract: "deployment.result.v1";
+		ok: boolean;
+		status: "SUCCEEDED" | "BLOCKED" | "ACTION_REQUIRED" | "FAILED";
+		moduleRef: string;
+		moduleVersion: string;
+		checks?: Array<{ id: string; status: "PASS" | "FAIL"; message: string }>;
+		actionRequired?: { action: string; description: string };
+	};
+	observedEffects: string[];
+	externalAvailabilityClaim?: "UNKNOWN" | "AVAILABLE" | "UNAVAILABLE";
+	externalAvailabilityEvidence?: "none" | "fake" | "real";
+}
+
+export type GeneratedBehaviorAdapter = Partial<
+	Record<
+		ModuleDescriptor["lifecycle"]["supported"][number],
+		() => GeneratedBehaviorObservation | Promise<GeneratedBehaviorObservation>
+	>
+>;
 
 const lifecycleByKind: Record<
 	ModuleKind,
@@ -85,6 +119,11 @@ function requirementsFor(kind: ModuleKind): ModuleDescriptor["requirements"] {
 }
 
 function descriptorFor(input: MaterializeModuleInput): ModuleDescriptor {
+	if (!/^@tomflow\/proflow-[a-z][a-z0-9-]*$/.test(input.packageName)) {
+		throw new TypeError(
+			"formal ProFlow Module packages must match @tomflow/proflow-*",
+		);
+	}
 	return parseModuleDescriptor({
 		contract: "module",
 		contractVersion: "1.0.0",
@@ -97,7 +136,18 @@ function descriptorFor(input: MaterializeModuleInput): ModuleDescriptor {
 		provides: [],
 		requires: [],
 		requirements: requirementsFor(input.kind),
-		configSlots: [],
+		configSlots:
+			input.kind === "external-resource"
+				? [
+						{
+							key: "resourceUrl",
+							type: "url",
+							required: true,
+							description:
+								"External resource endpoint configured at deployment time",
+						},
+					]
+				: [],
 		lifecycle: { supported: lifecycleByKind[input.kind] },
 		verification: {
 			checks: [
@@ -112,14 +162,29 @@ function descriptorFor(input: MaterializeModuleInput): ModuleDescriptor {
 	});
 }
 
+function packageMetadata(
+	descriptor: ModuleDescriptor,
+): GeneratedPackageMetadata {
+	const exports: Record<string, string> = {
+		".": "./src/index.ts",
+		"./deployment/adapter": "./deployment/adapter.ts",
+		"./deployment/descriptor": "./deployment/descriptor.ts",
+	};
+	if (descriptor.kind === "cli") exports["./cli"] = "./src/cli.ts";
+	return {
+		name: descriptor.packageName,
+		version: descriptor.moduleVersion,
+		type: "module",
+		publishConfig: { access: "public" },
+		exports,
+	};
+}
+
 function packageJson(descriptor: ModuleDescriptor): string {
 	return `${JSON.stringify(
 		{
-			name: descriptor.packageName,
-			version: descriptor.moduleVersion,
-			private: true,
-			type: "module",
-			exports: { ".": "./src/index.ts" },
+			...packageMetadata(descriptor),
+			files: ["src", "deployment", "conformance.json", "README.md"],
 			engines: { node: "24.19.0" },
 			scripts: {
 				typecheck: "tsc --noEmit",
@@ -136,24 +201,62 @@ function descriptorSource(descriptor: ModuleDescriptor): string {
 	return `export const descriptor = ${JSON.stringify(descriptor, null, 2)} as const;\n`;
 }
 
-function profileFiles(kind: ModuleKind): Record<string, string> {
-	switch (kind) {
+function operationSource(
+	descriptor: ModuleDescriptor,
+	primitive: ModuleDescriptor["lifecycle"]["supported"][number],
+): string {
+	if (descriptor.kind === "agent-package" && primitive === "status") {
+		return `() => ({ result: { ...baseResult, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "register-agent-package", description: "Register the generated Agent Package through the authorized carrier" } }, observedEffects: [] })`;
+	}
+	if (descriptor.kind === "external-resource" && primitive === "status") {
+		return `() => ({ result: baseResult, observedEffects: [], externalAvailabilityClaim: "UNKNOWN", externalAvailabilityEvidence: "fake" })`;
+	}
+	if (primitive === "verify") {
+		return `() => ({ result: { ...baseResult, checks: [{ id: "generated-adapter", status: "PASS", message: "Generated adapter loaded and executed" }] }, observedEffects: [] })`;
+	}
+	return `() => ({ result: baseResult, observedEffects: [] })`;
+}
+
+function adapterSource(descriptor: ModuleDescriptor): string {
+	const operations = descriptor.lifecycle.supported
+		.map(
+			(primitive) =>
+				`\t${JSON.stringify(primitive)}: ${operationSource(descriptor, primitive)},`,
+		)
+		.join("\n");
+	return `const baseResult = {
+\tcontract: "deployment.result.v1",
+\tok: true,
+\tstatus: "SUCCEEDED",
+\tmoduleRef: ${JSON.stringify(descriptor.moduleRef)},
+\tmoduleVersion: ${JSON.stringify(descriptor.moduleVersion)},
+} as const;
+
+export const behaviorAdapter = {
+${operations}
+} as const;
+`;
+}
+
+function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
+	switch (descriptor.kind) {
 		case "service":
 			return {
-				"src/lifecycle.ts": `export type ServiceState = "STOPPED" | "RUNNING";\n\nexport function status(state: ServiceState): ServiceState {\n\treturn state;\n}\n\nexport function start(): ServiceState {\n\treturn "RUNNING";\n}\n\nexport function stop(): ServiceState {\n\treturn "STOPPED";\n}\n`,
+				"src/lifecycle.ts": `export type ServiceState = "STOPPED" | "RUNNING";\n\nlet state: ServiceState = "STOPPED";\n\nexport function status(): ServiceState {\n\treturn state;\n}\n\nexport function start(): ServiceState {\n\tstate = "RUNNING";\n\treturn state;\n}\n\nexport function stop(): ServiceState {\n\tstate = "STOPPED";\n\treturn state;\n}\n\nexport function restart(): ServiceState {\n\tstop();\n\treturn start();\n}\n`,
 			};
 		case "cli":
 			return {
-				"src/cli.ts": `export interface CliResult {\n\tcontract: "deployment.result.v1";\n\tok: boolean;\n}\n\nexport function run(): CliResult {\n\treturn { contract: "deployment.result.v1", ok: true };\n}\n`,
+				"src/cli.ts": `export interface CliResult {\n\tcontract: "deployment.result.v1";\n\tok: boolean;\n\tstatus: "SUCCEEDED";\n\tmoduleRef: string;\n\tmoduleVersion: string;\n}\n\nexport function runCli(args: readonly string[]): string {\n\tif (!args.includes("--json")) throw new TypeError("--json is required");\n\tconst result: CliResult = { contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${JSON.stringify(descriptor.moduleRef)}, moduleVersion: ${JSON.stringify(descriptor.moduleVersion)} };\n\treturn JSON.stringify(result);\n}\n`,
 			};
 		case "browser-extension":
 			return {
-				"deployment/browser-extension.json": `${JSON.stringify({ manifestVersion: 3, statusAdapter: "src/index.ts" }, null, 2)}\n`,
+				"deployment/browser-extension.json": `${JSON.stringify({ manifestVersion: 3, statusAdapter: "deployment/adapter.ts", verificationAdapter: "deployment/adapter.ts" }, null, 2)}\n`,
 			};
 		case "agent-package":
 			return {
 				"deployment/agent-package.md":
 					"# Agent package deployment\n\nRegistration is an explicit ACTION_REQUIRED integration.\n",
+				"deployment/agent-package.json": `${JSON.stringify({ registration: "ACTION_REQUIRED", adapter: "deployment/adapter.ts" }, null, 2)}\n`,
 			};
 		case "external-resource":
 			return {
@@ -193,8 +296,17 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 		"deployment/descriptor.ts": descriptorSource(descriptor),
 		"deployment/requirements.ts": `import { descriptor } from "./descriptor.ts";\n\nexport const requirements = descriptor.requirements;\n`,
 		"deployment/verification.ts": `import { descriptor } from "./descriptor.ts";\n\nexport const verification = descriptor.verification;\n`,
+		"deployment/adapter.ts": adapterSource(descriptor),
 		"conformance.json": `${JSON.stringify(
-			{ contract: "proflow.conformance.v1", levels: ["C1", "C2", "C3"] },
+			{
+				contract: "proflow.conformance.v1",
+				levels: ["C1", "C2", "C3"],
+				generatedArtifact: {
+					source: "@tomflow/proflow-module-template",
+					templateVersion: descriptor.templateVersion,
+					regeneration: "materializeModule",
+				},
+			},
 			null,
 			2,
 		)}\n`,
@@ -205,14 +317,40 @@ export async function materializeModule(
 	input: MaterializeModuleInput,
 ): Promise<MaterializeModuleResult> {
 	const descriptor = descriptorFor(input);
+	const metadata = packageMetadata(descriptor);
 	const packageDirectory = resolve(input.targetDirectory, input.moduleRef);
-	const files = { ...commonFiles(descriptor), ...profileFiles(input.kind) };
+	const files = { ...commonFiles(descriptor), ...profileFiles(descriptor) };
 	for (const [relativePath, content] of Object.entries(files)) {
 		const destination = join(packageDirectory, relativePath);
 		await mkdir(resolve(destination, ".."), { recursive: true });
 		await writeFile(destination, content, { encoding: "utf8", flag: "wx" });
 	}
-	return { packageDirectory, descriptor, files: Object.keys(files).sort() };
+	return {
+		packageDirectory,
+		descriptor,
+		files: Object.keys(files).sort(),
+		packageMetadata: metadata,
+		...(input.kind === "cli" ? { machineEntry: "src/cli.ts" } : {}),
+	};
+}
+
+export async function loadGeneratedBehaviorAdapter(
+	packageDirectory: string,
+): Promise<GeneratedBehaviorAdapter> {
+	const moduleUrl = pathToFileURL(
+		join(packageDirectory, "deployment/adapter.ts"),
+	);
+	moduleUrl.searchParams.set("loadedAt", `${Date.now()}-${Math.random()}`);
+	const loaded: unknown =
+		await /* architecture-allow-local-file-url-import */ import(moduleUrl.href);
+	if (typeof loaded !== "object" || loaded === null) {
+		throw new TypeError("generated adapter module is invalid");
+	}
+	const adapter = Reflect.get(loaded, "behaviorAdapter");
+	if (typeof adapter !== "object" || adapter === null) {
+		throw new TypeError("generated package does not export behaviorAdapter");
+	}
+	return adapter as GeneratedBehaviorAdapter;
 }
 
 export interface TemplateMigrationInput {

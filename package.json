@@ -13,7 +13,8 @@
 		"format:check": "biome format .",
 		"typecheck": "tsc --noEmit",
 		"test": "node --test 'packages/*/tests/**/*.test.ts'",
-		"check": "pnpm lint && pnpm typecheck && pnpm test"
+		"architecture": "node packages/deployment-conformance/src/architecture-cli.ts",
+		"check": "pnpm lint && pnpm typecheck && pnpm test && pnpm architecture"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.6",

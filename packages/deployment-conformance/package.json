@@ -1,13 +1,19 @@
 {
 	"name": "@tomflow/proflow-deployment-conformance",
 	"version": "0.1.0",
-	"private": true,
 	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
 	"exports": {
 		".": "./src/index.ts",
-		"./cli": "./src/cli.ts"
+		"./architecture": "./src/architecture.ts",
+		"./cli": "./src/cli.ts",
+		"./deployment/adapter": "./deployment/adapter.ts",
+		"./deployment/descriptor": "./deployment/descriptor.ts"
 	},
 	"bin": {
+		"proflow-architecture": "./src/architecture-cli.ts",
 		"proflow-conformance": "./src/cli.ts"
 	},
 	"scripts": {

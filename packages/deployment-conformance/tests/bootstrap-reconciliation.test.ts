@@ -6,51 +6,15 @@ import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { promisify } from "node:util";
 
-import {
-	type ModuleDescriptor,
-	parseModuleDescriptor,
-} from "@tomflow/proflow-module-contract";
+import type { ModuleDescriptor } from "@tomflow/proflow-module-contract";
 import { materializeModule } from "@tomflow/proflow-module-template";
-import { descriptor as contractDescriptorInput } from "../../module-contract/deployment/descriptor.ts";
-import { descriptor as templateDescriptorInput } from "../../module-template/deployment/descriptor.ts";
-import { descriptor as conformanceDescriptorInput } from "../deployment/descriptor.ts";
 import {
-	type BehaviorAdapter,
-	type BehaviorObservation,
-	runBehaviorConformance,
+	runGeneratedPackageConformance,
 	runPackageConformance,
 	runStaticConformance,
 } from "../src/index.ts";
 
 const execFileAsync = promisify(execFile);
-
-function behaviorAdapter(descriptor: ModuleDescriptor): BehaviorAdapter {
-	const adapter: BehaviorAdapter = {};
-	for (const primitive of descriptor.lifecycle.supported) {
-		adapter[primitive] = (): BehaviorObservation => ({
-			result: {
-				contract: "deployment.result.v1",
-				ok: true,
-				status: "SUCCEEDED",
-				moduleRef: descriptor.moduleRef,
-				moduleVersion: descriptor.moduleVersion,
-				checks: [
-					{ id: "bootstrap-check", status: "PASS", message: "observed" },
-				],
-			},
-			observedEffects: [],
-			...(descriptor.kind === "external-resource" && primitive === "status"
-				? {
-						externalAvailabilityClaim: "UNKNOWN",
-						externalAvailabilityEvidence: "fake",
-						readinessClaim: "UNKNOWN",
-						readinessEvidence: "fake",
-					}
-				: {}),
-		});
-	}
-	return adapter;
-}
 
 test("Bootstrap closure generates, typechecks, validates, and conforms all six profiles", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-bootstrap-closure-"));
@@ -72,20 +36,14 @@ test("Bootstrap closure generates, typechecks, validates, and conforms all six p
 		const generated = await materializeModule({
 			targetDirectory: root,
 			moduleRef,
-			packageName: `@tomflow/${moduleRef}`,
+			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
 		});
-		const descriptor = parseModuleDescriptor(generated.descriptor);
-		assert.equal(runStaticConformance(descriptor).status, "PASS");
-		assert.equal(
-			(await runPackageConformance(generated.packageDirectory, descriptor))
-				.status,
-			"PASS",
-		);
-		assert.equal(
-			(await runBehaviorConformance(descriptor, behaviorAdapter(descriptor)))
-				.status,
-			"PASS",
+		assert.deepEqual(
+			(await runGeneratedPackageConformance(generated.packageDirectory)).map(
+				(result) => result.status,
+			),
+			["PASS", "PASS", "PASS"],
 		);
 		await execFileAsync(process.execPath, [
 			tsc,
@@ -102,7 +60,7 @@ test("Bootstrap closure deterministically rejects intentional C1, C2, and C3 bre
 	const generated = await materializeModule({
 		targetDirectory: root,
 		moduleRef: "bootstrap-broken",
-		packageName: "@tomflow/bootstrap-broken",
+		packageName: "@tomflow/proflow-bootstrap-broken",
 		kind: "service",
 	});
 	assert.equal(
@@ -130,48 +88,37 @@ test("Bootstrap closure deterministically rejects intentional C1, C2, and C3 bre
 		"FAIL",
 	);
 
-	const adapter = behaviorAdapter(generated.descriptor);
-	adapter.preflight = () => ({
-		result: {
-			contract: "deployment.result.v1",
-			ok: true,
-			status: "SUCCEEDED",
-			moduleRef: generated.descriptor.moduleRef,
-			moduleVersion: generated.descriptor.moduleVersion,
-		},
-		observedEffects: ["started process"],
+	const brokenBehavior = await materializeModule({
+		targetDirectory: root,
+		moduleRef: "bootstrap-broken-behavior",
+		packageName: "@tomflow/proflow-bootstrap-broken-behavior",
+		kind: "service",
 	});
+	await writeFile(
+		join(brokenBehavior.packageDirectory, "deployment/adapter.ts"),
+		"export const behaviorAdapter = {};\n",
+	);
 	assert.equal(
-		(await runBehaviorConformance(generated.descriptor, adapter)).status,
+		(await runGeneratedPackageConformance(brokenBehavior.packageDirectory))[2]
+			.status,
 		"FAIL",
 	);
 });
 
 test("Bootstrap packages reconcile with their own Module Contract and Package gates", async () => {
 	const repositoryRoot = resolve(import.meta.dirname, "../../..");
-	const packages: Array<[string, ModuleDescriptor]> = [
-		["module-contract", parseModuleDescriptor(contractDescriptorInput)],
-		["module-template", parseModuleDescriptor(templateDescriptorInput)],
-		[
-			"deployment-conformance",
-			parseModuleDescriptor(conformanceDescriptorInput),
-		],
-	];
-	for (const [directory, descriptor] of packages) {
-		assert.equal(runStaticConformance(descriptor).status, "PASS");
-		assert.equal(
+	for (const directory of [
+		"module-contract",
+		"module-template",
+		"deployment-conformance",
+	]) {
+		assert.deepEqual(
 			(
-				await runPackageConformance(
+				await runGeneratedPackageConformance(
 					join(repositoryRoot, "packages", directory),
-					descriptor,
 				)
-			).status,
-			"PASS",
-		);
-		assert.equal(
-			(await runBehaviorConformance(descriptor, behaviorAdapter(descriptor)))
-				.status,
-			"PASS",
+			).map((result) => result.status),
+			["PASS", "PASS", "PASS"],
 		);
 	}
 });

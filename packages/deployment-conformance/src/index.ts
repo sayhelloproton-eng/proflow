@@ -1,5 +1,6 @@
-import { readFile, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { readdir, readFile, stat } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import {
 	type LifecyclePrimitive,
@@ -30,14 +31,110 @@ function gate(
 
 export function runStaticConformance(input: unknown): ConformanceGateResult {
 	const parsed = moduleDescriptorSchema.safeParse(input);
-	if (parsed.success) return gate("C1", []);
-	return gate(
-		"C1",
-		parsed.error.issues.map((issue) => ({
-			code: "CONTRACT_INVALID",
-			message: `${issue.path.join(".") || "descriptor"}: ${issue.message}`,
-		})),
-	);
+	if (!parsed.success) {
+		return gate(
+			"C1",
+			parsed.error.issues.map((issue) => ({
+				code: "CONTRACT_INVALID",
+				message: `${issue.path.join(".") || "descriptor"}: ${issue.message}`,
+			})),
+		);
+	}
+	const descriptor = parsed.data;
+	const issues: ConformanceIssue[] = [];
+	const rangePattern =
+		/^(?:(?:>=|>|<=|<|=)?\d+\.\d+\.\d+)(?:\s+(?:(?:>=|>|<=|<|=)?\d+\.\d+\.\d+))*$/;
+	if (!rangePattern.test(descriptor.platformCompatibility)) {
+		issues.push({
+			code: "PLATFORM_COMPATIBILITY_INVALID",
+			message: "platformCompatibility must be a machine-readable SemVer range",
+		});
+	}
+	const provided = new Set<string>();
+	for (const item of descriptor.provides) {
+		if (provided.has(item.contractRef)) {
+			issues.push({
+				code: "PROVIDE_DUPLICATE",
+				message: `duplicate provide ${item.contractRef}`,
+			});
+		}
+		provided.add(item.contractRef);
+	}
+	const required = new Set<string>();
+	for (const item of descriptor.requires) {
+		if (!rangePattern.test(item.versionRange)) {
+			issues.push({
+				code: "REQUIRE_VERSION_INVALID",
+				message: `invalid require range ${item.contractRef}`,
+			});
+		}
+		if (required.has(item.contractRef)) {
+			issues.push({
+				code: "REQUIRE_DUPLICATE",
+				message: `duplicate require ${item.contractRef}`,
+			});
+		}
+		if (provided.has(item.contractRef)) {
+			issues.push({
+				code: "PROVIDE_REQUIRE_CONFLICT",
+				message: `${item.contractRef} is both provided and required`,
+			});
+		}
+		required.add(item.contractRef);
+	}
+	const lifecycle = new Set(descriptor.lifecycle.supported);
+	if (
+		descriptor.kind === "service" &&
+		!["status", "start", "stop", "restart", "verify"].every((item) =>
+			lifecycle.has(item as LifecyclePrimitive),
+		)
+	) {
+		issues.push({
+			code: "SERVICE_LIFECYCLE_INCOMPLETE",
+			message: "service requires status/start/stop/restart/verify",
+		});
+	}
+	if (
+		descriptor.kind === "service" &&
+		!descriptor.effects.some((effect) => effect.kind === "process")
+	) {
+		issues.push({
+			code: "SERVICE_PROCESS_EFFECT_MISSING",
+			message: "service must declare its process effect",
+		});
+	}
+	if (
+		["browser-extension", "agent-package", "external-resource"].includes(
+			descriptor.kind,
+		) &&
+		!["status", "verify"].every((item) =>
+			lifecycle.has(item as LifecyclePrimitive),
+		)
+	) {
+		issues.push({
+			code: "PROFILE_OBSERVABILITY_INCOMPLETE",
+			message: `${descriptor.kind} requires status and verify`,
+		});
+	}
+	if (
+		descriptor.kind === "library" &&
+		descriptor.effects.some((effect) => effect.kind === "process")
+	) {
+		issues.push({
+			code: "LIBRARY_PROCESS_EFFECT_INVALID",
+			message: "library cannot be a daemon process",
+		});
+	}
+	if (
+		new Set(descriptor.verification.checks.map((check) => check.id)).size !==
+		descriptor.verification.checks.length
+	) {
+		issues.push({
+			code: "VERIFICATION_DUPLICATE",
+			message: "verification check ids must be unique",
+		});
+	}
+	return gate("C1", issues);
 }
 
 interface PackageMetadata {
@@ -46,6 +143,9 @@ interface PackageMetadata {
 	type?: unknown;
 	exports?: unknown;
 	bin?: unknown;
+	private?: unknown;
+	publishConfig?: unknown;
+	files?: unknown;
 }
 
 function containsPlaintextSecret(input: unknown, key = ""): boolean {
@@ -69,11 +169,50 @@ async function pathExists(path: string): Promise<boolean> {
 	}
 }
 
-function exportedEntry(metadata: PackageMetadata): string | undefined {
+async function readJson(path: string): Promise<unknown> {
+	return JSON.parse(await readFile(path, "utf8")) as unknown;
+}
+
+async function compilerOptionsFor(
+	tsconfigPath: string,
+): Promise<Record<string, unknown>> {
+	const input = await readJson(tsconfigPath);
+	if (typeof input !== "object" || input === null) return {};
+	const own = Reflect.get(input, "compilerOptions");
+	const ownOptions =
+		typeof own === "object" && own !== null
+			? (own as Record<string, unknown>)
+			: {};
+	const extended = Reflect.get(input, "extends");
+	if (typeof extended !== "string") return ownOptions;
+	const inherited = await compilerOptionsFor(
+		resolve(dirname(tsconfigPath), extended),
+	);
+	return { ...inherited, ...ownOptions };
+}
+
+async function sourceFiles(directory: string): Promise<string[]> {
+	const collected: string[] = [];
+	for (const entry of await readdir(directory, { withFileTypes: true })) {
+		const path = join(directory, entry.name);
+		if (entry.isDirectory()) collected.push(...(await sourceFiles(path)));
+		else if (entry.isFile()) collected.push(path);
+	}
+	return collected;
+}
+
+function exportEntry(
+	metadata: PackageMetadata,
+	key: string,
+): string | undefined {
 	if (typeof metadata.exports !== "object" || metadata.exports === null)
 		return undefined;
-	const root = Reflect.get(metadata.exports, ".");
-	return typeof root === "string" ? root : undefined;
+	const value = Reflect.get(metadata.exports, key);
+	return typeof value === "string" ? value : undefined;
+}
+
+function exportedEntry(metadata: PackageMetadata): string | undefined {
+	return exportEntry(metadata, ".");
 }
 
 export async function runPackageConformance(
@@ -112,6 +251,22 @@ export async function runPackageConformance(
 			message: "package type must be module",
 		});
 	}
+	if (metadata.private === true) {
+		issues.push({
+			code: "FORMAL_MODULE_PRIVATE",
+			message: "formal Module packages must be publishable",
+		});
+	}
+	if (
+		typeof metadata.publishConfig !== "object" ||
+		metadata.publishConfig === null ||
+		Reflect.get(metadata.publishConfig, "access") !== "public"
+	) {
+		issues.push({
+			code: "PUBLISH_ACCESS_INVALID",
+			message: "scoped Module package must publish with public access",
+		});
+	}
 	if (containsPlaintextSecret(metadata)) {
 		issues.push({
 			code: "PACKAGE_SECRET_LEAK",
@@ -140,14 +295,116 @@ export async function runPackageConformance(
 			message: "conformance config is missing",
 		});
 	}
+	try {
+		const conformance = await readJson(
+			join(packageDirectory, "conformance.json"),
+		);
+		if (
+			typeof conformance !== "object" ||
+			conformance === null ||
+			Reflect.get(conformance, "contract") !== "proflow.conformance.v1" ||
+			JSON.stringify(Reflect.get(conformance, "levels")) !==
+				JSON.stringify(["C1", "C2", "C3"])
+		) {
+			issues.push({
+				code: "CONFORMANCE_METADATA_INVALID",
+				message: "conformance metadata is invalid",
+			});
+		}
+		const generated =
+			typeof conformance === "object" && conformance !== null
+				? Reflect.get(conformance, "generatedArtifact")
+				: undefined;
+		if (
+			generated !== undefined &&
+			(typeof generated !== "object" ||
+				generated === null ||
+				Reflect.get(generated, "source") !==
+					"@tomflow/proflow-module-template" ||
+				Reflect.get(generated, "templateVersion") !==
+					descriptor.templateVersion ||
+				Reflect.get(generated, "regeneration") !== "materializeModule")
+		) {
+			issues.push({
+				code: "GENERATED_TRUTH_SOURCE_INVALID",
+				message: "generated artifact provenance is invalid",
+			});
+		}
+	} catch {
+		issues.push({
+			code: "CONFORMANCE_METADATA_INVALID",
+			message: "conformance metadata cannot be parsed",
+		});
+	}
+	const adapterEntry = exportEntry(metadata, "./deployment/adapter");
+	if (
+		adapterEntry === undefined ||
+		!(await pathExists(resolve(packageDirectory, adapterEntry)))
+	) {
+		issues.push({
+			code: "ADAPTER_EXPORT_INVALID",
+			message: "public behavior adapter export is missing",
+		});
+	}
+	const descriptorEntry = exportEntry(metadata, "./deployment/descriptor");
+	if (
+		descriptorEntry === undefined ||
+		!(await pathExists(resolve(packageDirectory, descriptorEntry)))
+	) {
+		issues.push({
+			code: "DESCRIPTOR_EXPORT_INVALID",
+			message: "public descriptor export is missing",
+		});
+	}
 	if (
 		descriptor.kind === "cli" &&
-		!(await pathExists(join(packageDirectory, "src/cli.ts")))
+		(!(await pathExists(join(packageDirectory, "src/cli.ts"))) ||
+			exportEntry(metadata, "./cli") !== "./src/cli.ts")
 	) {
 		issues.push({
 			code: "MACHINE_ENTRY_MISSING",
 			message: "CLI machine entry is missing",
 		});
+	}
+	if (
+		descriptor.kind === "cli" &&
+		exportEntry(metadata, "./cli") !== undefined
+	) {
+		try {
+			const cliUrl = pathToFileURL(
+				resolve(packageDirectory, exportEntry(metadata, "./cli") ?? ""),
+			);
+			cliUrl.searchParams.set("conformance", `${Date.now()}`);
+			const cliModule: unknown =
+				await /* architecture-allow-local-file-url-import */ import(
+					cliUrl.href
+				);
+			const runCli =
+				typeof cliModule === "object" && cliModule !== null
+					? Reflect.get(cliModule, "runCli")
+					: undefined;
+			if (typeof runCli !== "function") {
+				issues.push({
+					code: "MACHINE_ENTRY_INVALID",
+					message: "CLI must export runCli",
+				});
+			} else {
+				const output: unknown = await runCli(["--json"]);
+				const parsedOutput: unknown =
+					typeof output === "string" ? JSON.parse(output) : undefined;
+				if (!moduleOperationResultSchema.safeParse(parsedOutput).success) {
+					issues.push({
+						code: "MACHINE_RESULT_INVALID",
+						message: "CLI JSON output must use the structured result contract",
+					});
+				}
+			}
+		} catch {
+			issues.push({
+				code: "MACHINE_ENTRY_INVALID",
+				message: "CLI machine entry cannot execute",
+			});
+		}
 	}
 	if (
 		descriptor.kind === "external-resource" &&
@@ -157,6 +414,37 @@ export async function runPackageConformance(
 			code: "ADAPTER_ENTRY_MISSING",
 			message: "external resource adapter is missing",
 		});
+	}
+	try {
+		const compilerOptions = await compilerOptionsFor(
+			join(packageDirectory, "tsconfig.json"),
+		);
+		if (compilerOptions.strict !== true || compilerOptions.noEmit !== true) {
+			issues.push({
+				code: "TYPESCRIPT_GATE_INVALID",
+				message: "package must enable strict/noEmit",
+			});
+		}
+	} catch {
+		issues.push({
+			code: "TYPESCRIPT_GATE_INVALID",
+			message: "tsconfig cannot be parsed",
+		});
+	}
+	for (const file of await sourceFiles(packageDirectory)) {
+		if (/\/(?:tests?|node_modules)\//.test(file)) continue;
+		if (!/\.(?:ts|js|json)$/.test(file)) continue;
+		const content = await readFile(file, "utf8");
+		if (
+			/\b(?:apiKey|apiToken|password|secret)\s*[:=]\s*["'][^"']+["']/.test(
+				content,
+			)
+		) {
+			issues.push({
+				code: "PUBLISH_ARTIFACT_SECRET",
+				message: `plaintext secret in ${file}`,
+			});
+		}
 	}
 	return gate("C2", issues);
 }
@@ -254,6 +542,94 @@ export async function runBehaviorConformance(
 		}
 	}
 	return gate("C3", issues);
+}
+
+async function loadGeneratedDescriptor(
+	packageDirectory: string,
+): Promise<unknown> {
+	const url = pathToFileURL(join(packageDirectory, "deployment/descriptor.ts"));
+	url.searchParams.set("conformance", `${Date.now()}-${Math.random()}`);
+	const loaded: unknown =
+		await /* architecture-allow-local-file-url-import */ import(url.href);
+	return typeof loaded === "object" && loaded !== null
+		? Reflect.get(loaded, "descriptor")
+		: undefined;
+}
+
+async function loadGeneratedAdapter(
+	packageDirectory: string,
+): Promise<BehaviorAdapter> {
+	const url = pathToFileURL(join(packageDirectory, "deployment/adapter.ts"));
+	url.searchParams.set("conformance", `${Date.now()}-${Math.random()}`);
+	const loaded: unknown =
+		await /* architecture-allow-local-file-url-import */ import(url.href);
+	const adapter =
+		typeof loaded === "object" && loaded !== null
+			? Reflect.get(loaded, "behaviorAdapter")
+			: undefined;
+	if (typeof adapter !== "object" || adapter === null) {
+		throw new TypeError("generated package behaviorAdapter is missing");
+	}
+	return adapter as BehaviorAdapter;
+}
+
+export async function runGeneratedPackageConformance(
+	packageDirectory: string,
+): Promise<
+	[ConformanceGateResult, ConformanceGateResult, ConformanceGateResult]
+> {
+	let descriptorInput: unknown;
+	try {
+		descriptorInput = await loadGeneratedDescriptor(packageDirectory);
+	} catch {
+		const failure = gate("C1", [
+			{
+				code: "DESCRIPTOR_LOAD_FAILED",
+				message: "generated descriptor cannot be loaded",
+			},
+		]);
+		return [
+			failure,
+			gate("C2", [
+				{ code: "C1_REQUIRED", message: "C2 requires a valid descriptor" },
+			]),
+			gate("C3", [
+				{ code: "C1_REQUIRED", message: "C3 requires a valid descriptor" },
+			]),
+		];
+	}
+	const c1 = runStaticConformance(descriptorInput);
+	const parsed = moduleDescriptorSchema.safeParse(descriptorInput);
+	if (!parsed.success || c1.status === "FAIL") {
+		return [
+			c1,
+			gate("C2", [{ code: "C1_REQUIRED", message: "C2 requires C1 PASS" }]),
+			gate("C3", [{ code: "C1_REQUIRED", message: "C3 requires C1 PASS" }]),
+		];
+	}
+	const c2 = await runPackageConformance(packageDirectory, parsed.data);
+	if (c2.status === "FAIL") {
+		return [
+			c1,
+			c2,
+			gate("C3", [{ code: "C2_REQUIRED", message: "C3 requires C2 PASS" }]),
+		];
+	}
+	try {
+		const adapter = await loadGeneratedAdapter(packageDirectory);
+		return [c1, c2, await runBehaviorConformance(parsed.data, adapter)];
+	} catch {
+		return [
+			c1,
+			c2,
+			gate("C3", [
+				{
+					code: "ADAPTER_LOAD_FAILED",
+					message: "generated adapter cannot be loaded",
+				},
+			]),
+		];
+	}
 }
 
 export interface GptActionOperation {

@@ -58,7 +58,7 @@ async function generatedExternal(context: TestContext) {
 	return materializeModule({
 		targetDirectory: root,
 		moduleRef: "fixture-external-resource",
-		packageName: "@tomflow/fixture-external-resource",
+		packageName: "@tomflow/proflow-fixture-external-resource",
 		kind: "external-resource",
 	});
 }
@@ -69,6 +69,25 @@ test("CP-DPL-CONF-01 C1 rejects missing, version, config, lifecycle, and verific
 	const broken: unknown[] = [
 		{ ...generated.descriptor, moduleRef: undefined },
 		{ ...generated.descriptor, moduleVersion: "not-semver" },
+		{ ...generated.descriptor, platformCompatibility: "latest" },
+		{
+			...generated.descriptor,
+			provides: [
+				{ contractRef: "fixture.public", version: "1.0.0" },
+				{ contractRef: "fixture.public", version: "1.0.0" },
+			],
+		},
+		{
+			...generated.descriptor,
+			provides: [{ contractRef: "fixture.public", version: "1.0.0" }],
+			requires: [
+				{ contractRef: "fixture.public", versionRange: ">=1.0.0 <2.0.0" },
+			],
+		},
+		{
+			...generated.descriptor,
+			requires: [{ contractRef: "fixture.public", versionRange: "compatible" }],
+		},
 		{
 			...generated.descriptor,
 			configSlots: [
@@ -85,6 +104,11 @@ test("CP-DPL-CONF-01 C1 rejects missing, version, config, lifecycle, and verific
 			...generated.descriptor,
 			kind: "library",
 			lifecycle: { supported: ["describe", "start"] },
+		},
+		{
+			...generated.descriptor,
+			kind: "service",
+			lifecycle: { supported: ["status", "verify"] },
 		},
 		{ ...generated.descriptor, verification: { checks: [] } },
 	];
@@ -112,40 +136,53 @@ test("CP-DPL-CONF-02 C2 inspects real package metadata, exports, entry, and vers
 		packagePath,
 		`${JSON.stringify({ ...original, version: "9.9.9" }, null, 2)}\n`,
 	);
-	assert.equal(
-		(
-			await runPackageConformance(
-				generated.packageDirectory,
-				generated.descriptor,
-			)
-		).status,
-		"FAIL",
+	let result = await runPackageConformance(
+		generated.packageDirectory,
+		generated.descriptor,
+	);
+	assert.ok(
+		result.issues.some((issue) => issue.code === "PACKAGE_VERSION_MISMATCH"),
 	);
 	await writeFile(
 		packagePath,
 		`${JSON.stringify({ ...original, exports: { ".": "./src/missing.ts" } }, null, 2)}\n`,
 	);
-	assert.equal(
-		(
-			await runPackageConformance(
-				generated.packageDirectory,
-				generated.descriptor,
-			)
-		).status,
-		"FAIL",
+	result = await runPackageConformance(
+		generated.packageDirectory,
+		generated.descriptor,
+	);
+	assert.ok(
+		result.issues.some((issue) => issue.code === "PACKAGE_ENTRY_INVALID"),
 	);
 	await writeFile(
 		packagePath,
 		`${JSON.stringify({ ...original, config: { apiToken: "plaintext" } }, null, 2)}\n`,
 	);
-	assert.equal(
-		(
-			await runPackageConformance(
-				generated.packageDirectory,
-				generated.descriptor,
-			)
-		).status,
-		"FAIL",
+	result = await runPackageConformance(
+		generated.packageDirectory,
+		generated.descriptor,
+	);
+	assert.ok(
+		result.issues.some((issue) => issue.code === "PACKAGE_SECRET_LEAK"),
+	);
+
+	await writeFile(packagePath, `${JSON.stringify(original, null, 2)}\n`);
+	const conformancePath = join(generated.packageDirectory, "conformance.json");
+	const conformance = JSON.parse(
+		await readFile(conformancePath, "utf8"),
+	) as Record<string, unknown>;
+	await writeFile(
+		conformancePath,
+		`${JSON.stringify({ ...conformance, generatedArtifact: { source: "unknown" } }, null, 2)}\n`,
+	);
+	result = await runPackageConformance(
+		generated.packageDirectory,
+		generated.descriptor,
+	);
+	assert.ok(
+		result.issues.some(
+			(issue) => issue.code === "GENERATED_TRUTH_SOURCE_INVALID",
+		),
 	);
 });
 

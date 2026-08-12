@@ -1,10 +1,14 @@
 {
 	"name": "@tomflow/proflow-module-template",
 	"version": "0.1.0",
-	"private": true,
 	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./deployment/adapter": "./deployment/adapter.ts",
+		"./deployment/descriptor": "./deployment/descriptor.ts"
 	},
 	"scripts": {
 		"test": "node --test tests/**/*.test.ts",

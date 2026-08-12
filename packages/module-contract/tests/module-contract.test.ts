@@ -13,7 +13,7 @@ const libraryDescriptor = {
 	contract: "module",
 	contractVersion: "1.0.0",
 	moduleRef: "example-library",
-	packageName: "@tomflow/example-library",
+	packageName: "@tomflow/proflow-example-library",
 	moduleVersion: "1.0.0",
 	kind: "library",
 	templateVersion: "1.0.0",
@@ -131,7 +131,7 @@ test("CP-DPL-CON-04 libraries and uncontrollable external resources do not fake 
 	const external = parseModuleDescriptor({
 		...libraryDescriptor,
 		moduleRef: "external-provider",
-		packageName: "@tomflow/external-provider-adapter",
+		packageName: "@tomflow/proflow-external-provider-adapter",
 		kind: "external-resource",
 		lifecycle: {
 			supported: ["describe", "preflight", "status", "verify", "doctor"],

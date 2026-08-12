@@ -39,7 +39,7 @@ test("CP-DPL-TPL-01 materializes six profiles with only their real responsibilit
 		const result = await materializeModule({
 			targetDirectory: root,
 			moduleRef,
-			packageName: `@tomflow/${moduleRef}`,
+			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
 		});
 		assert.equal(parseModuleDescriptor(result.descriptor).kind, kind);
@@ -78,7 +78,7 @@ test("CP-DPL-TPL-02 emits minimum metadata and verification without fake lifecyc
 		const result = await materializeModule({
 			targetDirectory: root,
 			moduleRef,
-			packageName: `@tomflow/${moduleRef}`,
+			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
 		});
 		for (const relative of [
@@ -122,7 +122,7 @@ test("CP-DPL-TPL-03 generated TypeScript packages pass strict tsc with typed pub
 		const result = await materializeModule({
 			targetDirectory: root,
 			moduleRef,
-			packageName: `@tomflow/${moduleRef}`,
+			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
 		});
 		await execFileAsync(process.execPath, [

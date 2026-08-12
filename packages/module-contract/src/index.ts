@@ -7,7 +7,7 @@ const identifier = z
 const packageName = z
 	.string()
 	.min(1)
-	.regex(/^@tomflow\/[a-z][a-z0-9-]*$/);
+	.regex(/^@tomflow\/proflow-[a-z][a-z0-9-]*$/);
 const semver = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
 const versionRange = z.string().min(1);
 
@@ -334,12 +334,100 @@ function major(version: string): number {
 	return Number.parseInt(version.split(".")[0] ?? "0", 10);
 }
 
+function versionParts(version: string): [number, number, number] {
+	const [majorPart = "0", minorPart = "0", patchPart = "0"] =
+		version.split(".");
+	return [
+		Number.parseInt(majorPart, 10),
+		Number.parseInt(minorPart, 10),
+		Number.parseInt(patchPart, 10),
+	];
+}
+
+function compareVersions(left: string, right: string): number {
+	const leftParts = versionParts(left);
+	const rightParts = versionParts(right);
+	for (let index = 0; index < leftParts.length; index += 1) {
+		const difference = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
+		if (difference !== 0) return difference;
+	}
+	return 0;
+}
+
+interface VersionBounds {
+	minimum?: string;
+	minimumInclusive: boolean;
+	maximum?: string;
+	maximumInclusive: boolean;
+}
+
+function versionBounds(range: string): VersionBounds | undefined {
+	const bounds: VersionBounds = {
+		minimumInclusive: true,
+		maximumInclusive: false,
+	};
+	for (const token of range.trim().split(/\s+/)) {
+		const match = /^(>=|>|<=|<|=)?(\d+\.\d+\.\d+)$/.exec(token);
+		if (match?.[2] === undefined) return undefined;
+		const operator = match[1] ?? "=";
+		if (operator === ">=" || operator === ">") {
+			bounds.minimum = match[2];
+			bounds.minimumInclusive = operator === ">=";
+		} else if (operator === "<=" || operator === "<") {
+			bounds.maximum = match[2];
+			bounds.maximumInclusive = operator === "<=";
+		} else {
+			bounds.minimum = match[2];
+			bounds.maximum = match[2];
+			bounds.minimumInclusive = true;
+			bounds.maximumInclusive = true;
+		}
+	}
+	return bounds;
+}
+
+function rangeIsTighter(currentRange: string, targetRange: string): boolean {
+	if (currentRange === targetRange) return false;
+	const current = versionBounds(currentRange);
+	const target = versionBounds(targetRange);
+	if (current === undefined || target === undefined) return true;
+	if (current.minimum === undefined && target.minimum !== undefined)
+		return true;
+	if (
+		current.minimum !== undefined &&
+		target.minimum !== undefined &&
+		(compareVersions(target.minimum, current.minimum) > 0 ||
+			(compareVersions(target.minimum, current.minimum) === 0 &&
+				current.minimumInclusive &&
+				!target.minimumInclusive))
+	) {
+		return true;
+	}
+	if (current.maximum === undefined && target.maximum !== undefined)
+		return true;
+	if (
+		current.maximum !== undefined &&
+		target.maximum !== undefined &&
+		(compareVersions(target.maximum, current.maximum) < 0 ||
+			(compareVersions(target.maximum, current.maximum) === 0 &&
+				current.maximumInclusive &&
+				!target.maximumInclusive))
+	) {
+		return true;
+	}
+	return false;
+}
+
 export function assessModuleCompatibility(
 	current: ModuleDescriptor,
 	target: ModuleDescriptor,
 ): CompatibilityAssessment {
 	const breakingChanges: string[] = [];
-	if (current.moduleRef !== target.moduleRef || current.kind !== target.kind) {
+	if (
+		current.moduleRef !== target.moduleRef ||
+		current.packageName !== target.packageName ||
+		current.kind !== target.kind
+	) {
 		breakingChanges.push("module identity or kind changed");
 	}
 	if (major(current.contractVersion) !== major(target.contractVersion)) {
@@ -353,10 +441,41 @@ export function assessModuleCompatibility(
 			breakingChanges.push(
 				`provided contract removed: ${provided.contractRef}`,
 			);
-		} else if (major(replacement.version) !== major(provided.version)) {
+		} else if (
+			major(replacement.version) !== major(provided.version) ||
+			compareVersions(replacement.version, provided.version) < 0
+		) {
 			breakingChanges.push(
 				`provided contract major version changed: ${provided.contractRef}`,
 			);
+		}
+	}
+	for (const required of target.requires) {
+		const previous = current.requires.find(
+			(item) => item.contractRef === required.contractRef,
+		);
+		if (previous === undefined && required.optional !== true) {
+			breakingChanges.push(`required contract added: ${required.contractRef}`);
+		} else if (
+			previous !== undefined &&
+			previous.optional === true &&
+			required.optional !== true
+		) {
+			breakingChanges.push(
+				`optional contract became required: ${required.contractRef}`,
+			);
+		} else if (
+			previous !== undefined &&
+			rangeIsTighter(previous.versionRange, required.versionRange)
+		) {
+			breakingChanges.push(
+				`required contract range tightened: ${required.contractRef}`,
+			);
+		}
+	}
+	for (const previous of current.configSlots) {
+		if (!target.configSlots.some((slot) => slot.key === previous.key)) {
+			breakingChanges.push(`config removed: ${previous.key}`);
 		}
 	}
 	for (const slot of target.configSlots) {
@@ -365,12 +484,38 @@ export function assessModuleCompatibility(
 			breakingChanges.push(`required config added: ${slot.key}`);
 		} else if (previous !== undefined && previous.type !== slot.type) {
 			breakingChanges.push(`config type changed: ${slot.key}`);
+		} else if (
+			previous !== undefined &&
+			previous.required === false &&
+			slot.required &&
+			slot.default === undefined
+		) {
+			breakingChanges.push(`config became required: ${slot.key}`);
 		}
 	}
 	for (const primitive of current.lifecycle.supported) {
 		if (!target.lifecycle.supported.includes(primitive)) {
 			breakingChanges.push(`lifecycle removed: ${primitive}`);
 		}
+	}
+	for (const check of current.verification.checks) {
+		const replacement = target.verification.checks.find(
+			(item) => item.id === check.id,
+		);
+		if (
+			replacement === undefined ||
+			replacement.lifecycle !== check.lifecycle
+		) {
+			breakingChanges.push(`verification changed or removed: ${check.id}`);
+		}
+	}
+	if (JSON.stringify(current.effects) !== JSON.stringify(target.effects)) {
+		breakingChanges.push("deployment effects changed");
+	}
+	if (
+		rangeIsTighter(current.platformCompatibility, target.platformCompatibility)
+	) {
+		breakingChanges.push("platform compatibility tightened");
 	}
 	return { compatible: breakingChanges.length === 0, breakingChanges };
 }
