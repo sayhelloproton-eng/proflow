@@ -28,6 +28,7 @@ proton-workspace/.proflow/
 
 ```text
 DEFAULT_PROJECT = repos/proflow
+CURRENT_IMPLEMENTATION_TRUTH = spec/
 LEGACY_DEFAULT_ACCESS = DENY
 LEGACY_REFERENCE_ALLOWED only when the current task explicitly says so
 ```
@@ -36,14 +37,21 @@ Do not inherit `../ai-agent-platform/AGENTS.md` or any legacy repository rule.
 
 ## Truth order
 
-For Phase 3 implementation, use this order of authority:
+For ProFlow implementation, use this order of authority:
 
-1. FINAL FROZEN Phase 3 DDD/SDD under `spec/frozen/phase3/source/`.
-2. FINAL FROZEN Phase 3 pre-development Test Plan under the same directory.
-3. Current ProFlow code that has passed the required TDD gates.
-4. `../ai-agent-platform/` evidence only after the current task explicitly authorizes legacy reference access.
+1. `spec/` as the current implementation specification.
+2. Current ProFlow code that has passed the required TDD gates.
+3. `../ai-agent-platform/` evidence only after the current task explicitly authorizes legacy reference access.
 
 The legacy repository is never a current contract, architecture, state, package-layout, or directory truth source.
+
+Before implementation, read:
+
+1. `spec/README.md`.
+2. `spec/IMPLEMENTATION-BASELINE.md`.
+3. `spec/DOCUMENT-INDEX.json`.
+4. `spec/MODULE-REGISTRY.json`.
+5. `spec/平台架构与公共约定/06-测试计划/TEST-PLAN-INDEX.json`.
 
 ## Hard engineering rules
 
@@ -98,5 +106,5 @@ Never silently mutate frozen semantics.
 
 ## Repository bootstrap scope
 
-The Frozen architecture and Test Plan are landed under `spec/frozen/phase3/source/`.
+The current implementation specification and Test Plan are landed under `spec/`.
 Do not start domain/module implementation until a separate task explicitly opens the applicable Wave/TDD gate.

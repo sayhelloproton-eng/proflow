@@ -1,0 +1,16 @@
+{
+  "contract": "proflow.spec.migration-conformance.v1",
+  "status": "PASS",
+  "scope": "mechanical migration integrity only; architecture semantics originate from source baseline plus explicitly approved implementation-technology overrides",
+  "canonicalMarkdownFiles": 216,
+  "documentIndexEntries": 178,
+  "uniqueDocumentIds": 178,
+  "moduleRegistryEntries": 20,
+  "externalResourceEntries": 4,
+  "testPlanIndexEntries": 37,
+  "stalePhaseOrSupersededTechnologyTerms": {},
+  "legacyRepositoryMentionsAllowedOnlyForIsolationGovernance": [
+    "IMPLEMENTATION-BASELINE.md"
+  ],
+  "errors": []
+}

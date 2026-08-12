@@ -1,0 +1,24 @@
+{
+  "contract": "proflow.spec.source-provenance.v1",
+  "sourceArtifact": "第三阶段(6).zip",
+  "sourceArtifactSha256": "6868e877008d54b4a69c98bd37d6e73a5ae5adcb9e208aee326c47a140ca5b34",
+  "sourceFileCount": 222,
+  "sourceMarkdownFiles": 215,
+  "sourceJsonFiles": 7,
+  "migrationDate": "2026-08-13",
+  "target": "ProFlow spec/",
+  "purpose": "Convert the former Phase 3 frozen design/test package into ProFlow's current implementation specification truth source.",
+  "migrationRules": [
+    "remove 第三阶段 root wrapper; canonical target root is spec/",
+    "rename Phase 3/Phase3/phase3/第三阶段 identifiers to ProFlow/proflow",
+    "map @ai-agent-platform/<pkg> to @tomflow/proflow-<pkg>",
+    "map .ai-agent-platform to .proflow",
+    "update Node baseline to 24.19.0 and native erasable TypeScript execution",
+    "update package manager baseline to pnpm 11.21.0",
+    "update SQLite driver baseline from sqlite3 to node:sqlite",
+    "runtime validation remains mandatory but concrete library is deferred",
+    "HTTP baseline is node:http with no default HTTP framework",
+    "Biome 2.5.6 and node:test are current engineering baselines",
+    "former freeze-only release/conformance JSON preserved under provenance, not used as current implementation truth"
+  ]
+}
