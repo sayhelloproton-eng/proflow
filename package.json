@@ -1,0 +1,19 @@
+{
+	"name": "proflow",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"packageManager": "pnpm@11.21.0",
+	"engines": {
+		"node": "24.19.0"
+	},
+	"scripts": {
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"format:check": "biome format ."
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.6",
+		"typescript": "7.0.2"
+	}
+}
