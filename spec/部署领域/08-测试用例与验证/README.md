@@ -27,3 +27,7 @@ bootstrap packages reconciliation        PASS
 ```
 
 可执行闭环位于 `packages/deployment-conformance/tests/bootstrap-reconciliation.test.ts`。它不使用真实 External Resource，并且不会把 fake resource 的合同测试解释为真实 availability。
+
+## Foundation closure
+
+Wave 0.1 P1 修复、平台公共约定 architecture gate、真实 RED/GREEN 与 future gates 见 `foundation-closure.md`。
