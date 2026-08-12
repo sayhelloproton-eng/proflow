@@ -47,6 +47,29 @@ test("CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete bound
 		}).success,
 		false,
 	);
+	assert.equal(
+		moduleDescriptorSchema.safeParse({
+			...libraryDescriptor,
+			configSlots: [
+				{
+					key: "providerModuleRef",
+					type: "moduleRef",
+					required: true,
+					description: "Must be a managed Module reference",
+					default: "https://provider.example.com",
+				},
+			],
+		}).success,
+		false,
+	);
+	assert.equal(
+		moduleDescriptorSchema.safeParse({
+			...libraryDescriptor,
+			kind: "external-resource",
+			resourceVersion: "observed-version-must-not-live-in-descriptor",
+		}).success,
+		false,
+	);
 });
 
 test("CP-DPL-CON-02 distinguishes moduleRef and secretRef and rejects unsafe combinations", () => {

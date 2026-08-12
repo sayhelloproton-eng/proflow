@@ -47,7 +47,8 @@ pnpm check      PASS
 - Runtime dependency：`zod@4.1.12`，exact version。
 - Test file：`packages/module-contract/tests/module-contract.test.ts`。
 - Runtime schema/type source：`packages/module-contract/src/index.ts`。
-- Commit：`feat(deployment): implement module contract`（本证据随该提交落库）。
+- Commit：`14189420af87bd9633282f90d8415f8d529d5954`。
+- Bootstrap reconciliation：自身 descriptor、C1/C2/C3 与六 profile 闭环测试 PASS。
 
 ## Known limitation
 

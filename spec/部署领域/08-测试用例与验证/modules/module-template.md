@@ -45,8 +45,8 @@ pnpm check                         PASS
 - Generator：`packages/module-template/src/index.ts`。
 - Executable tests：`packages/module-template/tests/module-template.test.ts`。
 - Real filesystem：macOS temporary directories created by `mkdtemp` and removed after each test。
-- Commit：`feat(deployment): implement module template`（本证据随该提交落库）。
-- C1/C2/C3：在 `deployment-conformance` 建立后由最终 Bootstrap reconciliation 对真实生成包执行。
+- Commit：`2c81d4b323c8bcd8cc134f3df66624cdd4af41fd`。
+- C1/C2/C3：最终 Bootstrap reconciliation 已对六种真实生成包逐一 PASS。
 
 ## Known limitation
 

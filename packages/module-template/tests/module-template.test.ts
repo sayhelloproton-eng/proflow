@@ -110,7 +110,7 @@ test("CP-DPL-TPL-02 emits minimum metadata and verification without fake lifecyc
 	}
 });
 
-test("CP-DPL-TPL-03 generated TypeScript packages pass strict tsc with no any", async (context) => {
+test("CP-DPL-TPL-03 generated TypeScript packages pass strict tsc with typed public boundaries", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-template-typecheck-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
 	const tsc = join(

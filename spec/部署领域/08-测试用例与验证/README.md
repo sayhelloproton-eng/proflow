@@ -9,3 +9,21 @@
 - `modules/deployment-conformance.md`
 
 任务治理 ZIP 仅用于施工调度，没有复制或提交到本仓库。
+
+## Wave 0 closure
+
+```text
+module-contract Critical Proofs          5/5 PASS
+module-template Critical Proofs          4/4 PASS
+deployment-conformance Critical Proofs   4/4 PASS
+Total                                   13/13 PASS
+
+real temporary filesystem               PASS
+six generated profiles                  PASS
+generated TypeScript typecheck           PASS
+generated C1/C2/C3                       PASS
+intentional C1/C2/C3 breakage            FAIL as required
+bootstrap packages reconciliation        PASS
+```
+
+可执行闭环位于 `packages/deployment-conformance/tests/bootstrap-reconciliation.test.ts`。它不使用真实 External Resource，并且不会把 fake resource 的合同测试解释为真实 availability。

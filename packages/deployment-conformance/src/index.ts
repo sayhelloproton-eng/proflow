@@ -48,6 +48,18 @@ interface PackageMetadata {
 	bin?: unknown;
 }
 
+function containsPlaintextSecret(input: unknown, key = ""): boolean {
+	if (typeof input === "string") {
+		return /(secret|token|password)/i.test(key) && input.length > 0;
+	}
+	if (Array.isArray(input))
+		return input.some((item) => containsPlaintextSecret(item, key));
+	if (typeof input !== "object" || input === null) return false;
+	return Object.entries(input).some(([nestedKey, value]) =>
+		containsPlaintextSecret(value, nestedKey),
+	);
+}
+
 async function pathExists(path: string): Promise<boolean> {
 	try {
 		const value = await stat(path);
@@ -100,6 +112,12 @@ export async function runPackageConformance(
 			message: "package type must be module",
 		});
 	}
+	if (containsPlaintextSecret(metadata)) {
+		issues.push({
+			code: "PACKAGE_SECRET_LEAK",
+			message: "package metadata contains a plaintext secret",
+		});
+	}
 	const entry = exportedEntry(metadata);
 	if (
 		entry === undefined ||
@@ -148,6 +166,8 @@ export interface BehaviorObservation {
 	observedEffects: string[];
 	externalAvailabilityClaim?: "UNKNOWN" | "AVAILABLE" | "UNAVAILABLE";
 	externalAvailabilityEvidence?: "none" | "fake" | "real";
+	readinessClaim?: "UNKNOWN" | "READY" | "NOT_READY";
+	readinessEvidence?: "none" | "fake" | "real";
 }
 
 type BehaviorOperation = () =>
@@ -181,10 +201,35 @@ export async function runBehaviorConformance(
 			});
 			continue;
 		}
-		if (!moduleOperationResultSchema.safeParse(observation.result).success) {
+		const parsedResult = moduleOperationResultSchema.safeParse(
+			observation.result,
+		);
+		if (!parsedResult.success) {
 			issues.push({
 				code: "RESULT_INVALID",
 				message: `${primitive} returned an invalid result contract`,
+			});
+		}
+		if (
+			primitive === "verify" &&
+			parsedResult.success &&
+			!parsedResult.data.checks?.some(
+				(check) => check.status === "PASS" || check.status === "FAIL",
+			)
+		) {
+			issues.push({
+				code: "VERIFY_NOT_OBSERVED",
+				message: "verify must contain an observed PASS or FAIL check",
+			});
+		}
+		if (
+			primitive === "status" &&
+			observation.readinessClaim === "READY" &&
+			observation.readinessEvidence !== "real"
+		) {
+			issues.push({
+				code: "FAKE_READY",
+				message: "READY requires real current evidence",
 			});
 		}
 		if (
@@ -256,10 +301,12 @@ export interface GptActionsConformanceInput {
 		inputFiles: Array<{
 			size: number;
 			url: string;
+			redirectUrls: string[];
 			filename: string;
 			declaredMime: string;
 			detectedMime: string;
 		}>;
+		openAiFileIdRefs: Array<{ name: string; id: string }>;
 		responseFiles: Array<{ size: number; mimeType: string }>;
 		downloadLinkPersisted: boolean;
 		preservesHttpErrorStatus: boolean;
@@ -298,10 +345,14 @@ function isSafeCarrierUrl(value: string): boolean {
 		if (url.protocol !== "https:" || (url.port !== "" && url.port !== "443"))
 			return false;
 		const host = url.hostname.toLowerCase();
+		const normalizedHost = host.replace(/^\[/, "").replace(/\]$/, "");
 		if (
-			host === "localhost" ||
-			host === "metadata.google.internal" ||
-			host === "169.254.169.254"
+			normalizedHost === "localhost" ||
+			normalizedHost === "metadata.google.internal" ||
+			normalizedHost === "169.254.169.254" ||
+			normalizedHost === "::1" ||
+			/^f[cd][0-9a-f]{2}:/i.test(normalizedHost) ||
+			/^fe[89ab][0-9a-f]:/i.test(normalizedHost)
 		)
 			return false;
 		if (/^(127\.|10\.|192\.168\.|169\.254\.)/.test(host)) return false;
@@ -335,7 +386,18 @@ function isSafeFilename(filename: string): boolean {
 	);
 }
 
-export function runGptActionsConformance(
+function isGptActionsInput(
+	input: unknown,
+): input is GptActionsConformanceInput {
+	if (typeof input !== "object" || input === null) return false;
+	const operations = Reflect.get(input, "operations");
+	const bridge = Reflect.get(input, "fileBridge");
+	return (
+		Array.isArray(operations) && typeof bridge === "object" && bridge !== null
+	);
+}
+
+function evaluateGptActionsConformance(
 	input: GptActionsConformanceInput,
 ): ConformanceGateResult {
 	const issues: ConformanceIssue[] = [];
@@ -403,6 +465,21 @@ export function runGptActionsConformance(
 		}
 	}
 	const bridge = input.fileBridge;
+	add(
+		issues,
+		Array.isArray(bridge.openAiFileIdRefs) &&
+			bridge.openAiFileIdRefs.every(
+				(reference) =>
+					typeof reference === "object" &&
+					reference !== null &&
+					typeof reference.name === "string" &&
+					reference.name.length > 0 &&
+					typeof reference.id === "string" &&
+					reference.id.length > 0,
+			),
+		"OPENAI_FILE_ID_REFS_INVALID",
+		"openaiFileIdRefs must contain named file identifiers",
+	);
 	add(
 		issues,
 		bridge.maxInputFiles === 10,
@@ -485,6 +562,12 @@ export function runGptActionsConformance(
 			isSafeCarrierUrl(file.url),
 			"SSRF_TARGET_REJECTED",
 			"input URL is not a safe public TLS target",
+		);
+		add(
+			issues,
+			file.redirectUrls.every(isSafeCarrierUrl),
+			"SSRF_REDIRECT_REJECTED",
+			"redirect chain contains an unsafe target",
 		);
 		add(
 			issues,
@@ -573,6 +656,13 @@ export function runGptActionsConformance(
 		"RELAY_CONTENT_DISPOSITION_MISSING",
 		"relay must emit Content-Disposition",
 	);
+	add(
+		issues,
+		!/[\\/]/.test(bridge.relay.contentDisposition) &&
+			!/secret/i.test(bridge.relay.contentDisposition),
+		"RELAY_HEADER_LEAK",
+		"relay headers cannot leak local paths or secrets",
+	);
 	for (const error of requiredFileBridgeErrors) {
 		add(
 			issues,
@@ -582,4 +672,27 @@ export function runGptActionsConformance(
 		);
 	}
 	return gate("GPT_ACTIONS_FILE_BRIDGE", issues);
+}
+
+export function runGptActionsConformance(
+	input: unknown,
+): ConformanceGateResult {
+	if (!isGptActionsInput(input)) {
+		return gate("GPT_ACTIONS_FILE_BRIDGE", [
+			{
+				code: "GPT_ACTIONS_INPUT_INVALID",
+				message: "GPT Actions conformance input is invalid",
+			},
+		]);
+	}
+	try {
+		return evaluateGptActionsConformance(input);
+	} catch {
+		return gate("GPT_ACTIONS_FILE_BRIDGE", [
+			{
+				code: "GPT_ACTIONS_INPUT_INVALID",
+				message: "GPT Actions conformance input has an invalid nested shape",
+			},
+		]);
+	}
 }

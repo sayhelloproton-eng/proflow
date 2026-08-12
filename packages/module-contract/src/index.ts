@@ -118,6 +118,17 @@ export const configSlotSchema = z
 				});
 			}
 		}
+		if (
+			slot.type === "moduleRef" &&
+			typeof slot.default === "string" &&
+			slot.default.includes("://")
+		) {
+			context.addIssue({
+				code: "custom",
+				message: "moduleRef config cannot use a physical URL as its default",
+				path: ["default"],
+			});
+		}
 		if (slot.type === "enum" && slot.enumValues === undefined) {
 			context.addIssue({
 				code: "custom",
@@ -260,18 +271,45 @@ export const humanActionSchema = z.strictObject({
 });
 export type HumanAction = z.infer<typeof humanActionSchema>;
 
-export const moduleOperationResultSchema = z.strictObject({
-	contract: z.literal("deployment.result.v1"),
-	ok: z.boolean(),
-	status: z.enum(["SUCCEEDED", "BLOCKED", "ACTION_REQUIRED", "FAILED"]),
-	moduleRef: identifier,
-	moduleVersion: semver,
-	data: z.unknown().optional(),
-	checks: z.array(deploymentCheckSchema).optional(),
-	actionRequired: humanActionSchema.optional(),
-	error: deploymentErrorSchema.optional(),
-	resourceVersion: z.string().min(1).optional(),
-});
+export const moduleOperationResultSchema = z
+	.strictObject({
+		contract: z.literal("deployment.result.v1"),
+		ok: z.boolean(),
+		status: z.enum(["SUCCEEDED", "BLOCKED", "ACTION_REQUIRED", "FAILED"]),
+		moduleRef: identifier,
+		moduleVersion: semver,
+		data: z.unknown().optional(),
+		checks: z.array(deploymentCheckSchema).optional(),
+		actionRequired: humanActionSchema.optional(),
+		error: deploymentErrorSchema.optional(),
+		resourceVersion: z.string().min(1).optional(),
+	})
+	.superRefine((result, context) => {
+		if (result.ok !== (result.status === "SUCCEEDED")) {
+			context.addIssue({
+				code: "custom",
+				message: "ok must match SUCCEEDED status",
+				path: ["ok"],
+			});
+		}
+		if (
+			result.status === "ACTION_REQUIRED" &&
+			result.actionRequired === undefined
+		) {
+			context.addIssue({
+				code: "custom",
+				message: "ACTION_REQUIRED must include a recoverable human action",
+				path: ["actionRequired"],
+			});
+		}
+		if (result.status === "FAILED" && result.error === undefined) {
+			context.addIssue({
+				code: "custom",
+				message: "FAILED must include a typed error",
+				path: ["error"],
+			});
+		}
+	});
 export type ModuleOperationResult<T = unknown> = Omit<
 	z.infer<typeof moduleOperationResultSchema>,
 	"data"

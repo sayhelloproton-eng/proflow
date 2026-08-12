@@ -1,0 +1,4 @@
+{
+	"contract": "proflow.conformance.v1",
+	"levels": ["C1", "C2", "C3"]
+}

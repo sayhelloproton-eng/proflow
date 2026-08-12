@@ -28,9 +28,9 @@ tests 1; pass 0; fail 1; skipped 0; todo 0; exit 1
 ## Minimal GREEN 与 Refactor
 
 - C1 消费 module-contract 的同一 runtime schema，不复制 descriptor schema。
-- C2 读取真实 package filesystem，检查 metadata/version/exports/entry/adapter/conformance config。
-- C3 只执行 descriptor 已声明 primitive，检查结构化 Result、preflight/doctor 副作用和 External availability evidence。
-- GPT/File Bridge Gate 覆盖 explicit consequential、role-scoped operation、File Bridge 固定限制、TLS/443 与 SSRF、relay header/token/scope/TTL、最终序列化预算、typed errors、真实 HTTP 状态和禁止 effect 后 blind replay。
+- C2 读取真实 package filesystem，检查 metadata/version/exports/entry/adapter/conformance config，并拒绝 package metadata 明文 secret。
+- C3 只执行 descriptor 已声明 primitive，检查结构化 Result、真实 verify check、可恢复 `ACTION_REQUIRED`、preflight/doctor 副作用、READY 与 External availability evidence。
+- GPT/File Bridge Gate 以 `unknown` 接收边界输入，覆盖 `openaiFileIdRefs` shape、explicit consequential、role-scoped operation、File Bridge 固定限制、TLS/443 与 SSRF、relay header/token/scope/TTL、最终序列化预算、typed errors、真实 HTTP 状态和禁止 effect 后 blind replay。
 
 ## Command / Actual Result
 
@@ -47,7 +47,8 @@ tests 13; pass 13; fail 0; skipped 0; todo 0
 - Gate implementation：`packages/deployment-conformance/src/index.ts`。
 - Machine CLI：`packages/deployment-conformance/src/cli.ts`。
 - Executable tests：`packages/deployment-conformance/tests/deployment-conformance.test.ts`。
-- Commit：`feat(deployment): implement deployment conformance`（本证据随该提交落库）。
+- Commit：`9ab53fd12a2a0ff0dccfad5453c56530ea0a9b8e`。
+- Bootstrap reconciliation：六种真实生成包 PASS；intentional C1/C2/C3 broken fixture 全部 FAIL；三个 Bootstrap package 自身 PASS。
 
 ## Known limitation
 

@@ -43,6 +43,8 @@ function adapterFor(descriptor: ModuleDescriptor): BehaviorAdapter {
 				? {
 						externalAvailabilityClaim: "UNKNOWN",
 						externalAvailabilityEvidence: "fake",
+						readinessClaim: "UNKNOWN",
+						readinessEvidence: "fake",
 					}
 				: {}),
 		});
@@ -132,6 +134,19 @@ test("CP-DPL-CONF-02 C2 inspects real package metadata, exports, entry, and vers
 		).status,
 		"FAIL",
 	);
+	await writeFile(
+		packagePath,
+		`${JSON.stringify({ ...original, config: { apiToken: "plaintext" } }, null, 2)}\n`,
+	);
+	assert.equal(
+		(
+			await runPackageConformance(
+				generated.packageDirectory,
+				generated.descriptor,
+			)
+		).status,
+		"FAIL",
+	);
 });
 
 test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability without invoking undeclared lifecycle", async (context) => {
@@ -163,6 +178,8 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 		observedEffects: [],
 		externalAvailabilityClaim: "AVAILABLE",
 		externalAvailabilityEvidence: "fake",
+		readinessClaim: "READY",
+		readinessEvidence: "fake",
 	});
 	assert.equal(
 		(await runBehaviorConformance(generated.descriptor, fakeReady)).status,
@@ -179,6 +196,43 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 	});
 	assert.equal(
 		(await runBehaviorConformance(generated.descriptor, mutatingDoctor)).status,
+		"FAIL",
+	);
+
+	const actionRequired = adapterFor(generated.descriptor);
+	actionRequired.status = () => ({
+		result: {
+			contract: "deployment.result.v1",
+			ok: false,
+			status: "ACTION_REQUIRED",
+			moduleRef: generated.descriptor.moduleRef,
+			moduleVersion: generated.descriptor.moduleVersion,
+			actionRequired: {
+				action: "authenticate",
+				description: "Authenticate the external resource",
+			},
+		},
+		observedEffects: [],
+		externalAvailabilityClaim: "UNKNOWN",
+		externalAvailabilityEvidence: "fake",
+	});
+	assert.equal(
+		(await runBehaviorConformance(generated.descriptor, actionRequired)).status,
+		"PASS",
+	);
+	const unrecoverable = adapterFor(generated.descriptor);
+	unrecoverable.status = () => ({
+		result: {
+			contract: "deployment.result.v1",
+			ok: false,
+			status: "ACTION_REQUIRED",
+			moduleRef: generated.descriptor.moduleRef,
+			moduleVersion: generated.descriptor.moduleVersion,
+		},
+		observedEffects: [],
+	});
+	assert.equal(
+		(await runBehaviorConformance(generated.descriptor, unrecoverable)).status,
 		"FAIL",
 	);
 });
@@ -215,11 +269,13 @@ function validGptProfile(): GptActionsConformanceInput {
 				{
 					size: 1_000,
 					url: "https://files.example.com/input.txt",
+					redirectUrls: [],
 					filename: "input.txt",
 					declaredMime: "text/plain",
 					detectedMime: "text/plain",
 				},
 			],
+			openAiFileIdRefs: [{ name: "input.txt", id: "file-123" }],
 			responseFiles: [{ size: 1_000, mimeType: "text/plain" }],
 			downloadLinkPersisted: false,
 			preservesHttpErrorStatus: true,
@@ -297,6 +353,21 @@ test("CP-DPL-CONF-04 enforces GPT Actions and File Bridge frozen limits", () => 
 			...valid,
 			fileBridge: {
 				...valid.fileBridge,
+				inputFiles: [
+					{
+						...inputFile,
+						redirectUrls: [
+							"https://files.example.com/redirect",
+							"http://169.254.169.254/metadata",
+						],
+					},
+				],
+			},
+		},
+		{
+			...valid,
+			fileBridge: {
+				...valid.fileBridge,
 				responseFiles: [{ size: 1_000, mimeType: "image/png" }],
 			},
 		},
@@ -331,4 +402,12 @@ test("CP-DPL-CONF-04 enforces GPT Actions and File Bridge frozen limits", () => 
 	];
 	for (const fixture of broken)
 		assert.equal(runGptActionsConformance(fixture).status, "FAIL");
+	assert.equal(
+		runGptActionsConformance({ operations: "invalid" }).status,
+		"FAIL",
+	);
+	assert.equal(
+		runGptActionsConformance({ operations: [], fileBridge: {} }).status,
+		"FAIL",
+	);
 });
