@@ -24,6 +24,12 @@ importers:
         specifier: 4.1.12
         version: 4.1.12
 
+  packages/module-template:
+    dependencies:
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:*
+        version: link:../module-contract
+
 packages:
 
   '@biomejs/biome@2.5.6':
