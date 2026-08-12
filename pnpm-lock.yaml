@@ -18,6 +18,16 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  packages/deployment-conformance:
+    dependencies:
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:*
+        version: link:../module-contract
+    devDependencies:
+      '@tomflow/proflow-module-template':
+        specifier: workspace:*
+        version: link:../module-template
+
   packages/module-contract:
     dependencies:
       zod:
