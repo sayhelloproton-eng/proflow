@@ -10,10 +10,14 @@
 	"scripts": {
 		"lint": "biome check .",
 		"format": "biome format --write .",
-		"format:check": "biome format ."
+		"format:check": "biome format .",
+		"typecheck": "tsc --noEmit",
+		"test": "node --test 'packages/*/tests/**/*.test.ts'",
+		"check": "pnpm lint && pnpm typecheck && pnpm test"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.6",
+		"@types/node": "24.10.1",
 		"typescript": "7.0.2"
 	}
 }

@@ -10,6 +10,7 @@
 		"allowImportingTsExtensions": true,
 		"noUncheckedIndexedAccess": true,
 		"exactOptionalPropertyTypes": true,
+		"types": ["node"],
 		"skipLibCheck": true
 	}
 }
