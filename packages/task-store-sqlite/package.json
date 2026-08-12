@@ -1,0 +1,31 @@
+{
+	"name": "@tomflow/proflow-task-store-sqlite",
+	"version": "0.1.0",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./migrations": "./src/migrations.ts",
+		"./deployment/adapter": "./deployment/adapter.ts",
+		"./deployment/descriptor": "./deployment/descriptor.ts"
+	},
+	"files": [
+		"src",
+		"deployment",
+		"conformance.json",
+		"README.md"
+	],
+	"scripts": {
+		"test": "node --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@tomflow/proflow-module-contract": "workspace:*",
+		"@tomflow/proflow-task-orchestration": "workspace:*"
+	},
+	"devDependencies": {
+		"@tomflow/proflow-task-migration-runner": "workspace:*"
+	}
+}

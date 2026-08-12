@@ -1,0 +1,156 @@
+{
+  "contract": "proflow.task-domain.evidence.v1",
+  "wave": "Task & Orchestration Wave 1",
+  "status": "PASS",
+  "summary": {
+    "taskOrchestration": "8/8 PASS",
+    "taskStoreSqlite": "5/5 PASS",
+    "taskMigrationRunner": "4/4 PASS",
+    "total": "17/17 PASS"
+  },
+  "proofs": [
+    {
+      "proof": "CP-TASK-ORCH-01",
+      "source": "07-测试计划/modules/task-orchestration.md#CP-TASK-ORCH-01",
+      "test": "packages/task-orchestration/tests/contracts-domain.test.ts",
+      "evidence": ["EV-TASK-ORCH-01", "EV-TASK-ORCH-02"],
+      "actual": "Frozen Task, Node, and TaskGroup legal transitions pass; illegal transitions throw before mutation.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-ORCH-02",
+      "source": "07-测试计划/modules/task-orchestration.md#CP-TASK-ORCH-02",
+      "test": "packages/task-orchestration/tests/contracts-domain.test.ts",
+      "evidence": ["EV-TASK-ORCH-08"],
+      "actual": "Exactly 23 public operations are exposed; no WorkItem, Claim, Lease, or alternate scheduler surface exists.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-ORCH-03",
+      "source": "07-测试计划/modules/task-orchestration.md#CP-TASK-ORCH-03",
+      "test": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+      "evidence": ["EV-TASK-ORCH-03", "EV-TASK-ORCH-07"],
+      "actual": "Same binding is safe, different binding conflicts, and startNode resolves the stored opaque workerRef without caller selection.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-ORCH-04",
+      "source": "07-测试计划/modules/task-orchestration.md#CP-TASK-ORCH-04",
+      "test": "packages/task-orchestration/tests/contracts-domain.test.ts; packages/task-orchestration/tests/task-owned-integration.test.ts",
+      "evidence": ["EV-TASK-ORCH-01", "EV-TASK-ORCH-04"],
+      "actual": "Runtime validation, actorRef, idempotencyKey, expected versions, deterministic replay, fingerprint conflict, and stale zero-write paths pass.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-ORCH-05",
+      "source": "07-测试计划/modules/task-orchestration.md#CP-TASK-ORCH-05",
+      "test": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+      "evidence": ["EV-TASK-ORCH-06"],
+      "actual": "Reopen preserves execution history, bindings, documents, and events; increments runNo; clears current-run worker; resets later nodes; and re-resolves the same binding.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-ORCH-06",
+      "source": "07-测试计划/modules/task-orchestration.md#CP-TASK-ORCH-06",
+      "test": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+      "evidence": ["EV-TASK-ORCH-05", "EV-TASK-ORCH-07"],
+      "actual": "Node context contains declared input metadata only; missing output blocks completion; Markdown hash/index and injected DB failure reconciliation use real files and SQLite.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-ORCH-07",
+      "source": "07-测试计划/modules/task-orchestration.md#CP-TASK-ORCH-07",
+      "test": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+      "evidence": ["EV-TASK-ORCH-02"],
+      "actual": "maxActiveTasks=1 and ACTIVE/WAITING/FAILED/PAUSED blocking are enforced; success releases the next Task through owner-computed eligibility.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-ORCH-08",
+      "source": "07-测试计划/modules/task-orchestration.md#CP-TASK-ORCH-08",
+      "test": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+      "evidence": ["EV-TASK-ORCH-05", "EV-TASK-ORCH-09"],
+      "actual": "Canonical documentType is owner-mapped to a safe relative Markdown path; absolute target and traversal-like documentType are rejected; replacement is temp-write, file fsync, rename, and directory fsync.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-STORE-01",
+      "source": "07-测试计划/modules/task-store-sqlite.md#CP-TASK-STORE-01",
+      "test": "packages/task-store-sqlite/tests/store-critical-proofs.test.ts",
+      "evidence": ["EV-TASK-STORE-01"],
+      "actual": "Fresh real SQLite contains 9 business tables plus schema_migrations, required foreign keys, checks, uniqueness, and indexes.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-STORE-02",
+      "source": "07-测试计划/modules/task-store-sqlite.md#CP-TASK-STORE-02",
+      "test": "packages/task-store-sqlite/tests/store-critical-proofs.test.ts",
+      "evidence": ["EV-TASK-STORE-02", "EV-TASK-STORE-03"],
+      "actual": "Injected transaction failure rolls back; SQL version compare-and-update rejects stale writes without replacing the committed row.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-STORE-03",
+      "source": "07-测试计划/modules/task-store-sqlite.md#CP-TASK-STORE-03",
+      "test": "packages/task-store-sqlite/tests/store-critical-proofs.test.ts",
+      "evidence": ["EV-TASK-STORE-06"],
+      "actual": "Public repository ports expose domain records and transaction/read only; no SQL prepare/exec/connection or SQLite row crosses the port.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-STORE-04",
+      "source": "07-测试计划/modules/task-store-sqlite.md#CP-TASK-STORE-04",
+      "test": "packages/task-store-sqlite/tests/store-critical-proofs.test.ts; packages/task-orchestration/tests/task-owned-integration.test.ts",
+      "evidence": ["EV-TASK-STORE-04"],
+      "actual": "journal_mode=wal, busy_timeout=2500, integrity_check=ok, foreign keys enabled, and close/reopen retains full happy-path facts.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-STORE-05",
+      "source": "07-测试计划/modules/task-store-sqlite.md#CP-TASK-STORE-05",
+      "test": "packages/task-store-sqlite/tests/store-critical-proofs.test.ts; packages/task-orchestration/tests/task-owned-integration.test.ts",
+      "evidence": ["EV-TASK-STORE-05"],
+      "actual": "Two real connections observe one unique idempotency row; duplicate insert conflicts; domain same/same replay and same/different fingerprint paths are deterministic.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-MIG-01",
+      "source": "07-测试计划/modules/task-migration-runner.md#CP-TASK-MIG-01",
+      "test": "packages/task-migration-runner/tests/migration-critical-proofs.test.ts",
+      "evidence": ["EV-TASK-MIG-01", "EV-TASK-MIG-02"],
+      "actual": "Discovery sorts versions [1,2] deterministically and rejects duplicate or invalid metadata.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-MIG-02",
+      "source": "07-测试计划/modules/task-migration-runner.md#CP-TASK-MIG-02",
+      "test": "packages/task-migration-runner/tests/migration-critical-proofs.test.ts",
+      "evidence": ["EV-TASK-MIG-01", "EV-TASK-MIG-03", "EV-TASK-MIG-04"],
+      "actual": "Second apply is empty; malformed migration rolls back only its transaction and stops before later versions; corrected re-entry recovers and verifies.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-MIG-03",
+      "source": "07-测试计划/modules/task-migration-runner.md#CP-TASK-MIG-03",
+      "test": "packages/task-migration-runner/tests/migration-critical-proofs.test.ts",
+      "evidence": ["EV-TASK-MIG-01", "EV-TASK-MIG-04", "EV-TASK-MIG-05"],
+      "actual": "Fresh and sequential upgrades report identical applied versions and identical introspected actual schemas; interrupted re-entry converges and integrity verifies.",
+      "status": "PASS"
+    },
+    {
+      "proof": "CP-TASK-MIG-04",
+      "source": "07-测试计划/modules/task-migration-runner.md#CP-TASK-MIG-04",
+      "test": "packages/task-migration-runner/tests/migration-critical-proofs.test.ts",
+      "evidence": ["EV-TASK-MIG-03"],
+      "actual": "apply/status/verify and machine JSON CLI are public execution primitives; schema SQL is imported from task-store-sqlite/migrations.",
+      "status": "PASS"
+    }
+  ],
+  "deferred": [
+    "DEFERRED_TO_CROSS_DOMAIN: real Agent Worker provisioning",
+    "DEFERRED_TO_CROSS_DOMAIN: real Execution Browser CREATE/RESTORE/WAKE",
+    "DEFERRED_TO_CROSS_DOMAIN: Task-to-Agent/Execution runtime E2E",
+    "DEFERRED_TO_CROSS_DOMAIN: Gateway transport and platform-host composition"
+  ],
+  "implementationCommit": "SELF"
+}
