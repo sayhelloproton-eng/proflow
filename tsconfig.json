@@ -10,6 +10,14 @@
 		"allowImportingTsExtensions": true,
 		"noUncheckedIndexedAccess": true,
 		"exactOptionalPropertyTypes": true,
+		"paths": {
+			"@tomflow/proflow-model-contracts": [
+				"./packages/model-contracts/src/index.ts"
+			],
+			"@tomflow/proflow-model-runtime": [
+				"./packages/model-runtime/src/index.ts"
+			]
+		},
 		"types": ["node"],
 		"skipLibCheck": true
 	}

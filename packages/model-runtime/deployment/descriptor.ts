@@ -1,0 +1,83 @@
+export const descriptor = {
+	contract: "module",
+	contractVersion: "1.0.0",
+	moduleRef: "model-runtime",
+	packageName: "@tomflow/proflow-model-runtime",
+	moduleVersion: "0.1.0",
+	kind: "service",
+	templateVersion: "1.0.0",
+	platformCompatibility: ">=1.0.0 <2.0.0",
+	provides: [{ contractRef: "model-runtime", version: "1.0.0" }],
+	requires: [
+		{ contractRef: "model-inference", versionRange: ">=1.0.0 <2.0.0" },
+	],
+	requirements: [
+		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
+		{ kind: "network", url: "https://provider.invalid/v1/" },
+	],
+	configSlots: [
+		{
+			key: "providerBaseUrl",
+			type: "url",
+			required: true,
+			description: "OpenAI-compatible provider API base URL",
+		},
+		{
+			key: "providerCredential",
+			type: "secretRef",
+			required: false,
+			sensitive: true,
+			description: "Credential reference resolved outside module configuration",
+		},
+		{
+			key: "fastModel",
+			type: "string",
+			required: true,
+			description: "Provider model identifier for FAST",
+		},
+		{
+			key: "reasonModel",
+			type: "string",
+			required: true,
+			description: "Provider model identifier for REASON",
+		},
+	],
+	lifecycle: {
+		supported: [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor",
+			"start",
+			"stop",
+			"restart",
+		],
+	},
+	verification: {
+		checks: [
+			{
+				id: "runtime-status-fresh",
+				description: "Runtime reports fresh role and lane diagnostics",
+				lifecycle: "status",
+			},
+			{
+				id: "real-provider-capabilities",
+				description: "Configured provider roles pass live capability probes",
+				lifecycle: "verify",
+			},
+			{
+				id: "provider-diagnostics",
+				description: "Provider configuration has actionable diagnostics",
+				lifecycle: "doctor",
+			},
+		],
+	},
+	effects: [
+		{
+			kind: "process",
+			description: "Runs the Model Runtime HTTP service process",
+		},
+		{ kind: "network", description: "Calls the configured model provider API" },
+	],
+} as const;

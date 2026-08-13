@@ -31,6 +31,25 @@ importers:
         specifier: workspace:^
         version: link:../module-template
 
+  packages/model-contracts:
+    dependencies:
+      zod:
+        specifier: 4.1.12
+        version: 4.1.12
+
+  packages/model-runtime:
+    dependencies:
+      '@tomflow/proflow-model-contracts':
+        specifier: workspace:^
+        version: link:../model-contracts
+      zod:
+        specifier: 4.1.12
+        version: 4.1.12
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+
   packages/module-contract:
     dependencies:
       zod:
