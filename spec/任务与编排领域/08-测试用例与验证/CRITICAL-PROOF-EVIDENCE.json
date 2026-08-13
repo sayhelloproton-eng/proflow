@@ -152,5 +152,14 @@
     "DEFERRED_TO_CROSS_DOMAIN: Task-to-Agent/Execution runtime E2E",
     "DEFERRED_TO_CROSS_DOMAIN: Gateway transport and platform-host composition"
   ],
-  "implementationCommit": "2f0a18204c0c94ea6717f3a130f21bf432a71dd0"
+  "initialImplementationCommit": "2f0a18204c0c94ea6717f3a130f21bf432a71dd0",
+  "remediationImplementationCommit": "990ec3724cc09fcfef4c85c76274771449de0910",
+  "preExecutionTargetedRegression": {
+    "status": "PASS",
+    "verifiedAgainstImplementationCommit": "990ec3724cc09fcfef4c85c76274771449de0910",
+    "abnormalProcessExitReopen": "PASS",
+    "trueConcurrentProcessIdempotency": "PASS",
+    "reopenTransactionFailureAtomicRollback": "PASS",
+    "frozenTestPlanMutation": 0
+  }
 }

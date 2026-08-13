@@ -99,3 +99,24 @@ normative Spec semantic drift      = 0
 - DB/Repository ownership 需要真实持久化实现后验证。
 - 跨领域 Integration/E2E 与真实 External Resource acceptance 保留给后续 Wave；fake resource 只证明合同，不证明外部 availability。
 - `platform-host`、`platform-cli`、`module-skill` 未在本轮实现。
+
+## Pre-Execution final closure
+
+Pre-Execution hardening implementation commit：`a613462a3855730934edade436f82121f86c87fa`（`fix: close pre-execution hardening residuals`）。
+
+新增 executable proof：`packages/module-template/tests/profile-hardening.test.ts` 的 `FND-P1-01` 在真实临时目录执行：
+
+```text
+materializeModule
+→ generated package exports only dist JavaScript
+→ tsc build
+→ dist/src/index.js + dist/src/index.d.ts
+→ pnpm pack
+→ isolated npm install
+→ Node ESM import
+→ PASS
+```
+
+Observed RED 为 `./src/index.ts !== ./dist/src/index.js`。修复后 generated package 自带 `tsconfig.build.json`，public exports 指向 `dist/*.js`，发布 files 只包含 `dist`、`conformance.json`、`README.md`。Bootstrap C2/C3 在 build 后产物上执行；故意破坏 source adapter 后重新 build，仍在 C3 确定性 FAIL。
+
+最终全仓 `pnpm check`：76/76 tests、8 package architecture、8 tarball + zod isolated consumer 全部 PASS。Foundation residual `FND-P1-01`、`FND-P2-01` 均 CLOSED。

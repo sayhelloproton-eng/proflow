@@ -1,0 +1,79 @@
+{
+  "contract": "proflow.model-hardening-live-summary.v1",
+  "classification": "TEMPORARY_REVIEW_EVIDENCE",
+  "normative": false,
+  "status": "PASS",
+  "startedAt": "2026-08-13T05:56:37.209Z",
+  "completedAt": "2026-08-13T05:57:40.688Z",
+  "provider": {
+    "kind": "OpenAI-compatible MLXHub",
+    "credentialUsed": false,
+    "fastModel": "sayhelloproton/Qwen3.5-4B-MLX-4bit-no-think",
+    "reasonModel": "mlx-community/Qwen3.5-4B-MLX-4bit"
+  },
+  "callBudget": {
+    "maximum": 4,
+    "actual": 4,
+    "fullM2M3M4Rerun": false
+  },
+  "capabilityVerification": {
+    "fast": {
+      "status": "PASS",
+      "latencyMs": 2950,
+      "finishReason": "stop",
+      "thinking": "absent",
+      "structuredValidation": "PASS"
+    },
+    "reason": {
+      "status": "PASS",
+      "latencyMs": 11528,
+      "finishReason": "stop",
+      "thinking": "closed",
+      "structuredValidation": "PASS"
+    }
+  },
+  "healthBefore": {
+    "runtime": "READY",
+    "lane": "IDLE",
+    "fast": "READY",
+    "reason": "READY"
+  },
+  "inferenceResults": [
+    {
+      "role": "fast",
+      "status": "SUCCEEDED",
+      "actualMode": "fast",
+      "queueLatencyMs": 2,
+      "inferenceLatencyMs": 3854,
+      "totalLatencyMs": 3856
+    },
+    {
+      "role": "reason",
+      "status": "SUCCEEDED",
+      "actualMode": "reason",
+      "queueLatencyMs": 1,
+      "inferenceLatencyMs": 45075,
+      "totalLatencyMs": 45076
+    }
+  ],
+  "healthAfter": {
+    "runtime": "READY",
+    "lane": "IDLE",
+    "fast": "READY",
+    "reason": "READY",
+    "lastSuccessAt": "2026-08-13T05:57:40.685Z"
+  },
+  "formalRuntimeLog": {
+    "path": "<PROFLOW_INSTANCE_ROOT>/logs/model/inference.jsonl",
+    "permissions": "0600",
+    "entriesInspected": 2,
+    "sanitizationAudit": "PASS"
+  },
+  "sanitization": {
+    "promptPersisted": false,
+    "chainOfThoughtPersisted": false,
+    "payloadPersisted": false,
+    "imageOrBase64Persisted": false,
+    "secretPersisted": false
+  }
+}

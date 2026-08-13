@@ -5,8 +5,8 @@
 ```text
 pnpm lint         PASS
 pnpm typecheck    PASS
-pnpm test         PASS (42 tests, 42 pass, 0 fail, 0 skipped/cancelled/todo)
-pnpm architecture PASS (6 packages checked, 0 issues)
+pnpm test         PASS (76 tests, 76 pass, 0 fail, 0 skipped/cancelled/todo)
+pnpm architecture PASS (8 packages checked, 0 issues)
 pnpm check        PASS
 ```
 
@@ -81,3 +81,16 @@ P1 = 0
 ```
 
 `DEFERRED_TO_CROSS_DOMAIN`：真实 Agent provisioning、Execution Browser lifecycle、Task↔Agent/Execution runtime E2E、Gateway transport、platform-host composition。本轮没有把 adapter/contract harness 伪报为跨域 E2E PASS。
+
+## Pre-Execution targeted regression
+
+Task 主体未重写；本轮没有修改 Task implementation 或 Frozen Test Plan。整改实现提交为 `990ec3724cc09fcfef4c85c76274771449de0910`，初始 Wave implementation 为 `2f0a18204c0c94ea6717f3a130f21bf432a71dd0`。
+
+以下真实 proof 在最新 main targeted regression 与全仓 `pnpm check` 中继续 PASS：
+
+- abnormal child-process exit 后同一 SQLite 文件 reopen，数据与 integrity 保持；
+- 两个真实并发 process/connection 对同一幂等事实只留下唯一记录；
+- injected reopen transaction failure 对全部 reset 做 atomic rollback；
+- actual result、executable test、Evidence refs 与 remediation commit 一致。
+
+Task residual `TASK-P2-01` CLOSED；P0=0，P1=0。
