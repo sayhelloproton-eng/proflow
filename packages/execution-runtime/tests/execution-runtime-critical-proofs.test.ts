@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -11,14 +12,12 @@ import {
 	type ExecutionCapabilityResult,
 	parseExecutionRecord,
 } from "@tomflow/proflow-execution-contracts";
-import {
-	createLocalExecutor,
-	type LocalExecutionResult,
-} from "@tomflow/proflow-execution-local";
+import { createLocalExecutorPort } from "../src/executors/local-adapter.ts";
 import {
 	createExecutionRuntime,
 	type ExecutionExecutorPort,
 	ExecutionRuntimeError,
+	type ExecutorResult,
 } from "../src/index.ts";
 
 const exec = promisify(execFile);
@@ -47,14 +46,14 @@ async function fixture() {
 		JSON.stringify({ name: "fixture" }),
 	);
 	await exec("git", ["init", "-q"], { cwd: root });
-	const local = await createLocalExecutor({
+	const local = await createLocalExecutorPort({
 		projectRoot: root,
 		artifactRoot: join(root, ".artifacts"),
 	});
 	return { root, databasePath: join(root, ".proflow", "execution.db"), local };
 }
 
-function readResult(content = "ok"): LocalExecutionResult {
+function readResult(content = "ok"): ExecutorResult {
 	return {
 		result: {
 			capability: "file.read",
@@ -75,7 +74,7 @@ function readResult(content = "ok"): LocalExecutionResult {
 function fakeExecutor(
 	run: (
 		invocation: Parameters<ExecutionExecutorPort["execute"]>[0],
-	) => Promise<LocalExecutionResult>,
+	) => Promise<ExecutorResult>,
 ): ExecutionExecutorPort {
 	return {
 		execute: run,
@@ -365,7 +364,7 @@ test("carry-forward PENDING restart remains safely resumable under the same exec
 test("CP-EXE-RT-03 persist STARTED then reconcile a real lost response without replay", async () => {
 	const { root, databasePath, local } = await fixture();
 	let effects = 0;
-	let lastResult: LocalExecutionResult | undefined;
+	let lastResult: ExecutorResult | undefined;
 	const wrapper: ExecutionExecutorPort = {
 		async execute(invocation) {
 			effects += 1;
@@ -462,7 +461,7 @@ test("CP-EXE-RT-05 output evidence pagination and persisted secret redaction", a
 		join(root, "output-proof.mjs"),
 		"console.log(process.env.API_SECRET_TOKEN);console.log('abcdefgh');\n",
 	);
-	const local = await createLocalExecutor({
+	const local = await createLocalExecutorPort({
 		projectRoot: root,
 		artifactRoot: join(root, ".artifacts"),
 		baseEnv: { API_SECRET_TOKEN: "do-not-persist" },
@@ -531,6 +530,120 @@ test("CP-EXE-RT-05 output evidence pagination and persisted secret redaction", a
 	])
 		assert.ok(logs.includes(`"${field}"`), field);
 	runtime.close();
+});
+
+test("B1-EXE-05 argv, header, body and managed-registry secrets never persist at rest", async () => {
+	const { root, databasePath } = await fixture();
+	const secret = "UNIQUE-B1-EXE-05-9c41";
+	await writeFile(
+		join(root, "argv.mjs"),
+		"console.log(process.argv.slice(2).join(' '));console.error(process.env.API_SECRET_TOKEN);\n",
+	);
+	await writeFile(
+		join(root, "hold.mjs"),
+		"console.log(process.argv.slice(2).join(' '));setInterval(()=>{},1000);\n",
+	);
+	const local = await createLocalExecutorPort({
+		projectRoot: root,
+		artifactRoot: join(root, ".artifacts"),
+		baseEnv: { API_SECRET_TOKEN: secret },
+	});
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: local,
+		policy: {
+			decide: () => ({
+				decision: "ALLOW",
+				decisionPath: "fast",
+				approvalRequired: false,
+			}),
+		},
+	});
+
+	// argv positional secret through a one-shot process (stdout + stderr echo).
+	// The script path precedes the secret-bearing flag so `node` actually runs
+	// the fixture (a leading unknown flag would make node reject the command).
+	await runtime.executeCapability(
+		input(
+			"process.start",
+			{
+				mode: "one-shot",
+				command: process.execPath,
+				args: ["argv.mjs", "--token", secret],
+			},
+			"argv",
+			{ projectRoot: root },
+		),
+	);
+
+	// managed process: argv secret must not reach managed-processes.json.
+	const managed = await runtime.executeCapability(
+		input(
+			"process.start",
+			{
+				mode: "managed",
+				command: process.execPath,
+				args: ["hold.mjs", "--token", secret],
+			},
+			"managed",
+			{ projectRoot: root },
+		),
+	);
+
+	// request-side redaction: Authorization header + JSON body secret.
+	const server = createServer((_req, res) => {
+		res.setHeader("content-type", "text/plain");
+		res.end("ok");
+	});
+	await new Promise<void>((resolveListen) =>
+		server.listen(0, "127.0.0.1", resolveListen),
+	);
+	const address = server.address();
+	assert.ok(address && typeof address === "object");
+	await runtime.executeCapability(
+		input(
+			"network.request",
+			{
+				url: `http://127.0.0.1:${address.port}/`,
+				method: "POST",
+				headers: { Authorization: `Bearer ${secret}` },
+				body: JSON.stringify({ password: secret }),
+			},
+			"network",
+			{ projectRoot: root },
+		),
+	);
+	server.close();
+
+	if (
+		managed.result?.capability === "process.start" &&
+		managed.result.data.mode === "managed"
+	)
+		await runtime.executeCapability(
+			input(
+				"process.stop",
+				{ processRef: managed.result.data.processRef },
+				"managed-stop",
+				{ projectRoot: root },
+			),
+		);
+	runtime.close();
+
+	const databaseBytes = await readFile(databasePath);
+	assert.equal(databaseBytes.includes(Buffer.from(secret)), false);
+	const registry = await readFile(
+		join(root, ".artifacts", "managed-processes.json"),
+		"utf8",
+	);
+	assert.equal(registry.includes(secret), false);
+	assert.equal(registry.includes("--token"), false);
+	const logs = await readFile(runtime.logPath, "utf8");
+	assert.equal(logs.includes(secret), false);
+	for (const entry of await readdir(join(root, ".artifacts")))
+		if (entry.endsWith(".log")) {
+			const content = await readFile(join(root, ".artifacts", entry), "utf8");
+			assert.equal(content.includes(secret), false, entry);
+		}
 });
 
 test("CP-EXE-RT-07 queue concurrency, cancellation signal and restart do not blind replay", async () => {
@@ -668,6 +781,146 @@ test("CP-EXE-RT-06 injected browser executor uses the same durable admission and
 		runtime.getExecution(record.executionRef as never).executionRef,
 		record.executionRef,
 	);
+	runtime.close();
+});
+
+test("B1-EXE-01 default policy routes ordinary mutations through FAST and read-only through deterministic", async () => {
+	const { root, databasePath } = await fixture();
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => readResult()),
+	});
+	const mutation = await runtime.executeCapability(
+		input("file.write", { path: "a.txt", content: "x" }, "fast-mut", {
+			projectRoot: root,
+		}),
+	);
+	assert.equal(mutation.decisionPath, "fast");
+	const commit = await runtime.executeCapability(
+		input(
+			"git.commit",
+			{ message: "chore: seed", paths: ["."] },
+			"fast-commit",
+			{ projectRoot: root },
+		),
+	);
+	assert.equal(commit.decisionPath, "fast");
+	const read = await runtime.executeCapability(
+		input("file.read", { path: "a.txt" }, "det-read", { projectRoot: root }),
+	);
+	assert.equal(read.decisionPath, "deterministic");
+	runtime.close();
+});
+
+test("B1-EXE-12 approval revalidates against the concrete effect-boundary precondition", async () => {
+	const { databasePath } = await fixture();
+	let checks = 0;
+	let boundPrecondition: unknown;
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async (invocation) => {
+			await invocation.onEffectStarted?.({
+				kind: "process.start",
+				capability: "process.start",
+				processRef: "process:x",
+				mode: "one-shot",
+			});
+			return {
+				result: {
+					capability: "process.start",
+					data: {
+						mode: "one-shot",
+						output: {
+							exitCode: 0,
+							durationMs: 1,
+							stdoutSummary: "",
+							stderrSummary: "",
+							stdoutRef: "output:x:stdout",
+							stderrRef: "output:x:stderr",
+						},
+					},
+				},
+				evidence: [],
+				artifacts: [],
+				effectApplied: false,
+				successful: true,
+			};
+		}),
+		modelDecision: {
+			decide: async () => ({ decision: "ALLOW", decisionPath: "reason" }),
+		},
+		approval: {
+			validate(value) {
+				checks += 1;
+				if (value.precondition) boundPrecondition = value.precondition;
+				return true;
+			},
+		},
+	});
+	const record = await runtime.executeCapability(
+		input(
+			"process.start",
+			{ mode: "one-shot", command: process.execPath, args: ["-e", ""] },
+			"approval-bind",
+			{ approvalRef: "approval:bind" },
+		),
+	);
+	assert.equal(record.status, "SUCCEEDED");
+	assert.equal(checks, 3);
+	assert.deepEqual(boundPrecondition, {
+		kind: "process.start",
+		capability: "process.start",
+		processRef: "process:x",
+		mode: "one-shot",
+	});
+	runtime.close();
+});
+
+test("B1-EXE-11 cancel racing the RUNNING transition never runs the executor", async () => {
+	const { databasePath } = await fixture();
+	let effects = 0;
+	let checks = 0;
+	let releaseSecond: (value: boolean) => void = () => {};
+	const secondCheck = new Promise<boolean>((resolveWait) => {
+		releaseSecond = resolveWait;
+	});
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => {
+			effects += 1;
+			return readResult();
+		}),
+		modelDecision: {
+			decide: async () => ({ decision: "ALLOW", decisionPath: "reason" }),
+		},
+		approval: {
+			validate() {
+				checks += 1;
+				return checks === 2 ? secondCheck : true;
+			},
+		},
+	});
+	const execution = runtime.executeCapability(
+		input(
+			"process.start",
+			{ mode: "one-shot", command: process.execPath, args: ["-e", ""] },
+			"cas-cancel",
+			{ approvalRef: "approval:cas", executionRef: "execution:cas" },
+		),
+	);
+	await new Promise((resolveWait) => setTimeout(resolveWait, 20));
+	const cancelled = await runtime.cancelExecution({
+		contract: "execution",
+		contractVersion: "1.0.0",
+		executionRef: "execution:cas",
+		callerRef: "caller:test",
+		reason: "test",
+	});
+	assert.equal(cancelled.error?.code, "CANCELLED");
+	releaseSecond(true);
+	const record = await execution;
+	assert.equal(record.error?.code, "CANCELLED");
+	assert.equal(effects, 0);
 	runtime.close();
 });
 

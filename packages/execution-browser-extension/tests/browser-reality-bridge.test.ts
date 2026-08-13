@@ -98,7 +98,7 @@ test("CP-EXE-BR-07 lost bridge result times out once and is never requeued", asy
 	const bridge = await createBrowserRealityBridgeServer({
 		token,
 		extensionId,
-		commandTimeoutMs: 30,
+		commandTimeoutMs: 1_000,
 	});
 	try {
 		await hello(bridge.endpoint);

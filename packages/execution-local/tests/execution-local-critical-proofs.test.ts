@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
@@ -501,4 +502,417 @@ test("CP-EXE-LOCAL-06 environment redaction and file/Git reality recovery", asyn
 		(await executor.reconcile(commitRequest, gitPrecondition)).state,
 		"APPLIED",
 	);
+});
+
+test("B1-EXE-10 reconcile reconstructs the concrete Result for file.write and git.commit", async () => {
+	const { root, executor } = await fixture();
+	let filePrecondition: Parameters<typeof executor.reconcile>[1] | undefined;
+	await executor.execute({
+		request: request(
+			"file.write",
+			{ path: "recovered.txt", content: "reconciled" },
+			root,
+		),
+		admission,
+		onEffectStarted: (value) => {
+			filePrecondition = value;
+		},
+	});
+	assert.ok(filePrecondition);
+	const fileReconciled = await executor.reconcile(
+		request(
+			"file.write",
+			{ path: "recovered.txt", content: "reconciled" },
+			root,
+		),
+		filePrecondition,
+	);
+	assert.equal(fileReconciled.state, "APPLIED");
+	const fileResult = fileReconciled.result;
+	assert.ok(fileResult);
+	if (!fileResult || fileResult.capability !== "file.write")
+		assert.fail("expected file.write result");
+	assert.equal(fileResult.data.path, "recovered.txt");
+	assert.equal(typeof fileResult.data.afterHash, "string");
+	assert.equal(fileResult.data.bytes, Buffer.byteLength("reconciled"));
+
+	let gitPrecondition: Parameters<typeof executor.reconcile>[1] | undefined;
+	await writeFile(join(root, "git-recovered.txt"), "committed");
+	const commitRequest = request(
+		"git.commit",
+		{ message: "test: recover", paths: ["git-recovered.txt"] },
+		root,
+	);
+	await executor.execute({
+		request: commitRequest,
+		admission,
+		onEffectStarted: (value) => {
+			gitPrecondition = value;
+		},
+	});
+	assert.ok(gitPrecondition);
+	const gitReconciled = await executor.reconcile(
+		commitRequest,
+		gitPrecondition,
+	);
+	assert.equal(gitReconciled.state, "APPLIED");
+	const gitResult = gitReconciled.result;
+	assert.ok(gitResult);
+	if (!gitResult || gitResult.capability !== "git.commit")
+		assert.fail("expected git.commit result");
+	assert.equal(typeof gitResult.data.commitSha, "string");
+	assert.equal(gitResult.data.head, gitResult.data.commitSha);
+});
+
+test("B1-EXE-04 installDependency crash recovers reality from package.json/lockfile", async () => {
+	const { root, executor } = await fixture();
+	const installRequest = request(
+		"project.installDependency",
+		{ packageName: "./recover-dep", packageManager: "npm" },
+		root,
+	);
+
+	// NOT_APPLIED: manifest and lockfile both unchanged before any install.
+	const beforeManifest = createHash("sha256")
+		.update(await readFile(join(root, "package.json")))
+		.digest("hex");
+	const notApplied = await executor.reconcile(installRequest, {
+		kind: "install-dependency",
+		capability: "project.installDependency",
+		packageManager: "npm",
+		requested: "./recover-dep",
+		dev: false,
+		beforeManifestHash: `sha256:${beforeManifest}`,
+	});
+	assert.equal(notApplied.state, "NOT_APPLIED");
+
+	// APPLIED: a real install mutates package.json, then reconcile reconstructs Result.
+	await mkdir(join(root, "recover-dep"));
+	await writeFile(
+		join(root, "recover-dep", "package.json"),
+		JSON.stringify({ name: "proflow-recover-dep", version: "1.0.0" }),
+	);
+	let precondition: Parameters<typeof executor.reconcile>[1] | undefined;
+	await executor.execute({
+		request: installRequest,
+		admission,
+		onEffectStarted: (value) => {
+			precondition = value;
+		},
+	});
+	assert.ok(precondition);
+	if (!precondition || precondition.kind !== "install-dependency")
+		assert.fail("expected install-dependency precondition");
+	const reconciled = await executor.reconcile(installRequest, precondition);
+	assert.equal(reconciled.state, "APPLIED");
+	const result = reconciled.result;
+	assert.ok(result);
+	if (!result || result.capability !== "project.installDependency")
+		assert.fail("expected project.installDependency result");
+	assert.equal(result.data.manifestChanged, true);
+	assert.equal(result.data.lockfileChanged, true);
+	assert.equal(result.data.packageManager, "npm");
+	assert.equal(result.data.requested, "./recover-dep");
+	assert.equal(result.data.output.exitCode, 0);
+});
+
+test("B1-EXE-09 output summary is UTF-8 byte-bounded and secrets are redacted across chunk boundaries", async () => {
+	const { root, artifacts } = await fixture();
+	const secret = "SPLIT-SECRET-7f3a";
+	await writeFile(
+		join(root, "split.mjs"),
+		[
+			"process.stdout.write(process.env.PROFLOW_SPLIT_SECRET.slice(0, 6));",
+			"await new Promise(r => setTimeout(r, 30));",
+			"process.stdout.write(process.env.PROFLOW_SPLIT_SECRET.slice(6) + '\\n');",
+			"process.stdout.write('你好世界'.repeat(64));",
+			"",
+		].join("\n"),
+	);
+	const executor = await createLocalExecutor({
+		projectRoot: root,
+		artifactRoot: artifacts,
+		baseEnv: { PROFLOW_SPLIT_SECRET: secret },
+	});
+	const result = await run(executor, root, "process.start", {
+		mode: "one-shot",
+		command: process.execPath,
+		args: ["split.mjs"],
+		maxOutputBytes: 128,
+	});
+	if (
+		result.result.capability !== "process.start" ||
+		result.result.data.mode !== "one-shot"
+	)
+		assert.fail("expected one-shot");
+	const { stdoutSummary } = result.result.data.output;
+	assert.equal(stdoutSummary.includes(secret), false);
+	assert.ok(Buffer.byteLength(stdoutSummary) <= 128);
+	const stdoutArtifact = result.artifacts.find(
+		(artifact) => artifact.stream === "stdout",
+	);
+	assert.ok(stdoutArtifact);
+	const onDisk = await readFile(stdoutArtifact.path, "utf8");
+	assert.equal(onDisk.includes(secret), false);
+	assert.equal(onDisk.includes("你好世界"), true);
+});
+
+test("B1-EXE-06 managed process identity, crash-before-persist and stop recovery reconcile", async () => {
+	const { root, executor } = await fixture();
+	const startRequest = request(
+		"process.start",
+		{
+			mode: "managed",
+			command: process.execPath,
+			args: ["ready.mjs"],
+			readiness: { kind: "log", pattern: "READY" },
+			timeoutMs: 2_000,
+		},
+		root,
+	);
+
+	// spawn 后、registry persist 前故障注入：EFFECT_STARTED 已触发但 registry
+	// 缺失，绝不能得到 NOT_APPLIED（那会触发盲目重启），只能 UNKNOWN。
+	const ghost = await executor.reconcile(startRequest, {
+		kind: "process.start",
+		capability: "process.start",
+		processRef: "process:ghost",
+		mode: "managed",
+	});
+	assert.equal(ghost.state, "UNKNOWN");
+
+	// managed start lost response + durable registry reality → APPLIED + Result。
+	let startPrecondition: Parameters<typeof executor.reconcile>[1] | undefined;
+	await executor.execute({
+		request: startRequest,
+		admission,
+		onEffectStarted: (value) => {
+			startPrecondition = value;
+		},
+	});
+	assert.ok(startPrecondition);
+	if (!startPrecondition || startPrecondition.kind !== "process.start")
+		assert.fail("expected process.start precondition");
+	const processRef = startPrecondition.processRef;
+	const started = await executor.reconcile(startRequest, startPrecondition);
+	assert.equal(started.state, "APPLIED");
+	assert.ok(started.result);
+	if (!started.result || started.result.capability !== "process.start")
+		assert.fail("expected process.start result");
+	assert.equal(started.result.data.mode, "managed");
+	assert.equal(started.result.data.processRef, processRef);
+	assert.equal(started.result.data.ready, true);
+	assert.equal(typeof started.result.data.stdoutRef, "string");
+	assert.equal(typeof started.result.data.stderrRef, "string");
+
+	// stop never happened：进程仍在运行、registry 仍存在 → NOT_APPLIED。
+	const notStopped = await executor.reconcile(
+		request("process.stop", { processRef }, root),
+		{
+			kind: "process.stop",
+			capability: "process.stop",
+			processRef,
+		},
+	);
+	assert.equal(notStopped.state, "NOT_APPLIED");
+
+	// stop lost response：effect 已完成（进程被 kill、registry 删除）但调用方
+	// 未收到响应 → reality reconcile 返回 APPLIED，且不重复/误杀。
+	let stopPrecondition: Parameters<typeof executor.reconcile>[1] | undefined;
+	await executor.execute({
+		request: request("process.stop", { processRef }, root),
+		admission,
+		onEffectStarted: (value) => {
+			stopPrecondition = value;
+		},
+	});
+	assert.ok(stopPrecondition);
+	if (!stopPrecondition || stopPrecondition.kind !== "process.stop")
+		assert.fail("expected process.stop precondition");
+	assert.equal(stopPrecondition.processRef, processRef);
+	assert.equal(typeof stopPrecondition.birthIdentity, "string");
+	assert.ok((stopPrecondition.birthIdentity ?? "").length > 0);
+	const stopped = await executor.reconcile(
+		request("process.stop", { processRef }, root),
+		stopPrecondition,
+	);
+	assert.equal(stopped.state, "APPLIED");
+	assert.ok(stopped.result);
+	if (!stopped.result || stopped.result.capability !== "process.stop")
+		assert.fail("expected process.stop result");
+	assert.equal(stopped.result.data.processRef, processRef);
+	assert.equal(stopped.result.data.stopped, true);
+	assert.equal(stopped.evidence.length, 0);
+});
+
+test("B1-EXE-07 network.request followRedirects validates every hop and strips cross-origin credentials", async () => {
+	const { root, executor } = await fixture();
+
+	let finalReceivedAuthorization = false;
+	const finalServer = createServer((_request, response) => {
+		finalReceivedAuthorization = _request.headers.authorization !== undefined;
+		response.end("final");
+	});
+	await new Promise<void>((resolveListen) =>
+		finalServer.listen(0, "127.0.0.1", resolveListen),
+	);
+	const finalAddress = finalServer.address();
+	if (finalAddress === null || typeof finalAddress === "string")
+		assert.fail("missing final port");
+	const finalUrl = `http://127.0.0.1:${finalAddress.port}/final`;
+
+	const redirectServer = createServer((_request, response) => {
+		response.statusCode = 302;
+		response.setHeader("location", finalUrl);
+		response.end();
+	});
+	await new Promise<void>((resolveListen) =>
+		redirectServer.listen(0, "127.0.0.1", resolveListen),
+	);
+	const redirectAddress = redirectServer.address();
+	if (redirectAddress === null || typeof redirectAddress === "string")
+		assert.fail("missing redirect port");
+
+	const publicRedirectServer = createServer((_request, response) => {
+		response.statusCode = 302;
+		response.setHeader("location", "https://example.com/escaped");
+		response.end();
+	});
+	await new Promise<void>((resolveListen) =>
+		publicRedirectServer.listen(0, "127.0.0.1", resolveListen),
+	);
+	const publicRedirectAddress = publicRedirectServer.address();
+	if (
+		publicRedirectAddress === null ||
+		typeof publicRedirectAddress === "string"
+	)
+		assert.fail("missing public-redirect port");
+
+	const loopServer = createServer((_request, response) => {
+		response.statusCode = 302;
+		response.setHeader("location", "/loop");
+		response.end();
+	});
+	await new Promise<void>((resolveListen) =>
+		loopServer.listen(0, "127.0.0.1", resolveListen),
+	);
+	const loopAddress = loopServer.address();
+	if (loopAddress === null || typeof loopAddress === "string")
+		assert.fail("missing loop port");
+
+	try {
+		// default (no followRedirects) fails closed on any redirect.
+		await assert.rejects(
+			() =>
+				run(executor, root, "network.request", {
+					url: `http://127.0.0.1:${redirectAddress.port}/start`,
+					method: "GET",
+				}),
+			(error) =>
+				error instanceof LocalExecutionError && error.code === "SCOPE_DENIED",
+		);
+
+		// followRedirects=true follows a same-scope hop and strips the
+		// cross-origin Authorization header.
+		const followed = await run(executor, root, "network.request", {
+			url: `http://127.0.0.1:${redirectAddress.port}/start`,
+			method: "GET",
+			headers: { authorization: "Bearer cross-origin-proof" },
+			followRedirects: true,
+		});
+		assert.equal(
+			followed.result.capability === "network.request" &&
+				followed.result.data.status,
+			200,
+		);
+		if (followed.result.capability === "network.request") {
+			assert.equal(followed.result.data.url, finalUrl);
+			assert.equal(followed.result.data.bodySummary, "final");
+		}
+		assert.equal(finalReceivedAuthorization, false);
+
+		// a hop that escapes the deterministic scope fails closed.
+		await assert.rejects(
+			() =>
+				run(executor, root, "network.request", {
+					url: `http://127.0.0.1:${publicRedirectAddress.port}/start`,
+					method: "GET",
+					followRedirects: true,
+				}),
+			(error) =>
+				error instanceof LocalExecutionError && error.code === "SCOPE_DENIED",
+		);
+
+		// an unbounded self-loop is cut off by the hop limit, still fail-closed.
+		await assert.rejects(
+			() =>
+				run(executor, root, "network.request", {
+					url: `http://127.0.0.1:${loopAddress.port}/start`,
+					method: "GET",
+					followRedirects: true,
+				}),
+			(error) =>
+				error instanceof LocalExecutionError && error.code === "SCOPE_DENIED",
+		);
+	} finally {
+		redirectServer.close();
+		finalServer.close();
+		publicRedirectServer.close();
+		loopServer.close();
+	}
+});
+
+test("B1-EXE-08 network response body streams to a redacted byte-bounded artifact", async () => {
+	const { root, executor } = await fixture();
+	const secret = "UNIQUE-B1-EXE-08-5d3e";
+	const server = createServer((request, response) => {
+		let body = "";
+		request.on("data", (chunk) => {
+			body += chunk.toString();
+		});
+		request.on("end", () => {
+			response.setHeader("content-type", "application/json");
+			response.end(
+				JSON.stringify({
+					auth: request.headers.authorization ?? "",
+					echoedBody: body,
+					note: "hello",
+				}),
+			);
+		});
+	});
+	await new Promise<void>((resolveListen) =>
+		server.listen(0, "127.0.0.1", resolveListen),
+	);
+	const address = server.address();
+	if (address === null || typeof address === "string")
+		assert.fail("missing port");
+	try {
+		const result = await run(executor, root, "network.request", {
+			url: `http://127.0.0.1:${address.port}/`,
+			method: "POST",
+			headers: { authorization: `Bearer ${secret}` },
+			body: `password=${secret}`,
+			maxOutputBytes: 256,
+		});
+		assert.equal(
+			result.result.capability === "network.request" &&
+				result.result.data.status,
+			200,
+		);
+		if (result.result.capability !== "network.request")
+			assert.fail("expected network.request");
+		const { bodySummary } = result.result.data;
+		assert.equal(bodySummary.includes(secret), false);
+		assert.ok(bodySummary.includes("[REDACTED]"));
+		assert.ok(Buffer.byteLength(bodySummary) <= 256);
+		const bodyArtifact = result.artifacts.find(
+			(artifact) => artifact.stream === "report",
+		);
+		assert.ok(bodyArtifact);
+		const onDisk = await readFile(bodyArtifact.path, "utf8");
+		assert.equal(onDisk.includes(secret), false);
+	} finally {
+		server.close();
+	}
 });

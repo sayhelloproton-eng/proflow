@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import {
+	type BrowserCapabilityId,
 	browserCapabilityIds,
 	type ExecuteCapabilityRequest,
 	type ExecutionCapabilityResult,
@@ -269,10 +270,14 @@ export function createExecutionBrowserExtension(
 	};
 
 	const effectStarted = async (invocation: ExecutorInvocation) => {
+		const { request } = invocation;
 		await invocation.onEffectStarted?.({
-			kind: "opaque",
-			capability: invocation.request.capability,
-		} as never);
+			kind: "browser",
+			capability: request.capability as BrowserCapabilityId,
+			...(request.roleRef ? { roleRef: request.roleRef } : {}),
+			...(request.workerRef ? { workerRef: request.workerRef } : {}),
+			...(request.taskId ? { taskId: request.taskId } : {}),
+		});
 	};
 
 	const result = (
@@ -284,9 +289,9 @@ export function createExecutionBrowserExtension(
 		evidence: [browserEvidence(idFactory, observation, true)],
 		artifacts: [],
 		precondition: {
-			kind: "opaque",
-			capability: capabilityResult.capability,
-		} as never,
+			kind: "browser",
+			capability: capabilityResult.capability as BrowserCapabilityId,
+		},
 		effectApplied,
 		successful: true,
 	});

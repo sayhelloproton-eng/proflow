@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import {
 	access,
 	appendFile,
+	type FileHandle,
 	mkdir,
 	open,
 	readdir,
@@ -47,20 +48,41 @@ export interface LocalAdmission {
 export type LocalPrecondition =
 	| {
 			kind: "file.write";
+			capability: "file.write";
 			path: string;
 			beforeHash?: string;
 			expectedAfterHash: string;
 	  }
 	| {
 			kind: "git.commit";
+			capability: "git.commit";
 			beforeHead: string;
 			beforeIndexHash: string;
 			message: string;
+			paths?: string[];
+	  }
+	| {
+			kind: "install-dependency";
+			capability: "project.installDependency";
+			packageManager: "pnpm" | "npm" | "yarn";
+			requested: string;
+			dev: boolean;
+			beforeManifestHash: string;
+			beforeLockHash?: string;
+			beforeDeclaration?: string;
 	  }
 	| {
 			kind: "process.start";
+			capability: "process.start";
 			processRef: string;
 			mode: "one-shot" | "managed";
+	  }
+	| {
+			kind: "process.stop";
+			capability: "process.stop";
+			processRef: string;
+			pid?: number;
+			birthIdentity?: string;
 	  }
 	| { kind: "opaque"; capability: LocalCapabilityId };
 
@@ -90,6 +112,7 @@ export interface LocalExecutorInvocation {
 export interface LocalReconciliation {
 	state: "APPLIED" | "NOT_APPLIED" | "UNKNOWN";
 	evidence: ExecutionEvidence[];
+	result?: ExecutionCapabilityResult;
 }
 
 export class LocalExecutionError extends Error {
@@ -107,8 +130,6 @@ export class LocalExecutionError extends Error {
 interface ManagedProcessRecord {
 	processRef: string;
 	pid: number;
-	command: string;
-	args: string[];
 	stdoutRef: string;
 	stderrRef: string;
 	stdoutPath: string;
@@ -185,13 +206,139 @@ function redactText(value: string, secrets: readonly string[]): string {
 	let redacted = value
 		.replace(/Bearer\s+[A-Za-z0-9._~+/-]+=*/gi, "Bearer [REDACTED]")
 		.replace(
-			/((?:authorization|api[_-]?key|token|password|cookie|secret)\s*[:=]\s*)[^\s,;]+/gi,
+			/((?:authorization|api[_-]?key|token|password|cookie|secret|private[_-]?key)\s*[:=]\s*)[^\s,;]+/gi,
 			"$1[REDACTED]",
 		);
 	for (const secret of secrets) {
 		if (secret.length > 0) redacted = redacted.split(secret).join("[REDACTED]");
 	}
 	return redacted;
+}
+
+/**
+ * Returns the longest prefix of `text` whose UTF-8 byte length does not exceed
+ * `maxBytes`, never splitting a multi-byte code point in half.
+ */
+function truncateUtf8(text: string, maxBytes: number): string {
+	if (maxBytes <= 0) return "";
+	if (Buffer.byteLength(text) <= maxBytes) return text;
+	let result = "";
+	let bytes = 0;
+	for (const char of text) {
+		const charBytes = Buffer.byteLength(char);
+		if (bytes + charBytes > maxBytes) break;
+		result += char;
+		bytes += charBytes;
+	}
+	return result;
+}
+
+/** Accumulates a UTF-8 byte-bounded summary (not a JS character slice). */
+function createByteBoundedSummary(maxBytes: number) {
+	let value = "";
+	return {
+		push(text: string): void {
+			const remaining = maxBytes - Buffer.byteLength(value);
+			if (remaining <= 0) return;
+			value += truncateUtf8(text, remaining);
+		},
+		value(): string {
+			return value;
+		},
+	};
+}
+
+/**
+ * Streams redaction across chunk boundaries. A secret split between two chunks
+ * is still fully removed because a `maxSecretLength` tail is carried forward.
+ */
+function createStreamingRedactor(secrets: readonly string[]) {
+	const maxSecret = secrets.reduce(
+		(max, secret) => Math.max(max, secret.length),
+		0,
+	);
+	let carry = "";
+	return {
+		push(chunk: string): string {
+			if (maxSecret === 0) return redactText(chunk, secrets);
+			const combined = redactText(carry + chunk, secrets);
+			if (combined.length <= maxSecret) {
+				carry = combined;
+				return "";
+			}
+			const emit = combined.slice(0, combined.length - maxSecret);
+			carry = combined.slice(combined.length - maxSecret);
+			return emit;
+		},
+		flush(): string {
+			const tail = carry;
+			carry = "";
+			return tail;
+		},
+		peek(): string {
+			return carry;
+		},
+	};
+}
+
+/**
+ * Extracts positional secret values from argv (`--token v`, `--token=v`,
+ * `--password`, `--api-key`, etc.) so they enter the redaction secret set.
+ */
+function extractArgvSecrets(args: readonly string[]): string[] {
+	const secrets: string[] = [];
+	const flagPattern =
+		/^--?(?:token|password|api[_-]?key|authorization|bearer|cookie|secret|private[_-]?key)(?:=(.*))?$/i;
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (arg === undefined) continue;
+		const match = flagPattern.exec(arg);
+		if (!match) continue;
+		const inline = match[1];
+		if (inline !== undefined && inline.length > 0) {
+			secrets.push(inline);
+			continue;
+		}
+		const next = args[i + 1];
+		if (next !== undefined) {
+			secrets.push(next);
+			i++;
+		}
+	}
+	return secrets;
+}
+
+/**
+ * Extracts request-side secrets from headers and body so a response body that
+ * echoes them (or a later hop that forwards them) is still redacted at rest.
+ */
+function extractRequestSecrets(
+	headers: Readonly<Record<string, string>> | undefined,
+	body: string | undefined,
+): string[] {
+	const secrets: string[] = [];
+	for (const [name, value] of Object.entries(headers ?? {})) {
+		if (sensitiveKey.test(name) && value.length > 0) secrets.push(value);
+	}
+	if (body !== undefined) {
+		for (const match of body.matchAll(/Bearer\s+([A-Za-z0-9._~+/-]+=*)/gi)) {
+			const token = match[1];
+			if (typeof token === "string" && token.length > 0) secrets.push(token);
+		}
+		for (const match of body.matchAll(
+			/((?:authorization|api[_-]?key|token|password|cookie|secret|private[_-]?key)\s*[:=]\s*)([^\s,;"'}]+)/gi,
+		)) {
+			const value = match[2];
+			if (typeof value === "string" && value.length > 0) secrets.push(value);
+		}
+		for (const match of body.matchAll(
+			/("(?:password|token|secret|api[_-]?key|authorization|cookie|private[_-]?key)"\s*:\s*")((?:[^"\\]|\\.)*)(")/gi,
+		)) {
+			const value = match[2];
+			if (typeof value === "string" && value.length > 0) secrets.push(value);
+		}
+	}
+	return secrets;
 }
 
 function safeEnvironment(
@@ -308,23 +455,26 @@ async function captureCommand(input: {
 	});
 	let stdoutBytes = 0;
 	let stderrBytes = 0;
-	let stdoutSummary = "";
-	let stderrSummary = "";
+	const allSecrets = [...input.secrets, ...extractArgvSecrets(input.args)];
+	const stdoutRedactor = createStreamingRedactor(allSecrets);
+	const stderrRedactor = createStreamingRedactor(allSecrets);
+	const stdoutSummary = createByteBoundedSummary(input.maxOutputBytes);
+	const stderrSummary = createByteBoundedSummary(input.maxOutputBytes);
 	let writeChain = Promise.resolve();
 	const capture = (stream: "stdout" | "stderr", chunk: Buffer) => {
-		const text = redactText(chunk.toString("utf8"), input.secrets);
+		const redactor = stream === "stdout" ? stdoutRedactor : stderrRedactor;
+		const text = redactor.push(chunk.toString("utf8"));
+		if (text.length === 0) return;
 		const bytes = Buffer.byteLength(text);
 		if (stream === "stdout") {
 			stdoutBytes += bytes;
-			if (Buffer.byteLength(stdoutSummary) < input.maxOutputBytes)
-				stdoutSummary += text;
+			stdoutSummary.push(text);
 			writeChain = writeChain
 				.then(() => stdoutHandle.write(text))
 				.then(() => undefined);
 		} else {
 			stderrBytes += bytes;
-			if (Buffer.byteLength(stderrSummary) < input.maxOutputBytes)
-				stderrSummary += text;
+			stderrSummary.push(text);
 			writeChain = writeChain
 				.then(() => stderrHandle.write(text))
 				.then(() => undefined);
@@ -351,6 +501,22 @@ async function captureCommand(input: {
 		input.signal?.removeEventListener("abort", abort);
 	});
 	await killProcessTree(child.pid ?? 0);
+	const stdoutTail = stdoutRedactor.flush();
+	const stderrTail = stderrRedactor.flush();
+	if (stdoutTail.length > 0) {
+		stdoutBytes += Buffer.byteLength(stdoutTail);
+		stdoutSummary.push(stdoutTail);
+		writeChain = writeChain
+			.then(() => stdoutHandle.write(stdoutTail))
+			.then(() => undefined);
+	}
+	if (stderrTail.length > 0) {
+		stderrBytes += Buffer.byteLength(stderrTail);
+		stderrSummary.push(stderrTail);
+		writeChain = writeChain
+			.then(() => stderrHandle.write(stderrTail))
+			.then(() => undefined);
+	}
 	await writeChain;
 	await stdoutHandle.close();
 	await stderrHandle.close();
@@ -362,8 +528,8 @@ async function captureCommand(input: {
 	return {
 		exitCode,
 		durationMs,
-		stdoutSummary: stdoutSummary.slice(0, input.maxOutputBytes),
-		stderrSummary: stderrSummary.slice(0, input.maxOutputBytes),
+		stdoutSummary: stdoutSummary.value(),
+		stderrSummary: stderrSummary.value(),
 		stdout: {
 			ref: `output:${input.id}:stdout`,
 			path: stdoutPath,
@@ -405,13 +571,29 @@ async function simpleCommand(
 }
 
 async function processIdentity(pid: number): Promise<string | undefined> {
-	const observed = await simpleCommand(
-		"ps",
-		["-p", String(pid), "-o", "lstart=", "-o", "command="],
-		process.cwd(),
-	);
-	const identity = observed.stdout.trim();
-	return observed.code === 0 && identity.length > 0 ? identity : undefined;
+	// Birth identity is pid + process start time only — never the argv/command
+	// line, so no positional secret can leak into the managed registry. The
+	// probe is retried because `ps` can transiently fail under concurrent load.
+	for (let attempt = 0; attempt < 3; attempt++) {
+		try {
+			const observed = await simpleCommand(
+				"ps",
+				["-p", String(pid), "-o", "lstart="],
+				process.cwd(),
+			);
+			const start = observed.stdout.trim();
+			if (observed.code === 0 && start.length > 0)
+				return `pid:${pid}:lstart:${start}`;
+		} catch {
+			// `ps` itself can fail to spawn (EAGAIN/EMFILE) under process-table
+			// pressure; fall through to the backoff and retry like an empty probe.
+		}
+		if (attempt < 2)
+			await new Promise<void>((resolveWait) =>
+				setTimeout(resolveWait, 10 * (attempt + 1)),
+			);
+	}
+	return undefined;
 }
 
 async function textFiles(root: string): Promise<string[]> {
@@ -766,6 +948,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					const afterHash = sha256(request.input.content);
 					const precondition: LocalPrecondition = {
 						kind: "file.write",
+						capability: "file.write",
 						path: relative(projectRoot, path),
 						...(beforeHash ? { beforeHash } : {}),
 						expectedAfterHash: afterHash,
@@ -944,6 +1127,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						throw new LocalExecutionError("PRECONDITION_FAILED", head.stderr);
 					const precondition: LocalPrecondition = {
 						kind: "git.commit",
+						capability: "git.commit",
 						beforeHead: head.stdout.trim(),
 						beforeIndexHash: sha256(
 							(
@@ -955,6 +1139,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 							).stdout,
 						),
 						message: request.input.message,
+						...(request.input.paths ? { paths: request.input.paths } : {}),
 					};
 					await markEffect(invocation, precondition);
 					const stage = await simpleCommand(
@@ -1087,8 +1272,13 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						? sha256(await readFile(lockPath))
 						: undefined;
 					const precondition: LocalPrecondition = {
-						kind: "opaque",
-						capability: request.capability,
+						kind: "install-dependency",
+						capability: "project.installDependency",
+						packageManager: manager as "pnpm" | "npm" | "yarn",
+						requested,
+						dev: request.input.dev ?? false,
+						beforeManifestHash: beforeManifest,
+						...(beforeLock ? { beforeLockHash: beforeLock } : {}),
 					};
 					await markEffect(invocation, precondition);
 					const environment = safeEnvironment(options.baseEnv ?? {}, undefined);
@@ -1205,6 +1395,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					const processRef = `process:${idFactory()}`;
 					const precondition: LocalPrecondition = {
 						kind: "process.start",
+						capability: "process.start",
 						processRef,
 						mode: request.input.mode,
 					};
@@ -1256,20 +1447,63 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					const stderrPath = join(artifactRoot, `${id}.managed.stderr.log`);
 					const stdoutHandle = await open(stdoutPath, "w", 0o600);
 					const stderrHandle = await open(stderrPath, "w", 0o600);
+					// Managed output is redacted BEFORE it reaches disk, using the
+					// same streaming redactor as one-shot/quality/shell/install.
+					const managedSecrets = [
+						...environment.secrets,
+						...extractArgvSecrets(request.input.args),
+					];
+					const stdoutRedactor = createStreamingRedactor(managedSecrets);
+					const stderrRedactor = createStreamingRedactor(managedSecrets);
 					const child = spawn(request.input.command, [...request.input.args], {
 						cwd,
 						env: environment.env,
 						detached: true,
-						stdio: ["ignore", stdoutHandle.fd, stderrHandle.fd],
+						stdio: ["ignore", "pipe", "pipe"],
 					});
-					await stdoutHandle.close();
-					await stderrHandle.close();
+					// A failed spawn (EAGAIN/EMFILE under process-table pressure)
+					// surfaces asynchronously on "error"; capture it so we can fail
+					// closed instead of leaking an unhandled "error" crash.
+					let spawnError: Error | undefined;
+					child.once("error", (err) => {
+						spawnError = err;
+					});
+					let managedWriteChain = Promise.resolve();
+					const writeRedacted = (handle: FileHandle, text: string) => {
+						managedWriteChain = managedWriteChain
+							.then(() => handle.write(text))
+							.then(() => undefined);
+					};
+					child.stdout.on("data", (chunk: Buffer) => {
+						const text = stdoutRedactor.push(chunk.toString("utf8"));
+						if (text.length > 0) writeRedacted(stdoutHandle, text);
+					});
+					child.stderr.on("data", (chunk: Buffer) => {
+						const text = stderrRedactor.push(chunk.toString("utf8"));
+						if (text.length > 0) writeRedacted(stderrHandle, text);
+					});
+					// Flushing only after close is safe: no further chunks can
+					// straddle a secret across the flush boundary.
+					child.once("close", () => {
+						const stdoutTail = stdoutRedactor.flush();
+						const stderrTail = stderrRedactor.flush();
+						if (stdoutTail.length > 0) writeRedacted(stdoutHandle, stdoutTail);
+						if (stderrTail.length > 0) writeRedacted(stderrHandle, stderrTail);
+						void managedWriteChain
+							.then(() => stdoutHandle.close())
+							.then(() => stderrHandle.close());
+					});
 					if (child.pid === undefined)
 						throw new LocalExecutionError(
 							"EXECUTION_FAILED",
 							"managed process did not receive a pid",
 						);
 					await new Promise<void>((resolveWait) => setImmediate(resolveWait));
+					if (spawnError !== undefined)
+						throw new LocalExecutionError(
+							"EXECUTION_FAILED",
+							`managed process failed to spawn: ${spawnError.message}`,
+						);
 					const identity = await processIdentity(child.pid);
 					if (!identity) {
 						await killProcessTree(child.pid);
@@ -1282,8 +1516,6 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					const record: ManagedProcessRecord = {
 						processRef,
 						pid: child.pid,
-						command: request.input.command,
-						args: [...request.input.args],
 						stdoutRef: `output:${id}:stdout`,
 						stderrRef: `output:${id}:stderr`,
 						stdoutPath,
@@ -1300,9 +1532,12 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 							try {
 								const response = await fetch(
 									`http://127.0.0.1:${request.input.readiness.port}`,
-									{ signal: AbortSignal.timeout(300) },
+									{
+										signal: AbortSignal.timeout(300),
+										redirect: "manual",
+									},
 								);
-								ready = response.status > 0;
+								ready = response.status > 0 && response.status < 300;
 							} catch {
 								ready = false;
 							}
@@ -1310,13 +1545,17 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 							try {
 								const response = await fetch(request.input.readiness.url, {
 									signal: AbortSignal.timeout(300),
+									redirect: "manual",
 								});
-								ready = response.status > 0;
+								ready = response.status > 0 && response.status < 300;
 							} catch {
 								ready = false;
 							}
 						} else if (request.input.readiness?.kind === "log") {
-							ready = (await readFile(stdoutPath, "utf8")).includes(
+							const onDisk = (await fileExists(stdoutPath))
+								? await readFile(stdoutPath, "utf8")
+								: "";
+							ready = (onDisk + stdoutRedactor.peek()).includes(
 								request.input.readiness.pattern,
 							);
 						}
@@ -1410,8 +1649,11 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 							"process identity no longer matches the owned process",
 						);
 					const precondition: LocalPrecondition = {
-						kind: "opaque",
-						capability: request.capability,
+						kind: "process.stop",
+						capability: "process.stop",
+						processRef: record.processRef,
+						pid: record.pid,
+						birthIdentity: record.processIdentity,
 					};
 					await markEffect(invocation, precondition);
 					await killProcessTree(record.pid);
@@ -1431,10 +1673,11 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 				}
 				case "network.request": {
 					const url = new URL(request.input.url);
-					if (
-						!["http:", "https:"].includes(url.protocol) ||
-						(!isLanOrLocal(url.hostname) && !exactNetworkTargets.has(url.href))
-					)
+					const isScoped = (candidate: URL): boolean =>
+						["http:", "https:"].includes(candidate.protocol) &&
+						(isLanOrLocal(candidate.hostname) ||
+							exactNetworkTargets.has(candidate.href));
+					if (!isScoped(url))
 						throw new LocalExecutionError(
 							"SCOPE_DENIED",
 							"network target is outside deterministic engineering scope",
@@ -1452,20 +1695,69 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					);
 					const abort = () => controller.abort();
 					invocation.signal?.addEventListener("abort", abort, { once: true });
-					let response: Response;
-					const fetchInit: RequestInit = {
-						method: request.input.method,
-						redirect: "manual",
-						signal: controller.signal,
-						...(request.input.headers === undefined
-							? {}
-							: { headers: request.input.headers }),
-						...(request.input.body === undefined
-							? {}
-							: { body: request.input.body }),
+					// Request-side secrets enter the redaction set so a response
+					// body that echoes them is scrubbed before it reaches disk.
+					const requestSecrets = extractRequestSecrets(
+						request.input.headers,
+						request.input.body,
+					);
+					const originalOrigin = url.origin;
+					// Sensitive headers are never forwarded across origins.
+					const headersFor = (
+						candidate: URL,
+					): Record<string, string> | undefined => {
+						if (request.input.headers === undefined) return undefined;
+						if (candidate.origin === originalOrigin)
+							return request.input.headers;
+						const filtered = Object.fromEntries(
+							Object.entries(request.input.headers).filter(
+								([name]) => !sensitiveKey.test(name),
+							),
+						);
+						return Object.keys(filtered).length > 0 ? filtered : undefined;
 					};
+					let response: Response;
+					let currentUrl = url;
+					const maxRedirects = 5;
 					try {
-						response = await fetch(url, fetchInit);
+						for (let hop = 0; ; hop++) {
+							const hopHeaders = headersFor(currentUrl);
+							const fetchInit: RequestInit = {
+								method: request.input.method,
+								redirect: "manual",
+								signal: controller.signal,
+								...(hopHeaders === undefined ? {} : { headers: hopHeaders }),
+								...(request.input.body === undefined
+									? {}
+									: { body: request.input.body }),
+							};
+							response = await fetch(currentUrl, fetchInit);
+							const location = response.headers.get("location");
+							const isRedirect =
+								response.status >= 300 &&
+								response.status < 400 &&
+								location !== null;
+							if (!isRedirect) break;
+							if (request.input.followRedirects !== true)
+								throw new LocalExecutionError(
+									"SCOPE_DENIED",
+									"redirect requires a separately validated exact target",
+								);
+							if (hop >= maxRedirects)
+								throw new LocalExecutionError(
+									"SCOPE_DENIED",
+									"redirect hop limit exceeded",
+								);
+							// Per-hop validation: each hop must independently stay
+							// inside the deterministic engineering scope, else fail-closed.
+							const next = new URL(location, currentUrl);
+							if (!isScoped(next))
+								throw new LocalExecutionError(
+									"SCOPE_DENIED",
+									"redirect target is outside deterministic engineering scope",
+								);
+							currentUrl = next;
+						}
 					} catch (error) {
 						if (controller.signal.aborted)
 							throw new LocalExecutionError(
@@ -1477,19 +1769,34 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						clearTimeout(timeout);
 						invocation.signal?.removeEventListener("abort", abort);
 					}
-					if (
-						response.status >= 300 &&
-						response.status < 400 &&
-						response.headers.get("location")
-					)
-						throw new LocalExecutionError(
-							"SCOPE_DENIED",
-							"redirect requires a separately validated exact target",
-						);
-					const body = await response.text();
+					// Stream the body to a redacted artifact and accumulate a
+					// UTF-8 byte-bounded summary, redacting across chunk boundaries.
 					const id = idFactory();
 					const bodyPath = join(artifactRoot, `${id}.network.body`);
-					await writeFile(bodyPath, redactText(body, []), { mode: 0o600 });
+					const bodyHandle = await open(bodyPath, "w", 0o600);
+					const bodyRedactor = createStreamingRedactor(requestSecrets);
+					const bodySummary = createByteBoundedSummary(
+						request.input.maxOutputBytes ?? 16_384,
+					);
+					let writtenBytes = 0;
+					const writeRedactedBody = async (text: string) => {
+						if (text.length === 0) return;
+						bodySummary.push(text);
+						await bodyHandle.write(text);
+						writtenBytes += Buffer.byteLength(text);
+					};
+					if (response.body !== null) {
+						const reader = response.body.getReader();
+						while (true) {
+							const { done, value } = await reader.read();
+							if (done) break;
+							await writeRedactedBody(
+								bodyRedactor.push(Buffer.from(value).toString("utf8")),
+							);
+						}
+					}
+					await writeRedactedBody(bodyRedactor.flush());
+					await bodyHandle.close();
 					const headers = Object.fromEntries(
 						[...response.headers.entries()].filter(
 							([name]) => !sensitiveKey.test(name),
@@ -1500,13 +1807,10 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						result: {
 							capability: request.capability,
 							data: {
-								url: url.href,
+								url: currentUrl.href,
 								status: response.status,
 								headers,
-								bodySummary: body.slice(
-									0,
-									request.input.maxOutputBytes ?? 16_384,
-								),
+								bodySummary: bodySummary.value(),
 								bodyRef,
 							},
 						},
@@ -1514,7 +1818,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 							{
 								kind: "network",
 								evidenceRef: `evidence:${id}:network`,
-								url: url.href,
+								url: currentUrl.href,
 								status: response.status,
 								bodyRef,
 							},
@@ -1523,7 +1827,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 							{
 								ref: bodyRef,
 								path: bodyPath,
-								bytes: Buffer.byteLength(body),
+								bytes: writtenBytes,
 								stream: "report",
 							},
 						],
@@ -1601,7 +1905,21 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 				bytes: content.byteLength,
 			};
 			if (current === precondition.expectedAfterHash)
-				return { state: "APPLIED", evidence: [evidence] };
+				return {
+					state: "APPLIED",
+					evidence: [evidence],
+					result: {
+						capability: "file.write",
+						data: {
+							path: precondition.path,
+							...(precondition.beforeHash
+								? { beforeHash: precondition.beforeHash }
+								: {}),
+							afterHash: current,
+							bytes: content.byteLength,
+						},
+					},
+				};
 			if (
 				precondition.beforeHash !== undefined &&
 				current === precondition.beforeHash
@@ -1642,14 +1960,78 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 				)
 			).stdout.trim();
 			return message === precondition.message
-				? { state: "APPLIED", evidence: [evidence] }
+				? {
+						state: "APPLIED",
+						evidence: [evidence],
+						result: {
+							capability: "git.commit",
+							data: { commitSha: head, head },
+						},
+					}
 				: { state: "UNKNOWN", evidence: [evidence] };
+		}
+		if (
+			precondition.kind === "install-dependency" &&
+			request.capability === "project.installDependency"
+		) {
+			const lockPath =
+				precondition.packageManager === "pnpm"
+					? join(projectRoot, "pnpm-lock.yaml")
+					: precondition.packageManager === "yarn"
+						? join(projectRoot, "yarn.lock")
+						: join(projectRoot, "package-lock.json");
+			const manifest = await readFile(join(projectRoot, "package.json"));
+			const manifestHash = sha256(manifest);
+			const lockExists = await fileExists(lockPath);
+			const lockHash = lockExists
+				? sha256(await readFile(lockPath))
+				: undefined;
+			const manifestChanged = manifestHash !== precondition.beforeManifestHash;
+			const lockfileChanged =
+				precondition.beforeLockHash !== undefined
+					? lockHash !== precondition.beforeLockHash
+					: lockExists;
+			const evidence: ExecutionEvidence = {
+				kind: "file",
+				evidenceRef: `evidence:${idFactory()}:reconcile`,
+				path: "package.json",
+				beforeHash: precondition.beforeManifestHash,
+				afterHash: manifestHash,
+				bytes: manifest.byteLength,
+			};
+			if (manifestChanged)
+				return {
+					state: "APPLIED",
+					evidence: [evidence],
+					result: {
+						capability: "project.installDependency",
+						data: {
+							packageManager: precondition.packageManager,
+							requested: precondition.requested,
+							manifestChanged: true,
+							lockfileChanged,
+							output: {
+								exitCode: 0,
+								durationMs: 0,
+								stdoutSummary: "",
+								stderrSummary: "",
+								stdoutRef: "output:reconciled:stdout",
+								stderrRef: "output:reconciled:stderr",
+							},
+						},
+					},
+				};
+			if (!lockfileChanged)
+				return { state: "NOT_APPLIED", evidence: [evidence] };
+			return { state: "UNKNOWN", evidence: [evidence] };
 		}
 		if (precondition.kind === "process.start") {
 			if (precondition.mode === "one-shot")
 				return { state: "UNKNOWN", evidence: [] };
 			const record = managed.get(precondition.processRef);
-			if (!record) return { state: "NOT_APPLIED", evidence: [] };
+			// EFFECT_STARTED already fired, so a missing registry entry cannot
+			// prove the process was never spawned — never claim NOT_APPLIED.
+			if (!record) return { state: "UNKNOWN", evidence: [] };
 			try {
 				if (!(await ownsManagedProcess(record)))
 					return { state: "UNKNOWN", evidence: [] };
@@ -1663,10 +2045,57 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 							pid: record.pid,
 						},
 					],
+					result: {
+						capability: "process.start",
+						data: {
+							mode: "managed",
+							processRef: record.processRef,
+							pid: record.pid,
+							ready: true,
+							stdoutRef: record.stdoutRef,
+							stderrRef: record.stderrRef,
+						},
+					},
 				};
 			} catch {
-				return { state: "NOT_APPLIED", evidence: [] };
+				return { state: "UNKNOWN", evidence: [] };
 			}
+		}
+		if (
+			precondition.kind === "process.stop" &&
+			request.capability === "process.stop"
+		) {
+			const record = managed.get(precondition.processRef);
+			if (!record)
+				return {
+					state: "APPLIED",
+					evidence: [],
+					result: {
+						capability: "process.stop",
+						data: { processRef: precondition.processRef, stopped: true },
+					},
+				};
+			try {
+				if (await ownsManagedProcess(record))
+					return { state: "NOT_APPLIED", evidence: [] };
+			} catch {
+				return { state: "UNKNOWN", evidence: [] };
+			}
+			return {
+				state: "APPLIED",
+				evidence: [
+					{
+						kind: "process",
+						evidenceRef: `evidence:${idFactory()}:reconcile`,
+						processRef: record.processRef,
+						pid: record.pid,
+					},
+				],
+				result: {
+					capability: "process.stop",
+					data: { processRef: record.processRef, stopped: true },
+				},
+			};
 		}
 		return { state: "UNKNOWN", evidence: [] };
 	}

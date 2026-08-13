@@ -10,4 +10,7 @@ coverage/
 dist/
 lib/
 
+.omo/
+.codegraph
+
 *.log

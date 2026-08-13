@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { parseExecutionRef } from "@tomflow/proflow-execution-contracts";
-import { createLocalExecutor } from "@tomflow/proflow-execution-local";
+import { createLocalExecutorPort } from "./executors/local-adapter.ts";
 import {
 	createExecutionRuntime,
 	type ExecutionRuntimeOptions,
@@ -129,7 +129,7 @@ export async function createExecutionRuntimeProcess(input: {
 			throw new Error("execution runtime is not stopped");
 		state = "STARTING";
 		try {
-			const localExecutor = await createLocalExecutor({
+			const localExecutor = await createLocalExecutorPort({
 				projectRoot: input.config.projectRoot,
 				artifactRoot: input.config.artifactRoot,
 				exactNetworkTargets: input.config.exactNetworkTargets,

@@ -7,7 +7,6 @@ import {
 	browserCapabilityIds,
 	EXECUTION_CONTRACT_VERSION,
 	type ExecuteCapabilityRequest,
-	type ExecutionCapabilityResult,
 	type ExecutionErrorCode,
 	type ExecutionRecord,
 	type ExecutionRef,
@@ -20,11 +19,9 @@ import {
 	type ReadExecutionOutputResponse,
 } from "@tomflow/proflow-execution-contracts";
 import type {
-	LocalExecutionResult,
-	LocalExecutorInvocation,
-	LocalPrecondition,
-	LocalReconciliation,
-} from "@tomflow/proflow-execution-local";
+	ExecutionExecutorPort,
+	ExecutorPrecondition,
+} from "./executor-port.ts";
 
 export const moduleRef = "execution-runtime" as const;
 
@@ -54,6 +51,7 @@ export interface ExecutionApprovalPort {
 		inputFingerprint: string;
 		request: ExecuteCapabilityRequest;
 		projectRoot?: string;
+		precondition?: ExecutorPrecondition;
 		now: string;
 	}): MaybePromise<boolean>;
 }
@@ -61,23 +59,17 @@ export interface ExecutionApprovalPort {
 export interface ExecutionIdentityPort {
 	authorize(request: ExecuteCapabilityRequest): MaybePromise<boolean>;
 }
-export interface ExecutionExecutorPort {
-	execute(invocation: LocalExecutorInvocation): Promise<LocalExecutionResult>;
-	reconcile(
-		request: ExecuteCapabilityRequest,
-		precondition: LocalPrecondition,
-	): Promise<LocalReconciliation & { result?: ExecutionCapabilityResult }>;
-	readArtifact(
-		ref: string,
-		offset?: number,
-		limit?: number,
-	): Promise<{
-		chunk: string;
-		nextOffset: number;
-		eof: boolean;
-		bytes: number;
-	}>;
-}
+export type {
+	ExecutionExecutorPort,
+	ExecutorAdmission,
+	ExecutorArtifact,
+	ExecutorArtifactRead,
+	ExecutorDecisionPath,
+	ExecutorInvocation,
+	ExecutorPrecondition,
+	ExecutorReconciliation,
+	ExecutorResult,
+} from "./executor-port.ts";
 
 export interface ExecutionRuntimeOptions {
 	databasePath: string;
@@ -123,10 +115,67 @@ function sha(value: unknown): string {
 		.update(JSON.stringify(canonical(value)))
 		.digest("hex")}`;
 }
+const secretFlagArg =
+	/^--?(?:token|password|api[_-]?key|authorization|bearer|cookie|secret|private[_-]?key)(?:=(.*))?$/i;
+
+/** Scrubs credential-shaped fragments inside plain strings (JSON bodies, headers). */
+function scrubEmbeddedSecrets(value: string): string {
+	return value
+		.replace(/Bearer\s+([A-Za-z0-9._~+/-]+=*)/gi, (_match, token) =>
+			typeof token === "string" ? `Bearer [SECRET_REF:${sha(token)}]` : _match,
+		)
+		.replace(
+			/((?:authorization|api[_-]?key|token|password|cookie|secret|private[_-]?key)\s*[:=]\s*)([^\s,;"'}]+)/gi,
+			(_match, prefix, secretValue) =>
+				typeof prefix === "string" && typeof secretValue === "string"
+					? `${prefix}[SECRET_REF:${sha(secretValue)}]`
+					: _match,
+		)
+		.replace(
+			/("(?:password|token|secret|api[_-]?key|authorization|cookie|private[_-]?key)"\s*:\s*")((?:[^"\\]|\\.)*)(")/gi,
+			(_match, prefix, secretValue, suffix) =>
+				typeof prefix === "string" &&
+				typeof secretValue === "string" &&
+				typeof suffix === "string"
+					? `${prefix}[SECRET_REF:${sha(secretValue)}]${suffix}`
+					: _match,
+		);
+}
+
 function protectedValue(value: unknown, key = ""): unknown {
 	if (sensitive.test(key)) return `[SECRET_REF:${sha(value)}]`;
-	if (Array.isArray(value)) return value.map((item) => protectedValue(item));
-	if (typeof value !== "object" || value === null) return value;
+	if (Array.isArray(value)) {
+		const items: unknown[] = [];
+		for (let i = 0; i < value.length; i++) {
+			const item = value[i];
+			if (typeof item !== "string") {
+				items.push(protectedValue(item));
+				continue;
+			}
+			const flag = secretFlagArg.exec(item);
+			if (!flag) {
+				items.push(protectedValue(item));
+				continue;
+			}
+			if (flag[1] !== undefined && flag[1].length > 0) {
+				// `--token=value` — keep the flag, hash the value.
+				items.push(
+					`${item.slice(0, item.length - flag[1].length)}[SECRET_REF:${sha(flag[1])}]`,
+				);
+			} else {
+				items.push(item);
+				if (i + 1 < value.length) {
+					// `--token value` — the following positional arg is the secret.
+					items.push(`[SECRET_REF:${sha(value[i + 1])}]`);
+					i++;
+				}
+			}
+		}
+		return items;
+	}
+	if (typeof value !== "object" || value === null) {
+		return typeof value === "string" ? scrubEmbeddedSecrets(value) : value;
+	}
 	return Object.fromEntries(
 		Object.entries(value).map(([childKey, item]) => [
 			childKey,
@@ -196,9 +245,20 @@ const defaultPolicy: ExecutionPolicyPort = {
 				approvalRequired: true,
 			};
 		}
+		const readOnly =
+			request.capability === "file.read" ||
+			request.capability === "file.searchText" ||
+			request.capability === "git.status" ||
+			request.capability === "git.diff" ||
+			request.capability === "project.info" ||
+			request.capability === "code.findSymbol" ||
+			request.capability === "code.findReferences" ||
+			request.capability === "process.status" ||
+			(request.capability === "network.request" &&
+				(request.input.method === "GET" || request.input.method === "HEAD"));
 		return {
 			decision: "ALLOW",
-			decisionPath: "deterministic",
+			decisionPath: readOnly ? "deterministic" : "fast",
 			approvalRequired: false,
 		};
 	},
@@ -282,7 +342,10 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			.get(executionRef) as Row | undefined;
 	const fromRow = (row: Row): ExecutionRecord =>
 		parseExecutionRecord(JSON.parse(String(row.record_json)));
-	const save = (record: ExecutionRecord, precondition?: LocalPrecondition) => {
+	const save = (
+		record: ExecutionRecord,
+		precondition?: ExecutorPrecondition,
+	) => {
 		database
 			.prepare(
 				"UPDATE executions SET record_json=?, precondition_json=COALESCE(?, precondition_json) WHERE execution_ref=?",
@@ -345,7 +408,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					model.reason ?? "model decision denied execution",
 				);
 		}
-		const validateApproval = async () => {
+		const validateApproval = async (precondition?: ExecutorPrecondition) => {
 			if (!policy.approvalRequired) return;
 			if (!request.approvalRef)
 				throw new ExecutionRuntimeError(
@@ -361,6 +424,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					inputFingerprint,
 					request,
 					...(request.projectRoot ? { projectRoot: request.projectRoot } : {}),
+					...(precondition ? { precondition } : {}),
 					now: now().toISOString(),
 				}))
 			)
@@ -538,6 +602,14 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					}, request.timeoutMs);
 		try {
 			await admission.validateApproval();
+			// CAS: only transition to RUNNING if the record is still PENDING.
+			// A concurrent cancel/timeout finalizes PENDING records, so a
+			// stale RUNNING write would silently resurrect a cancelled intent.
+			const casRow = getRow(record.executionRef);
+			if (casRow) {
+				const casRecord = fromRow(casRow);
+				if (casRecord.status !== "PENDING") return casRecord;
+			}
 			record = parseExecutionRecord({
 				...record,
 				status: "RUNNING",
@@ -558,12 +630,13 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					"EXECUTOR_UNAVAILABLE",
 					"no executor is registered for capability",
 				);
-			let precondition: LocalPrecondition | undefined;
+			let precondition: ExecutorPrecondition | undefined;
 			const result = await executor.execute({
 				request,
 				admission,
 				signal: controller.signal,
 				async onEffectStarted(value) {
+					await admission.validateApproval(value);
 					precondition = value;
 					record = parseExecutionRecord({
 						...record,
@@ -631,7 +704,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					try {
 						const reconciliation = await executor.reconcile(
 							request,
-							JSON.parse(String(preconditionRaw)) as LocalPrecondition,
+							JSON.parse(String(preconditionRaw)) as ExecutorPrecondition,
 						);
 						if (reconciliation.state === "NOT_APPLIED")
 							record = failRecord(record, failure);
@@ -815,7 +888,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			try {
 				const reconciled = await executor.reconcile(
 					request,
-					JSON.parse(String(row.precondition_json)) as LocalPrecondition,
+					JSON.parse(String(row.precondition_json)) as ExecutorPrecondition,
 				);
 				if (reconciled.state === "NOT_APPLIED")
 					record = failRecord(
