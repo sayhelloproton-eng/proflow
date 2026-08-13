@@ -1,0 +1,18 @@
+openapi: 3.1.0
+info: {title: ProFlow Controller Dev Actions, version: 1.0.0}
+servers: [{url: https://GATEWAY_PUBLIC_HOST}]
+paths:
+  /actions/getTask: {get: {operationId: getTask, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/getNodeContext: {get: {operationId: getNodeContext, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/startNode: {post: {operationId: startNode, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/completeNode: {post: {operationId: completeNode, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/waitNode: {post: {operationId: waitNode, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/failNode: {post: {operationId: failNode, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/reopenNode: {post: {operationId: reopenNode, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/getTaskDocument: {get: {operationId: getTaskDocument, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/putTaskDocument: {post: {operationId: putTaskDocument, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/askPeer: {post: {operationId: askPeer, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/replyPeer: {post: {operationId: replyPeer, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/executeCapability: {post: {operationId: executeCapability, x-openai-isConsequential: true, responses: {'200': {description: OK}}}}
+  /actions/getExecution: {get: {operationId: getExecution, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/readExecutionOutput: {get: {operationId: readExecutionOutput, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}

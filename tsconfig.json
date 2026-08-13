@@ -11,6 +11,21 @@
 		"noUncheckedIndexedAccess": true,
 		"exactOptionalPropertyTypes": true,
 		"paths": {
+			"@tomflow/proflow-agent-controller-dev": [
+				"./packages/agent-controller-dev/src/index.ts"
+			],
+			"@tomflow/proflow-agent-gateway": [
+				"./packages/agent-gateway/src/index.ts"
+			],
+			"@tomflow/proflow-agent-product": [
+				"./packages/agent-product/src/index.ts"
+			],
+			"@tomflow/proflow-agent-runtime": [
+				"./packages/agent-runtime/src/index.ts"
+			],
+			"@tomflow/proflow-agent-test-ops": [
+				"./packages/agent-test-ops/src/index.ts"
+			],
 			"@tomflow/proflow-execution-contracts": [
 				"./packages/execution-contracts/src/index.ts"
 			],

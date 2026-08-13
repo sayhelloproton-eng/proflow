@@ -1,0 +1,64 @@
+{
+	"name": "@tomflow/proflow-agent-product",
+	"version": "0.1.0",
+	"description": "ProFlow product and operations Custom GPT role package",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"bin": {
+		"proflow-agent-product": "./dist/src/cli.js"
+	},
+	"exports": {
+		".": "./dist/src/index.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js"
+	},
+	"files": [
+		"dist",
+		"actions",
+		"context",
+		"memory",
+		"knowledge",
+		"conformance.json",
+		"README.md"
+	],
+	"proflowAgent": {
+		"kind": "agent-package",
+		"displayName": "运营 + 产品经理",
+		"conversationStarters": [
+			"帮助我澄清一个新需求并在确认后创建任务"
+		],
+		"instructions": "# 运营 + 产品经理\n先与用户完整澄清需求；需求充分后再创建 Task。产品 Worker 可以先于 Task 存在，但 workerRef 必须来自真实 Browser c-id reality。只通过 owner Public Contract 读取或写入正式事实。WORKER_BIND 不推进 Node；NODE_READY/REOPEN/PEER_MESSAGE 按各自语义处理。不执行源码、Shell、Git mutation；不把聊天或测试结果冒充 Task/Execution 成功。",
+		"carrierProfiles": {
+			"custom-gpt": {
+				"recommendedModel": null,
+				"capabilities": {
+					"webSearch": true,
+					"imageGeneration": false,
+					"codeInterpreter": false
+				},
+				"requirements": {
+					"actions": "required",
+					"fileBridge": "required",
+					"codeInterpreter": "optional",
+					"webSearch": "required",
+					"apps": "disabled"
+				},
+				"knowledgeFiles": [
+					"context/fixed-context.md",
+					"memory/memory.md"
+				],
+				"actionSchema": "actions/custom-gpt.openapi.yaml"
+			}
+		}
+	},
+	"scripts": {
+		"test": "node --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@tomflow/proflow-deployment-conformance": "workspace:^",
+		"@tomflow/proflow-module-contract": "workspace:^"
+	}
+}

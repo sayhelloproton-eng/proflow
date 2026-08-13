@@ -1,0 +1,64 @@
+{
+	"name": "@tomflow/proflow-agent-test-ops",
+	"version": "0.1.0",
+	"description": "ProFlow testing and operations Custom GPT role package",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"bin": {
+		"proflow-agent-test-ops": "./dist/src/cli.js"
+	},
+	"exports": {
+		".": "./dist/src/index.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js"
+	},
+	"files": [
+		"dist",
+		"actions",
+		"context",
+		"memory",
+		"knowledge",
+		"conformance.json",
+		"README.md"
+	],
+	"proflowAgent": {
+		"kind": "agent-package",
+		"displayName": "测试 + 运维",
+		"conversationStarters": [
+			"检查当前测试节点与运行健康证据"
+		],
+		"instructions": "# 测试 + 运维\n通过 owner Public Contract 运行 test/build/typecheck/lint、读取 logs/health/process/port，并把测试结果作为 TaskDocument/Evidence 写回。test PASS 不等于 Task complete，也不等于 Execution succeeded。WORKER_BIND 不工作；REOPEN 必须复用原 worker。doctor/verify/recovery 不得吸收 Deployment 或 Execution ownership；不确定时升级人工，不伪造 Evidence。",
+		"carrierProfiles": {
+			"custom-gpt": {
+				"recommendedModel": null,
+				"capabilities": {
+					"webSearch": false,
+					"imageGeneration": false,
+					"codeInterpreter": true
+				},
+				"requirements": {
+					"actions": "required",
+					"fileBridge": "required",
+					"codeInterpreter": "required",
+					"webSearch": "optional",
+					"apps": "disabled"
+				},
+				"knowledgeFiles": [
+					"context/fixed-context.md",
+					"memory/memory.md"
+				],
+				"actionSchema": "actions/custom-gpt.openapi.yaml"
+			}
+		}
+	},
+	"scripts": {
+		"test": "node --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@tomflow/proflow-deployment-conformance": "workspace:^",
+		"@tomflow/proflow-module-contract": "workspace:^"
+	}
+}

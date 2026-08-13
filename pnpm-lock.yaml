@@ -18,6 +18,59 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  packages/agent-controller-dev:
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+
+  packages/agent-gateway:
+    dependencies:
+      zod:
+        specifier: 4.1.12
+        version: 4.1.12
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+
+  packages/agent-product:
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+
+  packages/agent-runtime:
+    dependencies:
+      zod:
+        specifier: 4.1.12
+        version: 4.1.12
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+
+  packages/agent-test-ops:
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+
   packages/deployment-conformance:
     dependencies:
       '@tomflow/proflow-module-contract':

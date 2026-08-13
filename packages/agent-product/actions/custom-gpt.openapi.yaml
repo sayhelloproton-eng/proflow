@@ -1,0 +1,12 @@
+openapi: 3.1.0
+info: {title: ProFlow Product Actions, version: 1.0.0}
+servers: [{url: https://GATEWAY_PUBLIC_HOST}]
+paths:
+  /actions/listRegisteredRoles: {get: {operationId: listRegisteredRoles, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/getRegisteredRole: {get: {operationId: getRegisteredRole, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/createTask: {post: {operationId: createTask, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/getTask: {get: {operationId: getTask, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/putTaskDocument: {post: {operationId: putTaskDocument, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/getTaskDocument: {get: {operationId: getTaskDocument, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/askPeer: {post: {operationId: askPeer, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/replyPeer: {post: {operationId: replyPeer, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
