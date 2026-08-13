@@ -38,6 +38,7 @@
       "domain": "execution",
       "evidence": "执行领域/08-测试用例与验证/CRITICAL-PROOF-EVIDENCE.json",
       "additionalEvidence": "执行领域/08-测试用例与验证/CARRY-FORWARD-REGRESSION-EVIDENCE.json",
+      "sweepSafetyEvidence": "执行领域/08-测试用例与验证/NON-DEPLOYMENT-SAFETY-REMEDIATION-EVIDENCE.json",
       "status": "PASS",
       "limits": [
         "The controlled Browser executor proves only the typed port and single backend Execution truth.",

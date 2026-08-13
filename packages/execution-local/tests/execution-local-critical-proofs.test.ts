@@ -31,6 +31,17 @@ async function fixture() {
 		join(root, "source.ts"),
 		"export const WaveThreeSymbol = 3;\n",
 	);
+	await writeFile(join(root, "output.mjs"), "console.log('x'.repeat(5000));\n");
+	await writeFile(join(root, "hang.mjs"), "setInterval(()=>{},1000);\n");
+	await writeFile(
+		join(root, "ready.mjs"),
+		"console.log('READY');setInterval(()=>{},1000);\n",
+	);
+	await writeFile(
+		join(root, "secret.mjs"),
+		"console.log(process.env.PROFLOW_SECRET_TOKEN);\n",
+	);
+	await writeFile(join(root, "safe.mjs"), "console.log('safe');\n");
 	await writeFile(join(root, ".gitignore"), "node_modules/\n");
 	await exec("git", ["init", "-q"], { cwd: root });
 	await exec("git", ["config", "user.name", "ProFlow Test"], { cwd: root });
@@ -154,7 +165,7 @@ test("CP-EXE-LOCAL-03 process lifecycle, bounded output, timeout and managed sto
 	const output = await run(executor, root, "process.start", {
 		mode: "one-shot",
 		command: process.execPath,
-		args: ["-e", "console.log('x'.repeat(5000))"],
+		args: ["output.mjs"],
 		maxOutputBytes: 64,
 	});
 	assert.equal(output.result.capability, "process.start");
@@ -165,7 +176,7 @@ test("CP-EXE-LOCAL-03 process lifecycle, bounded output, timeout and managed sto
 			run(executor, root, "process.start", {
 				mode: "one-shot",
 				command: process.execPath,
-				args: ["-e", "setInterval(()=>{},1000)"],
+				args: ["hang.mjs"],
 				timeoutMs: 80,
 			}),
 		(error) => error instanceof LocalExecutionError && error.code === "TIMEOUT",
@@ -177,7 +188,7 @@ test("CP-EXE-LOCAL-03 process lifecycle, bounded output, timeout and managed sto
 			{
 				mode: "one-shot",
 				command: process.execPath,
-				args: ["-e", "setInterval(()=>{},1000)"],
+				args: ["hang.mjs"],
 				timeoutMs: 5_000,
 			},
 			root,
@@ -195,7 +206,7 @@ test("CP-EXE-LOCAL-03 process lifecycle, bounded output, timeout and managed sto
 	const managed = await run(executor, root, "process.start", {
 		mode: "managed",
 		command: process.execPath,
-		args: ["-e", "console.log('READY');setInterval(()=>{},1000)"],
+		args: ["ready.mjs"],
 		readiness: { kind: "log", pattern: "READY" },
 		timeoutMs: 2_000,
 	});
@@ -262,9 +273,123 @@ test("CP-EXE-LOCAL-04 deterministic local network boundary permits loopback and 
 			(error) =>
 				error instanceof LocalExecutionError && error.code === "SCOPE_DENIED",
 		);
+		await assert.rejects(
+			() =>
+				run(executor, root, "network.request", {
+					url: "http://169.254.169.254/latest/meta-data/",
+					method: "GET",
+				}),
+			(error) =>
+				error instanceof LocalExecutionError && error.code === "SCOPE_DENIED",
+		);
 	} finally {
 		server.close();
 	}
+});
+
+test("carry-forward process scope rejects PATH and secret injection and one-shot absence stays UNKNOWN", async () => {
+	const { root, executor } = await fixture();
+	await assert.rejects(
+		() =>
+			run(executor, root, "process.start", {
+				mode: "one-shot",
+				command: process.execPath,
+				args: ["safe.mjs"],
+				env: { PATH: "/tmp/attacker", API_TOKEN: "plaintext" },
+			}),
+		(error) =>
+			error instanceof LocalExecutionError && error.code === "SCOPE_DENIED",
+	);
+	let precondition: Parameters<typeof executor.reconcile>[1] | undefined;
+	await executor.execute({
+		request: request(
+			"process.start",
+			{ mode: "one-shot", command: process.execPath, args: ["safe.mjs"] },
+			root,
+		),
+		admission,
+		onEffectStarted(value) {
+			precondition = value;
+		},
+	});
+	assert.ok(precondition);
+	assert.equal(
+		(
+			await executor.reconcile(
+				request(
+					"process.start",
+					{ mode: "one-shot", command: process.execPath, args: ["safe.mjs"] },
+					root,
+				),
+				precondition,
+			)
+		).state,
+		"UNKNOWN",
+	);
+});
+
+test("carry-forward managed process ownership rejects a reused PID identity", async () => {
+	const { root, artifacts } = await fixture();
+	await writeFile(
+		join(artifacts, "managed-processes.json"),
+		JSON.stringify([
+			{
+				processRef: "process:stale",
+				pid: process.pid,
+				command: "definitely-not-this-process",
+				args: [],
+				stdoutRef: "output:stale:stdout",
+				stderrRef: "output:stale:stderr",
+				stdoutPath: join(artifacts, "stale.stdout.log"),
+				stderrPath: join(artifacts, "stale.stderr.log"),
+				startedAt: new Date(0).toISOString(),
+				processIdentity: "stale-process-identity",
+			},
+		]),
+	);
+	const reopened = await createLocalExecutor({
+		projectRoot: root,
+		artifactRoot: artifacts,
+	});
+	const status = await run(reopened, root, "process.status", {
+		processRef: "process:stale",
+	});
+	assert.equal(
+		status.result.capability === "process.status" && status.result.data.state,
+		"STOPPED",
+	);
+	await assert.rejects(
+		() => run(reopened, root, "process.stop", { processRef: "process:stale" }),
+		(error) =>
+			error instanceof LocalExecutionError && error.code === "SCOPE_DENIED",
+	);
+});
+
+test("carry-forward failed git commit with a changed index is UNKNOWN rather than NOT_APPLIED", async () => {
+	const { root, executor } = await fixture();
+	await writeFile(join(root, "partial.txt"), "partial");
+	await exec("git", ["config", "commit.gpgsign", "true"], { cwd: root });
+	await exec("git", ["config", "gpg.program", "/usr/bin/false"], { cwd: root });
+	let precondition: Parameters<typeof executor.reconcile>[1] | undefined;
+	const commitRequest = request(
+		"git.commit",
+		{ message: "test: must fail after staging", paths: ["partial.txt"] },
+		root,
+	);
+	await assert.rejects(() =>
+		executor.execute({
+			request: commitRequest,
+			admission,
+			onEffectStarted(value) {
+				precondition = value;
+			},
+		}),
+	);
+	assert.ok(precondition);
+	assert.equal(
+		(await executor.reconcile(commitRequest, precondition)).state,
+		"UNKNOWN",
+	);
 });
 
 test("CP-EXE-LOCAL-05 guarded shell rejects direct and dangerous escape, permits safe argv", async () => {
@@ -274,7 +399,7 @@ test("CP-EXE-LOCAL-05 guarded shell rejects direct and dangerous escape, permits
 			executor.execute({
 				request: request(
 					"shell.run",
-					{ command: process.execPath, args: ["-e", "console.log(1)"] },
+					{ command: process.execPath, args: ["safe.mjs"] },
 					root,
 				),
 				admission: { ...admission, decisionPath: "deterministic" },
@@ -300,7 +425,7 @@ test("CP-EXE-LOCAL-05 guarded shell rejects direct and dangerous escape, permits
 	const safe = await executor.execute({
 		request: request(
 			"shell.run",
-			{ command: process.execPath, args: ["-e", "console.log('safe')"] },
+			{ command: process.execPath, args: ["safe.mjs"] },
 			root,
 		),
 		admission: { ...admission, approval: "VALID" },
@@ -319,7 +444,7 @@ test("CP-EXE-LOCAL-06 environment redaction and file/Git reality recovery", asyn
 	const result = await run(executor, root, "process.start", {
 		mode: "one-shot",
 		command: process.execPath,
-		args: ["-e", "console.log(process.env.PROFLOW_SECRET_TOKEN)"],
+		args: ["secret.mjs"],
 		maxOutputBytes: 100,
 	});
 	if (

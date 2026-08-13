@@ -1,0 +1,43 @@
+{
+  "contract": "proflow.non-deployment-execution-safety-remediation-evidence.v1",
+  "status": "PASS",
+  "recordedAt": "2026-08-13T18:30:00+08:00",
+  "source": "ProFlow-Non-Deployment-Full-Implementation-Validation-Sweep-v1-20260813.zip/03-EXECUTION-SAFETY-RECOVERY-REMEDIATION.md",
+  "observedRed": [
+    "executor successful=false was persisted as SUCCEEDED",
+    "Approval was checked at admission but not revalidated immediately before effect",
+    "PENDING restart was collapsed to FAILED instead of retaining safe redecision state",
+    "169.254.169.254 reached fetch instead of failing the network boundary",
+    "requested PATH and secret environment keys were inherited by process execution",
+    "one-shot process absence was classified NOT_APPLIED without a reality verifier",
+    "managed process ownership trusted a persisted PID without a process identity",
+    "failed git.commit with a changed index could be classified NOT_APPLIED"
+  ],
+  "green": [
+    "unsuccessful executor result terminates FAILED/NOT_APPLIED",
+    "Approval binding includes the complete validated request and is revalidated before execution",
+    "PENDING/NOT_STARTED survives restart and FAILED/NOT_APPLIED supports explicit same-execution redecision",
+    "default policy requires review and Approval for process, shell, mutating network, Browser writes, worker create/wake, and collaboration delivery",
+    "optional identity port authorizes caller, Task, Agent, workspace, and Browser facts before policy",
+    "link-local metadata, requested PATH/secrets, unbounded executables/arguments, and protected .proflow arguments fail closed",
+    "one-shot recovery without durable reality is UNKNOWN",
+    "managed process status/stop/reconciliation bind PID to an observed process identity",
+    "git.commit recovery binds both HEAD and the pre-effect index hash"
+  ],
+  "tests": [
+    "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+    "packages/execution-local/tests/execution-local-critical-proofs.test.ts"
+  ],
+  "actual": {
+    "targeted": "20/20 execution-local/execution-runtime tests PASS",
+    "repositoryTests": "155/155 PASS",
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "architecture": "PASS; 17 packages checked",
+    "publishability": "PASS; 17 package tarballs, all public JS exports, 6 binaries"
+  },
+  "limits": [
+    "Formal execution-runtime process lifecycle is closed in the following Service Closure stage.",
+    "Real Browser/Carrier effects remain E3/E4 external reality work and are not claimed by this evidence."
+  ]
+}

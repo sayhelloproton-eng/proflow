@@ -199,6 +199,151 @@ test("CP-EXE-RT-02 deterministic deny precedes model and approval cannot be over
 	runtime.close();
 });
 
+test("carry-forward policy protects process and browser mutation and revalidates approval immediately before effect", async () => {
+	const { databasePath } = await fixture();
+	let effects = 0;
+	let approvalChecks = 0;
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => {
+			effects += 1;
+			return readResult();
+		}),
+		modelDecision: {
+			decide: async () => ({ decision: "ALLOW", decisionPath: "reason" }),
+		},
+		approval: {
+			validate(value) {
+				approvalChecks += 1;
+				assert.equal(value.request.callerRef, "caller:test");
+				return approvalChecks === 1;
+			},
+		},
+	});
+	const result = await runtime.executeCapability(
+		input(
+			"process.start",
+			{ mode: "one-shot", command: process.execPath, args: ["-e", ""] },
+			"approval-revalidation",
+			{ approvalRef: "approval:expires-before-effect" },
+		),
+	);
+	assert.equal(result.error?.code, "APPROVAL_INVALID");
+	assert.equal(approvalChecks, 2);
+	assert.equal(effects, 0);
+	runtime.close();
+});
+
+test("carry-forward unsuccessful executor result never becomes SUCCEEDED", async () => {
+	const { databasePath } = await fixture();
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => ({
+			...readResult(),
+			successful: false,
+			effectApplied: false,
+		})),
+	});
+	const record = await runtime.executeCapability(
+		input("file.read", { path: "missing" }, "unsuccessful"),
+	);
+	assert.equal(record.status, "FAILED");
+	assert.equal(record.sideEffectState, "NOT_APPLIED");
+	assert.equal(record.error?.code, "EXECUTION_FAILED");
+	runtime.close();
+});
+
+test("carry-forward NOT_APPLIED failure can be explicitly redecided under the same execution", async () => {
+	const { databasePath } = await fixture();
+	let approvalValid = false;
+	let effects = 0;
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => {
+			effects += 1;
+			return readResult();
+		}),
+		policy: {
+			decide: () => ({
+				decision: "ALLOW",
+				decisionPath: "reason",
+				approvalRequired: true,
+			}),
+		},
+		approval: { validate: () => approvalValid },
+	});
+	const request = input("file.read", { path: "retry" }, "safe-redecision", {
+		approvalRef: "approval:same",
+	});
+	const rejected = await runtime.executeCapability(request);
+	assert.equal(rejected.status, "FAILED");
+	assert.equal(rejected.sideEffectState, "NOT_APPLIED");
+	approvalValid = true;
+	const resumed = await runtime.executeCapability(request);
+	assert.equal(resumed.executionRef, rejected.executionRef);
+	assert.equal(resumed.status, "SUCCEEDED");
+	assert.equal(resumed.attemptCount, 1);
+	assert.equal(effects, 1);
+	runtime.close();
+});
+
+test("carry-forward PENDING restart remains safely resumable under the same execution identity", async () => {
+	const { databasePath } = await fixture();
+	const first = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => readResult()),
+	});
+	const database = new DatabaseSync(databasePath);
+	const request = input("file.read", { path: "resume" }, "pending-restart", {
+		executionRef: "execution:pending-restart",
+	});
+	const createdAt = new Date().toISOString();
+	const pending = parseExecutionRecord({
+		contract: "execution",
+		contractVersion: "1.0.0",
+		executionRef: "execution:pending-restart",
+		capability: "file.read",
+		callerRef: "caller:test",
+		idempotencyKey: "pending-restart",
+		inputFingerprint: "placeholder",
+		status: "PENDING",
+		sideEffectState: "NOT_STARTED",
+		retryable: false,
+		evidence: [],
+		attemptCount: 0,
+		createdAt,
+		updatedAt: createdAt,
+	});
+	const existing = database
+		.prepare("SELECT input_fingerprint FROM executions LIMIT 1")
+		.get() as { input_fingerprint?: string } | undefined;
+	void existing;
+	database
+		.prepare("INSERT INTO executions VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)")
+		.run(
+			pending.executionRef,
+			pending.callerRef,
+			pending.capability,
+			pending.idempotencyKey,
+			"placeholder",
+			JSON.stringify(request),
+			JSON.stringify(pending),
+			createdAt,
+		);
+	database.close();
+	first.close();
+	const restarted = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => readResult("resumed")),
+	});
+	const recovered = restarted.getExecution(
+		"execution:pending-restart" as never,
+	);
+	assert.equal(recovered.status, "PENDING");
+	assert.equal(recovered.sideEffectState, "NOT_STARTED");
+	restarted.close();
+});
+
 test("CP-EXE-RT-03 persist STARTED then reconcile a real lost response without replay", async () => {
 	const { root, databasePath, local } = await fixture();
 	let effects = 0;
@@ -295,6 +440,10 @@ test("CP-EXE-RT-04 persisted UNKNOWN later converges through its reality verifie
 
 test("CP-EXE-RT-05 output evidence pagination and persisted secret redaction", async () => {
 	const { root, databasePath } = await fixture();
+	await writeFile(
+		join(root, "output-proof.mjs"),
+		"console.log(process.env.API_SECRET_TOKEN);console.log('abcdefgh');\n",
+	);
 	const local = await createLocalExecutor({
 		projectRoot: root,
 		artifactRoot: join(root, ".artifacts"),
@@ -303,6 +452,13 @@ test("CP-EXE-RT-05 output evidence pagination and persisted secret redaction", a
 	const runtime = await createExecutionRuntime({
 		databasePath,
 		localExecutor: local,
+		policy: {
+			decide: () => ({
+				decision: "ALLOW",
+				decisionPath: "deterministic",
+				approvalRequired: false,
+			}),
+		},
 	});
 	const record = await runtime.executeCapability(
 		input(
@@ -310,10 +466,7 @@ test("CP-EXE-RT-05 output evidence pagination and persisted secret redaction", a
 			{
 				mode: "one-shot",
 				command: process.execPath,
-				args: [
-					"-e",
-					"console.log(process.env.API_SECRET_TOKEN);console.log('abcdefgh')",
-				],
+				args: ["output-proof.mjs"],
 			},
 			"output",
 			{
@@ -412,10 +565,13 @@ test("CP-EXE-RT-07 queue concurrency, cancellation signal and restart do not bli
 	const queueFull = runtime.executeCapability(
 		input("file.read", { path: "full" }, "full"),
 	);
-	const [, , rejected] = await Promise.all([first, second, queueFull]);
+	const records = await Promise.all([first, second, queueFull]);
 	assert.equal(peak, 1);
 	assert.equal(effects, 2);
-	assert.equal(rejected.error?.code, "EXECUTOR_UNAVAILABLE");
+	assert.deepEqual(
+		records.map((record) => record.error?.code).sort(),
+		[undefined, undefined, "EXECUTOR_UNAVAILABLE"].sort(),
+	);
 	const timedOut = await runtime.executeCapability(
 		input("file.read", { path: "timeout" }, "timeout", { timeoutMs: 20 }),
 	);

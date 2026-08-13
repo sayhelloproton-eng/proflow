@@ -51,9 +51,14 @@ export interface ExecutionApprovalPort {
 		callerRef: string;
 		capability: string;
 		inputFingerprint: string;
+		request: ExecuteCapabilityRequest;
 		projectRoot?: string;
 		now: string;
 	}): MaybePromise<boolean>;
+}
+
+export interface ExecutionIdentityPort {
+	authorize(request: ExecuteCapabilityRequest): MaybePromise<boolean>;
 }
 export interface ExecutionExecutorPort {
 	execute(invocation: LocalExecutorInvocation): Promise<LocalExecutionResult>;
@@ -80,6 +85,7 @@ export interface ExecutionRuntimeOptions {
 	policy?: ExecutionPolicyPort;
 	modelDecision?: ExecutionModelDecisionPort;
 	approval?: ExecutionApprovalPort;
+	identity?: ExecutionIdentityPort;
 	maxConcurrent?: number;
 	maxQueued?: number;
 	now?: () => Date;
@@ -164,7 +170,18 @@ const defaultPolicy: ExecutionPolicyPort = {
 			request.capability === "git.push" ||
 			request.capability === "project.installDependency" ||
 			request.capability === "shell.run" ||
+			request.capability === "process.start" ||
+			request.capability === "process.stop" ||
+			(request.capability === "network.request" &&
+				request.input.method !== "GET" &&
+				request.input.method !== "HEAD") ||
+			request.capability === "browser.navigate" ||
+			request.capability === "browser.input" ||
+			request.capability === "browser.click" ||
+			request.capability === "browser.upload" ||
 			request.capability === "browser.submit" ||
+			request.capability === "worker.create" ||
+			request.capability === "worker.wake" ||
 			request.capability === "collaboration.deliver"
 		) {
 			return {
@@ -296,6 +313,11 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 		request: ExecuteCapabilityRequest,
 		inputFingerprint: string,
 	) {
+		if (options.identity && !(await options.identity.authorize(request)))
+			throw new ExecutionRuntimeError(
+				"IDENTITY_INVALID",
+				"caller, Task, Agent, workspace, or Browser identity is not authoritative",
+			);
 		const policy = await (options.policy ?? defaultPolicy).decide(request);
 		if (policy.decision === "DENY")
 			throw new ExecutionRuntimeError(
@@ -317,7 +339,8 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					model.reason ?? "model decision denied execution",
 				);
 		}
-		if (policy.approvalRequired) {
+		const validateApproval = async () => {
+			if (!policy.approvalRequired) return;
 			if (!request.approvalRef)
 				throw new ExecutionRuntimeError(
 					"APPROVAL_REQUIRED",
@@ -330,6 +353,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					callerRef: request.callerRef,
 					capability: request.capability,
 					inputFingerprint,
+					request,
 					...(request.projectRoot ? { projectRoot: request.projectRoot } : {}),
 					now: now().toISOString(),
 				}))
@@ -338,13 +362,15 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					"APPROVAL_INVALID",
 					"approval binding, expiry or status is invalid",
 				);
-		}
+		};
+		await validateApproval();
 		return {
 			policy: "ALLOW" as const,
 			decisionPath,
 			approval: policy.approvalRequired
 				? ("VALID" as const)
 				: ("NOT_REQUIRED" as const),
+			validateApproval,
 		};
 	}
 
@@ -394,43 +420,79 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			.get(request.callerRef, request.capability, request.idempotencyKey) as
 			| Row
 			| undefined;
+		let record: ExecutionRecord;
 		if (existing) {
 			if (String(existing.input_fingerprint) !== inputFingerprint)
 				throw new ExecutionRuntimeError(
 					"IDEMPOTENCY_CONFLICT",
 					"idempotency key was already used with different critical input",
 				);
-			return fromRow(existing);
-		}
-		let record = createPending(request, inputFingerprint);
-		try {
+			const prior = fromRow(existing);
+			const safelyResumable =
+				(prior.status === "PENDING" &&
+					prior.sideEffectState === "NOT_STARTED") ||
+				(prior.status === "FAILED" && prior.sideEffectState === "NOT_APPLIED");
+			if (!safelyResumable) return prior;
+			const {
+				error: _error,
+				result: _result,
+				finishedAt: _finishedAt,
+				startedAt: _startedAt,
+				effectStartedAt: _effectStartedAt,
+				decisionPath: _decisionPath,
+				approvalRef: _approvalRef,
+				...resumable
+			} = prior;
+			record = parseExecutionRecord({
+				...resumable,
+				status: "PENDING",
+				sideEffectState: "NOT_STARTED",
+				retryable: false,
+				updatedAt: now().toISOString(),
+			});
 			database
-				.prepare("INSERT INTO executions VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)")
+				.prepare(
+					"UPDATE executions SET request_json=?, record_json=?, precondition_json=NULL WHERE execution_ref=?",
+				)
 				.run(
-					record.executionRef,
-					request.callerRef,
-					request.capability,
-					request.idempotencyKey,
-					inputFingerprint,
 					JSON.stringify(protectedValue(request)),
 					JSON.stringify(record),
-					record.createdAt,
+					record.executionRef,
 				);
-			await log(record, "INTENT_PERSISTED");
-		} catch {
-			const raced = database
-				.prepare(
-					"SELECT * FROM executions WHERE caller_ref=? AND capability=? AND idempotency_key=?",
-				)
-				.get(request.callerRef, request.capability, request.idempotencyKey) as
-				| Row
-				| undefined;
-			if (!raced || String(raced.input_fingerprint) !== inputFingerprint)
-				throw new ExecutionRuntimeError(
-					"IDEMPOTENCY_CONFLICT",
-					"concurrent idempotency conflict",
-				);
-			return fromRow(raced);
+			await log(record, "EXECUTION_REDECISION_REQUESTED");
+		} else {
+			record = createPending(request, inputFingerprint);
+			try {
+				database
+					.prepare(
+						"INSERT INTO executions VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)",
+					)
+					.run(
+						record.executionRef,
+						request.callerRef,
+						request.capability,
+						request.idempotencyKey,
+						inputFingerprint,
+						JSON.stringify(protectedValue(request)),
+						JSON.stringify(record),
+						record.createdAt,
+					);
+				await log(record, "INTENT_PERSISTED");
+			} catch {
+				const raced = database
+					.prepare(
+						"SELECT * FROM executions WHERE caller_ref=? AND capability=? AND idempotency_key=?",
+					)
+					.get(request.callerRef, request.capability, request.idempotencyKey) as
+					| Row
+					| undefined;
+				if (!raced || String(raced.input_fingerprint) !== inputFingerprint)
+					throw new ExecutionRuntimeError(
+						"IDEMPOTENCY_CONFLICT",
+						"concurrent idempotency conflict",
+					);
+				return fromRow(raced);
+			}
 		}
 		let admission: Awaited<ReturnType<typeof admit>>;
 		try {
@@ -469,13 +531,14 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 						controller.abort();
 					}, request.timeoutMs);
 		try {
+			await admission.validateApproval();
 			record = parseExecutionRecord({
 				...record,
 				status: "RUNNING",
 				sideEffectState: "NOT_STARTED",
 				decisionPath: admission.decisionPath,
 				...(request.approvalRef ? { approvalRef: request.approvalRef } : {}),
-				attemptCount: 1,
+				attemptCount: record.attemptCount + 1,
 				startedAt: now().toISOString(),
 				updatedAt: now().toISOString(),
 			});
@@ -513,6 +576,11 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					timedOut
 						? "execution runtime timeout elapsed"
 						: "execution was cancelled",
+				);
+			if (!result.successful)
+				throw new ExecutionRuntimeError(
+					"EXECUTION_FAILED",
+					"executor reported an unsuccessful result",
 				);
 			for (const artifact of result.artifacts)
 				database
@@ -700,6 +768,13 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				record.status !== "UNKNOWN"
 			)
 				continue;
+			if (
+				record.status === "PENDING" &&
+				record.sideEffectState === "NOT_STARTED"
+			) {
+				await log(record, "RECOVERY_PENDING_REQUIRES_REDECISION");
+				continue;
+			}
 			if (record.status !== "UNKNOWN" && record.sideEffectState !== "STARTED") {
 				record = failRecord(
 					record,

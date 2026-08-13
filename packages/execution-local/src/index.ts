@@ -51,8 +51,17 @@ export type LocalPrecondition =
 			beforeHash?: string;
 			expectedAfterHash: string;
 	  }
-	| { kind: "git.commit"; beforeHead: string; message: string }
-	| { kind: "process.start"; processRef: string }
+	| {
+			kind: "git.commit";
+			beforeHead: string;
+			beforeIndexHash: string;
+			message: string;
+	  }
+	| {
+			kind: "process.start";
+			processRef: string;
+			mode: "one-shot" | "managed";
+	  }
 	| { kind: "opaque"; capability: LocalCapabilityId };
 
 export interface LocalArtifact {
@@ -105,6 +114,7 @@ interface ManagedProcessRecord {
 	stdoutPath: string;
 	stderrPath: string;
 	startedAt: string;
+	processIdentity: string;
 }
 
 interface CapturedProcessResult {
@@ -188,6 +198,13 @@ function safeEnvironment(
 	base: Readonly<Record<string, string>>,
 	requested: Readonly<Record<string, string>> | undefined,
 ): { env: Record<string, string>; secrets: string[] } {
+	for (const key of Object.keys(requested ?? {})) {
+		if (key === "PATH" || sensitiveKey.test(key))
+			throw new LocalExecutionError(
+				"SCOPE_DENIED",
+				`requested environment key is outside execution scope: ${key}`,
+			);
+	}
 	const env: Record<string, string> = {};
 	for (const key of ["PATH", "TMPDIR", "LANG", "LC_ALL", "LC_CTYPE"]) {
 		const value = process.env[key];
@@ -387,6 +404,16 @@ async function simpleCommand(
 	return { code, stdout, stderr };
 }
 
+async function processIdentity(pid: number): Promise<string | undefined> {
+	const observed = await simpleCommand(
+		"ps",
+		["-p", String(pid), "-o", "lstart=", "-o", "command="],
+		process.cwd(),
+	);
+	const identity = observed.stdout.trim();
+	return observed.code === 0 && identity.length > 0 ? identity : undefined;
+}
+
 async function textFiles(root: string): Promise<string[]> {
 	const files: string[] = [];
 	for (const entry of await readdir(root, { withFileTypes: true })) {
@@ -403,7 +430,8 @@ function isLanOrLocal(hostname: string): boolean {
 	const host = hostname.toLowerCase().replace(/^\[/, "").replace(/\]$/, "");
 	if (host === "localhost" || host === "::1" || host.startsWith("127."))
 		return true;
-	if (/^(10\.|192\.168\.|169\.254\.)/.test(host)) return true;
+	if (/^169\.254\./.test(host)) return false;
+	if (/^(10\.|192\.168\.)/.test(host)) return true;
 	const match = /^172\.(\d+)\./.exec(host);
 	return (
 		match?.[1] !== undefined && Number(match[1]) >= 16 && Number(match[1]) <= 31
@@ -417,6 +445,72 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 	const exactNetworkTargets = new Set(options.exactNetworkTargets ?? []);
 	const now = options.now ?? (() => new Date());
 	const idFactory = options.idFactory ?? randomUUID;
+	const assertScopedCommand = (
+		command: string,
+		args: readonly string[],
+	): void => {
+		assertSafeCommand(command, args);
+		const bare = basename(command);
+		const allowedBareCommands = new Set([
+			"node",
+			"pnpm",
+			"npm",
+			"git",
+			"tsc",
+			"biome",
+		]);
+		if (
+			isAbsolute(command) &&
+			resolve(command) !== resolve(process.execPath) &&
+			!within(projectRoot, resolve(command))
+		)
+			throw new LocalExecutionError(
+				"SCOPE_DENIED",
+				"absolute executable is outside project scope",
+			);
+		if (!isAbsolute(command) && !allowedBareCommands.has(bare))
+			throw new LocalExecutionError(
+				"SCOPE_DENIED",
+				"executable is outside the bounded engineering command set",
+			);
+		if (
+			bare === "node" &&
+			args.some((argument) =>
+				["-e", "--eval", "-p", "--print"].includes(argument),
+			)
+		)
+			throw new LocalExecutionError(
+				"SCOPE_DENIED",
+				"inline executable source cannot be scope-verified",
+			);
+		for (const argument of args) {
+			const argumentPath = isAbsolute(argument)
+				? resolve(argument)
+				: resolve(projectRoot, argument);
+			if (isAbsolute(argument) && !within(projectRoot, argumentPath))
+				throw new LocalExecutionError(
+					"SCOPE_DENIED",
+					"absolute command argument escaped project scope",
+				);
+			if (
+				argument === ".." ||
+				argument.startsWith("../") ||
+				argument.includes("/../")
+			)
+				throw new LocalExecutionError(
+					"SCOPE_DENIED",
+					"command argument traversed outside project scope",
+				);
+			if (within(projectRoot, argumentPath)) {
+				const rel = relative(projectRoot, argumentPath);
+				if (rel === ".proflow" || rel.startsWith(`.proflow${sep}`))
+					throw new LocalExecutionError(
+						"SCOPE_DENIED",
+						"command argument entered protected .proflow state",
+					);
+			}
+		}
+	};
 	const registryPath = join(artifactRoot, "managed-processes.json");
 	const logPath = join(
 		artifactRoot,
@@ -454,6 +548,12 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 			{ mode: 0o600 },
 		);
 	};
+	const ownsManagedProcess = async (
+		record: ManagedProcessRecord,
+	): Promise<boolean> =>
+		typeof record.processIdentity === "string" &&
+		record.processIdentity.length > 0 &&
+		(await processIdentity(record.pid)) === record.processIdentity;
 	const log = async (
 		request: ExecuteCapabilityRequest,
 		event: string,
@@ -845,6 +945,15 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					const precondition: LocalPrecondition = {
 						kind: "git.commit",
 						beforeHead: head.stdout.trim(),
+						beforeIndexHash: sha256(
+							(
+								await simpleCommand(
+									"git",
+									["diff", "--cached", "--binary"],
+									projectRoot,
+								)
+							).stdout,
+						),
 						message: request.input.message,
 					};
 					await markEffect(invocation, precondition);
@@ -1073,7 +1182,19 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					);
 				}
 				case "process.start": {
-					assertSafeCommand(request.input.command, request.input.args);
+					assertScopedCommand(request.input.command, request.input.args);
+					if (request.input.readiness?.kind === "http") {
+						const readinessUrl = new URL(request.input.readiness.url);
+						if (
+							!["http:", "https:"].includes(readinessUrl.protocol) ||
+							(!isLanOrLocal(readinessUrl.hostname) &&
+								!exactNetworkTargets.has(readinessUrl.href))
+						)
+							throw new LocalExecutionError(
+								"SCOPE_DENIED",
+								"managed readiness target is outside deterministic engineering scope",
+							);
+					}
 					const cwd = request.input.cwd
 						? await safePath(request.input.cwd)
 						: projectRoot;
@@ -1085,6 +1206,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					const precondition: LocalPrecondition = {
 						kind: "process.start",
 						processRef,
+						mode: request.input.mode,
 					};
 					await markEffect(invocation, precondition);
 					if (request.input.mode === "one-shot") {
@@ -1147,6 +1269,15 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 							"EXECUTION_FAILED",
 							"managed process did not receive a pid",
 						);
+					await new Promise<void>((resolveWait) => setImmediate(resolveWait));
+					const identity = await processIdentity(child.pid);
+					if (!identity) {
+						await killProcessTree(child.pid);
+						throw new LocalExecutionError(
+							"EXECUTION_FAILED",
+							"managed process identity could not be established",
+						);
+					}
 					child.unref();
 					const record: ManagedProcessRecord = {
 						processRef,
@@ -1158,6 +1289,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						stdoutPath,
 						stderrPath,
 						startedAt: now().toISOString(),
+						processIdentity: identity,
 					};
 					managed.set(processRef, record);
 					await persistManaged();
@@ -1249,11 +1381,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 							"processRef is not owned by this local executor",
 						);
 					let state: "RUNNING" | "STOPPED" = "RUNNING";
-					try {
-						process.kill(record.pid, 0);
-					} catch {
-						state = "STOPPED";
-					}
+					if (!(await ownsManagedProcess(record))) state = "STOPPED";
 					return {
 						result: {
 							capability: request.capability,
@@ -1275,6 +1403,11 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						throw new LocalExecutionError(
 							"SCOPE_DENIED",
 							"processRef is not owned by this local executor",
+						);
+					if (!(await ownsManagedProcess(record)))
+						throw new LocalExecutionError(
+							"SCOPE_DENIED",
+							"process identity no longer matches the owned process",
 						);
 					const precondition: LocalPrecondition = {
 						kind: "opaque",
@@ -1411,7 +1544,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 							"APPROVAL_REQUIRED",
 							"shell escape hatch requires a validated approval",
 						);
-					assertSafeCommand(request.input.command, request.input.args);
+					assertScopedCommand(request.input.command, request.input.args);
 					const cwd = request.input.cwd
 						? await safePath(request.input.cwd)
 						: projectRoot;
@@ -1490,7 +1623,17 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 				...(head !== precondition.beforeHead ? { commitSha: head } : {}),
 			};
 			if (head === precondition.beforeHead)
-				return { state: "NOT_APPLIED", evidence: [evidence] };
+				return sha256(
+					(
+						await simpleCommand(
+							"git",
+							["diff", "--cached", "--binary"],
+							projectRoot,
+						)
+					).stdout,
+				) === precondition.beforeIndexHash
+					? { state: "NOT_APPLIED", evidence: [evidence] }
+					: { state: "UNKNOWN", evidence: [evidence] };
 			const message = (
 				await simpleCommand(
 					"git",
@@ -1503,10 +1646,13 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 				: { state: "UNKNOWN", evidence: [evidence] };
 		}
 		if (precondition.kind === "process.start") {
+			if (precondition.mode === "one-shot")
+				return { state: "UNKNOWN", evidence: [] };
 			const record = managed.get(precondition.processRef);
 			if (!record) return { state: "NOT_APPLIED", evidence: [] };
 			try {
-				process.kill(record.pid, 0);
+				if (!(await ownsManagedProcess(record)))
+					return { state: "UNKNOWN", evidence: [] };
 				return {
 					state: "APPLIED",
 					evidence: [
