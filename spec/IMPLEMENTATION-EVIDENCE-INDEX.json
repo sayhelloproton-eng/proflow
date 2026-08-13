@@ -30,6 +30,15 @@
       ],
       "history": "模型与推理领域/08-测试用例与验证/REAL-PROVIDER-BLOCKER-EVIDENCE.json",
       "status": "PASS"
+    },
+    {
+      "domain": "execution",
+      "evidence": "执行领域/08-测试用例与验证/CRITICAL-PROOF-EVIDENCE.json",
+      "status": "PASS",
+      "limits": [
+        "The controlled Browser executor proves only the typed port and single backend Execution truth.",
+        "Browser Extension implementation and Real Browser E2E remain deferred to Wave 5."
+      ]
     }
   ]
 }

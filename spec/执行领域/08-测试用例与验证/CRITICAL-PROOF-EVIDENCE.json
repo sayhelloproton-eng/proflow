@@ -1,0 +1,190 @@
+{
+	"contract": "proflow.execution-core-wave3-evidence.v1",
+	"status": "PASS",
+	"recordedAt": "2026-08-13T15:31:18+08:00",
+	"implementationCommit": "049943c750377882b40681b184ce82a1c1f51810",
+	"sources": {
+		"currentImplementationTruth": "spec/",
+		"migratedSourceArtifact": "第三阶段(6).zip",
+		"migratedSourceArtifactSha256": "6868e877008d54b4a69c98bd37d6e73a5ae5adcb9e208aee326c47a140ca5b34",
+		"declaredDddSddFrozenBaselineSha256": "69fdfbac8a5ee36b700bcb10c0b8a9a61f0a5aa3367386cb5bc7e98118a4a875",
+		"expectedOriginalFinalTestPlanArtifactSha256": "766663725f95ae4cecb71d3bc5bc2e6311f3ba7d150a0d12b387d67cb0e75669",
+		"targetKit": "ProFlow-Execution-Core-Wave3-Target-Kit-v2-20260813.zip",
+		"targetKitSha256": "9f657cc569c71fcfff74024a1ced9341f50a9ee0b285d58382ab715e2be1bd03",
+		"testPlanStatus": "FINAL_FROZEN"
+	},
+	"tdd": {
+		"observedRed": [
+			{
+				"module": "execution-contracts",
+				"actual": "0/4 PASS",
+				"rootCause": "The public parser, record state validation, and compatibility descriptor did not exist."
+			},
+			{
+				"module": "execution-local",
+				"actual": "0/6 PASS",
+				"rootCause": "createLocalExecutor and every real local capability boundary did not exist."
+			},
+			{
+				"module": "execution-runtime",
+				"actual": "0/7 PASS",
+				"rootCause": "createExecutionRuntime, durable records, admission, and recovery did not exist."
+			}
+		],
+		"minimalGreen": [
+			"Added one versioned typed Execution contract and runtime validation boundary.",
+			"Added one projectRoot-bound local executor with typed capability handlers and reality verifiers.",
+			"Added one SQLite WAL Execution Runtime truth with policy, approval, idempotency, evidence, queue, cancellation, timeout, and recovery."
+		]
+	},
+	"criticalProofs": [
+		{
+			"id": "CP-EXE-CON-01",
+			"test": "packages/execution-contracts/tests/execution-contracts-critical-proofs.test.ts :: public API types and runtime schemas stay aligned",
+			"result": "PASS",
+			"evidenceRefs": ["EV-EXE-CON-01"]
+		},
+		{
+			"id": "CP-EXE-CON-02",
+			"test": "packages/execution-contracts/tests/execution-contracts-critical-proofs.test.ts :: complete legal/illegal status-side-effect matrix",
+			"result": "PASS",
+			"evidenceRefs": ["EV-EXE-CON-02"]
+		},
+		{
+			"id": "CP-EXE-CON-03",
+			"test": "packages/execution-contracts/tests/execution-contracts-critical-proofs.test.ts :: unknown validation and zero public any",
+			"result": "PASS",
+			"evidenceRefs": ["EV-EXE-CON-03"]
+		},
+		{
+			"id": "CP-EXE-CON-04",
+			"test": "packages/execution-contracts/tests/execution-contracts-critical-proofs.test.ts :: breaking provider compatibility rejection",
+			"result": "PASS",
+			"evidenceRefs": ["EV-EXE-CON-04"]
+		},
+		{
+			"id": "CP-EXE-LOCAL-01",
+			"test": "packages/execution-local/tests/execution-local-critical-proofs.test.ts :: traversal, absolute, symlink, and .proflow rejection",
+			"result": "PASS",
+			"beforeAfterReality": "Outside and protected paths remained unread; canonical in-root source.ts was read.",
+			"evidenceRefs": ["EV-EXE-LOCAL-01", "EV-EXE-LOCAL-06"]
+		},
+		{
+			"id": "CP-EXE-LOCAL-02",
+			"test": "packages/execution-local/tests/execution-local-critical-proofs.test.ts :: real file, Git, code, package, dependency, and quality operations",
+			"result": "PASS",
+			"beforeAfterReality": "A new file was written, a local dependency was installed, the quality script ran, and Git HEAD advanced through a real commit.",
+			"evidenceRefs": ["EV-EXE-LOCAL-02", "EV-EXE-LOCAL-09"]
+		},
+		{
+			"id": "CP-EXE-LOCAL-03",
+			"test": "packages/execution-local/tests/execution-local-critical-proofs.test.ts :: one-shot output, timeout, cancellation, managed readiness, reopen status, and stop",
+			"result": "PASS",
+			"persistenceState": "managed-processes.json persisted an owned processRef and a reopened executor observed the real PID before stop",
+			"evidenceRefs": ["EV-EXE-LOCAL-03"]
+		},
+		{
+			"id": "CP-EXE-LOCAL-04",
+			"test": "packages/execution-local/tests/execution-local-critical-proofs.test.ts :: authenticated loopback request and public target deny",
+			"result": "PASS",
+			"evidenceRefs": ["EV-EXE-LOCAL-04"]
+		},
+		{
+			"id": "CP-EXE-LOCAL-05",
+			"test": "packages/execution-local/tests/execution-local-critical-proofs.test.ts :: deterministic-direct deny, validated approval, dangerous deny, safe argv",
+			"result": "PASS",
+			"realEffectCount": "Denied cases 0; approved safe argv 1",
+			"evidenceRefs": ["EV-EXE-LOCAL-05"]
+		},
+		{
+			"id": "CP-EXE-LOCAL-06",
+			"test": "packages/execution-local/tests/execution-local-critical-proofs.test.ts :: environment redaction and file/Git reality recovery",
+			"result": "PASS",
+			"beforeAfterReality": "File content hash and Git HEAD independently proved both effects after the response boundary.",
+			"evidenceRefs": ["EV-EXE-LOCAL-07", "EV-EXE-LOCAL-08"]
+		},
+		{
+			"id": "CP-EXE-RT-01",
+			"test": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts :: SQLite WAL lifecycle plus idempotency companion",
+			"result": "PASS",
+			"persistenceState": "PRAGMA journal_mode=wal and integrity_check=ok; same fingerprint returned the original executionRef",
+			"realEffectCount": "same/same=1 total; same-key/different-fingerprint additional effect=0",
+			"evidenceRefs": ["EV-EXE-RT-01", "EV-EXE-RT-02"]
+		},
+		{
+			"id": "CP-EXE-RT-02",
+			"test": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts :: hard deny precedence and invalid approval",
+			"result": "PASS",
+			"realEffectCount": "hard deny model calls=0 and executor calls=0; invalid approval executor calls=0",
+			"evidenceRefs": ["EV-EXE-RT-03"]
+		},
+		{
+			"id": "CP-EXE-RT-03",
+			"test": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts :: durable STARTED and real file lost-response recovery",
+			"result": "PASS",
+			"faultInjection": "Executor applied file.write and then threw a transport response-lost fault.",
+			"beforeAfterReality": "real.txt changed from absent to content 'once'; hash verifier reconstructed SUCCEEDED/APPLIED.",
+			"realEffectCount": "1; duplicate replay=0",
+			"evidenceRefs": ["EV-EXE-RT-01", "EV-EXE-RT-04", "EV-EXE-RT-07"]
+		},
+		{
+			"id": "CP-EXE-RT-04",
+			"test": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts :: UNKNOWN later converges through verifier",
+			"result": "PASS",
+			"persistenceState": "UNKNOWN/UNKNOWN was durable, then recoverIncomplete converged the same executionRef to SUCCEEDED/APPLIED when reality became provable.",
+			"evidenceRefs": ["EV-EXE-RT-05"]
+		},
+		{
+			"id": "CP-EXE-RT-05",
+			"test": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts :: output pagination, evidence refs, structured logs, and secret persistence scan",
+			"result": "PASS",
+			"persistenceState": "Full redacted stdout artifact persisted; public read returned a five-byte page and next offset.",
+			"evidenceRefs": ["EV-EXE-RT-04"]
+		},
+		{
+			"id": "CP-EXE-RT-06",
+			"test": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts :: injected controlled Browser executor through the same runtime record path",
+			"result": "PASS",
+			"knownLimitation": "Controlled fake proves only the typed executor port and single Execution truth; it is not Real Browser PASS.",
+			"evidenceRefs": ["EV-EXE-RT-08"]
+		},
+		{
+			"id": "CP-EXE-RT-07",
+			"test": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts :: bounded queue, concurrency, timeout, cancel, restart, duplicate",
+			"result": "PASS",
+			"faultInjection": "Queue saturation, runtime timeout, caller cancellation, runtime reopen, duplicate call, and lost response.",
+			"realEffectCount": "peak concurrency=1; queue-full effect=0; restart replay=0",
+			"evidenceRefs": ["EV-EXE-RT-06", "EV-EXE-RT-07"]
+		}
+	],
+	"actualResult": {
+		"executionContracts": "4/4 PASS",
+		"executionLocal": "6/6 PASS",
+		"executionRuntime": "7/7 PASS",
+		"total": "17/17 PASS",
+		"repositoryTests": "96/96 PASS",
+		"foundationConformance": "C1/C2/C3 PASS for all three modules",
+		"buildDeclarationsPackIsolatedConsumer": "PASS for 11 public packages",
+		"duplicateRealEffect": 0,
+		"blindRetry": 0
+	},
+	"commands": [
+		"pnpm --filter @tomflow/proflow-execution-contracts test",
+		"pnpm --filter @tomflow/proflow-execution-local test",
+		"pnpm --filter @tomflow/proflow-execution-runtime test",
+		"pnpm check"
+	],
+	"deferredGates": [
+		"Execution Browser Extension implementation and Real Browser E2E are deferred to Wave 5.",
+		"Agent Runtime and Collaboration implementation was not started.",
+		"Cross-domain owner mutation remains a future domain gate."
+	],
+	"scopeAudit": {
+		"browserNewImplementation": 0,
+		"agentNewImplementation": 0,
+		"legacyMutation": 0,
+		"specSemanticDrift": 0,
+		"p0": 0,
+		"p1": 0
+	}
+}
