@@ -1,5 +1,3 @@
-export {};
-
 type PageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 type ContentCommand = {
 	type: "PROFLOW_PAGE_COMMAND";

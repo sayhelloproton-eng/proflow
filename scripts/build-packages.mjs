@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +22,25 @@ try {
 			recursive: true,
 		});
 	}
+
+	// MV3 content scripts are loaded as classic scripts (no `type: module`), so
+	// they must not contain ES module syntax. The monorepo compiles under
+	// `module: NodeNext`, which appends an `export {};` marker to files that have
+	// no imports/exports; strip it so the content script runs as a classic script.
+	const contentScript = join(
+		packagesRoot,
+		"execution-browser-extension",
+		"dist",
+		"extension",
+		"content.js",
+	);
+	writeFileSync(
+		contentScript,
+		readFileSync(contentScript, "utf8")
+			.split("\n")
+			.filter((line) => line.trim() !== "export {};")
+			.join("\n"),
+	);
 } finally {
 	rmSync(temporaryRoot, { recursive: true, force: true });
 }
