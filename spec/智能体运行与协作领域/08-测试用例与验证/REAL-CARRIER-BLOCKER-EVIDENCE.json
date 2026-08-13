@@ -1,7 +1,8 @@
 {
   "contract": "proflow.agent.real-carrier-blocker-evidence.v1",
   "status": "OPERATOR_ACTION_REQUIRED",
-  "recordedAt": "2026-08-13T18:45:59+08:00",
+  "recordedAt": "2026-08-13T19:29:13+08:00",
+  "latestImplementationCommit": "16083798630aca2fa6a6fc27d2b410947d7d3bc8",
   "affectedCriticalProofs": [
     "CP-AGT-DEV-04",
     "CP-AGT-PROD-03",
@@ -14,13 +15,23 @@
     "chatgptBrowserControlExtensionInstalled": true,
     "chatgptBrowserControlExtensionEnabled": true,
     "nativeHostManifestCorrect": true,
-    "browserControlAttempts": 2,
+    "browserControlAttempts": 3,
     "browserControlResult": "Browser is not available: chrome",
     "proflowExtensionLoaded": "NOT_OBSERVED",
     "realGIds": "NOT_OBSERVED",
     "realCIds": "NOT_OBSERVED",
-    "publicHttpsGateway": "NOT_OBSERVED"
+    "publicHttpsGateway": "NOT_OBSERVED",
+    "chromeHistoryRealGIdDiscovery": "0 matching ChatGPT /g/ URLs",
+    "activeTunnelProcess": "NOT_OBSERVED"
   },
+  "automaticClosure": [
+    "one canonical formal runtime harness now composes model-runtime, execution-runtime, platform-host, agent-gateway, Browser reality bridge, and an authenticated operator control plane",
+    "Task Driver now plans and applies only missing Worker CREATE operations, rejects stale plans, starts Task and Node through Task owner contracts, and emits one minimal idempotent WAKE",
+    "Execution loopback transport now requires a 32+ character credential and still validates authoritative Role, Task, Worker, Node, workspace, and Browser target facts",
+    "real Worker completion is routed with the Task-bound c-id rather than the authenticated g-id",
+    "request-bound operator approvals are re-read from a 0600 ledger and bound to caller, capability, input fingerprint, human approver, and expiry",
+    "formal stack start, local Gateway Bearer path, human authorization, and real provisioning plan are executable and tested without promoting fake Browser evidence"
+  ],
   "notClaimed": [
     "Custom GPT materialization",
     "Actions authentication against public Gateway",
@@ -28,7 +39,7 @@
     "physical collaboration delivery"
   ],
   "minimumNextOperatorCheckpoint": [
-    "Restore the ChatGPT Chrome control connection or explicitly allow opening a new Chrome window for the connected profile.",
+    "Explicitly allow opening one Chrome window for the connected Default profile so browser-control transport can be retried once, or reconnect it from Settings -> Computer use.",
     "Load/reload the unpacked ProFlow extension from packages/execution-browser-extension.",
     "Provide or confirm the three real Custom GPT g-id pages and an existing public HTTPS Gateway fixture."
   ]
