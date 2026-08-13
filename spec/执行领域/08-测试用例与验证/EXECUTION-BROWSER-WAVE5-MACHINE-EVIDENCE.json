@@ -42,6 +42,17 @@
     "duplicateCreateInHarness": 0,
     "sidePanelMutationCommands": 0
   },
+  "loadableExtensionArtifactGate": {
+    "observedFailure": "manifest referenced dist/extension/background.js and dist/extension/content.js while the root build excluded extension TypeScript",
+    "rootCause": "tsconfig.build.json only included package src and deployment trees",
+    "minimalGreen": "include extension TypeScript in the canonical build and assert every manifest script or page exists",
+    "manifestArtifacts": [
+      "dist/extension/background.js",
+      "dist/extension/content.js",
+      "extension/side-panel.html"
+    ],
+    "result": "PASS"
+  },
   "realBoundary": {
     "status": "NOT_CLAIMED",
     "fakeChromePromotedToReal": false,

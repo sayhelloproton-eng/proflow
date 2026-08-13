@@ -56,6 +56,10 @@
 			]
 		}
 	},
-	"include": ["packages/*/src/**/*.ts", "packages/*/deployment/**/*.ts"],
+	"include": [
+		"packages/*/src/**/*.ts",
+		"packages/*/deployment/**/*.ts",
+		"packages/*/extension/**/*.ts"
+	],
 	"exclude": ["packages/*/tests/**"]
 }
