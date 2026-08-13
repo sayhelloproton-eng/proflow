@@ -1,0 +1,34 @@
+{
+	"name": "@tomflow/proflow-execution-browser-extension",
+	"version": "0.1.0",
+	"description": "ProFlow Execution Domain Browser executor and read-only diagnostics extension",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./dist/src/index.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js"
+	},
+	"files": [
+		"dist",
+		"extension",
+		"manifest.json",
+		"deployment/browser-extension.json",
+		"conformance.json",
+		"README.md"
+	],
+	"scripts": {
+		"test": "node --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@tomflow/proflow-execution-contracts": "workspace:^",
+		"@tomflow/proflow-execution-runtime": "workspace:^"
+	},
+	"devDependencies": {
+		"@tomflow/proflow-deployment-conformance": "workspace:^",
+		"@tomflow/proflow-module-contract": "workspace:^"
+	}
+}

@@ -420,6 +420,20 @@ test("CP-EXE-RT-07 queue concurrency, cancellation signal and restart do not bli
 		input("file.read", { path: "timeout" }, "timeout", { timeoutMs: 20 }),
 	);
 	assert.equal(timedOut.error?.code, "TIMEOUT");
+	const lateFixture = await fixture();
+	const ignoresAlreadyAbortedSignal = fakeExecutor(async () => {
+		await new Promise((resolveWait) => setTimeout(resolveWait, 40));
+		return readResult("late");
+	});
+	const lateRuntime = await createExecutionRuntime({
+		databasePath: lateFixture.databasePath,
+		localExecutor: ignoresAlreadyAbortedSignal,
+	});
+	const lateResult = await lateRuntime.executeCapability(
+		input("file.read", { path: "late" }, "late", { timeoutMs: 5 }),
+	);
+	assert.equal(lateResult.error?.code, "TIMEOUT");
+	lateRuntime.close();
 	const cancellable = runtime.executeCapability(
 		input("file.read", { path: "c" }, "c", {
 			executionRef: "execution:cancel",

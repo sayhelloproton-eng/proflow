@@ -1,0 +1,6 @@
+{
+	"manifestVersion": 3,
+	"manifest": "manifest.json",
+	"statusAdapter": "deployment/adapter.ts",
+	"verificationAdapter": "deployment/adapter.ts"
+}

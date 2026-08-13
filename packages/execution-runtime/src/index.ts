@@ -507,6 +507,13 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					await log(record, "EFFECT_STARTED");
 				},
 			});
+			if (controller.signal.aborted)
+				throw new ExecutionRuntimeError(
+					timedOut ? "TIMEOUT" : "CANCELLED",
+					timedOut
+						? "execution runtime timeout elapsed"
+						: "execution was cancelled",
+				);
 			for (const artifact of result.artifacts)
 				database
 					.prepare(

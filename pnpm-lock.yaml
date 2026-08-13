@@ -84,6 +84,22 @@ importers:
         specifier: workspace:^
         version: link:../module-template
 
+  packages/execution-browser-extension:
+    dependencies:
+      '@tomflow/proflow-execution-contracts':
+        specifier: workspace:^
+        version: link:../execution-contracts
+      '@tomflow/proflow-execution-runtime':
+        specifier: workspace:^
+        version: link:../execution-runtime
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+
   packages/execution-contracts:
     dependencies:
       zod:

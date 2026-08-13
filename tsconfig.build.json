@@ -27,6 +27,9 @@
 			"@tomflow/proflow-execution-contracts": [
 				"./packages/execution-contracts/src/index.ts"
 			],
+			"@tomflow/proflow-execution-browser-extension": [
+				"./packages/execution-browser-extension/src/index.ts"
+			],
 			"@tomflow/proflow-execution-local": [
 				"./packages/execution-local/src/index.ts"
 			],
