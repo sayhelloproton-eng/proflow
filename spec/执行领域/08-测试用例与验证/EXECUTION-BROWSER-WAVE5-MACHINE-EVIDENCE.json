@@ -53,6 +53,25 @@
     ],
     "result": "PASS"
   },
+  "stageDPreparation": {
+    "implementationCommit": "8f25100abe7929548e98af65819c7776a45cb27b",
+    "observedAt": "2026-08-13T17:36:45+08:00",
+    "transport": "token-authenticated 127.0.0.1 HTTP hello/heartbeat/typed command/result bridge",
+    "machineProofs": [
+      "Exact extension origin plus bridge token auth and stale extensionInstanceId rejection PASS.",
+      "Durable Execution Runtime to Browser executor to live bridge command/result path PASS.",
+      "Lost bridge result times out once with zero command requeue PASS.",
+      "UUID-shaped opaque Conversation c-id URL parsing PASS without invented c- prefix.",
+      "Collaboration payload comes from Agent owner pending message and includes real content.",
+      "Logical Collaboration delivery finalizes only after durable Execution SUCCEEDED/APPLIED."
+    ],
+    "harnessSmoke": "Gateway and bridge processes started locally; readiness correctly stayed NOT_READY without a connected extension; all smoke fixtures were removed afterward.",
+    "fullRepositoryGate": "148/148 tests PASS; lint zero diagnostics; typecheck PASS; architecture PASS; publishability 17 packages PASS",
+    "realChromeClaimed": false,
+    "realChatGptClaimed": false,
+    "e3": "PENDING",
+    "e4": "PENDING"
+  },
   "realBoundary": {
     "status": "NOT_CLAIMED",
     "fakeChromePromotedToReal": false,

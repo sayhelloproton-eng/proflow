@@ -54,6 +54,33 @@
     "gatewayBusinessPersistence": 0,
     "plaintextRealSecrets": 0
   },
+  "stageDPreparation": {
+    "implementationCommit": "8f25100abe7929548e98af65819c7776a45cb27b",
+    "observedAt": "2026-08-13T17:36:45+08:00",
+    "observedRed": [
+      "Static role OpenAPI POST paths did not match the Gateway POST transport and would return 404.",
+      "Role OpenAPI was regex-inspected rather than parsed and lacked typed parameters/request bodies.",
+      "Relay had no real HTTP route and an initial scoped URL exposed artifactRef.",
+      "GPT-facing actorRef/callerRef could be model-supplied instead of injected from authenticatedRoleRef."
+    ],
+    "minimalGreen": [
+      "Gateway accepts stable POST /actions/<operationId> and preserves real 4xx/429/5xx status.",
+      "All three role-minimal OpenAPI 3.1 documents parse with yaml@2.9.0 and every operation has explicit consequential metadata.",
+      "Opaque token-only GET relay has real HTTP bytes, TTL/scope enforcement, safe headers, and no internal locator in URL.",
+      "Real-carrier harness injects authenticatedRoleRef as Task actor and Execution caller and validates task/worker through Agent Runtime."
+    ],
+    "harnessSmoke": {
+      "kind": "CONTROLLED_LOCAL_ONLY_NOT_REAL_CARRIER",
+      "gatewayHealth": "200 UP",
+      "readinessWithoutExtension": "503 NOT_READY",
+      "credentialMode": "0600",
+      "bridgeTokenMode": "0600",
+      "plaintextSecretOutput": 0,
+      "realGIdClaimed": false,
+      "realCIdClaimed": false
+    },
+    "fullRepositoryGate": "148/148 tests PASS; lint zero diagnostics; typecheck PASS; architecture PASS; publishability 17 packages PASS"
+  },
   "realCarrierBoundary": {
     "status": "NOT_CLAIMED",
     "reason": "Real g-id/c-id, ChatGPT Actions, File Bridge, provisioning and same-worker reopen require Stage D evidence.",
