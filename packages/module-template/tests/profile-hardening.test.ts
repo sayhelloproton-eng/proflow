@@ -42,6 +42,13 @@ test("P1-1/P1-2 all six profiles load and execute their own generated adapter", 
 			assert.equal(observation?.result.contract, "deployment.result.v1");
 		}
 		if (kind === "service") assert.equal(typeof adapter.restart, "function");
+		const verification = await adapter.verify?.();
+		assert.equal(
+			verification?.result.checks?.some(
+				(check) => check.id === "generated-adapter" && check.status === "PASS",
+			),
+			false,
+		);
 		if (kind === "cli") assert.equal(generated.machineEntry, "src/cli.ts");
 		if (kind === "agent-package") {
 			const status = await adapter.status?.();

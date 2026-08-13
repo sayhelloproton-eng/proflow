@@ -1,0 +1,25 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"declaration": true,
+		"rootDir": ".",
+		"rewriteRelativeImportExtensions": true,
+		"paths": {
+			"@tomflow/proflow-module-contract": [
+				"./packages/module-contract/src/index.ts"
+			],
+			"@tomflow/proflow-task-orchestration": [
+				"./packages/task-orchestration/src/index.ts"
+			],
+			"@tomflow/proflow-task-store-sqlite": [
+				"./packages/task-store-sqlite/src/index.ts"
+			],
+			"@tomflow/proflow-task-store-sqlite/migrations": [
+				"./packages/task-store-sqlite/src/migrations.ts"
+			]
+		}
+	},
+	"include": ["packages/*/src/**/*.ts", "packages/*/deployment/**/*.ts"],
+	"exclude": ["packages/*/tests/**"]
+}

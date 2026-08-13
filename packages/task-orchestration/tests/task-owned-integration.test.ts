@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { promisify } from "node:util";
 
@@ -162,6 +163,292 @@ test("CP-TASK-ORCH-03 binding is one-time and startNode resolves the stable work
 	assert.equal(startedNode.workerRef, "worker:product");
 });
 
+test("remediation T01 responses and error envelopes match the frozen public shapes", async (context) => {
+	const { services } = await fixture(context);
+	const created = ok(services.commands.createTask(taskInput("task-golden")));
+	assert.deepEqual(Object.keys(created).sort(), [
+		"authorizedAt",
+		"authorizedByRef",
+		"currentNodeId",
+		"planVersion",
+		"roleBindings",
+		"status",
+		"taskGroupId",
+		"taskId",
+		"version",
+	]);
+	const authorized = ok(
+		services.commands.authorizeTask({
+			taskId: created.taskId,
+			expectedTaskVersion: created.version,
+			actorRef: "human:operator",
+			idempotencyKey: "golden:authorize",
+		}),
+	);
+	const bound = ok(
+		services.commands.bindTaskWorker({
+			taskId: created.taskId,
+			roleRef: "role:dev",
+			workerRef: "worker:dev",
+			expectedTaskVersion: authorized.version,
+			actorRef: "actor:provisioner",
+			idempotencyKey: "golden:bind",
+		}),
+	);
+	assert.deepEqual(bound.roleBinding, {
+		roleRef: "role:dev",
+		workerRef: "worker:dev",
+	});
+	const task = ok(
+		services.commands.startTask({
+			taskId: created.taskId,
+			expectedTaskVersion: bound.version,
+			actorRef: "actor:driver",
+			idempotencyKey: "golden:start-task",
+		}),
+	);
+	const node = ok(
+		services.commands.startNode({
+			taskId: task.taskId,
+			nodeId: "task-golden-product",
+			expectedTaskVersion: task.version,
+			expectedNodeVersion: 2,
+			actorRef: "actor:driver",
+			idempotencyKey: "golden:start-node",
+		}),
+	);
+	assert.deepEqual(Object.keys(node).sort(), [
+		"nodeId",
+		"nodeVersion",
+		"runNo",
+		"startedAt",
+		"status",
+		"taskId",
+		"taskVersion",
+		"workerRef",
+	]);
+	const contextView = ok(
+		services.queries.getNodeContext({
+			taskId: task.taskId,
+			nodeId: node.nodeId,
+		}),
+	);
+	assert.equal(contextView.documents[0]?.sizeBytes, 14);
+	const failed = services.commands.startTask({
+		taskId: task.taskId,
+		expectedTaskVersion: task.version,
+		actorRef: "actor:driver",
+		idempotencyKey: "golden:invalid-start",
+	});
+	assert.equal(failed.ok, false);
+	if (!failed.ok)
+		assert.deepEqual(Object.keys(failed.error).sort(), [
+			"code",
+			"correlationId",
+			"details",
+			"message",
+			"retryable",
+		]);
+});
+
+test("remediation T05 createTask initial documents recover without absent-task orphans", async (context) => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-task-create-recovery-"));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	const databasePath = join(root, ".proflow", "state", "task.sqlite");
+	assert.equal(
+		applyMigrations({ databasePath, migrations: taskMigrations }).ok,
+		true,
+	);
+	const store = new SqliteTaskStore({ databasePath });
+	context.after(() => store.close());
+	let writes = 0;
+	const services = createTaskServices({
+		store,
+		workspaceRoot: root,
+		writeDocument: (path, content) => {
+			writes++;
+			if (writes === 2) throw new Error("injected second write failure");
+			const target = join(root, path);
+			mkdirSync(dirname(target), { recursive: true });
+			writeFileSync(target, content);
+		},
+	});
+	const input = {
+		...taskInput("task-orphan"),
+		initialDocuments: [
+			{ documentType: "REQUIREMENT", content: "one" },
+			{ documentType: "PRD", content: "two" },
+		],
+	};
+	const result = services.commands.createTask(input);
+	assert.equal(result.ok, false);
+	assert.equal(
+		store.read((tx) => tx.tasks.get("task-orphan")),
+		undefined,
+	);
+	await assert.rejects(
+		stat(join(root, ".proflow", "recovery", "task-create", "task-orphan")),
+	);
+
+	const rollbackStore: TaskStore = {
+		read: store.read.bind(store),
+		transaction: (work) =>
+			store.transaction((repositories) => {
+				work(repositories);
+				throw new Error("injected commit failure");
+			}),
+	};
+	const rollbackServices = createTaskServices({
+		store: rollbackStore,
+		workspaceRoot: root,
+	});
+	const rollbackInput = taskInput("task-db-rollback");
+	assert.equal(rollbackServices.commands.createTask(rollbackInput).ok, false);
+	assert.equal(
+		store.read((tx) => tx.tasks.get("task-db-rollback")),
+		undefined,
+	);
+	await assert.rejects(
+		stat(
+			join(
+				root,
+				".proflow",
+				"tasks",
+				"task-db-rollback",
+				"documents",
+				"requirement.md",
+			),
+		),
+	);
+
+	let promotionAttempts = 0;
+	const promotionServices = createTaskServices({
+		store,
+		workspaceRoot: root,
+		promoteDocument: () => {
+			promotionAttempts++;
+			throw new Error("injected promotion failure");
+		},
+	});
+	const recoveryInput = taskInput("task-promote-recovery");
+	const promotionFailure = promotionServices.commands.createTask(recoveryInput);
+	assert.equal(promotionFailure.ok, false);
+	assert.equal(
+		store.read((tx) => tx.tasks.get("task-promote-recovery"))?.taskId,
+		"task-promote-recovery",
+	);
+	assert.equal(promotionAttempts, 1);
+	const recoveredServices = createTaskServices({ store, workspaceRoot: root });
+	assert.equal(recoveredServices.commands.createTask(recoveryInput).ok, true);
+	assert.equal(
+		(
+			await stat(
+				join(
+					root,
+					".proflow",
+					"tasks",
+					"task-promote-recovery",
+					"documents",
+					"requirement.md",
+				),
+			)
+		).isFile(),
+		true,
+	);
+});
+
+test("remediation T04 injected reopen failure rolls back every reset", async (context) => {
+	const { services, store } = await fixture(context);
+	let task: { taskId: string; version: number } = ok(
+		services.commands.createTask(taskInput("task-reopen-rollback")),
+	);
+	task = ok(
+		services.commands.authorizeTask({
+			taskId: task.taskId,
+			expectedTaskVersion: task.version,
+			actorRef: "human:operator",
+			idempotencyKey: "rollback:authorize",
+		}),
+	);
+	task = ok(
+		services.commands.bindTaskWorker({
+			taskId: task.taskId,
+			roleRef: "role:dev",
+			workerRef: "worker:dev",
+			expectedTaskVersion: task.version,
+			actorRef: "actor:provisioner",
+			idempotencyKey: "rollback:bind",
+		}),
+	);
+	task = ok(
+		services.commands.startTask({
+			taskId: task.taskId,
+			expectedTaskVersion: task.version,
+			actorRef: "actor:driver",
+			idempotencyKey: "rollback:start-task",
+		}),
+	);
+	const running = ok(
+		services.commands.startNode({
+			taskId: task.taskId,
+			nodeId: "task-reopen-rollback-product",
+			expectedTaskVersion: task.version,
+			expectedNodeVersion: 2,
+			actorRef: "actor:driver",
+			idempotencyKey: "rollback:start-node",
+		}),
+	);
+	const failed = ok(
+		services.commands.failNode({
+			taskId: task.taskId,
+			nodeId: running.nodeId,
+			errorCode: "EXECUTION_BROWSER_UNAVAILABLE",
+			errorMessage: "down",
+			retryable: true,
+			expectedTaskVersion: running.taskVersion,
+			expectedNodeVersion: running.nodeVersion,
+			actorRef: "worker:product",
+			idempotencyKey: "rollback:fail",
+		}),
+	);
+	const before = store.read((tx) => tx.nodes.listByTask(task.taskId));
+	const failingStore: TaskStore = {
+		read: store.read.bind(store),
+		transaction: (work) =>
+			store.transaction((repositories) => {
+				let updates = 0;
+				const nodes = {
+					...repositories.nodes,
+					update: (value: Parameters<typeof repositories.nodes.update>[0]) => {
+						repositories.nodes.update(value);
+						updates++;
+						if (updates === 1) throw new Error("injected reopen failure");
+					},
+				};
+				return work({ ...repositories, nodes });
+			}),
+	};
+	const failingServices = createTaskServices({
+		store: failingStore,
+		workspaceRoot: "/unused",
+	});
+	assert.equal(
+		failingServices.commands.reopenNode({
+			taskId: task.taskId,
+			nodeId: running.nodeId,
+			reason: "retry",
+			expectedTaskVersion: failed.version,
+			actorRef: "human:operator",
+			idempotencyKey: "rollback:reopen",
+		}).ok,
+		false,
+	);
+	assert.deepEqual(
+		store.read((tx) => tx.nodes.listByTask(task.taskId)),
+		before,
+	);
+});
+
 test("CP-TASK-ORCH-04 stale, duplicate, and fingerprint conflict paths have zero partial writes", async (context) => {
 	const { services } = await fixture(context);
 	const created = ok(services.commands.createTask(taskInput("task-idem")));
@@ -222,8 +509,10 @@ test("CP-TASK-ORCH-04 stale, duplicate, and fingerprint conflict paths have zero
 });
 
 test("CP-TASK-ORCH-05 reopen preserves history/binding/documents/events and starts a new run", async (context) => {
-	const { services } = await fixture(context);
-	let task = ok(services.commands.createTask(taskInput("task-reopen")));
+	const { services, store } = await fixture(context);
+	let task: { taskId: string; version: number } = ok(
+		services.commands.createTask(taskInput("task-reopen")),
+	);
 	task = ok(
 		services.commands.authorizeTask({
 			taskId: task.taskId,
@@ -250,7 +539,7 @@ test("CP-TASK-ORCH-05 reopen preserves history/binding/documents/events and star
 			idempotencyKey: "idem:start:reopen",
 		}),
 	);
-	let node = ok(
+	const node = ok(
 		services.commands.startNode({
 			taskId: task.taskId,
 			nodeId: "task-reopen-product",
@@ -271,7 +560,7 @@ test("CP-TASK-ORCH-05 reopen preserves history/binding/documents/events and star
 			idempotencyKey: "idem:prd:reopen",
 		}),
 	);
-	node = ok(
+	const completedNode = ok(
 		services.commands.completeNode({
 			taskId: task.taskId,
 			nodeId: node.nodeId,
@@ -288,7 +577,7 @@ test("CP-TASK-ORCH-05 reopen preserves history/binding/documents/events and star
 				taskId: task.taskId,
 				nodeId: "missing-node",
 				reason: "invalid",
-				expectedTaskVersion: node.taskVersion,
+				expectedTaskVersion: completedNode.taskVersion,
 				actorRef: "actor:controller",
 				idempotencyKey: "idem:reopen:invalid",
 			}),
@@ -301,7 +590,7 @@ test("CP-TASK-ORCH-05 reopen preserves history/binding/documents/events and star
 				taskId: task.taskId,
 				nodeId: "task-reopen-product",
 				reason: "stale",
-				expectedTaskVersion: node.taskVersion - 1,
+				expectedTaskVersion: completedNode.taskVersion - 1,
 				actorRef: "actor:controller",
 				idempotencyKey: "idem:reopen:stale",
 			}),
@@ -312,7 +601,7 @@ test("CP-TASK-ORCH-05 reopen preserves history/binding/documents/events and star
 		taskId: task.taskId,
 		nodeId: "task-reopen-product",
 		reason: "revise",
-		expectedTaskVersion: node.taskVersion,
+		expectedTaskVersion: completedNode.taskVersion,
 		actorRef: "actor:controller",
 		idempotencyKey: "idem:reopen",
 	};
@@ -330,7 +619,9 @@ test("CP-TASK-ORCH-05 reopen preserves history/binding/documents/events and star
 		"worker:product",
 	);
 	assert.equal(
-		view.executionHistory.some((item) => item.nodeId === "task-reopen-product"),
+		store
+			.read((tx) => tx.executionHistory.listByTask(task.taskId))
+			.some((item) => item.nodeId === "task-reopen-product"),
 		true,
 	);
 	assert.equal(
@@ -361,7 +652,9 @@ test("CP-TASK-ORCH-05 reopen preserves history/binding/documents/events and star
 
 test("CP-TASK-ORCH-06/08 real Markdown/Git context, output gate, safe path, hash, and reconciliation", async (context) => {
 	const { root, store, services } = await fixture(context);
-	let task = ok(services.commands.createTask(taskInput("task-doc")));
+	let task: { taskId: string; version: number } = ok(
+		services.commands.createTask(taskInput("task-doc")),
+	);
 	const git = await execFileAsync(
 		"git",
 		["status", "--short", "--untracked-files=all", "--", ".proflow"],
@@ -582,7 +875,7 @@ test("CP-TASK-ORCH-07 TaskGroup blocks ACTIVE/WAITING/FAILED/PAUSED and releases
 		}),
 	);
 	assert.equal(activeGroup.status, "ACTIVE");
-	let task = ok(
+	let task: { taskId: string; version: number } = ok(
 		services.commands.startTask({
 			taskId: "task-group-1",
 			expectedTaskVersion: 2,
@@ -667,14 +960,17 @@ test("CP-TASK-ORCH-07 TaskGroup blocks ACTIVE/WAITING/FAILED/PAUSED and releases
 		}),
 	);
 	assert.equal(canStart()?.canStart, false);
-	task = ok(
-		services.commands.pauseTask({
-			taskId: task.taskId,
-			reason: "pause",
-			expectedTaskVersion: task.version,
-			actorRef: "human:operator",
-			idempotencyKey: "idem:group:pause",
-		}),
+	assert.equal(
+		errorCode(
+			services.commands.pauseTask({
+				taskId: task.taskId,
+				reason: "pause",
+				expectedTaskVersion: task.version,
+				actorRef: "human:operator",
+				idempotencyKey: "idem:group:pause",
+			}),
+		),
+		"TASK_INVALID_STATE",
 	);
 	assert.equal(canStart()?.canStart, false);
 	const reopened = ok(
@@ -723,7 +1019,9 @@ test("Task-owned happy path remains complete after SQLite store close and reopen
 	);
 	let store = new SqliteTaskStore({ databasePath });
 	let services = createTaskServices({ store, workspaceRoot: root });
-	let task = ok(services.commands.createTask(taskInput("task-happy")));
+	let task: { taskId: string; version: number } = ok(
+		services.commands.createTask(taskInput("task-happy")),
+	);
 	task = ok(
 		services.commands.authorizeTask({
 			taskId: task.taskId,
@@ -782,7 +1080,7 @@ test("Task-owned happy path remains complete after SQLite store close and reopen
 	};
 	const completeProductResult =
 		services.commands.completeNode(completeProductInput);
-	node = ok(completeProductResult);
+	const completedProduct = ok(completeProductResult);
 	assert.deepEqual(
 		services.commands.completeNode(completeProductInput),
 		completeProductResult,
@@ -791,7 +1089,7 @@ test("Task-owned happy path remains complete after SQLite store close and reopen
 		services.commands.startNode({
 			taskId: task.taskId,
 			nodeId: "task-happy-dev",
-			expectedTaskVersion: node.taskVersion,
+			expectedTaskVersion: completedProduct.taskVersion,
 			expectedNodeVersion: 2,
 			actorRef: "actor:driver",
 			idempotencyKey: "happy:start-dev",
@@ -831,13 +1129,18 @@ test("Task-owned happy path remains complete after SQLite store close and reopen
 		recovered.nodes.map((item) => item.status),
 		["SUCCEEDED", "SUCCEEDED"],
 	);
-	assert.equal(recovered.executionHistory.length, 2);
+	assert.equal(
+		store.read((tx) => tx.executionHistory.listByTask(task.taskId)).length,
+		2,
+	);
 	assert.equal(
 		recovered.roleBindings.every((item) => item.workerRef !== null),
 		true,
 	);
 	assert.deepEqual(
-		recovered.documents.map((item) => item.documentType),
+		store
+			.read((tx) => tx.documents.listByTask(task.taskId))
+			.map((item) => item.documentType),
 		["PRD", "REQUIREMENT", "TECHNICAL_DESIGN"],
 	);
 });

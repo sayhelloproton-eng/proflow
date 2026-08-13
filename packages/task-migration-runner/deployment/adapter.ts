@@ -27,6 +27,6 @@ export const behaviorAdapter = {
 	doctor: () => ({ result, observedEffects: [] }),
 	migrate: () => ({
 		result,
-		observedEffects: ["applies declared SQLite migrations when configured"],
+		observedEffects: ["Applies Task Store migration SQL to SQLite"],
 	}),
 } as const;

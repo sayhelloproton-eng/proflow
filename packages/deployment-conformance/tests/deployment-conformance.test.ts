@@ -274,6 +274,65 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 	);
 });
 
+test("remediation C3 rejects result identity drift and effects outside the descriptor", async (context) => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-c3-remediation-"));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	const generated = await materializeModule({
+		targetDirectory: root,
+		moduleRef: "identity-service",
+		packageName: "@tomflow/proflow-identity-service",
+		kind: "service",
+	});
+	const descriptor = generated.descriptor;
+	const base = {
+		contract: "deployment.result.v1" as const,
+		ok: true,
+		status: "SUCCEEDED" as const,
+		moduleRef: descriptor.moduleRef,
+		moduleVersion: descriptor.moduleVersion,
+	};
+	for (const result of [
+		{ ...base, moduleRef: "wrong-module" },
+		{ ...base, moduleVersion: "9.9.9" },
+	]) {
+		const adapter = Object.fromEntries(
+			descriptor.lifecycle.supported.map((primitive) => [
+				primitive,
+				() => ({ result, observedEffects: [] }),
+			]),
+		);
+		assert.equal(
+			(await runBehaviorConformance(descriptor, adapter)).status,
+			"FAIL",
+		);
+	}
+	const adapter = Object.fromEntries(
+		descriptor.lifecycle.supported.map((primitive) => [
+			primitive,
+			() => ({
+				result:
+					primitive === "verify"
+						? {
+								...base,
+								checks: [
+									{
+										id: "real-check",
+										status: "PASS" as const,
+										message: "observed",
+									},
+								],
+							}
+						: base,
+				observedEffects: primitive === "start" ? ["undeclared effect"] : [],
+			}),
+		]),
+	);
+	assert.equal(
+		(await runBehaviorConformance(descriptor, adapter)).status,
+		"FAIL",
+	);
+});
+
 function validGptProfile(): GptActionsConformanceInput {
 	return {
 		usesActions: true,

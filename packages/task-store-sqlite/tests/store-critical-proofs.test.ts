@@ -1,14 +1,18 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { promisify } from "node:util";
 
 import {
 	applyMigrations,
 	verifyMigrations,
 } from "@tomflow/proflow-task-migration-runner";
 import { SqliteTaskStore, taskMigrations } from "../src/index.ts";
+
+const execFileAsync = promisify(execFile);
 
 async function databaseFixture(context: {
 	after: (fn: () => unknown) => void;
@@ -161,4 +165,64 @@ test("CP-TASK-STORE-05 same/same idempotency replays and concurrent same/differe
 		second.transaction((tx) => tx.idempotency.insert(record)),
 	);
 	assert.equal(first.inspectCounts().idempotency_records, 1);
+});
+
+test("remediation T04 abnormal exit reopens and real concurrent writers preserve one idempotency fact", async (context) => {
+	const { databasePath } = await databaseFixture(context);
+	const storeUrl = new URL("../src/index.ts", import.meta.url).href;
+	const crashScript = `
+		import { SqliteTaskStore } from ${JSON.stringify(storeUrl)};
+		const store = new SqliteTaskStore({ databasePath: process.argv[1] });
+		store.transaction((tx) => tx.idempotency.insert({ idempotencyKey: "crash", operation: "test", requestHash: "hash", responseJson: "{}", createdAt: "now" }));
+		process.exit(0);
+	`;
+	await execFileAsync(process.execPath, [
+		"--input-type=module",
+		"-e",
+		crashScript,
+		databasePath,
+	]);
+	const reopened = new SqliteTaskStore({ databasePath });
+	assert.equal(
+		reopened.read((tx) => tx.idempotency.get("crash"))?.requestHash,
+		"hash",
+	);
+	reopened.close();
+
+	const writerScript = `
+		import { SqliteTaskStore } from ${JSON.stringify(storeUrl)};
+		let store;
+		try {
+			store = new SqliteTaskStore({ databasePath: process.argv[1], busyTimeoutMs: 2500 });
+			store.transaction((tx) => tx.idempotency.insert({ idempotencyKey: "concurrent", operation: "test", requestHash: process.argv[2], responseJson: "{}", createdAt: "now" }));
+			store.close();
+			process.stdout.write("committed");
+		} catch (error) {
+			store?.close();
+			process.stdout.write("rejected");
+		}
+	`;
+	const results = await Promise.all([
+		execFileAsync(process.execPath, [
+			"--input-type=module",
+			"-e",
+			writerScript,
+			databasePath,
+			"left",
+		]),
+		execFileAsync(process.execPath, [
+			"--input-type=module",
+			"-e",
+			writerScript,
+			databasePath,
+			"right",
+		]),
+	]);
+	assert.deepEqual(results.map((result) => result.stdout).sort(), [
+		"committed",
+		"rejected",
+	]);
+	const final = new SqliteTaskStore({ databasePath });
+	assert.equal(final.inspectCounts().idempotency_records, 2);
+	final.close();
 });

@@ -24,8 +24,14 @@ Lint/Format: Biome 2.5.6
 Runtime validation:
 - external/boundary input starts as unknown
 - runtime validation is mandatory
-- concrete validation library is not preselected
+- approved implementation library: Zod 4.1.12
 ```
+
+## Normative truth 与 implementation evidence
+
+- `DOCUMENT-INDEX.json` / `SPEC-MANIFEST.json` 描述 canonical normative specification，不因实现结果而静默改写。
+- `IMPLEMENTATION-EVIDENCE-INDEX.json` 与各领域 `08-测试用例与验证/` 是实现后机器证据索引，不构成第二份规范真源。
+- 实现证据若否定规范假设，必须走 Contract/Design Change；不得把证据文件伪装为 normative manifest。
 
 ## Legacy boundary
 

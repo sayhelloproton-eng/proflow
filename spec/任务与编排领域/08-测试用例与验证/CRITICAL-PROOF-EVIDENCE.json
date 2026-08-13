@@ -152,5 +152,5 @@
     "DEFERRED_TO_CROSS_DOMAIN: Task-to-Agent/Execution runtime E2E",
     "DEFERRED_TO_CROSS_DOMAIN: Gateway transport and platform-host composition"
   ],
-  "implementationCommit": "SELF"
+  "implementationCommit": "2f0a18204c0c94ea6717f3a130f21bf432a71dd0"
 }

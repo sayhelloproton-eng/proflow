@@ -70,7 +70,7 @@ Before implementation, read:
 13. SQLite access uses Node native `node:sqlite`, raw SQL, prepared statements, transactions, and WAL where required by the frozen design.
 14. Lint and format use Biome.
 15. Do not introduce NestJS, Hono, Fastify, Vitest, Jest, Prisma, Drizzle, Kysely, sqlite3, or better-sqlite3 without a documented real requirement and controlled decision.
-16. Runtime validation is required at boundaries, but no validation library is preselected.
+16. Runtime validation is required at boundaries; the approved implementation baseline is Zod 4.1.12.
 17. Never add a runtime/package dependency on `../ai-agent-platform/`.
 18. Do not copy legacy architecture wholesale.
 19. Do not silently change frozen DDD/SDD/Test Plan semantics to make implementation easier.

@@ -1,8 +1,12 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-
 import { moduleDescriptorSchema } from "@tomflow/proflow-module-contract";
+import {
+	createScanner,
+	LanguageVariant,
+	SyntaxKind,
+} from "typescript/unstable/ast";
 import {
 	type ConformanceIssue,
 	runPackageConformance,
@@ -72,130 +76,79 @@ function packageSpecifier(
 		: { name: match[1], subpath: match[2] ?? "" };
 }
 
-interface SourceToken {
-	kind: "identifier" | "string" | "punctuation" | "template";
-	value: string;
-}
-
-function sourceTokens(source: string): SourceToken[] {
-	const tokens: SourceToken[] = [];
-	let index = 0;
-	while (index < source.length) {
-		const character = source[index] ?? "";
-		const next = source[index + 1] ?? "";
-		if (/\s/.test(character)) {
-			index += 1;
-			continue;
-		}
-		if (character === "/" && next === "/") {
-			index = source.indexOf("\n", index + 2);
-			if (index < 0) break;
-			continue;
-		}
-		if (character === "/" && next === "*") {
-			const end = source.indexOf("*/", index + 2);
-			index = end < 0 ? source.length : end + 2;
-			continue;
-		}
-		if (character === '"' || character === "'") {
-			const quote = character;
-			let value = "";
-			index += 1;
-			while (index < source.length) {
-				const item = source[index] ?? "";
-				if (item === "\\") {
-					value += source[index + 1] ?? "";
-					index += 2;
-				} else if (item === quote) {
-					index += 1;
-					break;
-				} else {
-					value += item;
-					index += 1;
-				}
-			}
-			tokens.push({ kind: "string", value });
-			continue;
-		}
-		if (character === "`") {
-			let value = "";
-			let interpolated = false;
-			index += 1;
-			while (index < source.length) {
-				const item = source[index] ?? "";
-				if (item === "\\") {
-					value += source[index + 1] ?? "";
-					index += 2;
-				} else if (item === "`") {
-					index += 1;
-					break;
-				} else {
-					if (item === "$" && source[index + 1] === "{") interpolated = true;
-					value += item;
-					index += 1;
-				}
-			}
-			tokens.push({ kind: interpolated ? "template" : "string", value });
-			continue;
-		}
-		if (/[A-Za-z_$]/.test(character)) {
-			let value = character;
-			index += 1;
-			while (
-				index < source.length &&
-				/[A-Za-z0-9_$-]/.test(source[index] ?? "")
-			) {
-				value += source[index] ?? "";
-				index += 1;
-			}
-			tokens.push({ kind: "identifier", value });
-			continue;
-		}
-		tokens.push({ kind: "punctuation", value: character });
-		index += 1;
-	}
-	return tokens;
-}
-
-function importSpecifiers(source: string): {
+function importSpecifiers(
+	source: string,
+	fileName: string,
+): {
 	specifiers: string[];
 	unresolvedDynamicImport: boolean;
 } {
-	const controlledLocalFileImports = source.replace(
-		/\/\* architecture-allow-local-file-url-import \*\/\s*import\(\s*([A-Za-z_$][A-Za-z0-9_$]*)\.href\s*\)/g,
-		(match, identifier: string) =>
-			source.includes('from "node:url"') &&
-			new RegExp(
-				`(?:const|let)\\s+${identifier}\\s*=\\s*pathToFileURL\\s*\\(`,
-			).test(source)
-				? 'import("node:architecture-controlled-local-file")'
-				: match,
-	);
-	const tokens = sourceTokens(controlledLocalFileImports);
+	void fileName;
+	const scanner = createScanner(true, LanguageVariant.Standard, source);
+	const tokens: Array<{
+		kind: SyntaxKind;
+		value: string;
+		start: number;
+		fullStart: number;
+	}> = [];
+	let previousEnd = -1;
+	for (let kind = scanner.scan(); kind !== SyntaxKind.EndOfFile; ) {
+		const tokenEnd = scanner.getTokenEnd();
+		tokens.push({
+			kind,
+			value: scanner.getTokenValue(),
+			start: scanner.getTokenStart(),
+			fullStart: scanner.getTokenFullStart(),
+		});
+		if (tokenEnd <= previousEnd) {
+			scanner.resetTokenState(previousEnd + 1);
+		} else {
+			previousEnd = tokenEnd;
+		}
+		kind = scanner.scan();
+	}
 	const specifiers: string[] = [];
 	let unresolvedDynamicImport = false;
 	for (let index = 0; index < tokens.length; index += 1) {
 		const token = tokens[index];
-		if (token?.kind !== "identifier") continue;
-		if (token.value === "require" || token.value === "import") {
-			if (tokens[index + 1]?.value === "(") {
-				const argument = tokens[index + 2];
-				if (argument?.kind === "string") specifiers.push(argument.value);
-				else unresolvedDynamicImport = true;
-				continue;
+		if (token === undefined) continue;
+		const dynamicImport = token.kind === SyntaxKind.ImportKeyword;
+		const requireCall =
+			token.kind === SyntaxKind.Identifier && token.value === "require";
+		if (
+			(dynamicImport || requireCall) &&
+			tokens[index + 1]?.kind === SyntaxKind.OpenParenToken
+		) {
+			const argument = tokens[index + 2];
+			if (argument?.kind === SyntaxKind.StringLiteral) {
+				specifiers.push(argument.value);
+			} else {
+				const controlledFileUrl =
+					dynamicImport &&
+					argument?.kind === SyntaxKind.Identifier &&
+					tokens[index + 3]?.kind === SyntaxKind.DotToken &&
+					tokens[index + 4]?.value === "href" &&
+					source
+						.slice(token.fullStart, token.start)
+						.includes("architecture-allow-local-file-url-import");
+				if (!controlledFileUrl) unresolvedDynamicImport = true;
 			}
-			if (token.value === "import" && tokens[index + 1]?.kind === "string") {
-				specifiers.push(tokens[index + 1]?.value ?? "");
-				continue;
-			}
+			continue;
 		}
-		if (token.value === "import" || token.value === "export") {
+		if (dynamicImport && tokens[index + 1]?.kind === SyntaxKind.StringLiteral) {
+			specifiers.push(tokens[index + 1]?.value ?? "");
+			continue;
+		}
+		if (
+			token.kind === SyntaxKind.ImportKeyword ||
+			token.kind === SyntaxKind.ExportKeyword
+		) {
 			for (let cursor = index + 1; cursor < tokens.length; cursor += 1) {
 				const candidate = tokens[cursor];
-				if (candidate?.value === ";") break;
+				if (candidate?.kind === SyntaxKind.SemicolonToken) break;
 				if (
-					candidate?.value === "from" &&
-					tokens[cursor + 1]?.kind === "string"
+					candidate?.kind === SyntaxKind.FromKeyword &&
+					tokens[cursor + 1]?.kind === SyntaxKind.StringLiteral
 				) {
 					specifiers.push(tokens[cursor + 1]?.value ?? "");
 					break;
@@ -385,7 +338,7 @@ export async function runRepositoryArchitecture(
 					message: `${record.name}: plaintext secret in ${relative(record.directory, file)}`,
 				});
 			}
-			const imports = importSpecifiers(source);
+			const imports = importSpecifiers(source, file);
 			if (imports.unresolvedDynamicImport) {
 				issues.push({
 					code: "UNRESOLVED_DYNAMIC_IMPORT",
@@ -395,12 +348,18 @@ export async function runRepositoryArchitecture(
 			for (const specifier of imports.specifiers) {
 				const parsed = packageSpecifier(specifier);
 				if (parsed !== undefined) {
+					const allowedDependencies = publishable
+						? record.runtimeDependencies
+						: record.dependencies;
 					if (
-						!record.dependencies.has(parsed.name) &&
+						!allowedDependencies.has(parsed.name) &&
 						parsed.name !== record.name
 					) {
 						issues.push({
-							code: "UNDECLARED_DEPENDENCY",
+							code:
+								publishable && record.dependencies.has(parsed.name)
+									? "PRODUCTION_DEPENDENCY_ONLY_DEV"
+									: "UNDECLARED_DEPENDENCY",
 							message: `${record.name} imports undeclared ${parsed.name}`,
 						});
 					}

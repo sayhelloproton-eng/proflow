@@ -210,7 +210,6 @@ export type TaskResult<T> =
 			error: {
 				code: string;
 				message: string;
-				category: string;
 				retryable: boolean;
 				correlationId: string;
 				details?: Record<string, unknown>;

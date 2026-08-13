@@ -7,6 +7,7 @@ import {
 	openSync,
 	readFileSync,
 	renameSync,
+	rmSync,
 	statSync,
 	writeFileSync,
 } from "node:fs";
@@ -25,7 +26,6 @@ import type {
 	TaskNode,
 	TaskRepositories,
 	TaskResult,
-	TaskRoleBinding,
 	TaskStore,
 } from "./model.ts";
 
@@ -62,7 +62,7 @@ interface StartGroupInput extends Controls {
 	expectedGroupVersion: number;
 }
 interface PlanNodeInput {
-	nodeId?: string;
+	nodeId: string;
 	title: string;
 	objective: string;
 	requiredRoleRef: string;
@@ -118,23 +118,64 @@ export interface TaskSummary extends Task {
 	canStart: boolean;
 	blockedReason: string | null;
 }
-export interface TaskView extends Task {
-	nodes: TaskNode[];
-	roleBindings: TaskRoleBinding[];
-	executionHistory: ReturnType<
-		TaskRepositories["executionHistory"]["listByTask"]
-	>;
-	documents: TaskDocument[];
+export interface TaskView {
+	taskId: string;
+	taskGroupId: string | null;
+	sequenceNo: number | null;
+	title: string;
+	objective: string;
+	status: Task["status"];
+	version: number;
+	planVersion: number;
+	currentNodeId: string | null;
+	authorizedByRef: string | null;
+	authorizedAt: string | null;
+	roleBindings: Array<{ roleRef: string; workerRef: string | null }>;
+	nodes: Array<{
+		nodeId: string;
+		title: string;
+		status: NodeStatus;
+		runNo: number;
+		requiredRoleRef: string;
+		workerRef: string | null;
+		version: number;
+	}>;
+	pendingMessages: TaskMessage[];
 }
 export interface NodeResult {
 	taskId: string;
 	nodeId: string;
-	taskVersion: number;
-	nodeVersion: number;
-	taskStatus: Task["status"];
-	nodeStatus: NodeStatus;
+	status: NodeStatus;
 	runNo: number;
 	workerRef: string | null;
+	taskVersion: number;
+	nodeVersion: number;
+	startedAt: string | null;
+}
+export interface CreateTaskResult {
+	taskId: string;
+	taskGroupId: string | null;
+	status: Task["status"];
+	version: number;
+	planVersion: number;
+	currentNodeId: string | null;
+	authorizedByRef: string | null;
+	authorizedAt: string | null;
+	roleBindings: Array<{ roleRef: string; workerRef: string | null }>;
+}
+export interface BindTaskWorkerResult {
+	taskId: string;
+	version: number;
+	roleBinding: { roleRef: string; workerRef: string };
+}
+export interface CompleteNodeResult {
+	nodeId: string;
+	status: "SUCCEEDED";
+	runNo: number;
+	completedAt: string;
+	taskStatus: Task["status"];
+	taskVersion: number;
+	nextNodeId: string | null;
 }
 export interface DocumentResult {
 	taskId: string;
@@ -184,11 +225,6 @@ const failure = (error: unknown): TaskResult<never> => {
 			message:
 				domain?.message ??
 				(error instanceof Error ? error.message : "unexpected error"),
-			category: domain?.code.endsWith("CONFLICT")
-				? "CONFLICT"
-				: error instanceof ZodError
-					? "VALIDATION"
-					: "DOMAIN",
 			retryable: domain?.retryable ?? false,
 			correlationId: `corr-${randomUUID()}`,
 			...(domain?.details === undefined ? {} : { details: domain.details }),
@@ -254,16 +290,45 @@ function event(
 ): void {
 	tx.events.insert({ ...value, createdAt: now });
 }
+function preserveRunHistory(
+	tx: TaskRepositories,
+	node: TaskNode,
+	finalStatus: NodeStatus,
+	endedAt: string,
+): void {
+	if (node.startedAt === null && node.workerRef === null) return;
+	if (
+		tx.executionHistory
+			.listByTask(node.taskId)
+			.some((item) => item.nodeId === node.nodeId && item.runNo === node.runNo)
+	)
+		return;
+	tx.executionHistory.insert({
+		taskId: node.taskId,
+		nodeId: node.nodeId,
+		runNo: node.runNo,
+		workerRef: node.workerRef,
+		finalStatus,
+		resultSummary: node.resultSummary,
+		errorCode: node.errorCode,
+		errorMessage: node.errorMessage,
+		errorRetryable: node.errorRetryable,
+		inputDocuments: node.inputDocuments,
+		outputDocuments: node.outputDocuments,
+		startedAt: node.startedAt,
+		endedAt,
+	});
+}
 function nodeResult(task: Task, node: TaskNode): NodeResult {
 	return {
 		taskId: task.taskId,
 		nodeId: node.nodeId,
-		taskVersion: task.version,
-		nodeVersion: node.version,
-		taskStatus: task.status,
-		nodeStatus: node.status,
+		status: node.status,
 		runNo: node.runNo,
 		workerRef: node.workerRef,
+		taskVersion: task.version,
+		nodeVersion: node.version,
+		startedAt: node.startedAt,
 	};
 }
 
@@ -272,6 +337,11 @@ export function createTaskServices(options: {
 	workspaceRoot: string;
 	now?: () => string;
 	createId?: (prefix: string) => string;
+	writeDocument?: (relativePath: string, content: string) => void;
+	promoteDocument?: (
+		stagedRelativePath: string,
+		finalRelativePath: string,
+	) => void;
 }) {
 	const { store, workspaceRoot } = options;
 	const now = options.now ?? (() => new Date().toISOString());
@@ -354,11 +424,33 @@ export function createTaskServices(options: {
 	}
 
 	const view = (tx: TaskRepositories, task: Task): TaskView => ({
-		...task,
-		nodes: tx.nodes.listByTask(task.taskId),
-		roleBindings: tx.roleBindings.listByTask(task.taskId),
-		executionHistory: tx.executionHistory.listByTask(task.taskId),
-		documents: tx.documents.listByTask(task.taskId),
+		taskId: task.taskId,
+		taskGroupId: task.taskGroupId,
+		sequenceNo: task.sequenceNo,
+		title: task.title,
+		objective: task.objective,
+		status: task.status,
+		version: task.version,
+		planVersion: task.planVersion,
+		currentNodeId: task.currentNodeId,
+		authorizedByRef: task.authorizedByRef,
+		authorizedAt: task.authorizedAt,
+		nodes: tx.nodes.listByTask(task.taskId).map((node) => ({
+			nodeId: node.nodeId,
+			title: node.title,
+			status: node.status,
+			runNo: node.runNo,
+			requiredRoleRef: node.requiredRoleRef,
+			workerRef: node.workerRef,
+			version: node.version,
+		})),
+		roleBindings: tx.roleBindings.listByTask(task.taskId).map((binding) => ({
+			roleRef: binding.roleRef,
+			workerRef: binding.workerRef,
+		})),
+		pendingMessages: tx.messages
+			.listPending()
+			.filter((message) => message.taskId === task.taskId),
 	});
 	const relativeDocumentPath = (taskId: string, type: DocumentType): string =>
 		`.proflow/tasks/${/^[A-Za-z0-9_-]+$/.test(taskId) ? taskId : `id-${createHash("sha256").update(taskId).digest("hex")}`}/documents/${type.toLowerCase().replaceAll("_", "-")}.md`;
@@ -389,6 +481,36 @@ export function createTaskServices(options: {
 		} finally {
 			closeSync(directoryDescriptor);
 		}
+	};
+	const writeDocument = options.writeDocument ?? atomicWrite;
+	const promoteDocument =
+		options.promoteDocument ??
+		((stagedRelativePath: string, finalRelativePath: string): void => {
+			const staged = join(workspaceRoot, stagedRelativePath);
+			const final = join(workspaceRoot, finalRelativePath);
+			mkdirSync(dirname(final), { recursive: true });
+			renameSync(staged, final);
+			const directoryDescriptor = openSync(dirname(final), "r");
+			try {
+				fsyncSync(directoryDescriptor);
+			} finally {
+				closeSync(directoryDescriptor);
+			}
+		});
+	const safeTaskId = (taskId: string): string =>
+		/^[A-Za-z0-9_-]+$/.test(taskId)
+			? taskId
+			: `id-${createHash("sha256").update(taskId).digest("hex")}`;
+	const stageDocumentPath = (taskId: string, type: DocumentType): string =>
+		`.proflow/recovery/task-create/${safeTaskId(taskId)}/${type.toLowerCase().replaceAll("_", "-")}.md`;
+	const cleanupCreateStage = (taskId: string): void => {
+		rmSync(
+			join(
+				workspaceRoot,
+				`.proflow/recovery/task-create/${safeTaskId(taskId)}`,
+			),
+			{ recursive: true, force: true },
+		);
 	};
 
 	const commands = {
@@ -438,7 +560,7 @@ export function createTaskServices(options: {
 				);
 				if (group.status !== "READY")
 					throw new DomainError(
-						"TASK_GROUP_STATE_CONFLICT",
+						"TASK_GROUP_INVALID_STATE",
 						"TaskGroup is not READY.",
 					);
 				const first = tx.tasks
@@ -460,39 +582,63 @@ export function createTaskServices(options: {
 					});
 				return { ...updated, firstEligibleTaskId: first?.taskId ?? null };
 			}),
-		createTask: (raw: unknown): TaskResult<Task> => {
+		createTask: (raw: unknown): TaskResult<CreateTaskResult> => {
+			let normalized: CreateTaskInput;
+			let stagedTaskId = "";
 			try {
 				const input = validatePublicInput("createTask", raw) as CreateTaskInput;
-				for (const document of input.initialDocuments)
+				stagedTaskId =
+					input.taskId ??
+					`task-${createHash("sha256").update(input.idempotencyKey).digest("hex").slice(0, 24)}`;
+				normalized = { ...input, taskId: stagedTaskId };
+				for (const document of normalized.initialDocuments)
 					ensureType(document.documentType);
-				for (const node of input.plan.nodes)
+				for (const node of normalized.plan.nodes)
 					for (const documentType of [
 						...node.inputDocuments,
 						...node.outputDocuments,
 					])
 						ensureType(documentType);
 				if (
-					new Set(input.initialDocuments.map((item) => item.documentType))
-						.size !== input.initialDocuments.length
+					new Set(normalized.initialDocuments.map((item) => item.documentType))
+						.size !== normalized.initialDocuments.length
 				)
 					throw new DomainError(
 						"INVALID_REQUEST",
 						"Initial documentType values must be unique.",
 					);
 				if (
-					new Set(input.roleBindings.map((item) => item.roleRef)).size !==
-					input.roleBindings.length
+					new Set(normalized.roleBindings.map((item) => item.roleRef)).size !==
+					normalized.roleBindings.length
 				)
 					throw new DomainError(
 						"INVALID_REQUEST",
 						"Task role bindings must be unique by roleRef.",
 					);
+				for (const document of normalized.initialDocuments) {
+					const type = document.documentType as DocumentType;
+					const stagedPath = stageDocumentPath(stagedTaskId, type);
+					const stagedAbsolute = join(workspaceRoot, stagedPath);
+					if (existsSync(stagedAbsolute)) {
+						if (
+							contentHash(readFileSync(stagedAbsolute, "utf8")) !==
+							contentHash(document.content)
+						)
+							throw new DomainError(
+								"DOCUMENT_WRITE_FAILED",
+								"Staged document content does not match the retried request.",
+							);
+					} else {
+						writeDocument(stagedPath, document.content);
+					}
+				}
 			} catch (error) {
+				if (typeof stagedTaskId === "string") cleanupCreateStage(stagedTaskId);
 				return failure(error);
 			}
-			return command<CreateTaskInput, Task>(
+			const result = command<CreateTaskInput, CreateTaskResult>(
 				"createTask",
-				raw,
+				normalized,
 				(tx, validated, timestamp) => {
 					const taskId = validated.taskId ?? createId("task");
 					if (tx.tasks.get(taskId))
@@ -564,7 +710,6 @@ export function createTaskServices(options: {
 							taskId,
 							item.documentType as DocumentType,
 						);
-						atomicWrite(path, item.content);
 						tx.documents.upsert({
 							taskId,
 							documentType: item.documentType,
@@ -588,9 +733,49 @@ export function createTaskServices(options: {
 						},
 						timestamp,
 					);
-					return value;
+					return {
+						taskId: value.taskId,
+						taskGroupId: value.taskGroupId,
+						status: value.status,
+						version: value.version,
+						planVersion: value.planVersion,
+						currentNodeId: value.currentNodeId,
+						authorizedByRef: value.authorizedByRef,
+						authorizedAt: value.authorizedAt,
+						roleBindings: validated.roleBindings.map(
+							({ roleRef, workerRef }) => ({
+								roleRef,
+								workerRef,
+							}),
+						),
+					};
 				},
 			);
+			if (!result.ok) {
+				cleanupCreateStage(stagedTaskId);
+				return result;
+			}
+			try {
+				for (const document of normalized.initialDocuments) {
+					const type = document.documentType as DocumentType;
+					promoteDocument(
+						stageDocumentPath(stagedTaskId, type),
+						relativeDocumentPath(stagedTaskId, type),
+					);
+				}
+				cleanupCreateStage(stagedTaskId);
+				return result;
+			} catch (error) {
+				return failure(
+					new DomainError(
+						"DOCUMENT_WRITE_FAILED",
+						error instanceof Error
+							? error.message
+							: "document promotion failed",
+						true,
+					),
+				);
+			}
 		},
 		authorizeTask: (raw: unknown): TaskResult<Task> =>
 			command<TaskControls, Task>(
@@ -609,10 +794,7 @@ export function createTaskServices(options: {
 							"Grouped Tasks are authorized by their active group.",
 						);
 					if (task.status !== "PENDING")
-						throw new DomainError(
-							"TASK_STATE_CONFLICT",
-							"Task is not PENDING.",
-						);
+						throw new DomainError("TASK_INVALID_STATE", "Task is not PENDING.");
 					const updated = {
 						...task,
 						status: "READY" as const,
@@ -625,8 +807,8 @@ export function createTaskServices(options: {
 					return updated;
 				},
 			),
-		bindTaskWorker: (raw: unknown): TaskResult<Task> =>
-			command<BindInput, Task>(
+		bindTaskWorker: (raw: unknown): TaskResult<BindTaskWorkerResult> =>
+			command<BindInput, BindTaskWorkerResult>(
 				"bindTaskWorker",
 				raw,
 				(tx, input, timestamp) => {
@@ -637,14 +819,22 @@ export function createTaskServices(options: {
 						"TASK_VERSION_CONFLICT",
 					);
 					if (["SUCCEEDED", "TERMINATED"].includes(task.status))
-						throw new DomainError("TASK_TERMINAL", "Task is terminal.");
+						throw new DomainError("TASK_INVALID_STATE", "Task is terminal.");
 					const old = tx.roleBindings.get(task.taskId, input.roleRef);
 					if (!old)
 						throw new DomainError(
-							"TASK_ROLE_NOT_FOUND",
+							"ROLE_NOT_ELIGIBLE",
 							"Role is not declared by the Task.",
 						);
-					if (old.workerRef === input.workerRef) return task;
+					if (old.workerRef === input.workerRef)
+						return {
+							taskId: task.taskId,
+							version: task.version,
+							roleBinding: {
+								roleRef: old.roleRef,
+								workerRef: input.workerRef,
+							},
+						};
 					if (old.workerRef !== null)
 						throw new DomainError(
 							"TASK_ROLE_BINDING_CONFLICT",
@@ -662,7 +852,14 @@ export function createTaskServices(options: {
 						updatedAt: timestamp,
 					};
 					tx.tasks.update(updated);
-					return updated;
+					return {
+						taskId: updated.taskId,
+						version: updated.version,
+						roleBinding: {
+							roleRef: old.roleRef,
+							workerRef: input.workerRef,
+						},
+					};
 				},
 			),
 		startTask: (raw: unknown): TaskResult<Task> =>
@@ -674,7 +871,7 @@ export function createTaskServices(options: {
 					"TASK_VERSION_CONFLICT",
 				);
 				if (task.status !== "READY")
-					throw new DomainError("TASK_STATE_CONFLICT", "Task is not READY.");
+					throw new DomainError("TASK_INVALID_STATE", "Task is not READY.");
 				const requiredRoles = new Set(
 					tx.nodes.listByTask(task.taskId).map((item) => item.requiredRoleRef),
 				);
@@ -686,16 +883,13 @@ export function createTaskServices(options: {
 					bindings.some((item) => item.workerRef === null)
 				)
 					throw new DomainError(
-						"TASK_BINDING_INCOMPLETE",
+						"TASK_ROLE_BINDING_REQUIRED",
 						"Every required role must be bound.",
 					);
 				if (task.taskGroupId) {
 					const group = tx.taskGroups.get(task.taskGroupId);
 					if (group?.status !== "ACTIVE")
-						throw new DomainError(
-							"TASK_GROUP_NOT_ACTIVE",
-							"TaskGroup is not ACTIVE.",
-						);
+						throw new DomainError("TASK_BLOCKED", "TaskGroup is not ACTIVE.");
 					const siblings = tx.tasks.list(task.taskGroupId);
 					if (
 						siblings.some(
@@ -705,7 +899,7 @@ export function createTaskServices(options: {
 						)
 					)
 						throw new DomainError(
-							"TASK_PREDECESSOR_NOT_SUCCEEDED",
+							"PREDECESSOR_NOT_SUCCEEDED",
 							"A predecessor is not SUCCEEDED.",
 						);
 					if (
@@ -716,7 +910,7 @@ export function createTaskServices(options: {
 						)
 					)
 						throw new DomainError(
-							"TASK_GROUP_BUSY",
+							"TASK_BLOCKED",
 							"Another Task blocks the group.",
 						);
 				}
@@ -750,11 +944,8 @@ export function createTaskServices(options: {
 					input.expectedTaskVersion,
 					"TASK_VERSION_CONFLICT",
 				);
-				if (!["ACTIVE", "WAITING", "FAILED"].includes(task.status))
-					throw new DomainError(
-						"TASK_STATE_CONFLICT",
-						"Task cannot be paused.",
-					);
+				if (!["ACTIVE", "WAITING"].includes(task.status))
+					throw new DomainError("TASK_INVALID_STATE", "Task cannot be paused.");
 				const updated = {
 					...task,
 					status: "PAUSED" as const,
@@ -774,12 +965,17 @@ export function createTaskServices(options: {
 				);
 				if (!["WAITING", "PAUSED"].includes(task.status))
 					throw new DomainError(
-						"TASK_STATE_CONFLICT",
+						"TASK_INVALID_STATE",
 						"Task cannot be resumed.",
 					);
 				const current = task.currentNodeId
 					? tx.nodes.get(task.currentNodeId)
 					: undefined;
+				if (current?.status === "FAILED")
+					throw new DomainError(
+						"TASK_INVALID_STATE",
+						"A failed Node must be explicitly reopened before resume.",
+					);
 				if (current?.status === "WAITING")
 					tx.nodes.update({
 						...current,
@@ -808,9 +1004,10 @@ export function createTaskServices(options: {
 						"TASK_VERSION_CONFLICT",
 					);
 					if (["SUCCEEDED", "TERMINATED"].includes(task.status))
-						throw new DomainError("TASK_TERMINAL", "Task is terminal.");
+						throw new DomainError("TASK_INVALID_STATE", "Task is terminal.");
 					for (const item of tx.nodes.listByTask(task.taskId))
-						if (!["SUCCEEDED", "TERMINATED"].includes(item.status))
+						if (!["SUCCEEDED", "TERMINATED"].includes(item.status)) {
+							preserveRunHistory(tx, item, "TERMINATED", timestamp);
 							tx.nodes.update({
 								...item,
 								status: "TERMINATED",
@@ -818,6 +1015,7 @@ export function createTaskServices(options: {
 								completedAt: timestamp,
 								updatedAt: timestamp,
 							});
+						}
 					const updated = {
 						...task,
 						status: "TERMINATED" as const,
@@ -852,7 +1050,7 @@ export function createTaskServices(options: {
 						task.currentNodeId !== node.nodeId
 					)
 						throw new DomainError(
-							"NODE_STATE_CONFLICT",
+							"NODE_INVALID_STATE",
 							"Node is not READY/current.",
 						);
 					const binding = tx.roleBindings.get(
@@ -861,7 +1059,7 @@ export function createTaskServices(options: {
 					);
 					if (!binding?.workerRef)
 						throw new DomainError(
-							"TASK_BINDING_INCOMPLETE",
+							"TASK_ROLE_BINDING_REQUIRED",
 							"Node role is not bound.",
 						);
 					const updatedNode = {
@@ -882,8 +1080,8 @@ export function createTaskServices(options: {
 					return nodeResult(updatedTask, updatedNode);
 				},
 			),
-		completeNode: (raw: unknown): TaskResult<NodeResult> =>
-			command<CompleteInput, NodeResult>(
+		completeNode: (raw: unknown): TaskResult<CompleteNodeResult> =>
+			command<CompleteInput, CompleteNodeResult>(
 				"completeNode",
 				raw,
 				(tx, input, timestamp) => {
@@ -905,7 +1103,9 @@ export function createTaskServices(options: {
 						node.workerRef !== input.actorRef
 					)
 						throw new DomainError(
-							"NODE_ACTOR_OR_STATE_CONFLICT",
+							node.workerRef !== input.actorRef
+								? "WORKER_MISMATCH"
+								: "NODE_INVALID_STATE",
 							"Only the bound running Worker may complete the Node.",
 						);
 					for (const type of node.outputDocuments) {
@@ -1006,7 +1206,15 @@ export function createTaskServices(options: {
 							});
 						}
 					}
-					return nodeResult(updatedTask, completedNode);
+					return {
+						nodeId: completedNode.nodeId,
+						status: "SUCCEEDED",
+						runNo: completedNode.runNo,
+						completedAt: timestamp,
+						taskStatus: updatedTask.status,
+						taskVersion: updatedTask.version,
+						nextNodeId: updatedTask.currentNodeId,
+					};
 				},
 			),
 		waitNode: (raw: unknown): TaskResult<Task> =>
@@ -1023,9 +1231,16 @@ export function createTaskServices(options: {
 					input.expectedNodeVersion,
 					"NODE_VERSION_CONFLICT",
 				);
+				if (task.status !== "ACTIVE")
+					throw new DomainError(
+						"TASK_INVALID_STATE",
+						"Task must be ACTIVE before a Node can wait.",
+					);
 				if (node.status !== "IN_PROGRESS" || node.workerRef !== input.actorRef)
 					throw new DomainError(
-						"NODE_ACTOR_OR_STATE_CONFLICT",
+						node.workerRef !== input.actorRef
+							? "WORKER_MISMATCH"
+							: "NODE_INVALID_STATE",
 						"Node cannot wait.",
 					);
 				tx.nodes.update({
@@ -1072,9 +1287,14 @@ export function createTaskServices(options: {
 					input.expectedNodeVersion,
 					"NODE_VERSION_CONFLICT",
 				);
+				if (!["ACTIVE", "WAITING"].includes(task.status))
+					throw new DomainError(
+						"TASK_INVALID_STATE",
+						"Task cannot accept a Node failure in its current state.",
+					);
 				if (!["IN_PROGRESS", "WAITING"].includes(node.status))
-					throw new DomainError("NODE_STATE_CONFLICT", "Node cannot fail.");
-				tx.nodes.update({
+					throw new DomainError("NODE_INVALID_STATE", "Node cannot fail.");
+				const failedNode: TaskNode = {
 					...node,
 					status: "FAILED",
 					version: node.version + 1,
@@ -1083,7 +1303,9 @@ export function createTaskServices(options: {
 					errorRetryable: input.retryable,
 					completedAt: timestamp,
 					updatedAt: timestamp,
-				});
+				};
+				tx.nodes.update(failedNode);
+				preserveRunHistory(tx, failedNode, "FAILED", timestamp);
 				const updated = {
 					...task,
 					status: "FAILED" as const,
@@ -1107,31 +1329,10 @@ export function createTaskServices(options: {
 					);
 					if (!["SUCCEEDED", "FAILED"].includes(target.status))
 						throw new DomainError(
-							"NODE_STATE_CONFLICT",
+							"NODE_INVALID_STATE",
 							"Only completed or failed Nodes can reopen.",
 						);
-					const existing = tx.executionHistory
-						.listByTask(task.taskId)
-						.some(
-							(item) =>
-								item.nodeId === target.nodeId && item.runNo === target.runNo,
-						);
-					if (!existing)
-						tx.executionHistory.insert({
-							taskId: task.taskId,
-							nodeId: target.nodeId,
-							runNo: target.runNo,
-							workerRef: target.workerRef,
-							finalStatus: target.status,
-							resultSummary: target.resultSummary,
-							errorCode: target.errorCode,
-							errorMessage: target.errorMessage,
-							errorRetryable: target.errorRetryable,
-							inputDocuments: target.inputDocuments,
-							outputDocuments: target.outputDocuments,
-							startedAt: target.startedAt,
-							endedAt: timestamp,
-						});
+					preserveRunHistory(tx, target, target.status, timestamp);
 					const reopened = {
 						...target,
 						status: "READY" as const,
@@ -1148,7 +1349,8 @@ export function createTaskServices(options: {
 					};
 					tx.nodes.update(reopened);
 					for (const later of tx.nodes.listByTask(task.taskId))
-						if (later.sequenceNo > target.sequenceNo)
+						if (later.sequenceNo > target.sequenceNo) {
+							preserveRunHistory(tx, later, later.status, timestamp);
 							tx.nodes.update({
 								...later,
 								status: "PENDING",
@@ -1162,6 +1364,7 @@ export function createTaskServices(options: {
 								completedAt: null,
 								updatedAt: timestamp,
 							});
+						}
 					const updated = {
 						...task,
 						status: "ACTIVE" as const,
@@ -1258,12 +1461,16 @@ export function createTaskServices(options: {
 			}),
 		listTasks: (raw: unknown): TaskResult<{ tasks: TaskSummary[] }> =>
 			query<
-				{ taskGroupId?: string; status?: string },
+				{ taskGroupId?: string; statuses?: string[] },
 				{ tasks: TaskSummary[] }
 			>("listTasks", raw, (tx, input) => {
 				const tasks = tx.tasks
 					.list(input.taskGroupId)
-					.filter((item) => !input.status || item.status === input.status);
+					.filter(
+						(item) =>
+							input.statuses === undefined ||
+							input.statuses.includes(item.status),
+					);
 				return {
 					tasks: tasks.map((item) => {
 						let blockedReason: string | null = null;
@@ -1314,17 +1521,89 @@ export function createTaskServices(options: {
 			),
 		getNodeContext: (
 			raw: unknown,
-		): TaskResult<{ task: Task; node: TaskNode; documents: TaskDocument[] }> =>
+		): TaskResult<{
+			task: Pick<Task, "taskId" | "title" | "objective" | "status" | "version">;
+			node: Pick<
+				TaskNode,
+				| "nodeId"
+				| "title"
+				| "objective"
+				| "status"
+				| "version"
+				| "runNo"
+				| "requiredRoleRef"
+				| "workerRef"
+				| "inputDocuments"
+				| "outputDocuments"
+			>;
+			documents: Array<{
+				documentType: string;
+				path: string;
+				contentHash: string;
+				sizeBytes: number;
+			}>;
+		}> =>
 			query<
 				{ taskId: string; nodeId: string },
-				{ task: Task; node: TaskNode; documents: TaskDocument[] }
+				{
+					task: Pick<
+						Task,
+						"taskId" | "title" | "objective" | "status" | "version"
+					>;
+					node: Pick<
+						TaskNode,
+						| "nodeId"
+						| "title"
+						| "objective"
+						| "status"
+						| "version"
+						| "runNo"
+						| "requiredRoleRef"
+						| "workerRef"
+						| "inputDocuments"
+						| "outputDocuments"
+					>;
+					documents: Array<{
+						documentType: string;
+						path: string;
+						contentHash: string;
+						sizeBytes: number;
+					}>;
+				}
 			>("getNodeContext", raw, (tx, input) => {
 				const task = requireTask(tx, input.taskId);
 				const node = requireNode(tx, input.taskId, input.nodeId);
 				const documents = node.inputDocuments
 					.map((type) => tx.documents.get(task.taskId, type))
-					.filter((item): item is TaskDocument => item !== undefined);
-				return { task, node, documents };
+					.filter((item): item is TaskDocument => item !== undefined)
+					.map((document) => ({
+						documentType: document.documentType,
+						path: document.filePath,
+						contentHash: document.contentHash,
+						sizeBytes: statSync(join(workspaceRoot, document.filePath)).size,
+					}));
+				return {
+					task: {
+						taskId: task.taskId,
+						title: task.title,
+						objective: task.objective,
+						status: task.status,
+						version: task.version,
+					},
+					node: {
+						nodeId: node.nodeId,
+						title: node.title,
+						objective: node.objective,
+						status: node.status,
+						version: node.version,
+						runNo: node.runNo,
+						requiredRoleRef: node.requiredRoleRef,
+						workerRef: node.workerRef,
+						inputDocuments: node.inputDocuments,
+						outputDocuments: node.outputDocuments,
+					},
+					documents,
+				};
 			}),
 		listPendingMessages: (
 			raw: unknown,
@@ -1339,11 +1618,19 @@ export function createTaskServices(options: {
 				}),
 			),
 		listTaskEvents: (raw: unknown): TaskResult<{ events: TaskEvent[] }> =>
-			query<{ taskId: string }, { events: TaskEvent[] }>(
-				"listTaskEvents",
-				raw,
-				(tx, input) => ({ events: tx.events.listByTask(input.taskId) }),
-			),
+			query<
+				{ taskId: string; afterEventId?: number; limit?: number },
+				{ events: TaskEvent[] }
+			>("listTaskEvents", raw, (tx, input) => ({
+				events: tx.events
+					.listByTask(input.taskId)
+					.filter(
+						(event) =>
+							input.afterEventId === undefined ||
+							(event.eventId ?? 0) > input.afterEventId,
+					)
+					.slice(0, input.limit ?? 100),
+			})),
 	};
 
 	const documents = {
@@ -1469,6 +1756,19 @@ export function createTaskServices(options: {
 			actorRef: string;
 		}): TaskResult<{ reconciled: number }> => {
 			try {
+				if (!store.read((tx) => tx.tasks.get(input.taskId))) {
+					cleanupCreateStage(input.taskId);
+					throw new DomainError(
+						"TASK_NOT_FOUND",
+						`Task ${input.taskId} was not found.`,
+					);
+				}
+				for (const type of allowedDocumentTypes) {
+					const staged = stageDocumentPath(input.taskId, type);
+					if (existsSync(join(workspaceRoot, staged)))
+						promoteDocument(staged, relativeDocumentPath(input.taskId, type));
+				}
+				cleanupCreateStage(input.taskId);
 				const result = store.transaction((tx) => {
 					requireTask(tx, input.taskId);
 					let reconciled = 0;

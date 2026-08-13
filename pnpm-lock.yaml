@@ -21,11 +21,14 @@ importers:
   packages/deployment-conformance:
     dependencies:
       '@tomflow/proflow-module-contract':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../module-contract
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
     devDependencies:
       '@tomflow/proflow-module-template':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../module-template
 
   packages/module-contract:
@@ -37,48 +40,48 @@ importers:
   packages/module-template:
     dependencies:
       '@tomflow/proflow-module-contract':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../module-contract
 
   packages/task-migration-runner:
     dependencies:
       '@tomflow/proflow-module-contract':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../module-contract
       '@tomflow/proflow-task-store-sqlite':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../task-store-sqlite
 
   packages/task-orchestration:
     dependencies:
       '@tomflow/proflow-module-contract':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../module-contract
       zod:
         specifier: 4.1.12
         version: 4.1.12
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../deployment-conformance
       '@tomflow/proflow-task-migration-runner':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../task-migration-runner
       '@tomflow/proflow-task-store-sqlite':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../task-store-sqlite
 
   packages/task-store-sqlite:
     dependencies:
       '@tomflow/proflow-module-contract':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../module-contract
       '@tomflow/proflow-task-orchestration':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../task-orchestration
     devDependencies:
       '@tomflow/proflow-task-migration-runner':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../task-migration-runner
 
 packages:

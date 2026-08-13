@@ -135,3 +135,48 @@ test("CP-TASK-ORCH-04 public command runtime validation rejects missing command 
 		},
 	);
 });
+
+test("remediation T01 createTask enforces frozen conditional fields and defaults optional collections", () => {
+	const base = {
+		title: "Task",
+		objective: "Objective",
+		plan: {
+			nodes: [
+				{
+					nodeId: "node-1",
+					title: "Node",
+					objective: "Do work",
+					requiredRoleRef: "role:dev",
+					inputDocuments: [],
+					outputDocuments: [],
+				},
+			],
+		},
+		actorRef: "actor:test",
+		idempotencyKey: "idem:create",
+	};
+	assert.deepEqual(validatePublicInput("createTask", base), {
+		...base,
+		initialDocuments: [],
+		roleBindings: [],
+	});
+	assert.throws(() =>
+		validatePublicInput("createTask", {
+			...base,
+			plan: { nodes: [{ ...base.plan.nodes[0], nodeId: undefined }] },
+		}),
+	);
+	assert.throws(() =>
+		validatePublicInput("createTask", { ...base, taskGroupId: "group-1" }),
+	);
+	assert.throws(() =>
+		validatePublicInput("createTask", { ...base, sequenceNo: 1 }),
+	);
+	assert.doesNotThrow(() =>
+		validatePublicInput("createTask", {
+			...base,
+			taskGroupId: "group-1",
+			sequenceNo: 1,
+		}),
+	);
+});

@@ -40,7 +40,7 @@ const nodeVersion = {
 };
 const planNode = z
 	.object({
-		nodeId: id.optional(),
+		nodeId: id,
 		title: id,
 		objective: id,
 		requiredRoleRef: id,
@@ -70,15 +70,33 @@ const schemas: Record<PublicOperationName, z.ZodType> = {
 			title: id,
 			objective: id,
 			plan: z.object({ nodes: z.array(planNode).min(1) }).strict(),
-			initialDocuments: z.array(
-				z.object({ documentType: id, content: z.string() }).strict(),
-			),
-			roleBindings: z.array(
-				z.object({ roleRef: id, workerRef: id.nullable() }).strict(),
-			),
+			initialDocuments: z
+				.array(z.object({ documentType: id, content: z.string() }).strict())
+				.optional()
+				.default([]),
+			roleBindings: z
+				.array(z.object({ roleRef: id, workerRef: id.nullable() }).strict())
+				.optional()
+				.default([]),
 			...actor,
 		})
-		.strict(),
+		.strict()
+		.superRefine((input, context) => {
+			if (input.taskGroupId !== undefined && input.sequenceNo === undefined) {
+				context.addIssue({
+					code: "custom",
+					message: "sequenceNo is required for a grouped Task",
+					path: ["sequenceNo"],
+				});
+			}
+			if (input.taskGroupId === undefined && input.sequenceNo !== undefined) {
+				context.addIssue({
+					code: "custom",
+					message: "sequenceNo is only valid for a grouped Task",
+					path: ["sequenceNo"],
+				});
+			}
+		}),
 	authorizeTask: z.object({ taskId: id, ...taskVersion }).strict(),
 	bindTaskWorker: z
 		.object({ taskId: id, roleRef: id, workerRef: id, ...taskVersion })
@@ -114,12 +132,18 @@ const schemas: Record<PublicOperationName, z.ZodType> = {
 		.strict(),
 	getTaskGroup: z.object({ taskGroupId: id }).strict(),
 	listTasks: z
-		.object({ taskGroupId: id.optional(), status: id.optional() })
+		.object({ taskGroupId: id.optional(), statuses: z.array(id).optional() })
 		.strict(),
 	getTask: z.object({ taskId: id }).strict(),
 	getNodeContext: z.object({ taskId: id, nodeId: id }).strict(),
 	listPendingMessages: z.object({ taskId: id.optional() }).strict(),
-	listTaskEvents: z.object({ taskId: id }).strict(),
+	listTaskEvents: z
+		.object({
+			taskId: id,
+			afterEventId: z.number().int().nonnegative().optional(),
+			limit: z.number().int().positive().max(1000).optional(),
+		})
+		.strict(),
 	putTaskDocument: z
 		.object({
 			taskId: id,

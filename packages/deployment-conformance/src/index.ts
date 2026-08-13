@@ -356,24 +356,20 @@ export async function runPackageConformance(
 			message: "public descriptor export is missing",
 		});
 	}
+	const cliEntry = exportEntry(metadata, "./cli");
 	if (
 		descriptor.kind === "cli" &&
-		(!(await pathExists(join(packageDirectory, "src/cli.ts"))) ||
-			exportEntry(metadata, "./cli") !== "./src/cli.ts")
+		(cliEntry === undefined ||
+			!(await pathExists(resolve(packageDirectory, cliEntry))))
 	) {
 		issues.push({
 			code: "MACHINE_ENTRY_MISSING",
 			message: "CLI machine entry is missing",
 		});
 	}
-	if (
-		descriptor.kind === "cli" &&
-		exportEntry(metadata, "./cli") !== undefined
-	) {
+	if (descriptor.kind === "cli" && cliEntry !== undefined) {
 		try {
-			const cliUrl = pathToFileURL(
-				resolve(packageDirectory, exportEntry(metadata, "./cli") ?? ""),
-			);
+			const cliUrl = pathToFileURL(resolve(packageDirectory, cliEntry));
 			cliUrl.searchParams.set("conformance", `${Date.now()}`);
 			const cliModule: unknown =
 				await /* architecture-allow-local-file-url-import */ import(
@@ -499,6 +495,24 @@ export async function runBehaviorConformance(
 			});
 		}
 		if (
+			parsedResult.success &&
+			parsedResult.data.moduleRef !== descriptor.moduleRef
+		) {
+			issues.push({
+				code: "RESULT_MODULE_MISMATCH",
+				message: `${primitive} result.moduleRef differs from descriptor`,
+			});
+		}
+		if (
+			parsedResult.success &&
+			parsedResult.data.moduleVersion !== descriptor.moduleVersion
+		) {
+			issues.push({
+				code: "RESULT_VERSION_MISMATCH",
+				message: `${primitive} result.moduleVersion differs from descriptor`,
+			});
+		}
+		if (
 			primitive === "verify" &&
 			parsedResult.success &&
 			!parsedResult.data.checks?.some(
@@ -528,6 +542,16 @@ export async function runBehaviorConformance(
 				code: "UNDECLARED_EFFECT",
 				message: `${primitive} produced effects by default`,
 			});
+		}
+		const declaredEffects = new Set(
+			descriptor.effects.map((effect) => effect.description),
+		);
+		for (const effect of observation.observedEffects) {
+			if (!declaredEffects.has(effect))
+				issues.push({
+					code: "EFFECT_NOT_DECLARED",
+					message: `${primitive} observed effect is not bound to descriptor: ${effect}`,
+				});
 		}
 		if (
 			descriptor.kind === "external-resource" &&

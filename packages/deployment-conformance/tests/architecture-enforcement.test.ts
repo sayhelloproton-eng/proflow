@@ -107,3 +107,46 @@ test("architecture rejects deep imports, undeclared dependencies, cycles, dumpin
 		assert.equal(codes.has(code), true, code);
 	}
 });
+
+test("production imports cannot be satisfied only by devDependencies", async (context) => {
+	const root = await mkdtemp(
+		join(tmpdir(), "proflow-architecture-dependency-class-"),
+	);
+	context.after(() => rm(root, { recursive: true, force: true }));
+	await writeFile(
+		join(root, "package.json"),
+		`${JSON.stringify({ name: "proflow", private: true })}\n`,
+	);
+	await packageFixture(
+		root,
+		"consumer",
+		{
+			name: "@tomflow/proflow-consumer",
+			version: "1.0.0",
+			type: "module",
+			exports: { ".": "./src/index.ts" },
+			publishConfig: { access: "public" },
+			devDependencies: { "@tomflow/proflow-provider": "workspace:^" },
+		},
+		'import "@tomflow/proflow-provider";\n',
+	);
+	await packageFixture(
+		root,
+		"provider",
+		{
+			name: "@tomflow/proflow-provider",
+			version: "1.0.0",
+			type: "module",
+			exports: { ".": "./src/index.ts" },
+			publishConfig: { access: "public" },
+		},
+		"export {};\n",
+	);
+	const result = await runRepositoryArchitecture(root);
+	assert.equal(
+		result.issues.some(
+			(issue) => issue.code === "PRODUCTION_DEPENDENCY_ONLY_DEV",
+		),
+		true,
+	);
+});

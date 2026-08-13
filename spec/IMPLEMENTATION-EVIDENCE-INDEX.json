@@ -1,0 +1,23 @@
+{
+  "contract": "proflow.implementation-evidence-index.v1",
+  "contractVersion": "1.0.0",
+  "normativeTruth": ["DOCUMENT-INDEX.json", "SPEC-MANIFEST.json"],
+  "evidenceIsNormative": false,
+  "runtimeValidationBaseline": "zod@4.1.12",
+  "domains": [
+    {
+      "domain": "deployment-foundation",
+      "evidence": "部署领域/08-测试用例与验证/foundation-closure.md",
+      "status": "PASS",
+      "limits": [
+        "Static File Bridge URL conformance rejects literal private, loopback, link-local, and metadata targets.",
+        "It does not prove runtime DNS resolution, DNS rebinding resistance, redirect revalidation, or connection-time IP pinning; those remain Gateway/Execution owner runtime proofs."
+      ]
+    },
+    {
+      "domain": "task-orchestration",
+      "evidence": "任务与编排领域/08-测试用例与验证/CRITICAL-PROOF-EVIDENCE.json",
+      "status": "PASS"
+    }
+  ]
+}

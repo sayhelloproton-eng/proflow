@@ -170,8 +170,9 @@ export class SqliteTaskStore implements TaskStore {
 	constructor(input: { databasePath: string; busyTimeoutMs?: number }) {
 		this.#database = new DatabaseSync(input.databasePath);
 		this.#database.exec(
-			`PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = ${input.busyTimeoutMs ?? 2_500};`,
+			`PRAGMA busy_timeout = ${input.busyTimeoutMs ?? 2_500};`,
 		);
+		this.#database.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
 	}
 
 	#repositories(): TaskRepositories {

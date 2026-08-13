@@ -212,19 +212,35 @@ function operationSource(
 		return `() => ({ result: baseResult, observedEffects: [], externalAvailabilityClaim: "UNKNOWN", externalAvailabilityEvidence: "fake" })`;
 	}
 	if (primitive === "verify") {
-		return `() => ({ result: { ...baseResult, checks: [{ id: "generated-adapter", status: "PASS", message: "Generated adapter loaded and executed" }] }, observedEffects: [] })`;
+		return `() => ({ result: { ...baseResult, ok: false, status: "FAILED", checks: [{ id: "owner-verification-required", status: "FAIL", message: "Owner-specific verification is not implemented" }], error: { code: "VERIFY_FAILED", message: "Owner-specific verification is not implemented", retryable: false } }, observedEffects: [] })`;
+	}
+	if (descriptor.kind === "service" && primitive === "status") {
+		return `() => ({ result: { ...baseResult, data: { state: serviceStatus() } }, observedEffects: [] })`;
+	}
+	if (descriptor.kind === "service" && primitive === "start") {
+		return `() => ({ result: { ...baseResult, data: { state: serviceStart() } }, observedEffects: ["Manage the declared service process"] })`;
+	}
+	if (descriptor.kind === "service" && primitive === "stop") {
+		return `() => ({ result: { ...baseResult, data: { state: serviceStop() } }, observedEffects: ["Manage the declared service process"] })`;
+	}
+	if (descriptor.kind === "service" && primitive === "restart") {
+		return `() => ({ result: { ...baseResult, data: { state: serviceRestart() } }, observedEffects: ["Manage the declared service process"] })`;
 	}
 	return `() => ({ result: baseResult, observedEffects: [] })`;
 }
 
 function adapterSource(descriptor: ModuleDescriptor): string {
+	const imports =
+		descriptor.kind === "service"
+			? 'import { restart as serviceRestart, start as serviceStart, status as serviceStatus, stop as serviceStop } from "../src/lifecycle.ts";\n\n'
+			: "";
 	const operations = descriptor.lifecycle.supported
 		.map(
 			(primitive) =>
 				`\t${JSON.stringify(primitive)}: ${operationSource(descriptor, primitive)},`,
 		)
 		.join("\n");
-	return `const baseResult = {
+	return `${imports}const baseResult = {
 \tcontract: "deployment.result.v1",
 \tok: true,
 \tstatus: "SUCCEEDED",

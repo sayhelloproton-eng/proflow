@@ -25,7 +25,7 @@
 | P1-2 Generated package 自有 C3 adapter | `bootstrap-reconciliation.test.ts`、`foundation-hardening.test.ts`；从真实临时目录加载生成物 adapter，破坏 adapter 后 C3 FAIL | PASS |
 | P1-3 完整 C1/C2 | `deployment-conformance.test.ts`、`foundation-hardening.test.ts`；覆盖 runtime schema、版本/冲突、Kind/lifecycle、metadata/exports/entry、structured CLI、secret、generated provenance、C1→C2→C3 顺序 | PASS |
 | P1-4 正式 package 命名 | runtime schema、template 和 repository architecture 均强制 `@tomflow/proflow-*`；非法 fixture FAIL | PASS |
-| P1-5 Publishability | root 保持 `private: true`；正式 Module 无 `private: true` 且 `publishConfig.access=public`；未执行 publish | PASS |
+| P1-5 Publishability | root 保持 `private: true`；正式 Module 无 `private: true` 且 `publishConfig.access=public`；`pnpm publishability` 对全部正式包执行真实 pack，并把 tarball 安装到隔离 consumer 后逐包 import | PASS |
 | P1-6 Compatibility | `compatibility-hardening.test.ts` 覆盖 identity/contract、provides、requires、config、lifecycle、verification、effects、platform range 与 template-only 变化 | PASS |
 
 ```text
@@ -77,6 +77,8 @@ git diff --check PASS
 - plaintext secret；
 - 动态 import 不得隐藏 dependency。仅带显式注解、且形态严格为本地文件 URL `.href` 的 conformance loader 允许执行；任意其他 computed dynamic import FAIL；
 - 新 package 加入后默认进入同一 Gate。
+
+File Bridge 的 SSRF 项属于静态 schema/literal URL conformance：它不证明运行时 DNS 解析、DNS rebinding、redirect 后重校验或 connection-time IP pinning；这些必须由 Gateway/Execution owner 在真实网络路径单独证明。
 
 当前审计：
 

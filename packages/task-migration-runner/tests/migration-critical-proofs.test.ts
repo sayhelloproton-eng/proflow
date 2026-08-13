@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 
 import { SqliteTaskStore } from "@tomflow/proflow-task-store-sqlite";
@@ -167,4 +168,40 @@ test("CP-TASK-MIG-04 public apply/status/verify and machine CLI expose execution
 	) as { contract: string; status: string };
 	assert.equal(cli.contract, "deployment.result.v1");
 	assert.equal(cli.status, "SUCCEEDED");
+});
+
+test("remediation T06 status is non-mutating and verify detects name and schema drift", async (context) => {
+	const missingPath = await fixture(context);
+	const status = getMigrationStatus({
+		databasePath: missingPath,
+		migrations: taskMigrations,
+	});
+	assert.deepEqual(status.appliedVersions, []);
+	await assert.rejects(access(missingPath));
+
+	assert.equal(
+		applyMigrations({ databasePath: missingPath, migrations: taskMigrations })
+			.ok,
+		true,
+	);
+	const database = new DatabaseSync(missingPath);
+	database.exec("UPDATE schema_migrations SET name='drifted' WHERE version=1");
+	database.exec("DROP TABLE task_messages");
+	database.close();
+	const drift = getMigrationStatus({
+		databasePath: missingPath,
+		migrations: taskMigrations,
+	});
+	assert.equal(drift.metadataDrift.length, 1);
+	assert.deepEqual(drift.missingTables, ["task_messages"]);
+	assert.equal(
+		verifyMigrations({ databasePath: missingPath, migrations: taskMigrations })
+			.ok,
+		false,
+	);
+	assert.equal(
+		applyMigrations({ databasePath: missingPath, migrations: taskMigrations })
+			.ok,
+		false,
+	);
 });

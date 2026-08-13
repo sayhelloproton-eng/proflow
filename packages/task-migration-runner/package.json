@@ -6,17 +6,16 @@
 		"access": "public"
 	},
 	"exports": {
-		".": "./src/index.ts",
-		"./cli": "./src/cli.ts",
-		"./deployment/adapter": "./deployment/adapter.ts",
-		"./deployment/descriptor": "./deployment/descriptor.ts"
+		".": "./dist/src/index.js",
+		"./cli": "./dist/src/cli.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js"
 	},
 	"bin": {
-		"proflow-task-migrate": "./src/cli.ts"
+		"proflow-task-migrate": "./dist/src/cli.js"
 	},
 	"files": [
-		"src",
-		"deployment",
+		"dist",
 		"conformance.json",
 		"README.md"
 	],
@@ -25,7 +24,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@tomflow/proflow-module-contract": "workspace:*",
-		"@tomflow/proflow-task-store-sqlite": "workspace:*"
+		"@tomflow/proflow-module-contract": "workspace:^",
+		"@tomflow/proflow-task-store-sqlite": "workspace:^"
 	}
 }

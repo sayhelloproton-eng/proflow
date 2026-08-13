@@ -1,4 +1,4 @@
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -29,6 +29,12 @@ export interface MigrationStatus {
 	contractVersion: "1.0.0";
 	appliedVersions: number[];
 	pendingVersions: number[];
+	metadataDrift: Array<{
+		version: number;
+		expectedName: string;
+		actualName: string;
+	}>;
+	missingTables: string[];
 }
 
 export function discoverMigrations(
@@ -71,20 +77,83 @@ function appliedVersions(database: DatabaseSync): number[] {
 	).map((row) => row.version);
 }
 
+function expectedTableNames(migrations: readonly TaskMigration[]): string[] {
+	return [
+		...new Set(
+			migrations.flatMap((migration) =>
+				[
+					...migration.sql.matchAll(
+						/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([A-Za-z_][A-Za-z0-9_]*)/gi,
+					),
+				].map((match) => match[1] ?? ""),
+			),
+		),
+	].filter(Boolean);
+}
+
+function inspectionStatus(
+	database: DatabaseSync,
+	migrations: readonly TaskMigration[],
+): MigrationStatus {
+	const migrationTable = database
+		.prepare(
+			"SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='schema_migrations'",
+		)
+		.get() as { present?: number } | undefined;
+	const appliedRows = migrationTable
+		? (database
+				.prepare("SELECT version, name FROM schema_migrations ORDER BY version")
+				.all() as Array<{ version: number; name: string }>)
+		: [];
+	const appliedSet = new Set(appliedRows.map((row) => row.version));
+	const expectedTables = expectedTableNames(migrations);
+	const actualTables = new Set(
+		(
+			database
+				.prepare("SELECT name FROM sqlite_master WHERE type='table'")
+				.all() as Array<{ name: string }>
+		).map((row) => row.name),
+	);
+	return {
+		contract: "task-migration",
+		contractVersion: "1.0.0",
+		appliedVersions: appliedRows.map((row) => row.version),
+		pendingVersions: migrations
+			.filter((migration) => !appliedSet.has(migration.version))
+			.map((migration) => migration.version),
+		metadataDrift: migrations.flatMap((migration) => {
+			const actual = appliedRows.find(
+				(row) => row.version === migration.version,
+			);
+			return actual !== undefined && actual.name !== migration.name
+				? [
+						{
+							version: migration.version,
+							expectedName: migration.name,
+							actualName: actual.name,
+						},
+					]
+				: [];
+		}),
+		missingTables: expectedTables.filter((table) => !actualTables.has(table)),
+	};
+}
+
 export function getMigrationStatus(input: MigrationInput): MigrationStatus {
 	const migrations = discoverMigrations(input.migrations);
-	const database = openDatabase(input.databasePath);
-	try {
-		const applied = appliedVersions(database);
-		const appliedSet = new Set(applied);
+	if (input.databasePath !== ":memory:" && !existsSync(input.databasePath)) {
 		return {
 			contract: "task-migration",
 			contractVersion: "1.0.0",
-			appliedVersions: applied,
-			pendingVersions: migrations
-				.filter((item) => !appliedSet.has(item.version))
-				.map((item) => item.version),
+			appliedVersions: [],
+			pendingVersions: migrations.map((migration) => migration.version),
+			metadataDrift: [],
+			missingTables: expectedTableNames(migrations),
 		};
+	}
+	const database = new DatabaseSync(input.databasePath, { readOnly: true });
+	try {
+		return inspectionStatus(database, migrations);
 	} finally {
 		database.close();
 	}
@@ -97,7 +166,26 @@ export function applyMigrations(input: MigrationInput): MigrationResult {
 	try {
 		const alreadyApplied = new Set(appliedVersions(database));
 		for (const migration of migrations) {
-			if (alreadyApplied.has(migration.version)) continue;
+			if (alreadyApplied.has(migration.version)) {
+				const row = database
+					.prepare("SELECT name FROM schema_migrations WHERE version = ?")
+					.get(migration.version) as { name: string } | undefined;
+				if (row?.name !== migration.name)
+					return {
+						contract: "task-migration",
+						contractVersion: "1.0.0",
+						ok: false,
+						applied: appliedNow,
+						pending: migrations
+							.filter((item) => !alreadyApplied.has(item.version))
+							.map((item) => item.version),
+						error: {
+							code: "MIGRATION_FAILED",
+							message: `migration ${migration.version} name drift: expected ${migration.name}, found ${row?.name ?? "missing"}`,
+						},
+					};
+				continue;
+			}
 			database.exec("BEGIN IMMEDIATE");
 			try {
 				database.exec(migration.sql);
@@ -141,13 +229,28 @@ export function applyMigrations(input: MigrationInput): MigrationResult {
 
 export function verifyMigrations(input: MigrationInput): MigrationResult {
 	const status = getMigrationStatus(input);
-	const database = openDatabase(input.databasePath);
+	if (input.databasePath !== ":memory:" && !existsSync(input.databasePath)) {
+		return {
+			contract: "task-migration",
+			contractVersion: "1.0.0",
+			ok: false,
+			applied: [],
+			pending: status.pendingVersions,
+			error: {
+				code: "MIGRATION_VERIFY_FAILED",
+				message: "database does not exist",
+			},
+		};
+	}
+	const database = new DatabaseSync(input.databasePath, { readOnly: true });
 	try {
 		const integrity = database.prepare("PRAGMA integrity_check").get() as
 			| { integrity_check?: string }
 			| undefined;
 		const ok =
 			status.pendingVersions.length === 0 &&
+			status.metadataDrift.length === 0 &&
+			status.missingTables.length === 0 &&
 			integrity?.integrity_check === "ok";
 		return {
 			contract: "task-migration",
