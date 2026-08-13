@@ -1,0 +1,35 @@
+{
+  "contract": "proflow.non-deployment-runtime-integration-evidence.v1",
+  "status": "LOCAL_BUSINESS_RUNTIME_INTEGRATION_PASS",
+  "recordedAt": "2026-08-13T18:45:59+08:00",
+  "implementationCommit": "283328cc1273011221cec31aea732c481268955d",
+  "test": "packages/platform-host/tests/non-deployment-runtime-integration.test.ts",
+  "realProcesses": [
+    "model-runtime HTTP service with protocol-level provider",
+    "execution-runtime HTTP service with SQLite recovery",
+    "platform-host HTTP service with real Task/Agent owner packages",
+    "agent-gateway HTTP service with file-backed role credentials"
+  ],
+  "contractPairs": {
+    "Task-Agent": "Task/Worker binding is created by the Task owner and validated by the Agent owner before Execution routing.",
+    "Task-Execution": "Task and worker identity cross Host transport into the durable Execution request.",
+    "Execution-Model": "Execution REVIEW admission invokes Model Runtime inference and consumes a successful typed decision observation.",
+    "Agent-Execution": "Authenticated Agent role and bound worker are validated before Execution invocation.",
+    "AgentGateway-TaskExecution": "Bearer authentication injects role identity; product creates Task and controller executes through owner routes."
+  },
+  "recovery": [
+    "Execution Runtime restart reopens the same SQLite record as SUCCEEDED.",
+    "Foreign library error codes are normalized to the frozen EXECUTION_FAILED vocabulary."
+  ],
+  "actual": {
+    "integrationTest": "1/1 PASS",
+    "repositoryTests": "163/163 PASS",
+    "providerInteraction": "Observed capability probes plus an Execution-triggered Model inference",
+    "identitySpoofing": "Gateway credential identity overrides callerRef and roleRef"
+  },
+  "limits": [
+    "The protocol provider is a controlled local provider; historical committed real-provider evidence remains the external Model basis.",
+    "This test does not contain Chrome, ChatGPT Web, g-id, c-id, physical submit, or collaboration delivery.",
+    "NON_DEPLOYMENT_RUNTIME_REAL_ACCEPTANCE is not claimed."
+  ]
+}

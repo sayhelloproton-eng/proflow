@@ -1,0 +1,68 @@
+{
+  "contract": "proflow.non-deployment-coverage-audit.v1",
+  "status": "ACTION_REQUIRED",
+  "recordedAt": "2026-08-13T18:45:59+08:00",
+  "targetKit": {
+    "artifact": "ProFlow-Non-Deployment-Full-Implementation-Validation-Sweep-v1-20260813.zip",
+    "sha256": "26ff1e8a97f0d8f1ee7f9c5f2286d904890706fea8fb1c9bd148a7d1b39c2d45",
+    "criticalProofMatrixSha256": "0b592b6c2f936abcce95c0d5a09c90b49e9e9fb47490697034e2aa2e5002e174",
+    "inventorySha256": "458d6cba310fdc25c9ff69dc3782381df1312a51dea31ffd88b731a7bef72efa"
+  },
+  "coverage": {
+    "nonDeploymentModuleImplementation": "15/15",
+    "formalServiceImplementation": "4/4",
+    "nonDeploymentCriticalProofExecutableBinding": "87/87",
+    "nonDeploymentCriticalProofPass": "82/87"
+  },
+  "domains": {
+    "task": "17/17 PASS",
+    "model": "12/12 PASS",
+    "agent": "24/28 PASS; 4 Real Carrier proofs ACTION_REQUIRED",
+    "execution": "24/25 PASS; CP-EXE-BR-08 ACTION_REQUIRED",
+    "platformHost": "5/5 PASS"
+  },
+  "unresolvedCriticalProofs": [
+    {
+      "cpId": "CP-AGT-DEV-04",
+      "status": "OPERATOR_ACTION_REQUIRED",
+      "reason": "Real dev Worker provisioning, c-id binding, and same-Task reuse require Chrome/ChatGPT reality."
+    },
+    {
+      "cpId": "CP-AGT-PROD-03",
+      "status": "OPERATOR_ACTION_REQUIRED",
+      "reason": "A real pre-Task product Conversation c-id has not been observed."
+    },
+    {
+      "cpId": "CP-AGT-PROD-05",
+      "status": "OPERATOR_ACTION_REQUIRED",
+      "reason": "Real Custom GPT materialization, Actions authentication, and behavior have not been observed."
+    },
+    {
+      "cpId": "CP-AGT-TEST-04",
+      "status": "OPERATOR_ACTION_REQUIRED",
+      "reason": "Real test Worker provisioning, c-id binding, and same-Task reuse require Chrome/ChatGPT reality."
+    },
+    {
+      "cpId": "CP-EXE-BR-08",
+      "status": "OPERATOR_ACTION_REQUIRED",
+      "reason": "Real Chrome/ChatGPT E3 and E4 fault/recovery evidence has not been observed."
+    }
+  ],
+  "quality": {
+    "repositoryTests": "163/163 PASS",
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "architecture": "PASS; 18 packages checked; deep import=0; dependency cycle=0",
+    "publishability": "PASS; 18 package tarballs, all public JS exports, 10 binaries",
+    "P0": 0,
+    "P1InAutomaticallyExecutableOwnedScope": 0,
+    "realRequirementFakePass": 0
+  },
+  "globalStopAudit": {
+    "SPEC_GAP_GLOBAL": false,
+    "REPOSITORY_SAFETY": false,
+    "SECRET_INCIDENT": false,
+    "UNKNOWN_UNSAFE_EFFECT": false
+  },
+  "phaseDecision": "NON_DEPLOYMENT_PHASE3_IMPLEMENTATION_NOT_COMPLETE_UNTIL_REAL_CARRIER_PROOFS_PASS"
+}

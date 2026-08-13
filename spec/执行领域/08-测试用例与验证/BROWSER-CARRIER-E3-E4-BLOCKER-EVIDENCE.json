@@ -1,0 +1,30 @@
+{
+  "contract": "proflow.execution.browser-carrier-e3-e4-blocker-evidence.v1",
+  "status": "OPERATOR_ACTION_REQUIRED",
+  "recordedAt": "2026-08-13T18:45:59+08:00",
+  "affectedCriticalProofs": ["CP-EXE-BR-08"],
+  "machineClosed": [
+    "MV3 extension implementation",
+    "stable roleRef/workerRef versus transient content identity",
+    "CREATE/RESTORE/WAKE semantics",
+    "page state, Progress Gap and Runtime Stall",
+    "permission fallback and read-only Side Panel",
+    "global write serialization and physical-before-logical delivery",
+    "bounded Recovery Scan and UNKNOWN reconciliation",
+    "authenticated loopback reality bridge"
+  ],
+  "realE3": "NOT_RUN",
+  "realE4": "NOT_RUN",
+  "observedBlocker": "Chrome is running and its ChatGPT browser-control extension/native host pass installation diagnostics, but two browser-control handshakes returned Browser is not available: chrome.",
+  "environment": {
+    "proflowExtensionLoaded": "NOT_OBSERVED",
+    "realChatGptConversation": "NOT_OBSERVED",
+    "realPhysicalEffect": "NOT_OBSERVED",
+    "activeGatewayOrTunnelProcess": "NOT_OBSERVED"
+  },
+  "safety": {
+    "fakePromotedToReal": false,
+    "blindReplayAttempted": false,
+    "browserMutationAttempted": false
+  }
+}

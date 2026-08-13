@@ -1,0 +1,35 @@
+{
+  "contract": "proflow.agent.real-carrier-blocker-evidence.v1",
+  "status": "OPERATOR_ACTION_REQUIRED",
+  "recordedAt": "2026-08-13T18:45:59+08:00",
+  "affectedCriticalProofs": [
+    "CP-AGT-DEV-04",
+    "CP-AGT-PROD-03",
+    "CP-AGT-PROD-05",
+    "CP-AGT-TEST-04"
+  ],
+  "observed": {
+    "chromeInstalledVersion": "151.0.7922.110",
+    "chromeRunning": true,
+    "chatgptBrowserControlExtensionInstalled": true,
+    "chatgptBrowserControlExtensionEnabled": true,
+    "nativeHostManifestCorrect": true,
+    "browserControlAttempts": 2,
+    "browserControlResult": "Browser is not available: chrome",
+    "proflowExtensionLoaded": "NOT_OBSERVED",
+    "realGIds": "NOT_OBSERVED",
+    "realCIds": "NOT_OBSERVED",
+    "publicHttpsGateway": "NOT_OBSERVED"
+  },
+  "notClaimed": [
+    "Custom GPT materialization",
+    "Actions authentication against public Gateway",
+    "real Worker provisioning/reuse",
+    "physical collaboration delivery"
+  ],
+  "minimumNextOperatorCheckpoint": [
+    "Restore the ChatGPT Chrome control connection or explicitly allow opening a new Chrome window for the connected profile.",
+    "Load/reload the unpacked ProFlow extension from packages/execution-browser-extension.",
+    "Provide or confirm the three real Custom GPT g-id pages and an existing public HTTPS Gateway fixture."
+  ]
+}

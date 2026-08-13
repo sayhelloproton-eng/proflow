@@ -5,6 +5,8 @@
   "evidenceIsNormative": false,
   "runtimeValidationBaseline": "zod@4.1.12",
   "nonDeploymentServiceClosure": "NON-DEPLOYMENT-SERVICE-CLOSURE-EVIDENCE.json",
+  "nonDeploymentCoverageAudit": "NON-DEPLOYMENT-COVERAGE-AUDIT.json",
+  "nonDeploymentRuntimeIntegration": "平台架构与公共约定/08-测试用例与验证/NON-DEPLOYMENT-RUNTIME-INTEGRATION-EVIDENCE.json",
   "domains": [
     {
       "domain": "deployment-foundation",
@@ -29,21 +31,30 @@
         "模型与推理领域/08-测试用例与验证/REAL-PROVIDER-EVIDENCE.json",
         "模型与推理领域/08-测试用例与验证/PRE-EXECUTION-HARDENING-EVIDENCE.json",
         "模型与推理领域/08-测试用例与验证/MODEL-HARDENING-LIVE-SUMMARY.json",
-        "模型与推理领域/08-测试用例与验证/MODEL-HARDENING-LIVE-DIAGNOSTICS.jsonl"
-        ,"模型与推理领域/08-测试用例与验证/CARRY-FORWARD-HARDENING-EVIDENCE.json"
+        "模型与推理领域/08-测试用例与验证/MODEL-HARDENING-LIVE-DIAGNOSTICS.jsonl",
+        "模型与推理领域/08-测试用例与验证/CARRY-FORWARD-HARDENING-EVIDENCE.json"
       ],
       "history": "模型与推理领域/08-测试用例与验证/REAL-PROVIDER-BLOCKER-EVIDENCE.json",
       "status": "PASS"
+    },
+    {
+      "domain": "agent-runtime-collaboration",
+      "evidence": "智能体运行与协作领域/08-测试用例与验证/AGENT-CORE-WAVE4-MACHINE-EVIDENCE.json",
+      "realCarrierBlockerEvidence": "智能体运行与协作领域/08-测试用例与验证/REAL-CARRIER-BLOCKER-EVIDENCE.json",
+      "status": "ACTION_REQUIRED",
+      "criticalProofs": "24/28 PASS"
     },
     {
       "domain": "execution",
       "evidence": "执行领域/08-测试用例与验证/CRITICAL-PROOF-EVIDENCE.json",
       "additionalEvidence": "执行领域/08-测试用例与验证/CARRY-FORWARD-REGRESSION-EVIDENCE.json",
       "sweepSafetyEvidence": "执行领域/08-测试用例与验证/NON-DEPLOYMENT-SAFETY-REMEDIATION-EVIDENCE.json",
-      "status": "PASS",
+      "browserCarrierBlockerEvidence": "执行领域/08-测试用例与验证/BROWSER-CARRIER-E3-E4-BLOCKER-EVIDENCE.json",
+      "status": "ACTION_REQUIRED",
+      "criticalProofs": "24/25 PASS",
       "limits": [
-        "The controlled Browser executor proves only the typed port and single backend Execution truth.",
-        "Browser Extension implementation and Real Browser E2E remain deferred to Wave 5."
+        "The implemented Extension and controlled Browser executor prove the typed port, lifecycle, recovery logic, and single backend Execution truth.",
+        "Real Chrome/ChatGPT E3/E4 remains OPERATOR_ACTION_REQUIRED and is not claimed."
       ]
     },
     {
