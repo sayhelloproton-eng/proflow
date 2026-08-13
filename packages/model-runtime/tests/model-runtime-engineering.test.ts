@@ -33,7 +33,7 @@ const request = {
 
 test("runtime returns typed failures for boundary, capability, size, and invalid output", async () => {
 	const unavailableRoles = verifiedTestRoles({
-		fastObserved: { structuredOutput: false },
+		fastObserved: { structuredOutput: "unsupported" },
 	});
 	const unavailable = createModelRuntime({
 		specs: [spec],
@@ -141,6 +141,7 @@ test("OpenAI-compatible adapter sends role mapping, structured output, and every
 	const result = await provider.infer(
 		{
 			role: "reason",
+			structuredOutput: "native",
 			request: {
 				...request,
 				mode: "reason",

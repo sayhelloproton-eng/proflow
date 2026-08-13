@@ -61,6 +61,7 @@ const providerCalls: Array<{
 let activeProviderCalls = 0;
 let maxActiveProviderCalls = 0;
 const trackedProvider: ModelProvider = {
+	modelRefs: underlying.modelRefs,
 	async infer(call, signal) {
 		activeProviderCalls += 1;
 		maxActiveProviderCalls = Math.max(
@@ -115,17 +116,23 @@ const roles = verifyRoleCapabilities({
 	},
 	observed: {
 		fast: {
+			modelRef: fastModel,
 			text: true,
 			image: true,
-			structuredOutput: true,
+			structuredOutput: "native",
+			contextWindow: 32_768,
+			maxOutputTokens: 1_024,
 			reasoning: "no-thinking",
 			reasoningBasis: "provider-response-thinking-absent",
 			verifiedAt: new Date().toISOString(),
 		},
 		reason: {
+			modelRef: reasonModel,
 			text: true,
 			image: true,
-			structuredOutput: true,
+			structuredOutput: "native",
+			contextWindow: 32_768,
+			maxOutputTokens: 2_048,
 			reasoning: "thinking",
 			reasoningBasis: "provider-response-thinking-closed",
 			verifiedAt: new Date().toISOString(),
@@ -400,6 +407,7 @@ for (const scenario of m3Cases) {
 
 let injected = false;
 const faultProvider: ModelProvider = {
+	modelRefs: trackedProvider.modelRefs,
 	async infer(call, signal) {
 		const response = await trackedProvider.infer(call, signal);
 		if (!injected) {

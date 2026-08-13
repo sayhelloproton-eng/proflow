@@ -265,6 +265,55 @@ export function capabilityProposalOutputSchema<
 	return z.object({ proposal: proposalSchema.optional() }).strict();
 }
 
+function stableJson(value: unknown): string {
+	if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+	if (value && typeof value === "object")
+		return `{${Object.entries(value)
+			.sort(([left], [right]) => left.localeCompare(right))
+			.map(([key, nested]) => `${JSON.stringify(key)}:${stableJson(nested)}`)
+			.join(",")}}`;
+	return JSON.stringify(value);
+}
+
+const runtimeSchemas = Object.freeze({
+	inferenceRequest: stableJson(z.toJSONSchema(inferenceRequestSchema)),
+	inferenceResult: stableJson(z.toJSONSchema(inferenceResultSchema)),
+	inferenceError: stableJson(z.toJSONSchema(inferenceErrorSchema)),
+	modelRuntimeStatus: stableJson(z.toJSONSchema(modelRuntimeStatusSchema)),
+	modelCapabilityProfile: stableJson(
+		z.toJSONSchema(modelCapabilityProfileSchema),
+	),
+});
+
+const runtimeRefinementProofs = Object.freeze({
+	successRequiresDataAndForbidsError: !inferenceResultSchema.safeParse({
+		contractVersion: "1.0.0",
+		inferenceRef: "proof",
+		specRef: "proof.v1",
+		status: "SUCCEEDED",
+		requestedMode: "fast",
+		error: { code: "PROVIDER_ERROR", message: "x", retryable: true },
+		metrics: { queueLatencyMs: 0, totalLatencyMs: 0 },
+	}).success,
+	cancelledRequiresCancelledError: !inferenceResultSchema.safeParse({
+		contractVersion: "1.0.0",
+		inferenceRef: "proof",
+		specRef: "proof.v1",
+		status: "CANCELLED",
+		requestedMode: "fast",
+		error: { code: "PROVIDER_ERROR", message: "x", retryable: true },
+		metrics: { queueLatencyMs: 0, totalLatencyMs: 0 },
+	}).success,
+	busyRequiresActiveIdentity: !modelRuntimeStatusSchema.safeParse({
+		runtime: "READY",
+		lane: "BUSY",
+		fast: "READY",
+		reason: "READY",
+		businessQueueDepth: 0,
+		backgroundQueueDepth: 0,
+	}).success,
+});
+
 export const MODEL_CONTRACT_DESCRIPTOR = Object.freeze({
 	contractVersion: "1.0.0",
 	publicApi: ["infer", "getRuntimeStatus"],
@@ -342,6 +391,8 @@ export const MODEL_CONTRACT_DESCRIPTOR = Object.freeze({
 	],
 	errorCodes: [...inferenceErrorCodes],
 	statuses: ["SUCCEEDED", "FAILED", "CANCELLED"],
+	runtimeSchemas,
+	runtimeRefinementProofs,
 });
 
 type ContractDescriptor = {
@@ -356,6 +407,8 @@ type ContractDescriptor = {
 	requestFields: readonly string[];
 	errorCodes: readonly string[];
 	statuses: readonly string[];
+	runtimeSchemas: Readonly<Record<string, string>>;
+	runtimeRefinementProofs: Readonly<Record<string, boolean>>;
 };
 
 export function checkModelContractCompatibility(
@@ -384,6 +437,16 @@ export function checkModelContractCompatibility(
 			if (!providerValues.includes(value))
 				missing.push(`enums.${name}:${value}`);
 		}
+	}
+	for (const [name, schema] of Object.entries(consumer.runtimeSchemas)) {
+		if (provider.runtimeSchemas[name] !== schema)
+			missing.push(`runtimeSchemas.${name}:breaking`);
+	}
+	for (const [name, expected] of Object.entries(
+		consumer.runtimeRefinementProofs,
+	)) {
+		if (provider.runtimeRefinementProofs[name] !== expected)
+			missing.push(`runtimeRefinementProofs.${name}:breaking`);
 	}
 	if (
 		consumer.contractVersion.split(".")[0] !==

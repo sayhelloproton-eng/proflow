@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 export type ModelRuntimeLogEntry = {
 	timestamp: string;
+	event: "PRE_QUEUE_REJECTION" | "INFERENCE_RESULT";
+	phase: "VALIDATION" | "HEALTH" | "RESULT";
 	inferenceRef: string;
 	specRef: string;
 	callerRef: string;

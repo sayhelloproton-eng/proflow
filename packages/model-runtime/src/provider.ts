@@ -34,6 +34,7 @@ export type DeclaredModelRoles = Record<
 
 export type ProviderCall = {
 	role: ModelRole;
+	structuredOutput: ModelCapabilityProfile["structuredOutput"];
 	request: InferenceRequest;
 	spec: ReasoningSpec<unknown, unknown>;
 	prompt: string;
@@ -48,6 +49,7 @@ export type ProviderResponse = {
 };
 
 export type ModelProvider = {
+	readonly modelRefs: Readonly<Record<ModelRole, string>>;
 	infer(call: ProviderCall, signal: AbortSignal): Promise<ProviderResponse>;
 };
 
@@ -111,6 +113,7 @@ export function createOpenAICompatibleProvider(
 		config.baseUrl.endsWith("/") ? config.baseUrl : `${config.baseUrl}/`,
 	);
 	return {
+		modelRefs: Object.freeze({ ...config.models }),
 		async infer(call, signal) {
 			const outputSchema = stableJson(
 				z.toJSONSchema(call.spec.outputSchema, { unrepresentable: "any" }),
@@ -118,7 +121,13 @@ export function createOpenAICompatibleProvider(
 			const systemPrompt = [
 				config.roleSystemPrompt?.[call.role] ??
 					"You are a controlled inference engine.",
-				"Return exactly one JSON object matching OUTPUT_SCHEMA. Do not add markdown or prose outside that JSON object.",
+				...(call.structuredOutput === "prompted"
+					? [
+							"The provider has no native structured-output contract. Return exactly one JSON object matching OUTPUT_SCHEMA. Do not add markdown or prose outside that JSON object.",
+						]
+					: [
+							"Return exactly one JSON object matching OUTPUT_SCHEMA. Do not add markdown or prose outside that JSON object.",
+						]),
 				`OUTPUT_SCHEMA=${outputSchema}`,
 			].join("\n");
 			const userContent = call.request.images
@@ -133,6 +142,18 @@ export function createOpenAICompatibleProvider(
 			const repairInstruction = call.repair
 				? "The previous output was invalid. Return only corrected JSON matching the required schema."
 				: undefined;
+			const protectedFields = new Set([
+				"model",
+				"messages",
+				"max_tokens",
+				"max_completion_tokens",
+				"response_format",
+			]);
+			const extensionBody = Object.fromEntries(
+				Object.entries(config.roleBody?.[call.role] ?? {}).filter(
+					([key]) => !protectedFields.has(key),
+				),
+			);
 			const response = await fetchImplementation(endpoint, {
 				method: "POST",
 				headers: {
@@ -142,6 +163,7 @@ export function createOpenAICompatibleProvider(
 						: {}),
 				},
 				body: JSON.stringify({
+					...extensionBody,
 					model: config.models[call.role],
 					messages: [
 						{
@@ -154,8 +176,9 @@ export function createOpenAICompatibleProvider(
 							: []),
 					],
 					max_tokens: call.spec.maxOutputTokens,
-					response_format: { type: "json_object" },
-					...(config.roleBody?.[call.role] ?? {}),
+					...(call.structuredOutput === "native"
+						? { response_format: { type: "json_object" } }
+						: {}),
 				}),
 				signal,
 			});
@@ -182,9 +205,12 @@ export function createOpenAICompatibleProvider(
 export type ObservedRoleCapabilities = Record<
 	ModelRole,
 	{
+		modelRef: string;
 		text: boolean;
 		image: boolean;
-		structuredOutput: boolean;
+		structuredOutput: ModelCapabilityProfile["structuredOutput"];
+		contextWindow: number;
+		maxOutputTokens: number;
 		reasoning: "thinking" | "no-thinking";
 		reasoningBasis:
 			| "provider-response-thinking-absent"
@@ -207,8 +233,11 @@ export function verifyRoleCapabilities(input: {
 					? "provider-response-thinking-absent"
 					: "provider-response-thinking-closed";
 			const ready =
+				observed.modelRef === declared.profile.modelRef &&
 				observed.text &&
-				observed.structuredOutput &&
+				observed.structuredOutput === declared.profile.structuredOutput &&
+				observed.contextWindow >= declared.profile.contextWindow &&
+				observed.maxOutputTokens >= declared.profile.maxOutputTokens &&
 				observed.reasoning === requiredReasoning &&
 				observed.reasoningBasis === requiredBasis &&
 				declared.profile.reasoningModes.includes(requiredReasoning) &&
@@ -232,6 +261,73 @@ export function verifyRoleCapabilities(input: {
 	) as Record<ModelRole, RoleConfiguration>;
 	Object.defineProperty(roles, verifiedRolesBrand, { value: true });
 	return Object.freeze(roles) as ModelRoles;
+}
+
+export type ProviderCapabilityFact = {
+	contextWindow: number;
+	maxOutputTokens: number;
+	basis: "provider-config" | "provider-protocol" | "bounded-probe";
+};
+
+export async function verifyProviderCapabilities(input: {
+	declared: DeclaredModelRoles;
+	provider: ModelProvider;
+	probes: Record<
+		ModelRole,
+		{
+			request: InferenceRequest;
+			spec: ReasoningSpec<unknown, unknown>;
+			prompt: string;
+		}
+	>;
+	capabilityFacts: Record<ModelRole, ProviderCapabilityFact>;
+	verifiedAt?: () => string;
+	signal?: AbortSignal;
+}): Promise<ModelRoles> {
+	const observed = {} as ObservedRoleCapabilities;
+	for (const role of ["fast", "reason"] as const) {
+		const declared = input.declared[role];
+		const probe = input.probes[role];
+		const response = await input.provider.infer(
+			{
+				role,
+				structuredOutput: declared.profile.structuredOutput,
+				request: probe.request,
+				spec: probe.spec,
+				prompt: probe.prompt,
+				repair: false,
+			},
+			input.signal ?? new AbortController().signal,
+		);
+		probe.spec.outputSchema.parse(JSON.parse(response.content));
+		const expectedThinking = role === "fast" ? "absent" : "closed";
+		const reasoningBasis =
+			response.thinkingStatus === "closed"
+				? ("provider-response-thinking-closed" as const)
+				: ("provider-response-thinking-absent" as const);
+		const fact = input.capabilityFacts[role];
+		observed[role] = {
+			modelRef: input.provider.modelRefs[role],
+			text: true,
+			image:
+				!declared.profile.inputModalities.includes("image") ||
+				Boolean(probe.request.images?.length),
+			structuredOutput: declared.profile.structuredOutput,
+			contextWindow: fact.contextWindow,
+			maxOutputTokens: fact.maxOutputTokens,
+			reasoning:
+				response.thinkingStatus === expectedThinking
+					? role === "fast"
+						? "no-thinking"
+						: "thinking"
+					: role === "fast"
+						? "thinking"
+						: "no-thinking",
+			reasoningBasis,
+			verifiedAt: input.verifiedAt?.() ?? new Date().toISOString(),
+		};
+	}
+	return verifyRoleCapabilities({ declared: input.declared, observed });
 }
 
 export function assertVerifiedModelRoles(

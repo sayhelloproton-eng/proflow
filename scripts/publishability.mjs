@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
 	mkdirSync,
 	mkdtempSync,
@@ -24,7 +24,7 @@ try {
 		.filter((entry) => entry.isDirectory())
 		.map((entry) => join(packagesRoot, entry.name))
 		.sort();
-	const packageNames = packageDirectories.map((directory) => {
+	const packageMetadata = packageDirectories.map((directory) => {
 		const metadata = JSON.parse(
 			readFileSync(join(directory, "package.json"), "utf8"),
 		);
@@ -33,8 +33,9 @@ try {
 			metadata.publishConfig?.access !== "public"
 		)
 			throw new Error(`${directory} is not a publishable public package`);
-		return metadata.name;
+		return metadata;
 	});
+	const packageNames = packageMetadata.map((metadata) => metadata.name);
 	for (const directory of packageDirectories) {
 		execFileSync(
 			"pnpm",
@@ -78,14 +79,51 @@ try {
 	);
 	writeFileSync(
 		join(consumerRoot, "smoke.mjs"),
-		`${packageNames.map((name) => `await import(${JSON.stringify(name)});`).join("\n")}\n`,
+		`${packageMetadata
+			.flatMap((metadata) =>
+				Object.entries(metadata.exports ?? {})
+					.filter(
+						([, target]) =>
+							typeof target === "string" && target.endsWith(".js"),
+					)
+					.map(([subpath]) =>
+						subpath === "."
+							? metadata.name
+							: `${metadata.name}/${subpath.slice(2)}`,
+					),
+			)
+			.map((specifier) => `await import(${JSON.stringify(specifier)});`)
+			.join("\n")}\n`,
 	);
 	execFileSync(process.execPath, ["smoke.mjs"], {
 		cwd: consumerRoot,
 		stdio: "pipe",
 	});
+	const binaryNames = packageMetadata.flatMap((metadata) =>
+		typeof metadata.bin === "string"
+			? [metadata.name.split("/").at(-1)]
+			: Object.keys(metadata.bin ?? {}),
+	);
+	for (const binaryName of binaryNames) {
+		if (!binaryName) continue;
+		const executable = join(consumerRoot, "node_modules", ".bin", binaryName);
+		const result = spawnSync(executable, ["--help"], {
+			cwd: consumerRoot,
+			encoding: "utf8",
+			timeout: 10_000,
+		});
+		if (
+			result.error ||
+			result.signal ||
+			(result.status !== 0 && result.status !== 1) ||
+			/module not found|ERR_MODULE_NOT_FOUND/i.test(
+				`${result.stdout ?? ""}\n${result.stderr ?? ""}`,
+			)
+		)
+			throw new Error(`published binary smoke failed: ${binaryName}`);
+	}
 	process.stdout.write(
-		`Publishability PASS: ${packageNames.length} package tarballs installed and imported by an isolated consumer (${tarballs.map((file) => basename(file)).join(", ")})\n`,
+		`Publishability PASS: ${packageNames.length} package tarballs, all public JS exports, and ${binaryNames.length} binaries consumed from isolated installs (${tarballs.map((file) => basename(file)).join(", ")})\n`,
 	);
 } finally {
 	rmSync(temporaryRoot, { recursive: true, force: true });

@@ -450,6 +450,14 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			await log(record, "QUEUE_REJECTED", record.error?.code);
 			return record;
 		}
+		const admittedRow = getRow(record.executionRef);
+		if (admittedRow) {
+			const admittedRecord = fromRow(admittedRow);
+			if (admittedRecord.status !== "PENDING") {
+				release();
+				return admittedRecord;
+			}
+		}
 		const controller = new AbortController();
 		controllers.set(record.executionRef, controller);
 		let timedOut = false;

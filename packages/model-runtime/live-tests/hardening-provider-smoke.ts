@@ -78,6 +78,7 @@ type Probe = {
 async function probe(role: ModelRole): Promise<Probe> {
 	const call: ProviderCall = {
 		role,
+		structuredOutput: "native",
 		request: request(role, `hardening:verify:${role}`),
 		spec: systemHealthAssessmentSpec,
 		prompt: renderPrompt(systemHealthAssessmentSpec, payload),
@@ -136,17 +137,23 @@ const roles = verifyRoleCapabilities({
 	},
 	observed: {
 		fast: {
+			modelRef: fastModel,
 			text: true,
 			image: false,
-			structuredOutput: true,
+			structuredOutput: "native",
+			contextWindow: 32_768,
+			maxOutputTokens: 1_024,
 			reasoning: "no-thinking",
 			reasoningBasis: "provider-response-thinking-absent",
 			verifiedAt,
 		},
 		reason: {
+			modelRef: reasonModel,
 			text: true,
 			image: false,
-			structuredOutput: true,
+			structuredOutput: "native",
+			contextWindow: 32_768,
+			maxOutputTokens: 2_048,
 			reasoning: "thinking",
 			reasoningBasis: "provider-response-thinking-closed",
 			verifiedAt,

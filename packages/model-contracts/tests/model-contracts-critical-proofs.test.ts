@@ -199,6 +199,34 @@ test("CP-MODEL-CON-04 provider/consumer compatibility detects breaking contract 
 			missing: ["enums.inferenceMode:reason"],
 		},
 	);
+	const fieldTypeBreak = {
+		...api.MODEL_CONTRACT_DESCRIPTOR,
+		runtimeSchemas: {
+			...api.MODEL_CONTRACT_DESCRIPTOR.runtimeSchemas,
+			inferenceRequest: `${api.MODEL_CONTRACT_DESCRIPTOR.runtimeSchemas.inferenceRequest}:field-type-break`,
+		},
+	};
+	assert.equal(
+		api.checkModelContractCompatibility(
+			api.MODEL_CONTRACT_DESCRIPTOR,
+			fieldTypeBreak,
+		).status,
+		"FAIL",
+	);
+	const refinementBreak = {
+		...api.MODEL_CONTRACT_DESCRIPTOR,
+		runtimeRefinementProofs: {
+			...api.MODEL_CONTRACT_DESCRIPTOR.runtimeRefinementProofs,
+			cancelledRequiresCancelledError: false,
+		},
+	};
+	assert.deepEqual(
+		api.checkModelContractCompatibility(
+			api.MODEL_CONTRACT_DESCRIPTOR,
+			refinementBreak,
+		).missing,
+		["runtimeRefinementProofs.cancelledRequiresCancelledError:breaking"],
+	);
 });
 
 test("MOD-DECISION-01 .v1 is the canonical major identity while full SemVer remains explicit", async () => {

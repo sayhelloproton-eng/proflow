@@ -22,7 +22,9 @@ import {
 	type ModelRoles,
 	type ObservedRoleCapabilities,
 	type ProviderCall,
+	type ProviderCapabilityFact,
 	type ProviderResponse,
+	verifyProviderCapabilities,
 	verifyRoleCapabilities,
 } from "./provider.ts";
 
@@ -32,11 +34,13 @@ export type {
 	ModelRoles,
 	ObservedRoleCapabilities,
 	ProviderCall,
+	ProviderCapabilityFact,
 	ProviderResponse,
 };
 export {
 	createFileModelRuntimeLogger,
 	createReasoningSpec,
+	verifyProviderCapabilities,
 	verifyRoleCapabilities,
 };
 
@@ -46,6 +50,7 @@ type RuntimeOptions = {
 	specs: readonly ReasoningSpec<unknown, unknown>[];
 	roles: ModelRoles;
 	provider: ModelProvider;
+	refreshRoles?: () => Promise<ModelRoles>;
 	queueTimeoutMs?: number;
 	inferenceTimeoutMs?: number;
 	now?: () => number;
@@ -195,6 +200,13 @@ export function createModelRuntime(options: RuntimeOptions) {
 		now: now(),
 		maxAgeMs: options.capabilityVerificationMaxAgeMs ?? 300_000,
 	});
+	let roles = options.roles;
+	for (const role of ["fast", "reason"] as const) {
+		if (roles[role].profile.modelRef !== options.provider.modelRefs[role])
+			throw new TypeError(
+				`role ${role} profile modelRef does not match provider model binding`,
+			);
+	}
 	const specs = new Map<string, ReasoningSpec<unknown, unknown>>();
 	for (const spec of options.specs) {
 		if (specs.has(spec.specRef))
@@ -212,13 +224,13 @@ export function createModelRuntime(options: RuntimeOptions) {
 	let lastFailureAt: string | undefined;
 	let lastErrorCode: NonNullable<InferenceResult["error"]>["code"] | undefined;
 	const roleStates: Record<ModelRole, "READY" | "UNAVAILABLE"> = {
-		fast: options.roles.fast.state,
-		reason: options.roles.reason.state,
+		fast: roles.fast.state,
+		reason: roles.reason.state,
 	};
 	const verificationMaxAgeMs =
 		options.capabilityVerificationMaxAgeMs ?? 300_000;
 	const currentRoleState = (role: ModelRole): "READY" | "UNAVAILABLE" => {
-		const verifiedAt = Date.parse(options.roles[role].verification.verifiedAt);
+		const verifiedAt = Date.parse(roles[role].verification.verifiedAt);
 		const age = now() - verifiedAt;
 		if (
 			!Number.isFinite(verifiedAt) ||
@@ -227,6 +239,32 @@ export function createModelRuntime(options: RuntimeOptions) {
 		)
 			return "UNAVAILABLE";
 		return roleStates[role];
+	};
+	let refreshPromise: Promise<void> | undefined;
+	const refreshRoleCapabilities = async (): Promise<void> => {
+		if (!options.refreshRoles) return;
+		refreshPromise ??= (async () => {
+			const refreshed = await options.refreshRoles?.();
+			if (!refreshed) return;
+			assertVerifiedModelRoles(refreshed, {
+				now: now(),
+				maxAgeMs: verificationMaxAgeMs,
+			});
+			for (const role of ["fast", "reason"] as const) {
+				if (
+					refreshed[role].profile.modelRef !== options.provider.modelRefs[role]
+				)
+					throw new TypeError(
+						`role ${role} refreshed profile does not match provider model binding`,
+					);
+			}
+			roles = refreshed;
+			roleStates.fast = refreshed.fast.state;
+			roleStates.reason = refreshed.reason.state;
+		})().finally(() => {
+			refreshPromise = undefined;
+		});
+		await refreshPromise;
 	};
 
 	const removeQueued = (job: Job): boolean => {
@@ -243,11 +281,17 @@ export function createModelRuntime(options: RuntimeOptions) {
 		return result;
 	};
 
-	const logResult = async (job: Job, result: InferenceResult) => {
+	const logResult = async (
+		job: Job,
+		result: InferenceResult,
+		event: "PRE_QUEUE_REJECTION" | "INFERENCE_RESULT" = "INFERENCE_RESULT",
+	) => {
 		if (!options.logger) return;
 		const payload = stableJson(job.request.payload);
 		await options.logger.log({
 			timestamp: new Date().toISOString(),
+			event,
+			phase: event === "PRE_QUEUE_REJECTION" ? "VALIDATION" : "RESULT",
 			inferenceRef: result.inferenceRef,
 			specRef: result.specRef,
 			callerRef: job.request.trace.callerRef,
@@ -295,11 +339,47 @@ export function createModelRuntime(options: RuntimeOptions) {
 		job.resolve(result);
 	};
 
+	const rejectBeforeQueue = async (
+		request: InferenceRequest,
+		spec: ReasoningSpec<unknown, unknown>,
+		inferenceRef: string,
+		enqueuedAt: number,
+		code: InferenceErrorCode,
+		message: string,
+	): Promise<InferenceResult> => {
+		const job: Job = {
+			request,
+			spec,
+			inferenceRef,
+			enqueuedAt,
+			resolve: () => undefined,
+			transportRetryUsed: false,
+			providerRequestRefs: [],
+			finishReasons: [],
+			thinkingStatuses: [],
+			repairCount: 0,
+		};
+		const result = finishFailure(errorResult(job, code, message, now()));
+		try {
+			await logResult(job, result, "PRE_QUEUE_REJECTION");
+			return result;
+		} catch {
+			return finishFailure(
+				errorResult(
+					job,
+					"INFERENCE_FAILED",
+					"sanitized model runtime rejection log could not be persisted",
+					now(),
+				),
+			);
+		}
+	};
+
 	const admissionFailure = (
 		job: Pick<Job, "request" | "spec">,
 		role: ModelRole,
 	): RuntimeFailure | undefined => {
-		const configuration = options.roles[role];
+		const configuration = roles[role];
 		if (currentRoleState(role) !== "READY")
 			return new RuntimeFailure(
 				"MODEL_UNAVAILABLE",
@@ -357,12 +437,19 @@ export function createModelRuntime(options: RuntimeOptions) {
 		repair: boolean,
 		signal: AbortSignal,
 	) => {
-		const profile = options.roles[role];
-		void profile;
+		if (currentRoleState(role) !== "READY") {
+			try {
+				await refreshRoleCapabilities();
+			} catch {
+				roleStates[role] = "UNAVAILABLE";
+			}
+		}
+		const profile = roles[role].profile;
 		const rejected = admissionFailure(job, role);
 		if (rejected) throw rejected;
 		const call = {
 			role,
+			structuredOutput: profile.structuredOutput,
 			request: job.request,
 			spec: job.spec,
 			prompt: renderPrompt(job.spec, job.request.payload),
@@ -541,19 +628,20 @@ export function createModelRuntime(options: RuntimeOptions) {
 			request = inferenceRequestSchema.parse(raw);
 		} catch {
 			const timestamp = now();
-			const placeholder = {
-				request: { mode: "fast" } as InferenceRequest,
-				spec: { specRef: "invalid" } as ReasoningSpec<unknown, unknown>,
-				inferenceRef: randomUUID(),
-				enqueuedAt: timestamp,
-			};
-			return finishFailure(
-				errorResult(
-					placeholder,
-					"INVALID_REQUEST",
-					"invalid inference request",
-					timestamp,
-				),
+			return rejectBeforeQueue(
+				{
+					contractVersion: "1.0.0",
+					specRef: "invalid",
+					mode: "fast",
+					priority: "business",
+					trace: { callerRef: "unknown-boundary" },
+					payload: null,
+				},
+				{ specRef: "invalid" } as ReasoningSpec<unknown, unknown>,
+				randomUUID(),
+				timestamp,
+				"INVALID_REQUEST",
+				"invalid inference request",
 			);
 		}
 		const spec = specs.get(request.specRef);
@@ -568,38 +656,38 @@ export function createModelRuntime(options: RuntimeOptions) {
 				inferenceRef,
 				enqueuedAt,
 			};
-			return finishFailure(
-				errorResult(
-					placeholder,
-					"INVALID_REQUEST",
-					"unknown Spec or mode is not allowed",
-					now(),
-				),
+			return rejectBeforeQueue(
+				request,
+				placeholder.spec,
+				inferenceRef,
+				enqueuedAt,
+				"INVALID_REQUEST",
+				"unknown Spec or mode is not allowed",
 			);
 		}
 		try {
 			spec.inputSchema.parse(request.payload);
 		} catch {
-			return finishFailure(
-				errorResult(
-					{ request, spec, inferenceRef, enqueuedAt },
-					"INVALID_REQUEST",
-					"payload failed Spec validation",
-					now(),
-				),
+			return rejectBeforeQueue(
+				request,
+				spec,
+				inferenceRef,
+				enqueuedAt,
+				"INVALID_REQUEST",
+				"payload failed Spec validation",
 			);
 		}
 		if (
 			spec.maxContextBytes &&
 			Buffer.byteLength(stableJson(request.payload)) > spec.maxContextBytes
 		) {
-			return finishFailure(
-				errorResult(
-					{ request, spec, inferenceRef, enqueuedAt },
-					"CONTEXT_TOO_LARGE",
-					"payload exceeds Spec context limit",
-					now(),
-				),
+			return rejectBeforeQueue(
+				request,
+				spec,
+				inferenceRef,
+				enqueuedAt,
+				"CONTEXT_TOO_LARGE",
+				"payload exceeds Spec context limit",
 			);
 		}
 		return new Promise<InferenceResult>((resolve) => {
@@ -660,9 +748,9 @@ export function createModelRuntime(options: RuntimeOptions) {
 
 	const getRuntimeStatus = (): ModelRuntimeStatus => {
 		const currentRoles = {
-			...options.roles,
-			fast: { ...options.roles.fast, state: currentRoleState("fast") },
-			reason: { ...options.roles.reason, state: currentRoleState("reason") },
+			...roles,
+			fast: { ...roles.fast, state: currentRoleState("fast") },
+			reason: { ...roles.reason, state: currentRoleState("reason") },
 		} as ModelRoles;
 		const base = healthFromRoles(currentRoles);
 		return {

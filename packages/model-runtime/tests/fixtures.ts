@@ -46,18 +46,24 @@ export function verifiedTestRoles(input?: {
 		},
 		observed: {
 			fast: {
+				modelRef: input?.fastProfile?.modelRef ?? "test-fast",
 				text: true,
 				image: true,
-				structuredOutput: true,
+				structuredOutput: input?.fastProfile?.structuredOutput ?? "native",
+				contextWindow: input?.fastProfile?.contextWindow ?? 32_000,
+				maxOutputTokens: input?.fastProfile?.maxOutputTokens ?? 4_096,
 				reasoning: "no-thinking",
 				reasoningBasis: "provider-response-thinking-absent",
 				verifiedAt: new Date().toISOString(),
 				...input?.fastObserved,
 			},
 			reason: {
+				modelRef: input?.reasonProfile?.modelRef ?? "test-reason",
 				text: true,
 				image: true,
-				structuredOutput: true,
+				structuredOutput: input?.reasonProfile?.structuredOutput ?? "native",
+				contextWindow: input?.reasonProfile?.contextWindow ?? 32_000,
+				maxOutputTokens: input?.reasonProfile?.maxOutputTokens ?? 4_096,
 				reasoning: "thinking",
 				reasoningBasis: "provider-response-thinking-closed",
 				verifiedAt: new Date().toISOString(),
@@ -74,6 +80,7 @@ export function fakeProvider(
 	) => string | ProviderResponse | Promise<string | ProviderResponse>,
 ): ModelProvider {
 	return {
+		modelRefs: Object.freeze({ fast: "test-fast", reason: "test-reason" }),
 		async infer(call, signal) {
 			const output = await implementation(call, signal);
 			return typeof output === "string" ? { content: output } : output;
@@ -206,10 +213,12 @@ export function healthMatrix() {
 	const provider = fakeProvider(async () => '{"decision":"ALLOW"}');
 	return [
 		verifiedTestRoles(),
-		verifiedTestRoles({ reasonObserved: { structuredOutput: false } }),
 		verifiedTestRoles({
-			fastObserved: { structuredOutput: false },
-			reasonObserved: { structuredOutput: false },
+			reasonObserved: { structuredOutput: "unsupported" },
+		}),
+		verifiedTestRoles({
+			fastObserved: { structuredOutput: "unsupported" },
+			reasonObserved: { structuredOutput: "unsupported" },
 		}),
 	].map((roles) =>
 		createModelRuntime({
