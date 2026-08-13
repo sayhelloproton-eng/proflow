@@ -215,6 +215,19 @@ export function createModelRuntime(options: RuntimeOptions) {
 		fast: options.roles.fast.state,
 		reason: options.roles.reason.state,
 	};
+	const verificationMaxAgeMs =
+		options.capabilityVerificationMaxAgeMs ?? 300_000;
+	const currentRoleState = (role: ModelRole): "READY" | "UNAVAILABLE" => {
+		const verifiedAt = Date.parse(options.roles[role].verification.verifiedAt);
+		const age = now() - verifiedAt;
+		if (
+			!Number.isFinite(verifiedAt) ||
+			age < -30_000 ||
+			age > verificationMaxAgeMs
+		)
+			return "UNAVAILABLE";
+		return roleStates[role];
+	};
 
 	const removeQueued = (job: Job): boolean => {
 		const queue = queues[job.request.priority];
@@ -287,7 +300,7 @@ export function createModelRuntime(options: RuntimeOptions) {
 		role: ModelRole,
 	): RuntimeFailure | undefined => {
 		const configuration = options.roles[role];
-		if (roleStates[role] !== "READY")
+		if (currentRoleState(role) !== "READY")
 			return new RuntimeFailure(
 				"MODEL_UNAVAILABLE",
 				`role ${role} is unavailable`,
@@ -648,8 +661,8 @@ export function createModelRuntime(options: RuntimeOptions) {
 	const getRuntimeStatus = (): ModelRuntimeStatus => {
 		const currentRoles = {
 			...options.roles,
-			fast: { ...options.roles.fast, state: roleStates.fast },
-			reason: { ...options.roles.reason, state: roleStates.reason },
+			fast: { ...options.roles.fast, state: currentRoleState("fast") },
+			reason: { ...options.roles.reason, state: currentRoleState("reason") },
 		} as ModelRoles;
 		const base = healthFromRoles(currentRoles);
 		return {

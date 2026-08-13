@@ -208,6 +208,37 @@ test("MOD-P1-04 provider failure immediately changes fresh role and runtime heal
 	});
 });
 
+test("MOD-P1-02 verified READY expires dynamically in a long-running runtime", async () => {
+	const control = spec();
+	let currentTime = Date.now();
+	let calls = 0;
+	const runtime = createModelRuntime({
+		specs: [control],
+		roles: roles(),
+		provider: fakeProvider(async () => {
+			calls += 1;
+			return '{"decision":"ALLOW"}';
+		}),
+		now: () => currentTime,
+		capabilityVerificationMaxAgeMs: 100,
+	});
+	assert.equal(runtime.getRuntimeStatus().runtime, "READY");
+	currentTime += 101;
+	assert.deepEqual(runtime.getRuntimeStatus(), {
+		runtime: "UNAVAILABLE",
+		lane: "IDLE",
+		fast: "UNAVAILABLE",
+		reason: "UNAVAILABLE",
+		businessQueueDepth: 0,
+		backgroundQueueDepth: 0,
+	});
+	assert.equal(
+		(await runtime.infer(request(control.specRef))).error?.code,
+		"MODEL_UNAVAILABLE",
+	);
+	assert.equal(calls, 0);
+});
+
 test("MOD-P1-05 structured disk logs are sanitized and contain bounded machine facts", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-model-logs-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
