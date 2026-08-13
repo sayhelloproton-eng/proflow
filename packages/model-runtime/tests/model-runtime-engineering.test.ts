@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createReasoningSpec } from "@tomflow/proflow-model-contracts";
 import { z } from "zod";
-import { createModelRuntime } from "../src/index.ts";
+import { createBehaviorAdapter } from "../deployment/adapter.ts";
+import { createModelRuntime, renderPrompt } from "../src/index.ts";
 import { createOpenAICompatibleProvider } from "../src/provider.ts";
 import { createModelRuntimeService } from "../src/service.ts";
 import { fakeProvider, verifiedTestRoles } from "./fixtures.ts";
@@ -88,6 +89,39 @@ test("runtime returns typed failures for boundary, capability, size, and invalid
 	);
 });
 
+test("transport retry occurs once only when provider proves the request never started", async () => {
+	let safeAttempts = 0;
+	const safeRetry = createModelRuntime({
+		specs: [spec],
+		roles: verifiedTestRoles(),
+		provider: fakeProvider(async () => {
+			safeAttempts += 1;
+			if (safeAttempts === 1) {
+				throw Object.assign(new Error("connect failed before write"), {
+					notStarted: true,
+				});
+			}
+			return '{"decision":"ALLOW"}';
+		}),
+	});
+	assert.equal((await safeRetry.infer(request)).status, "SUCCEEDED");
+	assert.equal(safeAttempts, 2);
+
+	let ambiguousAttempts = 0;
+	const noUnsafeRetry = createModelRuntime({
+		specs: [spec],
+		roles: verifiedTestRoles(),
+		provider: fakeProvider(async () => {
+			ambiguousAttempts += 1;
+			throw new Error("connection ended after unknown provider progress");
+		}),
+	});
+	const failed = await noUnsafeRetry.infer(request);
+	assert.equal(failed.error?.code, "PROVIDER_ERROR");
+	assert.equal(ambiguousAttempts, 1);
+	assert.equal(typeof failed.metrics.inferenceLatencyMs, "number");
+});
+
 test("OpenAI-compatible adapter sends role mapping, structured output, and every image", async () => {
 	let captured: Record<string, unknown> | undefined;
 	let authorization: string | null = null;
@@ -127,6 +161,8 @@ test("OpenAI-compatible adapter sends role mapping, structured output, and every
 	assert.deepEqual(captured?.response_format, { type: "json_object" });
 	assert.equal(captured?.enable_thinking, true);
 	const messages = captured?.messages as Array<{ content: unknown }>;
+	assert.match(String(messages[0]?.content), /OUTPUT_SCHEMA=/);
+	assert.match(String(messages[0]?.content), /ALLOW/);
 	const content = messages[1]?.content as unknown[];
 	assert.equal(
 		content.filter((part) => (part as { type?: string }).type === "image_url")
@@ -134,6 +170,15 @@ test("OpenAI-compatible adapter sends role mapping, structured output, and every
 		2,
 	);
 	assert.equal(authorization, "Bearer runtime-test-value");
+});
+
+test("rendered provider prompt deterministically binds Spec instruction and typed input", () => {
+	const first = renderPrompt(spec, { value: "ok" });
+	const second = renderPrompt(spec, { value: "ok" });
+	assert.equal(first, second);
+	assert.match(first, /test.engineering.v1/);
+	assert.match(first, /Return ALLOW/);
+	assert.match(first, /"value":"ok"/);
 });
 
 test("HTTP service owns real start/status/infer/stop lifecycle", async () => {
@@ -160,5 +205,34 @@ test("HTTP service owns real start/status/infer/stop lifecycle", async () => {
 	).then((response) => response.json())) as { status: string };
 	assert.equal(inference.status, "SUCCEEDED");
 	await service.stop();
+	assert.equal(service.status(), "STOPPED");
+});
+
+test("deployment adapter drives real service start/restart/status/stop lifecycle", async () => {
+	const runtime = createModelRuntime({
+		specs: [spec],
+		roles: verifiedTestRoles(),
+		provider: fakeProvider(async () => '{"decision":"ALLOW"}'),
+	});
+	const service = createModelRuntimeService({ runtime });
+	const adapter = createBehaviorAdapter({
+		service,
+		verifyProvider: async () => ({
+			ok: true,
+			message: "test provider capability probe passed",
+		}),
+	});
+	const started = await adapter.start();
+	assert.equal(started.result.status, "SUCCEEDED");
+	assert.deepEqual(started.observedEffects, [
+		"Runs the Model Runtime HTTP service process",
+	]);
+	assert.equal(adapter.status().result.status, "SUCCEEDED");
+	assert.equal((await adapter.verify()).result.status, "SUCCEEDED");
+	const restarted = await adapter.restart();
+	assert.equal(restarted.result.status, "SUCCEEDED");
+	assert.equal(service.status(), "RUNNING");
+	const stopped = await adapter.stop();
+	assert.equal(stopped.result.status, "SUCCEEDED");
 	assert.equal(service.status(), "STOPPED");
 });

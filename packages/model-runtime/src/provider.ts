@@ -27,6 +27,7 @@ export type ProviderCall = {
 export type ProviderResponse = {
 	content: string;
 	providerRequestRef?: string;
+	finishReason?: string;
 };
 
 export type ModelProvider = {
@@ -39,7 +40,10 @@ const completionResponseSchema = z
 		choices: z
 			.array(
 				z
-					.object({ message: z.object({ content: z.string() }).passthrough() })
+					.object({
+						finish_reason: z.string().optional(),
+						message: z.object({ content: z.string() }).passthrough(),
+					})
 					.passthrough(),
 			)
 			.min(1),
@@ -63,6 +67,17 @@ function stripProviderThinking(content: string): string {
 	return trimmed.slice(end + "</think>".length).trim();
 }
 
+function stableJson(value: unknown): string {
+	if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+	if (value && typeof value === "object") {
+		return `{${Object.entries(value)
+			.sort(([left], [right]) => left.localeCompare(right))
+			.map(([key, nested]) => `${JSON.stringify(key)}:${stableJson(nested)}`)
+			.join(",")}}`;
+	}
+	return JSON.stringify(value);
+}
+
 export function createOpenAICompatibleProvider(
 	config: OpenAICompatibleProviderConfig,
 ): ModelProvider {
@@ -73,6 +88,15 @@ export function createOpenAICompatibleProvider(
 	);
 	return {
 		async infer(call, signal) {
+			const outputSchema = stableJson(
+				z.toJSONSchema(call.spec.outputSchema, { unrepresentable: "any" }),
+			);
+			const systemPrompt = [
+				config.roleSystemPrompt?.[call.role] ??
+					"You are a controlled inference engine.",
+				"Return exactly one JSON object matching OUTPUT_SCHEMA. Do not add markdown or prose outside that JSON object.",
+				`OUTPUT_SCHEMA=${outputSchema}`,
+			].join("\n");
 			const userContent = call.request.images
 				? [
 						{ type: "text", text: call.prompt },
@@ -98,9 +122,7 @@ export function createOpenAICompatibleProvider(
 					messages: [
 						{
 							role: "system",
-							content:
-								config.roleSystemPrompt?.[call.role] ??
-								"You are a controlled inference engine. Keep reasoning bounded and return only the final JSON object after any provider-internal thinking.",
+							content: systemPrompt,
 						},
 						{ role: "user", content: userContent },
 						...(repairInstruction
@@ -123,6 +145,9 @@ export function createOpenAICompatibleProvider(
 			return {
 				content: stripProviderThinking(content),
 				...(parsed.id ? { providerRequestRef: parsed.id } : {}),
+				...(parsed.choices[0]?.finish_reason
+					? { finishReason: parsed.choices[0].finish_reason }
+					: {}),
 			};
 		},
 	};

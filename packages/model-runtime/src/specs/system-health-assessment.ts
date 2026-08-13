@@ -47,7 +47,7 @@ export const systemHealthAssessmentSpec = createReasoningSpec({
 		"Return decision, confidence, reasonCode, and a short rationale.",
 	].join(" "),
 	maxContextBytes: 16_384,
-	maxOutputTokens: 8_192,
+	maxOutputTokens: 2_048,
 	repair: "once",
 	routing: {
 		startRole: "fast",

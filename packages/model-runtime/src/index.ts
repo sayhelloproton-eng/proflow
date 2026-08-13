@@ -51,6 +51,7 @@ type Job = {
 	resolve: (result: InferenceResult) => void;
 	queueTimer?: NodeJS.Timeout;
 	abortListener?: () => void;
+	transportRetryUsed: boolean;
 };
 
 const errorResult = (
@@ -92,15 +93,11 @@ export function renderPrompt(
 	spec: ReasoningSpec<unknown, unknown>,
 	payload: unknown,
 ): string {
-	return [
-		`SPEC ${spec.specRef}`,
-		`PURPOSE ${spec.purpose}`,
-		"INSTRUCTION",
-		spec.instruction,
-		"INPUT_JSON",
-		stableJson(payload),
-		"OUTPUT_REQUIREMENT Return only one JSON value matching the frozen output schema. Do not include chain-of-thought.",
-	].join("\n");
+	return stableJson({
+		specRef: spec.specRef,
+		instruction: spec.instruction,
+		input: payload,
+	});
 }
 
 export function healthFromRoles(roles: ModelRoles): ModelRuntimeStatus {
@@ -167,6 +164,15 @@ function providerFailure(error: unknown): {
 	};
 }
 
+function definitelyUnstartedTransportFailure(error: unknown): boolean {
+	return Boolean(
+		error &&
+			typeof error === "object" &&
+			"notStarted" in error &&
+			error.notStarted === true,
+	);
+}
+
 export function createModelRuntime(options: RuntimeOptions) {
 	const specs = new Map(options.specs.map((spec) => [spec.specRef, spec]));
 	const queues: Record<"business" | "background", Job[]> = {
@@ -225,16 +231,25 @@ export function createModelRuntime(options: RuntimeOptions) {
 				`role ${role} cannot accept images`,
 			);
 		}
-		return options.provider.infer(
-			{
-				role,
-				request: job.request,
-				spec: job.spec,
-				prompt: renderPrompt(job.spec, job.request.payload),
-				repair,
-			},
-			signal,
-		);
+		const call = {
+			role,
+			request: job.request,
+			spec: job.spec,
+			prompt: renderPrompt(job.spec, job.request.payload),
+			repair,
+		};
+		try {
+			return await options.provider.infer(call, signal);
+		} catch (error) {
+			if (
+				!job.transportRetryUsed &&
+				definitelyUnstartedTransportFailure(error)
+			) {
+				job.transportRetryUsed = true;
+				return options.provider.infer(call, signal);
+			}
+			throw error;
+		}
 	};
 
 	const performRole = async (
@@ -326,11 +341,20 @@ export function createModelRuntime(options: RuntimeOptions) {
 								: "inference cancelled",
 					}
 				: providerFailure(error);
-			job.resolve(
-				finishFailure(
-					errorResult(job, failure.code, failure.message, now(), activeRole),
-				),
+			const endedAt = now();
+			const result = errorResult(
+				job,
+				failure.code,
+				failure.message,
+				endedAt,
+				activeRole,
 			);
+			result.metrics = {
+				queueLatencyMs: Math.max(0, startedAt - job.enqueuedAt),
+				inferenceLatencyMs: Math.max(0, endedAt - startedAt),
+				totalLatencyMs: Math.max(0, endedAt - job.enqueuedAt),
+			};
+			job.resolve(finishFailure(result));
 		} finally {
 			if (timer) clearTimeout(timer);
 			job.signal?.removeEventListener("abort", cancel);
@@ -424,6 +448,7 @@ export function createModelRuntime(options: RuntimeOptions) {
 				inferenceRef,
 				enqueuedAt,
 				resolve,
+				transportRetryUsed: false,
 				...(optionsInput.signal ? { signal: optionsInput.signal } : {}),
 			};
 			const queueTimeoutMs = Math.min(
