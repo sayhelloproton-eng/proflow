@@ -30,7 +30,10 @@
 		"zod": "4.1.12"
 	},
 	"devDependencies": {
+		"@tomflow/proflow-agent-gateway": "workspace:^",
 		"@tomflow/proflow-deployment-conformance": "workspace:^",
+		"@tomflow/proflow-execution-runtime": "workspace:^",
+		"@tomflow/proflow-model-runtime": "workspace:^",
 		"@tomflow/proflow-module-contract": "workspace:^"
 	}
 }

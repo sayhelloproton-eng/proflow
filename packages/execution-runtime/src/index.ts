@@ -11,6 +11,7 @@ import {
 	type ExecutionErrorCode,
 	type ExecutionRecord,
 	type ExecutionRef,
+	executionErrorCodes,
 	parseCancelExecutionRequest,
 	parseExecuteCapabilityRequest,
 	parseExecutionRecord,
@@ -151,7 +152,11 @@ function runtimeError(error: unknown): ExecutionRuntimeError {
 		const code = Reflect.get(error, "code");
 		const message = Reflect.get(error, "message");
 		const retryable = Reflect.get(error, "retryable");
-		if (typeof code === "string" && typeof message === "string")
+		if (
+			typeof code === "string" &&
+			(executionErrorCodes as readonly string[]).includes(code) &&
+			typeof message === "string"
+		)
 			return new ExecutionRuntimeError(
 				code as ExecutionErrorCode,
 				message,

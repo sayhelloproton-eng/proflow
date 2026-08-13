@@ -204,9 +204,18 @@ importers:
         specifier: 4.1.12
         version: 4.1.12
     devDependencies:
+      '@tomflow/proflow-agent-gateway':
+        specifier: workspace:^
+        version: link:../agent-gateway
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
+      '@tomflow/proflow-execution-runtime':
+        specifier: workspace:^
+        version: link:../execution-runtime
+      '@tomflow/proflow-model-runtime':
+        specifier: workspace:^
+        version: link:../model-runtime
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract

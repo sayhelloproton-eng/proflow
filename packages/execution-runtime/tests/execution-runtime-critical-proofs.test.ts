@@ -253,6 +253,24 @@ test("carry-forward unsuccessful executor result never becomes SUCCEEDED", async
 	runtime.close();
 });
 
+test("foreign library error codes cannot escape the frozen Execution error vocabulary", async () => {
+	const { databasePath } = await fixture();
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => {
+			throw Object.assign(new Error("foreign assertion failed"), {
+				code: "ERR_ASSERTION",
+			});
+		}),
+	});
+	const record = await runtime.executeCapability(
+		input("file.read", { path: "missing" }, "foreign-error-code"),
+	);
+	assert.equal(record.status, "FAILED");
+	assert.equal(record.error?.code, "EXECUTION_FAILED");
+	runtime.close();
+});
+
 test("carry-forward NOT_APPLIED failure can be explicitly redecided under the same execution", async () => {
 	const { databasePath } = await fixture();
 	let approvalValid = false;
