@@ -1,0 +1,54 @@
+{
+  "contract": "proflow.execution-browser.wave5.machine-evidence.v1",
+  "observedAt": "2026-08-13T17:05:00+08:00",
+  "status": "STAGE_C_MACHINE_GATE_PASS",
+  "frozenSource": {
+    "module": "spec/执行领域/04-模块/execution-browser-extension",
+    "testPlan": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md",
+    "testPlanStatus": "FINAL_FROZEN",
+    "targetKitSha256": "b02e5551660d7289fc009162fde7a0400450465fe4c9ad2119ca1a33d6569a1c"
+  },
+  "implementationCommit": "f30993478908b80f396e251e70cfadaf801266f2",
+  "observedRed": {
+    "result": "1/9 PASS; 8/9 FAIL",
+    "criticalProofs": "CP-EXE-BR-01 through CP-EXE-BR-07 failed with NOT_IMPLEMENTED; CP-EXE-BR-08 correctly remained ACTION_REQUIRED; C1/C2/C3 failed before build"
+  },
+  "machineProofs": {
+    "CP-EXE-BR-01": "PASS",
+    "CP-EXE-BR-02": "PASS in controlled page harness; real CREATE pending E3/E4",
+    "CP-EXE-BR-03": "PASS in controlled page harness; real WAKE pending E3/E4",
+    "CP-EXE-BR-04": "PASS deterministic classifier; real page observation pending E3/E4",
+    "CP-EXE-BR-05": "PASS fallback and read-only boundary; real permission UI pending E3/E4",
+    "CP-EXE-BR-06": "PASS global serialization and delivery ordering; real physical delivery pending E3/E4",
+    "CP-EXE-BR-07": "PASS bounded recovery and no-blind-replay harness; real faults pending E4",
+    "CP-EXE-BR-08": "ACTION_REQUIRED",
+    "finalExecutionBrowserCriticalProofs": "7/8 MACHINE-CLOSED; 8/8 FINAL requires real E3/E4"
+  },
+  "carryForwardRegression": {
+    "surface": "CP-EXE-RT-07",
+    "observedFailure": "executor could return success after timeout fired before its abort listener was registered",
+    "rootCause": "Execution Runtime did not re-check AbortSignal after executor completion",
+    "minimalGreen": "post-executor abort check converts late return to TIMEOUT or CANCELLED",
+    "targetedResult": "9/9 execution-runtime tests PASS"
+  },
+  "independentStageCGate": {
+    "rootTests": "141/141 PASS",
+    "lint": "PASS with 3 non-blocking optional-chain warnings",
+    "typecheck": "PASS",
+    "architecture": "PASS; 17 packages checked",
+    "moduleConformance": "C1/C2/C3 PASS",
+    "publishability": "PASS; 17 tarballs; all public JS exports; 6 binaries from isolated installs",
+    "blindBrowserReplay": 0,
+    "duplicateCreateInHarness": 0,
+    "sidePanelMutationCommands": 0
+  },
+  "realBoundary": {
+    "status": "NOT_CLAIMED",
+    "fakeChromePromotedToReal": false,
+    "realGId": null,
+    "realCId": null,
+    "e3": "PENDING",
+    "e4": "PENDING"
+  },
+  "nextStage": "STAGE_D_REAL_CARRIER_INTEGRATION"
+}
