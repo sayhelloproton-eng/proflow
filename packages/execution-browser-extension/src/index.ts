@@ -15,6 +15,16 @@ export {
 	BrowserRealityBridgeError,
 	createBrowserRealityBridgeServer,
 } from "./bridge.ts";
+export {
+	type BrowserTaskDriverExecutionPort,
+	type BrowserTaskDriverIdentityPort,
+	type BrowserTaskDriverNodeContext,
+	type BrowserTaskDriverOwnerPort,
+	type BrowserTaskDriverTask,
+	createExecutionBrowserTaskDriver,
+	type NodeWakePlan,
+	type ProvisionPlan,
+} from "./task-driver.ts";
 
 export type BrowserPageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 export type BrowserActivityKind =
@@ -79,6 +89,7 @@ export interface AgentDeliveryPort {
 	reportPhysicalDelivery(
 		messageRef: string,
 		evidenceRef: string,
+		executionRef: string,
 	): Promise<void>;
 }
 
@@ -753,6 +764,7 @@ export function createExecutionBrowserExtension(
 			await options.agent.reportPhysicalDelivery(
 				record.result.data.messageRef,
 				record.result.data.evidenceRef,
+				record.executionRef,
 			);
 			return { status: "DELIVERED" as const };
 		},

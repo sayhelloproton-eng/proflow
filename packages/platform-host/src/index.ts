@@ -197,6 +197,7 @@ async function responseJson(response: Response): Promise<unknown> {
 function createOwnerHttpClient(
 	owner: "execution" | "model",
 	baseUrl: string,
+	credential?: string,
 ): OwnerHttpClient {
 	return Object.freeze({
 		async readiness() {
@@ -242,9 +243,14 @@ function createOwnerHttpClient(
 			return responseJson(
 				await fetch(`${baseUrl}${path}`, {
 					method,
+					headers: {
+						...(credential ? { authorization: `Bearer ${credential}` } : {}),
+						...(method === "POST"
+							? { "content-type": "application/json" }
+							: {}),
+					},
 					...(method === "POST"
 						? {
-								headers: { "content-type": "application/json" },
 								body: JSON.stringify(input),
 							}
 						: {}),
@@ -276,7 +282,102 @@ function unwrap<Value>(result: {
 }
 
 type Graph = Awaited<ReturnType<typeof constructGraph>>;
-async function constructGraph(config: PlatformHostConfig) {
+
+export type PlatformHostBrowserOwnerPorts = {
+	task: {
+		getWorkerBinding(taskId: string, roleRef: string): Promise<string | null>;
+		bindWorker(input: {
+			taskId: string;
+			roleRef: string;
+			workerRef: string;
+		}): Promise<void>;
+	};
+	agent: {
+		getPendingMessage(messageRef: string): Promise<{
+			messageId: string;
+			threadId: string;
+			taskId: string;
+			kind: "QUESTION" | "REPLY";
+			fromRoleRef: string;
+			fromWorkerRef: string;
+			targetRoleRef: string;
+			targetWorkerRef: string;
+			replyToMessageId: string | null;
+			content: string;
+			status: "PENDING";
+		}>;
+		reportPhysicalDelivery(
+			messageRef: string,
+			evidenceRef: string,
+			executionRef: string,
+		): Promise<void>;
+	};
+};
+
+export type PlatformHostExecutionIdentityPort = {
+	authorize(request: {
+		callerRef: string;
+		roleRef?: string | undefined;
+		taskId?: string | undefined;
+		nodeId?: string | undefined;
+		runNo?: number | undefined;
+		workerRef?: string | undefined;
+		projectRoot?: string | undefined;
+		capability: string;
+		input: unknown;
+	}): Promise<boolean>;
+};
+
+export type PlatformHostTaskDriverPorts = {
+	getTask(taskId: string): Promise<{
+		taskId: string;
+		status: string;
+		version: number;
+		currentNodeId: string | null;
+		roleBindings: Array<{ roleRef: string; workerRef: string | null }>;
+	}>;
+	getNodeContext(
+		taskId: string,
+		nodeId: string,
+	): Promise<{
+		task: { taskId: string; status: string; version: number };
+		node: {
+			nodeId: string;
+			status: string;
+			version: number;
+			runNo: number;
+			requiredRoleRef: string;
+			workerRef: string | null;
+		};
+	}>;
+	authorizeTask(input: {
+		taskId: string;
+		expectedTaskVersion: number;
+		authorizedByRef: string;
+		idempotencyKey: string;
+	}): Promise<unknown>;
+	startTask(input: {
+		taskId: string;
+		expectedTaskVersion: number;
+		idempotencyKey: string;
+	}): Promise<unknown>;
+	startNode(input: {
+		taskId: string;
+		nodeId: string;
+		expectedTaskVersion: number;
+		expectedNodeVersion: number;
+		idempotencyKey: string;
+	}): Promise<unknown>;
+};
+
+export type PlatformHostAgentIdentityPorts = {
+	getRegisteredRole(roleRef: string): Promise<{ roleRef: string }>;
+};
+
+async function constructGraph(
+	config: PlatformHostConfig,
+	executionCredential?: string,
+) {
 	const databasePath = join(config.stateRoot, "state", "task.sqlite");
 	const migration = applyMigrations({
 		databasePath,
@@ -345,7 +446,11 @@ async function constructGraph(config: PlatformHostConfig) {
 		taskStore.close();
 		throw error;
 	}
-	const execution = createOwnerHttpClient("execution", config.executionBaseUrl);
+	const execution = createOwnerHttpClient(
+		"execution",
+		config.executionBaseUrl,
+		executionCredential,
+	);
 	const model = createOwnerHttpClient("model", config.modelBaseUrl);
 	const taskOperations = new Map<string, (input: unknown) => unknown>();
 	for (const name of publicOperationNames) {
@@ -387,12 +492,48 @@ async function constructGraph(config: PlatformHostConfig) {
 		if (operationId === "replyPeer")
 			return agent.replyPeer({ ...input, authenticatedRoleRef });
 		const taskOperation = taskOperations.get(operationId);
-		if (taskOperation)
+		if (taskOperation) {
+			let actorRef = authenticatedRoleRef;
+			if (operationId === "createTask" && Array.isArray(input.roleBindings)) {
+				const ownBinding = input.roleBindings.find(
+					(candidate) =>
+						typeof candidate === "object" &&
+						candidate !== null &&
+						Reflect.get(candidate, "roleRef") === authenticatedRoleRef,
+				);
+				const workerRef = ownBinding
+					? Reflect.get(ownBinding, "workerRef")
+					: undefined;
+				if (typeof workerRef === "string") actorRef = workerRef;
+			} else if (
+				typeof input.taskId === "string" &&
+				new Set([
+					"startNode",
+					"completeNode",
+					"waitNode",
+					"failNode",
+					"reopenNode",
+					"putTaskDocument",
+				]).has(operationId)
+			) {
+				const workerRef = taskFacts(input.taskId).roleBindings.find(
+					(binding) => binding.roleRef === authenticatedRoleRef,
+				)?.workerRef;
+				if (!workerRef)
+					throw Object.assign(new Error("TASK_ROLE_BINDING_REQUIRED"), {
+						httpStatus: 403,
+					});
+				await agent.validateWorker({
+					authenticatedRoleRef,
+					taskId: input.taskId,
+					workerRef,
+				});
+				actorRef = workerRef;
+			}
 			return taskOperation(
-				queryOperations.has(operationId)
-					? input
-					: { ...input, actorRef: authenticatedRoleRef },
+				queryOperations.has(operationId) ? input : { ...input, actorRef },
 			);
+		}
 		if (operationId === "executeCapability") {
 			const taskId =
 				typeof input.taskId === "string" ? input.taskId : undefined;
@@ -414,8 +555,205 @@ async function constructGraph(config: PlatformHostConfig) {
 			return execution.invoke(operationId, input);
 		throw new Error("OPERATION_NOT_ROUTED");
 	};
+	const browserOwnerPorts: PlatformHostBrowserOwnerPorts = Object.freeze({
+		task: Object.freeze({
+			async getWorkerBinding(taskId: string, roleRef: string) {
+				return (
+					taskFacts(taskId).roleBindings.find(
+						(binding) => binding.roleRef === roleRef,
+					)?.workerRef ?? null
+				);
+			},
+			async bindWorker(binding: {
+				taskId: string;
+				roleRef: string;
+				workerRef: string;
+			}) {
+				const current = unwrap(
+					task.queries.getTask({ taskId: binding.taskId }),
+				);
+				const existing = current.roleBindings.find(
+					(item) => item.roleRef === binding.roleRef,
+				)?.workerRef;
+				if (existing === binding.workerRef) return;
+				if (existing) throw new Error("TASK_ROLE_BINDING_CONFLICT");
+				unwrap(
+					task.commands.bindTaskWorker({
+						...binding,
+						expectedTaskVersion: current.version,
+						actorRef: "platform-host:worker-provisioning",
+						idempotencyKey: `browser-bind:${binding.taskId}:${binding.roleRef}:${binding.workerRef}`,
+					}),
+				);
+			},
+		}),
+		agent: Object.freeze({
+			async getPendingMessage(messageRef: string) {
+				const message = agent.getCollaborationMessage({
+					messageId: messageRef,
+				});
+				if (message.status !== "PENDING")
+					throw new Error("COLLABORATION_MESSAGE_NOT_PENDING");
+				return { ...message, status: "PENDING" as const };
+			},
+			async reportPhysicalDelivery(
+				messageRef: string,
+				evidenceRef: string,
+				executionRef: string,
+			) {
+				const message = agent.getCollaborationMessage({
+					messageId: messageRef,
+				});
+				if (message.status === "DELIVERED") return;
+				await agent.reportCollaborationDelivery({
+					messageId: message.messageId,
+					expectedMessageVersion: message.version,
+					outcome: "DELIVERED",
+					observedRoleRef: message.targetRoleRef,
+					observedWorkerRef: message.targetWorkerRef,
+					executionRef,
+					evidenceRef,
+				});
+			},
+		}),
+	});
+	const authorizeExecution: PlatformHostExecutionIdentityPort["authorize"] =
+		async (request) => {
+			try {
+				const browserCapability =
+					request.capability === "worker.create" ||
+					request.capability === "worker.restore" ||
+					request.capability === "worker.wake" ||
+					request.capability === "collaboration.deliver";
+				const internalTaskDriver =
+					request.callerRef === "execution-runtime:task-driver";
+				if (!internalTaskDriver) agent.getRegisteredRole(request.callerRef);
+				if (
+					request.roleRef &&
+					!internalTaskDriver &&
+					request.roleRef !== request.callerRef
+				)
+					return false;
+				if (
+					request.projectRoot &&
+					resolve(request.projectRoot) !== config.workspaceRoot
+				)
+					return false;
+				if ((request.nodeId || request.runNo) && !request.taskId) return false;
+				if (request.workerRef && !request.taskId) return false;
+				if (internalTaskDriver && (!browserCapability || !request.taskId))
+					return false;
+				if (browserCapability && !request.taskId) return false;
+				if (request.taskId) {
+					const taskFact = taskFacts(request.taskId);
+					if (request.workerRef && !internalTaskDriver)
+						await agent.validateWorker({
+							authenticatedRoleRef: request.callerRef,
+							taskId: request.taskId,
+							workerRef: request.workerRef,
+						});
+					if (request.nodeId)
+						unwrap(
+							task.queries.getNodeContext({
+								taskId: request.taskId,
+								nodeId: request.nodeId,
+								...(request.runNo ? { runNo: request.runNo } : {}),
+							}),
+						);
+					const browserInput = object(request.input, "execution input");
+					if (browserCapability) {
+						const targetRoleRef = string(browserInput.roleRef, "input.roleRef");
+						agent.getRegisteredRole(targetRoleRef);
+						const binding = taskFact.roleBindings.find(
+							(candidate) => candidate.roleRef === targetRoleRef,
+						);
+						if (!binding) return false;
+						if (!internalTaskDriver && targetRoleRef !== request.callerRef)
+							return false;
+						if (request.capability !== "worker.create") {
+							const targetWorkerRef = string(
+								browserInput.workerRef,
+								"input.workerRef",
+							);
+							if (binding.workerRef !== targetWorkerRef) return false;
+						}
+					}
+				}
+				return true;
+			} catch {
+				return false;
+			}
+		};
+	const taskDriverPorts: PlatformHostTaskDriverPorts = Object.freeze({
+		async getTask(taskId: string) {
+			const current = unwrap(task.queries.getTask({ taskId }));
+			return {
+				taskId: current.taskId,
+				status: current.status,
+				version: current.version,
+				currentNodeId: current.currentNodeId,
+				roleBindings: current.roleBindings,
+			};
+		},
+		async getNodeContext(taskId: string, nodeId: string) {
+			const current = unwrap(task.queries.getNodeContext({ taskId, nodeId }));
+			return {
+				task: {
+					taskId: current.task.taskId,
+					status: current.task.status,
+					version: current.task.version,
+				},
+				node: {
+					nodeId: current.node.nodeId,
+					status: current.node.status,
+					version: current.node.version,
+					runNo: current.node.runNo,
+					requiredRoleRef: current.node.requiredRoleRef,
+					workerRef: current.node.workerRef,
+				},
+			};
+		},
+		async authorizeTask(input) {
+			if (!/^human:[A-Za-z0-9._:-]+$/.test(input.authorizedByRef))
+				throw new Error("HUMAN_AUTHORIZATION_REQUIRED");
+			return unwrap(
+				task.commands.authorizeTask({
+					taskId: input.taskId,
+					expectedTaskVersion: input.expectedTaskVersion,
+					actorRef: input.authorizedByRef,
+					idempotencyKey: input.idempotencyKey,
+				}),
+			);
+		},
+		async startTask(input) {
+			return unwrap(
+				task.commands.startTask({
+					...input,
+					actorRef: "execution-runtime:task-driver",
+				}),
+			);
+		},
+		async startNode(input) {
+			return unwrap(
+				task.commands.startNode({
+					...input,
+					actorRef: "execution-runtime:task-driver",
+				}),
+			);
+		},
+	});
+	const agentIdentityPorts: PlatformHostAgentIdentityPorts = Object.freeze({
+		async getRegisteredRole(roleRef) {
+			const role = agent.getRegisteredRole(roleRef);
+			return { roleRef: role.roleRef };
+		},
+	});
 	return Object.freeze({
 		route,
+		browserOwnerPorts,
+		authorizeExecution,
+		taskDriverPorts,
+		agentIdentityPorts,
 		async lookup(
 			operationId: string,
 			authenticatedRoleRef: string,
@@ -462,7 +800,12 @@ async function constructGraph(config: PlatformHostConfig) {
 export function createPlatformHost(input: {
 	config: PlatformHostConfig;
 	log?: (entry: Record<string, unknown>) => void;
+	executionCredential?: string;
 }) {
+	if (input.executionCredential && input.executionCredential.length < 32)
+		throw new TypeError(
+			"execution credential must contain at least 32 characters",
+		);
 	let lifecycle: PlatformHostStatus["process"] = "STOPPED";
 	let accepting = false;
 	let graph: Graph | undefined;
@@ -503,6 +846,74 @@ export function createPlatformHost(input: {
 			dependencies,
 		};
 	};
+	const browserOwnerPorts: PlatformHostBrowserOwnerPorts = Object.freeze({
+		task: Object.freeze({
+			async getWorkerBinding(taskId: string, roleRef: string) {
+				if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+				return graph.browserOwnerPorts.task.getWorkerBinding(taskId, roleRef);
+			},
+			async bindWorker(binding: {
+				taskId: string;
+				roleRef: string;
+				workerRef: string;
+			}) {
+				if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+				return graph.browserOwnerPorts.task.bindWorker(binding);
+			},
+		}),
+		agent: Object.freeze({
+			async getPendingMessage(messageRef: string) {
+				if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+				return graph.browserOwnerPorts.agent.getPendingMessage(messageRef);
+			},
+			async reportPhysicalDelivery(
+				messageRef: string,
+				evidenceRef: string,
+				executionRef: string,
+			) {
+				if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+				return graph.browserOwnerPorts.agent.reportPhysicalDelivery(
+					messageRef,
+					evidenceRef,
+					executionRef,
+				);
+			},
+		}),
+	});
+	const executionIdentity: PlatformHostExecutionIdentityPort = Object.freeze({
+		async authorize(request) {
+			if (!graph) return false;
+			return graph.authorizeExecution(request);
+		},
+	});
+	const taskDriverPorts: PlatformHostTaskDriverPorts = Object.freeze({
+		async getTask(taskId) {
+			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+			return graph.taskDriverPorts.getTask(taskId);
+		},
+		async getNodeContext(taskId, nodeId) {
+			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+			return graph.taskDriverPorts.getNodeContext(taskId, nodeId);
+		},
+		async authorizeTask(input) {
+			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+			return graph.taskDriverPorts.authorizeTask(input);
+		},
+		async startTask(input) {
+			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+			return graph.taskDriverPorts.startTask(input);
+		},
+		async startNode(input) {
+			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+			return graph.taskDriverPorts.startNode(input);
+		},
+	});
+	const agentIdentityPorts: PlatformHostAgentIdentityPorts = Object.freeze({
+		async getRegisteredRole(roleRef) {
+			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+			return graph.agentIdentityPorts.getRegisteredRole(roleRef);
+		},
+	});
 	const respond = (
 		response: import("node:http").ServerResponse,
 		code: number,
@@ -522,7 +933,7 @@ export function createPlatformHost(input: {
 			log("DEPENDENCY_INITIALIZATION_STARTED", {
 				order: ["task", "agent", "execution-client", "model-client"],
 			});
-			graph = await constructGraph(input.config);
+			graph = await constructGraph(input.config, input.executionCredential);
 			await graph.readiness();
 			server = createServer((request, response) => {
 				const work = (async () => {
@@ -642,6 +1053,10 @@ export function createPlatformHost(input: {
 		start,
 		stop,
 		status,
+		browserOwnerPorts,
+		executionIdentity,
+		taskDriverPorts,
+		agentIdentityPorts,
 		async restart() {
 			await stop();
 			return start();

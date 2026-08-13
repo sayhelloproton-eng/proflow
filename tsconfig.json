@@ -17,6 +17,9 @@
 			"@tomflow/proflow-agent-gateway": [
 				"./packages/agent-gateway/src/index.ts"
 			],
+			"@tomflow/proflow-agent-gateway/process": [
+				"./packages/agent-gateway/src/process.ts"
+			],
 			"@tomflow/proflow-agent-product": [
 				"./packages/agent-product/src/index.ts"
 			],
@@ -38,11 +41,23 @@
 			"@tomflow/proflow-execution-runtime": [
 				"./packages/execution-runtime/src/index.ts"
 			],
+			"@tomflow/proflow-execution-runtime/service": [
+				"./packages/execution-runtime/src/service.ts"
+			],
 			"@tomflow/proflow-model-contracts": [
 				"./packages/model-contracts/src/index.ts"
 			],
 			"@tomflow/proflow-model-runtime": [
 				"./packages/model-runtime/src/index.ts"
+			],
+			"@tomflow/proflow-model-runtime/process": [
+				"./packages/model-runtime/src/process.ts"
+			],
+			"@tomflow/proflow-model-runtime/specs/system-health-assessment": [
+				"./packages/model-runtime/src/specs/system-health-assessment.ts"
+			],
+			"@tomflow/proflow-task-store-sqlite/migrations": [
+				"./packages/task-store-sqlite/src/migrations.ts"
 			]
 		},
 		"types": ["node"],

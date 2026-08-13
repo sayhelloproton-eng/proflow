@@ -210,6 +210,9 @@ importers:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
+      '@tomflow/proflow-execution-browser-extension':
+        specifier: workspace:^
+        version: link:../execution-browser-extension
       '@tomflow/proflow-execution-runtime':
         specifier: workspace:^
         version: link:../execution-runtime

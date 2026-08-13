@@ -156,6 +156,68 @@ test("CP-HOST-03/04/05 real local transport drains, exposes owner readiness and 
 		};
 		assert.equal(created.ok, true);
 		assert.equal(created.data.taskId, "task:host-proof");
+		await assert.rejects(
+			() =>
+				host.taskDriverPorts.authorizeTask({
+					taskId: "task:host-proof",
+					expectedTaskVersion: 1,
+					authorizedByRef: "g-product",
+					idempotencyKey: "host-invalid-human-authorization",
+				}),
+			/HUMAN_AUTHORIZATION_REQUIRED/,
+		);
+		assert.equal(
+			(await host.taskDriverPorts.getTask("task:host-proof")).status,
+			"PENDING",
+		);
+		const browserOwnerPorts = host.browserOwnerPorts;
+		assert.equal(
+			await browserOwnerPorts.task.getWorkerBinding(
+				"task:host-proof",
+				"g-controller",
+			),
+			null,
+		);
+		await browserOwnerPorts.task.bindWorker({
+			taskId: "task:host-proof",
+			roleRef: "g-controller",
+			workerRef: "conversation:host-proof",
+		});
+		assert.equal(
+			await browserOwnerPorts.task.getWorkerBinding(
+				"task:host-proof",
+				"g-controller",
+			),
+			"conversation:host-proof",
+		);
+		assert.equal(
+			(await host.taskDriverPorts.getTask("task:host-proof")).status,
+			"PENDING",
+		);
+		assert.equal(
+			await host.executionIdentity.authorize({
+				callerRef: "g-controller",
+				roleRef: "g-controller",
+				taskId: "task:host-proof",
+				workerRef: "conversation:host-proof",
+				projectRoot: workspaceRoot,
+				capability: "project.inspect",
+				input: {},
+			}),
+			true,
+		);
+		assert.equal(
+			await host.executionIdentity.authorize({
+				callerRef: "g-controller",
+				roleRef: "g-product",
+				taskId: "task:host-proof",
+				workerRef: "conversation:host-proof",
+				projectRoot: workspaceRoot,
+				capability: "project.inspect",
+				input: {},
+			}),
+			false,
+		);
 
 		owner.setReady(false);
 		const unavailable = (await fetch(`${baseUrl}/ready`).then((response) =>
@@ -175,6 +237,24 @@ test("CP-HOST-03/04/05 real local transport drains, exposes owner readiness and 
 
 		const second = await host.restart();
 		baseUrl = `http://${second.host}:${second.port}`;
+		assert.equal(
+			await browserOwnerPorts.task.getWorkerBinding(
+				"task:host-proof",
+				"g-controller",
+			),
+			"conversation:host-proof",
+		);
+		assert.equal(
+			await host.executionIdentity.authorize({
+				callerRef: "g-controller",
+				roleRef: "g-controller",
+				taskId: "task:host-proof",
+				workerRef: "conversation:host-proof",
+				capability: "project.inspect",
+				input: {},
+			}),
+			true,
+		);
 		const restored = (await action(baseUrl, "getTask", "g-product", {
 			taskId: "task:host-proof",
 		}).then((response) => response.json())) as {

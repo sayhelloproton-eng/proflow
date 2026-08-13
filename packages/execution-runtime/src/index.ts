@@ -134,7 +134,8 @@ function protectedValue(value: unknown, key = ""): unknown {
 		]),
 	);
 }
-function fingerprint(request: ExecuteCapabilityRequest): string {
+export function executionInputFingerprint(input: unknown): string {
+	const request = parseExecuteCapabilityRequest(input);
 	return sha({
 		capability: request.capability,
 		input: protectedValue(request.input),
@@ -417,7 +418,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				"execution runtime is closed",
 			);
 		const request = parseExecuteCapabilityRequest(input);
-		const inputFingerprint = fingerprint(request);
+		const inputFingerprint = executionInputFingerprint(request);
 		const existing = database
 			.prepare(
 				"SELECT * FROM executions WHERE caller_ref=? AND capability=? AND idempotency_key=?",

@@ -32,6 +32,7 @@
 	"devDependencies": {
 		"@tomflow/proflow-agent-gateway": "workspace:^",
 		"@tomflow/proflow-deployment-conformance": "workspace:^",
+		"@tomflow/proflow-execution-browser-extension": "workspace:^",
 		"@tomflow/proflow-execution-runtime": "workspace:^",
 		"@tomflow/proflow-model-runtime": "workspace:^",
 		"@tomflow/proflow-module-contract": "workspace:^"

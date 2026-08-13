@@ -628,6 +628,10 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 			}
 			return result;
 		},
+		getCollaborationMessage(raw: unknown) {
+			const input = z.object({ messageId: identifier }).strict().parse(raw);
+			return getMessage(input.messageId);
+		},
 		async reportCollaborationDelivery(raw: unknown) {
 			const input = deliverySchema.parse(raw);
 			const message = getMessage(input.messageId);

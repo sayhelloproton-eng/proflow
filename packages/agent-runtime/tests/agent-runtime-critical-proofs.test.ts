@@ -174,6 +174,12 @@ test("CP-AGT-RUNTIME-04 ask/reply is idempotent and next question waits for phys
 		idempotencyKey: "ask:1",
 	});
 	assert.deepEqual(
+		runtime.getCollaborationMessage({
+			messageId: question.message.messageId,
+		}),
+		question.message,
+	);
+	assert.deepEqual(
 		await runtime.askPeer({
 			authenticatedRoleRef: "g-dev",
 			taskId: "task:1",
@@ -193,6 +199,12 @@ test("CP-AGT-RUNTIME-04 ask/reply is idempotent and next question waits for phys
 		executionRef: "execution:q",
 		evidenceRef: "evidence:q",
 	});
+	assert.equal(
+		runtime.getCollaborationMessage({
+			messageId: question.message.messageId,
+		}).status,
+		"DELIVERED",
+	);
 	const reply = await runtime.replyPeer({
 		authenticatedRoleRef: "g-product",
 		threadId: question.thread.threadId,

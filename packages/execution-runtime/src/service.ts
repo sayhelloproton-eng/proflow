@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, isAbsolute, resolve } from "node:path";
@@ -84,7 +85,12 @@ export async function createExecutionRuntimeProcess(input: {
 	modelDecision?: ExecutionRuntimeOptions["modelDecision"];
 	approval?: ExecutionRuntimeOptions["approval"];
 	log?: (entry: Record<string, unknown>) => void;
+	transportCredential?: string;
 }) {
+	if (input.transportCredential && input.transportCredential.length < 32)
+		throw new TypeError(
+			"transport credential must contain at least 32 characters",
+		);
 	let state: ExecutionRuntimeProcessStatus["process"] = "STOPPED";
 	let accepting = false;
 	let server: Server | undefined;
@@ -151,6 +157,20 @@ export async function createExecutionRuntimeProcess(input: {
 							current.readiness === "READY" ? 200 : 503,
 							current,
 						);
+					}
+					if (input.transportCredential) {
+						const supplied = request.headers.authorization?.startsWith(
+							"Bearer ",
+						)
+							? request.headers.authorization.slice(7)
+							: "";
+						const expectedBytes = Buffer.from(input.transportCredential);
+						const suppliedBytes = Buffer.from(supplied);
+						if (
+							expectedBytes.length !== suppliedBytes.length ||
+							!timingSafeEqual(expectedBytes, suppliedBytes)
+						)
+							return respond(response, 401, { error: "AUTHENTICATION_FAILED" });
 					}
 					if (!accepting || !runtime)
 						return respond(response, 503, { error: "SERVICE_DRAINING" });

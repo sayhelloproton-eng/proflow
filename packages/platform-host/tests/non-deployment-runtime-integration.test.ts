@@ -225,6 +225,10 @@ test("real local business runtime integrates Gateway, Task, Agent, Execution and
 				initialDocuments: [],
 				roleBindings: [
 					{
+						roleRef: "g-integration-product",
+						workerRef: "worker:integration-product",
+					},
+					{
 						roleRef: "g-integration-controller",
 						workerRef: "worker:integration-controller",
 					},
@@ -234,6 +238,24 @@ test("real local business runtime integrates Gateway, Task, Agent, Execution and
 		});
 		assert.equal(taskResponse.status, 200);
 		assert.equal(((await taskResponse.json()) as { ok: boolean }).ok, true);
+		await host.taskDriverPorts.authorizeTask({
+			taskId: "task:business-runtime",
+			expectedTaskVersion: 1,
+			authorizedByRef: "human:integration-operator",
+			idempotencyKey: "business-runtime-authorize",
+		});
+		await host.taskDriverPorts.startTask({
+			taskId: "task:business-runtime",
+			expectedTaskVersion: 2,
+			idempotencyKey: "business-runtime-start-task",
+		});
+		await host.taskDriverPorts.startNode({
+			taskId: "task:business-runtime",
+			nodeId: "node:business-runtime",
+			expectedTaskVersion: 3,
+			expectedNodeVersion: 2,
+			idempotencyKey: "business-runtime-start-node",
+		});
 		const callsBeforeExecution = providerCalls;
 		const executionResponse = await fetch(
 			`${gatewayBaseUrl}/actions/executeCapability`,
@@ -302,6 +324,26 @@ test("real local business runtime integrates Gateway, Task, Agent, Execution and
 		assert.equal(record.status, "SUCCEEDED", JSON.stringify(record));
 		assert.equal(record.callerRef, "g-integration-controller");
 		assert.ok(providerCalls > callsBeforeExecution);
+		const completed = (await fetch(`${gatewayBaseUrl}/actions/completeNode`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${controllerCredential}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({
+				taskId: "task:business-runtime",
+				nodeId: "node:business-runtime",
+				expectedTaskVersion: 4,
+				expectedNodeVersion: 3,
+				resultSummary: "Real owner-routed Execution completed",
+				idempotencyKey: "business-runtime-complete-node",
+			}),
+		}).then((response) => response.json())) as {
+			ok: boolean;
+			data: { taskStatus: string };
+		};
+		assert.equal(completed.ok, true, JSON.stringify(completed));
+		assert.equal(completed.data.taskStatus, "SUCCEEDED");
 
 		const restartedExecution = await execution.restart();
 		const restored = (await fetch(
