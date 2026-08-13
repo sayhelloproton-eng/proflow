@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { type TestContext, test } from "node:test";
+import { promisify } from "node:util";
 
 import type {
 	ModuleDescriptor,
@@ -18,6 +20,12 @@ import {
 	runPackageConformance,
 	runStaticConformance,
 } from "../src/index.ts";
+
+const execFileAsync = promisify(execFile);
+const tsc = resolve(
+	import.meta.dirname,
+	"../../../node_modules/typescript/bin/tsc",
+);
 
 function result(
 	moduleRef: string,
@@ -55,12 +63,18 @@ function adapterFor(descriptor: ModuleDescriptor): BehaviorAdapter {
 async function generatedExternal(context: TestContext) {
 	const root = await mkdtemp(join(tmpdir(), "proflow-conformance-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
-	return materializeModule({
+	const generated = await materializeModule({
 		targetDirectory: root,
 		moduleRef: "fixture-external-resource",
 		packageName: "@tomflow/proflow-fixture-external-resource",
 		kind: "external-resource",
 	});
+	await execFileAsync(process.execPath, [
+		tsc,
+		"-p",
+		join(generated.packageDirectory, "tsconfig.build.json"),
+	]);
+	return generated;
 }
 
 test("CP-DPL-CONF-01 C1 rejects missing, version, config, lifecycle, and verification defects", async (context) => {

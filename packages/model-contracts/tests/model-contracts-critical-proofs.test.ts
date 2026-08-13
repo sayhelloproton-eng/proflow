@@ -124,4 +124,102 @@ test("CP-MODEL-CON-04 provider/consumer compatibility detects breaking contract 
 		).status,
 		"FAIL",
 	);
+	for (const [surface, incompatible] of [
+		[
+			"request",
+			{
+				...api.MODEL_CONTRACT_DESCRIPTOR,
+				request: api.MODEL_CONTRACT_DESCRIPTOR.request.filter(
+					(field: string) => field !== "images?",
+				),
+			},
+		],
+		[
+			"result",
+			{
+				...api.MODEL_CONTRACT_DESCRIPTOR,
+				result: api.MODEL_CONTRACT_DESCRIPTOR.result.filter(
+					(field: string) => field !== "metrics.inferenceLatencyMs?",
+				),
+			},
+		],
+		[
+			"runtimeStatus",
+			{
+				...api.MODEL_CONTRACT_DESCRIPTOR,
+				runtimeStatus: api.MODEL_CONTRACT_DESCRIPTOR.runtimeStatus.filter(
+					(field: string) => field !== "lastErrorCode?",
+				),
+			},
+		],
+		[
+			"error",
+			{
+				...api.MODEL_CONTRACT_DESCRIPTOR,
+				error: api.MODEL_CONTRACT_DESCRIPTOR.error.filter(
+					(field: string) => field !== "retryable",
+				),
+			},
+		],
+		[
+			"publicTypes",
+			{
+				...api.MODEL_CONTRACT_DESCRIPTOR,
+				publicTypes: api.MODEL_CONTRACT_DESCRIPTOR.publicTypes.filter(
+					(type: string) => type !== "ReasoningSpec",
+				),
+			},
+		],
+	] as const) {
+		const result = api.checkModelContractCompatibility(
+			api.MODEL_CONTRACT_DESCRIPTOR,
+			incompatible,
+		);
+		assert.equal(result.status, "FAIL", surface);
+		assert.equal(
+			result.missing.some((entry: string) => entry.startsWith(`${surface}:`)),
+			true,
+			surface,
+		);
+	}
+	const enumBreak = {
+		...api.MODEL_CONTRACT_DESCRIPTOR,
+		enums: {
+			...api.MODEL_CONTRACT_DESCRIPTOR.enums,
+			inferenceMode: ["fast", "auto"],
+		},
+	};
+	assert.deepEqual(
+		api.checkModelContractCompatibility(
+			api.MODEL_CONTRACT_DESCRIPTOR,
+			enumBreak,
+		),
+		{
+			status: "FAIL",
+			missing: ["enums.inferenceMode:reason"],
+		},
+	);
+});
+
+test("MOD-DECISION-01 .v1 is the canonical major identity while full SemVer remains explicit", async () => {
+	const api = await contracts();
+	const input = {
+		id: "identity.proof",
+		purpose: "prove canonical ReasoningSpec identity",
+		allowedModes: ["fast"] as const,
+		requiredModalities: ["text"] as const,
+		inputSchema: z.object({ value: z.string() }).strict(),
+		outputSchema: z.object({ decision: z.literal("ALLOW") }).strict(),
+		instruction: "Return ALLOW.",
+		maxOutputTokens: 16,
+	};
+	const first = api.createReasoningSpec({ ...input, version: "1.0.0" });
+	const compatibleRevision = api.createReasoningSpec({
+		...input,
+		version: "1.1.0",
+	});
+	assert.equal(first.specRef, "identity.proof.v1");
+	assert.equal(compatibleRevision.specRef, "identity.proof.v1");
+	assert.equal(first.version, "1.0.0");
+	assert.equal(compatibleRevision.version, "1.1.0");
 });

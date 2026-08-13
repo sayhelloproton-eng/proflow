@@ -118,20 +118,28 @@ test("CP-MODEL-RT-02 one real lane prioritizes queued business and distinguishes
 
 test("CP-MODEL-RT-03 capability verification mismatch makes role and health unavailable", async () => {
 	const api = await runtimeApi();
+	const declared = verifiedTestRoles();
 	const roles = api.verifyRoleCapabilities({
-		declared: verifiedTestRoles(),
+		declared: {
+			fast: { profile: declared.fast.profile },
+			reason: { profile: declared.reason.profile },
+		},
 		observed: {
 			fast: {
 				text: true,
 				image: false,
 				structuredOutput: true,
 				reasoning: "no-thinking",
+				reasoningBasis: "provider-response-thinking-absent",
+				verifiedAt: new Date().toISOString(),
 			},
 			reason: {
 				text: true,
 				image: true,
 				structuredOutput: false,
 				reasoning: "thinking",
+				reasoningBasis: "provider-response-thinking-closed",
+				verifiedAt: new Date().toISOString(),
 			},
 		},
 	});

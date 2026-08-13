@@ -166,11 +166,11 @@ function packageMetadata(
 	descriptor: ModuleDescriptor,
 ): GeneratedPackageMetadata {
 	const exports: Record<string, string> = {
-		".": "./src/index.ts",
-		"./deployment/adapter": "./deployment/adapter.ts",
-		"./deployment/descriptor": "./deployment/descriptor.ts",
+		".": "./dist/src/index.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js",
 	};
-	if (descriptor.kind === "cli") exports["./cli"] = "./src/cli.ts";
+	if (descriptor.kind === "cli") exports["./cli"] = "./dist/src/cli.js";
 	return {
 		name: descriptor.packageName,
 		version: descriptor.moduleVersion,
@@ -184,9 +184,10 @@ function packageJson(descriptor: ModuleDescriptor): string {
 	return `${JSON.stringify(
 		{
 			...packageMetadata(descriptor),
-			files: ["src", "deployment", "conformance.json", "README.md"],
+			files: ["dist", "conformance.json", "README.md"],
 			engines: { node: "24.19.0" },
 			scripts: {
+				build: "tsc -p tsconfig.build.json",
 				typecheck: "tsc --noEmit",
 				test: "node --test tests/**/*.test.ts",
 			},
@@ -307,6 +308,21 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 			null,
 			2,
 		)}\n`,
+		"tsconfig.build.json": `${JSON.stringify(
+			{
+				extends: "./tsconfig.json",
+				compilerOptions: {
+					noEmit: false,
+					declaration: true,
+					rootDir: ".",
+					outDir: "dist",
+					rewriteRelativeImportExtensions: true,
+				},
+				exclude: ["tests/**"],
+			},
+			null,
+			2,
+		)}\n`,
 		"src/index.ts": `export const moduleRef = ${JSON.stringify(descriptor.moduleRef)};\n`,
 		"tests/smoke.test.ts": `import { moduleRef } from "../src/index.ts";\n\nconst observed: string = moduleRef;\nvoid observed;\n`,
 		"deployment/descriptor.ts": descriptorSource(descriptor),
@@ -346,7 +362,7 @@ export async function materializeModule(
 		descriptor,
 		files: Object.keys(files).sort(),
 		packageMetadata: metadata,
-		...(input.kind === "cli" ? { machineEntry: "src/cli.ts" } : {}),
+		...(input.kind === "cli" ? { machineEntry: "dist/src/cli.js" } : {}),
 	};
 }
 

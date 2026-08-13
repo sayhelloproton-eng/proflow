@@ -268,6 +268,70 @@ export function capabilityProposalOutputSchema<
 export const MODEL_CONTRACT_DESCRIPTOR = Object.freeze({
 	contractVersion: "1.0.0",
 	publicApi: ["infer", "getRuntimeStatus"],
+	publicTypes: [
+		"InferenceRequest",
+		"InferenceResult",
+		"InferenceError",
+		"ModelRuntimeStatus",
+		"ModelCapabilityProfile",
+		"ReasoningSpec",
+		"CapabilityProposal",
+	],
+	request: [
+		"contractVersion",
+		"specRef",
+		"mode",
+		"priority",
+		"trace.callerRef",
+		"trace.correlationId?",
+		"trace.taskId?",
+		"trace.nodeId?",
+		"trace.executionRef?",
+		"payload",
+		"images?",
+		"images.mimeType",
+		"images.data",
+		"timeoutMs?",
+	],
+	result: [
+		"contractVersion",
+		"inferenceRef",
+		"specRef",
+		"status",
+		"requestedMode",
+		"actualMode?",
+		"data?",
+		"error?",
+		"metrics.queueLatencyMs",
+		"metrics.inferenceLatencyMs?",
+		"metrics.totalLatencyMs",
+	],
+	runtimeStatus: [
+		"runtime",
+		"lane",
+		"fast",
+		"reason",
+		"activeInferenceRef?",
+		"activeRole?",
+		"businessQueueDepth",
+		"backgroundQueueDepth",
+		"lastSuccessAt?",
+		"lastFailureAt?",
+		"lastErrorCode?",
+	],
+	error: ["code", "message", "retryable"],
+	enums: {
+		inferenceMode: [...inferenceModes],
+		inferencePriority: [...inferencePriorities],
+		inferenceStatus: ["SUCCEEDED", "FAILED", "CANCELLED"],
+		runtimeHealth: ["READY", "DEGRADED", "UNAVAILABLE"],
+		laneState: ["IDLE", "BUSY"],
+		roleState: ["READY", "UNAVAILABLE"],
+		reasoningMode: ["thinking", "no-thinking"],
+		modality: ["text", "image"],
+		structuredOutput: ["native", "prompted", "unsupported"],
+		errorCode: [...inferenceErrorCodes],
+	},
 	requestFields: [
 		"contractVersion",
 		"specRef",
@@ -283,6 +347,12 @@ export const MODEL_CONTRACT_DESCRIPTOR = Object.freeze({
 type ContractDescriptor = {
 	contractVersion: string;
 	publicApi: readonly string[];
+	publicTypes: readonly string[];
+	request: readonly string[];
+	result: readonly string[];
+	runtimeStatus: readonly string[];
+	error: readonly string[];
+	enums: Readonly<Record<string, readonly string[]>>;
 	requestFields: readonly string[];
 	errorCodes: readonly string[];
 	statuses: readonly string[];
@@ -294,6 +364,11 @@ export function checkModelContractCompatibility(
 ): { status: "PASS" | "FAIL"; missing: string[] } {
 	const groups = [
 		"publicApi",
+		"publicTypes",
+		"request",
+		"result",
+		"runtimeStatus",
+		"error",
 		"requestFields",
 		"errorCodes",
 		"statuses",
@@ -303,6 +378,13 @@ export function checkModelContractCompatibility(
 			.filter((item) => !provider[group].includes(item))
 			.map((item) => `${group}:${item}`),
 	);
+	for (const [name, values] of Object.entries(consumer.enums)) {
+		const providerValues = provider.enums[name] ?? [];
+		for (const value of values) {
+			if (!providerValues.includes(value))
+				missing.push(`enums.${name}:${value}`);
+		}
+	}
 	if (
 		consumer.contractVersion.split(".")[0] !==
 		provider.contractVersion.split(".")[0]

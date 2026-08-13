@@ -32,8 +32,9 @@ const request = {
 };
 
 test("runtime returns typed failures for boundary, capability, size, and invalid output", async () => {
-	const unavailableRoles = verifiedTestRoles();
-	unavailableRoles.fast = { ...unavailableRoles.fast, state: "UNAVAILABLE" };
+	const unavailableRoles = verifiedTestRoles({
+		fastObserved: { structuredOutput: false },
+	});
 	const unavailable = createModelRuntime({
 		specs: [spec],
 		roles: unavailableRoles,
@@ -68,11 +69,9 @@ test("runtime returns typed failures for boundary, capability, size, and invalid
 		"INVALID_OUTPUT",
 	);
 
-	const noVisionRoles = verifiedTestRoles();
-	noVisionRoles.fast = {
-		...noVisionRoles.fast,
-		profile: { ...noVisionRoles.fast.profile, inputModalities: ["text"] },
-	};
+	const noVisionRoles = verifiedTestRoles({
+		fastProfile: { inputModalities: ["text"] },
+	});
 	const noVision = createModelRuntime({
 		specs: [spec],
 		roles: noVisionRoles,
@@ -235,4 +234,102 @@ test("deployment adapter drives real service start/restart/status/stop lifecycle
 	const stopped = await adapter.stop();
 	assert.equal(stopped.result.status, "SUCCEEDED");
 	assert.equal(service.status(), "STOPPED");
+});
+
+test("MOD-P1-06 HTTP client abort and deployment restart cancel queued/running work without late success", async (context) => {
+	const releases: Array<() => void> = [];
+	const runtime = createModelRuntime({
+		specs: [spec],
+		roles: verifiedTestRoles(),
+		provider: fakeProvider(
+			() =>
+				new Promise<string>((resolve) => {
+					releases.push(() => resolve('{"decision":"ALLOW"}'));
+				}),
+		),
+	});
+	const service = createModelRuntimeService({ runtime });
+	let serviceRunning = false;
+	const adapter = createBehaviorAdapter({
+		service,
+		verifyProvider: async () => ({ ok: true, message: "verified" }),
+	});
+	const started = await service.start();
+	serviceRunning = true;
+	const stopService = async () => {
+		if (serviceRunning) {
+			await service.stop();
+			serviceRunning = false;
+		}
+	};
+	context.after(stopService);
+	const endpoint = `http://${started.host}:${started.port}/infer`;
+	const running = fetch(endpoint, {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({
+			...request,
+			trace: { callerRef: "restart:running" },
+		}),
+	}).then((response) => response.json()) as Promise<{
+		status: string;
+		error?: { code: string };
+	}>;
+	await new Promise<void>((resolve) => setImmediate(resolve));
+	const queued = fetch(endpoint, {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({
+			...request,
+			trace: { callerRef: "restart:queued" },
+		}),
+	}).then((response) => response.json()) as Promise<{
+		status: string;
+		error?: { code: string };
+	}>;
+	for (let attempt = 0; attempt < 20; attempt += 1) {
+		if (runtime.getRuntimeStatus().businessQueueDepth === 1) break;
+		await new Promise<void>((resolve) => setImmediate(resolve));
+	}
+	assert.equal(runtime.getRuntimeStatus().businessQueueDepth, 1);
+	const restarted = await adapter.restart();
+	if (!("data" in restarted.result))
+		throw new Error("restart did not return a service address");
+	const restartedAddress = restarted.result.data as {
+		host: string;
+		port: number;
+	};
+	assert.deepEqual(
+		(await Promise.all([running, queued])).map((result) => result.error?.code),
+		["INFERENCE_FAILED", "INFERENCE_FAILED"],
+	);
+
+	const clientAbort = new AbortController();
+	const restartedEndpoint = `http://${restartedAddress.host}:${restartedAddress.port}/infer`;
+	const aborted = fetch(restartedEndpoint, {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({
+			...request,
+			trace: { callerRef: "client:aborted" },
+		}),
+		signal: clientAbort.signal,
+	});
+	for (let attempt = 0; attempt < 20; attempt += 1) {
+		if (runtime.getRuntimeStatus().lane === "BUSY") break;
+		await new Promise<void>((resolve) => setImmediate(resolve));
+	}
+	assert.equal(runtime.getRuntimeStatus().lane, "BUSY");
+	clientAbort.abort();
+	await assert.rejects(aborted, /abort/i);
+	for (let attempt = 0; attempt < 20; attempt += 1) {
+		if (runtime.getRuntimeStatus().lastErrorCode === "CANCELLED") break;
+		await new Promise<void>((resolve) => setImmediate(resolve));
+	}
+	assert.equal(runtime.getRuntimeStatus().lastErrorCode, "CANCELLED");
+	for (const release of releases) release();
+	await new Promise<void>((resolve) => setImmediate(resolve));
+	assert.equal(runtime.getRuntimeStatus().lastSuccessAt, undefined);
+	assert.equal(runtime.getRuntimeStatus().lastErrorCode, "CANCELLED");
+	await stopService();
 });

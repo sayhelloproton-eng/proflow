@@ -11,6 +11,12 @@ import {
 	type ReasoningSpec,
 } from "@tomflow/proflow-model-contracts";
 import {
+	createFileModelRuntimeLogger,
+	fingerprint,
+	type ModelRuntimeLogger,
+} from "./logging.ts";
+import {
+	assertVerifiedModelRoles,
 	type ModelProvider,
 	type ModelRole,
 	type ModelRoles,
@@ -28,7 +34,11 @@ export type {
 	ProviderCall,
 	ProviderResponse,
 };
-export { createReasoningSpec, verifyRoleCapabilities };
+export {
+	createFileModelRuntimeLogger,
+	createReasoningSpec,
+	verifyRoleCapabilities,
+};
 
 export const MODEL_RUNTIME_PUBLIC_API = ["infer", "getRuntimeStatus"] as const;
 
@@ -40,6 +50,8 @@ type RuntimeOptions = {
 	inferenceTimeoutMs?: number;
 	now?: () => number;
 	restartSignal?: AbortSignal;
+	logger?: ModelRuntimeLogger;
+	capabilityVerificationMaxAgeMs?: number;
 };
 
 type Job = {
@@ -52,6 +64,10 @@ type Job = {
 	queueTimer?: NodeJS.Timeout;
 	abortListener?: () => void;
 	transportRetryUsed: boolean;
+	providerRequestRefs: string[];
+	finishReasons: string[];
+	thinkingStatuses: string[];
+	repairCount: number;
 };
 
 const errorResult = (
@@ -174,18 +190,31 @@ function definitelyUnstartedTransportFailure(error: unknown): boolean {
 }
 
 export function createModelRuntime(options: RuntimeOptions) {
-	const specs = new Map(options.specs.map((spec) => [spec.specRef, spec]));
+	const now = options.now ?? Date.now;
+	assertVerifiedModelRoles(options.roles, {
+		now: now(),
+		maxAgeMs: options.capabilityVerificationMaxAgeMs ?? 300_000,
+	});
+	const specs = new Map<string, ReasoningSpec<unknown, unknown>>();
+	for (const spec of options.specs) {
+		if (specs.has(spec.specRef))
+			throw new TypeError(`duplicate ReasoningSpec identity: ${spec.specRef}`);
+		specs.set(spec.specRef, spec);
+	}
 	const queues: Record<"business" | "background", Job[]> = {
 		business: [],
 		background: [],
 	};
-	const now = options.now ?? Date.now;
 	let active: Job | undefined;
 	let activeRole: ModelRole | undefined;
 	let activeController: AbortController | undefined;
 	let lastSuccessAt: string | undefined;
 	let lastFailureAt: string | undefined;
 	let lastErrorCode: NonNullable<InferenceResult["error"]>["code"] | undefined;
+	const roleStates: Record<ModelRole, "READY" | "UNAVAILABLE"> = {
+		fast: options.roles.fast.state,
+		reason: options.roles.reason.state,
+	};
 
 	const removeQueued = (job: Job): boolean => {
 		const queue = queues[job.request.priority];
@@ -201,6 +230,114 @@ export function createModelRuntime(options: RuntimeOptions) {
 		return result;
 	};
 
+	const logResult = async (job: Job, result: InferenceResult) => {
+		if (!options.logger) return;
+		const payload = stableJson(job.request.payload);
+		await options.logger.log({
+			timestamp: new Date().toISOString(),
+			inferenceRef: result.inferenceRef,
+			specRef: result.specRef,
+			callerRef: job.request.trace.callerRef,
+			...(job.request.trace.correlationId
+				? { correlationId: job.request.trace.correlationId }
+				: {}),
+			requestedMode: result.requestedMode,
+			...(result.actualMode ? { actualMode: result.actualMode } : {}),
+			status: result.status,
+			...(result.error ? { errorCode: result.error.code } : {}),
+			queueLatencyMs: result.metrics.queueLatencyMs,
+			...(result.metrics.inferenceLatencyMs === undefined
+				? {}
+				: { inferenceLatencyMs: result.metrics.inferenceLatencyMs }),
+			totalLatencyMs: result.metrics.totalLatencyMs,
+			payloadBytes: Buffer.byteLength(payload),
+			payloadFingerprint: fingerprint(payload),
+			imageCount: job.request.images?.length ?? 0,
+			images: (job.request.images ?? []).map((image) => ({
+				mimeType: image.mimeType,
+				bytes: Buffer.from(image.data, "base64").length,
+				fingerprint: fingerprint(image.data),
+			})),
+			providerRequestRefs: job.providerRequestRefs,
+			finishReasons: job.finishReasons,
+			thinkingStatuses: job.thinkingStatuses,
+			repairCount: job.repairCount,
+		});
+	};
+
+	const settle = async (job: Job, result: InferenceResult) => {
+		try {
+			await logResult(job, result);
+		} catch {
+			const loggingFailure = errorResult(
+				job,
+				"INFERENCE_FAILED",
+				"sanitized model runtime log could not be persisted",
+				now(),
+				result.actualMode,
+			);
+			job.resolve(finishFailure(loggingFailure));
+			return;
+		}
+		job.resolve(result);
+	};
+
+	const admissionFailure = (
+		job: Pick<Job, "request" | "spec">,
+		role: ModelRole,
+	): RuntimeFailure | undefined => {
+		const configuration = options.roles[role];
+		if (roleStates[role] !== "READY")
+			return new RuntimeFailure(
+				"MODEL_UNAVAILABLE",
+				`role ${role} is unavailable`,
+			);
+		const requiredReasoning = role === "fast" ? "no-thinking" : "thinking";
+		if (!configuration.profile.reasoningModes.includes(requiredReasoning))
+			return new RuntimeFailure(
+				"CAPABILITY_UNSUPPORTED",
+				`role ${role} does not support ${requiredReasoning}`,
+			);
+		if (!configuration.profile.inputModalities.includes("text"))
+			return new RuntimeFailure(
+				"CAPABILITY_UNSUPPORTED",
+				`role ${role} does not support text input`,
+			);
+		const requiresImage = job.spec.requiredModalities.includes("image");
+		const hasImage = Boolean(job.request.images?.length);
+		if (requiresImage !== hasImage)
+			return new RuntimeFailure(
+				"CAPABILITY_UNSUPPORTED",
+				requiresImage
+					? "ReasoningSpec requires image input for this request"
+					: "ReasoningSpec does not accept image input for this request",
+			);
+		if (hasImage && !configuration.profile.inputModalities.includes("image"))
+			return new RuntimeFailure(
+				"CAPABILITY_UNSUPPORTED",
+				`role ${role} cannot accept images`,
+			);
+		if (configuration.profile.structuredOutput === "unsupported")
+			return new RuntimeFailure(
+				"CAPABILITY_UNSUPPORTED",
+				`role ${role} does not support structured output`,
+			);
+		if (job.spec.maxOutputTokens > configuration.profile.maxOutputTokens)
+			return new RuntimeFailure(
+				"CAPABILITY_UNSUPPORTED",
+				`ReasoningSpec output limit exceeds role ${role} capability`,
+			);
+		const contextBytes = Buffer.byteLength(
+			renderPrompt(job.spec, job.request.payload),
+		);
+		if (contextBytes > configuration.profile.contextWindow)
+			return new RuntimeFailure(
+				"CAPABILITY_UNSUPPORTED",
+				`request context exceeds role ${role} capability`,
+			);
+		return undefined;
+	};
+
 	const callProvider = async (
 		job: Job,
 		role: ModelRole,
@@ -208,29 +345,9 @@ export function createModelRuntime(options: RuntimeOptions) {
 		signal: AbortSignal,
 	) => {
 		const profile = options.roles[role];
-		if (profile.state !== "READY")
-			throw new RuntimeFailure(
-				"MODEL_UNAVAILABLE",
-				`role ${role} is unavailable`,
-			);
-		if (
-			job.spec.requiredModalities.includes("image") &&
-			!profile.profile.inputModalities.includes("image")
-		) {
-			throw new RuntimeFailure(
-				"CAPABILITY_UNSUPPORTED",
-				`role ${role} does not support required image input`,
-			);
-		}
-		if (
-			job.request.images &&
-			!profile.profile.inputModalities.includes("image")
-		) {
-			throw new RuntimeFailure(
-				"CAPABILITY_UNSUPPORTED",
-				`role ${role} cannot accept images`,
-			);
-		}
+		void profile;
+		const rejected = admissionFailure(job, role);
+		if (rejected) throw rejected;
 		const call = {
 			role,
 			request: job.request,
@@ -238,16 +355,39 @@ export function createModelRuntime(options: RuntimeOptions) {
 			prompt: renderPrompt(job.spec, job.request.payload),
 			repair,
 		};
+		const invoke = async () => {
+			const providerPromise = options.provider.infer(call, signal);
+			const abortPromise = new Promise<never>((_resolve, reject) => {
+				if (signal.aborted) {
+					reject(new Error(String(signal.reason ?? "CANCELLED")));
+					return;
+				}
+				signal.addEventListener(
+					"abort",
+					() => reject(new Error(String(signal.reason ?? "CANCELLED"))),
+					{ once: true },
+				);
+			});
+			const response = await Promise.race([providerPromise, abortPromise]);
+			if (response.providerRequestRef)
+				job.providerRequestRefs.push(response.providerRequestRef);
+			if (response.finishReason) job.finishReasons.push(response.finishReason);
+			if (response.thinkingStatus)
+				job.thinkingStatuses.push(response.thinkingStatus);
+			roleStates[role] = "READY";
+			return response;
+		};
 		try {
-			return await options.provider.infer(call, signal);
+			return await invoke();
 		} catch (error) {
 			if (
 				!job.transportRetryUsed &&
 				definitelyUnstartedTransportFailure(error)
 			) {
 				job.transportRetryUsed = true;
-				return options.provider.infer(call, signal);
+				return invoke();
 			}
+			if (!signal.aborted) roleStates[role] = "UNAVAILABLE";
 			throw error;
 		}
 	};
@@ -262,6 +402,7 @@ export function createModelRuntime(options: RuntimeOptions) {
 			return parseProviderOutput(job.spec, response.content);
 		} catch (firstError) {
 			if (job.spec.repair !== "once") throw firstError;
+			job.repairCount += 1;
 			response = await callProvider(job, role, true, signal);
 			return parseProviderOutput(job.spec, response.content);
 		}
@@ -309,7 +450,7 @@ export function createModelRuntime(options: RuntimeOptions) {
 				throw new Error(String(controller.signal.reason ?? "CANCELLED"));
 			lastSuccessAt = new Date().toISOString();
 			const endedAt = now();
-			job.resolve({
+			const result: InferenceResult = {
 				contractVersion: "1.0.0",
 				inferenceRef: job.inferenceRef,
 				specRef: job.spec.specRef,
@@ -322,7 +463,8 @@ export function createModelRuntime(options: RuntimeOptions) {
 					inferenceLatencyMs: Math.max(0, endedAt - startedAt),
 					totalLatencyMs: Math.max(0, endedAt - job.enqueuedAt),
 				},
-			});
+			};
+			await settle(job, result);
 		} catch (error) {
 			const aborted = controller.signal.aborted;
 			const timeout = controller.signal.reason === "INFERENCE_TIMEOUT";
@@ -354,7 +496,13 @@ export function createModelRuntime(options: RuntimeOptions) {
 				inferenceLatencyMs: Math.max(0, endedAt - startedAt),
 				totalLatencyMs: Math.max(0, endedAt - job.enqueuedAt),
 			};
-			job.resolve(finishFailure(result));
+			if (
+				failure.code === "PROVIDER_ERROR" ||
+				failure.code === "INVALID_OUTPUT" ||
+				failure.code === "INFERENCE_TIMEOUT"
+			)
+				roleStates[activeRole ?? initialRole] = "UNAVAILABLE";
+			await settle(job, finishFailure(result));
 		} finally {
 			if (timer) clearTimeout(timer);
 			job.signal?.removeEventListener("abort", cancel);
@@ -449,6 +597,10 @@ export function createModelRuntime(options: RuntimeOptions) {
 				enqueuedAt,
 				resolve,
 				transportRetryUsed: false,
+				providerRequestRefs: [],
+				finishReasons: [],
+				thinkingStatuses: [],
+				repairCount: 0,
 				...(optionsInput.signal ? { signal: optionsInput.signal } : {}),
 			};
 			const queueTimeoutMs = Math.min(
@@ -458,7 +610,8 @@ export function createModelRuntime(options: RuntimeOptions) {
 			if (Number.isFinite(queueTimeoutMs)) {
 				job.queueTimer = setTimeout(() => {
 					if (removeQueued(job))
-						resolve(
+						void settle(
+							job,
 							finishFailure(
 								errorResult(job, "QUEUE_TIMEOUT", "queue timeout", now()),
 							),
@@ -469,12 +622,16 @@ export function createModelRuntime(options: RuntimeOptions) {
 				job.abortListener = () => {
 					if (removeQueued(job)) {
 						if (job.queueTimer) clearTimeout(job.queueTimer);
-						resolve(
+						const restarted = job.signal?.reason === "RESTART";
+						void settle(
+							job,
 							finishFailure(
 								errorResult(
 									job,
-									"CANCELLED",
-									"queued inference cancelled",
+									restarted ? "INFERENCE_FAILED" : "CANCELLED",
+									restarted
+										? "runtime restarted before inference"
+										: "queued inference cancelled",
 									now(),
 								),
 							),
@@ -489,7 +646,12 @@ export function createModelRuntime(options: RuntimeOptions) {
 	};
 
 	const getRuntimeStatus = (): ModelRuntimeStatus => {
-		const base = healthFromRoles(options.roles);
+		const currentRoles = {
+			...options.roles,
+			fast: { ...options.roles.fast, state: roleStates.fast },
+			reason: { ...options.roles.reason, state: roleStates.reason },
+		} as ModelRoles;
+		const base = healthFromRoles(currentRoles);
 		return {
 			...base,
 			lane: active ? "BUSY" : "IDLE",
@@ -510,7 +672,8 @@ export function createModelRuntime(options: RuntimeOptions) {
 			for (const priority of ["business", "background"] as const) {
 				for (const job of queues[priority].splice(0)) {
 					if (job.queueTimer) clearTimeout(job.queueTimer);
-					job.resolve(
+					void settle(
+						job,
 						finishFailure(
 							errorResult(
 								job,

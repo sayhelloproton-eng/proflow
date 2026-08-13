@@ -8,7 +8,7 @@ import { z } from "zod";
 import {
 	createModelRuntime,
 	type ModelProvider,
-	type ModelRoles,
+	verifyRoleCapabilities,
 } from "../src/index.ts";
 import { createOpenAICompatibleProvider } from "../src/provider.ts";
 import { systemHealthAssessmentSpec } from "../src/specs/system-health-assessment.ts";
@@ -90,30 +90,48 @@ const trackedProvider: ModelProvider = {
 	},
 };
 
-const roles: ModelRoles = {
-	fast: {
-		state: "READY",
-		profile: {
-			modelRef: fastModel,
-			reasoningModes: ["no-thinking"],
-			inputModalities: ["text", "image"],
-			structuredOutput: "native",
-			contextWindow: 32_768,
-			maxOutputTokens: 1_024,
+const roles = verifyRoleCapabilities({
+	declared: {
+		fast: {
+			profile: {
+				modelRef: fastModel,
+				reasoningModes: ["no-thinking"],
+				inputModalities: ["text", "image"],
+				structuredOutput: "native",
+				contextWindow: 32_768,
+				maxOutputTokens: 1_024,
+			},
+		},
+		reason: {
+			profile: {
+				modelRef: reasonModel,
+				reasoningModes: ["thinking"],
+				inputModalities: ["text", "image"],
+				structuredOutput: "native",
+				contextWindow: 32_768,
+				maxOutputTokens: 2_048,
+			},
 		},
 	},
-	reason: {
-		state: "READY",
-		profile: {
-			modelRef: reasonModel,
-			reasoningModes: ["thinking"],
-			inputModalities: ["text", "image"],
-			structuredOutput: "native",
-			contextWindow: 32_768,
-			maxOutputTokens: 2_048,
+	observed: {
+		fast: {
+			text: true,
+			image: true,
+			structuredOutput: true,
+			reasoning: "no-thinking",
+			reasoningBasis: "provider-response-thinking-absent",
+			verifiedAt: new Date().toISOString(),
+		},
+		reason: {
+			text: true,
+			image: true,
+			structuredOutput: true,
+			reasoning: "thinking",
+			reasoningBasis: "provider-response-thinking-closed",
+			verifiedAt: new Date().toISOString(),
 		},
 	},
-};
+});
 
 const visionSpec = createReasoningSpec({
 	id: "browser.observation-boundary",

@@ -15,14 +15,14 @@ import {
 } from "../src/index.ts";
 
 const execFileAsync = promisify(execFile);
+const tsc = resolve(
+	import.meta.dirname,
+	"../../../node_modules/typescript/bin/tsc",
+);
 
 test("Bootstrap closure generates, typechecks, validates, and conforms all six profiles", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-bootstrap-closure-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
-	const tsc = resolve(
-		import.meta.dirname,
-		"../../../node_modules/typescript/bin/tsc",
-	);
 	const kinds: ModuleDescriptor["kind"][] = [
 		"library",
 		"service",
@@ -39,6 +39,11 @@ test("Bootstrap closure generates, typechecks, validates, and conforms all six p
 			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
 		});
+		await execFileAsync(process.execPath, [
+			tsc,
+			"-p",
+			join(generated.packageDirectory, "tsconfig.build.json"),
+		]);
 		assert.deepEqual(
 			(await runGeneratedPackageConformance(generated.packageDirectory)).map(
 				(result) => result.status,
@@ -98,6 +103,11 @@ test("Bootstrap closure deterministically rejects intentional C1, C2, and C3 bre
 		join(brokenBehavior.packageDirectory, "deployment/adapter.ts"),
 		"export const behaviorAdapter = {};\n",
 	);
+	await execFileAsync(process.execPath, [
+		tsc,
+		"-p",
+		join(brokenBehavior.packageDirectory, "tsconfig.build.json"),
+	]);
 	assert.equal(
 		(await runGeneratedPackageConformance(brokenBehavior.packageDirectory))[2]
 			.status,

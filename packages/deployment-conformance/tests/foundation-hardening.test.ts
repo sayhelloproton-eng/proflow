@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { test } from "node:test";
+import { promisify } from "node:util";
 
 import { materializeModule } from "@tomflow/proflow-module-template";
 import {
@@ -10,6 +12,20 @@ import {
 	runPackageConformance,
 	runStaticConformance,
 } from "../src/index.ts";
+
+const execFileAsync = promisify(execFile);
+const tsc = resolve(
+	import.meta.dirname,
+	"../../../node_modules/typescript/bin/tsc",
+);
+
+async function buildGenerated(packageDirectory: string) {
+	await execFileAsync(process.execPath, [
+		tsc,
+		"-p",
+		join(packageDirectory, "tsconfig.build.json"),
+	]);
+}
 
 test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the owning gate", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-foundation-hardening-"));
@@ -28,6 +44,7 @@ test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the o
 			packageName: `@tomflow/proflow-closure-${kind}`,
 			kind,
 		});
+		await buildGenerated(generated.packageDirectory);
 		const result = await runGeneratedPackageConformance(
 			generated.packageDirectory,
 		);
@@ -79,6 +96,7 @@ test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the o
 		join(c3.packageDirectory, "deployment/adapter.ts"),
 		"export const behaviorAdapter = {};\n",
 	);
+	await buildGenerated(c3.packageDirectory);
 	assert.equal(
 		(await runGeneratedPackageConformance(c3.packageDirectory))[2]?.status,
 		"FAIL",

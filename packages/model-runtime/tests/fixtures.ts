@@ -4,38 +4,67 @@ import {
 	createModelRuntime,
 	type ModelProvider,
 	type ModelRoles,
+	type ObservedRoleCapabilities,
 	type ProviderCall,
 	type ProviderResponse,
+	verifyRoleCapabilities,
 } from "../src/index.ts";
 
 export const nextTurn = () =>
 	new Promise<void>((resolve) => setImmediate(resolve));
 
-export function verifiedTestRoles(): ModelRoles {
-	return {
-		fast: {
-			state: "READY",
-			profile: {
-				modelRef: "test-fast",
-				reasoningModes: ["no-thinking"],
-				inputModalities: ["text", "image"],
-				structuredOutput: "native",
-				contextWindow: 32_000,
-				maxOutputTokens: 4_096,
+export function verifiedTestRoles(input?: {
+	fastProfile?: Partial<ModelRoles["fast"]["profile"]>;
+	reasonProfile?: Partial<ModelRoles["reason"]["profile"]>;
+	fastObserved?: Partial<ObservedRoleCapabilities["fast"]>;
+	reasonObserved?: Partial<ObservedRoleCapabilities["reason"]>;
+}): ModelRoles {
+	return verifyRoleCapabilities({
+		declared: {
+			fast: {
+				profile: {
+					modelRef: "test-fast",
+					reasoningModes: ["no-thinking"],
+					inputModalities: ["text", "image"],
+					structuredOutput: "native",
+					contextWindow: 32_000,
+					maxOutputTokens: 4_096,
+					...input?.fastProfile,
+				},
+			},
+			reason: {
+				profile: {
+					modelRef: "test-reason",
+					reasoningModes: ["thinking"],
+					inputModalities: ["text", "image"],
+					structuredOutput: "native",
+					contextWindow: 32_000,
+					maxOutputTokens: 4_096,
+					...input?.reasonProfile,
+				},
 			},
 		},
-		reason: {
-			state: "READY",
-			profile: {
-				modelRef: "test-reason",
-				reasoningModes: ["thinking"],
-				inputModalities: ["text", "image"],
-				structuredOutput: "native",
-				contextWindow: 32_000,
-				maxOutputTokens: 4_096,
+		observed: {
+			fast: {
+				text: true,
+				image: true,
+				structuredOutput: true,
+				reasoning: "no-thinking",
+				reasoningBasis: "provider-response-thinking-absent",
+				verifiedAt: new Date().toISOString(),
+				...input?.fastObserved,
+			},
+			reason: {
+				text: true,
+				image: true,
+				structuredOutput: true,
+				reasoning: "thinking",
+				reasoningBasis: "provider-response-thinking-closed",
+				verifiedAt: new Date().toISOString(),
+				...input?.reasonObserved,
 			},
 		},
-	};
+	});
 }
 
 export function fakeProvider(
@@ -177,14 +206,11 @@ export function healthMatrix() {
 	const provider = fakeProvider(async () => '{"decision":"ALLOW"}');
 	return [
 		verifiedTestRoles(),
-		{
-			...verifiedTestRoles(),
-			reason: { ...verifiedTestRoles().reason, state: "UNAVAILABLE" as const },
-		},
-		{
-			fast: { ...verifiedTestRoles().fast, state: "UNAVAILABLE" as const },
-			reason: { ...verifiedTestRoles().reason, state: "UNAVAILABLE" as const },
-		},
+		verifiedTestRoles({ reasonObserved: { structuredOutput: false } }),
+		verifiedTestRoles({
+			fastObserved: { structuredOutput: false },
+			reasonObserved: { structuredOutput: false },
+		}),
 	].map((roles) =>
 		createModelRuntime({
 			specs: [proofSpec()],

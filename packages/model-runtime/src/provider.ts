@@ -12,9 +12,25 @@ export type RoleConfiguration = {
 	profile: ModelCapabilityProfile;
 	state: RoleState;
 	reason?: string;
+	verification: {
+		status: "PASS" | "FAIL";
+		verifiedAt: string;
+		reasoningBasis:
+			| "provider-response-thinking-absent"
+			| "provider-response-thinking-closed";
+	};
 };
 
-export type ModelRoles = Record<ModelRole, RoleConfiguration>;
+const verifiedRolesBrand: unique symbol = Symbol("verified-model-roles");
+
+export type ModelRoles = Record<ModelRole, RoleConfiguration> & {
+	readonly [verifiedRolesBrand]: true;
+};
+
+export type DeclaredModelRoles = Record<
+	ModelRole,
+	{ profile: ModelCapabilityProfile }
+>;
 
 export type ProviderCall = {
 	role: ModelRole;
@@ -28,6 +44,7 @@ export type ProviderResponse = {
 	content: string;
 	providerRequestRef?: string;
 	finishReason?: string;
+	thinkingStatus?: "absent" | "closed" | "unclosed";
 };
 
 export type ModelProvider = {
@@ -59,12 +76,19 @@ export type OpenAICompatibleProviderConfig = {
 	fetch?: typeof globalThis.fetch;
 };
 
-function stripProviderThinking(content: string): string {
+function stripProviderThinking(content: string): {
+	content: string;
+	thinkingStatus: "absent" | "closed";
+} {
 	const trimmed = content.trim();
-	if (!trimmed.startsWith("<think>")) return trimmed;
+	if (!trimmed.startsWith("<think>"))
+		return { content: trimmed, thinkingStatus: "absent" };
 	const end = trimmed.indexOf("</think>");
 	if (end < 0) throw new Error("provider returned an unclosed thinking block");
-	return trimmed.slice(end + "</think>".length).trim();
+	return {
+		content: trimmed.slice(end + "</think>".length).trim(),
+		thinkingStatus: "closed",
+	};
 }
 
 function stableJson(value: unknown): string {
@@ -142,8 +166,10 @@ export function createOpenAICompatibleProvider(
 			const content = parsed.choices[0]?.message.content;
 			if (!content)
 				throw new Error("provider response did not contain message content");
+			const stripped = stripProviderThinking(content);
 			return {
-				content: stripProviderThinking(content),
+				content: stripped.content,
+				thinkingStatus: stripped.thinkingStatus,
 				...(parsed.id ? { providerRequestRef: parsed.id } : {}),
 				...(parsed.choices[0]?.finish_reason
 					? { finishReason: parsed.choices[0].finish_reason }
@@ -160,34 +186,72 @@ export type ObservedRoleCapabilities = Record<
 		image: boolean;
 		structuredOutput: boolean;
 		reasoning: "thinking" | "no-thinking";
+		reasoningBasis:
+			| "provider-response-thinking-absent"
+			| "provider-response-thinking-closed";
+		verifiedAt: string;
 	}
 >;
 
 export function verifyRoleCapabilities(input: {
-	declared: ModelRoles;
+	declared: DeclaredModelRoles;
 	observed: ObservedRoleCapabilities;
 }): ModelRoles {
-	return Object.fromEntries(
+	const roles = Object.fromEntries(
 		(["fast", "reason"] as const).map((role) => {
 			const declared = input.declared[role];
 			const observed = input.observed[role];
 			const requiredReasoning = role === "fast" ? "no-thinking" : "thinking";
+			const requiredBasis =
+				role === "fast"
+					? "provider-response-thinking-absent"
+					: "provider-response-thinking-closed";
 			const ready =
-				declared.state === "READY" &&
 				observed.text &&
 				observed.structuredOutput &&
 				observed.reasoning === requiredReasoning &&
+				observed.reasoningBasis === requiredBasis &&
+				declared.profile.reasoningModes.includes(requiredReasoning) &&
+				declared.profile.inputModalities.includes("text") &&
+				declared.profile.structuredOutput !== "unsupported" &&
 				(!declared.profile.inputModalities.includes("image") || observed.image);
 			return [
 				role,
-				ready
-					? declared
-					: {
-							...declared,
-							state: "UNAVAILABLE" as const,
-							reason: "capability verification mismatch",
-						},
+				Object.freeze({
+					...declared,
+					state: ready ? ("READY" as const) : ("UNAVAILABLE" as const),
+					...(!ready ? { reason: "capability verification mismatch" } : {}),
+					verification: {
+						status: ready ? ("PASS" as const) : ("FAIL" as const),
+						verifiedAt: observed.verifiedAt,
+						reasoningBasis: observed.reasoningBasis,
+					},
+				}),
 			];
 		}),
-	) as ModelRoles;
+	) as Record<ModelRole, RoleConfiguration>;
+	Object.defineProperty(roles, verifiedRolesBrand, { value: true });
+	return Object.freeze(roles) as ModelRoles;
+}
+
+export function assertVerifiedModelRoles(
+	roles: unknown,
+	input: { now: number; maxAgeMs: number },
+): asserts roles is ModelRoles {
+	if (
+		typeof roles !== "object" ||
+		roles === null ||
+		Reflect.get(roles, verifiedRolesBrand) !== true
+	) {
+		throw new TypeError(
+			"Model roles require current capability verification; caller-supplied READY is forbidden",
+		);
+	}
+	const verified = roles as ModelRoles;
+	for (const role of ["fast", "reason"] as const) {
+		const verifiedAt = Date.parse(verified[role].verification.verifiedAt);
+		const age = input.now - verifiedAt;
+		if (!Number.isFinite(verifiedAt) || age < -30_000 || age > input.maxAgeMs)
+			throw new TypeError(`role ${role} capability verification is stale`);
+	}
 }

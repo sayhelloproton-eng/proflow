@@ -1,8 +1,19 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import {
+	mkdir,
+	mkdtemp,
+	readdir,
+	readFile,
+	rename,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { promisify } from "node:util";
 
 import type { ModuleKind } from "@tomflow/proflow-module-contract";
 import {
@@ -18,6 +29,7 @@ const kinds: ModuleKind[] = [
 	"agent-package",
 	"external-resource",
 ];
+const execFileAsync = promisify(execFile);
 
 test("P1-1/P1-2 all six profiles load and execute their own generated adapter", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-own-adapter-"));
@@ -49,7 +61,7 @@ test("P1-1/P1-2 all six profiles load and execute their own generated adapter", 
 			),
 			false,
 		);
-		if (kind === "cli") assert.equal(generated.machineEntry, "src/cli.ts");
+		if (kind === "cli") assert.equal(generated.machineEntry, "dist/src/cli.js");
 		if (kind === "agent-package") {
 			const status = await adapter.status?.();
 			assert.equal(status?.result.status, "ACTION_REQUIRED");
@@ -82,4 +94,81 @@ test("P1-4/P1-5 template enforces formal names and creates publishable public pa
 	assert.deepEqual(generated.packageMetadata.publishConfig, {
 		access: "public",
 	});
+});
+
+test("FND-P1-01 generated Module builds JS and declarations, packs, and imports from an isolated consumer", async (context) => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-template-publish-e2e-"));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	const generated = await materializeModule({
+		targetDirectory: root,
+		moduleRef: "published-module",
+		packageName: "@tomflow/proflow-published-module",
+		kind: "library",
+	});
+	const metadata = JSON.parse(
+		await readFile(join(generated.packageDirectory, "package.json"), "utf8"),
+	) as {
+		exports: Record<string, string>;
+		files: string[];
+	};
+	assert.equal(metadata.exports["."], "./dist/src/index.js");
+	assert.deepEqual(metadata.files, ["dist", "conformance.json", "README.md"]);
+	assert.equal(
+		Object.values(metadata.exports).some((entry) => entry.endsWith(".ts")),
+		false,
+	);
+
+	await execFileAsync("pnpm", ["run", "build"], {
+		cwd: generated.packageDirectory,
+	});
+	await stat(join(generated.packageDirectory, "dist/src/index.js"));
+	await stat(join(generated.packageDirectory, "dist/src/index.d.ts"));
+
+	const tarballDirectory = join(root, "tarballs");
+	await execFileAsync(
+		"pnpm",
+		["pack", "--pack-destination", tarballDirectory],
+		{
+			cwd: generated.packageDirectory,
+		},
+	);
+	const tarball = (await readdir(tarballDirectory)).find((entry) =>
+		entry.endsWith(".tgz"),
+	);
+	assert.ok(tarball);
+	const consumerDirectory = join(root, "consumer");
+	await writeFile(
+		join(root, "consumer-package.json"),
+		JSON.stringify({
+			name: "generated-module-consumer",
+			private: true,
+			type: "module",
+		}),
+	);
+	await mkdir(consumerDirectory);
+	await rename(
+		join(root, "consumer-package.json"),
+		join(consumerDirectory, "package.json"),
+	);
+	await execFileAsync(
+		"npm",
+		[
+			"install",
+			"--ignore-scripts",
+			"--no-audit",
+			"--no-fund",
+			"--no-package-lock",
+			join(tarballDirectory, tarball),
+		],
+		{ cwd: consumerDirectory },
+	);
+	await execFileAsync(
+		process.execPath,
+		[
+			"--input-type=module",
+			"--eval",
+			'const loaded = await import("@tomflow/proflow-published-module"); if (loaded.moduleRef !== "published-module") process.exit(1);',
+		],
+		{ cwd: consumerDirectory },
+	);
 });
