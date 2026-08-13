@@ -119,4 +119,4 @@ materializeModule
 
 Observed RED 为 `./src/index.ts !== ./dist/src/index.js`。修复后 generated package 自带 `tsconfig.build.json`，public exports 指向 `dist/*.js`，发布 files 只包含 `dist`、`conformance.json`、`README.md`。Bootstrap C2/C3 在 build 后产物上执行；故意破坏 source adapter 后重新 build，仍在 C3 确定性 FAIL。
 
-最终全仓 `pnpm check`：76/76 tests、8 package architecture、8 tarball + zod isolated consumer 全部 PASS。Foundation residual `FND-P1-01`、`FND-P2-01` 均 CLOSED。
+最终全仓 `pnpm check`：77/77 tests、8 package architecture、8 tarball + zod isolated consumer 全部 PASS。Foundation residual `FND-P1-01`、`FND-P2-01` 均 CLOSED。

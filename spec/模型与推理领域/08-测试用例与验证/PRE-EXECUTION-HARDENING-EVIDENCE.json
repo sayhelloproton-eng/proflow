@@ -3,7 +3,10 @@
   "classification": "IMPLEMENTATION_EVIDENCE",
   "normative": false,
   "status": "PASS",
-  "implementationCommit": "a613462a3855730934edade436f82121f86c87fa",
+  "implementationCommits": [
+    "a613462a3855730934edade436f82121f86c87fa",
+    "9c6253df2357021877f303f1fe3f46e6bc77dfbe"
+  ],
   "sourceTruth": [
     "spec/模型与推理领域/02-契约/01-Public-Contract与TypeScript类型规范.md",
     "spec/模型与推理领域/03-流程与数据/01-Reasoning-Spec与Small-Model-First规范.md",
@@ -20,8 +23,8 @@
       "MOD-P1-02 stale capability verification was accepted",
       "MOD-P1-06 HTTP deployment restart/client abort did not reach runtime inference"
     ],
-    "targetedGreen": "47/47 Foundation Template + Task remediation + Model tests PASS",
-    "fullGreen": "76/76 PASS; 0 fail; 0 skipped; 0 todo"
+    "targetedGreen": "48/48 Foundation Template + Task remediation + Model tests PASS",
+    "fullGreen": "77/77 PASS; 0 fail; 0 skipped; 0 todo"
   },
   "residuals": {
     "MOD-P1-01": {
@@ -30,7 +33,7 @@
     },
     "MOD-P1-02": {
       "status": "CLOSED",
-      "proof": "runtime accepts only branded capability-verification output within a five-minute freshness window; caller-forged or stale READY is rejected"
+      "proof": "runtime accepts only branded capability-verification output; caller-forged or stale READY is rejected at construction and expires dynamically in a long-running runtime after the five-minute freshness window"
     },
     "MOD-P1-03": {
       "status": "CLOSED",
@@ -98,7 +101,7 @@
   "repositoryGates": {
     "pnpmLint": "PASS",
     "pnpmTypecheck": "PASS",
-    "pnpmTest": "PASS (76/76)",
+    "pnpmTest": "PASS (77/77)",
     "pnpmArchitecture": "PASS (8 packages)",
     "pnpmPublishability": "PASS (8 tarballs plus zod isolated consumer)",
     "pnpmCheck": "PASS",
