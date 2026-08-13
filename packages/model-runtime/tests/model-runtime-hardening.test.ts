@@ -43,16 +43,22 @@ const observed = {
 	},
 };
 
-function roles(overrides?: {
-	fast?: Partial<ReturnType<typeof profile>>;
-	reason?: Partial<ReturnType<typeof profile>>;
-}) {
+function roles(
+	overrides?: {
+		fast?: Partial<ReturnType<typeof profile>>;
+		reason?: Partial<ReturnType<typeof profile>>;
+	},
+	verifiedAt = observed.fast.verifiedAt,
+) {
 	return verifyRoleCapabilities({
 		declared: {
 			fast: { profile: { ...profile("fast"), ...overrides?.fast } },
 			reason: { profile: { ...profile("reason"), ...overrides?.reason } },
 		},
-		observed,
+		observed: {
+			fast: { ...observed.fast, verifiedAt },
+			reason: { ...observed.reason, verifiedAt },
+		},
 	});
 }
 
@@ -214,7 +220,7 @@ test("MOD-P1-02 verified READY expires dynamically in a long-running runtime", a
 	let calls = 0;
 	const runtime = createModelRuntime({
 		specs: [control],
-		roles: roles(),
+		roles: roles(undefined, new Date(currentTime).toISOString()),
 		provider: fakeProvider(async () => {
 			calls += 1;
 			return '{"decision":"ALLOW"}';
