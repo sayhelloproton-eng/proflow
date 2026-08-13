@@ -1,0 +1,41 @@
+export const descriptor = {
+	contract: "module",
+	contractVersion: "1.0.0",
+	moduleRef: "execution-local",
+	packageName: "@tomflow/proflow-execution-local",
+	moduleVersion: "0.1.0",
+	kind: "library",
+	templateVersion: "1.0.0",
+	platformCompatibility: ">=1.0.0 <2.0.0",
+	provides: [{ contractRef: "execution-local", version: "1.0.0" }],
+	requires: [{ contractRef: "execution", versionRange: ">=1.0.0 <2.0.0" }],
+	requirements: [
+		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
+		{ kind: "filesystem", path: ".proflow", access: "read-write" },
+	],
+	configSlots: [
+		{
+			key: "projectRoot",
+			type: "path",
+			required: true,
+			description: "Canonical project boundary",
+		},
+		{
+			key: "artifactRoot",
+			type: "path",
+			required: true,
+			description: "Execution-owned output and evidence directory",
+		},
+	],
+	lifecycle: { supported: ["describe", "preflight", "verify", "doctor"] },
+	verification: {
+		checks: [
+			{
+				id: "local-real-gate",
+				description: "Typed local executor passes real project boundary proofs",
+				lifecycle: "verify",
+			},
+		],
+	},
+	effects: [],
+} as const;

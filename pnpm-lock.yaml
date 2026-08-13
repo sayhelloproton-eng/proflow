@@ -31,6 +31,31 @@ importers:
         specifier: workspace:^
         version: link:../module-template
 
+  packages/execution-contracts:
+    dependencies:
+      zod:
+        specifier: 4.1.12
+        version: 4.1.12
+
+  packages/execution-local:
+    dependencies:
+      '@tomflow/proflow-execution-contracts':
+        specifier: workspace:^
+        version: link:../execution-contracts
+
+  packages/execution-runtime:
+    dependencies:
+      '@tomflow/proflow-execution-contracts':
+        specifier: workspace:^
+        version: link:../execution-contracts
+      '@tomflow/proflow-execution-local':
+        specifier: workspace:^
+        version: link:../execution-local
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+
   packages/model-contracts:
     dependencies:
       zod:

@@ -1,0 +1,29 @@
+{
+	"name": "@tomflow/proflow-execution-runtime",
+	"version": "0.1.0",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./dist/src/index.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js"
+	},
+	"files": [
+		"dist",
+		"conformance.json",
+		"README.md"
+	],
+	"scripts": {
+		"test": "node --conditions=development --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@tomflow/proflow-execution-contracts": "workspace:^",
+		"@tomflow/proflow-execution-local": "workspace:^"
+	},
+	"devDependencies": {
+		"@tomflow/proflow-deployment-conformance": "workspace:^"
+	}
+}

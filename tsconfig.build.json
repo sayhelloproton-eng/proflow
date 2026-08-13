@@ -6,6 +6,15 @@
 		"rootDir": ".",
 		"rewriteRelativeImportExtensions": true,
 		"paths": {
+			"@tomflow/proflow-execution-contracts": [
+				"./packages/execution-contracts/src/index.ts"
+			],
+			"@tomflow/proflow-execution-local": [
+				"./packages/execution-local/src/index.ts"
+			],
+			"@tomflow/proflow-execution-runtime": [
+				"./packages/execution-runtime/src/index.ts"
+			],
 			"@tomflow/proflow-model-contracts": [
 				"./packages/model-contracts/src/index.ts"
 			],
