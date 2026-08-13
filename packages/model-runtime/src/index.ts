@@ -791,5 +791,9 @@ export function createModelRuntime(options: RuntimeOptions) {
 		{ once: true },
 	);
 
-	return Object.freeze({ infer, getRuntimeStatus });
+	return Object.freeze({
+		infer,
+		getRuntimeStatus,
+		refreshCapabilities: refreshRoleCapabilities,
+	});
 }

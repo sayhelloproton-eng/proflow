@@ -7,8 +7,12 @@
 	},
 	"exports": {
 		".": "./dist/src/index.js",
+		"./service": "./dist/src/service.js",
 		"./deployment/adapter": "./dist/deployment/adapter.js",
 		"./deployment/descriptor": "./dist/deployment/descriptor.js"
+	},
+	"bin": {
+		"proflow-execution-runtime": "./dist/src/cli.js"
 	},
 	"files": [
 		"dist",

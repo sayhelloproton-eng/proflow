@@ -9,9 +9,13 @@
 		".": "./dist/src/index.js",
 		"./provider": "./dist/src/provider.js",
 		"./service": "./dist/src/service.js",
+		"./process": "./dist/src/process.js",
 		"./specs/system-health-assessment": "./dist/src/specs/system-health-assessment.js",
 		"./deployment/adapter": "./dist/deployment/adapter.js",
 		"./deployment/descriptor": "./dist/deployment/descriptor.js"
+	},
+	"bin": {
+		"proflow-model-runtime": "./dist/src/cli.js"
 	},
 	"files": [
 		"dist",

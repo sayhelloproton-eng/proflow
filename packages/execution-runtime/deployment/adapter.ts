@@ -1,5 +1,12 @@
 import { descriptor } from "./descriptor.ts";
 
+type ProcessService = {
+	start(): Promise<{ host: string; port: number }>;
+	stop(): Promise<void>;
+	restart(): Promise<{ host: string; port: number }>;
+	status(): { readiness: "READY" | "NOT_READY" };
+};
+
 const base = {
 	contract: "deployment.result.v1",
 	ok: true,
@@ -18,26 +25,52 @@ const unbound = {
 	},
 } as const;
 
-export const behaviorAdapter = {
-	describe: () => ({ result: base, observedEffects: [] }),
-	preflight: () => ({ result: base, observedEffects: [] }),
-	status: () => ({ result: unbound, observedEffects: [] }),
-	verify: () => ({
-		result: {
-			...base,
-			checks: [
-				{
-					id: "execution-runtime-critical-proofs",
-					status: "PASS",
-					message:
-						"Runtime module loaded; seven durable proofs run in package tests",
-				},
-			],
+export function createBehaviorAdapter(service?: ProcessService) {
+	return {
+		describe: () => ({ result: base, observedEffects: [] }),
+		preflight: () => ({ result: base, observedEffects: [] }),
+		status: () => ({
+			result: service ? { ...base, data: service.status() } : unbound,
+			observedEffects: [],
+		}),
+		verify: () => ({
+			result: {
+				...(service ? base : unbound),
+				checks: [
+					{
+						id: "execution-runtime-critical-proofs",
+						status: service?.status().readiness === "READY" ? "PASS" : "FAIL",
+						message: service
+							? "Bound process exposes current durable runtime readiness"
+							: "No configured Execution Runtime process is bound",
+					},
+				],
+			},
+			observedEffects: [],
+		}),
+		doctor: () => ({ result: base, observedEffects: [] }),
+		start: async () => ({
+			result: service ? { ...base, data: await service.start() } : unbound,
+			observedEffects: service
+				? [...descriptor.effects.map((item) => item.description)]
+				: [],
+		}),
+		stop: async () => {
+			if (service) await service.stop();
+			return {
+				result: service ? base : unbound,
+				observedEffects: service
+					? [...descriptor.effects.map((item) => item.description)]
+					: [],
+			};
 		},
-		observedEffects: [],
-	}),
-	doctor: () => ({ result: base, observedEffects: [] }),
-	start: () => ({ result: unbound, observedEffects: [] }),
-	stop: () => ({ result: unbound, observedEffects: [] }),
-	restart: () => ({ result: unbound, observedEffects: [] }),
-} as const;
+		restart: async () => ({
+			result: service ? { ...base, data: await service.restart() } : unbound,
+			observedEffects: service
+				? [...descriptor.effects.map((item) => item.description)]
+				: [],
+		}),
+	};
+}
+
+export const behaviorAdapter = createBehaviorAdapter();

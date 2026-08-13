@@ -118,6 +118,8 @@ export async function createAgentGateway(options: GatewayOptions) {
 	const host = options.host ?? "127.0.0.1";
 	const port = options.port ?? 0;
 	let server: Server | undefined;
+	let lifecycle: "STOPPED" | "RUNNING" | "DRAINING" = "STOPPED";
+	let inFlight = 0;
 	const relays = new Map<string, RelayEntry>();
 	const resolveHostname =
 		options.resolveHostname ??
@@ -348,6 +350,7 @@ export async function createAgentGateway(options: GatewayOptions) {
 		request: import("node:http").IncomingMessage,
 		response: import("node:http").ServerResponse,
 	) => {
+		inFlight += 1;
 		try {
 			const url = new URL(request.url ?? "/", `http://${host}`);
 			if (request.method === "GET" && url.pathname === "/health") {
@@ -510,6 +513,8 @@ export async function createAgentGateway(options: GatewayOptions) {
 						error instanceof AgentGatewayError ? error.code : "GATEWAY_FAILURE",
 				}),
 			);
+		} finally {
+			inFlight -= 1;
 		}
 	};
 	const start = async () => {
@@ -524,15 +529,18 @@ export async function createAgentGateway(options: GatewayOptions) {
 		const address = server.address();
 		if (!address || typeof address === "string")
 			throw new AgentGatewayError("SERVICE_START_FAILED");
+		lifecycle = "RUNNING";
 		return { host, port: address.port };
 	};
 	const stop = async () => {
 		const active = server;
 		server = undefined;
 		if (!active) return;
+		lifecycle = "DRAINING";
 		await new Promise<void>((resolve, reject) =>
 			active.close((error) => (error ? reject(error) : resolve())),
 		);
+		lifecycle = "STOPPED";
 	};
 	const restart = async () => {
 		await stop();
@@ -543,6 +551,12 @@ export async function createAgentGateway(options: GatewayOptions) {
 		stop,
 		restart,
 		readiness,
+		status: () => ({
+			process: lifecycle,
+			liveness: lifecycle === "STOPPED" ? ("DOWN" as const) : ("UP" as const),
+			accepting: lifecycle === "RUNNING",
+			inFlight,
+		}),
 		assertSafeRemoteUrl,
 		normalizeFileInputs,
 		fetchFileInputs,

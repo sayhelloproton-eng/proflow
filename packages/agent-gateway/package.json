@@ -7,8 +7,12 @@
 	},
 	"exports": {
 		".": "./dist/src/index.js",
+		"./process": "./dist/src/process.js",
 		"./deployment/adapter": "./dist/deployment/adapter.js",
 		"./deployment/descriptor": "./dist/deployment/descriptor.js"
+	},
+	"bin": {
+		"proflow-agent-gateway": "./dist/src/cli.js"
 	},
 	"files": [
 		"dist",

@@ -1,0 +1,47 @@
+{
+  "contract": "proflow.non-deployment-service-closure-evidence.v1",
+  "status": "PASS",
+  "recordedAt": "2026-08-13T18:23:59+08:00",
+  "source": "ProFlow-Non-Deployment-Full-Implementation-Validation-Sweep-v1-20260813.zip/04-SERVICE-CLOSURE.md",
+  "services": {
+    "execution-runtime": {
+      "entry": "proflow-execution-runtime",
+      "config": "typed JSON loaded by an explicit CLI argument",
+      "lifecycle": ["start", "health", "ready", "drain", "stop", "restart"],
+      "persistence": "SQLite execution truth is reopened from the configured database path",
+      "dependencies": ["local executor", "optional injected Browser executor"]
+    },
+    "model-runtime": {
+      "entry": "proflow-model-runtime",
+      "config": "strict Zod-validated JSON with credential environment reference",
+      "lifecycle": ["start", "health", "ready", "drain", "stop", "restart"],
+      "providerVerification": "Both model roles are capability-probed before startup and reverified on restart",
+      "secretHandling": "Provider credential value is read from the named environment entry and is never emitted"
+    },
+    "agent-gateway": {
+      "entry": "proflow-agent-gateway",
+      "config": "typed JSON plus an owner-only credential file",
+      "lifecycle": ["start", "health", "ready", "drain", "stop", "restart"],
+      "routing": "Authenticated role identity is injected before forwarding to the loopback owner process",
+      "networkSafety": "Production DNS resolution remains bound to the Gateway SSRF and redirect checks"
+    }
+  },
+  "tests": [
+    "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+    "packages/model-runtime/tests/model-runtime-process.test.ts",
+    "packages/agent-gateway/tests/agent-gateway-process.test.ts"
+  ],
+  "actual": {
+    "targetedServiceTests": "3/3 PASS",
+    "repositoryTests": "158/158 PASS",
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "architecture": "PASS; 17 packages checked",
+    "publishability": "PASS; 17 package tarballs, all public JS exports, 9 binaries"
+  },
+  "limits": [
+    "platform-host is a separate Stage and is not claimed here",
+    "No Deployment-domain production release was implemented",
+    "Real Chrome/ChatGPT Carrier E3/E4 remains external reality work and is not claimed here"
+  ]
+}

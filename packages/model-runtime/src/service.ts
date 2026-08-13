@@ -17,6 +17,14 @@ export type ModelRuntimeService = {
 	start(): Promise<{ host: string; port: number }>;
 	stop(): Promise<void>;
 	status(): "STOPPED" | "RUNNING";
+	inspect(): {
+		process: "STOPPED" | "RUNNING" | "DRAINING";
+		liveness: "UP" | "DOWN";
+		readiness: "READY" | "NOT_READY";
+		accepting: boolean;
+		inFlight: number;
+		dependency: ModelRuntimeStatus;
+	};
 };
 
 async function requestBody(
@@ -41,6 +49,8 @@ export function createModelRuntimeService(input: {
 	const host = input.host ?? "127.0.0.1";
 	const port = input.port ?? 0;
 	let server: Server | undefined;
+	let lifecycle: "STOPPED" | "RUNNING" | "DRAINING" = "STOPPED";
+	let accepting = false;
 	const inferenceControllers = new Set<AbortController>();
 	return {
 		async start() {
@@ -54,6 +64,27 @@ export function createModelRuntimeService(input: {
 					if (!response.writableEnded) clientAborted();
 				});
 				try {
+					if (request.method === "GET" && request.url === "/health") {
+						response.end(JSON.stringify({ status: "UP" }));
+						return;
+					}
+					if (request.method === "GET" && request.url === "/ready") {
+						const dependency = input.runtime.getRuntimeStatus();
+						const ready = accepting && dependency.runtime !== "UNAVAILABLE";
+						response.statusCode = ready ? 200 : 503;
+						response.end(
+							JSON.stringify({
+								status: ready ? "READY" : "NOT_READY",
+								dependency,
+							}),
+						);
+						return;
+					}
+					if (!accepting) {
+						response.statusCode = 503;
+						response.end(JSON.stringify({ error: "SERVICE_DRAINING" }));
+						return;
+					}
 					if (request.method === "GET" && request.url === "/status") {
 						response.end(JSON.stringify(input.runtime.getRuntimeStatus()));
 						return;
@@ -88,18 +119,37 @@ export function createModelRuntimeService(input: {
 			const address = server.address();
 			if (!address || typeof address === "string")
 				throw new Error("service did not bind a TCP address");
+			accepting = true;
+			lifecycle = "RUNNING";
 			return { host, port: address.port };
 		},
 		async stop() {
 			const running = server;
 			server = undefined;
 			if (!running) return;
+			accepting = false;
+			lifecycle = "DRAINING";
 			for (const controller of inferenceControllers)
 				controller.abort("RESTART");
 			await new Promise<void>((resolve, reject) =>
 				running.close((error) => (error ? reject(error) : resolve())),
 			);
+			lifecycle = "STOPPED";
 		},
 		status: () => (server ? "RUNNING" : "STOPPED"),
+		inspect: () => {
+			const dependency = input.runtime.getRuntimeStatus();
+			return {
+				process: lifecycle,
+				liveness: lifecycle === "STOPPED" ? "DOWN" : "UP",
+				readiness:
+					accepting && dependency.runtime !== "UNAVAILABLE"
+						? "READY"
+						: "NOT_READY",
+				accepting,
+				inFlight: inferenceControllers.size,
+				dependency,
+			};
+		},
 	};
 }

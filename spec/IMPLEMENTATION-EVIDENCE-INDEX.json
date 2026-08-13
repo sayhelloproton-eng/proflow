@@ -4,6 +4,7 @@
   "normativeTruth": ["DOCUMENT-INDEX.json", "SPEC-MANIFEST.json"],
   "evidenceIsNormative": false,
   "runtimeValidationBaseline": "zod@4.1.12",
+  "nonDeploymentServiceClosure": "NON-DEPLOYMENT-SERVICE-CLOSURE-EVIDENCE.json",
   "domains": [
     {
       "domain": "deployment-foundation",
