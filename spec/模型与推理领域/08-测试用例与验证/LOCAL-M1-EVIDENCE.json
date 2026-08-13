@@ -1,0 +1,31 @@
+{
+	"contract": "proflow.model-local-m1-evidence.v1",
+	"status": "PASS",
+	"verifiedAt": "2026-08-13T03:41:28Z",
+	"implementationCommit": "0af36016ab3658074ccb48cf5c92f0352ae6f4ed",
+	"providerHarnessCommit": "4d0eba5eed1381e84180eb60c4ed75dad9e9e7fb",
+	"tdd": {
+		"red": {
+			"criticalProofsFailed": 12,
+			"logSha256": "fea9f38308b587898c7f6ffffda72811e3c485a98857bf2aa7f028b7f6adad57"
+		},
+		"green": {
+			"modelContractCriticalProofs": "4/4 PASS",
+			"modelRuntimeLocalCriticalProofs": "7/7 PASS",
+			"modelRuntimeEngineeringTests": "3/3 PASS",
+			"realProviderCriticalProof": "intentionally excluded from M1"
+		}
+	},
+	"gates": {
+		"lint": "PASS",
+		"typecheck": "PASS",
+		"build": "PASS",
+		"architecture": "PASS (8 packages)",
+		"publishability": "PASS (8 package tarballs plus zod installed and imported by isolated consumer)"
+	},
+	"publicApi": ["infer", "getRuntimeStatus"],
+	"ownedPackages": [
+		"@tomflow/proflow-model-contracts",
+		"@tomflow/proflow-model-runtime"
+	]
+}

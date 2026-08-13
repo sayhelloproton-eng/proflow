@@ -1,0 +1,53 @@
+{
+	"contract": "proflow.model-real-provider-blocker-evidence.v1",
+	"status": "BLOCKED",
+	"recordedAt": "2026-08-13T03:41:28Z",
+	"implementationCommit": "0af36016ab3658074ccb48cf5c92f0352ae6f4ed",
+	"providerHarnessCommit": "4d0eba5eed1381e84180eb60c4ed75dad9e9e7fb",
+	"sourceBoundary": {
+		"mode": "LEGACY_REFERENCE_ALLOWED_READ_ONLY",
+		"path": "/Users/agent/Desktop/proton-workspace/repos/ai-agent-platform/experiments/execution-flow-runtime/**",
+		"legacyRepositoryHEAD": "7ca116faa93463164b7b3af7df76cd28d9b0060d",
+		"legacyPathDirtyBefore": false,
+		"legacyPathMutation": 0
+	},
+	"provider": {
+		"kind": "OpenAI-compatible MLXHub",
+		"baseUrl": "http://192.168.0.104:8080/v1/",
+		"credentialUsed": false,
+		"modelDiscovery": "PASS",
+		"fastModel": "sayhelloproton/Qwen3.5-4B-MLX-4bit-no-think",
+		"reasonModel": "mlx-community/Qwen3.5-4B-MLX-4bit"
+	},
+	"observations": [
+		{
+			"gate": "M2",
+			"result": "PARTIAL",
+			"detail": "Real FAST, structured-output, and Vision calls succeeded in a composite attempt; Capability Proposal initially failed strict shape validation and its prompt was corrected without weakening the schema."
+		},
+		{
+			"gate": "M2 REASON",
+			"result": "UNSTABLE",
+			"detail": "One composite attempt progressed beyond REASON, but repeated formal and focused probes returned an unclosed provider thinking block at the 2048-token bound."
+		},
+		{
+			"gate": "M2 REASON 8192 probe",
+			"result": "FAIL",
+			"detail": "The bounded 8192-token focused probe did not produce a validated result and ended with provider transport message 'fetch failed'."
+		}
+	],
+	"formalGate": {
+		"M2": "BLOCKED",
+		"M3": "NOT_RUN",
+		"M4": "NOT_RUN",
+		"realProvider": false,
+		"failureCode": "REAL_PROVIDER_REASON_CAPABILITY_UNSTABLE"
+	},
+	"latestFullGateLogSha256": "16be5c4c51c4aef8070cde1d1786885f127b576511155f0ace5ac22edf326be0",
+	"prohibitions": {
+		"REAL-PROVIDER-EVIDENCE.jsonCreated": false,
+		"criticalProofRT08ClaimedPass": false,
+		"M2M3M4PassClaimed": false
+	},
+	"nextAction": "Repair or replace the REASON provider role, then rerun the committed real-provider gate harness from M2."
+}

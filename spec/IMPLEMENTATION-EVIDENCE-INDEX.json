@@ -18,6 +18,15 @@
       "domain": "task-orchestration",
       "evidence": "任务与编排领域/08-测试用例与验证/CRITICAL-PROOF-EVIDENCE.json",
       "status": "PASS"
+    },
+    {
+      "domain": "model-reasoning",
+      "evidence": [
+        "模型与推理领域/08-测试用例与验证/LOCAL-M1-EVIDENCE.json",
+        "模型与推理领域/08-测试用例与验证/REAL-PROVIDER-BLOCKER-EVIDENCE.json"
+      ],
+      "status": "BLOCKED",
+      "blocker": "REAL_PROVIDER_REASON_CAPABILITY_UNSTABLE"
     }
   ]
 }
