@@ -1,0 +1,70 @@
+export const descriptor = {
+	contract: "module",
+	contractVersion: "1.0.0",
+	moduleRef: "platform-host",
+	packageName: "@tomflow/proflow-platform-host",
+	moduleVersion: "0.1.0",
+	kind: "service",
+	templateVersion: "1.0.0",
+	platformCompatibility: ">=1.0.0 <2.0.0",
+	provides: [{ contractRef: "platform-host", version: "1.0.0" }],
+	requires: [
+		{ contractRef: "task-orchestration", versionRange: ">=1.0.0 <2.0.0" },
+		{ contractRef: "agent-runtime", versionRange: ">=1.0.0 <2.0.0" },
+		{ contractRef: "execution", versionRange: ">=1.0.0 <2.0.0" },
+		{ contractRef: "model-inference", versionRange: ">=1.0.0 <2.0.0" },
+	],
+	requirements: [
+		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
+	],
+	configSlots: [
+		{
+			key: "stateRoot",
+			type: "path",
+			required: true,
+			description: "Absolute .proflow owner state root",
+		},
+		{
+			key: "workspaceRoot",
+			type: "path",
+			required: true,
+			description: "Absolute Task document workspace root",
+		},
+		{
+			key: "executionBaseUrl",
+			type: "url",
+			required: true,
+			description: "Loopback Execution Runtime public transport",
+		},
+		{
+			key: "modelBaseUrl",
+			type: "url",
+			required: true,
+			description: "Loopback Model Runtime public transport",
+		},
+	],
+	lifecycle: {
+		supported: [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor",
+			"start",
+			"stop",
+			"restart",
+		],
+	},
+	verification: {
+		checks: [
+			{
+				id: "platform-host-readiness",
+				description: "Host transport and current owner dependencies are ready",
+				lifecycle: "verify",
+			},
+		],
+	},
+	effects: [
+		{ kind: "process", description: "Manage the platform-host process" },
+	],
+} as const;

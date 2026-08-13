@@ -186,6 +186,31 @@ importers:
         specifier: workspace:^
         version: link:../module-contract
 
+  packages/platform-host:
+    dependencies:
+      '@tomflow/proflow-agent-runtime':
+        specifier: workspace:^
+        version: link:../agent-runtime
+      '@tomflow/proflow-task-migration-runner':
+        specifier: workspace:^
+        version: link:../task-migration-runner
+      '@tomflow/proflow-task-orchestration':
+        specifier: workspace:^
+        version: link:../task-orchestration
+      '@tomflow/proflow-task-store-sqlite':
+        specifier: workspace:^
+        version: link:../task-store-sqlite
+      zod:
+        specifier: 4.1.12
+        version: 4.1.12
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+
   packages/task-migration-runner:
     dependencies:
       '@tomflow/proflow-module-contract':

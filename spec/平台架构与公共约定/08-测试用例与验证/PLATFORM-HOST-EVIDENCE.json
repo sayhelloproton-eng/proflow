@@ -1,0 +1,54 @@
+{
+  "contract": "proflow.platform-host.critical-proof-evidence.v1",
+  "status": "PASS",
+  "recordedAt": "2026-08-13T18:40:00+08:00",
+  "source": "平台架构与公共约定/06-测试计划/modules/platform-host.md",
+  "criticalProofs": {
+    "CP-HOST-01": {
+      "status": "PASS",
+      "actual": "The Host composes published Task orchestration, Task SQLite owner adapter, Agent Runtime, and loopback HTTP public clients for Execution and Model."
+    },
+    "CP-HOST-02": {
+      "status": "PASS",
+      "actual": "Architecture validation reports no reverse Domain dependency or deep import. Host source defines no business repository or business-state cache; owner state remains in owner packages."
+    },
+    "CP-HOST-03": {
+      "status": "PASS",
+      "actual": "Real loopback transport proves dependency-ordered construction, request routing, stop-accepting, in-flight drain, shutdown, and repeatable restart."
+    },
+    "CP-HOST-04": {
+      "status": "PASS",
+      "actual": "Readiness queries Task integrity, Agent doctor, Execution /ready, and Model /ready on every observation; HTTP availability and owner readiness remain distinct typed facts."
+    },
+    "CP-HOST-05": {
+      "status": "PASS",
+      "actual": "A durable Task is created through Host transport, Host is fully reconstructed, and the Task owner reopens the unchanged PENDING fact without Host cleanup or a state mirror."
+    }
+  },
+  "evidenceBindings": {
+    "EV-HOST-01": "package.json plus repository architecture gate",
+    "EV-HOST-02": "real Task/Agent construction and Execution/Model HTTP client binding",
+    "EV-HOST-03": "POST /actions/createTask, POST /actions/getTask, GET /health, GET /ready",
+    "EV-HOST-04": "structured initialization/start/stop order log assertions",
+    "EV-HOST-05": "typed dependency readiness with live HTTP 503 fault injection",
+    "EV-HOST-06": "Task state observed before and after complete Host graph reconstruction",
+    "EV-HOST-07": "package surface and .proflow inspection show no Host-owned persistence directory"
+  },
+  "tests": [
+    "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
+    "packages/platform-host/tests/platform-host-conformance.test.ts"
+  ],
+  "actual": {
+    "platformHostTests": "3/3 PASS; all 5 Critical Proofs bound",
+    "repositoryTests": "161/161 PASS",
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "architecture": "PASS; 18 packages checked",
+    "publishability": "PASS; 18 package tarballs, all public JS exports, 10 binaries"
+  },
+  "limits": [
+    "Host evidence does not replace owner Domain Critical Proof evidence.",
+    "Real Chrome/ChatGPT Carrier evidence remains external and is not claimed.",
+    "Deployment Plan/Apply/Upgrade and production deployment semantics remain explicitly excluded."
+  ]
+}

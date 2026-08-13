@@ -45,6 +45,11 @@
         "The controlled Browser executor proves only the typed port and single backend Execution truth.",
         "Browser Extension implementation and Real Browser E2E remain deferred to Wave 5."
       ]
+    },
+    {
+      "domain": "platform-host",
+      "evidence": "平台架构与公共约定/08-测试用例与验证/PLATFORM-HOST-EVIDENCE.json",
+      "status": "PASS"
     }
   ]
 }
