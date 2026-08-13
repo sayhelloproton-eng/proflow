@@ -8,6 +8,7 @@
     {
       "domain": "deployment-foundation",
       "evidence": "部署领域/08-测试用例与验证/foundation-closure.md",
+      "additionalEvidence": "部署领域/08-测试用例与验证/CARRY-FORWARD-PUBLISHABILITY-EVIDENCE.json",
       "status": "PASS",
       "limits": [
         "Static File Bridge URL conformance rejects literal private, loopback, link-local, and metadata targets.",
@@ -17,6 +18,7 @@
     {
       "domain": "task-orchestration",
       "evidence": "任务与编排领域/08-测试用例与验证/CRITICAL-PROOF-EVIDENCE.json",
+      "additionalEvidence": "任务与编排领域/08-测试用例与验证/CARRY-FORWARD-EVIDENCE.json",
       "status": "PASS"
     },
     {
@@ -27,6 +29,7 @@
         "模型与推理领域/08-测试用例与验证/PRE-EXECUTION-HARDENING-EVIDENCE.json",
         "模型与推理领域/08-测试用例与验证/MODEL-HARDENING-LIVE-SUMMARY.json",
         "模型与推理领域/08-测试用例与验证/MODEL-HARDENING-LIVE-DIAGNOSTICS.jsonl"
+        ,"模型与推理领域/08-测试用例与验证/CARRY-FORWARD-HARDENING-EVIDENCE.json"
       ],
       "history": "模型与推理领域/08-测试用例与验证/REAL-PROVIDER-BLOCKER-EVIDENCE.json",
       "status": "PASS"
@@ -34,6 +37,7 @@
     {
       "domain": "execution",
       "evidence": "执行领域/08-测试用例与验证/CRITICAL-PROOF-EVIDENCE.json",
+      "additionalEvidence": "执行领域/08-测试用例与验证/CARRY-FORWARD-REGRESSION-EVIDENCE.json",
       "status": "PASS",
       "limits": [
         "The controlled Browser executor proves only the typed port and single backend Execution truth.",

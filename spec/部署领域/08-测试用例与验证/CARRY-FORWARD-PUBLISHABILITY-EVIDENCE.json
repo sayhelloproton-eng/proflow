@@ -1,0 +1,10 @@
+{
+  "contract": "proflow.foundation-publishability-carry-forward-evidence.v1",
+  "status": "PASS",
+  "recordedAt": "2026-08-13T16:45:00+08:00",
+  "implementationCommit": "b637ebe",
+  "residual": "FND-CF-01",
+  "actual": "The isolated installed consumer imported every public JavaScript export subpath from all 11 packed packages and executed all 3 published binary entries. Root-only import is no longer accepted as the publishability proof.",
+  "command": "pnpm publishability",
+  "result": "PASS"
+}

@@ -1,0 +1,11 @@
+{
+  "contract": "proflow.execution-carry-forward-regression-evidence.v1",
+  "status": "PASS",
+  "recordedAt": "2026-08-13T16:45:00+08:00",
+  "implementationCommit": "b637ebe",
+  "observedRed": "CP-EXE-RT-07 returned a successful record after a PENDING cancellation raced with queue admission.",
+  "rootCause": "The durable cancellation updated the record before an AbortController existed, but execution did not re-read that authoritative record after acquiring the semaphore.",
+  "green": "Execution now re-reads the durable record after queue admission and exits without invoking the executor when cancellation or another terminal transition already won.",
+  "test": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts :: CP-EXE-RT-07",
+  "result": "Execution Core 17/17 regression remains PASS; no blind replay introduced."
+}

@@ -1,0 +1,46 @@
+{
+  "contract": "proflow.model-carry-forward-hardening-evidence.v1",
+  "status": "PASS",
+  "recordedAt": "2026-08-13T16:45:00+08:00",
+  "implementationCommit": "b637ebe",
+  "residuals": [
+    {
+      "id": "MOD-CF-01",
+      "status": "CLOSED",
+      "actual": "Freshness expiry and transient unavailability now enter a coalesced refresh path; refreshed roles are re-branded, freshness checked, and provider-model-bound before admission. A provider-probe verifier derives READY from actual typed responses plus explicit provider capability facts."
+    },
+    {
+      "id": "MOD-CF-02",
+      "status": "CLOSED",
+      "actual": "Runtime startup and refresh reject profile/provider modelRef drift. roleBody cannot override model, messages, output limit, or structured-output mode."
+    },
+    {
+      "id": "MOD-CF-03",
+      "status": "CLOSED",
+      "actual": "native emits provider response_format, prompted uses schema instructions without native response_format, and unsupported is rejected before provider execution."
+    },
+    {
+      "id": "MOD-CF-04",
+      "status": "CLOSED",
+      "actual": "Observed modelRef, structured-output mode, contextWindow, and maxOutputTokens must independently satisfy the declared profile; lower or mismatched facts remain UNAVAILABLE."
+    },
+    {
+      "id": "MOD-CF-05",
+      "status": "CLOSED",
+      "actual": "Compatibility now binds generated JSON schemas from the runtime Zod schemas and executable refinement outcomes, detecting field/nested/enum/status/error/refinement breakage."
+    },
+    {
+      "id": "MOD-CF-06",
+      "status": "CLOSED",
+      "actual": "Pre-queue boundary/spec/payload/context rejection writes sanitized PRE_QUEUE_REJECTION structured events without payload, prompt, image bytes, or secret text."
+    }
+  ],
+  "tests": [
+    "packages/model-contracts/tests/model-contracts-critical-proofs.test.ts",
+    "packages/model-runtime/tests/model-runtime-hardening.test.ts",
+    "packages/model-runtime/tests/model-runtime-engineering.test.ts",
+    "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts"
+  ],
+  "realProviderEvidence": "Existing committed REAL-PROVIDER-EVIDENCE.json remains the real-provider behavior basis; this remediation did not fabricate a new live-provider run.",
+  "result": "pnpm check PASS; 100/100 tests; P1=0"
+}

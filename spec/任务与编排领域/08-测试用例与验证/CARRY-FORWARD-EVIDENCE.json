@@ -1,0 +1,9 @@
+{
+  "contract": "proflow.task-carry-forward-evidence.v1",
+  "status": "PASS",
+  "recordedAt": "2026-08-13T16:45:00+08:00",
+  "residual": "TASK-CF-01",
+  "actual": "Current evidence still binds CP-TASK-STORE-04 to abnormal child-process exit and reopen, and CP-TASK-STORE-05 to real concurrent-process idempotency. The full repository regression passed without Task implementation changes.",
+  "test": "packages/task-store-sqlite/tests/store-remediation.test.ts",
+  "result": "pnpm check PASS"
+}
