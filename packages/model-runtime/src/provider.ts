@@ -51,8 +51,17 @@ export type OpenAICompatibleProviderConfig = {
 	apiKey?: string;
 	models: Record<ModelRole, string>;
 	roleBody?: Partial<Record<ModelRole, Readonly<Record<string, unknown>>>>;
+	roleSystemPrompt?: Partial<Record<ModelRole, string>>;
 	fetch?: typeof globalThis.fetch;
 };
+
+function stripProviderThinking(content: string): string {
+	const trimmed = content.trim();
+	if (!trimmed.startsWith("<think>")) return trimmed;
+	const end = trimmed.indexOf("</think>");
+	if (end < 0) throw new Error("provider returned an unclosed thinking block");
+	return trimmed.slice(end + "</think>".length).trim();
+}
 
 export function createOpenAICompatibleProvider(
 	config: OpenAICompatibleProviderConfig,
@@ -90,7 +99,8 @@ export function createOpenAICompatibleProvider(
 						{
 							role: "system",
 							content:
-								"You are a controlled inference engine. Never reveal chain-of-thought.",
+								config.roleSystemPrompt?.[call.role] ??
+								"You are a controlled inference engine. Keep reasoning bounded and return only the final JSON object after any provider-internal thinking.",
 						},
 						{ role: "user", content: userContent },
 						...(repairInstruction
@@ -111,7 +121,7 @@ export function createOpenAICompatibleProvider(
 			if (!content)
 				throw new Error("provider response did not contain message content");
 			return {
-				content,
+				content: stripProviderThinking(content),
 				...(parsed.id ? { providerRequestRef: parsed.id } : {}),
 			};
 		},

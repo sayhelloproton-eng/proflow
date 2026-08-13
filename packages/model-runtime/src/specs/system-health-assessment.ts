@@ -38,6 +38,8 @@ export const systemHealthAssessmentSpec = createReasoningSpec({
 		.strict(),
 	instruction: [
 		"Use only the supplied checks.",
+		"Return exactly one JSON object with exactly these keys: decision, confidence, reasonCode, rationale.",
+		"decision must be one of HEALTHY, DEGRADED, UNAVAILABLE, ESCALATE; confidence must be a number from 0 to 1; reasonCode must be one of ALL_CHECKS_PASS, WARNINGS_PRESENT, FAILURE_PRESENT, FACTS_INSUFFICIENT; rationale must be a short non-empty string.",
 		"All PASS => HEALTHY/ALL_CHECKS_PASS.",
 		"Any FAIL => UNAVAILABLE/FAILURE_PRESENT.",
 		"No FAIL and any WARN => DEGRADED/WARNINGS_PRESENT.",
@@ -45,7 +47,7 @@ export const systemHealthAssessmentSpec = createReasoningSpec({
 		"Return decision, confidence, reasonCode, and a short rationale.",
 	].join(" "),
 	maxContextBytes: 16_384,
-	maxOutputTokens: 192,
+	maxOutputTokens: 8_192,
 	repair: "once",
 	routing: {
 		startRole: "fast",
