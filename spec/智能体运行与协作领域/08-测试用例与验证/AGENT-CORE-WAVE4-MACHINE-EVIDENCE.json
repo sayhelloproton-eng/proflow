@@ -1,0 +1,63 @@
+{
+  "contract": "proflow.agent-core.wave4.machine-evidence.v1",
+  "observedAt": "2026-08-13T16:36:00+08:00",
+  "status": "STAGE_B_MACHINE_GATE_PASS",
+  "frozenSource": {
+    "domain": "spec/智能体运行与协作领域",
+    "testPlanStatus": "FINAL_FROZEN",
+    "targetKitSha256": "b02e5551660d7289fc009162fde7a0400450465fe4c9ad2119ca1a33d6569a1c"
+  },
+  "implementationCommit": "45b2a977999354f15c60ac3c08b08a77bd1bc9e9",
+  "carryForwardCommits": [
+    "b637ebe",
+    "53e8c8c"
+  ],
+  "observedRed": [
+    {
+      "surface": "agent-runtime",
+      "result": "0/6",
+      "cause": "NOT_IMPLEMENTED"
+    },
+    {
+      "surface": "agent-gateway",
+      "result": "0/9",
+      "cause": "NOT_IMPLEMENTED"
+    },
+    {
+      "surface": "role-store-half-state",
+      "result": "FAIL",
+      "cause": "doctorRoleStore was absent"
+    },
+    {
+      "surface": "gateway-action-ceiling",
+      "result": "HUNG_UNTIL_TEST_TERMINATION",
+      "cause": "45 second owner-call ceiling was absent"
+    }
+  ],
+  "machineProofs": {
+    "agentRuntime": "6/6 PASS",
+    "agentGatewayBrowserIndependent": "9/9 PASS",
+    "agentProductStatic": "3 PASS; CP-AGT-PROD-03 and CP-AGT-PROD-05 ACTION_REQUIRED",
+    "agentControllerDevStatic": "3 PASS; CP-AGT-DEV-04 ACTION_REQUIRED",
+    "agentTestOpsStatic": "3 PASS; CP-AGT-TEST-04 ACTION_REQUIRED",
+    "finalAgentCriticalProofs": "24/28 MACHINE-CLOSED; 4/28 REAL-CARRIER-PENDING"
+  },
+  "independentStageBGate": {
+    "rootTests": "132/132 PASS",
+    "lint": "PASS with 3 non-blocking optional-chain warnings",
+    "typecheck": "PASS",
+    "architecture": "PASS; 16 packages checked",
+    "moduleConformance": "C1/C2/C3 PASS for all five Wave 4 packages",
+    "publishability": "PASS; 16 tarballs; all public JS exports; 6 binaries from isolated installs",
+    "deepImports": 0,
+    "secondTaskRoleBindingTruth": 0,
+    "gatewayBusinessPersistence": 0,
+    "plaintextRealSecrets": 0
+  },
+  "realCarrierBoundary": {
+    "status": "NOT_CLAIMED",
+    "reason": "Real g-id/c-id, ChatGPT Actions, File Bridge, provisioning and same-worker reopen require Stage D evidence.",
+    "fakePromotedToReal": false
+  },
+  "nextStage": "STAGE_C_EXECUTION_BROWSER_EXTENSION"
+}
