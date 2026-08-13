@@ -23,10 +23,10 @@
       "domain": "model-reasoning",
       "evidence": [
         "模型与推理领域/08-测试用例与验证/LOCAL-M1-EVIDENCE.json",
-        "模型与推理领域/08-测试用例与验证/REAL-PROVIDER-BLOCKER-EVIDENCE.json"
+        "模型与推理领域/08-测试用例与验证/REAL-PROVIDER-EVIDENCE.json"
       ],
-      "status": "BLOCKED",
-      "blocker": "REAL_PROVIDER_REASON_CAPABILITY_UNSTABLE"
+      "history": "模型与推理领域/08-测试用例与验证/REAL-PROVIDER-BLOCKER-EVIDENCE.json",
+      "status": "PASS"
     }
   ]
 }

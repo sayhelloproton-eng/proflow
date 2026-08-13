@@ -1,6 +1,9 @@
 {
 	"contract": "proflow.model-real-provider-blocker-evidence.v1",
-	"status": "BLOCKED",
+	"status": "RESOLVED",
+	"resolvedAt": "2026-08-13T04:21:21.141Z",
+	"resolvedBy": "REAL-PROVIDER-EVIDENCE.json",
+	"resolution": "REASON sampling was changed from greedy temperature=0 to the Qwen3.5 precise-thinking profile; provider wire shape now places the output schema in the system message and deterministic instruction/input in the user message.",
 	"recordedAt": "2026-08-13T03:41:28Z",
 	"implementationCommit": "0af36016ab3658074ccb48cf5c92f0352ae6f4ed",
 	"providerHarnessCommit": "4d0eba5eed1381e84180eb60c4ed75dad9e9e7fb",
@@ -49,5 +52,5 @@
 		"criticalProofRT08ClaimedPass": false,
 		"M2M3M4PassClaimed": false
 	},
-	"nextAction": "Repair or replace the REASON provider role, then rerun the committed real-provider gate harness from M2."
+	"nextAction": "Closed; see REAL-PROVIDER-EVIDENCE.json for the successful replacement run."
 }

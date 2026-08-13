@@ -1,0 +1,275 @@
+{
+  "contract": "proflow.model-real-provider-evidence.v1",
+  "realProvider": true,
+  "M2": "PASS",
+  "M3": "PASS",
+  "M4": "PASS",
+  "verifiedAt": "2026-08-13T04:21:21.141Z",
+  "implementationCommit": "3b5a3bc6d6851ecea4f5a2bff390a578f8cf17c5",
+  "fullGateLogSha256": "df426dd7dda8e102ee3732286c320d687614770b50cddc79f522eb6cd671faaa",
+  "foundationTaskRemediation": "GO",
+  "criticalProofs": {
+    "model-contracts": {
+      "CP-MODEL-CON-01": "PASS",
+      "CP-MODEL-CON-02": "PASS",
+      "CP-MODEL-CON-03": "PASS",
+      "CP-MODEL-CON-04": "PASS",
+      "closure": "4/4 PASS"
+    },
+    "model-runtime": {
+      "CP-MODEL-RT-01": "PASS",
+      "CP-MODEL-RT-02": "PASS",
+      "CP-MODEL-RT-03": "PASS",
+      "CP-MODEL-RT-04": "PASS",
+      "CP-MODEL-RT-05": "PASS",
+      "CP-MODEL-RT-06": "PASS",
+      "CP-MODEL-RT-07": "PASS",
+      "CP-MODEL-RT-08": "PASS",
+      "closure": "8/8 PASS"
+    },
+    "total": "12/12 PASS"
+  },
+  "M1": {
+    "status": "PASS",
+    "evidence": "LOCAL-M1-EVIDENCE.json"
+  },
+  "provider": {
+    "kind": "OpenAI-compatible MLXHub",
+    "baseUrl": "http://192.168.0.104:8080/v1/",
+    "credentialUsed": false,
+    "fastModel": "sayhelloproton/Qwen3.5-4B-MLX-4bit-no-think",
+    "reasonModel": "mlx-community/Qwen3.5-4B-MLX-4bit",
+    "sampling": {
+      "fast": {
+        "temperature": 0.7,
+        "topP": 0.8,
+        "topK": 20,
+        "presencePenalty": 1.5
+      },
+      "reason": {
+        "temperature": 0.6,
+        "topP": 0.95,
+        "topK": 20,
+        "presencePenalty": 0
+      }
+    },
+    "capabilityVerification": {
+      "fast": {
+        "state": "READY",
+        "text": "PASS",
+        "reasoningMode": "no-thinking VERIFIED",
+        "structuredOutput": "PASS",
+        "vision": "PASS",
+        "contextSanity": "PASS",
+        "maxOutputTokens": 1024
+      },
+      "reason": {
+        "state": "READY",
+        "text": "PASS",
+        "reasoningMode": "thinking VERIFIED",
+        "structuredOutput": "PASS",
+        "vision": "PASS",
+        "contextSanity": "PASS",
+        "maxOutputTokens": 2048
+      },
+      "runtimeHealthAfterVerification": "READY",
+      "laneAfterVerification": "IDLE"
+    }
+  },
+  "M2Evidence": {
+    "status": "PASS",
+    "structuredOutput": true,
+    "fast": {
+      "status": "SUCCEEDED",
+      "actualMode": "fast"
+    },
+    "reason": {
+      "status": "SUCCEEDED",
+      "actualMode": "reason"
+    },
+    "fastVision": {
+      "status": "SUCCEEDED",
+      "result": {
+        "action": "OBSERVE_PAGE",
+        "effect": "READ_ONLY"
+      }
+    },
+    "reasonVision": {
+      "status": "SUCCEEDED",
+      "result": {
+        "action": "OBSERVE_PAGE",
+        "effect": "READ_ONLY"
+      }
+    },
+    "capabilityProposal": {
+      "status": "SUCCEEDED",
+      "result": {
+        "proposal": {
+          "action": "PROPOSE_CAPABILITY",
+          "capability": "git.status",
+          "arguments": {
+            "cwdRef": "project:current"
+          },
+          "confidence": 0.95,
+          "reasonCode": "INSPECT_REQUIRED"
+        }
+      },
+      "effectExecuted": false
+    },
+    "contextAndOutputLimitSanity": {
+      "inputBytes": 4132,
+      "fast": {
+        "status": "SUCCEEDED",
+        "result": {
+          "marker": "CONTEXT_OK"
+        }
+      },
+      "reason": {
+        "status": "SUCCEEDED",
+        "result": {
+          "marker": "CONTEXT_OK"
+        }
+      }
+    },
+    "providerCalls": [
+      {"callerRef":"m2:fast","specRef":"system.health-assessment.v1","role":"fast","repair":false,"latencyMs":3850,"finishReason":"stop","providerRequestRef":"chatcmpl-F6064B4B-43A2-42E5-B693-64839FEA7147"},
+      {"callerRef":"m2:reason","specRef":"system.health-assessment.v1","role":"reason","repair":false,"latencyMs":50660,"finishReason":"stop","providerRequestRef":"chatcmpl-1B5000C4-1273-41D1-A31D-2488F343E975"},
+      {"callerRef":"m2:vision","specRef":"browser.observation-boundary.v1","role":"fast","repair":false,"latencyMs":6178,"finishReason":"stop","providerRequestRef":"chatcmpl-D4D7E4B4-8499-445F-BAD3-AF07E8DD4FB3"},
+      {"callerRef":"m2:reason-vision","specRef":"browser.observation-boundary.v1","role":"reason","repair":false,"latencyMs":29782,"finishReason":"stop","providerRequestRef":"chatcmpl-78369152-5D6A-49D3-95CE-DADFF608D586"},
+      {"callerRef":"m2:proposal","specRef":"capability.proposal.v1","role":"fast","repair":false,"latencyMs":6338,"finishReason":"stop","providerRequestRef":"chatcmpl-7ED2B029-BC1E-45B6-8756-552CC216C018"},
+      {"callerRef":"m2:fast-context","specRef":"model.context-sanity.v1","role":"fast","repair":false,"latencyMs":2560,"finishReason":"stop","providerRequestRef":"chatcmpl-755B66EE-C53B-4486-A32B-F9BF560FECBF"},
+      {"callerRef":"m2:reason-context","specRef":"model.context-sanity.v1","role":"reason","repair":false,"latencyMs":15237,"finishReason":"stop","providerRequestRef":"chatcmpl-75079FB0-F333-43FD-BF01-53482AE47587"}
+    ]
+  },
+  "M3Evidence": {
+    "status": "PASS",
+    "productionSpecs": [
+      "system.health-assessment.v1"
+    ],
+    "cases": [
+      {"id":"positive","status":"PASS","requestedMode":"fast","actualMode":"fast","decision":"HEALTHY"},
+      {"id":"negative","status":"PASS","requestedMode":"reason","actualMode":"reason","decision":"UNAVAILABLE"},
+      {"id":"boundary","status":"PASS","requestedMode":"fast","actualMode":"fast","decision":"DEGRADED"},
+      {"id":"low-confidence-escalate","status":"PASS","requestedMode":"auto","actualMode":"reason","decision":"ESCALATE"},
+      {"id":"invalid-output-defense","status":"PASS","faultInjected":true,"repairBound":"once","decision":"HEALTHY"}
+    ],
+    "falseAllow": 0,
+    "falseDeny": 0,
+    "unexplainedFailure": 0
+  },
+  "M4Evidence": {
+    "status": "PASS",
+    "requestCount": 8,
+    "providerCallCount": 8,
+    "maxActiveProviderCalls": 1,
+    "imageRequestCount": 1,
+    "statuses": ["SUCCEEDED","SUCCEEDED","SUCCEEDED","SUCCEEDED","SUCCEEDED","SUCCEEDED","SUCCEEDED","SUCCEEDED"],
+    "requestedModes": ["fast","reason","fast","fast","fast","reason","auto","fast"],
+    "actualModes": ["fast","reason","fast","fast","fast","reason","fast","fast"],
+    "metrics": [
+      {"queueLatencyMs":8,"inferenceLatencyMs":4223,"totalLatencyMs":4231},
+      {"queueLatencyMs":15212,"inferenceLatencyMs":20631,"totalLatencyMs":35843},
+      {"queueLatencyMs":4231,"inferenceLatencyMs":4692,"totalLatencyMs":8923},
+      {"queueLatencyMs":35843,"inferenceLatencyMs":5233,"totalLatencyMs":41076},
+      {"queueLatencyMs":8923,"inferenceLatencyMs":3002,"totalLatencyMs":11925},
+      {"queueLatencyMs":41070,"inferenceLatencyMs":24165,"totalLatencyMs":65235},
+      {"queueLatencyMs":11919,"inferenceLatencyMs":3287,"totalLatencyMs":15206},
+      {"queueLatencyMs":65236,"inferenceLatencyMs":4681,"totalLatencyMs":69917}
+    ],
+    "providerOrder": [
+      {"callerRef":"m4:mixed-1","role":"fast","specRef":"system.health-assessment.v1","latencyMs":4223,"finishReason":"stop"},
+      {"callerRef":"m4:mixed-3","role":"fast","specRef":"browser.observation-boundary.v1","latencyMs":4692,"finishReason":"stop"},
+      {"callerRef":"m4:mixed-5","role":"fast","specRef":"system.health-assessment.v1","latencyMs":3002,"finishReason":"stop"},
+      {"callerRef":"m4:mixed-7","role":"fast","specRef":"system.health-assessment.v1","latencyMs":3287,"finishReason":"stop"},
+      {"callerRef":"m4:mixed-2","role":"reason","specRef":"system.health-assessment.v1","latencyMs":20631,"finishReason":"stop"},
+      {"callerRef":"m4:mixed-4","role":"fast","specRef":"system.health-assessment.v1","latencyMs":5233,"finishReason":"stop"},
+      {"callerRef":"m4:mixed-6","role":"reason","specRef":"system.health-assessment.v1","latencyMs":24165,"finishReason":"stop"},
+      {"callerRef":"m4:mixed-8","role":"fast","specRef":"system.health-assessment.v1","latencyMs":4681,"finishReason":"stop"}
+    ],
+    "businessBeforeQueuedBackground": "PASS",
+    "backgroundPreemption": false,
+    "timeoutDistribution": {},
+    "errorDistribution": {},
+    "unexplainedCorrectnessFailure": 0
+  },
+  "aggregateObservations": {
+    "providerCalls": 22,
+    "providerLatencyMs": {
+      "min": 2560,
+      "max": 50660,
+      "total": 246345
+    },
+    "queueTimeoutAndInferenceTimeout": "PASS via deterministic local Critical Proof",
+    "queuedRunningCancelAndRestart": "PASS via deterministic local Critical Proof",
+    "transportRetry": "at most once and only for provider-proven notStarted failure",
+    "structuredRepair": "at most once",
+    "persistentInferenceStore": false,
+    "longChainOfThoughtPersisted": false,
+    "imageBase64Persisted": false,
+    "modelEffectExecution": false
+  },
+  "moduleGovernance": {
+    "model-contracts": {
+      "C1": "PASS",
+      "C2": "PASS",
+      "C3": "PASS"
+    },
+    "model-runtime": {
+      "C1": "PASS",
+      "C2": "PASS",
+      "C3": "PASS",
+      "serviceLifecycle": "real start/status/verify/restart/stop PASS"
+    },
+    "packageCount": 2,
+    "architecture": "PASS",
+    "packAndIsolatedConsumer": "PASS"
+  },
+  "legacyReference": {
+    "classification": "REFACTOR_AND_ADAPT_OPERATIONAL_EVIDENCE_ONLY",
+    "allowedPath": "/Users/agent/Desktop/proton-workspace/repos/ai-agent-platform/experiments/execution-flow-runtime/**",
+    "legacyRepositoryHEAD": "7ca116faa93463164b7b3af7df76cd28d9b0060d",
+    "legacyMutation": 0,
+    "usedFor": [
+      "provider base URL and model mapping",
+      "OpenAI-compatible request and response shape",
+      "closed thinking-block normalization",
+      "Vision image_url encoding",
+      "single provider lane operational experience"
+    ]
+  },
+  "knownLimitations": [
+    "The accepted provider is one LAN-hosted MLXHub instance; provider redundancy is not part of this wave.",
+    "Chat Completions exposes no verified remote cancellation endpoint; local abort stops waiting and discards late results while the provider may finish generation.",
+    "No business-independent latency or QPS threshold is claimed; observed correctness and latency are recorded.",
+    "Cross-domain Agent, Execution, Browser, and Gateway E2E remains DEFERRED_TO_CROSS_DOMAIN."
+  ],
+  "deferred": [
+    "DEFERRED_TO_CROSS_DOMAIN: Agent -> Model",
+    "DEFERRED_TO_CROSS_DOMAIN: Execution -> Model",
+    "DEFERRED_TO_CROSS_DOMAIN: Browser -> Model -> caller -> Execution"
+  ],
+  "safety": {
+    "secretRecorded": false,
+    "promptOrPayloadPersistedInEvidence": false,
+    "imagePersistedInEvidence": false,
+    "providerSpecificWireFieldsInPublicContract": false,
+    "specSemanticDrift": 0,
+    "otherDomainNewImplementation": 0
+  },
+  "repositoryGates": {
+    "verifiedAt": "2026-08-13T04:25:38Z",
+    "pnpmLint": "PASS",
+    "pnpmTypecheck": "PASS",
+    "pnpmTest": "PASS (68/68 tests)",
+    "pnpmArchitecture": "PASS (8 packages)",
+    "pnpmPublishability": "PASS (8 tarballs plus zod installed and imported by isolated consumer)",
+    "pnpmCheck": "PASS",
+    "skipped": 0,
+    "only": 0,
+    "todo": 0,
+    "typescriptAny": 0,
+    "P0": 0,
+    "P1": 0,
+    "gitDiffCheck": "PASS"
+  }
+}
