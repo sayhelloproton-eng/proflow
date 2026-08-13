@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
+import { parse } from "yaml";
 import { materializeAgentPackage } from "../src/index.ts";
 
 const packageUrl = new URL("../package.json", import.meta.url);
@@ -16,9 +17,20 @@ async function artifacts() {
 	const openapi = await readFile(openApiUrl, "utf8");
 	return { metadata, openapi, material: materializeAgentPackage(metadata) };
 }
+type OpenApiOperation = {
+	operationId: string;
+	"x-openai-isConsequential": boolean;
+	requestBody?: unknown;
+};
+type OpenApi = {
+	openapi: string;
+	security: unknown[];
+	paths: Record<string, Record<string, OpenApiOperation>>;
+};
+const document = (text: string) => parse(text) as OpenApi;
 const operations = (text: string) =>
-	[...text.matchAll(/operationId:\s*([A-Za-z0-9_-]+)/g)].map(
-		(match) => match[1],
+	Object.values(document(text).paths).flatMap((path) =>
+		Object.values(path).map((operation) => operation.operationId),
 	);
 test("CP-AGT-PROD-01 package manifest, instructions and static Knowledge exclude dynamic Task documents", async () => {
 	const { metadata, material } = await artifacts();
@@ -37,6 +49,9 @@ test("CP-AGT-PROD-01 package manifest, instructions and static Knowledge exclude
 });
 test("CP-AGT-PROD-02 OpenAPI is static, versioned and role-minimal", async () => {
 	const { openapi } = await artifacts();
+	const parsed = document(openapi);
+	assert.equal(parsed.openapi, "3.1.0");
+	assert.ok(parsed.security.length > 0);
 	assert.deepEqual(
 		new Set(operations(openapi)),
 		new Set([
@@ -50,10 +65,11 @@ test("CP-AGT-PROD-02 OpenAPI is static, versioned and role-minimal", async () =>
 			"replyPeer",
 		]),
 	);
-	assert.equal(
-		(openapi.match(/x-openai-isConsequential:/g) ?? []).length,
-		operations(openapi).length,
-	);
+	for (const path of Object.values(parsed.paths))
+		for (const [method, operation] of Object.entries(path)) {
+			assert.equal(typeof operation["x-openai-isConsequential"], "boolean");
+			if (method === "post") assert.ok(operation.requestBody);
+		}
 	assert.doesNotMatch(
 		openapi,
 		/executeAnything|updateStatus|executeCapability|dynamic|capability catalog/i,

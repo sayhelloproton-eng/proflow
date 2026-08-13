@@ -1,16 +1,190 @@
 openapi: 3.1.0
-info: {title: ProFlow Test Ops Actions, version: 1.0.0}
-servers: [{url: https://GATEWAY_PUBLIC_HOST}]
+info:
+  title: ProFlow Test Ops Actions
+  version: 1.0.0
+  description: Role-minimal Task, Agent collaboration, and typed Execution access for Test and Operations.
+servers:
+  - url: https://GATEWAY_PUBLIC_HOST
+security:
+  - bearerAuth: []
 paths:
-  /actions/getTask: {get: {operationId: getTask, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
-  /actions/getNodeContext: {get: {operationId: getNodeContext, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
-  /actions/completeNode: {post: {operationId: completeNode, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
-  /actions/waitNode: {post: {operationId: waitNode, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
-  /actions/failNode: {post: {operationId: failNode, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
-  /actions/getTaskDocument: {get: {operationId: getTaskDocument, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
-  /actions/putTaskDocument: {post: {operationId: putTaskDocument, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
-  /actions/askPeer: {post: {operationId: askPeer, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
-  /actions/replyPeer: {post: {operationId: replyPeer, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
-  /actions/executeCapability: {post: {operationId: executeCapability, x-openai-isConsequential: true, responses: {'200': {description: OK}}}}
-  /actions/getExecution: {get: {operationId: getExecution, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
-  /actions/readExecutionOutput: {get: {operationId: readExecutionOutput, x-openai-isConsequential: false, responses: {'200': {description: OK}}}}
+  /actions/getTask:
+    get:
+      operationId: getTask
+      summary: Read Task owner facts.
+      x-openai-isConsequential: false
+      parameters: [{name: taskId, in: query, required: true, schema: {type: string}}]
+      responses: {'200': {description: Task owner facts}}
+  /actions/getNodeContext:
+    get:
+      operationId: getNodeContext
+      summary: Read the formal context for one test or operations node.
+      x-openai-isConsequential: false
+      parameters:
+        - {name: taskId, in: query, required: true, schema: {type: string}}
+        - {name: nodeId, in: query, required: true, schema: {type: string}}
+      responses: {'200': {description: Node context}}
+  /actions/completeNode:
+    post:
+      operationId: completeNode
+      summary: Complete a node only after Task and Execution evidence gates are met.
+      x-openai-isConsequential: false
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CompleteNodeInput'}}}}
+      responses: {'200': {description: Completed node}}
+  /actions/waitNode:
+    post:
+      operationId: waitNode
+      summary: Move a node to an explicit waiting condition.
+      x-openai-isConsequential: false
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/WaitNodeInput'}}}}
+      responses: {'200': {description: Waiting node}}
+  /actions/failNode:
+    post:
+      operationId: failNode
+      summary: Record a typed node failure without inventing Execution facts.
+      x-openai-isConsequential: false
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/FailNodeInput'}}}}
+      responses: {'200': {description: Failed node}}
+  /actions/getTaskDocument:
+    get:
+      operationId: getTaskDocument
+      summary: Read a typed Task document.
+      x-openai-isConsequential: false
+      parameters:
+        - {name: taskId, in: query, required: true, schema: {type: string}}
+        - {name: documentType, in: query, required: true, schema: {type: string}}
+      responses: {'200': {description: Task document}}
+  /actions/putTaskDocument:
+    post:
+      operationId: putTaskDocument
+      summary: Write test results or evidence through the Task owner contract.
+      x-openai-isConsequential: false
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PutTaskDocumentInput'}}}}
+      responses: {'200': {description: Task document result}}
+  /actions/askPeer:
+    post:
+      operationId: askPeer
+      summary: Persist one collaboration question for a Task participant.
+      x-openai-isConsequential: false
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AskPeerInput'}}}}
+      responses: {'200': {description: Collaboration question}}
+  /actions/replyPeer:
+    post:
+      operationId: replyPeer
+      summary: Persist a reply; physical Browser delivery follows separately.
+      x-openai-isConsequential: false
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReplyPeerInput'}}}}
+      responses: {'200': {description: Collaboration reply}}
+  /actions/executeCapability:
+    post:
+      operationId: executeCapability
+      summary: Execute one typed verification or operations capability through Execution owner runtime.
+      description: Test PASS remains evidence and never independently changes Task or Execution success.
+      x-openai-isConsequential: true
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExecuteCapabilityInput'}}}}
+      responses: {'200': {description: Durable Execution record}}
+  /actions/getExecution:
+    get:
+      operationId: getExecution
+      summary: Read one durable Execution record.
+      x-openai-isConsequential: false
+      parameters: [{name: executionRef, in: query, required: true, schema: {type: string}}]
+      responses: {'200': {description: Execution record}}
+  /actions/readExecutionOutput:
+    get:
+      operationId: readExecutionOutput
+      summary: Read a bounded page of Execution output.
+      x-openai-isConsequential: false
+      parameters:
+        - {name: executionRef, in: query, required: true, schema: {type: string}}
+        - {name: stream, in: query, required: true, schema: {type: string, enum: [stdout, stderr]}}
+        - {name: offset, in: query, required: false, schema: {type: integer, minimum: 0}}
+        - {name: limit, in: query, required: false, schema: {type: integer, minimum: 1, maximum: 65536}}
+      responses: {'200': {description: Execution output page}}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer}
+  schemas:
+    NodeVersionInput:
+      type: object
+      required: [taskId, nodeId, expectedTaskVersion, expectedNodeVersion, idempotencyKey]
+      properties:
+        taskId: {type: string}
+        nodeId: {type: string}
+        expectedTaskVersion: {type: integer, minimum: 1}
+        expectedNodeVersion: {type: integer, minimum: 1}
+        idempotencyKey: {type: string}
+    CompleteNodeInput:
+      unevaluatedProperties: false
+      allOf:
+        - {$ref: '#/components/schemas/NodeVersionInput'}
+        - {type: object, required: [resultSummary], properties: {resultSummary: {type: string}}}
+    WaitNodeInput:
+      unevaluatedProperties: false
+      allOf:
+        - {$ref: '#/components/schemas/NodeVersionInput'}
+        - type: object
+          required: [waitType, reasonCode, message]
+          properties:
+            waitType: {type: string}
+            reasonCode: {type: string}
+            message: {type: string}
+            relatedRef: {type: string}
+    FailNodeInput:
+      unevaluatedProperties: false
+      allOf:
+        - {$ref: '#/components/schemas/NodeVersionInput'}
+        - type: object
+          required: [errorCode, errorMessage, retryable]
+          properties:
+            errorCode: {type: string}
+            errorMessage: {type: string}
+            retryable: {type: boolean}
+    PutTaskDocumentInput:
+      unevaluatedProperties: false
+      allOf:
+        - {$ref: '#/components/schemas/NodeVersionInput'}
+        - type: object
+          required: [documentType, content]
+          properties:
+            documentType: {type: string}
+            content: {type: string}
+    AskPeerInput:
+      type: object
+      additionalProperties: false
+      required: [taskId, fromWorkerRef, targetAgentPackageRef, content, idempotencyKey]
+      properties:
+        taskId: {type: string}
+        threadId: {type: string}
+        fromWorkerRef: {type: string, description: Caller's real Task-bound c-id.}
+        targetAgentPackageRef: {type: string}
+        content: {type: string}
+        idempotencyKey: {type: string}
+    ReplyPeerInput:
+      type: object
+      additionalProperties: false
+      required: [threadId, fromWorkerRef, content, idempotencyKey]
+      properties:
+        threadId: {type: string}
+        fromWorkerRef: {type: string, description: Caller's real Task-bound c-id.}
+        content: {type: string}
+        idempotencyKey: {type: string}
+    ExecuteCapabilityInput:
+      type: object
+      additionalProperties: false
+      required: [contract, contractVersion, idempotencyKey, capability, input]
+      properties:
+        contract: {type: string, const: execution}
+        contractVersion: {type: string, const: 1.0.0}
+        executionRef: {type: string}
+        idempotencyKey: {type: string}
+        correlationId: {type: string}
+        taskId: {type: string}
+        nodeId: {type: string}
+        runNo: {type: integer, minimum: 1}
+        workerRef: {type: string}
+        projectRoot: {type: string}
+        approvalRef: {type: string}
+        timeoutMs: {type: integer, minimum: 1}
+        capability: {type: string, description: Exact frozen Execution capability ID.}
+        input: {type: object, description: Typed input for the selected capability.}

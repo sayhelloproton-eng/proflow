@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
+import { parse } from "yaml";
 
 const metadata = JSON.parse(
 	await readFile(new URL("../package.json", import.meta.url), "utf8"),
@@ -9,10 +10,27 @@ const openapi = await readFile(
 	new URL("../actions/custom-gpt.openapi.yaml", import.meta.url),
 	"utf8",
 );
-const operations = [
-	...openapi.matchAll(/operationId:\s*([A-Za-z0-9_-]+)/g),
-].map((match) => match[1]);
+type OpenApiOperation = {
+	operationId: string;
+	"x-openai-isConsequential": boolean;
+	requestBody?: unknown;
+};
+const parsed = parse(openapi) as {
+	openapi: string;
+	security: unknown[];
+	paths: Record<string, Record<string, OpenApiOperation>>;
+};
+const operations = Object.values(parsed.paths).flatMap((path) =>
+	Object.values(path).map((operation) => operation.operationId),
+);
 test("CP-AGT-DEV-01 instructions and Action allowlist are role-minimal", () => {
+	assert.equal(parsed.openapi, "3.1.0");
+	assert.ok(parsed.security.length > 0);
+	for (const path of Object.values(parsed.paths))
+		for (const [method, operation] of Object.entries(path)) {
+			assert.equal(typeof operation["x-openai-isConsequential"], "boolean");
+			if (method === "post") assert.ok(operation.requestBody);
+		}
 	assert.match(metadata.proflowAgent.instructions, /typed Execution/);
 	assert.deepEqual(
 		new Set(operations),

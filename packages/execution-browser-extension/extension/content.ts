@@ -125,8 +125,13 @@ const publish = () =>
 		observation: observation(),
 	});
 void publish();
+let publishTimer: ReturnType<typeof setTimeout> | undefined;
 const observer = new MutationObserver(() => {
-	void publish();
+	if (publishTimer !== undefined) clearTimeout(publishTimer);
+	publishTimer = setTimeout(() => {
+		publishTimer = undefined;
+		void publish();
+	}, 100);
 });
 observer.observe(document.documentElement, {
 	subtree: true,

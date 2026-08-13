@@ -26,6 +26,9 @@ importers:
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract
+      yaml:
+        specifier: 2.9.0
+        version: 2.9.0
 
   packages/agent-gateway:
     dependencies:
@@ -33,12 +36,33 @@ importers:
         specifier: 4.1.12
         version: 4.1.12
     devDependencies:
+      '@tomflow/proflow-agent-runtime':
+        specifier: workspace:^
+        version: link:../agent-runtime
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
+      '@tomflow/proflow-execution-browser-extension':
+        specifier: workspace:^
+        version: link:../execution-browser-extension
+      '@tomflow/proflow-execution-local':
+        specifier: workspace:^
+        version: link:../execution-local
+      '@tomflow/proflow-execution-runtime':
+        specifier: workspace:^
+        version: link:../execution-runtime
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract
+      '@tomflow/proflow-task-migration-runner':
+        specifier: workspace:^
+        version: link:../task-migration-runner
+      '@tomflow/proflow-task-orchestration':
+        specifier: workspace:^
+        version: link:../task-orchestration
+      '@tomflow/proflow-task-store-sqlite':
+        specifier: workspace:^
+        version: link:../task-store-sqlite
 
   packages/agent-product:
     devDependencies:
@@ -48,6 +72,9 @@ importers:
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract
+      yaml:
+        specifier: 2.9.0
+        version: 2.9.0
 
   packages/agent-runtime:
     dependencies:
@@ -70,6 +97,9 @@ importers:
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract
+      yaml:
+        specifier: 2.9.0
+        version: 2.9.0
 
   packages/deployment-conformance:
     dependencies:
@@ -387,6 +417,11 @@ packages:
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
+  yaml@2.9.0:
+    resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   zod@4.1.12:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
 
@@ -515,5 +550,7 @@ snapshots:
       '@typescript/typescript-win32-x64': 7.0.2
 
   undici-types@7.16.0: {}
+
+  yaml@2.9.0: {}
 
   zod@4.1.12: {}

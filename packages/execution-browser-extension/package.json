@@ -8,6 +8,7 @@
 	},
 	"exports": {
 		".": "./dist/src/index.js",
+		"./bridge": "./dist/src/bridge.js",
 		"./deployment/adapter": "./dist/deployment/adapter.js",
 		"./deployment/descriptor": "./dist/deployment/descriptor.js"
 	},

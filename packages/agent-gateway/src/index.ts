@@ -263,20 +263,24 @@ export async function createAgentGateway(options: GatewayOptions) {
 			throw new AgentGatewayError("OPENAI_FILE_RESPONSE_TOO_LARGE");
 		const token = randomBytes(32).toString("base64url");
 		relays.set(token, { ...artifact, expiresAt: now() + RELAY_TTL_MS });
+		const url = new URL(encodeURIComponent(token), options.relayBaseUrl);
 		return {
 			token,
-			url: new URL(encodeURIComponent(token), options.relayBaseUrl).href,
+			url: url.href,
 		};
 	};
 	const readRelay = async (
 		token: string,
 		method: string,
-		artifactRef: string,
+		artifactRef?: string,
 	) => {
 		const relay = relays.get(token);
 		if (!relay || relay.expiresAt < now())
 			throw new AgentGatewayError("OPENAI_FILE_RELAY_EXPIRED");
-		if (method !== "GET" || relay.artifactRef !== artifactRef)
+		if (
+			method !== "GET" ||
+			(artifactRef !== undefined && relay.artifactRef !== artifactRef)
+		)
 			throw new AgentGatewayError("OPENAI_FILE_RELAY_SCOPE_INVALID");
 		return {
 			body: relay.bytes,
@@ -344,8 +348,45 @@ export async function createAgentGateway(options: GatewayOptions) {
 		request: import("node:http").IncomingMessage,
 		response: import("node:http").ServerResponse,
 	) => {
-		response.setHeader("content-type", "application/json; charset=utf-8");
 		try {
+			const url = new URL(request.url ?? "/", `http://${host}`);
+			if (request.method === "GET" && url.pathname === "/health") {
+				response.setHeader("content-type", "application/json; charset=utf-8");
+				response.setHeader("cache-control", "no-store");
+				response.end(JSON.stringify({ status: "UP" }));
+				return;
+			}
+			if (request.method === "GET" && url.pathname === "/ready") {
+				const state = await readiness();
+				response.statusCode = state.status === "READY" ? 200 : 503;
+				response.setHeader("content-type", "application/json; charset=utf-8");
+				response.setHeader("cache-control", "no-store");
+				response.end(JSON.stringify(state));
+				return;
+			}
+			if (url.pathname.startsWith("/relay/")) {
+				if (request.method !== "GET" || url.search !== "") {
+					response.statusCode = 404;
+					response.end();
+					return;
+				}
+				try {
+					const relay = await readRelay(
+						decodeURIComponent(url.pathname.slice("/relay/".length)),
+						request.method,
+					);
+					response.setHeader("cache-control", "private, no-store");
+					response.setHeader("x-content-type-options", "nosniff");
+					for (const [name, value] of Object.entries(relay.headers))
+						response.setHeader(name, value);
+					response.end(relay.body);
+				} catch {
+					response.statusCode = 404;
+					response.end();
+				}
+				return;
+			}
+			response.setHeader("content-type", "application/json; charset=utf-8");
 			const authorization = request.headers.authorization;
 			if (!authorization?.startsWith("Bearer ")) {
 				response.statusCode = 401;
@@ -362,7 +403,6 @@ export async function createAgentGateway(options: GatewayOptions) {
 				response.end(JSON.stringify({ error: "AUTHENTICATION_FAILED" }));
 				return;
 			}
-			const url = new URL(request.url ?? "/", `http://${host}`);
 			let action: z.infer<typeof actionSchema>;
 			if (request.method === "GET" && url.pathname.startsWith("/actions/")) {
 				action = {
@@ -371,7 +411,10 @@ export async function createAgentGateway(options: GatewayOptions) {
 					),
 					body: Object.fromEntries(url.searchParams),
 				};
-			} else if (request.method === "POST" && url.pathname === "/actions") {
+			} else if (
+				request.method === "POST" &&
+				(url.pathname === "/actions" || url.pathname.startsWith("/actions/"))
+			) {
 				const chunks: Buffer[] = [];
 				let chars = 0;
 				for await (const chunk of request) {
@@ -388,8 +431,16 @@ export async function createAgentGateway(options: GatewayOptions) {
 					}
 					chunks.push(buffer);
 				}
+				const parsedBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
 				action = actionSchema.parse(
-					JSON.parse(Buffer.concat(chunks).toString("utf8")),
+					url.pathname === "/actions"
+						? parsedBody
+						: {
+								operationId: decodeURIComponent(
+									url.pathname.slice("/actions/".length),
+								),
+								body: parsedBody,
+							},
 				);
 			} else {
 				response.statusCode = 404;
@@ -448,7 +499,9 @@ export async function createAgentGateway(options: GatewayOptions) {
 					? Number(error.httpStatus)
 					: 500;
 			response.statusCode =
-				requestedStatus === 429 || requestedStatus >= 500
+				Number.isInteger(requestedStatus) &&
+				requestedStatus >= 400 &&
+				requestedStatus <= 599
 					? requestedStatus
 					: 500;
 			response.end(

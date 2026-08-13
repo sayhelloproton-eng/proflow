@@ -23,7 +23,14 @@
 		"zod": "4.1.12"
 	},
 	"devDependencies": {
+		"@tomflow/proflow-agent-runtime": "workspace:^",
 		"@tomflow/proflow-deployment-conformance": "workspace:^",
-		"@tomflow/proflow-module-contract": "workspace:^"
+		"@tomflow/proflow-execution-browser-extension": "workspace:^",
+		"@tomflow/proflow-execution-local": "workspace:^",
+		"@tomflow/proflow-execution-runtime": "workspace:^",
+		"@tomflow/proflow-module-contract": "workspace:^",
+		"@tomflow/proflow-task-migration-runner": "workspace:^",
+		"@tomflow/proflow-task-orchestration": "workspace:^",
+		"@tomflow/proflow-task-store-sqlite": "workspace:^"
 	}
 }

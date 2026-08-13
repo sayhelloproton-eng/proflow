@@ -59,6 +59,7 @@
 	},
 	"devDependencies": {
 		"@tomflow/proflow-deployment-conformance": "workspace:^",
-		"@tomflow/proflow-module-contract": "workspace:^"
+		"@tomflow/proflow-module-contract": "workspace:^",
+		"yaml": "2.9.0"
 	}
 }

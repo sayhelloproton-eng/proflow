@@ -17,7 +17,7 @@ export function materializeAgentPackage(input: unknown): AgentPackageMaterial {
 			| Record<string, Record<string, unknown>>
 			| undefined
 	)?.["custom-gpt"];
-	if (!agent || agent.kind !== "agent-package" || !carrier)
+	if (agent?.kind !== "agent-package" || !carrier)
 		throw new TypeError("invalid Agent Package manifest");
 	return {
 		packageName: String(metadata.name),

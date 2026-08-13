@@ -6,8 +6,15 @@ import {
 	type ExecutionCapabilityResult,
 	type ExecutionEvidence,
 	executeCapabilityRequestSchema,
+	parseExecutionRecord,
 } from "@tomflow/proflow-execution-contracts";
 import type { ExecutionExecutorPort } from "@tomflow/proflow-execution-runtime";
+
+export type { BrowserRealityBridgeOptions } from "./bridge.ts";
+export {
+	BrowserRealityBridgeError,
+	createBrowserRealityBridgeServer,
+} from "./bridge.ts";
 
 export type BrowserPageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 export type BrowserActivityKind =
@@ -56,6 +63,19 @@ export interface TaskBrowserPort {
 }
 
 export interface AgentDeliveryPort {
+	getPendingMessage(messageRef: string): Promise<{
+		messageId: string;
+		threadId: string;
+		taskId: string;
+		kind: "QUESTION" | "REPLY";
+		fromRoleRef: string;
+		fromWorkerRef: string;
+		targetRoleRef: string;
+		targetWorkerRef: string;
+		replyToMessageId: string | null;
+		content: string;
+		status: "PENDING";
+	}>;
 	reportPhysicalDelivery(
 		messageRef: string,
 		evidenceRef: string,
@@ -113,7 +133,9 @@ function parseCarrierIdentity(raw: string): {
 	if (segments.length === 2) return { roleRef: segments[1], workerRef: null };
 	if (
 		segments[2] !== "c" ||
-		!segments[3]?.startsWith("c-") ||
+		!segments[3] ||
+		segments[3].length > 512 ||
+		!/^[A-Za-z0-9_-]+$/.test(segments[3]) ||
 		segments.length !== 4
 	)
 		throw new ExecutionBrowserError(
@@ -369,9 +391,20 @@ export function createExecutionBrowserExtension(
 						"PAGE_NOT_WRITABLE",
 					);
 				await effectStarted(raw);
+				const trigger = JSON.stringify({
+					protocol: "aap.agent.browser-trigger.v1",
+					triggerId: request.input.fingerprint,
+					triggerType: "NODE_READY",
+					taskId,
+					roleRef: request.input.roleRef,
+					workerRef: request.input.workerRef,
+					occurredAt: now().toISOString(),
+					fingerprint: request.input.fingerprint,
+					payload: { trigger: request.input.trigger },
+				});
 				const after = await options.browser.submit(
 					observed.tabId,
-					request.input.trigger,
+					trigger,
 					request.input.fingerprint,
 				);
 				if (
@@ -402,15 +435,40 @@ export function createExecutionBrowserExtension(
 
 		if (request.capability === "collaboration.deliver")
 			return serializeWrite(async () => {
+				const message = await options.agent.getPendingMessage(
+					request.input.messageRef,
+				);
+				if (
+					message.messageId !== request.input.messageRef ||
+					message.taskId !== taskId ||
+					message.targetRoleRef !== request.input.roleRef ||
+					message.targetWorkerRef !== request.input.workerRef ||
+					message.status !== "PENDING"
+				)
+					throw new ExecutionBrowserError(
+						"PRECONDITION_FAILED",
+						"DELIVERY_OWNER_FACT_MISMATCH",
+					);
 				const observed = await ensureRestored(
 					taskId,
 					request.input.roleRef,
 					request.input.workerRef,
 				);
 				await effectStarted(raw);
+				const trigger = JSON.stringify({
+					protocol: "aap.agent.browser-trigger.v1",
+					triggerId: message.messageId,
+					triggerType: "PEER_MESSAGE",
+					taskId,
+					roleRef: message.targetRoleRef,
+					workerRef: message.targetWorkerRef,
+					occurredAt: now().toISOString(),
+					fingerprint: request.input.contentFingerprint,
+					payload: { collaboration: message },
+				});
 				const after = await options.browser.submit(
 					observed.tabId,
-					`PEER_MESSAGE ${request.input.messageRef}`,
+					trigger,
 					request.input.contentFingerprint,
 				);
 				if (
@@ -424,10 +482,6 @@ export function createExecutionBrowserExtension(
 						"DELIVERY_REALITY_UNCONFIRMED",
 					);
 				const evidence = browserEvidence(idFactory, after, true);
-				await options.agent.reportPhysicalDelivery(
-					request.input.messageRef,
-					evidence.evidenceRef,
-				);
 				return {
 					...result(
 						{
@@ -684,6 +738,24 @@ export function createExecutionBrowserExtension(
 		},
 		execute,
 		reconcile,
+		async finalizeCollaborationDelivery(recordRaw: unknown) {
+			const record = parseExecutionRecord(recordRaw);
+			if (
+				record.status !== "SUCCEEDED" ||
+				record.sideEffectState !== "APPLIED" ||
+				record.result?.capability !== "collaboration.deliver" ||
+				record.result.data.delivered !== true
+			)
+				throw new ExecutionBrowserError(
+					"PRECONDITION_FAILED",
+					"COLLABORATION_EXECUTION_NOT_COMMITTED",
+				);
+			await options.agent.reportPhysicalDelivery(
+				record.result.data.messageRef,
+				record.result.data.evidenceRef,
+			);
+			return { status: "DELIVERED" as const };
+		},
 		async readArtifact() {
 			throw new ExecutionBrowserError(
 				"EXECUTOR_UNAVAILABLE",

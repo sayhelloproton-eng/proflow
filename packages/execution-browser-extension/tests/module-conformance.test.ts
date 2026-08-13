@@ -30,11 +30,13 @@ test("Execution Browser module contract C1/C2/C3", async () => {
 		background: { service_worker: string };
 		content_scripts: Array<{ js: string[] }>;
 		side_panel: { default_path: string };
+		options_page: string;
 	};
 	for (const artifact of [
 		manifest.background.service_worker,
 		...manifest.content_scripts.flatMap((item) => item.js),
 		manifest.side_panel.default_path,
+		manifest.options_page,
 	])
 		await access(new URL(`../${artifact}`, import.meta.url));
 });

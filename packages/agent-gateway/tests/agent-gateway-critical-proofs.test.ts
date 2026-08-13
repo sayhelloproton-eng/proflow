@@ -90,6 +90,31 @@ test("CP-AGT-GW-02 body/path/query normalize without arbitrary custom headers", 
 	});
 	await gateway.stop();
 });
+
+test("CP-AGT-GW-02 static OpenAPI POST path maps directly to its canonical operation", async () => {
+	const { gateway, routes, baseUrl } = await fixture();
+	try {
+		const response = await fetch(`${baseUrl}/actions/createTask`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${fixtureCredential}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({
+				roleRef: "g-spoofed",
+				title: "real transport shape",
+			}),
+		});
+		assert.equal(response.status, 200);
+		assert.deepEqual(routes.at(-1), {
+			operationId: "createTask",
+			roleRef: "g-authenticated",
+			input: { title: "real transport shape" },
+		});
+	} finally {
+		await gateway.stop();
+	}
+});
 test("CP-AGT-GW-03 request response budgets and real 429/5xx semantics", async () => {
 	const { gateway, baseUrl } = await fixture();
 	assert.equal(
@@ -336,6 +361,43 @@ test("CP-AGT-GW-06 relay token is opaque GET-only scoped TTL and header safe", a
 		/OPENAI_FILE_COUNT_EXCEEDED/,
 	);
 });
+
+test("CP-AGT-GW-06 relay is a real unauthenticated opaque HTTP download with strict artifact scope", async () => {
+	const { gateway, baseUrl } = await fixture();
+	try {
+		const relay = gateway.createRelay({
+			artifactRef: "artifact:real-http",
+			name: "proof.txt",
+			mimeType: "text/plain",
+			bytes: Buffer.from("bounded proof"),
+		});
+		const external = new URL(relay.url);
+		const response = await fetch(
+			`${baseUrl}${external.pathname}${external.search}`,
+		);
+		assert.equal(response.status, 200);
+		assert.equal(await response.text(), "bounded proof");
+		assert.equal(response.headers.get("cache-control"), "private, no-store");
+		assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+		const wrongScope = new URL(external);
+		wrongScope.searchParams.set("artifactRef", "artifact:wrong");
+		assert.equal(
+			(await fetch(`${baseUrl}${wrongScope.pathname}${wrongScope.search}`))
+				.status,
+			404,
+		);
+		assert.equal(
+			(
+				await fetch(`${baseUrl}${external.pathname}${external.search}`, {
+					method: "POST",
+				})
+			).status,
+			404,
+		);
+	} finally {
+		await gateway.stop();
+	}
+});
 test("CP-AGT-GW-07 every operation has explicit consequential metadata independent from approval", async () => {
 	const { gateway } = await fixture();
 	const schema = gateway.describeOpenApi();
@@ -366,4 +428,27 @@ test("CP-AGT-GW-09 readiness blocks missing dependencies and restart replays zer
 	await gateway.restart();
 	assert.equal(routes.length, 0);
 	await gateway.stop();
+});
+
+test("CP-AGT-GW-09 HTTP health and readiness expose only service and dependency status", async () => {
+	const { gateway, baseUrl } = await fixture({ execution: false });
+	try {
+		const health = await fetch(`${baseUrl}/health`);
+		assert.equal(health.status, 200);
+		assert.deepEqual(await health.json(), { status: "UP" });
+		const ready = await fetch(`${baseUrl}/ready`);
+		assert.equal(ready.status, 503);
+		assert.deepEqual(await ready.json(), {
+			status: "NOT_READY",
+			checks: {
+				credentialStore: true,
+				agent: true,
+				task: true,
+				execution: false,
+				relay: true,
+			},
+		});
+	} finally {
+		await gateway.stop();
+	}
 });

@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
+import { createExecutionRuntime } from "@tomflow/proflow-execution-runtime";
 import {
 	type BrowserPageObservation,
 	type BrowserRealityPort,
@@ -15,6 +19,7 @@ class BrowserHarness implements BrowserRealityPort {
 	activeWrites = 0;
 	maxActiveWrites = 0;
 	nextTab = 1;
+	submittedTexts: string[] = [];
 	async listTabs() {
 		return [...this.tabs.values()];
 	}
@@ -38,11 +43,12 @@ class BrowserHarness implements BrowserRealityPort {
 		if (!tab) throw new Error("TAB_NOT_FOUND");
 		return tab;
 	}
-	async submit(tabId: number, _text: string, fingerprint: string) {
+	async submit(tabId: number, text: string, fingerprint: string) {
 		this.activeWrites += 1;
 		this.maxActiveWrites = Math.max(this.maxActiveWrites, this.activeWrites);
 		await new Promise((resolve) => setTimeout(resolve, 5));
 		this.submitCount += 1;
+		this.submittedTexts.push(text);
 		this.messages.get(tabId)?.add(fingerprint);
 		const current = await this.observe(tabId);
 		if (!current.url.includes("/c/")) {
@@ -104,6 +110,21 @@ async function fixture() {
 			},
 		},
 		agent: {
+			async getPendingMessage(messageRef: string) {
+				return {
+					messageId: messageRef,
+					threadId: "thread:1",
+					taskId: "task:1",
+					kind: "REPLY" as const,
+					fromRoleRef: "g-peer",
+					fromWorkerRef: "c-peer",
+					targetRoleRef: "g-dev",
+					targetWorkerRef: "c-dev",
+					replyToMessageId: "message:question",
+					content: "owner-backed reply content",
+					status: "PENDING" as const,
+				};
+			},
 			async reportPhysicalDelivery(messageRef: string) {
 				deliveryReports.push(messageRef);
 			},
@@ -133,6 +154,15 @@ test("CP-EXE-BR-01 stable role/worker identity rejects stale transient content i
 		roleRef: "g-dev",
 		workerRef: "c-dev",
 	});
+	assert.deepEqual(
+		extension.parseCarrierIdentity(
+			"https://chatgpt.com/g/g-dev/c/0198a45c-12ab-7def-9123-abcdef012345",
+		),
+		{
+			roleRef: "g-dev",
+			workerRef: "0198a45c-12ab-7def-9123-abcdef012345",
+		},
+	);
 });
 
 test("CP-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, duplicate CREATE is zero", async () => {
@@ -210,6 +240,7 @@ test("CP-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Nod
 		},
 	});
 	assert.equal(browser.submitCount, 1);
+	assert.match(browser.submittedTexts[0] ?? "", /"fingerprint":"wake:1"/);
 	assert.doesNotMatch(
 		JSON.stringify(result),
 		/taskDocuments|nodeCompleted|effectSucceeded/,
@@ -305,7 +336,74 @@ test("CP-EXE-BR-06 writes are globally serial and logical delivery follows physi
 		}),
 	]);
 	assert.equal(browser.maxActiveWrites, 1);
-	assert.deepEqual(deliveryReports, ["message:1"]);
+	assert.deepEqual(deliveryReports, []);
+	assert.match(
+		browser.submittedTexts.find((text) => text.includes("PEER_MESSAGE")) ?? "",
+		/owner-backed reply content/,
+	);
+});
+
+test("CP-EXE-BR-06 logical delivery finalizes only after durable Execution success", async () => {
+	const directory = await mkdtemp(join(tmpdir(), "proflow-delivery-order-"));
+	const { extension, browser, bindings, deliveryReports } = await fixture();
+	bindings.set("task:1:g-dev", "c-dev");
+	await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
+	const runtime = await createExecutionRuntime({
+		databasePath: join(directory, "execution.sqlite"),
+		localExecutor: {
+			async execute() {
+				throw new Error("LOCAL_EXECUTOR_NOT_EXPECTED");
+			},
+			async reconcile() {
+				return { state: "UNKNOWN" as const, evidence: [] };
+			},
+			async readArtifact() {
+				throw new Error("ARTIFACT_NOT_EXPECTED");
+			},
+		},
+		browserExecutor: extension,
+		policy: {
+			decide() {
+				return {
+					decision: "ALLOW" as const,
+					decisionPath: "deterministic" as const,
+				};
+			},
+		},
+	});
+	try {
+		const record = await runtime.executeCapability(
+			request("collaboration.deliver", {
+				roleRef: "g-dev",
+				workerRef: "c-dev",
+				messageRef: "message:committed",
+				contentFingerprint: "message:committed-fingerprint",
+			}),
+		);
+		assert.equal(record.status, "SUCCEEDED");
+		assert.equal(record.sideEffectState, "APPLIED");
+		assert.deepEqual(deliveryReports, []);
+		await extension.finalizeCollaborationDelivery(record);
+		assert.deepEqual(deliveryReports, ["message:committed"]);
+		const { result: _result, ...withoutResult } = record;
+		await assert.rejects(
+			() =>
+				extension.finalizeCollaborationDelivery({
+					...withoutResult,
+					status: "FAILED",
+					sideEffectState: "NOT_APPLIED",
+					error: {
+						code: "EXECUTION_FAILED",
+						message: "controlled failure",
+						retryable: false,
+					},
+				}),
+			/COLLABORATION_EXECUTION_NOT_COMMITTED/,
+		);
+	} finally {
+		runtime.close();
+		await rm(directory, { recursive: true, force: true });
+	}
 });
 
 test("CP-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay", async () => {
