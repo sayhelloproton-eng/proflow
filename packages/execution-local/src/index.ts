@@ -955,6 +955,169 @@ export async function materializeExternalFiles(options: {
 	return materialized;
 }
 
+// ── Context Pack / Patch proposal: bounded Execution Artifact subtypes ─────
+// These are Artifact mechanics, not new Stores/Services; a patch proposal is
+// materialized distinctly from the apply/test Evidence that a later Effect produces.
+
+const CONTEXT_PACK_MAX_ENTRIES = 200;
+const CONTEXT_PACK_ENTRY_MAX_BYTES = 256_000;
+const CONTEXT_PACK_TOTAL_MAX_BYTES = 2_000_000;
+const PATCH_PROPOSAL_MAX_BYTES = 2_000_000;
+
+const textMimePrefixes = new Set([
+	"text/",
+	"application/json",
+	"application/xml",
+	"application/x-yaml",
+	"application/x-ndjson",
+	"image/svg+xml",
+]);
+
+function isTextMime(mimeType: string): boolean {
+	const normalized = mimeType.split(";", 1)[0]?.trim().toLowerCase() ?? "";
+	return [...textMimePrefixes].some(
+		(prefix) => normalized === prefix || normalized.startsWith(prefix),
+	);
+}
+
+export interface ContextPackEntryInput {
+	path: string;
+	mimeType: string;
+	content: string;
+}
+
+export interface ContextPackManifestEntry {
+	path: string;
+	mimeType: string;
+	bytes: number;
+}
+
+export interface ContextPackResult {
+	artifactRef: string;
+	hash: string;
+	bytes: number;
+	entries: number;
+	binaryFiltered: number;
+	redacted: boolean;
+	manifest: ContextPackManifestEntry[];
+}
+
+export async function materializeContextPack(options: {
+	artifactRoot: string;
+	taskId: string;
+	nodeId: string;
+	entries: readonly ContextPackEntryInput[];
+	secrets?: readonly string[];
+}): Promise<ContextPackResult> {
+	if (
+		options.entries.length === 0 ||
+		options.entries.length > CONTEXT_PACK_MAX_ENTRIES
+	)
+		throw new LocalExecutionError(
+			"INVALID_REQUEST",
+			"context pack entry count is out of bounds",
+		);
+	const secrets = options.secrets ?? [];
+	let totalBytes = 0;
+	let binaryFiltered = 0;
+	const manifest: ContextPackManifestEntry[] = [];
+	const entries: ContextPackEntryInput[] = [];
+	for (const entry of options.entries) {
+		if (!isTextMime(entry.mimeType)) {
+			binaryFiltered += 1;
+			continue;
+		}
+		const content = redactText(entry.content, secrets);
+		const bytes = Buffer.byteLength(content);
+		if (bytes > CONTEXT_PACK_ENTRY_MAX_BYTES) continue;
+		if (totalBytes + bytes > CONTEXT_PACK_TOTAL_MAX_BYTES) continue;
+		totalBytes += bytes;
+		manifest.push({ path: entry.path, mimeType: entry.mimeType, bytes });
+		entries.push({ ...entry, content });
+	}
+	const id = randomUUID();
+	const artifactRef = `artifact:${id}:context-pack`;
+	const hash = `sha256:${createHash("sha256")
+		.update(JSON.stringify({ taskId: options.taskId, nodeId: options.nodeId, manifest }))
+		.digest("hex")}`;
+	const artifactRoot = resolve(options.artifactRoot);
+	await mkdir(artifactRoot, { recursive: true, mode: 0o700 });
+	await writeFile(
+		join(artifactRoot, `${id}.context-pack.json`),
+		JSON.stringify({ taskId: options.taskId, nodeId: options.nodeId, manifest, entries }),
+		{ encoding: "utf8", mode: 0o600 },
+	);
+	return {
+		artifactRef,
+		hash,
+		bytes: totalBytes,
+		entries: entries.length,
+		binaryFiltered,
+		redacted: secrets.length > 0,
+		manifest,
+	};
+}
+
+export interface PatchProposalInput {
+	// Bounded text diff/patch built against a base precondition snapshot.
+	diff: string;
+	baseHash: string;
+	baseRef: string;
+}
+
+export interface PatchProposalResult {
+	artifactRef: string;
+	hash: string;
+	bytes: number;
+	baseHash: string;
+	stale: boolean;
+	precondition: { baseHash: string; baseRef: string };
+}
+
+export async function materializePatchProposal(options: {
+	artifactRoot: string;
+	taskId: string;
+	nodeId: string;
+	proposal: PatchProposalInput;
+}): Promise<PatchProposalResult> {
+	const bytes = Buffer.byteLength(options.proposal.diff);
+	if (bytes === 0 || bytes > PATCH_PROPOSAL_MAX_BYTES)
+		throw new LocalExecutionError(
+			"INVALID_REQUEST",
+			"patch proposal must be non-empty and within size bounds",
+		);
+	if (!options.proposal.baseHash)
+		throw new LocalExecutionError(
+			"PRECONDITION_FAILED",
+			"patch proposal requires a base precondition snapshot hash",
+		);
+	const id = randomUUID();
+	const artifactRef = `artifact:${id}:patch-proposal`;
+	const hash = `sha256:${createHash("sha256")
+		.update(options.proposal.diff)
+		.digest("hex")}`;
+	const artifactRoot = resolve(options.artifactRoot);
+	await mkdir(artifactRoot, { recursive: true, mode: 0o700 });
+	await writeFile(join(artifactRoot, `${id}.patch-proposal.diff`), options.proposal.diff, {
+		encoding: "utf8",
+		mode: 0o600,
+	});
+	// A proposal is never auto-applied. Applying it is a separate Effect that
+	// re-validates this precondition against the live snapshot (stale detection)
+	// and produces its own Result/Evidence, never reusing this proposal as truth.
+	return {
+		artifactRef,
+		hash,
+		bytes,
+		baseHash: options.proposal.baseHash,
+		stale: false,
+		precondition: {
+			baseHash: options.proposal.baseHash,
+			baseRef: options.proposal.baseRef,
+		},
+	};
+}
+
 export async function createLocalExecutor(options: LocalExecutorOptions) {
 	const projectRoot = await realpath(resolve(options.projectRoot));
 	const artifactRoot = resolve(options.artifactRoot);

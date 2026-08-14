@@ -86,6 +86,7 @@ export type ExecutionErrorCode = (typeof executionErrorCodes)[number];
 
 type Brand<Value, Name extends string> = Value & { readonly __brand: Name };
 export type ExecutionRef = Brand<string, "ExecutionRef">;
+export type ArtifactRef = Brand<string, "ArtifactRef">;
 export type EvidenceRef = Brand<string, "EvidenceRef">;
 
 const identifier = z.string().min(1);
@@ -699,6 +700,7 @@ export const executionRecordSchema = z
 		result: executionCapabilityResultSchema.optional(),
 		evidence: z.array(executionEvidenceSchema),
 		evidenceRefs: z.array(identifier).optional(),
+		artifactRefs: z.array(identifier).optional(),
 		error: executionErrorSchema.optional(),
 		attemptCount: z.number().int().nonnegative(),
 		createdAt: z.iso.datetime(),

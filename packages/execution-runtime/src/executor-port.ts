@@ -102,6 +102,9 @@ export interface ExecutorArtifact {
 	path: string;
 	bytes: number;
 	stream: "stdout" | "stderr" | "report";
+	kind?: "output" | "external-file" | "context-pack" | "patch-proposal";
+	hash?: string;
+	mime?: string;
 }
 
 export interface ExecutorResult {

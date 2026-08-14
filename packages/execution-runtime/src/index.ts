@@ -20,6 +20,7 @@ import {
 } from "@tomflow/proflow-execution-contracts";
 import type {
 	ExecutionExecutorPort,
+	ExecutorArtifact,
 	ExecutorPrecondition,
 } from "./executor-port.ts";
 
@@ -198,6 +199,23 @@ export function executionInputFingerprint(input: unknown): string {
 		workerRef: request.workerRef,
 		projectRoot: request.projectRoot,
 	});
+}
+function materializeArtifactRefs(
+	artifacts: readonly ExecutorArtifact[],
+): Array<{
+	ref: string;
+	kind: "output" | "external-file" | "context-pack" | "patch-proposal";
+	hash?: string;
+	mime?: string;
+	bytes: number;
+}> {
+	return artifacts.map((artifact) => ({
+		ref: artifact.ref,
+		kind: artifact.kind ?? "output",
+		bytes: artifact.bytes,
+		...(artifact.hash === undefined ? {} : { hash: artifact.hash }),
+		...(artifact.mime === undefined ? {} : { mime: artifact.mime }),
+	}));
 }
 function runtimeError(error: unknown): ExecutionRuntimeError {
 	if (error instanceof ExecutionRuntimeError) return error;
@@ -379,29 +397,31 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				"IDENTITY_INVALID",
 				"caller, Task, Agent, workspace, or Browser identity is not authoritative",
 			);
-		const policy = await (options.policy ?? defaultPolicy).decide(request);
-		if (policy.decision === "DENY")
+		const policy = options.policy ?? defaultPolicy;
+		const policyDecision = await policy.decide(request);
+		if (policyDecision.decision === "DENY")
 			throw new ExecutionRuntimeError(
 				"POLICY_DENIED",
-				policy.reason ?? "deterministic policy denied execution",
+				policyDecision.reason ?? "deterministic policy denied execution",
 			);
 		let decisionPath: "deterministic" | "fast" | "reason" | "human" =
-			policy.decisionPath;
-		let approvalRequired = policy.approvalRequired === true;
-		if (policy.decision === "REVIEW") {
+			policyDecision.decisionPath;
+		let approvalRequired = policyDecision.approvalRequired === true;
+		if (policyDecision.decision === "REVIEW") {
 			if (!options.modelDecision)
 				throw new ExecutionRuntimeError(
 					"DECISION_UNRESOLVED",
 					"review requires a model decision",
 				);
-			const model = await options.modelDecision.decide(request);
-			decisionPath = model.decisionPath;
-			approvalRequired = approvalRequired || model.approvalRequired === true;
+			const model = options.modelDecision;
+			const modelDecision = await model.decide(request);
+			decisionPath = modelDecision.decisionPath;
+			approvalRequired = approvalRequired || modelDecision.approvalRequired === true;
 			if (approvalRequired) decisionPath = "human";
-			if (model.decision === "DENY")
+			if (modelDecision.decision === "DENY")
 				throw new ExecutionRuntimeError(
 					"POLICY_DENIED",
-					model.reason ?? "model decision denied execution",
+					modelDecision.reason ?? "model decision denied execution",
 				);
 		}
 		const validateApproval = async (precondition?: ExecutorPrecondition) => {
@@ -692,6 +712,9 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				result: result.result,
 				evidence: result.evidence,
 				evidenceRefs: result.evidence.map((item) => item.evidenceRef),
+				artifactRefs: materializeArtifactRefs(result.artifacts).map(
+					(item) => item.ref,
+				),
 				finishedAt: now().toISOString(),
 				updatedAt: now().toISOString(),
 			});
