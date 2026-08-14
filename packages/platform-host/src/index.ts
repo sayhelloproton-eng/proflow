@@ -22,9 +22,6 @@ type RolePackageRef = (typeof rolePackageRefs)[number];
 
 const roleOperations: Record<RolePackageRef, ReadonlySet<string>> = {
 	"@tomflow/proflow-agent-product": new Set([
-		"listRegisteredRoles",
-		"getRegisteredRole",
-		"createTask",
 		"getTask",
 		"putTaskDocument",
 		"getTaskDocument",
@@ -292,6 +289,7 @@ export type PlatformHostBrowserOwnerPorts = {
 			taskId: string;
 			roleRef: string;
 			workerRef: string;
+			conversationLocator: string;
 		}): Promise<void>;
 	};
 	agent: {
@@ -338,6 +336,27 @@ export type PlatformHostTaskDriverPorts = {
 		currentNodeId: string | null;
 		roleBindings: Array<{ roleRef: string; workerRef: string | null }>;
 	}>;
+	getTaskDriveProjection(taskId: string): Promise<{
+		taskId: string;
+		taskStatus: string;
+		taskVersion: number;
+		terminal: boolean;
+		currentNode: {
+			nodeId: string;
+			status: string;
+			version: number;
+			runNo: number;
+			requiredAgentPackageRef: string;
+		} | null;
+		roleBinding: {
+			agentPackageRef: string;
+			roleRef: string;
+			workerRef: string | null;
+			conversationLocator: string | null;
+		} | null;
+		canDrive: boolean;
+		blockedReason: string | null;
+	}>;
 	getNodeContext(
 		taskId: string,
 		nodeId: string,
@@ -348,16 +367,10 @@ export type PlatformHostTaskDriverPorts = {
 			status: string;
 			version: number;
 			runNo: number;
-			requiredRoleRef: string;
+			requiredAgentPackageRef: string;
 			workerRef: string | null;
 		};
 	}>;
-	authorizeTask(input: {
-		taskId: string;
-		expectedTaskVersion: number;
-		authorizedByRef: string;
-		idempotencyKey: string;
-	}): Promise<unknown>;
 	startTask(input: {
 		taskId: string;
 		expectedTaskVersion: number;
@@ -469,6 +482,7 @@ async function constructGraph(
 		"getTaskGroup",
 		"listTasks",
 		"getTask",
+		"getTaskDriveProjection",
 		"getNodeContext",
 		"listPendingMessages",
 		"listTaskEvents",
@@ -523,10 +537,6 @@ async function constructGraph(
 				httpStatus: 403,
 			});
 		const input = object(rawInput, "action input");
-		if (operationId === "listRegisteredRoles")
-			return agent.listRegisteredRoles();
-		if (operationId === "getRegisteredRole")
-			return agent.getRegisteredRole(string(input.roleRef, "roleRef"));
 		if (operationId === "askPeer")
 			return agent.askPeer({ ...input, authenticatedRoleRef });
 		if (operationId === "replyPeer")
@@ -534,18 +544,7 @@ async function constructGraph(
 		const taskOperation = taskOperations.get(operationId);
 		if (taskOperation) {
 			let actorRef = authenticatedRoleRef;
-			if (operationId === "createTask" && Array.isArray(input.roleBindings)) {
-				const ownBinding = input.roleBindings.find(
-					(candidate) =>
-						typeof candidate === "object" &&
-						candidate !== null &&
-						Reflect.get(candidate, "roleRef") === authenticatedRoleRef,
-				);
-				const workerRef = ownBinding
-					? Reflect.get(ownBinding, "workerRef")
-					: undefined;
-				if (typeof workerRef === "string") actorRef = workerRef;
-			} else if (typeof input.taskId === "string") {
+			if (typeof input.taskId === "string") {
 				const workerRef = await admitTaskParticipant(
 					input.taskId,
 					authenticatedRoleRef,
@@ -630,28 +629,35 @@ async function constructGraph(
 					)?.workerRef ?? null
 				);
 			},
-			async bindWorker(binding: {
-				taskId: string;
-				roleRef: string;
-				workerRef: string;
-			}) {
-				const current = unwrap(
-					task.queries.getTask({ taskId: binding.taskId }),
-				);
-				const existing = current.roleBindings.find(
-					(item) => item.roleRef === binding.roleRef,
-				)?.workerRef;
-				if (existing === binding.workerRef) return;
-				if (existing) throw new Error("TASK_ROLE_BINDING_CONFLICT");
-				unwrap(
-					task.commands.bindTaskWorker({
-						...binding,
-						expectedTaskVersion: current.version,
-						actorRef: "platform-host:worker-provisioning",
-						idempotencyKey: `browser-bind:${binding.taskId}:${binding.roleRef}:${binding.workerRef}`,
-					}),
-				);
-			},
+		async bindWorker(binding: {
+			taskId: string;
+			roleRef: string;
+			workerRef: string;
+			conversationLocator: string;
+		}) {
+			const current = unwrap(
+				task.queries.getTask({ taskId: binding.taskId }),
+			);
+			const declared = current.roleBindings.find(
+				(item) => item.roleRef === binding.roleRef,
+			);
+			if (!declared)
+				throw new Error("AGENT_PACKAGE_NOT_ELIGIBLE");
+			if (declared.workerRef === binding.workerRef) return;
+			if (declared.workerRef) throw new Error("TASK_ROLE_BINDING_CONFLICT");
+			unwrap(
+				task.commands.bindTaskWorker({
+					taskId: binding.taskId,
+					agentPackageRef: declared.agentPackageRef,
+					roleRef: binding.roleRef,
+					workerRef: binding.workerRef,
+					conversationLocator: binding.conversationLocator,
+					expectedTaskVersion: current.version,
+					actorRef: "platform-host:worker-provisioning",
+					idempotencyKey: `browser-bind:${binding.taskId}:${binding.roleRef}:${binding.workerRef}`,
+				}),
+			);
+		},
 		}),
 		agent: Object.freeze({
 			async getPendingMessage(messageRef: string) {
@@ -777,45 +783,36 @@ async function constructGraph(
 					status: current.task.status,
 					version: current.task.version,
 				},
-				node: {
-					nodeId: current.node.nodeId,
-					status: current.node.status,
-					version: current.node.version,
-					runNo: current.node.runNo,
-					requiredRoleRef: current.node.requiredRoleRef,
-					workerRef: current.node.workerRef,
-				},
-			};
-		},
-		async authorizeTask(input) {
-			if (!/^human:[A-Za-z0-9._:-]+$/.test(input.authorizedByRef))
-				throw new Error("HUMAN_AUTHORIZATION_REQUIRED");
-			return unwrap(
-				task.commands.authorizeTask({
-					taskId: input.taskId,
-					expectedTaskVersion: input.expectedTaskVersion,
-					actorRef: input.authorizedByRef,
-					idempotencyKey: input.idempotencyKey,
-				}),
-			);
-		},
-		async startTask(input) {
-			return unwrap(
-				task.commands.startTask({
-					...input,
-					actorRef: "execution-runtime:task-driver",
-				}),
-			);
-		},
-		async startNode(input) {
-			return unwrap(
-				task.commands.startNode({
-					...input,
-					actorRef: "execution-runtime:task-driver",
-				}),
-			);
-		},
-	});
+			node: {
+				nodeId: current.node.nodeId,
+				status: current.node.status,
+				version: current.node.version,
+				runNo: current.node.runNo,
+				requiredAgentPackageRef: current.node.requiredAgentPackageRef,
+				workerRef: current.node.workerRef,
+			},
+		};
+	},
+	async getTaskDriveProjection(taskId: string) {
+		return unwrap(task.queries.getTaskDriveProjection({ taskId }));
+	},
+	async startTask(input) {
+		return unwrap(
+			task.commands.startTask({
+				...input,
+				actorRef: "execution-runtime:task-driver",
+			}),
+		);
+	},
+	async startNode(input) {
+		return unwrap(
+			task.commands.startNode({
+				...input,
+				actorRef: "execution-runtime:task-driver",
+			}),
+		);
+	},
+});
 	const agentIdentityPorts: PlatformHostAgentIdentityPorts = Object.freeze({
 		async getRegisteredRole(roleRef) {
 			const role = agent.getRegisteredRole(roleRef);
@@ -926,14 +923,15 @@ export function createPlatformHost(input: {
 				if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
 				return graph.browserOwnerPorts.task.getWorkerBinding(taskId, roleRef);
 			},
-			async bindWorker(binding: {
-				taskId: string;
-				roleRef: string;
-				workerRef: string;
-			}) {
-				if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
-				return graph.browserOwnerPorts.task.bindWorker(binding);
-			},
+		async bindWorker(binding: {
+			taskId: string;
+			roleRef: string;
+			workerRef: string;
+			conversationLocator: string;
+		}) {
+			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+			return graph.browserOwnerPorts.task.bindWorker(binding);
+		},
 		}),
 		agent: Object.freeze({
 			async getPendingMessage(messageRef: string) {
@@ -965,13 +963,13 @@ export function createPlatformHost(input: {
 			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
 			return graph.taskDriverPorts.getTask(taskId);
 		},
+		async getTaskDriveProjection(taskId) {
+			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+			return graph.taskDriverPorts.getTaskDriveProjection(taskId);
+		},
 		async getNodeContext(taskId, nodeId) {
 			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
 			return graph.taskDriverPorts.getNodeContext(taskId, nodeId);
-		},
-		async authorizeTask(input) {
-			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
-			return graph.taskDriverPorts.authorizeTask(input);
 		},
 		async startTask(input) {
 			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");

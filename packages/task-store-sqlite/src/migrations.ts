@@ -31,8 +31,6 @@ CREATE TABLE tasks (
   plan_version INTEGER NOT NULL DEFAULT 1,
   current_node_id TEXT,
   created_by_ref TEXT NOT NULL,
-  authorized_by_ref TEXT,
-  authorized_at TEXT,
   created_at TEXT NOT NULL,
   started_at TEXT,
   completed_at TEXT,
@@ -49,7 +47,7 @@ CREATE TABLE nodes (
   status TEXT NOT NULL CHECK (status IN ('PENDING','READY','IN_PROGRESS','WAITING','FAILED','SUCCEEDED','TERMINATED')),
   version INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1),
   run_no INTEGER NOT NULL DEFAULT 1 CHECK (run_no >= 1),
-  required_role_ref TEXT NOT NULL,
+  required_agent_package_ref TEXT NOT NULL,
   worker_ref TEXT,
   input_documents_json TEXT NOT NULL DEFAULT '[]',
   output_documents_json TEXT NOT NULL DEFAULT '[]',
@@ -65,12 +63,14 @@ CREATE TABLE nodes (
 );
 CREATE TABLE task_role_bindings (
   task_id TEXT NOT NULL,
+  agent_package_ref TEXT NOT NULL,
   role_ref TEXT NOT NULL,
   worker_ref TEXT,
+  conversation_locator TEXT,
   version INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  PRIMARY KEY (task_id, role_ref),
+  PRIMARY KEY (task_id, agent_package_ref),
   FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
 );
 CREATE TABLE node_execution_history (

@@ -73,6 +73,7 @@ export interface TaskBrowserPort {
 		taskId: string;
 		roleRef: string;
 		workerRef: string;
+		conversationLocator: string;
 	}): Promise<void>;
 }
 
@@ -414,12 +415,13 @@ export function createExecutionBrowserExtension(
 						"UNKNOWN_SIDE_EFFECT",
 						"CREATE_REALITY_UNCONFIRMED",
 					);
-				await options.task.bindWorker({
-					taskId,
-					roleRef: identity.roleRef,
-					workerRef: identity.workerRef,
-				});
-				registerContentSession(observed);
+			await options.task.bindWorker({
+				taskId,
+				roleRef: identity.roleRef,
+				workerRef: identity.workerRef,
+				conversationLocator: observed.url,
+			});
+			registerContentSession(observed);
 				return result(
 					{
 						capability: "worker.create",
@@ -773,20 +775,21 @@ export function createExecutionBrowserExtension(
 			if (!observed) return { state: "UNKNOWN", evidence: [] };
 			const identity = parseCarrierIdentity(observed.url);
 			if (!identity.workerRef) return { state: "UNKNOWN", evidence: [] };
-			await options.task.bindWorker({
-				taskId,
-				roleRef,
-				workerRef: identity.workerRef,
-			});
-			const evidence = browserEvidence(idFactory, observed, true);
-			return {
-				state: "APPLIED",
-				evidence: [evidence],
-				result: {
-					capability: "worker.create",
-					data: {
-						roleRef,
-						workerRef: identity.workerRef,
+		await options.task.bindWorker({
+			taskId,
+			roleRef,
+			workerRef: identity.workerRef,
+			conversationLocator: observed.url,
+		});
+		const evidence = browserEvidence(idFactory, observed, true);
+		return {
+			state: "APPLIED",
+			evidence: [evidence],
+			result: {
+				capability: "worker.create",
+				data: {
+					roleRef,
+					workerRef: identity.workerRef,
 						conversationUrl: observed.url,
 						verified: true,
 					},

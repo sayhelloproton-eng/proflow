@@ -2,28 +2,28 @@ import { z } from "zod";
 
 export const publicOperationNames = [
 	"createTaskGroup",
+	"getTaskGroup",
 	"startTaskGroup",
 	"createTask",
-	"authorizeTask",
-	"bindTaskWorker",
+	"listTasks",
+	"getTask",
 	"startTask",
 	"pauseTask",
 	"resumeTask",
 	"terminateTask",
+	"bindTaskWorker",
+	"getTaskDriveProjection",
+	"getNodeContext",
 	"startNode",
 	"completeNode",
 	"waitNode",
 	"failNode",
 	"reopenNode",
-	"acknowledgeMessage",
-	"getTaskGroup",
-	"listTasks",
-	"getTask",
-	"getNodeContext",
-	"listPendingMessages",
-	"listTaskEvents",
 	"putTaskDocument",
 	"getTaskDocument",
+	"listPendingMessages",
+	"acknowledgeMessage",
+	"listTaskEvents",
 ] as const;
 export type PublicOperationName = (typeof publicOperationNames)[number];
 
@@ -38,12 +38,20 @@ const nodeVersion = {
 	expectedNodeVersion: version,
 	...actor,
 };
+const roleBinding = z
+	.object({
+		agentPackageRef: id,
+		roleRef: id,
+		workerRef: id.nullable(),
+		conversationLocator: id.nullable(),
+	})
+	.strict();
 const planNode = z
 	.object({
 		nodeId: id,
 		title: id,
 		objective: id,
-		requiredRoleRef: id,
+		requiredAgentPackageRef: id,
 		inputDocuments: z.array(id),
 		outputDocuments: z.array(id),
 	})
@@ -74,32 +82,36 @@ const schemas: Record<PublicOperationName, z.ZodType> = {
 				.array(z.object({ documentType: id, content: z.string() }).strict())
 				.optional()
 				.default([]),
-			roleBindings: z
-				.array(z.object({ roleRef: id, workerRef: id.nullable() }).strict())
-				.optional()
-				.default([]),
+			roleBindings: z.array(roleBinding).min(3),
 			...actor,
 		})
 		.strict()
-		.superRefine((input, context) => {
-			if (input.taskGroupId !== undefined && input.sequenceNo === undefined) {
-				context.addIssue({
-					code: "custom",
-					message: "sequenceNo is required for a grouped Task",
-					path: ["sequenceNo"],
-				});
-			}
-			if (input.taskGroupId === undefined && input.sequenceNo !== undefined) {
-				context.addIssue({
-					code: "custom",
-					message: "sequenceNo is only valid for a grouped Task",
-					path: ["sequenceNo"],
-				});
-			}
-		}),
-	authorizeTask: z.object({ taskId: id, ...taskVersion }).strict(),
+	.superRefine((input, context) => {
+		if (input.taskGroupId !== undefined && input.sequenceNo === undefined) {
+			context.addIssue({
+				code: "custom",
+				message: "sequenceNo is required for a grouped Task",
+				path: ["sequenceNo"],
+			});
+		}
+		if (input.taskGroupId === undefined && input.sequenceNo !== undefined) {
+			context.addIssue({
+				code: "custom",
+				message: "sequenceNo is only valid for a grouped Task",
+				path: ["sequenceNo"],
+			});
+		}
+	}),
+	getTaskDriveProjection: z.object({ taskId: id }).strict(),
 	bindTaskWorker: z
-		.object({ taskId: id, roleRef: id, workerRef: id, ...taskVersion })
+		.object({
+			taskId: id,
+			agentPackageRef: id,
+			roleRef: id,
+			workerRef: id,
+			conversationLocator: id,
+			...taskVersion,
+		})
 		.strict(),
 	startTask: z.object({ taskId: id, ...taskVersion }).strict(),
 	pauseTask: z.object({ taskId: id, reason: id, ...taskVersion }).strict(),

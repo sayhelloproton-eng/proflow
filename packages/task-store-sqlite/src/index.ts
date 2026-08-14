@@ -51,8 +51,6 @@ function task(row: Row): Task {
 		planVersion: number(row.plan_version),
 		currentNodeId: text(row.current_node_id),
 		createdByRef: String(row.created_by_ref),
-		authorizedByRef: text(row.authorized_by_ref),
-		authorizedAt: text(row.authorized_at),
 		createdAt: String(row.created_at),
 		startedAt: text(row.started_at),
 		completedAt: text(row.completed_at),
@@ -69,7 +67,7 @@ function node(row: Row): TaskNode {
 		status: row.status as TaskNode["status"],
 		version: number(row.version),
 		runNo: number(row.run_no),
-		requiredRoleRef: String(row.required_role_ref),
+		requiredAgentPackageRef: String(row.required_agent_package_ref),
 		workerRef: text(row.worker_ref),
 		inputDocuments: list(row.input_documents_json),
 		outputDocuments: list(row.output_documents_json),
@@ -85,8 +83,10 @@ function node(row: Row): TaskNode {
 function binding(row: Row): TaskRoleBinding {
 	return {
 		taskId: String(row.task_id),
+		agentPackageRef: String(row.agent_package_ref),
 		roleRef: String(row.role_ref),
 		workerRef: text(row.worker_ref),
+		conversationLocator: text(row.conversation_locator),
 		version: number(row.version),
 		createdAt: String(row.created_at),
 		updatedAt: String(row.updated_at),
@@ -235,48 +235,44 @@ export class SqliteTaskStore implements TaskStore {
 					const row = get("SELECT * FROM tasks WHERE task_id = ?", id);
 					return row ? task(row) : undefined;
 				},
-				insert: (v) => {
-					db.prepare(
-						"INSERT INTO tasks(task_id,task_group_id,sequence_no,title,objective,status,version,plan_version,current_node_id,created_by_ref,authorized_by_ref,authorized_at,created_at,started_at,completed_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-					).run(
-						v.taskId,
-						v.taskGroupId,
-						v.sequenceNo,
-						v.title,
-						v.objective,
+			insert: (v) => {
+				db.prepare(
+					"INSERT INTO tasks(task_id,task_group_id,sequence_no,title,objective,status,version,plan_version,current_node_id,created_by_ref,created_at,started_at,completed_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+				).run(
+					v.taskId,
+					v.taskGroupId,
+					v.sequenceNo,
+					v.title,
+					v.objective,
+					v.status,
+					v.version,
+					v.planVersion,
+					v.currentNodeId,
+					v.createdByRef,
+					v.createdAt,
+					v.startedAt,
+					v.completedAt,
+					v.updatedAt,
+				);
+			},
+			update: (v) => {
+				const result = db
+					.prepare(
+						"UPDATE tasks SET status=?, version=?, current_node_id=?, started_at=?, completed_at=?, updated_at=? WHERE task_id=? AND version=?",
+					)
+					.run(
 						v.status,
 						v.version,
-						v.planVersion,
 						v.currentNodeId,
-						v.createdByRef,
-						v.authorizedByRef,
-						v.authorizedAt,
-						v.createdAt,
 						v.startedAt,
 						v.completedAt,
 						v.updatedAt,
+						v.taskId,
+						v.version - 1,
 					);
-				},
-				update: (v) => {
-					const result = db
-						.prepare(
-							"UPDATE tasks SET status=?, version=?, current_node_id=?, authorized_by_ref=?, authorized_at=?, started_at=?, completed_at=?, updated_at=? WHERE task_id=? AND version=?",
-						)
-						.run(
-							v.status,
-							v.version,
-							v.currentNodeId,
-							v.authorizedByRef,
-							v.authorizedAt,
-							v.startedAt,
-							v.completedAt,
-							v.updatedAt,
-							v.taskId,
-							v.version - 1,
-						);
-					if (Number(result.changes) !== 1)
-						throw new Error("TASK_VERSION_CONFLICT");
-				},
+				if (Number(result.changes) !== 1)
+					throw new Error("TASK_VERSION_CONFLICT");
+			},
 				list: (groupId) =>
 					(groupId === undefined
 						? all(
@@ -293,20 +289,20 @@ export class SqliteTaskStore implements TaskStore {
 					const row = get("SELECT * FROM nodes WHERE node_id = ?", id);
 					return row ? node(row) : undefined;
 				},
-				insert: (v) => {
-					db.prepare(
-						"INSERT INTO nodes(node_id,task_id,sequence_no,title,objective,status,version,run_no,required_role_ref,worker_ref,input_documents_json,output_documents_json,result_summary,error_code,error_message,error_retryable,started_at,completed_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-					).run(
-						v.nodeId,
-						v.taskId,
-						v.sequenceNo,
-						v.title,
-						v.objective,
-						v.status,
-						v.version,
-						v.runNo,
-						v.requiredRoleRef,
-						v.workerRef,
+			insert: (v) => {
+				db.prepare(
+					"INSERT INTO nodes(node_id,task_id,sequence_no,title,objective,status,version,run_no,required_agent_package_ref,worker_ref,input_documents_json,output_documents_json,result_summary,error_code,error_message,error_retryable,started_at,completed_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+				).run(
+					v.nodeId,
+					v.taskId,
+					v.sequenceNo,
+					v.title,
+					v.objective,
+					v.status,
+					v.version,
+					v.runNo,
+					v.requiredAgentPackageRef,
+					v.workerRef,
 						json(v.inputDocuments),
 						json(v.outputDocuments),
 						v.resultSummary,
@@ -347,33 +343,35 @@ export class SqliteTaskStore implements TaskStore {
 						taskId,
 					).map(node),
 			},
-			roleBindings: {
-				get: (taskId, roleRef) => {
-					const row = get(
-						"SELECT * FROM task_role_bindings WHERE task_id=? AND role_ref=?",
-						taskId,
-						roleRef,
-					);
-					return row ? binding(row) : undefined;
-				},
-				upsert: (v) => {
-					db.prepare(
-						"INSERT INTO task_role_bindings VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(task_id, role_ref) DO UPDATE SET worker_ref=excluded.worker_ref, version=excluded.version, updated_at=excluded.updated_at",
-					).run(
-						v.taskId,
-						v.roleRef,
-						v.workerRef,
-						v.version,
-						v.createdAt,
-						v.updatedAt,
-					);
-				},
-				listByTask: (taskId) =>
-					all(
-						"SELECT * FROM task_role_bindings WHERE task_id=? ORDER BY role_ref",
-						taskId,
-					).map(binding),
+		roleBindings: {
+			get: (taskId, agentPackageRef) => {
+				const row = get(
+					"SELECT * FROM task_role_bindings WHERE task_id=? AND agent_package_ref=?",
+					taskId,
+					agentPackageRef,
+				);
+				return row ? binding(row) : undefined;
 			},
+			upsert: (v) => {
+				db.prepare(
+					"INSERT INTO task_role_bindings VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(task_id, agent_package_ref) DO UPDATE SET role_ref=excluded.role_ref, worker_ref=excluded.worker_ref, conversation_locator=excluded.conversation_locator, version=excluded.version, updated_at=excluded.updated_at",
+				).run(
+					v.taskId,
+					v.agentPackageRef,
+					v.roleRef,
+					v.workerRef,
+					v.conversationLocator,
+					v.version,
+					v.createdAt,
+					v.updatedAt,
+				);
+			},
+			listByTask: (taskId) =>
+				all(
+					"SELECT * FROM task_role_bindings WHERE task_id=? ORDER BY agent_package_ref",
+					taskId,
+				).map(binding),
+		},
 			executionHistory: {
 				insert: (v) => {
 					db.prepare(

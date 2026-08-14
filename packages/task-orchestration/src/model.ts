@@ -40,8 +40,6 @@ export interface Task {
 	planVersion: number;
 	currentNodeId: string | null;
 	createdByRef: string;
-	authorizedByRef: string | null;
-	authorizedAt: string | null;
 	createdAt: string;
 	startedAt: string | null;
 	completedAt: string | null;
@@ -57,7 +55,7 @@ export interface TaskNode {
 	status: NodeStatus;
 	version: number;
 	runNo: number;
-	requiredRoleRef: string;
+	requiredAgentPackageRef: string;
 	workerRef: string | null;
 	inputDocuments: string[];
 	outputDocuments: string[];
@@ -72,8 +70,10 @@ export interface TaskNode {
 
 export interface TaskRoleBinding {
 	taskId: string;
+	agentPackageRef: string;
 	roleRef: string;
 	workerRef: string | null;
+	conversationLocator: string | null;
 	version: number;
 	createdAt: string;
 	updatedAt: string;
@@ -162,7 +162,7 @@ export interface TaskRepositories {
 		listByTask(taskId: string): TaskNode[];
 	};
 	roleBindings: {
-		get(taskId: string, roleRef: string): TaskRoleBinding | undefined;
+		get(taskId: string, agentPackageRef: string): TaskRoleBinding | undefined;
 		upsert(value: TaskRoleBinding): void;
 		listByTask(taskId: string): TaskRoleBinding[];
 	};

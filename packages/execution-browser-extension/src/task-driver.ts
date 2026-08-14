@@ -8,7 +8,12 @@ export type BrowserTaskDriverTask = {
 	status: string;
 	version: number;
 	currentNodeId: string | null;
-	roleBindings: Array<{ roleRef: string; workerRef: string | null }>;
+	roleBindings: Array<{
+		agentPackageRef: string;
+		roleRef: string;
+		workerRef: string | null;
+		conversationLocator: string | null;
+	}>;
 };
 
 export type BrowserTaskDriverNodeContext = {
@@ -18,7 +23,7 @@ export type BrowserTaskDriverNodeContext = {
 		status: string;
 		version: number;
 		runNo: number;
-		requiredRoleRef: string;
+		requiredAgentPackageRef: string;
 		workerRef: string | null;
 	};
 };
@@ -159,10 +164,11 @@ export function createExecutionBrowserTaskDriver(options: {
 		)
 			throw new Error("NODE_NOT_WAKEABLE");
 		const binding = task.roleBindings.find(
-			(candidate) => candidate.roleRef === context.node.requiredRoleRef,
+			(candidate) =>
+				candidate.agentPackageRef === context.node.requiredAgentPackageRef,
 		);
 		if (!binding?.workerRef) throw new Error("TASK_ROLE_BINDING_REQUIRED");
-		await assertRole(context.node.requiredRoleRef);
+		await assertRole(binding.roleRef);
 		return {
 			taskId,
 			nodeId: context.node.nodeId,
@@ -176,7 +182,7 @@ export function createExecutionBrowserTaskDriver(options: {
 				idempotencyKey: `worker-wake:${taskId}:${context.node.nodeId}:${context.node.runNo}`,
 				capability: "worker.wake",
 				input: {
-					roleRef: context.node.requiredRoleRef,
+					roleRef: binding.roleRef,
 					workerRef: binding.workerRef,
 					trigger: `NODE_READY task=${taskId} node=${context.node.nodeId} run=${context.node.runNo}`,
 					fingerprint: `wake:${taskId}:${context.node.nodeId}:${context.node.runNo}`,

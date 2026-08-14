@@ -65,7 +65,7 @@ interface PlanNodeInput {
 	nodeId: string;
 	title: string;
 	objective: string;
-	requiredRoleRef: string;
+	requiredAgentPackageRef: string;
 	inputDocuments: string[];
 	outputDocuments: string[];
 }
@@ -77,11 +77,18 @@ interface CreateTaskInput extends Controls {
 	objective: string;
 	plan: { nodes: PlanNodeInput[] };
 	initialDocuments: Array<{ documentType: string; content: string }>;
-	roleBindings: Array<{ roleRef: string; workerRef: string | null }>;
+	roleBindings: Array<{
+		agentPackageRef: string;
+		roleRef: string;
+		workerRef: string | null;
+		conversationLocator: string | null;
+	}>;
 }
 interface BindInput extends TaskControls {
+	agentPackageRef: string;
 	roleRef: string;
 	workerRef: string;
+	conversationLocator: string;
 }
 interface ReasonInput extends TaskControls {
 	reason: string;
@@ -128,15 +135,18 @@ export interface TaskView {
 	version: number;
 	planVersion: number;
 	currentNodeId: string | null;
-	authorizedByRef: string | null;
-	authorizedAt: string | null;
-	roleBindings: Array<{ roleRef: string; workerRef: string | null }>;
+	roleBindings: Array<{
+		agentPackageRef: string;
+		roleRef: string;
+		workerRef: string | null;
+		conversationLocator: string | null;
+	}>;
 	nodes: Array<{
 		nodeId: string;
 		title: string;
 		status: NodeStatus;
 		runNo: number;
-		requiredRoleRef: string;
+		requiredAgentPackageRef: string;
 		workerRef: string | null;
 		version: number;
 	}>;
@@ -159,14 +169,22 @@ export interface CreateTaskResult {
 	version: number;
 	planVersion: number;
 	currentNodeId: string | null;
-	authorizedByRef: string | null;
-	authorizedAt: string | null;
-	roleBindings: Array<{ roleRef: string; workerRef: string | null }>;
+	roleBindings: Array<{
+		agentPackageRef: string;
+		roleRef: string;
+		workerRef: string | null;
+		conversationLocator: string | null;
+	}>;
 }
 export interface BindTaskWorkerResult {
 	taskId: string;
 	version: number;
-	roleBinding: { roleRef: string; workerRef: string };
+	roleBinding: {
+		agentPackageRef: string;
+		roleRef: string;
+		workerRef: string;
+		conversationLocator: string;
+	};
 }
 export interface CompleteNodeResult {
 	nodeId: string;
@@ -248,7 +266,6 @@ const hash = (value: unknown): string =>
 const contentHash = (value: string): string =>
 	`sha256:${createHash("sha256").update(value).digest("hex")}`;
 const auditEventTypes: Partial<Record<PublicOperationName, string>> = {
-	authorizeTask: "TASK_AUTHORIZED",
 	bindTaskWorker: "TASK_ROLE_BOUND",
 	startTask: "TASK_STARTED",
 	pauseTask: "TASK_PAUSED",
@@ -330,6 +347,27 @@ function nodeResult(task: Task, node: TaskNode): NodeResult {
 		nodeVersion: node.version,
 		startedAt: node.startedAt,
 	};
+}
+function recomputeReadiness(
+	tx: TaskRepositories,
+	task: Task,
+	timestamp: string,
+): Task {
+	if (task.status !== "PENDING") return task;
+	const requirement = tx.documents.get(task.taskId, "REQUIREMENT");
+	if (!requirement) return task;
+	const bindings = tx.roleBindings.listByTask(task.taskId);
+	const allBound = bindings.every((binding) => binding.workerRef !== null);
+	if (!allBound) return task;
+	return {
+		...task,
+		status: "READY" as const,
+		version: task.version + 1,
+		updatedAt: timestamp,
+	};
+}
+function matchesWorker(actorRef: string, workerRef: string | null): boolean {
+	return workerRef !== null && actorRef === `worker:${workerRef}`;
 }
 
 export function createTaskServices(options: {
@@ -433,20 +471,20 @@ export function createTaskServices(options: {
 		version: task.version,
 		planVersion: task.planVersion,
 		currentNodeId: task.currentNodeId,
-		authorizedByRef: task.authorizedByRef,
-		authorizedAt: task.authorizedAt,
 		nodes: tx.nodes.listByTask(task.taskId).map((node) => ({
 			nodeId: node.nodeId,
 			title: node.title,
 			status: node.status,
 			runNo: node.runNo,
-			requiredRoleRef: node.requiredRoleRef,
+			requiredAgentPackageRef: node.requiredAgentPackageRef,
 			workerRef: node.workerRef,
 			version: node.version,
 		})),
 		roleBindings: tx.roleBindings.listByTask(task.taskId).map((binding) => ({
+			agentPackageRef: binding.agentPackageRef,
 			roleRef: binding.roleRef,
 			workerRef: binding.workerRef,
+			conversationLocator: binding.conversationLocator,
 		})),
 		pendingMessages: tx.messages
 			.listPending()
@@ -607,14 +645,14 @@ export function createTaskServices(options: {
 						"INVALID_REQUEST",
 						"Initial documentType values must be unique.",
 					);
-				if (
-					new Set(normalized.roleBindings.map((item) => item.roleRef)).size !==
-					normalized.roleBindings.length
-				)
-					throw new DomainError(
-						"INVALID_REQUEST",
-						"Task role bindings must be unique by roleRef.",
-					);
+			if (
+				new Set(normalized.roleBindings.map((item) => item.agentPackageRef))
+					.size !== normalized.roleBindings.length
+			)
+				throw new DomainError(
+					"INVALID_REQUEST",
+					"Task role bindings must be unique by agentPackageRef.",
+				);
 				for (const document of normalized.initialDocuments) {
 					const type = document.documentType as DocumentType;
 					const stagedPath = stageDocumentPath(stagedTaskId, type);
@@ -665,8 +703,6 @@ export function createTaskServices(options: {
 						planVersion: 1,
 						currentNodeId: null,
 						createdByRef: validated.actorRef,
-						authorizedByRef: null,
-						authorizedAt: null,
 						createdAt: timestamp,
 						startedAt: null,
 						completedAt: null,
@@ -683,7 +719,7 @@ export function createTaskServices(options: {
 							status: "PENDING",
 							version: 1,
 							runNo: 1,
-							requiredRoleRef: item.requiredRoleRef,
+							requiredAgentPackageRef: item.requiredAgentPackageRef,
 							workerRef: null,
 							inputDocuments: item.inputDocuments,
 							outputDocuments: item.outputDocuments,
@@ -699,8 +735,10 @@ export function createTaskServices(options: {
 					for (const item of validated.roleBindings)
 						tx.roleBindings.upsert({
 							taskId,
+							agentPackageRef: item.agentPackageRef,
 							roleRef: item.roleRef,
 							workerRef: item.workerRef,
+							conversationLocator: item.conversationLocator,
 							version: 1,
 							createdAt: timestamp,
 							updatedAt: timestamp,
@@ -733,22 +771,20 @@ export function createTaskServices(options: {
 						},
 						timestamp,
 					);
-					return {
-						taskId: value.taskId,
-						taskGroupId: value.taskGroupId,
-						status: value.status,
-						version: value.version,
-						planVersion: value.planVersion,
-						currentNodeId: value.currentNodeId,
-						authorizedByRef: value.authorizedByRef,
-						authorizedAt: value.authorizedAt,
-						roleBindings: validated.roleBindings.map(
-							({ roleRef, workerRef }) => ({
-								roleRef,
-								workerRef,
-							}),
-						),
-					};
+				return {
+					taskId: value.taskId,
+					taskGroupId: value.taskGroupId,
+					status: value.status,
+					version: value.version,
+					planVersion: value.planVersion,
+					currentNodeId: value.currentNodeId,
+					roleBindings: validated.roleBindings.map((binding) => ({
+						agentPackageRef: binding.agentPackageRef,
+						roleRef: binding.roleRef,
+						workerRef: binding.workerRef,
+						conversationLocator: binding.conversationLocator,
+					})),
+				};
 				},
 			);
 			if (!result.ok) {
@@ -777,36 +813,6 @@ export function createTaskServices(options: {
 				);
 			}
 		},
-		authorizeTask: (raw: unknown): TaskResult<Task> =>
-			command<TaskControls, Task>(
-				"authorizeTask",
-				raw,
-				(tx, input, timestamp) => {
-					const task = requireTask(tx, input.taskId);
-					checkVersion(
-						task.version,
-						input.expectedTaskVersion,
-						"TASK_VERSION_CONFLICT",
-					);
-					if (task.taskGroupId)
-						throw new DomainError(
-							"TASK_AUTHORIZATION_NOT_ALLOWED",
-							"Grouped Tasks are authorized by their active group.",
-						);
-					if (task.status !== "PENDING")
-						throw new DomainError("TASK_INVALID_STATE", "Task is not PENDING.");
-					const updated = {
-						...task,
-						status: "READY" as const,
-						version: task.version + 1,
-						authorizedByRef: input.actorRef,
-						authorizedAt: timestamp,
-						updatedAt: timestamp,
-					};
-					tx.tasks.update(updated);
-					return updated;
-				},
-			),
 		bindTaskWorker: (raw: unknown): TaskResult<BindTaskWorkerResult> =>
 			command<BindInput, BindTaskWorkerResult>(
 				"bindTaskWorker",
@@ -820,19 +826,26 @@ export function createTaskServices(options: {
 					);
 					if (["SUCCEEDED", "TERMINATED"].includes(task.status))
 						throw new DomainError("TASK_INVALID_STATE", "Task is terminal.");
-					const old = tx.roleBindings.get(task.taskId, input.roleRef);
+					const old = tx.roleBindings.get(task.taskId, input.agentPackageRef);
 					if (!old)
 						throw new DomainError(
-							"ROLE_NOT_ELIGIBLE",
-							"Role is not declared by the Task.",
+							"AGENT_PACKAGE_NOT_ELIGIBLE",
+							"Agent package is not declared by the Task.",
+						);
+					if (old.roleRef !== input.roleRef)
+						throw new DomainError(
+							"ROLE_BINDING_MISMATCH",
+							"RoleRef does not match the declared binding.",
 						);
 					if (old.workerRef === input.workerRef)
 						return {
 							taskId: task.taskId,
 							version: task.version,
 							roleBinding: {
+								agentPackageRef: old.agentPackageRef,
 								roleRef: old.roleRef,
 								workerRef: input.workerRef,
+								conversationLocator: input.conversationLocator,
 							},
 						};
 					if (old.workerRef !== null)
@@ -840,26 +853,31 @@ export function createTaskServices(options: {
 							"TASK_ROLE_BINDING_CONFLICT",
 							"Role is already bound.",
 						);
-					tx.roleBindings.upsert({
-						...old,
+				tx.roleBindings.upsert({
+					...old,
+					workerRef: input.workerRef,
+					conversationLocator: input.conversationLocator,
+					version: old.version + 1,
+					updatedAt: timestamp,
+				});
+				const updated = {
+					...task,
+					version: task.version + 1,
+					updatedAt: timestamp,
+				};
+				tx.tasks.update(updated);
+				const readied = recomputeReadiness(tx, updated, timestamp);
+				if (readied.status !== updated.status) tx.tasks.update(readied);
+				return {
+					taskId: readied.taskId,
+					version: readied.version,
+					roleBinding: {
+						agentPackageRef: old.agentPackageRef,
+						roleRef: old.roleRef,
 						workerRef: input.workerRef,
-						version: old.version + 1,
-						updatedAt: timestamp,
-					});
-					const updated = {
-						...task,
-						version: task.version + 1,
-						updatedAt: timestamp,
-					};
-					tx.tasks.update(updated);
-					return {
-						taskId: updated.taskId,
-						version: updated.version,
-						roleBinding: {
-							roleRef: old.roleRef,
-							workerRef: input.workerRef,
-						},
-					};
+						conversationLocator: input.conversationLocator,
+					},
+				};
 				},
 			),
 		startTask: (raw: unknown): TaskResult<Task> =>
@@ -872,12 +890,12 @@ export function createTaskServices(options: {
 				);
 				if (task.status !== "READY")
 					throw new DomainError("TASK_INVALID_STATE", "Task is not READY.");
-				const requiredRoles = new Set(
-					tx.nodes.listByTask(task.taskId).map((item) => item.requiredRoleRef),
-				);
-				const bindings = tx.roleBindings
-					.listByTask(task.taskId)
-					.filter((item) => requiredRoles.has(item.roleRef));
+			const requiredRoles = new Set(
+				tx.nodes.listByTask(task.taskId).map((item) => item.requiredAgentPackageRef),
+			);
+			const bindings = tx.roleBindings
+				.listByTask(task.taskId)
+				.filter((item) => requiredRoles.has(item.agentPackageRef));
 				if (
 					bindings.length !== requiredRoles.size ||
 					bindings.some((item) => item.workerRef === null)
@@ -1053,10 +1071,10 @@ export function createTaskServices(options: {
 							"NODE_INVALID_STATE",
 							"Node is not READY/current.",
 						);
-					const binding = tx.roleBindings.get(
-						task.taskId,
-						node.requiredRoleRef,
-					);
+				const binding = tx.roleBindings.get(
+					task.taskId,
+					node.requiredAgentPackageRef,
+				);
 					if (!binding?.workerRef)
 						throw new DomainError(
 							"TASK_ROLE_BINDING_REQUIRED",
@@ -1097,17 +1115,17 @@ export function createTaskServices(options: {
 						input.expectedNodeVersion,
 						"NODE_VERSION_CONFLICT",
 					);
-					if (
-						task.status !== "ACTIVE" ||
-						node.status !== "IN_PROGRESS" ||
-						node.workerRef !== input.actorRef
-					)
-						throw new DomainError(
-							node.workerRef !== input.actorRef
-								? "WORKER_MISMATCH"
-								: "NODE_INVALID_STATE",
-							"Only the bound running Worker may complete the Node.",
-						);
+				if (
+					task.status !== "ACTIVE" ||
+					node.status !== "IN_PROGRESS" ||
+					!matchesWorker(input.actorRef, node.workerRef)
+				)
+					throw new DomainError(
+						!matchesWorker(input.actorRef, node.workerRef)
+							? "WORKER_MISMATCH"
+							: "NODE_INVALID_STATE",
+						"Only the bound running Worker may complete the Node.",
+					);
 					for (const type of node.outputDocuments) {
 						const doc = tx.documents.get(task.taskId, type);
 						if (!doc || !existsSync(join(workspaceRoot, doc.filePath)))
@@ -1236,13 +1254,16 @@ export function createTaskServices(options: {
 						"TASK_INVALID_STATE",
 						"Task must be ACTIVE before a Node can wait.",
 					);
-				if (node.status !== "IN_PROGRESS" || node.workerRef !== input.actorRef)
-					throw new DomainError(
-						node.workerRef !== input.actorRef
-							? "WORKER_MISMATCH"
-							: "NODE_INVALID_STATE",
-						"Node cannot wait.",
-					);
+			if (
+				node.status !== "IN_PROGRESS" ||
+				!matchesWorker(input.actorRef, node.workerRef)
+			)
+				throw new DomainError(
+					!matchesWorker(input.actorRef, node.workerRef)
+						? "WORKER_MISMATCH"
+						: "NODE_INVALID_STATE",
+					"Node cannot wait.",
+				);
 				tx.nodes.update({
 					...node,
 					status: "WAITING",
@@ -1315,8 +1336,8 @@ export function createTaskServices(options: {
 				tx.tasks.update(updated);
 				return updated;
 			}),
-		reopenNode: (raw: unknown): TaskResult<NodeResult> =>
-			command<ReopenInput, NodeResult>(
+		reopenNode: (raw: unknown): TaskResult<NodeResult & { currentNodeId: string }> =>
+			command<ReopenInput, NodeResult & { currentNodeId: string }>(
 				"reopenNode",
 				raw,
 				(tx, input, timestamp) => {
@@ -1387,7 +1408,10 @@ export function createTaskServices(options: {
 						},
 						timestamp,
 					);
-					return nodeResult(updated, reopened);
+					return {
+					...nodeResult(updated, reopened),
+					currentNodeId: target.nodeId,
+				};
 				},
 			),
 		acknowledgeMessage: (raw: unknown): TaskResult<TaskMessage> =>
@@ -1476,14 +1500,14 @@ export function createTaskServices(options: {
 						let blockedReason: string | null = null;
 						if (item.status !== "READY") blockedReason = "TASK_NOT_READY";
 						if (blockedReason === null) {
-							const requiredRoles = new Set(
-								tx.nodes
-									.listByTask(item.taskId)
-									.map((node) => node.requiredRoleRef),
-							);
-							const bindings = tx.roleBindings
+						const requiredRoles = new Set(
+							tx.nodes
 								.listByTask(item.taskId)
-								.filter((binding) => requiredRoles.has(binding.roleRef));
+								.map((node) => node.requiredAgentPackageRef),
+						);
+						const bindings = tx.roleBindings
+							.listByTask(item.taskId)
+							.filter((binding) => requiredRoles.has(binding.agentPackageRef));
 							if (
 								bindings.length !== requiredRoles.size ||
 								bindings.some((binding) => binding.workerRef === null)
@@ -1519,6 +1543,91 @@ export function createTaskServices(options: {
 			query<{ taskId: string }, TaskView>("getTask", raw, (tx, input) =>
 				view(tx, requireTask(tx, input.taskId)),
 			),
+		getTaskDriveProjection: (
+			raw: unknown,
+		): TaskResult<{
+			taskId: string;
+			taskStatus: Task["status"];
+			taskVersion: number;
+			terminal: boolean;
+			currentNode: {
+				nodeId: string;
+				status: NodeStatus;
+				version: number;
+				runNo: number;
+				requiredAgentPackageRef: string;
+			} | null;
+			roleBinding: {
+				agentPackageRef: string;
+				roleRef: string;
+				workerRef: string | null;
+				conversationLocator: string | null;
+			} | null;
+			canDrive: boolean;
+			blockedReason: string | null;
+		}> =>
+			query<{ taskId: string }, {
+				taskId: string;
+				taskStatus: Task["status"];
+				taskVersion: number;
+				terminal: boolean;
+				currentNode: {
+					nodeId: string;
+					status: NodeStatus;
+					version: number;
+					runNo: number;
+					requiredAgentPackageRef: string;
+				} | null;
+				roleBinding: {
+					agentPackageRef: string;
+					roleRef: string;
+					workerRef: string | null;
+					conversationLocator: string | null;
+				} | null;
+				canDrive: boolean;
+				blockedReason: string | null;
+			}>("getTaskDriveProjection", raw, (tx, input) => {
+				const task = requireTask(tx, input.taskId);
+				const terminal = ["SUCCEEDED", "TERMINATED"].includes(task.status);
+				const currentNode = task.currentNodeId
+					? tx.nodes.get(task.currentNodeId)
+					: undefined;
+				const roleBinding = currentNode
+					? tx.roleBindings.get(task.taskId, currentNode.requiredAgentPackageRef)
+					: undefined;
+				let blockedReason: string | null = null;
+				if (!terminal && !currentNode) blockedReason = "TASK_PLAN_EMPTY";
+				else if (!terminal && currentNode?.status !== "READY")
+					blockedReason = "NODE_NOT_READY";
+				else if (!terminal && !roleBinding?.workerRef)
+					blockedReason = "TASK_ROLE_BINDING_REQUIRED";
+				const canDrive = !terminal && blockedReason === null;
+				return {
+					taskId: task.taskId,
+					taskStatus: task.status,
+					taskVersion: task.version,
+					terminal,
+					currentNode: currentNode
+						? {
+								nodeId: currentNode.nodeId,
+								status: currentNode.status,
+								version: currentNode.version,
+								runNo: currentNode.runNo,
+								requiredAgentPackageRef: currentNode.requiredAgentPackageRef,
+							}
+						: null,
+					roleBinding: roleBinding
+						? {
+								agentPackageRef: roleBinding.agentPackageRef,
+								roleRef: roleBinding.roleRef,
+								workerRef: roleBinding.workerRef,
+								conversationLocator: roleBinding.conversationLocator,
+							}
+						: null,
+					canDrive,
+					blockedReason,
+				};
+			}),
 		getNodeContext: (
 			raw: unknown,
 		): TaskResult<{
@@ -1531,7 +1640,7 @@ export function createTaskServices(options: {
 				| "status"
 				| "version"
 				| "runNo"
-				| "requiredRoleRef"
+						| "requiredAgentPackageRef"
 				| "workerRef"
 				| "inputDocuments"
 				| "outputDocuments"
@@ -1558,7 +1667,7 @@ export function createTaskServices(options: {
 						| "status"
 						| "version"
 						| "runNo"
-						| "requiredRoleRef"
+				| "requiredAgentPackageRef"
 						| "workerRef"
 						| "inputDocuments"
 						| "outputDocuments"
@@ -1597,7 +1706,7 @@ export function createTaskServices(options: {
 						status: node.status,
 						version: node.version,
 						runNo: node.runNo,
-						requiredRoleRef: node.requiredRoleRef,
+						requiredAgentPackageRef: node.requiredAgentPackageRef,
 						workerRef: node.workerRef,
 						inputDocuments: node.inputDocuments,
 						outputDocuments: node.outputDocuments,
@@ -1629,8 +1738,37 @@ export function createTaskServices(options: {
 							input.afterEventId === undefined ||
 							(event.eventId ?? 0) > input.afterEventId,
 					)
-					.slice(0, input.limit ?? 100),
-			})),
+				.slice(0, input.limit ?? 100),
+		})),
+		getTaskDocument: (raw: unknown): TaskResult<DocumentResult> =>
+			query<{ taskId: string; documentType: string }, DocumentResult>(
+				"getTaskDocument",
+				raw,
+				(tx, input) => {
+					const type = ensureType(input.documentType);
+					const document = tx.documents.get(input.taskId, type);
+					if (!document)
+						throw new DomainError(
+							"DOCUMENT_NOT_FOUND",
+							"Document was not found.",
+						);
+					const content = readFileSync(
+						join(workspaceRoot, document.filePath),
+						"utf8",
+					);
+					const task = requireTask(tx, input.taskId);
+					return {
+						taskId: input.taskId,
+						documentType: type,
+						path: document.filePath,
+						contentHash: document.contentHash,
+						sizeBytes: statSync(join(workspaceRoot, document.filePath)).size,
+						taskVersion: task.version,
+						updatedAt: document.updatedAt,
+						content,
+					};
+				},
+			),
 	};
 
 	const documents = {
@@ -1674,46 +1812,48 @@ export function createTaskServices(options: {
 						validated.expectedTaskVersion,
 						"TASK_VERSION_CONFLICT",
 					);
-					const type = ensureType(validated.documentType);
-					const path = relativeDocumentPath(task.taskId, type);
-					const updated = {
-						...task,
-						version: task.version + 1,
-						updatedAt: timestamp,
-					};
-					tx.tasks.update(updated);
-					tx.documents.upsert({
-						taskId: task.taskId,
-						documentType: type,
-						sourceNodeId: validated.nodeId,
-						filePath: path,
-						contentHash: contentHash(validated.content),
-						updatedByRef: validated.actorRef,
-						updatedAt: timestamp,
-					});
-					event(
-						tx,
-						{
-							taskId: task.taskId,
-							nodeId: validated.nodeId,
-							eventType: "TASK_DOCUMENT_PUT",
-							actorRef: validated.actorRef,
-							taskVersion: updated.version,
-							nodeVersion: null,
-							payload: { documentType: type },
-						},
-						timestamp,
-					);
-					return {
+				const type = ensureType(validated.documentType);
+				const path = relativeDocumentPath(task.taskId, type);
+				const updated = {
+					...task,
+					version: task.version + 1,
+					updatedAt: timestamp,
+				};
+				tx.tasks.update(updated);
+				tx.documents.upsert({
+					taskId: task.taskId,
+					documentType: type,
+					sourceNodeId: validated.nodeId,
+					filePath: path,
+					contentHash: contentHash(validated.content),
+					updatedByRef: validated.actorRef,
+					updatedAt: timestamp,
+				});
+				const readied = recomputeReadiness(tx, updated, timestamp);
+				if (readied.status !== updated.status) tx.tasks.update(readied);
+				event(
+					tx,
+					{
 						taskId: task.taskId,
 						nodeId: validated.nodeId,
-						documentType: type,
-						path,
-						contentHash: contentHash(validated.content),
-						sizeBytes: Buffer.byteLength(validated.content),
-						taskVersion: updated.version,
-						updatedAt: timestamp,
-					};
+						eventType: "TASK_DOCUMENT_PUT",
+						actorRef: validated.actorRef,
+						taskVersion: readied.version,
+						nodeVersion: null,
+						payload: { documentType: type },
+					},
+					timestamp,
+				);
+				return {
+					taskId: task.taskId,
+					nodeId: validated.nodeId,
+					documentType: type,
+					path,
+					contentHash: contentHash(validated.content),
+					sizeBytes: Buffer.byteLength(validated.content),
+					taskVersion: readied.version,
+					updatedAt: timestamp,
+				};
 				},
 			);
 			if (!result.ok && result.error.code === "INTERNAL_ERROR")
@@ -1722,35 +1862,6 @@ export function createTaskServices(options: {
 				);
 			return result;
 		},
-		getTaskDocument: (raw: unknown): TaskResult<DocumentResult> =>
-			query<{ taskId: string; documentType: string }, DocumentResult>(
-				"getTaskDocument",
-				raw,
-				(tx, input) => {
-					const type = ensureType(input.documentType);
-					const document = tx.documents.get(input.taskId, type);
-					if (!document)
-						throw new DomainError(
-							"DOCUMENT_NOT_FOUND",
-							"Document was not found.",
-						);
-					const content = readFileSync(
-						join(workspaceRoot, document.filePath),
-						"utf8",
-					);
-					const task = requireTask(tx, input.taskId);
-					return {
-						taskId: input.taskId,
-						documentType: type,
-						path: document.filePath,
-						contentHash: document.contentHash,
-						sizeBytes: statSync(join(workspaceRoot, document.filePath)).size,
-						taskVersion: task.version,
-						updatedAt: document.updatedAt,
-						content,
-					};
-				},
-			),
 		reconcileDocumentIndex: (input: {
 			taskId: string;
 			actorRef: string;
