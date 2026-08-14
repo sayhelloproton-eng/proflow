@@ -1,13 +1,14 @@
-import {
-	type DevTunnelRuntime,
-	type ErrorSemanticsProof,
-	type FileRelayProof,
-	type PublicIngressVerification,
-	verifyPublicIngress,
+import type { ModuleOperationResult } from "@tomflow/proflow-module-contract";
+import type {
+	DevTunnelRuntime,
+	ErrorSemanticsProof,
+	FileRelayProof,
+	PublicIngressVerification,
 } from "../src/resource-adapter.ts";
+import { verifyPublicIngress } from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
 
-const success = (data?: unknown) => ({
+const success = (data?: unknown): ModuleOperationResult => ({
 	contract: "deployment.result.v1" as const,
 	ok: true,
 	status: "SUCCEEDED" as const,
@@ -16,7 +17,10 @@ const success = (data?: unknown) => ({
 	...(data === undefined ? {} : { data }),
 });
 
-const actionRequired = (action: string, description: string) => ({
+const actionRequired = (
+	action: string,
+	description: string,
+): ModuleOperationResult => ({
 	contract: "deployment.result.v1" as const,
 	ok: false,
 	status: "ACTION_REQUIRED" as const,
@@ -24,6 +28,8 @@ const actionRequired = (action: string, description: string) => ({
 	moduleVersion: descriptor.moduleVersion,
 	actionRequired: { action, description },
 });
+
+type CheckStatus = "PASS" | "FAIL" | "WARN" | "SKIP";
 
 export function createBehaviorAdapter(input?: {
 	runtime: DevTunnelRuntime;
@@ -126,25 +132,61 @@ export function createBehaviorAdapter(input?: {
 					: [],
 			};
 		},
-		doctor: () => ({
-			result: input
-				? {
-						...success(),
-						checks: [
-							{
-								id: "tunnel-diagnostics",
-								status: "PASS" as const,
-								message:
-									"dev-tunnel resource and public ingress verifier are bound",
-							},
-						],
-					}
-				: actionRequired(
+		doctor: async () => {
+			if (!input) {
+				return {
+					result: actionRequired(
 						"configure-tunnel",
 						"dev-tunnel login and public ingress configuration are required for diagnostics",
 					),
-			observedEffects: [],
-		}),
+					observedEffects: [],
+				};
+			}
+			const login = await input.runtime.loginStatus();
+			const status = await input.runtime.status();
+			const publicBaseUrl = input.runtime.publicBaseUrl();
+			const checks: { id: string; status: CheckStatus; message: string }[] = [
+				{
+					id: "tunnel-login",
+					status: login === "LOGGED_IN" ? "PASS" : "FAIL",
+					message: `login status is ${login}`,
+				},
+				{
+					id: "tunnel-state",
+					status:
+						status.state === "RUNNING"
+							? "PASS"
+							: status.state === "STOPPED"
+								? "WARN"
+								: "FAIL",
+					message: `tunnel state is ${status.state}`,
+				},
+				{
+					id: "tunnel-public-url",
+					status: publicBaseUrl === undefined ? "FAIL" : "PASS",
+					message:
+						publicBaseUrl === undefined
+							? "publicBaseUrl is not configured"
+							: `publicBaseUrl is ${publicBaseUrl}`,
+				},
+			];
+			const healthy =
+				login === "LOGGED_IN" &&
+				status.state === "RUNNING" &&
+				publicBaseUrl !== undefined;
+			return {
+				result: healthy
+					? { ...success(), checks }
+					: {
+							...actionRequired(
+								"repair-tunnel",
+								"dev-tunnel resource is not healthy",
+							),
+							checks,
+						},
+				observedEffects: [],
+			};
+		},
 		start: async () => {
 			if (!input) {
 				return {
@@ -183,17 +225,28 @@ export function createBehaviorAdapter(input?: {
 			}
 		},
 		stop: async () => {
-			if (input) await input.runtime.stop();
+			if (!input) {
+				return {
+					result: actionRequired(
+						"configure-tunnel",
+						"No bound dev-tunnel resource to stop",
+					),
+					observedEffects: [],
+				};
+			}
+			const stopped = await input.runtime.stop();
+			if (stopped.state === "STOPPED") {
+				return {
+					result: success(),
+					observedEffects: ["Stops the dev-tunnel public ingress process"],
+				};
+			}
 			return {
-				result: input
-					? success()
-					: actionRequired(
-							"configure-tunnel",
-							"No bound dev-tunnel resource to stop",
-						),
-				observedEffects: input
-					? ["Stops the dev-tunnel public ingress process"]
-					: [],
+				result: actionRequired(
+					"complete-tunnel-stop",
+					"dev-tunnel stop state is UNKNOWN; cannot confirm the tunnel stopped",
+				),
+				observedEffects: [],
 			};
 		},
 		restart: async () => {
@@ -215,12 +268,33 @@ export function createBehaviorAdapter(input?: {
 					observedEffects: [],
 				};
 			}
-			await input.runtime.stop();
-			const observation = await input.runtime.start();
-			return {
-				result: success(observation),
-				observedEffects: ["Restarts the dev-tunnel public ingress process"],
-			};
+			const stopped = await input.runtime.stop();
+			if (stopped.state !== "STOPPED") {
+				return {
+					result: actionRequired(
+						"complete-tunnel-stop",
+						"Cannot restart: dev-tunnel stop state is UNKNOWN",
+					),
+					observedEffects: [],
+				};
+			}
+			try {
+				const observation = await input.runtime.start();
+				return {
+					result: success(observation),
+					observedEffects: ["Restarts the dev-tunnel public ingress process"],
+				};
+			} catch (error) {
+				return {
+					result: actionRequired(
+						"start-tunnel",
+						error instanceof Error
+							? error.message
+							: "failed to start the dev-tunnel process",
+					),
+					observedEffects: [],
+				};
+			}
 		},
 	};
 }

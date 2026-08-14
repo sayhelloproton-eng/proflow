@@ -159,7 +159,8 @@ export function createDevTunnelRuntime(input: {
 			return observe("UNKNOWN");
 		},
 		async restart() {
-			await this.stop();
+			const stopped = await this.stop();
+			if (stopped.state !== "STOPPED") return stopped;
 			return this.start();
 		},
 	};

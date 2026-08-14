@@ -226,6 +226,16 @@ importers:
         specifier: workspace:^
         version: link:../module-contract
 
+  packages/platform-cli:
+    dependencies:
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+
   packages/platform-host:
     dependencies:
       '@tomflow/proflow-agent-runtime':

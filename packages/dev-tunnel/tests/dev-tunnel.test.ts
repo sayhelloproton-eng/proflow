@@ -151,7 +151,41 @@ test("streaming read aborts after the size ceiling", async () => {
 	});
 	const response = new Response(stream);
 	const chars = await readResponseChars(response, 100_000);
-	assert.ok(chars !== undefined);
-	assert.ok(chars >= 100_000);
+	assert.ok(chars !== undefined && chars >= 100_000);
 	assert.ok(chunksRead < 10, `read ${chunksRead} chunks instead of aborting`);
+});
+
+test("doctor reads current login/state/publicUrl reality, not just adapter-bound", async () => {
+	const runtime = createDevTunnelRuntime({
+		runCommand: notLoggedInRunner,
+		publicBaseUrl: "https://tunnel.example.com/",
+	});
+	const adapter = createBehaviorAdapter({ runtime });
+	const doctor = await adapter.doctor();
+	assert.equal(doctor.result.status, "ACTION_REQUIRED");
+	const loginCheck = doctor.result.checks?.find((c) => c.id === "tunnel-login");
+	assert.equal(loginCheck?.status, "FAIL");
+});
+
+test("stop returns ACTION_REQUIRED when stop state is UNKNOWN", async () => {
+	const runtime = createDevTunnelRuntime({
+		runCommand: loggedInRunner,
+		tunnelId: "tunnel-123",
+	});
+	const adapter = createBehaviorAdapter({ runtime });
+	const stop = await adapter.stop();
+	assert.equal(stop.result.status, "ACTION_REQUIRED");
+	assert.equal(stop.result.ok, false);
+	assert.equal(stop.result.actionRequired?.action, "complete-tunnel-stop");
+});
+
+test("restart does not start when stop is UNKNOWN", async () => {
+	const runtime = createDevTunnelRuntime({
+		runCommand: loggedInRunner,
+		tunnelId: "tunnel-123",
+	});
+	const adapter = createBehaviorAdapter({ runtime });
+	const restart = await adapter.restart();
+	assert.equal(restart.result.status, "ACTION_REQUIRED");
+	assert.equal(restart.result.actionRequired?.action, "complete-tunnel-stop");
 });

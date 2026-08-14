@@ -1,0 +1,661 @@
+import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { test } from "node:test";
+
+import type {
+	ConfigSlot,
+	ModuleOperationResult,
+} from "@tomflow/proflow-module-contract";
+
+import { applyPlan, type PackageManagerDriver } from "../src/apply/index.ts";
+import type { DeploymentPlan, ResolvedModule } from "../src/contracts.ts";
+import { PlatformError } from "../src/errors.ts";
+import type { ModuleCatalog, ModuleSource } from "../src/modules.ts";
+import { type WorkspacePaths, workspacePaths } from "../src/paths.ts";
+import {
+	loadConfig,
+	loadDeploymentState,
+	savePlan,
+} from "../src/persistence/index.ts";
+import { type PlanInput, planDeployment } from "../src/planner/index.ts";
+
+// ---------------------------------------------------------------------------
+// fixtures
+// ---------------------------------------------------------------------------
+
+async function tmpWorkspace(): Promise<{
+	root: string;
+	paths: WorkspacePaths;
+	cleanup(): Promise<void>;
+}> {
+	const root = await mkdtemp(join(tmpdir(), "proflow-cli-apply-"));
+	return {
+		root,
+		paths: workspacePaths(root),
+		async cleanup() {
+			await rm(root, { recursive: true, force: true });
+		},
+	};
+}
+
+function configSlot(
+	key: string,
+	options: { type?: ConfigSlot["type"]; required?: boolean } = {},
+): ConfigSlot {
+	return {
+		key,
+		type: options.type ?? "string",
+		required: options.required ?? false,
+		description: `slot ${key}`,
+		...(options.type === "secretRef" ? { sensitive: true } : {}),
+	};
+}
+
+function moduleFixture(input: {
+	moduleRef: string;
+	kind?: ResolvedModule["kind"];
+	moduleVersion?: string;
+	configSlots?: ResolvedModule["configSlots"];
+	requirements?: ResolvedModule["requirements"];
+	lifecycle?: string[];
+}): ResolvedModule {
+	return {
+		moduleRef: input.moduleRef,
+		packageName: `@tomflow/proflow-${input.moduleRef}`,
+		moduleVersion: input.moduleVersion ?? "1.0.0",
+		kind: input.kind ?? "service",
+		provides: [],
+		requires: [],
+		requirements: input.requirements ?? [],
+		configSlots: input.configSlots ?? [],
+		lifecycle: input.lifecycle ?? ["describe", "verify", "doctor"],
+		verification: {
+			checks: [
+				{ id: "health", description: "Observed health", lifecycle: "verify" },
+			],
+		},
+		effects: [],
+		source: { type: "workspace" },
+	};
+}
+
+function ok(moduleRef: string, data?: unknown): ModuleOperationResult {
+	return {
+		contract: "deployment.result.v1",
+		ok: true,
+		status: "SUCCEEDED",
+		moduleRef,
+		moduleVersion: "1.0.0",
+		...(data === undefined ? {} : { data }),
+	};
+}
+
+function failed(moduleRef: string, message: string): ModuleOperationResult {
+	return {
+		contract: "deployment.result.v1",
+		ok: false,
+		status: "FAILED",
+		moduleRef,
+		moduleVersion: "1.0.0",
+		error: { code: "APPLY_FAILED", message, retryable: false },
+	};
+}
+
+interface FakeAdapterSpec {
+	module: ResolvedModule;
+	primitives: Record<string, () => unknown>;
+}
+
+interface Recording {
+	calls: { moduleRef: string; primitive: string }[];
+	catalog: ModuleCatalog;
+}
+
+function makeCatalog(specs: FakeAdapterSpec[]): Recording {
+	const calls: { moduleRef: string; primitive: string }[] = [];
+	const byPackage = new Map(
+		specs.map((spec) => [spec.module.packageName, spec] as const),
+	);
+	const catalog: ModuleCatalog = {
+		async sources() {
+			return [];
+		},
+		async loadDescriptor() {
+			return {};
+		},
+		async loadAdapter(source: ModuleSource) {
+			const spec = byPackage.get(source.packageName);
+			if (spec === undefined) return { behaviorAdapter: {} };
+			const wrapped: Record<string, unknown> = {};
+			for (const [primitive, fn] of Object.entries(spec.primitives)) {
+				wrapped[primitive] = () => {
+					calls.push({ moduleRef: spec.module.moduleRef, primitive });
+					return fn();
+				};
+			}
+			return { behaviorAdapter: wrapped };
+		},
+	};
+	return { calls, catalog };
+}
+
+interface FakeDriver {
+	driver: PackageManagerDriver;
+	installed: Map<string, string>;
+	installCounts: Map<string, number>;
+	upgradeCounts: Map<string, number>;
+}
+
+function makeFakeDriver(): FakeDriver {
+	const installed = new Map<string, string>();
+	const installCounts = new Map<string, number>();
+	const upgradeCounts = new Map<string, number>();
+	const driver: PackageManagerDriver = {
+		async observeInstalledVersion(module) {
+			return installed.get(module.moduleRef);
+		},
+		async install(module) {
+			installed.set(module.moduleRef, module.moduleVersion);
+			installCounts.set(
+				module.moduleRef,
+				(installCounts.get(module.moduleRef) ?? 0) + 1,
+			);
+		},
+		async upgrade(module) {
+			installed.set(module.moduleRef, module.moduleVersion);
+			upgradeCounts.set(
+				module.moduleRef,
+				(upgradeCounts.get(module.moduleRef) ?? 0) + 1,
+			);
+		},
+	};
+	return { driver, installed, installCounts, upgradeCounts };
+}
+
+// ---------------------------------------------------------------------------
+// apply / resume
+// ---------------------------------------------------------------------------
+
+test("apply completes when every step is satisfied and records the applied plan", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({ moduleRef: "svc" });
+		const plan: DeploymentPlan = planDeployment({
+			intent: "install",
+			modules: [svc],
+		});
+		await savePlan(paths, plan);
+		const { catalog } = makeCatalog([]);
+
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current: { intent: "install", modules: [svc] },
+		});
+
+		assert.equal(result.outcome, "COMPLETE");
+		assert.equal(result.planRef, plan.planRef);
+		assert.equal(result.stepResults.length, 1);
+		assert.equal(result.stepResults[0]?.status, "SKIP");
+
+		const state = await loadDeploymentState(paths);
+		assert.deepEqual(
+			state?.lastAppliedPlans.map((entry) => entry.planRef),
+			[plan.planRef],
+		);
+		assert.deepEqual(
+			state?.selectedModules.map((fact) => fact.moduleRef),
+			["svc"],
+		);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("apply executes a package step and re-checks the postcondition", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({ moduleRef: "svc" });
+		const plan: DeploymentPlan = planDeployment({
+			intent: "install",
+			modules: [svc],
+		});
+		await savePlan(paths, plan);
+		const { catalog } = makeCatalog([]);
+		const fake = makeFakeDriver();
+
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current: { intent: "install", modules: [svc] },
+			driver: fake.driver,
+		});
+
+		assert.equal(result.outcome, "COMPLETE");
+		assert.equal(result.stepResults[0]?.status, "EXECUTED");
+		assert.equal(fake.installCounts.get("svc"), 1);
+		assert.equal(fake.installed.get("svc"), "1.0.0");
+	} finally {
+		await cleanup();
+	}
+});
+
+test("resume re-observes reality and skips already-satisfied steps without re-execution", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({ moduleRef: "svc" });
+		const plan: DeploymentPlan = planDeployment({
+			intent: "install",
+			modules: [svc],
+		});
+		await savePlan(paths, plan);
+		const { catalog } = makeCatalog([]);
+		const fake = makeFakeDriver();
+		const current: PlanInput = { intent: "install", modules: [svc] };
+
+		const first = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+			driver: fake.driver,
+		});
+		assert.equal(first.outcome, "COMPLETE");
+		assert.equal(first.stepResults[0]?.status, "EXECUTED");
+		assert.equal(fake.installCounts.get("svc"), 1);
+
+		// same planRef again, reality now already satisfied → SKIP, no re-install
+		const second = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+			driver: fake.driver,
+		});
+		assert.equal(second.outcome, "COMPLETE");
+		assert.equal(second.stepResults[0]?.status, "SKIP");
+		assert.equal(fake.installCounts.get("svc"), 1);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("a stale plan is BLOCKED and never applied", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({ moduleRef: "svc" });
+		const plan: DeploymentPlan = planDeployment({
+			intent: "install",
+			modules: [svc],
+		});
+		await savePlan(paths, plan);
+		const { catalog } = makeCatalog([]);
+
+		// stable assumption changed: target version moved → stale
+		const upgraded = moduleFixture({
+			moduleRef: "svc",
+			moduleVersion: "2.0.0",
+		});
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current: { intent: "install", modules: [upgraded] },
+		});
+
+		assert.equal(result.outcome, "BLOCKED");
+		assert.equal(result.stepResults.length, 0);
+
+		const state = await loadDeploymentState(paths);
+		assert.deepEqual(state?.lastAppliedPlans ?? [], []);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("a missing plan throws PLAN_NOT_FOUND", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const { catalog } = makeCatalog([]);
+		const svc = moduleFixture({ moduleRef: "svc" });
+
+		await assert.rejects(
+			() =>
+				applyPlan({
+					paths,
+					planRef: "plan-missing",
+					catalog,
+					current: { intent: "install", modules: [svc] },
+				}),
+			(error: unknown): boolean =>
+				error instanceof PlatformError && error.code === "PLAN_NOT_FOUND",
+		);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("a human step persists a pendingAction, returns ACTION_REQUIRED, and stops", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const first = moduleFixture({
+			moduleRef: "first",
+			kind: "browser-extension",
+			requirements: [{ kind: "human", action: "load the extension" }],
+			lifecycle: ["status"],
+		});
+		const second = moduleFixture({ moduleRef: "second" });
+		const plan: DeploymentPlan = planDeployment({
+			intent: "install",
+			modules: [first, second],
+		});
+		await savePlan(paths, plan);
+
+		const { catalog } = makeCatalog([
+			{
+				module: first,
+				primitives: {
+					status: () => ({
+						result: ok("first", { humanActionVerified: false }),
+						observedEffects: [],
+					}),
+				},
+			},
+		]);
+		const current: PlanInput = { intent: "install", modules: [first, second] };
+
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+		});
+
+		assert.equal(result.outcome, "ACTION_REQUIRED");
+		// package(first) SKIP, human(first) ACTION_REQUIRED, package(second) not reached
+		assert.deepEqual(
+			result.stepResults.map((step) => step.status),
+			["SKIP", "ACTION_REQUIRED"],
+		);
+
+		const state = await loadDeploymentState(paths);
+		assert.equal(state?.pendingActions.length, 1);
+		assert.equal(state?.pendingActions[0]?.planRef, plan.planRef);
+		assert.ok((state?.pendingActions[0]?.action ?? "").length > 0);
+		assert.deepEqual(state?.lastAppliedPlans ?? [], []);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("resume after ACTION_REQUIRED skips the now-verified human step and completes", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const first = moduleFixture({
+			moduleRef: "first",
+			kind: "browser-extension",
+			requirements: [{ kind: "human", action: "load the extension" }],
+			lifecycle: ["status"],
+		});
+		const second = moduleFixture({ moduleRef: "second" });
+		const plan: DeploymentPlan = planDeployment({
+			intent: "install",
+			modules: [first, second],
+		});
+		await savePlan(paths, plan);
+
+		let humanVerified = false;
+		const { catalog } = makeCatalog([
+			{
+				module: first,
+				primitives: {
+					status: () => ({
+						result: ok("first", { humanActionVerified: humanVerified }),
+						observedEffects: [],
+					}),
+				},
+			},
+		]);
+		const current: PlanInput = { intent: "install", modules: [first, second] };
+
+		const interrupted = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+		});
+		assert.equal(interrupted.outcome, "ACTION_REQUIRED");
+
+		// the human action is now verified in reality → resume skips it
+		humanVerified = true;
+		const resumed = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+		});
+
+		assert.equal(resumed.outcome, "COMPLETE");
+		const humanStep = resumed.stepResults.find(
+			(step) => step.moduleRef === "first" && step.status === "SKIP",
+		);
+		assert.ok(humanStep, "the verified human step must be SKIPped on resume");
+
+		const state = await loadDeploymentState(paths);
+		assert.deepEqual(
+			state?.lastAppliedPlans.map((entry) => entry.planRef),
+			[plan.planRef],
+		);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("a failing lifecycle step stops the apply, records FAILED, and persists nothing as applied", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({
+			moduleRef: "svc",
+			kind: "service",
+			configSlots: [configSlot("host", { required: true })],
+			lifecycle: ["describe", "verify", "doctor", "start", "restart", "status"],
+		});
+		const plan: DeploymentPlan = planDeployment({
+			intent: "configure",
+			modules: [svc],
+			config: { svc: { host: "example.com" } },
+		});
+		await savePlan(paths, plan);
+
+		const { calls, catalog } = makeCatalog([
+			{
+				module: svc,
+				primitives: {
+					status: () => ({
+						result: ok("svc", { state: "STOPPED" }),
+						observedEffects: [],
+					}),
+					restart: () => ({
+						result: failed("svc", "restart exploded"),
+						observedEffects: [],
+					}),
+				},
+			},
+		]);
+		const current: PlanInput = {
+			intent: "configure",
+			modules: [svc],
+			config: { svc: { host: "example.com" } },
+		};
+
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+		});
+
+		assert.equal(result.outcome, "FAILED");
+		assert.deepEqual(
+			result.stepResults.map((step) => step.status),
+			["EXECUTED", "FAILED"],
+		);
+		assert.equal(
+			calls.filter((call) => call.primitive === "restart").length,
+			1,
+		);
+
+		// config was materialized before the failure (real disk integration)
+		const config = await loadConfig(paths, "svc");
+		assert.equal(config?.publicValues.host, "example.com");
+
+		// the failed plan is not recorded as applied
+		const state = await loadDeploymentState(paths);
+		assert.deepEqual(state?.lastAppliedPlans ?? [], []);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("historical success with missing reality is re-executed, not faked as skip", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({ moduleRef: "svc" });
+		const plan: DeploymentPlan = planDeployment({
+			intent: "install",
+			modules: [svc],
+		});
+		await savePlan(paths, plan);
+		const { catalog } = makeCatalog([]);
+		const fake = makeFakeDriver();
+		const current: PlanInput = { intent: "install", modules: [svc] };
+
+		const first = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+			driver: fake.driver,
+		});
+		assert.equal(first.outcome, "COMPLETE");
+		assert.equal(fake.installCounts.get("svc"), 1);
+
+		// reality is now missing despite a recorded success → no fake skip
+		fake.installed.delete("svc");
+		const second = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+			driver: fake.driver,
+		});
+
+		assert.equal(second.outcome, "COMPLETE");
+		assert.equal(second.stepResults[0]?.status, "EXECUTED");
+		assert.equal(fake.installCounts.get("svc"), 2);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("config step materializes real config and its postcondition reads from disk", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({
+			moduleRef: "svc",
+			configSlots: [configSlot("host", { required: true })],
+		});
+		const plan: DeploymentPlan = planDeployment({
+			intent: "install",
+			modules: [svc],
+			config: { svc: { host: "example.com" } },
+		});
+		await savePlan(paths, plan);
+		const { catalog } = makeCatalog([]);
+		const fake = makeFakeDriver();
+		const current: PlanInput = {
+			intent: "install",
+			modules: [svc],
+			config: { svc: { host: "example.com" } },
+		};
+
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+			driver: fake.driver,
+		});
+
+		assert.equal(result.outcome, "COMPLETE");
+		const configStep = result.stepResults.find(
+			(step) => step.moduleRef === "svc" && step.status === "EXECUTED",
+		);
+		assert.ok(configStep, "the config step must be EXECUTED");
+
+		const config = await loadConfig(paths, "svc");
+		assert.equal(config?.publicValues.host, "example.com");
+	} finally {
+		await cleanup();
+	}
+});
+
+test("external-resource configure dispatches the start primitive and observes resourceConfigured", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const tunnel = moduleFixture({
+			moduleRef: "tunnel",
+			kind: "external-resource",
+			lifecycle: [
+				"describe",
+				"preflight",
+				"status",
+				"verify",
+				"doctor",
+				"start",
+			],
+		});
+		const plan: DeploymentPlan = planDeployment({
+			intent: "install",
+			modules: [tunnel],
+		});
+		await savePlan(paths, plan);
+
+		let configured = false;
+		const { calls, catalog } = makeCatalog([
+			{
+				module: tunnel,
+				primitives: {
+					status: () => ({
+						result: ok("tunnel", { resourceConfigured: configured }),
+						observedEffects: [],
+					}),
+					start: () => {
+						configured = true;
+						return { result: ok("tunnel"), observedEffects: [] };
+					},
+				},
+			},
+		]);
+
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current: { intent: "install", modules: [tunnel] },
+		});
+
+		assert.equal(result.outcome, "COMPLETE");
+		const executed = result.stepResults.find(
+			(step) => step.moduleRef === "tunnel" && step.status === "EXECUTED",
+		);
+		assert.ok(executed, "the external-resource step must be EXECUTED");
+		assert.equal(calls.filter((call) => call.primitive === "start").length, 1);
+	} finally {
+		await cleanup();
+	}
+});
