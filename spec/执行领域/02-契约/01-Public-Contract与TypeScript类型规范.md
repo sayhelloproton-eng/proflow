@@ -63,8 +63,11 @@ export type TaskId = Brand<string, 'TaskId'>;
 export type NodeId = Brand<string, 'NodeId'>;
 export type RoleRef = Brand<string, 'RoleRef'>;
 export type WorkerRef = Brand<string, 'WorkerRef'>;
+export type ArtifactRef = Brand<string, 'ArtifactRef'>;
 export type EvidenceRef = Brand<string, 'EvidenceRef'>;
 ```
+
+`ArtifactRef` 与 `EvidenceRef` 必须保持语义分离：Artifact 是受控 materialized 工作产物/输入（例如 Context Pack、Patch、download/report）；Evidence 是证明 Execution Result/Delivery/Effect 的现实证据。一个 Evidence 可以引用某个 Artifact，但不能因为 Artifact 存在就推导 Effect 成功。
 
 这样可以降低把 `workerRef` 当 `roleRef` 传错的概率，但不改变外部 JSON 仍是 string 的事实。
 
@@ -186,12 +189,31 @@ export interface ExecutionResultEnvelope<TData> {
   sideEffectState: SideEffectState;
   retryable: boolean;
   data?: TData;
+  artifactRefs: ArtifactRef[];
   evidenceRefs: EvidenceRef[];
   error?: ExecutionError;
 }
 ```
 
 每个 capability 必须有具体 `TData`。
+
+
+## 6.1 Artifact / Evidence contract
+
+Execution 对 materialized bytes / large outputs 使用稳定 opaque `ArtifactRef`。最小 artifact metadata 应可下钻得到：
+
+```text
+artifactRef
+sha256
+bytes
+mime
+logical filename/path metadata（如适用，仍需 scope 安全）
+producer executionRef / correlation refs
+```
+
+OpenAI `openaiFileIdRefs` / temporary download URL / relay URL 都只是 transport locator，不是 ArtifactRef。Gateway normalize 后由 Execution bounded materialize 才产生平台 Artifact。Context Pack / Patch 是 Artifact subtype，不建立独立 Store/Service/Domain。
+
+`evidenceRefs` 继续只表达“为什么可以相信 Result/Delivery/Effect”；`artifactRefs` 只表达“这次 Execution 产生/材料化了哪些可复用产物”。两者可交叉引用但不得合并。
 
 ## 7. Error Union
 

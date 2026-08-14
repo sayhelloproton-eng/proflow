@@ -41,7 +41,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 roleRef+workerRef binding 与 transient tab/window/content identity
+goal: 实现 agentPackageRef+roleRef+workerRef+conversationLocator 稳定绑定与 transient tab/content identity；禁止 frame/persistent-tab business identity
 scope:
   allow:
   - packages/execution-browser-extension/**
@@ -75,7 +75,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 CREATE/RESTORE/WAKE 精确语义与真实 c-id URL 解析
+goal: 实现 Extension New Task 三 Worker CREATE/partial recovery、page-level RESTORE、minimal WAKE 与真实 c-id/Conversation locator observation
 scope:
   allow:
   - packages/execution-browser-extension/**
@@ -109,7 +109,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 page IDLE/BUSY/BLOCKED/UNKNOWN、Progress Gap/Runtime Stall
+goal: 实现 Task Observer deterministic progression + 单 Task REASON diagnostic exception；page IDLE/BUSY/BLOCKED/UNKNOWN 只作 Carrier runtime view
 scope:
   allow:
   - packages/execution-browser-extension/**
@@ -143,7 +143,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 permission fallback、screenshot/vision evidence 与 Side Panel read-only observability
+goal: 实现 Always-Allow 主路径下的 permission fallback、screenshot→Vision recovery、Approval/Alert UI 与 Side Panel current-reality display
 scope:
   allow:
   - packages/execution-browser-extension/**
@@ -177,7 +177,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 Browser write 全局串行与 physical Collaboration delivery
+goal: 实现 Worker Turn 多 Action无 per-action WAKE、Browser write安全串行与 physical Collaboration delivery
 scope:
   allow:
   - packages/execution-browser-extension/**
@@ -211,7 +211,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 reload/reconnect Recovery Scan 与 effect_started reality reconciliation
+goal: 实现 reload/reconnect Recovery Scan、UNKNOWN no-blind-replay 与 effect_started reality reconciliation
 scope:
   allow:
   - packages/execution-browser-extension/**
@@ -245,7 +245,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 完成真实 Chrome + ChatGPT E2E / fault injection / no-blind-retry tests
+goal: 完成真实 Chrome + ChatGPT J1-J6 Carrier E2E、Always Allow/Multi-action/File Bridge、fault injection 与 no-blind-retry tests
 scope:
   allow:
   - packages/execution-browser-extension/**
@@ -266,3 +266,33 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+
+### EXE-BR-008
+
+```yaml
+id: EXE-BR-008
+status: READY
+implementationReadiness: PLANNED
+priority: PENDING_DECISION
+type: IMPLEMENTATION
+owner:
+  domain: execution
+  boundedContext: execution
+  moduleRef: execution-browser-extension
+sourceRefs:
+- EXECUTION-EXECUTION-BROWSER-EXTENSION-TECH-DESIGN
+- EXECUTION-DOC-03-04
+- MODEL-DOC-03-08
+goal: 实现最低优先级 System Observer 的 8 类 bounded views、分批 REASON、carry-forward、drill-down 与 global synthesis；assessment 只派生不改 Owner facts
+scope:
+  allow:
+  - packages/execution-browser-extension/**
+  forbid:
+  - 其他 Domain 的业务 Store/Repository
+  - System Observer 直接修改 Task/Execution/Agent/Deployment facts
+acceptance:
+- ACCEPTANCE_NOT_FROZEN
+verification: []
+evidence: []
+```

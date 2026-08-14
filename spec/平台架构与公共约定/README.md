@@ -42,3 +42,7 @@ Package != Module != Service != Process != Deployment Unit
 - `../DOCUMENT-INDEX.json`
 - `../MODULE-REGISTRY.json`
 - `../EXTERNAL-RESOURCE-REGISTRY.json`
+
+## v1 跨域 Journey
+
+在领域边界之后继续读取 `01-架构/04-Task-Journey-Carrier与Observer-v1集成基线.md`。它冻结 Extension New Task、三 Worker binding、Task Observer、System Observer、Browser Carrier、Worker Turn、OpenAI native reuse、Approval四分与决策权层级；不得把这些 application semantics重建为新的 Domain/Store/Scheduler。

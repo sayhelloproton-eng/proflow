@@ -74,13 +74,13 @@ Agent Runtime 若复制 Task binding、身份校验宽松或 Collaboration 顺�
 
 **Real requirement**：Role Registry/credential/persistence/restart 使用真实本地 store；Task/Execution 通过 contract integration。
 
-**允许的隔离方式**：Task/Execution 可用 public-contract fake；不能 fake authenticatedRoleRef/Worker identity 规则本身。
+**允许的隔离方式**：Task/Execution 可用 public-contract fake；不能 fake authenticatedRoleRef 与 Task-bound worker-context validation 规则本身。
 
 ## 5. Critical Proofs
 
 - [ ] **CP-AGT-RUNTIME-01** — Role Registry list/get/register/delete 保持 one-package-one-current-role；ROLE_IN_USE delete zero mutation。
 - [ ] **CP-AGT-RUNTIME-02** — one Role → one credential；key rotation 不改变 roleRef；secret 不进入 logs/docs/browser injected text。
-- [ ] **CP-AGT-RUNTIME-03** — Worker identity validate/resolve 不复制 TaskRoleBinding；涉及 Task 的 Action 校验 authenticatedRoleRef+taskId+workerRef+owner facts。
+- [ ] **CP-AGT-RUNTIME-03** — Task-bound worker-context validation 不复制/缓存 TaskRoleBinding；涉及 Task 的 Action 必须用 authenticatedRoleRef+taskId+workerRef 向 Owner facts 做 defensive validation。
 - [ ] **CP-AGT-RUNTIME-04** — askPeer/replyPeer 带 idempotency，严格 one unanswered question；Reply physical DELIVERED 后才允许下一问。
 - [ ] **CP-AGT-RUNTIME-05** — Task terminal 后 no new ask/reply/wake；missing participant/duplicate message fail-safe。
 - [ ] **CP-AGT-RUNTIME-06** — 与 Task/Execution 的 integration 只走 Public Contract，不 direct DB/deep import。
@@ -93,7 +93,7 @@ Agent Runtime 若复制 Task binding、身份校验宽松或 Collaboration 顺�
 |---|---|---|---|---|---|---|
 | `AGT-RUNTIME-001` | 实现 Role Registry list/get/register/delete local management boundary | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-RUNTIME` § `AGT-RUNTIME-001` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-03-01`<br>`AGENT-DOC-03-03`<br>`AGENT-DOC-03-05` | `CP-AGT-RUNTIME-01` | Role Registry list/get/register/delete local management boundary | Role Registry list/get/register/delete 保持 one-package-one-current-role；ROLE_IN_USE delete zero mutation。 |
 | `AGT-RUNTIME-002` | 实现 roleRef↔credential 安全绑定与 key rotation | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-RUNTIME` § `AGT-RUNTIME-002` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-03-01`<br>`AGENT-DOC-03-03`<br>`AGENT-DOC-03-05` | `CP-AGT-RUNTIME-02` | roleRef↔credential 安全绑定与 key rotation | one Role → one credential；key rotation 不改变 roleRef；secret 不进入 logs/docs/browser injected text。 |
-| `AGT-RUNTIME-003` | 实现 Worker identity validate/resolve，不复制 Task binding | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-RUNTIME` § `AGT-RUNTIME-003` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-03-01`<br>`AGENT-DOC-03-03`<br>`AGENT-DOC-03-05` | `CP-AGT-RUNTIME-03` | Worker identity validate/resolve，不复制 Task binding | Worker identity validate/resolve 不复制 TaskRoleBinding；涉及 Task 的 Action 校验 authenticatedRoleRef+taskId+workerRef+owner facts。 |
+| `AGT-RUNTIME-003` | 实现 Task-bound Worker context defensive validation，不复制 Task binding | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-RUNTIME` § `AGT-RUNTIME-003` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-03-01`<br>`AGENT-DOC-03-03`<br>`AGENT-DOC-03-05` | `CP-AGT-RUNTIME-03` | Worker identity validate/resolve，不复制 Task binding | Task-bound worker-context validation 不复制/缓存 TaskRoleBinding；涉及 Task 的 Action 必须用 authenticatedRoleRef+taskId+workerRef 向 Owner facts 做 defensive validation。 |
 | `AGT-RUNTIME-004` | 实现 Collaboration Message Center 与 askPeer/replyPeer 串行状态 | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-RUNTIME` § `AGT-RUNTIME-004` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-03-01`<br>`AGENT-DOC-03-03`<br>`AGENT-DOC-03-05` | `CP-AGT-RUNTIME-04` | Collaboration Message Center 与 askPeer/replyPeer 串行状态 | askPeer/replyPeer 带 idempotency，严格 one unanswered question；Reply physical DELIVERED 后才允许下一问。 |
 | `AGT-RUNTIME-005` | 实现 terminal Task / missing participant / duplicate message 防御 | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-RUNTIME` § `AGT-RUNTIME-005` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-03-01`<br>`AGENT-DOC-03-03`<br>`AGENT-DOC-03-05` | `CP-AGT-RUNTIME-05` | terminal Task / missing participant / duplicate message 防御 | Task terminal 后 no new ask/reply/wake；missing participant/duplicate message fail-safe。 |
 | `AGT-RUNTIME-006` | 完成与 Task/Execution 的 contract integration tests | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-RUNTIME` § `AGT-RUNTIME-006` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-03-01`<br>`AGENT-DOC-03-03`<br>`AGENT-DOC-03-05` | `CP-AGT-RUNTIME-06` | 与 Task/Execution 的 contract integration tests | 与 Task/Execution 的 integration 只走 Public Contract，不 direct DB/deep import。 |
@@ -104,7 +104,7 @@ Agent Runtime 若复制 Task binding、身份校验宽松或 Collaboration 顺�
 
 - [ ] **RF-AGT-RUNTIME-01** — Role Registry one-package-one-current-role 或 ROLE_IN_USE delete 发生错误 mutation
 - [ ] **RF-AGT-RUNTIME-02** — credential rotation 改变 roleRef 或 secret 泄漏
-- [ ] **RF-AGT-RUNTIME-03** — Worker identity 校验复制 TaskRoleBinding/信任错误身份事实
+- [ ] **RF-AGT-RUNTIME-03** — worker-context validation 复制/缓存 TaskRoleBinding 或信任非 Owner 身份事实
 - [ ] **RF-AGT-RUNTIME-04** — askPeer/replyPeer idempotency/one-unanswered/DELIVERED 顺序失效
 - [ ] **RF-AGT-RUNTIME-05** — terminal Task、missing participant、duplicate message 未 fail-safe
 - [ ] **RF-AGT-RUNTIME-06** — Task/Execution integration 绕过 Public Contract 直接 DB/deep import
@@ -118,7 +118,7 @@ Agent Runtime 若复制 Task binding、身份校验宽松或 Collaboration 顺�
 
 - **EV-AGT-RUNTIME-01** — Role Registry before-after state
 - **EV-AGT-RUNTIME-02** — credential rotation result + secret-redaction observation
-- **EV-AGT-RUNTIME-03** — Worker identity validation/resolve result
+- **EV-AGT-RUNTIME-03** — Task-bound worker-context validation result
 - **EV-AGT-RUNTIME-04** — Collaboration thread/message state + idempotency
 - **EV-AGT-RUNTIME-05** — physical delivery receipt/ref 与 one-unanswered state
 - **EV-AGT-RUNTIME-06** — terminal/missing/duplicate rejection
@@ -172,3 +172,9 @@ Agent Runtime 若复制 Task binding、身份校验宽松或 Collaboration 顺�
 
 若风险“Agent Runtime 若复制 Task binding、身份校验宽松或 Collaboration 顺序错误，会产生跨角色错投与第二事实真源。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Fixed-role / Collaboration Critical Proof Addendum
+
+- [ ] **CP-AGT-RUNTIME-07** — v1固定三个logical Agent Packages；Role Registry query不进入Product New Task dynamic discovery。
+- [ ] **CP-AGT-RUNTIME-08** — credential只认证roleRef；Task binding由Task owner持有，Browser不接触credential。
+- [ ] **CP-AGT-RUNTIME-09** — askPeer/replyPeer durable facts不创建/修改Task Node/WAIT/transition；taskId/nodeId/runNo仅correlation。
+- [ ] **CP-AGT-RUNTIME-10** — Agent Runtime无tab/frame/Task Observer/System Observer/Carrier scheduler持久化。

@@ -128,13 +128,14 @@ Custom GPT create/update 当前仍是 Web 操作。Deployment 不新增第二套
 status = ACTION_REQUIRED
 actionRequired.kind = WEB
 → open GPT editor
-→ apply Instructions/Knowledge/Capabilities
+→ apply v1 Instructions + required Capabilities
 → install static Actions schema
 → configure role API-key/Bearer auth
+→ Knowledge specialization is deferred; v1 does not require Knowledge upload/verify
 → save
 → Preview/real verify
 ```
 
 同一 planRef resume 时先 verify reality，已经满足的 Web step SKIP，不要求用户机械重复。
 
-如果目标环境真实验证 `x-openai-isConsequential:false` + Always Allow 可稳定消除 routine confirmation，可以把“一次选择 Always Allow”列为 Agent Carrier setup/verify 步骤；**在 E2E 通过前不能把该 UI 行为当 Deployment 硬保证。**
+Agent Carrier setup/verify 应把 routine operation 的 `x-openai-isConsequential:false` 与“一次选择 Always Allow”作为 v1 目标配置步骤，使 permission prompt 退出正常 Task main path。真实目标环境仍必须在 FINAL Carrier E2E 中证明该行为；在证据完成前，verify/doctor 应标明实际验证状态，Browser 保留 unexpected-prompt recovery。该 UI 行为不等于 Execution Effect Approval。

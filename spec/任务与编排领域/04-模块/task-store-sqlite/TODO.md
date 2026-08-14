@@ -46,7 +46,7 @@ qualityRefs:
 - TASK-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 建立 task_groups/tasks/nodes/node_execution_history/task_documents/task_messages/task_events/idempotency_records/schema_migrations
+goal: 建立 task_groups/tasks/nodes/task_role_bindings/node_execution_history/task_documents/task_messages/task_events/idempotency_records/schema_migrations
   schema
 scope:
   allow:

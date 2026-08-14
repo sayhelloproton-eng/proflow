@@ -184,3 +184,11 @@ Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 
 
 若风险“Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 与 recovery 任何错误都可能导致重复副作用。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Journey / Artifact Critical Proof Addendum
+
+- [ ] **CP-EXE-RT-08** — Browser/Carrier writes and local writes converge to the same durable Execution truth; Observer/Extension cannot create a second effect/state runtime.
+- [ ] **CP-EXE-RT-09** — Gateway-normalized File Bridge inbound refs are bounded-materialized with scope/timeout/hash/MIME/size facts before becoming reusable artifacts; locator timeout/expiry is transport failure, not proof that an owner Action did or did not mutate business truth.
+- [ ] **CP-EXE-RT-10** — Context Pack/Patch are artifact subtypes, not new Store/Service/Domain; patch application remains a separate policy-controlled Execution effect with Result/Evidence.
+- [ ] **CP-EXE-RT-11** — model confidence/Task Diagnostic/System Assessment cannot bypass hard DENY/REQUIRE_APPROVAL/scope/identity/version/idempotency or directly write Execution state.
+
+Failure gates include Browser-owned durable truth, blind replay after uncertain delivery/materialization, raw secret/file body leakage into default diagnostics, or treating an artifact's existence as Execution success evidence.

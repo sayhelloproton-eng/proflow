@@ -33,3 +33,8 @@ queueTimeout 与 inferenceTimeout 分离。cancel 只对可安全取消阶段生
 
 ## Restart
 queue/active 不持久化；restart 使 queued/running 请求失败，caller 根据自己的业务幂等语义决定是否重试。
+
+
+## Observer workload
+
+Task Diagnostic 仅异常时调用；System Assessment 使用 background priority并允许被延后。一次全系统评估可由多次 `infer()` 组成，但跨批记忆/Drill-down编排属于 System Observer caller，不属于 model-runtime。

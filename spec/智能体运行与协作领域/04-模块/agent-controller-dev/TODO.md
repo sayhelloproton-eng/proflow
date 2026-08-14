@@ -105,7 +105,7 @@ qualityRefs:
 - AGENT-DOC-05-03
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 验证 Code Interpreter/Context Pack 仅作为受限优化，不直接 real apply
+goal: 对齐 File Bridge + Context Pack + Code Interpreter + Patch 主路径，并证明候选 Artifact 不直接 real apply
 scope:
   allow:
   - packages/agent-controller-dev/**
@@ -159,3 +159,11 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+## 2026-08-14 Journey / Native Capability Addendum
+
+- [ ] Controller/Dev Worker 在 J1 只完成 WORKER_BIND 后 IDLE，不提前执行业务 Node。
+- [ ] READY WAKE 后由 Worker 读取 fresh formal context并调用 `startNode`；Task Observer不替 Worker startNode。
+- [ ] 一个 Worker Turn可连续 `0..N` Actions；不得要求Browser per-action “continue”。
+- [ ] 公网 research优先GPT Web Search；多文件分析优先File Bridge + bounded Context Pack + Code Interpreter；真实repo apply/test仍由Execution。
+- [ ] 长Execution/peer等待可结束当前Turn，result/reply ready后恢复同一workerRef/Conversation；UNKNOWN Effect不得盲重放。

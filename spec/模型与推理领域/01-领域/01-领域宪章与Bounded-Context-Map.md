@@ -31,6 +31,7 @@ contractRefs: []
 - single inference lane
 - Output validation/repair
 - Model health/resource observability
+- Task Diagnostic / System Assessment 的静态 ReasoningSpec 与结构化推理合同
 
 ## 3. Does Not Own
 
@@ -87,3 +88,8 @@ Requires：
 ## 8. 详细模型与边界正文
 
 本文件只冻结 DDD 导航边界，不重写原高密度技术正文。详细定义继续由本领域 `01-领域/02-*`、`01-领域/03-*` 和 `02-契约/*` 承载。
+
+
+## 9. Observer reasoning consumer boundary
+
+Task Observer/System Observer 不是 Model Domain entity。它们是外部 callers：前者仅异常时低频调用 Task Diagnostic REASON；后者最低优先级调用 System Assessment REASON。Model 只计算 structured output，不拥有 assessment之后的业务动作。详见 `MODEL-DOC-03-08`。

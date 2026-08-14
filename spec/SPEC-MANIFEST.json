@@ -1,13 +1,13 @@
 {
   "contract": "proflow.spec.manifest.v1",
   "status": "ACTIVE_BASELINE",
-  "generatedDate": "2026-08-13",
-  "fileCount": 222,
+  "generatedDate": "2026-08-15",
+  "fileCount": 226,
   "files": [
     {
       "path": "DOCUMENT-INDEX.json",
-      "sha256": "c6a9b701cf062e1b4648a655fc5bf2c0ef934549e85ec7a7679f829d151477fe",
-      "bytes": 100589
+      "sha256": "d28f4348459d88885961cd51cb22ab531f9f6e4b93fd9527595cc7bd5fd8c96d",
+      "bytes": 103282
     },
     {
       "path": "DOCUMENT-METADATA-SCHEMA.json",
@@ -21,18 +21,18 @@
     },
     {
       "path": "IMPLEMENTATION-BASELINE.md",
-      "sha256": "2682f8c30ac84f6f2737dcfe70a33deef039223904d2a814cb1b4d12a1092e2f",
-      "bytes": 1307
+      "sha256": "1c7a23939d4688afabf2f58b6078eca36fa521be7a91449644a7acf428dba44e",
+      "bytes": 2946
     },
     {
       "path": "MODULE-REGISTRY.json",
-      "sha256": "f8d8e446ca6912afe97ed114b3b5afc2fa53077373ab6e2624eb2b81410458ac",
-      "bytes": 16986
+      "sha256": "1947f2dbfbd2749986eda883148f248901242f4f6a945013cb577637c630d305",
+      "bytes": 18153
     },
     {
       "path": "README.md",
-      "sha256": "28732f5c7c028b8330b874353ab5d73e9b254a60f8ba60986945c3e370b241f4",
-      "bytes": 4886
+      "sha256": "d0a337e7edc48a2b686fb8674d6837dd7ee3f7fd8e1fa8f1835d6a8e5a123a5a",
+      "bytes": 5772
     },
     {
       "path": "SPEC-CONFORMANCE.json",
@@ -41,63 +41,68 @@
     },
     {
       "path": "任务与编排领域/01-领域/01-领域宪章与Bounded-Context-Map.md",
-      "sha256": "2de116b5e5f2279b4f0ca4f2ca4f755c3836947f3b06e7216867e318fcaebb46",
-      "bytes": 4241
+      "sha256": "1419bade853f0adbce81926d589445ba2e5107cad695fbfabf695eae3ceb181f",
+      "bytes": 4450
     },
     {
       "path": "任务与编排领域/01-领域/02-统一语言与领域模型.md",
-      "sha256": "3817c4faf12935a04d26801e633736e70f69fe1c8b06364a56425f42098a053f",
-      "bytes": 9994
+      "sha256": "45a124858d253088051328ab05c9f4194050c74afb0d24e53caf6d79248367c5",
+      "bytes": 11133
     },
     {
       "path": "任务与编排领域/01-领域/03-上下文继承与跨领域边界.md",
-      "sha256": "09907fe96909d09cb1da52537e9e05bd90c9feefd158ee156003b210acfd3f56",
-      "bytes": 2758
+      "sha256": "fc38aa9ebc8e68f0da6f6d8d3b6759d190bd567784c07c003f86b2554fb2742e",
+      "bytes": 3439
     },
     {
       "path": "任务与编排领域/01-领域/04-当前设计原则与非目标.md",
-      "sha256": "9899b2c0a04d32b5e5696d0cfe7bf8534b238c42cc58b1c6da93f3ac45cd1a22",
-      "bytes": 4279
+      "sha256": "d15fc0f8c73f46cc5f68d806cf45bee3f43dbeee13b9d02ea336fcb19b4ebad7",
+      "bytes": 5190
     },
     {
       "path": "任务与编排领域/01-领域/contexts/task-orchestration/README.md",
-      "sha256": "a5e7ad49fe26d88b2ad9e61acfa1a7e943d364384eea9088428424d423710544",
-      "bytes": 2602
+      "sha256": "d2601561e072133877d9e04d85e33666d0fc5257438365149de3e2d3cb54ef85",
+      "bytes": 2699
     },
     {
       "path": "任务与编排领域/02-契约/01-Public-API-契约.md",
-      "sha256": "6c5f4fb81e935b551e8196100d9021785ee167ae972c68f747a9fd8577ed6f8a",
-      "bytes": 23888
+      "sha256": "ac0dab06920c0100eaaf5199dbee1e5756f2187a6e11a4e2264b2799acbda5ce",
+      "bytes": 22035
     },
     {
       "path": "任务与编排领域/02-契约/02-API-依赖-模块清单.md",
-      "sha256": "99c80abf7eb3b783d20db24840d4cf924984498f4c44dd5e3be4f0c11bcf2288",
-      "bytes": 2993
+      "sha256": "bdc6bd07c5355b0d4f900f08ef1492af7b35a48a0ab9a93bc6e7f9ba2b484703",
+      "bytes": 3243
     },
     {
       "path": "任务与编排领域/03-流程与数据/01-关键流程与状态转换.md",
-      "sha256": "996f293182f15a5a05102ee86696934f0db559344d5b82617358030f91db9e6a",
-      "bytes": 6713
+      "sha256": "b9db94af10e2b68b7702fded5b23646d25507e4ea3f75af7a2cb0cec6288b9eb",
+      "bytes": 8413
     },
     {
       "path": "任务与编排领域/03-流程与数据/02-事务-版本-幂等与恢复.md",
-      "sha256": "1bdbb7504bb547d0d9b05cf080a7ee4a0fbea3e9a0980b9a585e10c471aacaea",
-      "bytes": 6281
+      "sha256": "7c0e7548f021af00ae18941265aab950280c0f201d21a8292888178a9f26163c",
+      "bytes": 7123
     },
     {
       "path": "任务与编排领域/03-流程与数据/03-数据模型与SQLite-DDL.md",
-      "sha256": "9625d9cf392ac2fb3c879529699c6da5435d62fc40f3ac99e14941409d3d4724",
-      "bytes": 9947
+      "sha256": "962459b1628df127ff02bcd79456be8badf53c78d3c62c701bd7a636e6351caa",
+      "bytes": 10377
     },
     {
       "path": "任务与编排领域/03-流程与数据/04-存储-Git与任务文档.md",
-      "sha256": "cf271e31e0f6c384bc3cd60094820fa95a9c8119cd28b702a690cc610e2be400",
-      "bytes": 6471
+      "sha256": "5ecadfbff2c7f07867c13c58a43717ef6dfd52751ec0bc2ded6d04315a7f7928",
+      "bytes": 7182
+    },
+    {
+      "path": "任务与编排领域/03-流程与数据/05-Task-Observer推进与异常诊断边界.md",
+      "sha256": "4e269cd21ba721fd6e5c9a4c623b50810529e5d0dbe0b65d5eaddee2c89f78f1",
+      "bytes": 3508
     },
     {
       "path": "任务与编排领域/04-模块/00-Service与npm模块设计.md",
-      "sha256": "d5151a6275c11850625727daee2750ab2ecd4239122b38c2305ea3b548c6f566",
-      "bytes": 6733
+      "sha256": "96d58fc038dcb5cd5061b26fd68b42bdcd13c45dd4908b93bc3c275430ed1f6b",
+      "bytes": 7136
     },
     {
       "path": "任务与编排领域/04-模块/README.md",
@@ -126,13 +131,13 @@
     },
     {
       "path": "任务与编排领域/04-模块/task-orchestration/TECHNICAL-DESIGN.md",
-      "sha256": "f3d89743f9a8cefdc084f65c1875edc5546d5baccf7febf0846dde05627d18c6",
-      "bytes": 1446
+      "sha256": "7e6de40246bb79312dfd8a596a3d45f27085dd6f520565ee401cb2693b80ee70",
+      "bytes": 1957
     },
     {
       "path": "任务与编排领域/04-模块/task-orchestration/TODO.md",
-      "sha256": "d6982b1e1752e944f18fdc00054e492e271bddbe9228c2b6fe887054920b66ef",
-      "bytes": 6993
+      "sha256": "b8e61823647c04bf6a56b7ee40b57e262e4a094b40ab9ce35b10f21cf080565a",
+      "bytes": 7864
     },
     {
       "path": "任务与编排领域/04-模块/task-store-sqlite/README.md",
@@ -141,13 +146,13 @@
     },
     {
       "path": "任务与编排领域/04-模块/task-store-sqlite/TECHNICAL-DESIGN.md",
-      "sha256": "746e1fecc1fe48c9668f0bac0bb2db96c4c3d26dd66e4b790b2acbf87646f6a5",
-      "bytes": 1418
+      "sha256": "98a8e253eb5407e442ce1fc41b0483bfffd334e256d5824a7711500adf67e4a0",
+      "bytes": 1762
     },
     {
       "path": "任务与编排领域/04-模块/task-store-sqlite/TODO.md",
-      "sha256": "05697bc2c13e3a6d60a0454851f0e938445c4b75479cf9e6c49a2c0c5cf51dea",
-      "bytes": 5433
+      "sha256": "8658011ebcf273bf44973fac5d682e3c9e0518444b6e6e3e2746a2b6529541fa",
+      "bytes": 5452
     },
     {
       "path": "任务与编排领域/05-质量与部署/01-技术选型与工程取舍.md",
@@ -156,8 +161,8 @@
     },
     {
       "path": "任务与编排领域/05-质量与部署/02-实施顺序与验收门禁.md",
-      "sha256": "6f7fdda86445bfc8377444fb47fd71c295687c63829044790e236193b9549c89",
-      "bytes": 7656
+      "sha256": "064e7b696be99739464ea8fcc1d826652913dbab4d71f46a09099ec06f5448a4",
+      "bytes": 7741
     },
     {
       "path": "任务与编排领域/06-状态与实施/KNOWN-LIMITATIONS-AND-SPIKES.md",
@@ -171,13 +176,13 @@
     },
     {
       "path": "任务与编排领域/07-测试计划/00-领域测试总计划.md",
-      "sha256": "088361e85ea0f18a74027faa5a65de358fb7e0f5ccfc7cb403fd9d1ce5150532",
-      "bytes": 2427
+      "sha256": "0b23d95b030d8d8051d8ff4f3bb480c084cd045b6c197132440718f730680c64",
+      "bytes": 3010
     },
     {
       "path": "任务与编排领域/07-测试计划/README.md",
-      "sha256": "bfe9014b2a0d2ac0ef45bd2cdd46e73ba106a44279516621319e021840bb8bbe",
-      "bytes": 1459
+      "sha256": "758ca2fdcd0209dac17a5b1372d8481d3212a891576b6f73652696914c781857",
+      "bytes": 1745
     },
     {
       "path": "任务与编排领域/07-测试计划/modules/task-migration-runner.md",
@@ -186,28 +191,28 @@
     },
     {
       "path": "任务与编排领域/07-测试计划/modules/task-orchestration.md",
-      "sha256": "5dc857b756be36d5f5191c629ba0702e7b03ccafe476db4ed9a7d898b69e4178",
-      "bytes": 17130
+      "sha256": "fb3f5e6adc1b2e44b62095681eff7cb82841c95e96dfe874b87544cf4655d846",
+      "bytes": 18198
     },
     {
       "path": "任务与编排领域/07-测试计划/modules/task-store-sqlite.md",
-      "sha256": "568c0e387e20d32fc2b2de3357497704ad0925bfa96047a1b8b90aa9b530cf1f",
-      "bytes": 12413
+      "sha256": "bc74cb68b70ea413fc7f06f015e00db81a7e2c6bea86f7583ecf4e24aa39dbf4",
+      "bytes": 12451
     },
     {
       "path": "任务与编排领域/README.md",
-      "sha256": "efd49cb4f690d0c77e234be4638ef64e6829146d1bf92e627b3868272723f94f",
-      "bytes": 1975
+      "sha256": "ba7f7fc2f489542c252b89858943cdfb86db319252945d200548936b65e497fb",
+      "bytes": 2749
     },
     {
       "path": "平台架构与公共约定/01-架构/01-领域边界与依赖约定.md",
-      "sha256": "848559295dafbc09972cb3c3633e04d2e851fd22c3603f1fd11364f19c99398c",
-      "bytes": 9244
+      "sha256": "28bdf9c3f45f2c404fc2e9e8dfcf1d3354010cf6f278504c27a06437e3822225",
+      "bytes": 5962
     },
     {
       "path": "平台架构与公共约定/01-架构/02-platform-host-Composition-Root.md",
-      "sha256": "a16a11e29776467e78cc34bdb4d40161dfafc7387f568845a8e659cadbc134f7",
-      "bytes": 1530
+      "sha256": "90e4afd425ed5dee97ddcb784c8e947281787dd78082f63e832aaa65bdd42be8",
+      "bytes": 2981
     },
     {
       "path": "平台架构与公共约定/01-架构/03-External-Resource-Modules.md",
@@ -215,14 +220,19 @@
       "bytes": 1363
     },
     {
+      "path": "平台架构与公共约定/01-架构/04-Task-Journey-Carrier与Observer-v1集成基线.md",
+      "sha256": "5893d2635599caa3a5db2fd11ba2434182cbacf8b582a991a37bdc703aa1c35a",
+      "bytes": 10872
+    },
+    {
       "path": "平台架构与公共约定/02-契约/01-公共契约与数据约定.md",
-      "sha256": "8619a632190257be2e2f252bd903c39ba845fd57a63ef60abb22044c9f76ac0f",
-      "bytes": 10038
+      "sha256": "b7b730e5492d49212c349efae11c0099272b31fd4c4ab41125e637fbefff53f8",
+      "bytes": 10759
     },
     {
       "path": "平台架构与公共约定/02-契约/02-API与事件约定.md",
-      "sha256": "32c1364e3b241be5ca65cabad3b34c59ddc572ce7045c08ea36e3b9abd859ee4",
-      "bytes": 7583
+      "sha256": "a54d82a081652281557a417a67cb8900b9e62f312ec43a00b791c7515681fe10",
+      "bytes": 6076
     },
     {
       "path": "平台架构与公共约定/02-契约/03-版本与兼容性约定.md",
@@ -251,58 +261,58 @@
     },
     {
       "path": "平台架构与公共约定/04-治理/03-DDD文档治理与迁移规范.md",
-      "sha256": "d6f41342d7f99ec4374820f0336722b59501926278278b87a90ae84a2b0dbf03",
-      "bytes": 26149
+      "sha256": "c6477a8b34d8d5c094cd9c90d949fe9694c5cb6e8d5888225c85f08e513b6ab4",
+      "bytes": 26233
     },
     {
       "path": "平台架构与公共约定/05-平台模块/platform-host/README.md",
-      "sha256": "edb7de773c966df304259d8a39750205fdf89b1adb2cd6742db3e9b4cb3e30ff",
-      "bytes": 1127
+      "sha256": "a666124b83f19e59f1e314e0f17b26373fda13e533a556d383bb0dd257cd35e7",
+      "bytes": 1768
     },
     {
       "path": "平台架构与公共约定/05-平台模块/platform-host/SERVICE-RUNTIME.md",
-      "sha256": "00c384503bfc93777ad3a6f849db0bcaf50d37f9b5d7c669781bbe85a1756d08",
-      "bytes": 1129
+      "sha256": "31be8fb09cf20644343abeb3ead63e00beff5807d85129373c8fc2f3eb62984f",
+      "bytes": 1830
     },
     {
       "path": "平台架构与公共约定/05-平台模块/platform-host/TECHNICAL-DESIGN.md",
-      "sha256": "9eb1266f73cdf4c142b8ad8f03dccdb04021afc46ffb4776d7e0c59cfde724ad",
-      "bytes": 1318
+      "sha256": "e1a3dd869be50ccb833dbf75658dd5d82d500e7831bed6ceca662d1b8c69b76a",
+      "bytes": 2483
     },
     {
       "path": "平台架构与公共约定/05-平台模块/platform-host/TODO.md",
-      "sha256": "5946ba79394c619d067ef93758b704d2bf2b4262f6273e57c8360bcfdf844f76",
-      "bytes": 4360
+      "sha256": "48cc21ef6aa00a8e0e972cde4bc705a564c5eada20a4b037750a442307fc08e2",
+      "bytes": 1958
     },
     {
       "path": "平台架构与公共约定/06-测试计划/00-ProFlow测试总计划.md",
-      "sha256": "0502bcbdb4f6d83e4c4274db59d922a3844632054c5df3f65a4cba71a2b94b89",
-      "bytes": 4208
+      "sha256": "b248a5828536c573a84c871c1acb2b4dc046c24492c959b7effa4c70133549a2",
+      "bytes": 5631
     },
     {
       "path": "平台架构与公共约定/06-测试计划/01-跨领域Contract与Integration测试计划.md",
-      "sha256": "1199224e8e72743e7d981cf8b2780e06ac9ad4c87db37ed819b94698d27a7290",
-      "bytes": 2917
+      "sha256": "1980618e6f54620f13183b2a99fcaeb87ebeee80c8991a366a93ba5d0dcc2ba3",
+      "bytes": 4402
     },
     {
       "path": "平台架构与公共约定/06-测试计划/02-真实E2E与故障恢复测试计划.md",
-      "sha256": "d5196bc60296463f573733dea2fac0f3ab39c4ca739f9cc34d21b4d7e873e2fc",
-      "bytes": 2586
+      "sha256": "a231b5a3672ca0572fed9f33b774ac7965289af8e86d04c87e9fb340ed771bd5",
+      "bytes": 4736
     },
     {
       "path": "平台架构与公共约定/06-测试计划/03-安全边界与稳定性测试计划.md",
-      "sha256": "6218342ba43f84cc982d26c6e097dab014e78eae8d5b6bb509abbc60e07f03e9",
-      "bytes": 2039
+      "sha256": "e006e14a21a2d4bdd44c6091dcd7f9e7b7ff2541667d1d01ef44edd77dfdf14f",
+      "bytes": 2948
     },
     {
       "path": "平台架构与公共约定/06-测试计划/04-证据与停止门.md",
-      "sha256": "cab91f20802e0c0c234b1bfc4a2b8b5b90e732d9dd271ccd05e0ae0397bc6389",
-      "bytes": 1837
+      "sha256": "c7e6437a9a8733cfbea973330e471fc8cc8b0783cbd5816923272da7540ffc69",
+      "bytes": 2207
     },
     {
       "path": "平台架构与公共约定/06-测试计划/05-实施Wave与测试Gate.md",
-      "sha256": "67410558da2f7c190e1d4388c2bcd6ca082f4da252f462cbfbe45506486cc1a2",
-      "bytes": 5441
+      "sha256": "5b94cb055385c3e3c0042ab5af083946a957868367b2bd99ffd7e1ba32ef18e4",
+      "bytes": 6264
     },
     {
       "path": "平台架构与公共约定/06-测试计划/README.md",
@@ -316,103 +326,103 @@
     },
     {
       "path": "平台架构与公共约定/06-测试计划/modules/platform-host.md",
-      "sha256": "5b1d7354cd5d2d49c032d02fc8982e80a8aefa07c2ae273af7f2954ad3d55fcc",
-      "bytes": 12717
+      "sha256": "c9579c94a5fea467437c43fc5b4795226f45615a737166ce041c204b691fa915",
+      "bytes": 3103
     },
     {
       "path": "平台架构与公共约定/README.md",
-      "sha256": "4e4fc53d960f140a658fa207d63510b1d7375d92cf83d204f9e88afe7724c070",
-      "bytes": 1192
+      "sha256": "786e47a9de6cc5e1abf87075932cb18474419df5e90ae4df8aed55649715deff",
+      "bytes": 1570
     },
     {
       "path": "执行领域/01-领域/01-领域宪章与Bounded-Context-Map.md",
-      "sha256": "a34bc3adbfb2dc91207f0755b0939cb92448e0e854d78d6f012cbb1ff10e3235",
-      "bytes": 2478
+      "sha256": "66d244b0719ef1de4b4f492140c4e44fb54b59bb622526b983987b7fe873cfd9",
+      "bytes": 2965
     },
     {
       "path": "执行领域/01-领域/02-领域职责边界与非目标.md",
-      "sha256": "ae631546fd86ef7b19e320842566bbd1b602ff677b210aae9182eea699e07806",
-      "bytes": 3060
+      "sha256": "c01264e98559d61e20ad8575ac8588e28fd9d5be99a7c30c0f62d861865961b7",
+      "bytes": 4029
     },
     {
       "path": "执行领域/01-领域/03-当前设计原则与不变量.md",
-      "sha256": "66730ae886f74e97fd8ad838ebef6df32b6ada811dc63c874de548772d694b52",
-      "bytes": 4533
+      "sha256": "6abb9d51d987ab24a8ae517179de5da4b8f17fcd96611fa1f46f7236b4bc5e35",
+      "bytes": 5191
     },
     {
       "path": "执行领域/01-领域/contexts/execution/README.md",
-      "sha256": "2bf432333e79e8af82d0d3b56786a89e53bb52fe75dfb1d38c80fc7c5be72dce",
-      "bytes": 2475
+      "sha256": "266ebce7f39830e12c3d140b9f674c39fa4069a1a8af39f94d014c3a804e3645",
+      "bytes": 2623
     },
     {
       "path": "执行领域/02-契约/01-Public-Contract与TypeScript类型规范.md",
-      "sha256": "3989532624a4f7d0a74cc38791229f3ee0e3af8ff8eefcd652fc8eb7c60aac20",
-      "bytes": 6131
+      "sha256": "18424d1c7b91fba1da4543ea829a14b90444d30889ca140357eb1ae6ee34d3aa",
+      "bytes": 7375
     },
     {
       "path": "执行领域/02-契约/02-跨领域接口依赖矩阵.md",
-      "sha256": "1e11c1f9ca51c353ac13616e24027e0d93f371f8d8ee2a19d49e0a3e2e01e09c",
-      "bytes": 3384
+      "sha256": "61ea3178e4121cc7c11be43e22de16d7a8c5e61bf7836592fd3b549fe8b9b0ee",
+      "bytes": 4163
     },
     {
       "path": "执行领域/03-流程与数据/01-Execution-Record-持久化-幂等-状态.md",
-      "sha256": "5cada7c83be4727f0af78a69b8c5cd92f0f2c51c3d24e6fcdb7d77ca276b6394",
-      "bytes": 5061
+      "sha256": "b03cb3e94feaaa554defd65a82cfc0816c53081b17e427b4e03bc8aeb6d3f0be",
+      "bytes": 5555
     },
     {
       "path": "执行领域/03-流程与数据/02-Policy-FAST-REASON-Human-Effect-Approval.md",
-      "sha256": "a41b1dfaf24c90489e81f2eb828ebab4f5e359ef7641b475294b5bcbe72bf494",
-      "bytes": 3197
+      "sha256": "507d9f32a43613c37d3b89cac861b688b4a555d126419cbf6eb7d88fb1c620dc",
+      "bytes": 4352
     },
     {
       "path": "执行领域/03-流程与数据/03-Result-Evidence-UNKNOWN与恢复.md",
-      "sha256": "5093d4d7f5c7272a41294d527f76fedcd1e9df8aaaa19278440669c7c29496b5",
-      "bytes": 3644
+      "sha256": "d11c1bbf644f9e94834bec7dd427460f7d616d3f699595508d6acce7c445e043",
+      "bytes": 4603
     },
     {
       "path": "执行领域/03-流程与数据/04-Side-Panel-System-Observer-日志可观测性.md",
-      "sha256": "2e4a7c88defab5df75b71391f6fff1dfb0c4c1409daeea83e7244a307d726ce6",
-      "bytes": 4075
+      "sha256": "93301b465fd4eca9ad435ab303ca75cdcfef6713e5786a0752086a587c4c72e5",
+      "bytes": 7770
     },
     {
       "path": "执行领域/04-模块/00-总体架构-包-服务-运行拓扑.md",
-      "sha256": "e448b3269872574a675c02a183411508ffdc9054859659a112e2d6a9ec46be57",
-      "bytes": 4203
+      "sha256": "0fa4fa6d68a3f95815ccdeca9a74ea8af5957bad5ec9c3f1a3d13d02960385aa",
+      "bytes": 4511
     },
     {
       "path": "执行领域/04-模块/README.md",
-      "sha256": "e38896f4f8b9c197490eb56d6a2c7dae14ba389d0fafba6603174d79ea8140da",
-      "bytes": 1633
+      "sha256": "ef27ce6949d7c65064b59b909361019ce9cecc52604db26a530708102f3e2664",
+      "bytes": 2274
     },
     {
       "path": "执行领域/04-模块/execution-browser-extension/README.md",
-      "sha256": "d1e6dd48ff38c8f67d85af9e0590eac09d9659160c31d1a1524c75eef3e06b00",
-      "bytes": 1921
+      "sha256": "b09108e4e7f0f1e64b22a50792846696a3362bf7ff4bb90576cb3a1d62b6c7b9",
+      "bytes": 1023
     },
     {
       "path": "执行领域/04-模块/execution-browser-extension/RUNTIME.md",
-      "sha256": "1c661591f1fb34950dc09114e1efad25b7a79bdd732bdfbba5d3c324b8cd87e3",
-      "bytes": 1116
+      "sha256": "36fd30ac1335f62916d6c15343a2d6065c56ecba4b3203b91296f15ab4e87cbd",
+      "bytes": 1994
     },
     {
       "path": "执行领域/04-模块/execution-browser-extension/TECHNICAL-DESIGN.md",
-      "sha256": "fa24e2e47514a05d2f9fee529f9b9c7cf122fdef41ca88e44502e5dffffd9a9d",
-      "bytes": 10510
+      "sha256": "b5ecb1a543805985b33cf4a5a3b392b139db34a3867b4ccfcd3ad0d777a29204",
+      "bytes": 10582
     },
     {
       "path": "执行领域/04-模块/execution-browser-extension/TODO.md",
-      "sha256": "9ad8466cca9c088af6906b6960223ffbb4c5f8999708bc452dbd266fca18b6b8",
-      "bytes": 7098
+      "sha256": "6db76cf1671ddcd4170b428b918fa394efa75a3699ba507d14a58adfdea5228a",
+      "bytes": 8282
     },
     {
       "path": "执行领域/04-模块/execution-contracts/README.md",
-      "sha256": "f0cfa650de9113bea10b6264c52b571daa69c873454e0638ce3013f4eee199fe",
-      "bytes": 1678
+      "sha256": "472eea4ca3304c955d2bf852a7e9d589ef6c601ca76997a9eba6402b4e0798a1",
+      "bytes": 2103
     },
     {
       "path": "执行领域/04-模块/execution-contracts/TECHNICAL-DESIGN.md",
-      "sha256": "23905547360b9ee9011d155dfec675f76547742f6a07641d56af8974b6f37b1d",
-      "bytes": 1148
+      "sha256": "7bcc812dd523ede59d0273ac5d7a04f983e8f8f148e8ea18fad4a60ebb1eb2a9",
+      "bytes": 1618
     },
     {
       "path": "执行领域/04-模块/execution-contracts/TODO.md",
@@ -421,38 +431,38 @@
     },
     {
       "path": "执行领域/04-模块/execution-local/README.md",
-      "sha256": "60ac308dbf563831dcb1cdbe6786464c503c8194bed4b77733f1c69c86ee8c5d",
-      "bytes": 1688
+      "sha256": "f45d368f546ad90461c9fee4a20f5dc97e28bb8a96b6a6acc4d25e61b7e8af2b",
+      "bytes": 2195
     },
     {
       "path": "执行领域/04-模块/execution-local/TECHNICAL-DESIGN.md",
-      "sha256": "990e6359be6f18de452ed58de02b6fa6fa0b17a7268c491c3e886f3e7ccac991",
-      "bytes": 7401
+      "sha256": "f8e152ab9ae5cfaff0228cf0c11308e37bc1b0d9f935f75b36b9f2ebcbd3ca3b",
+      "bytes": 8249
     },
     {
       "path": "执行领域/04-模块/execution-local/TODO.md",
-      "sha256": "7d5502e09fd197d90ba8aa46da8025e2c6404bccdd651bb4a97483108feb79c2",
-      "bytes": 5845
+      "sha256": "b8868d41578f4a1743ed50fb2324a0290ec5c90c7a08f6dc179803c2ca9f627e",
+      "bytes": 6696
     },
     {
       "path": "执行领域/04-模块/execution-runtime/README.md",
-      "sha256": "e52d24a3867e21488a507fa8161a51226b7c45c24ecb5fb1214eaf0f58c5157d",
-      "bytes": 1909
+      "sha256": "19421b6c837e0db1a776a2bda2914bc8229ca8a2910be6afa413f2b74c604358",
+      "bytes": 2626
     },
     {
       "path": "执行领域/04-模块/execution-runtime/SERVICE-RUNTIME.md",
-      "sha256": "cad8d3a8796d0419363b88c83b0c20f5f06e48ecab310413ca9fa24a874b130b",
-      "bytes": 1393
+      "sha256": "6bef72283d2ea5da040fa7fa459c09372464b3fa13585f828b1507d510063b90",
+      "bytes": 1517
     },
     {
       "path": "执行领域/04-模块/execution-runtime/TECHNICAL-DESIGN.md",
-      "sha256": "73e1e35dbc05b130f0e0860a38c340969ae3a4cf08ab5e53cb9ce045bec50a14",
-      "bytes": 5317
+      "sha256": "f51004e4158a55c70faf9bfd1e60103999827b5aaeba33e5365c93166fcdb6e9",
+      "bytes": 5324
     },
     {
       "path": "执行领域/04-模块/execution-runtime/TODO.md",
-      "sha256": "a291f70de843ca3c89d72f90990713b76c7c1b846fb20ef473a8e5f5d3f7f41d",
-      "bytes": 7143
+      "sha256": "ac8850707185e00cdd2d5c2438838f886bec0d27e8db74f00433ac4375506fe3",
+      "bytes": 8100
     },
     {
       "path": "执行领域/05-质量与部署/01-TypeScript-Node24-工程约束.md",
@@ -461,18 +471,18 @@
     },
     {
       "path": "执行领域/05-质量与部署/02-测试验收-E2E-故障注入.md",
-      "sha256": "76b157b30d3da2751504e472b1026c83ecb694dd5fc6bafba965430e02282fde",
-      "bytes": 4916
+      "sha256": "0c66bdcc9dd0fe13f9d0aa867daaab6db805c55bacdcd971ca8d01a72e1bdf6d",
+      "bytes": 4317
     },
     {
       "path": "执行领域/05-质量与部署/03-新仓库实现顺序与停止门.md",
-      "sha256": "0f320933528af117768c5a7c88efc7458003d5f7b9aa64e96c827f245007685d",
-      "bytes": 3285
+      "sha256": "7cffd71df8580cb1d1789c5e554ed62b496a9fc520c92715ed592b1a61972c83",
+      "bytes": 3237
     },
     {
       "path": "执行领域/06-状态与实施/KNOWN-LIMITATIONS-AND-SPIKES.md",
-      "sha256": "795276777e9870db369f57f55b912331f9376c374837f08198d578f073091a33",
-      "bytes": 1398
+      "sha256": "2998ea33a785790c045068c5c1e87e3eda2390e63e844e143d90f3a55b5d05eb",
+      "bytes": 1647
     },
     {
       "path": "执行领域/06-状态与实施/TODO.md",
@@ -481,8 +491,8 @@
     },
     {
       "path": "执行领域/07-测试计划/00-领域测试总计划.md",
-      "sha256": "ec938b74c228086058ee5c6432742617b7a4115e36af00eda2f5b97b72119221",
-      "bytes": 2539
+      "sha256": "ad427ec4c60bd1f85174db183cb5720b8f744d20576315ccd526a67170bd94fa",
+      "bytes": 2905
     },
     {
       "path": "执行领域/07-测试计划/README.md",
@@ -491,88 +501,88 @@
     },
     {
       "path": "执行领域/07-测试计划/modules/execution-browser-extension.md",
-      "sha256": "ea38f56cd099a166528700681eacbd09c304586c935303f2afad3f99cb1ae7a2",
-      "bytes": 15416
+      "sha256": "7964907dfb9868d4ccbe25d84110aaf2b0aaff4f20384738d4422fd78c48f7fc",
+      "bytes": 4263
     },
     {
       "path": "执行领域/07-测试计划/modules/execution-contracts.md",
-      "sha256": "4b18ec2ea4127b0fd4d6e425653320ae513b505a3172022883a3219dee1e640e",
-      "bytes": 11272
+      "sha256": "d7f7732373c22fa21ce51a4a646dfebffbc70f6dfef35440dbb6530b32cb81de",
+      "bytes": 11963
     },
     {
       "path": "执行领域/07-测试计划/modules/execution-local.md",
-      "sha256": "dc29f40eccc700f7f3e7919d14b07d592fb1a1ccde5e53fafa3debd2462f806c",
-      "bytes": 13596
+      "sha256": "c579e7c164cc1b60555ffdba51c553d97aea0ed4cf9cbaa7364b6aa1c3315f36",
+      "bytes": 14410
     },
     {
       "path": "执行领域/07-测试计划/modules/execution-runtime.md",
-      "sha256": "b16aef7217bfa18103a1da7690a084974c6c24c8f295de973a91ea1438e47a46",
-      "bytes": 15409
+      "sha256": "a00fc0f130c4f313046b1fc2d09e1ee4b261ea5e94a1a02fefe5ddaa20a7a0bf",
+      "bytes": 16545
     },
     {
       "path": "执行领域/README.md",
-      "sha256": "7382623d80b889deaf887fd8793dbff4954ef688a314e2ec0f97125d2ec1a2e0",
-      "bytes": 1694
+      "sha256": "4ee7049f4083db17a1c3a124c77d30d1a756d8f5abbc94c7d57ce92f93aafebc",
+      "bytes": 2093
     },
     {
       "path": "智能体运行与协作领域/01-领域/01-领域宪章与Bounded-Context-Map.md",
-      "sha256": "388bc9dc1111dc8d66303399b6f7405d73893ed03c661c6338452bf562bd94f9",
-      "bytes": 2853
+      "sha256": "e0767a01d3de782b91e07354fb4e871e732821bf7901054957ad764188e99cd2",
+      "bytes": 3624
     },
     {
       "path": "智能体运行与协作领域/01-领域/02-统一语言与领域模型.md",
-      "sha256": "6ee983397d9f6dcdc93586afe4841e133961c6dfeb2ba83bdf93c66272405142",
-      "bytes": 9772
+      "sha256": "e6cfe4229ca0dd6862e6ac5eafe5c35995a3c9d7ad9a9112895cb3e950af28c2",
+      "bytes": 11145
     },
     {
       "path": "智能体运行与协作领域/01-领域/03-当前设计原则与非目标.md",
-      "sha256": "00b37d36b013bab9bce7f0a8c8cf7ccc465c92ad2e063465afa7bc37b1d509d8",
-      "bytes": 5412
+      "sha256": "10be641b4f092ebe6a042213fcec962d4c145a210e49981bdd63bd861fa107e8",
+      "bytes": 6468
     },
     {
       "path": "智能体运行与协作领域/01-领域/contexts/agent-runtime-collaboration/README.md",
-      "sha256": "d860554045bdb7e465d3aa657952caac572cacd3e6b415c9c2763d8a58243024",
-      "bytes": 2699
+      "sha256": "7a7816fdebc8bd55968c7c18647e47ec09637b505947274fb2ac2a9f76318bc1",
+      "bytes": 3153
     },
     {
       "path": "智能体运行与协作领域/02-契约/01-Public-API与跨领域接口矩阵.md",
-      "sha256": "58dbb553aaab333c0996232c980887ab335e49f9ecc6202cded8dece6c37ae73",
-      "bytes": 6995
+      "sha256": "457710442fe10dad16192411b1f84d9be040fe00f7509ddc15d1a6ee29a080eb",
+      "bytes": 8122
     },
     {
       "path": "智能体运行与协作领域/02-契约/02-Custom-GPT-官方能力与v1约束.md",
-      "sha256": "68f0d3b51010fa9ec2b22c1b6c86ee667fc0a8895268c9097e1e1613f28b0ace",
-      "bytes": 12299
+      "sha256": "df6c153cedf346b914d59891aa1ff43ea8fdf5e2ef81abf7875b6cf84ce91701",
+      "bytes": 13620
     },
     {
       "path": "智能体运行与协作领域/02-契约/03-角色Action静态权限矩阵.md",
-      "sha256": "705ffb1cb557a0bb8b580b92bfd091687a12f8b81d1733fea103346a2f9d78a0",
-      "bytes": 5776
+      "sha256": "a617fb1265e38eb6037909bac924d77dd994652c42baeff4eb57791e749dc4af",
+      "bytes": 5323
     },
     {
       "path": "智能体运行与协作领域/02-契约/04-API-依赖-模块清单.md",
-      "sha256": "40336931ebe4ef4294a4f4587b047490d753536109bc6406709e0b33f252feaa",
-      "bytes": 4352
+      "sha256": "f63893d07cc1f7d6526c377df608b6cbcd7324b672b43209bfe52a46c167d786",
+      "bytes": 5104
     },
     {
       "path": "智能体运行与协作领域/03-流程与数据/01-Role-Registry与认证.md",
-      "sha256": "661d1597689c7d5d4ea04469320ee1492d5db4fbe38a8ad197875cc60a449155",
-      "bytes": 7808
+      "sha256": "430f61f600d340220899c8cd1770a2b3c62710ac0ba5ed915923eac99b6e3fce",
+      "bytes": 8598
     },
     {
       "path": "智能体运行与协作领域/03-流程与数据/02-Task与Browser-Extension驱动协议.md",
-      "sha256": "78db6e5b8c5616dd67555806014a130e1258d62403a02449e1968b44721d1903",
-      "bytes": 9129
+      "sha256": "ff46ce4644ca3f0110e791ce7bfb2704d81749055613f775e0dee3fbef7584ec",
+      "bytes": 6156
     },
     {
       "path": "智能体运行与协作领域/03-流程与数据/03-Collaboration-Message-Center.md",
-      "sha256": "6b095e5c4467af10652d6cae5eb9100c29424636026a0ad49a7970a711be873e",
-      "bytes": 6751
+      "sha256": "aeceaffc829df03efb3edb5c02e4d652e9269b66c70ecbaa4c8fb94e4d6e2a2f",
+      "bytes": 7962
     },
     {
       "path": "智能体运行与协作领域/03-流程与数据/04-Browser注入与Worker唤醒消息协议.md",
-      "sha256": "453613993ebb7834bb401c7499207d3a124fad66091725f6136e91c95ca6b219",
-      "bytes": 12050
+      "sha256": "8c1bf94087ad3678b3019595bf0e403ef815808034f82bf85bf49ae23ab6876a",
+      "bytes": 5023
     },
     {
       "path": "智能体运行与协作领域/03-流程与数据/05-事务并发幂等与SQLite-DDL.md",
@@ -581,128 +591,133 @@
     },
     {
       "path": "智能体运行与协作领域/03-流程与数据/06-产品前置工作流与Carrier身份.md",
-      "sha256": "dae4161b037fcea081be195941ab30cbf8ec24bbb52fc63857625b525c133f14",
-      "bytes": 5756
+      "sha256": "c5ff0fa53225b0ecd6f936798d8234f35bf32bde882204cd50262b1b73028b32",
+      "bytes": 4040
+    },
+    {
+      "path": "智能体运行与协作领域/03-流程与数据/07-Worker-Turn与GPT原生能力使用边界.md",
+      "sha256": "858da1a3967ad2844ca4010342361487af552c5a104c69b8bf24725b154dd7b2",
+      "bytes": 2652
     },
     {
       "path": "智能体运行与协作领域/04-模块/00-Agent-Package与Custom-GPT-Carrier规范.md",
-      "sha256": "431cbe3d899602c08f076f4d4223f415c61b54a2430d6cab31bb5d696b62538d",
-      "bytes": 11289
+      "sha256": "47c0869b529f14d42946f67c02412b7fb705cf70739f7c89708ebe83a23d15f3",
+      "bytes": 13631
     },
     {
       "path": "智能体运行与协作领域/04-模块/01-数据存储目录与包模块设计.md",
-      "sha256": "7d2efd9efa22a56797e8352cf810b44ffc8fb376d33dd1cc68b863d536c28966",
-      "bytes": 5283
+      "sha256": "98565ef9a11a0d91db80d47b07dae5dec3abc711a36002db904c089144472722",
+      "bytes": 5563
     },
     {
       "path": "智能体运行与协作领域/04-模块/02-独立包生命周期与部署单元.md",
-      "sha256": "a7404cd8039e34b99674b56012292c18662ac9cad3c87f5d2f4a13333d0ed73f",
-      "bytes": 3228
+      "sha256": "a1d32e9d110b510d81f29dfa8f4b8d3a5ade0428eaeda906866596f57a7c275f",
+      "bytes": 3502
     },
     {
       "path": "智能体运行与协作领域/04-模块/README.md",
-      "sha256": "028280f6a53ecb0ac72039d3c834d7d9236e2f7814f84457d4436b1514d5d0fb",
-      "bytes": 1779
+      "sha256": "8fb89092039e76830b93e0874bcad437d837a4a141139a9b2f9204f034dbf911",
+      "bytes": 2213
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-controller-dev/README.md",
-      "sha256": "52d775b8ff4e1d9df2d161e4bbc9af9f951dae970b8848e008083382123ba03b",
-      "bytes": 1865
+      "sha256": "d6fe5cba2aa1659fa95db1dce91314969ef5b2ace5db30e308d65de4dfa88b54",
+      "bytes": 2353
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-controller-dev/TECHNICAL-DESIGN.md",
-      "sha256": "3051cb201516a21850c8011c3d1738766218da430d0e53d9a4399eb44bf6826b",
-      "bytes": 1273
+      "sha256": "5f3c2ffd4d59a898428125328c189c9983435e9941c39ca5c025db599ea2085a",
+      "bytes": 1857
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-controller-dev/TODO.md",
-      "sha256": "ed81fb440595ac57c7fc476871d647332e94730f2ddc17dd960355c5e1983587",
-      "bytes": 4604
+      "sha256": "814f6979f019600246d6f16e044727817444e2dc3abc696466197d66dd9d969c",
+      "bytes": 5317
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-gateway/README.md",
-      "sha256": "cac9da809bf2ed515da5997c3b6c6c306d5563b9a3408271ab6018e422438518",
-      "bytes": 1867
+      "sha256": "c4ad9833165234811295bb7dcb660495805fdf62ef281dfa7404e70ac9238eaf",
+      "bytes": 2326
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-gateway/SERVICE-RUNTIME.md",
-      "sha256": "9862af19641e708ae2a94dcf623d995a67db8f1c2cc7668d35a278f7ddf93fce",
-      "bytes": 1524
+      "sha256": "ca80319e6e164e3a1ea0c8e851501e28f564ca23139f335819319a8a70838638",
+      "bytes": 1948
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-gateway/TECHNICAL-DESIGN.md",
-      "sha256": "bbbb95ffd3b140da6b7cba26f129792816546f5148277b972b55437785ba935a",
-      "bytes": 14604
+      "sha256": "1419223dae24b872e2630e42bb527f9be476b72db8e9e052f9411601ba58a968",
+      "bytes": 14824
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-gateway/TODO.md",
-      "sha256": "1c747f9939b54c4113a13803489d13bb8d0270e5723bb5fa90d25b294692cbb7",
-      "bytes": 7026
+      "sha256": "9541b1df448b5d1ac04aaf9e8f41aa7e4cc30f544712b4f9f11c54e45af36e7a",
+      "bytes": 7701
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-product/README.md",
-      "sha256": "69dc2c0a520978d238222454f175b4272264db0ab9e5c85a8bdcc341d56030bf",
-      "bytes": 1836
+      "sha256": "5005b56bf8b9c70edd65c70536869edcae8032b3a670d82ad83f1b92be9c1f00",
+      "bytes": 2654
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-product/TECHNICAL-DESIGN.md",
-      "sha256": "ae5322bdddf0ada9b1690640d05b6bda5162835a6743c32bdacea9457141ddb6",
-      "bytes": 1297
+      "sha256": "8e63d32b53ebbd2b34f0decb377172977f64864467756b83d65ec78e640db2a2",
+      "bytes": 2931
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-product/TODO.md",
-      "sha256": "c5d1ef3247e20d0294319fa5b6ebbe2f25cb8740ae0a3a918aabd74b0ae9589a",
-      "bytes": 4459
+      "sha256": "2725af1bbbac8125c44f650b9414303f248a8caaf0800fe47204b22b06f480a5",
+      "bytes": 2368
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-runtime/README.md",
-      "sha256": "0f1191dfe6395f1ffe26fc25ab5070beac11dba60c59f3db19a3641b23d8bf02",
-      "bytes": 1993
+      "sha256": "222a7c6bb608b52210a7092c891d3878d16cf67be77a992e6e2917d43c1e50ab",
+      "bytes": 2451
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-runtime/TECHNICAL-DESIGN.md",
-      "sha256": "65ea42ef956b5c7291badffed8a36af126d98829b13d13a76f59dcba64c56961",
-      "bytes": 1456
+      "sha256": "5ff9bb5e91ecf98fe5c724744f71c47d5e187ec6d569166f2f7f326165720a07",
+      "bytes": 2025
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-runtime/TODO.md",
-      "sha256": "daac00165d86dd390d849e129f36cfe3139c90304f42f5dc4b9d7366ec283063",
-      "bytes": 6586
+      "sha256": "62640471b1a05bb0c90283c8937ab6f9cce09e1e7c4cea7c0dbe31da5ac7f64d",
+      "bytes": 7309
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-test-ops/README.md",
-      "sha256": "25847cc572a7fa165c76b981dae02e4abdf874411df3d2bb4f03410541f7ba44",
-      "bytes": 1823
+      "sha256": "028870a6c98f518df559ff3767b1a504eefe5873d6d489a8cfd825e63f55501d",
+      "bytes": 2244
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-test-ops/TECHNICAL-DESIGN.md",
-      "sha256": "e94566f3fb862f57f8b531f00ac3c3862a139726efe07a2215e6844c8ee6522f",
-      "bytes": 1243
+      "sha256": "f6e078ae834381838ebaf2b5796d56949c37ee4aa41a771645a10a1bf2346669",
+      "bytes": 1727
     },
     {
       "path": "智能体运行与协作领域/04-模块/agent-test-ops/TODO.md",
-      "sha256": "6bcd6b0189c23f351be9d0fc31d571dd7ab9532c61ceff69e9fc0f597e43f404",
-      "bytes": 4470
+      "sha256": "14aec5f52e5946f9e796be1189941acb57ef6f3432b006c0f9d74b66ced9c4be",
+      "bytes": 5106
     },
     {
       "path": "智能体运行与协作领域/05-质量与部署/01-失败恢复版本安全与验收.md",
-      "sha256": "e3cbbe319ab93f3ac6e1d5125d29484102b17df8bc2ba89114d326bc2be9d867",
-      "bytes": 12119
+      "sha256": "a11765cc3eb909eaf81e1fca0ad5e56b3811776220c825663787d28343f8351b",
+      "bytes": 13947
     },
     {
       "path": "智能体运行与协作领域/05-质量与部署/02-跨领域一致性验收清单.md",
-      "sha256": "d163f766c075fd4571738b24a32b7d8ac4551adc81f0693641ee449e82f03958",
-      "bytes": 6209
+      "sha256": "2b01cef89c43ee317fcc9bc4d1ed84744312189d8b4a1d0e716899f136c1ced9",
+      "bytes": 5353
     },
     {
       "path": "智能体运行与协作领域/05-质量与部署/03-实施顺序与落库门禁.md",
-      "sha256": "f90b8b5aa808043018510334585fa8a14631ddd83415a33b21ea1bd76d2fca4e",
-      "bytes": 4854
+      "sha256": "0273f97c7c6d13644ad2c3f93bc1ac78e7edd6f3aaf96daa95e32af2479de84e",
+      "bytes": 4474
     },
     {
       "path": "智能体运行与协作领域/06-状态与实施/KNOWN-LIMITATIONS-AND-SPIKES.md",
-      "sha256": "3d6d67b63bc489237359d30163c24093839fee74edf9b814f8faab8f85de2578",
-      "bytes": 2512
+      "sha256": "686d29d29dd76ca3ca464e20fae06b04d521b946a08e673fcbfb923f15bae9db",
+      "bytes": 3030
     },
     {
       "path": "智能体运行与协作领域/06-状态与实施/TODO.md",
@@ -711,8 +726,8 @@
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/00-领域测试总计划.md",
-      "sha256": "3ea0bd79daa7811961453e5a713ee8930a2b8d597d17759b22f53907db421368",
-      "bytes": 2857
+      "sha256": "49160a1528068b7d6fcb9357587d0276175a829f54114aabc585a2a39a9c3408",
+      "bytes": 3247
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/README.md",
@@ -721,68 +736,68 @@
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md",
-      "sha256": "9b806d474115516d10deffc8b597af06d1565ba8e5052f6d6431b3b40a7d5252",
-      "bytes": 11780
+      "sha256": "8e01f0c30ecc471b981a904bdb888bf4a2483ec32af387c02ae87b1eea15b476",
+      "bytes": 12516
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-gateway.md",
-      "sha256": "0b428870239acb6864cf7d38eea45e31d989cc82ab5419098aeb9fa7924c2af4",
-      "bytes": 17763
+      "sha256": "4d383eb4d117bd39f8c3825df56bb010bc2165d943605fc60c95213210c9c48b",
+      "bytes": 18489
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-product.md",
-      "sha256": "6d4fe78db3433eff7296891718c8a30b552470957af8a80b583b8c129c20d2c0",
-      "bytes": 12267
+      "sha256": "bce12e4912763ec067cfe5cb9fb36ec21cb5f809e4f386b2b5bb8cacd177b74c",
+      "bytes": 3121
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-runtime.md",
-      "sha256": "ffaf44f7c5c91fd330aa0bb08f706095baf8b428242295a26bf1264c77224518",
-      "bytes": 13852
+      "sha256": "1e6a66030ce0a446b91d4462c98921df7cd19d8a3721ea3c7d6500de570e16b9",
+      "bytes": 14591
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-test-ops.md",
-      "sha256": "96d4c96f54585e2da5d3c57712346c2963da3e801a635fd52dabad79c189505b",
-      "bytes": 11595
+      "sha256": "dd17e6c18f79f20fa52e90bffa67580bc11d393412d1fd36ccf6098b77db912a",
+      "bytes": 12147
     },
     {
       "path": "智能体运行与协作领域/README.md",
-      "sha256": "63b0815d32ecbbe65ea325bed5760fa219a790da418e98257752c58f1878e1e3",
-      "bytes": 1784
+      "sha256": "5702751316cfaa42202b46f5a5629243a06c39a069279996c1e38a1fecc6c361",
+      "bytes": 2164
     },
     {
       "path": "模型与推理领域/01-领域/01-领域宪章与Bounded-Context-Map.md",
-      "sha256": "336bb84b6e61484025e156f8d58dcf3de218a1f4fa89148f9bda42365fb53362",
-      "bytes": 2207
+      "sha256": "bd85598c084c7b86d23a7e37cd55d4f5126c0f61e2cc2ed1eb126f93adc9ae9f",
+      "bytes": 2644
     },
     {
       "path": "模型与推理领域/01-领域/02-领域职责边界与非目标.md",
-      "sha256": "f323379bb6950b60fda48b1e62e19fdb432f16391b183b5eb1b8c1e0756069ca",
-      "bytes": 3750
+      "sha256": "673d82486ef0307869d280fadb1e98c53a18e14efcdea37f8e015b1cb5248c64",
+      "bytes": 4703
     },
     {
       "path": "模型与推理领域/01-领域/03-当前设计原则与不变量.md",
-      "sha256": "8925935158a42d088cbe713dbd1ddc83cc33ccb5a36bdb1f3f31392237405a9c",
-      "bytes": 3344
+      "sha256": "4a889c3f864c8f02b01c335503eb1ff6e940a945ed92f15ad3ef780ee9634a54",
+      "bytes": 4129
     },
     {
       "path": "模型与推理领域/01-领域/contexts/model-reasoning/README.md",
-      "sha256": "ffa46b9bb066be7e7eed23012f2347749e2adbd2cdb53939085212506985e7b7",
-      "bytes": 2505
+      "sha256": "5ad9f7d385766bc0513e3198fdde8d96a97fb1ed6595fbac6dff86f328a4bc5f",
+      "bytes": 3081
     },
     {
       "path": "模型与推理领域/02-契约/01-Public-Contract与TypeScript类型规范.md",
-      "sha256": "c39ceeab74e41cb4f8bd1ecd761b5ed2e80c28f791a15798a3fa4504d7edf448",
-      "bytes": 3818
+      "sha256": "c92f43d7c4c9d8f1cf6524a6c56cf5c1d56fefcccec46e1daca17763c04f97d0",
+      "bytes": 4384
     },
     {
       "path": "模型与推理领域/02-契约/02-跨领域接口依赖矩阵.md",
-      "sha256": "2566469c707d4c0f97a46471325f90d0106a7872675b12af5b4ad975592db5b0",
-      "bytes": 2545
+      "sha256": "0a70a7d2a3432b1dbc0c0b52c82acc1a07f96bd66c7c5f911540de7995ea1578",
+      "bytes": 3020
     },
     {
       "path": "模型与推理领域/03-流程与数据/01-Reasoning-Spec与Small-Model-First规范.md",
-      "sha256": "b80fa7d930c13c3c651ccf085dec02a8da99b1379d73946833e802c82185fc01",
-      "bytes": 3089
+      "sha256": "768c8815da076ac5baac8fc4bbe2e1b69072391fc60dbd1dc1ec2a5c2baa7df4",
+      "bytes": 3763
     },
     {
       "path": "模型与推理领域/03-流程与数据/02-Model-Capability-Profile与Provider适配.md",
@@ -806,8 +821,8 @@
     },
     {
       "path": "模型与推理领域/03-流程与数据/06-Runtime-Health与推理可观测性.md",
-      "sha256": "b36483ce53aad58d05bfccf3284efe4c92d406df6580f6e4e381f3b2ff3f25aa",
-      "bytes": 2159
+      "sha256": "14bd82cd77a0a1babb4e25a7e0f0af606d7dda8cd0a826a21a18e2185bf794d3",
+      "bytes": 2747
     },
     {
       "path": "模型与推理领域/03-流程与数据/07-错误语义与失败恢复.md",
@@ -815,34 +830,39 @@
       "bytes": 2103
     },
     {
+      "path": "模型与推理领域/03-流程与数据/08-Task-Diagnostic与System-Assessment推理规范.md",
+      "sha256": "ee0e8066d779a1bdd55aa94306668dcca4a685e0faa64e30d7e11fbd3a8cbb32",
+      "bytes": 5359
+    },
+    {
       "path": "模型与推理领域/04-模块/00-总体架构-包-服务-运行拓扑.md",
-      "sha256": "f82ead6c693b4478464afed63afaeb8f2aeb1edf6aa5c9619f5ad5695648041e",
-      "bytes": 2546
+      "sha256": "4361e90c6d11585e288fbc49749df4529a5fc9f89e2d4e3700a4ae57450bffd7",
+      "bytes": 2629
     },
     {
       "path": "模型与推理领域/04-模块/README.md",
-      "sha256": "3072216b2d3e3e47c471c40c0818b4c41b06d5844eabc90190ea948db47509af",
-      "bytes": 1298
+      "sha256": "7a2f51e3bb8d64962f57597db6b70d38d354d08b3ed20caf7e9054ad3be93a1d",
+      "bytes": 1763
     },
     {
       "path": "模型与推理领域/04-模块/model-contracts/README.md",
-      "sha256": "9377c923efe960a7bf6984620d2f571cede5704269d0708fba298d0a83dd25fc",
-      "bytes": 1678
+      "sha256": "c3602e2173209dbf6bb11f5dc0bb0c0258287ae979f2358b2b918f5c5cc9e1a5",
+      "bytes": 2068
     },
     {
       "path": "模型与推理领域/04-模块/model-contracts/TECHNICAL-DESIGN.md",
-      "sha256": "683d4ecee1c166fe2da5fcab48754e0c5c5fee253ce8a5019c658e8f736a5cdb",
-      "bytes": 1156
+      "sha256": "f983992ab088f1eaca574cf0fca7fa7e2f26c4bccbb945ed7b199989cf2fd488",
+      "bytes": 1645
     },
     {
       "path": "模型与推理领域/04-模块/model-contracts/TODO.md",
-      "sha256": "e04416b6323e0c215fdea7e116c750a14e24fad9e4d9a600e1711d8635234e01",
-      "bytes": 3650
+      "sha256": "fa7bcb264303c19918118be73d1b03a55b43983fd00794f3680e75cadd43fa8e",
+      "bytes": 4511
     },
     {
       "path": "模型与推理领域/04-模块/model-runtime/INTERNAL-COMPONENTS.md",
-      "sha256": "a6e3a864a0c90968d07cb091a0c4208883512cbba980dfe46b83506330639f96",
-      "bytes": 1074
+      "sha256": "5df4344f9245bcb950667260a17607c8e9ee61139e7f9f7578188786546aeca8",
+      "bytes": 1297
     },
     {
       "path": "模型与推理领域/04-模块/model-runtime/README.md",
@@ -851,18 +871,18 @@
     },
     {
       "path": "模型与推理领域/04-模块/model-runtime/SERVICE-RUNTIME.md",
-      "sha256": "b91ef9b1dcb1b7f08d44fd20b7d7068e79158990de8893c03bd2bb166cc5d037",
-      "bytes": 1231
+      "sha256": "29d13d1b05a19b51783ec0ba172c4837b92c2a1bdebd67f2d9f8e7525efc7661",
+      "bytes": 1501
     },
     {
       "path": "模型与推理领域/04-模块/model-runtime/TECHNICAL-DESIGN.md",
-      "sha256": "4760e7ff55697ec75b3149a98a8286a732b765367d226b4bd3f164e505b435e1",
-      "bytes": 3094
+      "sha256": "50e28fe16017838d5b73d7868a5331cb646b30d17f499c08bed163342227f738",
+      "bytes": 3644
     },
     {
       "path": "模型与推理领域/04-模块/model-runtime/TODO.md",
-      "sha256": "2abf1445785335bd20c08a79dd7df74556ae3ef34d9ddf1bc8c41a0ce359561d",
-      "bytes": 6674
+      "sha256": "a3fad764c3058489595f57f9e16e7da44e93d1a9ac27027457cae3072286f7fd",
+      "bytes": 7598
     },
     {
       "path": "模型与推理领域/05-质量与部署/01-TypeScript-Node24-工程约束.md",
@@ -871,13 +891,13 @@
     },
     {
       "path": "模型与推理领域/05-质量与部署/02-测试验收-M1到M4.md",
-      "sha256": "c7acda535739e6c8e287b671297da38d7ec0e24a8ceb0bc0a95dcb249867b84f",
-      "bytes": 2822
+      "sha256": "7c6bc17c39208f35888d63fe0f6a3bf46663310655049752a8fd07f7153b7c84",
+      "bytes": 5340
     },
     {
       "path": "模型与推理领域/05-质量与部署/03-新仓库实现顺序与停止门.md",
-      "sha256": "135c3d314407ae369183771f9c38f675847d4e3798b5049da99bc11e6b24832a",
-      "bytes": 2499
+      "sha256": "48d707c62a66d177de87ad2c4812ab3a8e34524080509f6236b50c8df49604f9",
+      "bytes": 3463
     },
     {
       "path": "模型与推理领域/06-状态与实施/KNOWN-LIMITATIONS-AND-SPIKES.md",
@@ -891,8 +911,8 @@
     },
     {
       "path": "模型与推理领域/07-测试计划/00-领域测试总计划.md",
-      "sha256": "691326b32e81807ba91f5f405762eafcab58bdf7b01125ba9079b92fa5866e19",
-      "bytes": 2381
+      "sha256": "b28d627b5e561e389ec65135e6d207ed7ad24de4d631df65b159e3e3320b9b76",
+      "bytes": 3287
     },
     {
       "path": "模型与推理领域/07-测试计划/README.md",
@@ -901,18 +921,18 @@
     },
     {
       "path": "模型与推理领域/07-测试计划/modules/model-contracts.md",
-      "sha256": "217165778ccde26db970317e8361b2626e49ca496cbf70f2b21caf4b2a2bba71",
-      "bytes": 11103
+      "sha256": "19c59d59d9fe3fc2beba0406db71c2edca5b10e066b640f7685c69327197c9d5",
+      "bytes": 12216
     },
     {
       "path": "模型与推理领域/07-测试计划/modules/model-runtime.md",
-      "sha256": "f726ebc1a4a11ea3bb3676431741c9f90e54268d675bf43f0a34a4b1ff9ed66b",
-      "bytes": 14894
+      "sha256": "34a09dd1c45ae30ac4ae4821125fd5a54667c44bed0e54e5c39f03613bf7342e",
+      "bytes": 17295
     },
     {
       "path": "模型与推理领域/README.md",
-      "sha256": "435d557d6c704335271084f011b2864e6e2fe70bb70a276a63f2e194d58fd0d9",
-      "bytes": 1569
+      "sha256": "ee2d82e32cc0f6f013da421927cae62459a75f2a3174c031f93c3190a40be8e0",
+      "bytes": 2270
     },
     {
       "path": "部署领域/01-领域/01-领域宪章与Bounded-Context-Map.md",
@@ -926,8 +946,8 @@
     },
     {
       "path": "部署领域/01-领域/03-当前设计原则与不变量.md",
-      "sha256": "620962178377f2bcbe929bca47c7cb7b9cf72016784e7c22bdef76e806bf2877",
-      "bytes": 3034
+      "sha256": "37ecae477672381dba271f7886e443b7949c40570b6c4faed30fa8001fae1472",
+      "bytes": 3875
     },
     {
       "path": "部署领域/01-领域/contexts/deployment-governance/README.md",
@@ -941,8 +961,8 @@
     },
     {
       "path": "部署领域/03-流程与数据/01-Deployment-Plan-Apply-ACTION_REQUIRED与恢复.md",
-      "sha256": "7072bd2c0b61661d4acf54c2a1e601b90f8283548c617da4954d9e07d6c25a6d",
-      "bytes": 3523
+      "sha256": "60786fb43eafa61f839dc526bc6814db836fdb755e8908c3c76a6c60fd2759b0",
+      "bytes": 3778
     },
     {
       "path": "部署领域/03-流程与数据/02-版本-升级-兼容性-模板迁移.md",
@@ -951,8 +971,8 @@
     },
     {
       "path": "部署领域/03-流程与数据/03-Verify-Doctor-Manifest与Platform-READY.md",
-      "sha256": "4afc1184b734069f9826ce35a36bb2483a1e4c37579fb6a78e891f2d77a35bbe",
-      "bytes": 3440
+      "sha256": "994ce27bdb66a3112eef8e29a1b5528f712d7238a7bd541adaabbb134e6d7d39",
+      "bytes": 4079
     },
     {
       "path": "部署领域/03-流程与数据/04-部署状态-目录-Secret与安全.md",
@@ -976,8 +996,8 @@
     },
     {
       "path": "部署领域/04-模块/deployment-conformance/TECHNICAL-DESIGN.md",
-      "sha256": "c896e3df494c6de63519f30724b915b565f132c43f5396fd93502befcd93d875",
-      "bytes": 4222
+      "sha256": "948153f5b25a6778e2b6427e87140007130bf0e81ec9a6ad692847764b5d8763",
+      "bytes": 4804
     },
     {
       "path": "部署领域/04-模块/deployment-conformance/TODO.md",
@@ -1056,13 +1076,13 @@
     },
     {
       "path": "部署领域/05-质量与部署/02-测试门禁与真实验收.md",
-      "sha256": "f996e0dda15b35541cdfa64b11262d76b642509780804d20f7184083107a09ef",
-      "bytes": 4479
+      "sha256": "d894f738ea50a67bbdc5416565e32aac5f3a21109dff5de3a60f9a46a578f87c",
+      "bytes": 6077
     },
     {
       "path": "部署领域/05-质量与部署/03-新仓库实施顺序-停止门与非目标.md",
-      "sha256": "a51bf246669d281e385442b49ddc58de9604476972ab24e88a70b8716fc3cbad",
-      "bytes": 2061
+      "sha256": "55d7e2e3a20c33f1740344b34e7b36866174aa96cf3a3a191eba3e3d84e39aa6",
+      "bytes": 2811
     },
     {
       "path": "部署领域/06-状态与实施/KNOWN-LIMITATIONS-AND-SPIKES.md",
@@ -1071,13 +1091,13 @@
     },
     {
       "path": "部署领域/06-状态与实施/TODO.md",
-      "sha256": "f37f1f42cd0a3f4d5eb2c2c02c70877e8060647697f083bc26d79702e2c35c33",
-      "bytes": 1187
+      "sha256": "1f581df5145953fa7835a5bb9c4bd56aa5bb33109c4b63dba22520a8304b0647",
+      "bytes": 1966
     },
     {
       "path": "部署领域/07-测试计划/00-领域测试总计划.md",
-      "sha256": "260a3a26282d90067392fe25b3a0affc1d4a4f12e4fe5be222b3e3c4e2999647",
-      "bytes": 2996
+      "sha256": "462714c63699775fb5a3d7b9295c4cc5d2f552c46f9ebc541ee16b79c7ca2c15",
+      "bytes": 3874
     },
     {
       "path": "部署领域/07-测试计划/README.md",
@@ -1086,8 +1106,8 @@
     },
     {
       "path": "部署领域/07-测试计划/modules/deployment-conformance.md",
-      "sha256": "9ae97a6ed3644aa7b6555c3c116362f53e6932e77498960bb48d4aa39ef63da9",
-      "bytes": 11353
+      "sha256": "5e26a451925ba1ccb0ffea8baa6e3ed963c64f8b49a309321b8109c25d992cea",
+      "bytes": 12153
     },
     {
       "path": "部署领域/07-测试计划/modules/module-contract.md",
@@ -1096,8 +1116,8 @@
     },
     {
       "path": "部署领域/07-测试计划/modules/module-skill.md",
-      "sha256": "cd92738ae458e4a055bd89ba2c3bf4c5533a7b07500d6e51a0ca6de7c74a6d1c",
-      "bytes": 10919
+      "sha256": "488c3d29c2e0bdd29150bb5193d0eaa1a1d998feb5b94b5ad4f5db185871f466",
+      "bytes": 11449
     },
     {
       "path": "部署领域/07-测试计划/modules/module-template.md",
@@ -1106,13 +1126,13 @@
     },
     {
       "path": "部署领域/07-测试计划/modules/platform-cli.md",
-      "sha256": "97ac2bd4b4a6b9d09d5fd5d96c2bea4c2f08599f07d13f8ee6c3e6407f256e34",
-      "bytes": 15434
+      "sha256": "78eb9e8743f207742c08b8dd36a514742abd6073ef2954280235e069ba69e277",
+      "bytes": 16062
     },
     {
       "path": "部署领域/README.md",
-      "sha256": "c394e5ad969500e1c05b6a99e92a31efa118a8398b855673d8b71595886e8327",
-      "bytes": 1733
+      "sha256": "640aa322e5a2ac71c7953bca24872d4ac51064145a000159e514a70518648102",
+      "bytes": 2254
     }
   ]
 }

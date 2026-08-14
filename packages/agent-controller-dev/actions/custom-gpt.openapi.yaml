@@ -94,7 +94,7 @@ paths:
       operationId: executeCapability
       summary: Execute one typed Execution capability through the durable owner runtime.
       description: Never use this operation as a generic mutation or to bypass a required platform approval.
-      x-openai-isConsequential: true
+      x-openai-isConsequential: false
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExecuteCapabilityInput'}}}}
       responses: {'200': {description: Durable Execution record}}
   /actions/getExecution:

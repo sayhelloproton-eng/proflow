@@ -128,7 +128,7 @@ Role 创建/删除/凭据管理属于本机 package CLI 管理面，不是 GPT A
 
 # 5. listRegisteredRoles
 
-产品 Worker 创建 Task 前调用。
+该查询服务 **Deployment / Carrier coordination / 管理 UI/CLI / doctor**。2026-08-14 起不再由 Product GPT 在 New Task 主链调用。Extension/platform-host 已知道固定三个 `agentPackageRef`，可通过受控管理/Carrier lookup 解析当前 roleRef。
 
 概念返回：
 
@@ -378,3 +378,19 @@ Browser Extension
 - 一个 Role 一个 Gateway Bearer/API key 的 v1 方向保持；Authentication 与 authorization/policy 分离。
 - Browser Extension 使用独立 local-platform credential，不复用 Role Bearer。
 - raw secret 只由 Deployment 安全材料化；Role Registry 不保存明文 secret，Public DTO/log/evidence/model context 不泄露 secret。
+
+
+---
+
+# 12. 2026-08-14 Identity 对齐
+
+Role Registry 只回答“某个 `agentPackageRef/packageName` 当前部署的是哪个 `roleRef/g-id`”；它不回答某个 Task 里是谁工作。Task-scoped worker identity 统一来自 `TaskRoleBinding(agentPackageRef, roleRef, workerRef, conversationLocator)`。
+
+```text
+agentPackageRef = logical role type
+roleRef          = deployed Custom GPT
+workerRef        = Task Worker Conversation
+credential       = GPT→Gateway secret
+```
+
+Browser 不持有 Role credential；Task/Agent 不持久化 tab/frame。

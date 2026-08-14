@@ -126,3 +126,14 @@ Failure / Recovery 怎么处理？
 ## 当前实施基线
 
 进入实现前必须先读取 [`IMPLEMENTATION-BASELINE.md`](IMPLEMENTATION-BASELINE.md)。
+
+## 9. v1 Task Journey / Carrier / Observer 集成基线
+
+跨五领域理解第一版智能体主链时，必须先读取：
+
+- [`PLATFORM-DOC-01-04`](平台架构与公共约定/01-架构/04-Task-Journey-Carrier与Observer-v1集成基线.md)：J0→J6 与 X1→X7 跨域基线；
+- [`TASK-DOC-03-05`](任务与编排领域/03-流程与数据/05-Task-Observer推进与异常诊断边界.md)：Task Observer；
+- [`AGENT-DOC-03-07`](智能体运行与协作领域/03-流程与数据/07-Worker-Turn与GPT原生能力使用边界.md)：Worker Turn / GPT Native；
+- [`MODEL-DOC-03-08`](模型与推理领域/03-流程与数据/08-Task-Diagnostic与System-Assessment推理规范.md)：Task Diagnostic / System Observer REASON。
+
+这些文档不新增第六领域；它们用于消除 Task/Agent/Execution/Model/Deployment 与 Extension/Gateway/platform-host 之间的重复编排语义。

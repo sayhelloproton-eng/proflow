@@ -36,3 +36,7 @@ process alive、public ingress、credential store、required downstream contract
 
 ## Recovery
 Gateway restart 不重放业务 mutation。请求结果不确定时由 owner idempotency/事实查询决定后续动作；transient relay 可重新生成但不能改变 owner artifact identity。
+
+## Worker Turn / permission behavior
+
+The service keeps no WorkerTurn state and emits no action-completion signal that requires Browser to send “continue”. Routine request-intent operations are designed with explicit `x-openai-isConsequential:false` and target user-selected Always Allow; unexpected ChatGPT permission prompts are Carrier recovery conditions. None of this grants or bypasses Execution effect approval.

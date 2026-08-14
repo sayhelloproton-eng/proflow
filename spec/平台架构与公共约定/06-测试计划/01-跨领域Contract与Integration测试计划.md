@@ -26,31 +26,67 @@ sourceRefs:
 
 ## 1. 目标
 
-证明五领域只通过 Public Contract 协作，Owner 事实不漂移、不 deep import、不读取其他领域 DB，也不把 Runtime collaboration call graph 误当 Deployment/package dependency graph。
+证明五领域只通过 Public Contract协作，Owner truth不漂移；Extension/Gateway/platform-host/Observers 作为 Application/Adapter 不成为第二业务 Owner。
 
 ## 2. 强制 Contract Pairs
 
 | Pair | Provider 证明 | Consumer 证明 | Integration 证明 |
 |---|---|---|---|
-| Task ↔ Agent | TaskRoleBinding/Task/Node facts 与版本语义 | Agent opaque 使用，不复制 binding | Worker provisioning、same-Task reuse、terminal/reopen |
-| Task ↔ Execution | Task 只拥有 progress facts | Execution 只返回 Result/Evidence，不完成 Node | Effect/Evidence 回到 Task owner 后才 formal transition |
-| Execution ↔ Model | Model 返回 structured cognition/proposal | Execution 重新做 policy/approval/effect legality | FAST/REASON/Human 不越过 hard rule |
-| Agent ↔ Execution | Agent 只表达逻辑 delivery/intent | Execution 拥有 Browser physical effect | Collaboration physical delivery + uncertain recovery |
-| Deployment ↔ Modules | Module 声明真实 lifecycle/verify | CLI 只调用支持 primitive | current reality + verify/doctor/manifest |
-| Agent Gateway ↔ Task/Execution | Gateway 只 transport/auth/normalize | Owner 做业务 validation/idempotency | 45s timeout 不等同业务失败/重放 |
+| Task ↔ Agent | Task/Node/TaskRoleBinding/TaskDocument/version | Agent opaque identity 使用 | Extension New Task 三 Worker binding；same Worker reopen |
+| Task ↔ Carrier | Task drive projection / stable binding | Task Observer只读，Carrier只物理 wake | READY→RESTORE/WAKE→Worker startNode；terminal stop-driving |
+| Task ↔ Execution | Task progress facts | Execution只拥有 real Effect/Result/Evidence/Approval | async result ready 后 wake，不自动 Task WAIT |
+| Task ↔ Collaboration | Task只保存 correlation refs | Message Center owning ask/reply/delivery | reply ready→wake source；无自动 Task transition |
+| Agent ↔ Execution | Agent表达 intent/delivery need | Execution拥有 physical Browser/local effect | file materialization、peer delivery、UNKNOWN reconciliation |
+| Agent Gateway ↔ Owners | typed external DTO/auth | Task/Agent/Execution做业务 validation | no custom headers；45s/100k/File Bridge budget；idempotency |
+| Execution ↔ Model | Model structured cognition | Execution重做 Policy/effect legality | Hard Rule > FAST/REASON；model confidence不越权 |
+| Extension System Observer ↔ Model | bounded snapshots由各 Owner提供 | Model只算 assessment | batching/carry-forward/drill-down/global synthesis；无写权 |
+| Deployment ↔ Modules | Module真实 lifecycle/requirements | CLI/adapter按 public primitive工作 | capability/readiness/ACTION_REQUIRED/current reality |
+| platform-host ↔ Domains | Owner contracts稳定 | host只composition/transport | no state mirror/scheduler；restart re-read owner facts |
 
-## 3. Required Scenario Families
+## 3. Identity Contract
 
-- Provider schema 正确、Consumer schema 正确、版本不兼容明确失败。
-- Consumer 不得依赖 provider internal repository/DB/adapter。
-- 同一个事实只有 Owner 持久化真源；其他领域只存 opaque ref 或自身业务 fact。
-- transport failure 与 business failure 分层；重试必须使用 owner 的 idempotency/version 语义。
-- owner/contract/state/effect/approval/recovery 任一变化必须触发受影响跨域回归。
+必须证明：
 
-## 4. Cross-domain STOP
+```text
+agentPackageRef/packageName = logical role
+roleRef = deployed GPT
+credential = GPT→Gateway secret
+workerRef = Task-scoped Conversation identity
+conversationLocator = Carrier restore locator
+tabId = transient only
+```
 
-出现任何以下情况停止接线：需要直接读其他领域 DB；需要复制状态机；需要用 transient browser locator 作为 durable ref；需要让 Gateway/host 保存第二业务真源；需要 consumer 修改 provider-owned state。
+Browser不验证 credential；Task不保存 frame/tab business identity；credential不等于packageName。
 
-## 5. Evidence
+## 4. Worker Turn / Native Capability Contract
 
-Provider/Consumer Contract test report、runtime-schema result、integration trace、Owner state snapshot/ref、必要的 Execution Evidence。只显示 HTTP 200/进程存活不构成 PASS。
+同一 Worker Turn可连续 `0..N` Actions。Contract tests必须拒绝以 Action completion event 驱动 Browser “continue”的隐式协议。
+
+File Bridge transport不拥有 TaskDocument/Artifact/Evidence；Context Pack/Patch是Execution Artifact subtype。
+
+## 5. Observer Contract
+
+Task Observer：只读 current facts、deterministic next-step；异常 REASON只诊断。
+
+System Observer：只读 bounded views，输出 derived assessment；任何 recommendation在执行前仍需Owner/Controller validation。
+
+## 6. Required Failure Families
+
+- provider/consumer schema/version不兼容；
+- consumer deep-import/provider DB读取；
+- duplicate fact ownership；
+- transport failure被误写成business success；
+- Conversation memory/DOM/log替代fresh owner state；
+- model assessment覆盖Owner fact/Policy；
+- pending Execution/Peer被错误映射为Task WAIT；
+- Reopen创建新Worker；
+- Browser UNKNOWN盲重放；
+- System Observer不可用阻断Task主链。
+
+## 7. STOP
+
+任何接线需要 shared DB、复制状态机、persistent tab/frame identity、Gateway/host business persistence、Observer direct mutation、模型绕过Policy，立即 STOP。
+
+## 8. Evidence
+
+Provider/Consumer schema result、integration trace、owner state refs、Task drive projection、Carrier delivery result、Execution Evidence、Collaboration receipt、Model assessment artifact、必要真实Browser/Custom GPT observation。

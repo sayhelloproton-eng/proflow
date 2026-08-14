@@ -225,3 +225,38 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+### EXE-LOCAL-007
+
+```yaml
+id: EXE-LOCAL-007
+status: READY
+implementationReadiness: PLANNED
+priority: PENDING_DECISION
+type: IMPLEMENTATION
+owner:
+  domain: execution
+  boundedContext: execution
+  moduleRef: execution-local
+sourceRefs:
+- EXECUTION-EXECUTION-LOCAL-TECH-DESIGN
+- EXECUTION-DOC-02-01
+- EXECUTION-DOC-03-01
+qualityRefs:
+- EXECUTION-DOC-05-02
+dependencyState: NOT_FROZEN
+dependsOn: []
+goal: 实现 bounded File Bridge materialization、Context Pack Artifact 与 Patch proposal validate/apply mechanics；保持 scope/secret/size/hash/UNKNOWN 边界
+scope:
+  allow:
+  - packages/execution-local/**
+  forbid:
+  - ContextPack/Patch/File 独立业务 Service/Store
+  - 绕过 Execution Policy/Approval 直接 apply GPT output
+  - 其他 Domain 的业务 Store/Repository
+acceptance:
+- ACCEPTANCE_NOT_FROZEN
+verification: []
+evidence: []
+```
+

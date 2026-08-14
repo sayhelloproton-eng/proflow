@@ -1,6 +1,6 @@
 ---
 docId: AGENT-DOC-03-06
-title: 智能体运行与协作领域｜产品前置工作流与 Carrier Identity
+title: 智能体运行与协作领域｜New Task、Product Worker 与 Carrier Identity
 docType: business-flow
 authority: normative
 lifecycle: active
@@ -9,189 +9,185 @@ subdomain: null
 subdomains: []
 provides: []
 requires: []
-contractRefs: []
+contractRefs:
+- PLATFORM-DOC-01-04
+- TASK-DOC-02-01
 ---
 
-# 智能体运行与协作领域｜产品前置工作流与 Carrier Identity
+# 智能体运行与协作领域｜New Task、Product Worker 与 Carrier Identity
 
----
+> 2026-08-14 正式改为 **Extension-first New Task**。旧的“用户先打开 Product GPT → Product GPT listRegisteredRoles/createTask”主路径废止。
 
-# 1. 产品角色是特殊的 pre-Task Worker
-
-产品角色不是 Browser Extension 收到 Task 后才创建。
-
-真实流程：
+## 1. New Task 唯一入口
 
 ```text
-用户主动打开产品 Custom GPT
-→ 创建一个新的产品 Conversation
-→ 用户与产品 Worker 充分、完整沟通
-→ 澄清目标/范围/约束
-→ 形成需求内容
-→ 产品 Worker 判断需求已形成
-→ 再创建 Task
+Extension Task UI
+→ New Task
+→ Task createTask(PENDING)
+→ taskId
 ```
 
-因此：
-
-- Task 之前已经存在产品 Worker；
-- 当前产品 Conversation 就是未来这个 Task 的 product worker；
-- 不允许为了取得产品 workerRef 而先创建空 Task；
-- 不允许 Task Scheduler / Task polling 负责“创建产品人员”；
-- 每一个新需求应使用新的产品 Conversation，不跨 Task 复用旧产品 Worker。
+Task 必须先存在，随后三个 Worker 才能明确绑定该 taskId，避免产生无主 Conversation。
 
 ---
 
-# 2. 每 Task 独立 Worker
+## 2. 三 Worker 一次组队
 
-冻结：
-
-```text
-Task A → Product-A / Dev-A / Test-A
-Task B → Product-B / Dev-B / Test-B
-```
-
-禁止：
+Background Carrier Controller 对固定三个 `agentPackageRef`：
 
 ```text
-Task B 继续使用 Task A 的 Product/Dev/Test Conversation
+Product
+Controller/Dev
+Test/Ops
 ```
 
-同一个 Task 内，同一角色则始终复用原 Worker，包括 reopen。
+解析当前 registered `roleRef`，并发：
 
-原因：Conversation 本身保留上下文，跨 Task 复用会污染需求/代码/测试上下文。
+```text
+open role
+→ create new Conversation
+→ observe c-id / workerRef
+→ record conversationLocator
+→ validate page/Role identity
+→ Task bindTaskWorker
+```
+
+一个 Task 一个三人组；不同 Task 不复用 Conversation。同一 Task 的 reopen 永远复用原 Worker/Conversation。
 
 ---
 
-# 3. 产品创建 Task 的正式顺序
+## 3. Product 可以先进入需求沟通
+
+三路 provisioning 可以并发；只要 Product Worker 已绑定：
 
 ```text
-1. 用户与产品 Worker 全量沟通
-2. 产品 Worker 确认需求已经形成
-3. 获取当前自身 Carrier identity / workerRef
-4. listRegisteredRoles()
-5. 按 agentPackageRef 找到 product/dev/test roleRef
-6. createTask(...)
-7. Task 进入待用户批准执行的正式流程
+Product Conversation
+→ requirement discussion
+→ clarify objective/scope/constraints
+→ putTaskDocument(REQUIREMENT)
 ```
 
-createTask 业务输入至少需要表达：
+Dev/Test 即使已绑定，也只保持 IDLE，直到其 Node READY/Peer Message 等正式 trigger。
 
-```text
-product roleRef + product workerRef
-dev roleRef
-test roleRef
-requirement / objective / plan / documents（由 Task Domain Contract 决定）
-```
-
-产品 GPT 不能因为聊天进行到一半自动创建 Task；应在需求信息充分后再创建。
+Product 不必等待 Dev/Test 两个 binding 完成才和用户沟通；但 Task 不能 start，直到所有 Frozen prerequisites满足。
 
 ---
 
-# 4. Carrier Identity 获取需求（Action 路径 = PENDING_SPIKE）
+## 4. 新 Conversation 最小初始化
 
-产品 Worker 必须能在创建 Task 前获得自己的 Conversation identity；**平台合同冻结的是“可靠 identity”，不是“必须由 Action 提供”。**
+如果真实 ChatGPT 页面必须发生一次 message 才出现稳定 c-id：
 
-业务期望能力可表达为：
+### Product
+
+允许最小 requirement-start message：
 
 ```text
-getCurrentCarrierContext()
-→ carrierType
-→ roleRef / g-id
-→ workerRef / c-id
-→ conversationUrl
+taskId
+workerRef（观察后确认）
+“开始本 Task 的需求沟通”
 ```
 
-这是 Agent/Carrier + Execution Browser observation 共同满足的 Carrier identity 边界，不是 Task API。Action 形式只是优先验证的轻量候选。
+### Dev/Test
 
-产品体验仍优先验证“通过 Action 轻量取得当前链接信息”，但在真实 E2E 前仅标 `PENDING_SPIKE`；不得因此建立未经验证的正式依赖。
+仅允许最小 WORKER_BIND：
+
+```text
+taskId
+workerRef
+bind-only
+remain waiting
+```
+
+不注入完整 Requirement/代码/测试材料。
 
 ---
 
-# 5. 当前仍需真实 E2E 的地方
+## 5. Partial success / 恢复
 
-不能在没有证据时假设 Custom GPT Action 天然知道浏览器 `location.href` / `c-id`。
-
-必须做最小真实实验：
+例如：
 
 ```text
-Custom GPT
-→ debug/current-carrier Action
-→ Gateway 记录允许记录的 request metadata
-→ 确认是否存在稳定 Conversation identity
+Product BOUND
+Dev BOUND
+Test MISSING
 ```
 
-如果平台原生没有提供，则需要继续设计 Carrier Context Provider；其约束：
+恢复必须：
 
-- 不把产品 Worker 创建并入 Task Scheduler；
-- 不改变“用户先与产品 GPT 充分沟通”的交互；
-- 不信任模型任意自报 URL；
-- 必须能够证明当前页面与当前 role/worker 对应；
-- 真实 Browser 测试通过后再冻结实现。
+```text
+保留 Product/Dev
+只补 Test
+```
 
-是否使用 Browser Extension 的**被动页面上下文能力**作为 Provider，是 E2E 后的实现选择，不在本文件提前硬冻结。
+Create/submit 后若 Effect reality 不确定，必须先重新观察当前 ChatGPT reality，不能盲目重建 Conversation。
 
 ---
 
-# 6. 产品 Task 绑定
+## 6. Carrier Identity
 
-产品创建 Task 时直接写入：
+正式身份链：
 
 ```text
-product roleRef
-product workerRef
+agentPackageRef/packageName = logical role
+roleRef/g-id              = deployed Custom GPT
+workerRef/c-id             = Task Worker Conversation
+conversationLocator        = restore locator
 ```
 
-这是 Task Domain 的正式 Task-level participant/binding fact。
+Browser 可使用 `tabId` 操作当前页面，但 Task 不持久化 tab/frame。
 
-研发/测试则在 Task 获得用户执行批准后，由 Execution Browser provisioning flow 创建/识别 Conversation，Agent 校验 identity，Task `bindTaskWorker` 绑定。
+Custom GPT Action **不提供稳定 c-id**，所以不能依赖 Action request 自动识别当前 Conversation。Worker identity 由 Browser/Carrier page observation 取得并验证，再通过 Task Public Contract绑定。
 
 ---
 
-# 7. 产品 Worker 与 Collaboration
+## 7. Product 不再承担 Role discovery / Task creation
 
-Task 创建后，Product-A 成为这个 Task 的正式参与者。
-
-研发/测试需要确认需求时：
+Product GPT runtime Actions 主路径不需要：
 
 ```text
-Dev-A/Test-A
-→ askPeer(targetAgentPackageRef = product)
-→ Agent Runtime 校验双方都属于同一 Task
-→ Message Center
-→ Execution physical delivery
-→ Product-A
+listRegisteredRoles
+getRegisteredRole
+createTask
 ```
 
-Product-A 回复：
+Role Registry 仍保留给：
 
 ```text
-replyPeer(threadId, content)
+Deployment
+Carrier coordination
+management/doctor
 ```
 
-回复真实投递回原发问 Worker并 `DELIVERED` 后，同一 thread 才允许下一问。
+Task creation 由 Extension/platform-host 发起。
 
 ---
 
-## 当前正式约束：Carrier identity 的可靠来源
+## 8. Requirement / File Bridge
 
-`workerRef = c-id` 的业务定义保留，但 **不得假设 GPT Action 自动提供稳定 Conversation c-id**。产品 Worker 的当前 c-id 获取继续属于 Carrier E2E 待验证能力；若 Action 无可靠来源，允许使用 Execution Browser 的被动 URL/页面观察取得并验证。Task 只接收最终 opaque product roleRef + workerRef。
-
-# 8. 产品需求文件进入 Task 的轻量路径
-
-产品 Conversation 可以使用 Code Interpreter 生成 `requirements.md / prd.md` 等文件，并在 createTask/TaskDocument 相关 Action 中通过 `openaiFileIdRefs` 交给 Gateway。
-
-正式边界：
+Product 可以使用 Conversation native file handling / Code Interpreter 生成 requirement/PRD artifact；需要进入平台正式事实时：
 
 ```text
-Product GPT / Code Interpreter
+Conversation file
 → openaiFileIdRefs
-→ Agent Gateway normalize
-→ Execution bounded fetch/verify（需要 bytes 时）
-→ Task Public Contract
-→ TaskDocument
+→ Gateway normalize
+→ Execution materialize（需要 bytes 时）
+→ Task putTaskDocument / artifact reference
 ```
 
-OpenAI file id 只作为 provenance，不替代 TaskDocument identity/version。
+Conversation File 不是 TaskDocument；OpenAI file id 不是长期业务 identity。
 
-这条文件路径 **不解决 workerRef/c-id 身份问题**；产品 Worker 的 c-id 仍不得假设 Action request 自动提供，继续由 Browser/Carrier observation 的真实 E2E 证明。
+---
+
+## 9. J1 完成条件
+
+J1 结束于：
+
+```text
+3 TaskRoleBindings complete
++
+Product Requirement formalized in Task
++
+Task deterministic readiness = READY
+```
+
+随后才进入 J2 human confirmation → `startTask`。

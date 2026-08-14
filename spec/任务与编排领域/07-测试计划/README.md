@@ -41,3 +41,7 @@ testPlanAuthoringOrder: 2
 ## 原则
 
 Domain Test Plan 不重新定义状态/API/DDL/Package；Module Test Plan 也不把 TODO 的 `PENDING_DECISION / NOT_FROZEN / PLANNED` 自动改成实施依赖。测试计划只冻结可从现有规范证明的 Test Objective 与 Gate。
+
+## Journey Addendum
+
+当前Test Plan同时受`PLATFORM-DOC-01-04`与`TASK-DOC-03-05`约束：Extension-first New Task、deterministic readiness、Task Observer read-only progression、same-worker reopen、async-owner wait separation、terminal no-ghost-wake均属于正式验证面。

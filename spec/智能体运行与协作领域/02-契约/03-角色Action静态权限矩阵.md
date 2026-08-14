@@ -9,58 +9,72 @@ subdomain: null
 subdomains: []
 provides: []
 requires: []
-contractRefs: []
+contractRefs:
+- AGENT-DOC-03-07
+- PLATFORM-DOC-01-04
 ---
 
 # 智能体运行与协作领域｜v1 角色 Action 静态权限矩阵
 
-> 每个 Agent Package 的 OpenAPI 是静态、版本化、角色最小化的 Carrier contract。GPT-facing operation 可以是清晰 facade；真实业务合法性始终由 owning Domain Public Contract/Policy 决定。
+> 每个 Agent Package 的 OpenAPI 是静态、版本化、角色最小化的 Carrier contract。2026-08-14 起，Product Task creation/Role discovery 移出 GPT main path；routine platform query/control/intent operation 不再依赖 OpenAI 每次 permission prompt，真实 Effect 风险仍由 Execution Policy/Approval 独立判断。
 
 ## 1. 全局原则
 
 1. 角色只看到职责需要的 Actions。
-2. operationId/summary/description/parameters 必须能让模型区分读、写、审批、恢复。
-3. 输入从 `unknown` 进入 Gateway runtime validation。
-4. Gateway 不因为 Action 暴露而获得业务 ownership。
-5. 所有真实 Effect 最终进入 Execution Policy/Approval。
-6. 每个 operation 显式声明 `x-openai-isConsequential: true|false`。
+2. GPT-facing operation 围绕业务目的，不把所有底层 primitive 平铺成高频一等工具。
+3. Gateway runtime validation + authenticated Role + Owner state/version/policy 才是最终安全边界。
+4. 所有真实 Effect 最终进入 Execution。
+5. 每个 operation 显式 `x-openai-isConsequential`。
+6. 对“记录 intent/request、真正 Effect 由 Execution 异步执行”的 platform Action，默认 `false`；这不等于 Effect 自动获批。
+7. 一个 Worker Turn 内可连续调用 0..N Actions；不设计 Action-level Browser scheduler。
 
-## 2. 产品 = 运营 + 产品经理
+---
 
-### Agent
-
-```text
-listRegisteredRoles
-getRegisteredRole（必要时）
-```
+## 2. Product
 
 ### Task
 
 ```text
-createTask
 getTask
 putTaskDocument
 getTaskDocument
 ```
 
-产品可以在 Task 创建前完成 requirement；createTask 时携带 product role+worker 与 dev/test role requirements。
+Product 在 Extension 已创建的 PENDING Task / Product Worker Conversation 内完成需求沟通，并将 `REQUIREMENT` 写入 Task。
+
+**Product GPT main path 不暴露：**
+
+```text
+createTask
+listRegisteredRoles
+getRegisteredRole
+```
+
+这些分别由 Extension/platform-host 与管理/Carrier lookup 承担。
 
 ### Collaboration
 
-Task 建立后，只有确有产品参与业务需求时才暴露 `askPeer/replyPeer`；不把产品 GPT 变成任意消息发送器。
+```text
+askPeer
+replyPeer
+```
+
+仅在 Task 建立并存在正式 binding 后使用。
 
 ### Execution
 
-产品默认不暴露源码写入、shell、git mutation 等工程 Effect。若未来确有产品侧文件读取需求，必须按最小 capability 单独开放。
+Product 默认不暴露 repo mutation/shell/git 等工程 Effect。必要文件处理优先使用 Conversation/File Bridge/Code Interpreter；真正本机 Effect仍走受控 Execution。
 
-## 3. 总控 = 项目管理 + 研发
+---
+
+## 3. Controller / Dev
 
 ### Task
 
 ```text
 getTask
 getNodeContext
-startNode（仅合法驱动角色/场景）
+startNode
 completeNode
 waitNode
 failNode
@@ -69,7 +83,7 @@ getTaskDocument
 putTaskDocument
 ```
 
-调用方不能在 `startNode` 任意指定 workerRef；Task 自动解析 TaskRoleBinding。
+`startNode` 只在当前 Worker 已收到 READY/REOPEN wake 后调用；调用方不能指定任意 workerRef。
 
 ### Collaboration
 
@@ -78,30 +92,33 @@ askPeer
 replyPeer
 ```
 
-### Execution facade
+### Execution
 
-角色可以暴露清晰 facade，例如：
+GPT-facing 优先暴露一个清晰的 `executeCapability/requestExecution` 型业务意图入口 + `getExecution/readExecutionOutput`，底层 typed capability 由 Execution canonical registry 承担。
+
+Context Pack / patch 推荐路径：
 
 ```text
-readFile / listFiles / searchFiles
-getGitStatus / getGitDiff / getGitLog
-queryCode / references / impact
-getDependencyInfo / getScripts
-runBuild / runTests / runTypecheck / runLint
-writeFile / applyPatch
-runCommand
-process/service/network diagnostics
+Execution bounded Context Pack
+→ File Bridge
+→ Code Interpreter
+→ patch/report artifact
+→ File Bridge
+→ Execution validate/apply/test
 ```
 
-Gateway 统一映射到 Execution `executeCapability` canonical contract；read/mutation/approval 语义由 capability/policy 决定。
+底层 read/write/git/process/network primitives 可存在于 Execution，但不要求全部平铺进 GPT OpenAPI。
 
-## 4. 测试 = 测试 + 运维
+---
+
+## 4. Test / Ops
 
 ### Task
 
 ```text
 getTask
 getNodeContext
+startNode
 completeNode
 waitNode
 failNode
@@ -109,7 +126,7 @@ getTaskDocument
 putTaskDocument
 ```
 
-如测试职责被明确允许触发 reopen，则只暴露具体 `reopenNode`，不得暴露泛化状态修改 Action。
+如 Frozen workflow 明确允许 Test/Ops 触发 `reopenNode`，才暴露具体 operation；不得暴露泛化 setStatus。
 
 ### Collaboration
 
@@ -118,109 +135,79 @@ askPeer
 replyPeer
 ```
 
-### Execution facade
+### Execution
 
 ```text
-readFile / searchFiles
-getGitDiff
-runTests / runTypecheck / runLint / build
-readLogs / health / port / process diagnostics
-browser observe/screenshot（按角色实际需要）
+request/execute test/build/lint/typecheck/health/log/browser-observe capability
+getExecution
+readExecutionOutput
 ```
 
-高风险 mutation 仍受 Execution Policy/Approval。
+高风险 Effect 仍受 Execution Policy/Approval。
+
+---
 
 ## 5. Browser 专用接口不进入 GPT OpenAPI
 
-以下属于 Execution Browser runtime surface，不暴露给 GPT：
-
 ```text
-bind/restore tab
-capture current page identity
+create/open/restore conversation
+observe c-id/url
+tab focus
 content-script heartbeat
-page runtime state
-permission UI handler
-raw submit primitive
+DOM input/submit
+screenshot
 recovery scan
+physical collaboration delivery
 ```
 
-GPT 只看到业务/领域级 Action。
+这些属于 Execution Browser Carrier。
+
+---
 
 ## 6. Role 管理命令不进入 GPT OpenAPI
 
 ```text
-role register/delete/key show/key rotate
+role register/list/show/delete/key rotate
 custom-gpt materialize/setup
 ```
 
-这些只能在本地管理面执行。
+这些属于本地管理/Deployment/Carrier readiness。
 
-## 7. Gateway path / operationId
+---
 
-- operationId 使用稳定业务动词，不使用 `executeAnything/updateStatus` 等泛化词。
-- GPT-facing path 不依赖 arbitrary custom headers。
-- taskId/nodeId/workerRef/idempotency/correlation 等必要 metadata 放 typed body/path/query。
-- Gateway adapter 再转换成内部 canonical DTO。
+## 7. OpenAI transport
 
-## 8. 静态 Schema 版本
+### Consequential
 
-每个 Agent Package 自带 `actions/custom-gpt.openapi.yaml`；随 package SemVer 更新。部署后若 schema 与 package version 不一致，Role doctor/verify 必须报告 drift/ACTION_REQUIRED，而不是运行时动态改 schema。
+- read/query/control/intent that **does not itself perform the real Effect** → `false`；
+- 如果某 GPT-facing operation 本身直接造成真实不可逆/外部 Effect，才可按真实语义标 `true`；
+- 无论 true/false，Execution Policy/Approval 不被替代。
 
-## 9. Collaboration 参数约束
-
-### `askPeer`
-
-模型可给：
-
-```text
-targetAgentPackageRef
-threadId?
-content
-idempotencyKey
-```
-
-不能自由指定任意 roleRef/workerRef 目标；Agent Runtime 根据 Task participant/binding 解析。
-
-### `replyPeer`
-
-模型给：
-
-```text
-threadId
-content
-idempotencyKey
-```
-
-reply target/replyTo 从 Thread 当前状态决定。
-
-## 10. OpenAI Actions transport
-
-### `x-openai-isConsequential`
-
-- query/read/control-without-real-effect：明确 `false`。
-- 真实可能产生不可逆/外部 Effect 的 operation：根据实际语义明确 `true`，但这只控制 Carrier confirmation。
-- Carrier confirmation **不替代** Execution Approval。
+v1 主路径目标是：routine Actions 经用户初次 `Always Allow` 后不再成为每次业务推进阻塞点；unexpected prompt 仅作为 Carrier recovery。
 
 ### File Bridge
 
-- 输入文件参数使用 `openaiFileIdRefs`，Gateway 做 runtime object-array normalization。
-- 输出文件使用 `openaiFileResponse`，受文件数/大小/类型/response-budget/relay 安全约束。
-- File Bridge transport 字段不进入 business DTO。
+- input：`openaiFileIdRefs`；
+- output：`openaiFileResponse`；
+- Gateway 只做 transport normalization/relay；
+- Artifact/TaskDocument ownership 不变。
 
 ### Custom Header
 
-GPT Actions schema 不要求 OpenAI 不支持的任意自定义 headers。内部 idempotency/version/correlation 仍可保留，由 typed payload + Gateway adapter 构造。
+不要求任意 custom headers；identity/version/idempotency/correlation 走 typed body/path/query。
 
-## 11. Contract Tests
+---
 
-每个 Agent Package 至少验证：
+## 8. Contract tests
 
-- OpenAPI parse/validation；
-- operationId 唯一；
-- `x-openai-isConsequential` 每 operation 显式存在；
-- 不出现 forbidden dynamic tool/capability catalog；
+每个 Role Package 至少验证：
+
+- OpenAPI parse/operationId unique；
+- 每 operation 显式 consequential；
+- Product 不出现 createTask/Role-discovery mainline operations；
+- Controller/Test `executeCapability` 等 request-intent operation 不把 OpenAI confirmation 当 Execution Approval；
 - 不要求 arbitrary custom headers；
-- role-specific allowlist 正确；
-- File Bridge schema/transport hard limits；
-- Gateway → internal canonical contract mapping；
-- real Custom GPT Preview/Action behavior E2E。
+- File Bridge schema/transport bounds；
+- Gateway → canonical Owner contract mapping；
+- 一个 Worker Turn 多 Action 不要求 Browser 每 Action WAKE；
+- real Custom GPT Preview/E2E 最终验证 Always Allow/Multi-action/File Bridge/CI/Web Search。

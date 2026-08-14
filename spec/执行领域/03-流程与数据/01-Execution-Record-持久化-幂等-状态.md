@@ -51,6 +51,7 @@ CREATE TABLE execution_records (
   approval_ref         TEXT,
 
   result_json          TEXT,
+  artifact_refs_json   TEXT,
   evidence_refs_json   TEXT,
 
   error_code           TEXT,
@@ -74,6 +75,10 @@ ON execution_records(caller_ref, capability, idempotency_key);
 ```
 
 如果实际幂等 scope 最终需要加入 role/workspace，可在实现前按 caller 语义调整，但必须保持“同 key 同 fingerprint 返回原 Execution；同 key 不同 fingerprint conflict”。
+
+## 2.1 Result / Artifact / Evidence 持久化分离
+
+`result_json` 表达 typed Execution Result；`artifact_refs_json` 只引用 Execution-owned materialized outputs（含 Context Pack / Patch / report/output artifact 等）；`evidence_refs_json` 引用证明 Result/Delivery/Effect 的证据。三者可以互相关联，但不得把“存在 Artifact”当成“Effect 已成功”的证明，也不得把 transient File Bridge locator 当 durable Evidence。
 
 ## 3. request_json
 

@@ -108,3 +108,16 @@ Never silently mutate frozen semantics.
 
 The current implementation specification and Test Plan are landed under `spec/`.
 Do not start domain/module implementation until a separate task explicitly opens the applicable Wave/TDD gate.
+
+## v1 architecture alignment gate
+
+Before changing Task / Agent / Browser Carrier / Model / Deployment integration, also read the J0→J6 / X1→X7 baseline:
+
+```text
+spec/平台架构与公共约定/01-架构/04-Task-Journey-Carrier与Observer-v1集成基线.md
+spec/任务与编排领域/03-流程与数据/05-Task-Observer推进与异常诊断边界.md
+spec/智能体运行与协作领域/03-流程与数据/07-Worker-Turn与GPT原生能力使用边界.md
+spec/模型与推理领域/03-流程与数据/08-Task-Diagnostic与System-Assessment推理规范.md
+```
+
+Implementation MUST NOT reintroduce frame registry/frame-role handshake/iframe team topology, Product-GPT New Task dynamic role discovery, per-Action Browser wake/“continue” loops, Browser natural-language Task progression, a second Browser durable effect runtime, Task Observer default model calls, or System Observer business ownership. Existing implementation is not authority to weaken these rules; implementation gaps must be fixed against the current spec.

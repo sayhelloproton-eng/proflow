@@ -41,7 +41,7 @@ contractRefs: []
 
 ## 3. Does Not Own
 
-- Role/Worker identity
+- Role/Worker identity 语义与真实性（Task 仅拥有 TaskRoleBinding 关系事实）
 - Browser DOM/lifecycle
 - Model Provider/Inference
 - 真实 Effect/Evidence
@@ -69,7 +69,7 @@ Task Domain 第一版正式划分以下 5 个 Subdomain；它们表达不同业�
 
 ### 5.1 `task-lifecycle`｜Task Lifecycle
 
-负责 Task 创建、可执行性、人工授权后的 READY、开始、暂停/恢复、等待人工处理、技术失败、完成与终止。
+负责 Task 创建、确定性 readiness、显式 start command、暂停/恢复、真正 workflow wait、技术失败、完成与终止；不拥有独立 Task Approval workflow。
 
 ### 5.2 `task-chain`｜Task Chain / TaskGroup
 
@@ -79,7 +79,7 @@ Task Domain 第一版正式划分以下 5 个 Subdomain；它们表达不同业�
 
 ### 5.3 `node-workflow`｜Node Workflow
 
-负责一个 Task 内的有序 Node、Node 角色要求、具体 Worker 绑定、输入/输出文档要求、自然向后推进和 `reopenNode` 受控回退。
+负责一个 Task 内的有序 Node、`requiredAgentPackageRef` 逻辑岗位要求、TaskRoleBinding 关系事实、输入/输出文档要求、自然向后推进和 `reopenNode` 受控回退。
 
 第一版不是通用图工作流引擎。
 
@@ -122,7 +122,7 @@ Provides：
 Requires：
 - Agent Public Worker/Role facts
 - Execution Public Capability/Result
-- 必要时 Model infer
+- 必要时 Model infer（仅异常诊断输入；正常 Task progression 不依赖模型）
 - Deployment Module capabilities
 
 跨域依赖必须经过 Public Contract；禁止读取其他领域 DB、Repository、内部 Adapter 或 deep import。

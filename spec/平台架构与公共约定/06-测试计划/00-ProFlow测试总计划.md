@@ -27,20 +27,18 @@ testPlanAuthoringOrder: 0
 
 ## 1. 目标
 
-在 Codex 写正式 ProFlow 新实现之前，冻结每个 Domain/Module **必须证明的行为、风险、测试层、真实依赖边界、Evidence 与 STOP 条件**。本计划不设计业务，不替代 FINAL FROZEN DDD/SDD。
+在任何 Batch4 实现前冻结“规范必须证明什么”。测试不得让现有实现反向定义架构；若代码与规范冲突，先记 implementation gap，不修改 Owner/Contract 来迁就代码。
 
-## 2. Source Baseline
+## 2. 当前架构基线
 
-```text
-ProFlow-ProFlow-DDD规范化技术文档-最终冻结基线-20260812.zip
-SHA-256: 69fdfbac8a5ee36b700bcb10c0b8a9a61f0a5aa3367386cb5bc7e98118a4a875
-```
+除原五领域 Frozen SDD 外，跨域测试必须读取：
 
-公共测试真源：
-
-- [`PLATFORM-DOC-03-02`](../03-工程/02-测试与验收约定.md)
-- [`PLATFORM-DOC-04-01`](../04-治理/01-约定变更机制.md)
-- [`PLATFORM-IMPLEMENTATION-NAV`](../04-治理/02-实施导航与TODO分层.md)
+- `PLATFORM-DOC-01-04`：J0→J6 Task Journey / Carrier / Observer 集成基线；
+- `TASK-DOC-03-05`：Task Observer progression/diagnostic boundary；
+- `AGENT-DOC-03-07`：Worker Turn 与 GPT Native boundary；
+- `MODEL-DOC-03-08`：Task Diagnostic / System Assessment；
+- Execution Browser Extension 最新 TECHNICAL-DESIGN；
+- OpenAI Custom GPT official capability constraints 已被正式吸收的 File Bridge / Code Interpreter / Web Search / Always Allow / no custom header / no stable Action c-id 约束。
 
 ## 3. 统一测试层级
 
@@ -58,81 +56,112 @@ Unit
 → Evidence / Freeze
 ```
 
-各层证明边界沿用 FINAL FROZEN `PLATFORM-DOC-03-02`：Unit 不证明 Contract；Conformance 不证明业务；Mock E2E 不替代真实 Browser/Carrier/Local/Model 验收。
+Mock/Unit/Conformance 均不能代替真实 Chrome/Custom GPT/File Bridge/Model/External Resource验收。
 
-## 4. Test Plan 与 Test Case 边界
-
-Test Plan 必须定义：
-
-- Source Spec / Rule；
-- 风险；
-- Test Objective；
-- Required Scenario family；
-- 测试层；
-- Real vs Fake boundary；
-- PASS 所需 Evidence 类型；
-- STOP / Spec Change condition。
-
-Test Plan **不提前定义**开发后才能稳定落地的 exact fixture、精确命令、实现内部函数名、实际返回快照位置。
-
-## 5. 开发中 TDD 规则
-
-对每一个已被 Test Plan 冻结的行为：
+## 4. 第一版必须证明的跨域主线
 
 ```text
-从 Source Spec 选择一个行为
-→ 写最小 executable test
-→ RED（确认因缺实现失败）
-→ minimal implementation
-→ GREEN
-→ Refactor（行为不变）
-→ 下一行为
+J0 3 generic Roles READY
+→ J1 Extension create Task(PENDING) + 3 Workers one-time binding + Product Requirement
+→ J2 human confirmation channel → startTask
+→ J3 Task Observer → Carrier RESTORE/WAKE → Worker startNode
+→ J4 one Worker Turn / 0..N Actions / native GPT capability
+→ J5 owner facts → next/resume/reopen/recovery
+→ J6 terminal → no ghost wake / archive refs retained
 ```
 
-禁止：先写实现，再把测试修改成当前实现的样子；禁止为绿灯修改 Domain/Contract 语义。
+## 5. Observer 必测
 
-## 6. Spec Change Gate
+### Task Observer
 
-若 RED 无法被正确表达，或真实证据表明冻结规格不可实现：
+- 正常 progression deterministic；
+- READY / Execution Result READY / Peer Reply READY / Reopen READY 能产生正确 typed wake/resume request；
+- 不替 Worker `startNode`；
+- 不写 Task/Execution/Collaboration；
+- 只有单 Task ambiguity/UNKNOWN/repeated recovery/unexplained stall 才请求 REASON diagnostic；
+- 模型结果没有 workflow authority。
+
+### System Observer
+
+- 8 类 bounded views；
+- deterministic compact snapshot；
+- concern batching；
+- explicit carry-forward；
+- targeted drill-down；
+- cross-domain global synthesis；
+- lowest priority / model busy defer；
+- assessment 不覆盖 owner current facts。
+
+## 6. OpenAI Native / Carrier 必测
+
+- routine Action `x-openai-isConsequential:false` 与 Always Allow 主链；
+- Execution dangerous Approval 仍独立；
+- one wake → multi-action，不出现 action-level Browser scheduler；
+- typed body/path/query identity，不依赖 arbitrary custom headers；
+- Browser 提供/绑定 workerRef/c-id，Actions 不假设 stable Conversation id；
+- File Bridge inbound/outbound、limits、relay、image asymmetry；
+- Code Interpreter bounded Context Pack / Patch artifact path；
+- public research Web Search vs Execution private/deterministic Network boundary；
+- no frame registry/iframe team topology/persistent tab business identity。
+
+## 7. Recovery / Idempotency 必测
+
+所有真实 Effect：
+
+```text
+confirmed absent → retry
+confirmed applied → reuse
+uncertain → observe reality
+still unknown → UNKNOWN, no blind replay
+```
+
+Worker CREATE partial success、WAKE submit disconnect、Collaboration physical delivery、Execution lost result、Chrome restart 都必须按该原则证明。
+
+Reopen 与 Recovery 分开：Reopen same node/worker/conversation + runNo+1；技术 recovery 不改 Task business truth。
+
+## 8. Approval 四分
+
+测试必须明确互不混淆：
+
+1. Task start confirmation channel；
+2. Execution safety Approval fact；
+3. Deployment ACTION_REQUIRED(_WEB) human action；
+4. ChatGPT Action permission / Always Allow。
+
+## 9. 开发中 TDD / Spec Change Gate
+
+```text
+Source Spec behavior
+→ executable RED
+→ minimal implementation
+→ GREEN
+→ refactor
+```
+
+如果正确测试无法由 Frozen Spec表达，或真实 evidence 与规范冲突：
 
 ```text
 STOP
-→ 标记 SPEC_GAP / CONTRACT_CONFLICT / EXTERNAL_BEHAVIOR_MISMATCH
-→ 进入正式 Contract/Design Change
-→ 更新 SDD + Test Plan
-→ 再继续 TDD
+→ SPEC_GAP / CONTRACT_CONFLICT / EXTERNAL_BEHAVIOR_MISMATCH
 ```
 
-Codex 不能自行改变 DDD/SDD。
+不得先按当前代码写测试再修改规范来适配。
 
-## 7. Test Plan 编写顺序
+## 10. 全局 Freeze Gate
 
-```text
-0 Platform Test Strategy
-1 Deployment
-2 Task & Orchestration
-3 Model & Reasoning
-4 Execution
-5 Agent Runtime & Collaboration
-6 platform-host
-7 Cross-Domain / Full E2E
-```
+最终进入真实 E2E 前至少要求：
 
-这是测试计划的**编写/冻结顺序**，不是把 Domain 改成 runtime dependency graph。
+- 20 个 Module Test Plan 与本轮架构裁决无冲突；
+- Provider/Consumer contract responsibility明确；
+- all real effects有 duplicate/lost-result/UNKNOWN/recovery计划；
+- Task/System Observer有独立 proof；
+- Browser/Carrier没有 frame/business-store drift；
+- Agent Packages使用 native GPT capability first；
+- Model有 Task Diagnostic/System Assessment real-load验证路径；
+- Deployment verify覆盖 GPT capabilities/Always Allow/Web-only reality；
+- terminal no ghost wake；
+- no unresolved P0/P1 architecture contradiction。
 
-## 8. 开发前全局 Freeze Gate
+## 11. Evidence 原则
 
-Codex 大规模实现前至少要求：
-
-- 20 个正式 Module 都有开发前 Module Test Plan；
-- 每个冻结 TODO Goal 在对应 Module Plan 中有覆盖关系；
-- 每个 Public Contract 都有 Provider/Consumer Contract Test 责任；
-- 所有真实副作用都有 success/timeout/duplicate/lost-result/unknown/recovery 计划；
-- Browser/Carrier、Local Effect、手机模型、External Resource 的真实环境验收边界明确；
-- PENDING_SPIKE 不被 Mock 提升为平台保证；
-- 每个 Module 有 STOP 条件和 Evidence 要求；
-- 任何 SPEC_GAP 若会阻断正确实现，则不允许进入对应 Wave。
-
-## 9. 不使用覆盖率百分比作为架构质量代理
-
-当前冻结资料没有给出统一 statement/branch coverage 百分比阈值，因此本计划不发明数值。测试充分性优先以 **Domain invariant / Contract / failure / recovery / real effect / risk coverage** 判断。后续若真实仓库需要覆盖率数字，走 Test Governance 增量裁决。
+Business Fact、Evidence、Structured Log 必须分开。真实 PASS 必须包含 owner state/result/evidence或 external reality；HTTP 200、进程存活、Mock 成功都不能单独证明主链正确。

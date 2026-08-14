@@ -130,3 +130,38 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+### MODEL-CON-004
+
+```yaml
+id: MODEL-CON-004
+status: READY
+implementationReadiness: PLANNED
+priority: PENDING_DECISION
+type: IMPLEMENTATION
+owner:
+  domain: model-reasoning
+  boundedContext: model-reasoning
+  moduleRef: model-contracts
+sourceRefs:
+- MODEL-REASONING-TECH-MODEL-CONTRACTS
+- MODEL-DOC-02-01
+- MODEL-DOC-03-08
+qualityRefs:
+- MODEL-DOC-05-02
+dependencyState: NOT_FROZEN
+dependsOn: []
+goal: 对齐 Task Diagnostic/System Assessment 的 infer(specRef) typed contract、assessmentRef/background priority/context-too-large 与 no-authority 边界；不新增 assessSystem/judgeTask API
+scope:
+  allow:
+  - packages/model-contracts/**
+  forbid:
+  - Assessment Store/Scheduler contract
+  - workflow/effect authority fields
+  - 任何未经 Contract Change 的额外 Model Public API
+acceptance:
+- ACCEPTANCE_NOT_FROZEN
+verification: []
+evidence: []
+```
+

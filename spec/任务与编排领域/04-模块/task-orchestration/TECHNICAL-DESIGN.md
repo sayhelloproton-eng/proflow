@@ -38,3 +38,7 @@ contractRefs:
 ## Boundary Rule
 
 本文件只定义该 Module 的工程落点，不复制 Domain / Bounded Context 的 canonical facts。若实现需要引入当前 normative Contract 未定义的新算法语义、状态、持久化事实或跨域 Contract，必须先完成对应设计与 Contract Change；不得由 TODO/Codex 自行补全。
+
+## 2026-08-14 Journey Alignment
+
+该Module还必须实现/维护：Extension/application发起`createTask(PENDING)`；`TaskRoleBinding(agentPackageRef, roleRef, workerRef, conversationLocator)`；deterministic readiness；无Task start approval fact；bounded `getTaskDriveProjection`；READY后Task Observer先WAKE、Worker再`startNode`；async Execution/Collaboration/Carrier pending不自动Task WAIT；reopen same Worker/runNo+1；terminal stop-driving。Observer与Browser均不进入Task owner实现。

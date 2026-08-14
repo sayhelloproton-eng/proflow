@@ -1,44 +1,17 @@
 openapi: 3.1.0
 info:
   title: ProFlow Product Actions
-  version: 1.0.0
-  description: Role-minimal Product access to Agent collaboration and Task owner contracts.
+  version: 1.1.0
+  description: Role-minimal Product access for an already-created Task; New Task and Role discovery are Extension/platform management responsibilities.
 servers:
   - url: https://GATEWAY_PUBLIC_HOST
 security:
   - bearerAuth: []
 paths:
-  /actions/listRegisteredRoles:
-    get:
-      operationId: listRegisteredRoles
-      summary: List current registered ProFlow roles.
-      x-openai-isConsequential: false
-      responses: {'200': {description: Registered roles}}
-  /actions/getRegisteredRole:
-    get:
-      operationId: getRegisteredRole
-      summary: Read one registered role by real g-id.
-      x-openai-isConsequential: false
-      parameters:
-        - {name: roleRef, in: query, required: true, schema: {type: string}, description: Real Custom GPT g-id.}
-      responses: {'200': {description: Registered role}}
-  /actions/createTask:
-    post:
-      operationId: createTask
-      summary: Create a Task after product requirement clarification.
-      description: Product role and real product worker c-id belong in roleBindings; dev and test roles may have null workerRef until Browser CREATE.
-      x-openai-isConsequential: false
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateTaskInput'
-      responses: {'200': {description: Created Task owner facts}}
   /actions/getTask:
     get:
       operationId: getTask
-      summary: Read Task owner facts.
+      summary: Read current Task owner facts.
       x-openai-isConsequential: false
       parameters:
         - {name: taskId, in: query, required: true, schema: {type: string}}
@@ -46,7 +19,8 @@ paths:
   /actions/putTaskDocument:
     post:
       operationId: putTaskDocument
-      summary: Write a version-controlled Task document through Task owner contract.
+      summary: Write a Task-scoped requirement or other allowed Product document.
+      description: Product works inside an Extension-created PENDING Task. Conversation files may enter through openaiFileIdRefs and are materialized by the platform before becoming formal Task documents.
       x-openai-isConsequential: false
       requestBody:
         required: true
@@ -57,7 +31,7 @@ paths:
   /actions/getTaskDocument:
     get:
       operationId: getTaskDocument
-      summary: Read a typed Task document.
+      summary: Read a typed formal Task document.
       x-openai-isConsequential: false
       parameters:
         - {name: taskId, in: query, required: true, schema: {type: string}}
@@ -66,7 +40,7 @@ paths:
   /actions/askPeer:
     post:
       operationId: askPeer
-      summary: Persist one collaboration question for a Task participant.
+      summary: Persist one collaboration question for another participant in the same Task.
       x-openai-isConsequential: false
       requestBody:
         required: true
@@ -89,56 +63,13 @@ components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer}
   schemas:
-    PlanNode:
-      type: object
-      additionalProperties: false
-      required: [nodeId, title, objective, requiredRoleRef, inputDocuments, outputDocuments]
-      properties:
-        nodeId: {type: string}
-        title: {type: string}
-        objective: {type: string}
-        requiredRoleRef: {type: string, description: Registered real role g-id.}
-        inputDocuments: {type: array, items: {type: string}}
-        outputDocuments: {type: array, items: {type: string}}
-    RoleBinding:
-      type: object
-      additionalProperties: false
-      required: [roleRef, workerRef]
-      properties:
-        roleRef: {type: string, description: Registered real role g-id.}
-        workerRef: {type: [string, 'null'], description: Real c-id, or null before Browser CREATE.}
-    CreateTaskInput:
-      type: object
-      additionalProperties: false
-      required: [title, objective, plan, roleBindings, idempotencyKey]
-      properties:
-        taskId: {type: string}
-        title: {type: string}
-        objective: {type: string}
-        plan:
-          type: object
-          additionalProperties: false
-          required: [nodes]
-          properties:
-            nodes: {type: array, minItems: 1, items: {$ref: '#/components/schemas/PlanNode'}}
-        initialDocuments:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required: [documentType, content]
-            properties:
-              documentType: {type: string}
-              content: {type: string}
-        roleBindings: {type: array, items: {$ref: '#/components/schemas/RoleBinding'}}
-        idempotencyKey: {type: string}
     PutTaskDocumentInput:
       type: object
       additionalProperties: false
-      required: [taskId, nodeId, documentType, expectedTaskVersion, idempotencyKey]
+      required: [taskId, documentType, expectedTaskVersion, idempotencyKey]
       properties:
         taskId: {type: string}
-        nodeId: {type: string}
+        nodeId: {type: [string, 'null'], description: Optional. Requirement setup during PENDING is Task-scoped and normally has no nodeId.}
         documentType: {type: string}
         content: {type: string}
         openaiFileIdRefs:
@@ -167,7 +98,7 @@ components:
         taskId: {type: string}
         threadId: {type: string}
         fromWorkerRef: {type: string, description: Caller's real Task-bound c-id.}
-        targetAgentPackageRef: {type: string}
+        targetAgentPackageRef: {type: string, description: One fixed logical Agent package role in this Task.}
         content: {type: string}
         idempotencyKey: {type: string}
     ReplyPeerInput:

@@ -273,13 +273,15 @@ Extension：
 
 ```text
 pending message
-→ getRegisteredRole(targetRoleRef)
-→ task targetWorkerRef
-→ open/restore exact Conversation
+→ read current Task target Worker Binding
+  (packageName/roleRef/workerRef/conversationLocator)
+→ open/restore exact bound Conversation
 → inject PEER_MESSAGE
 → obtain real receipt
 → report delivery
 ```
+
+固定三 Worker 的 v1 主链不在每次 Collaboration delivery 时做 Role Registry 动态发现；Role Registry 只保留 management/Deployment/Carrier lookup 能力。Delivery 必须以当前 Task 的 durable Worker Binding 为准。
 
 同一个 `messageId` 的 Delivery 必须幂等，Extension reload / duplicate polling 不得导致重复注入。
 
@@ -370,3 +372,16 @@ currentNodeId
 - 把消息真实提交到目标 GPT Conversation 是 Execution Browser Effect；Agent 必须依据 Execution typed result/evidence 更新 logical delivery state。
 - `askPeer/replyPeer` 成功不等于页面已收到；严格串行规则保持：reply 必须物理 DELIVERED 后才能开启下一问。
 - CollaborationMessage 与 TaskMessage 不合并；不建设全局 Message/Event Bus。
+
+## 13. 2026-08-14 Observer / Worker Turn alignment
+
+Collaboration 的 durable message/reply truth 与 physical Conversation delivery 必须继续分离：
+
+```text
+askPeer/replyPeer durable fact  → Collaboration Message Center
+physical target/source delivery → Execution-owned Browser Carrier
+```
+
+同一 Worker Turn 内的连续 Actions 不经过 Browser；只有跨 Worker 才产生真实异步 wake/delivery boundary。`PENDING` message / reply 默认不自动把 Task Node 改成 WAITING；结果/回复达到可消费条件后，由 Task Observer 结合当前 Task binding 请求 WAKE/RESUME 对应 Worker。
+
+System Observer 可以把 pending duration、delivery backlog、重复失败等作为全局 bounded assessment input，但不能 `mark delivered`、生成 reply、改变 Task 或替代 Message Center truth。Task terminal 后不再发生新的业务 delivery，既有 durable history 仍保留用于审计。

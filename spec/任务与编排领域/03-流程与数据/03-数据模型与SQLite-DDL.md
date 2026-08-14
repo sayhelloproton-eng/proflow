@@ -104,8 +104,6 @@ CREATE TABLE tasks (
   plan_version        INTEGER NOT NULL DEFAULT 1,
   current_node_id     TEXT,
   created_by_ref      TEXT NOT NULL,
-  authorized_by_ref   TEXT,
-  authorized_at       TEXT,
   created_at          TEXT NOT NULL,
   started_at          TEXT,
   completed_at        TEXT,
@@ -127,8 +125,6 @@ CREATE TABLE tasks (
 | `plan_version` | 当前 Plan version；v1 通常为 1 |
 | `current_node_id` | 当前流程位置 |
 | `created_by_ref` | 创建者 |
-| `authorized_by_ref` | 独立 Task 的 human authorization actor；TaskGroup 成员可由 group-level authorization 满足，不强制重复写入 |
-| `authorized_at` | 独立 Task execution authorization 时间；不是 Execution Effect Approval |
 | `started_at` | 首次 ACTIVE |
 | `completed_at` | SUCCEEDED / TERMINATED 时间 |
 | `updated_at` | 最近修改 |
@@ -149,7 +145,7 @@ CREATE TABLE nodes (
   status                TEXT NOT NULL,
   version               INTEGER NOT NULL DEFAULT 1,
   run_no                INTEGER NOT NULL DEFAULT 1,
-  required_role_ref     TEXT NOT NULL,
+  required_agent_package_ref TEXT NOT NULL,
   worker_ref            TEXT,
   input_documents_json  TEXT NOT NULL DEFAULT '[]',
   output_documents_json TEXT NOT NULL DEFAULT '[]',
@@ -282,7 +278,6 @@ Event 是审计，不是状态真源。
 
 ```text
 TASK_CREATED
-TASK_AUTHORIZED
 TASK_READY
 TASK_STARTED
 TASK_WAITING
@@ -385,23 +380,30 @@ Event 不反向成为状态真源
 
 ## TaskRoleBinding 与正式表清单
 
-`task_role_bindings` 是当前正式业务表，用于持久化同一 Task 内 `roleRef → workerRef` 的稳定绑定。
+`task_role_bindings` 是当前正式业务表，用于持久化同一 Task 内 `agentPackageRef → actual roleRef/workerRef/conversationLocator` 的稳定绑定。
 
 ```sql
 CREATE TABLE task_role_bindings (
   task_id TEXT NOT NULL,
+  agent_package_ref TEXT NOT NULL,
   role_ref TEXT NOT NULL,
   worker_ref TEXT,
+  conversation_locator TEXT,
   version INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  PRIMARY KEY (task_id, role_ref),
-  FOREIGN KEY (task_id) REFERENCES tasks(id)
+  PRIMARY KEY (task_id, agent_package_ref),
+  FOREIGN KEY (task_id) REFERENCES tasks(task_id)
 );
 ```
 
 约束：
-- `role_ref / worker_ref` 为 Agent Domain opaque ref；Task 不解析 Conversation URL。
-- 同一 Task + roleRef 只有一个当前稳定 binding。
+- `agent_package_ref` 是固定 Agent packageName/逻辑岗位；`role_ref / worker_ref / conversation_locator` 是 Agent/Carrier 提供的 opaque binding facts。
+- 同一 Task + agentPackageRef 只有一个当前稳定 binding；Task 不解析 g-id/c-id/URL，也不保存 tab/frame/window。
 - reopen 不删除该 binding；只重置 Node run-level workerRef。
-- `bindTaskWorker` 使用 Task transaction + expectedTaskVersion + idempotency；相同绑定幂等，不允许静默覆盖为另一个 workerRef。
+- `bindTaskWorker` 使用 Task transaction + expectedTaskVersion + idempotency；相同四元 binding 幂等，不允许静默覆盖 roleRef/workerRef/conversationLocator。
+
+
+## Task readiness 不使用授权列
+
+2026-08-14 起，独立 Task start confirmation 不再持久化 `authorized_by_ref/authorized_at`。PENDING→READY 由 start-required documents + required TaskRoleBinding + TaskGroup prerequisites 确定性计算；Extension/Feishu 的 human confirm 只产生 `startTask` command。若历史 migration 已存在授权列，Batch4 migration 应按兼容策略处理，但新规范不再把它们作为业务真源。

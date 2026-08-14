@@ -55,3 +55,7 @@ process/deployment: none / determined by Deployment kind
 ## Testing
 
 见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+
+## 2026-08-14 File Bridge / Artifact boundary
+
+`execution-local` is also the concrete bounded local/network/file executor used when Gateway-provided `openaiFileIdRefs` must be fetched/materialized. It validates scope/timeout/size/MIME/hash and returns typed artifact/output facts; it does not own File Bridge protocol, Task Document relations, Gateway relay, or business Action success. Context Pack/Patch bytes may be produced/materialized here, but their application remains a separate Execution effect.

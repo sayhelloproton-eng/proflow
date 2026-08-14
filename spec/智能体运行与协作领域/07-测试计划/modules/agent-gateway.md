@@ -191,3 +191,9 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 
 若风险“Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/relay 安全与业务边界错误会直接暴露平台或重复业务调用。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Action Surface / Worker Turn Critical Proof Addendum
+
+- [ ] **CP-AGT-GW-10** — Product static GPT-facing OpenAPI不含`createTask/listRegisteredRoles/getRegisteredRole` New Task主链。
+- [ ] **CP-AGT-GW-11** — 同一Worker Turn连续Actions时Gateway保持stateless/thin，不建Turn Store，不产生Browser“continue”协议。
+- [ ] **CP-AGT-GW-12** — routine request-intent `x-openai-isConsequential:false`/Always Allow与Execution危险Effect Approval独立；Gateway不能因nonconsequential标记自动授权Effect。
+- [ ] **CP-AGT-GW-13** — File Bridge inbound由Execution materialize，outbound relay引用canonical Artifact/Document；Gateway无durable File/Artifact business store。

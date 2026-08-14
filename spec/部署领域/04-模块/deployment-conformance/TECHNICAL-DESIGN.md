@@ -122,3 +122,10 @@ Conformance 可以用 fake resource 验证 Adapter contract；真实资源可用
 - overload/server errors keep real 429/5xx semantics。
 
 Conformance 只验证合同和 adapter 行为；Always Allow、Multi-Action Turn、Conversation file search、Code Interpreter Context Pack 的真实 ChatGPT 行为仍由 Carrier E2E Gate 判定。
+
+
+## 9. Carrier Reuse First conformance alignment
+
+静态/Behavior Gate 还应验证：Product GPT OpenAPI 不再包含 New Task/Role-discovery mainline operations；Controller/Test 的 Execution request-intent operation 可标 consequential=false而不改变 Execution Effect Policy；Agent Package requirements显式声明 native Web Search/Code Interpreter/File Bridge。
+
+Conformance 不证明 Always Allow/Multi-action/Conversation c-id observation 的真实 Web 行为；这些仍在 final Carrier E2E证明，但 fallback不得重新设计为 per-action Browser scheduler。

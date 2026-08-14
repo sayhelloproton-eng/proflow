@@ -309,3 +309,24 @@ Fetch timeout / locator expired 只证明 transport/materialization 未完成，
 当平台需要通过 `openaiFileResponse` URL 方式返回文件时，Execution 只提供/读取现有 artifact/output truth；Gateway 负责生成对 OpenAI 可取的短期 opaque relay。Execution 不因此成为 Gateway transport Owner。
 
 公开互联网 research 不扩展为 Execution 通用 Search capability；Carrier Web Search 处理认知型公开资料检索，Execution Network 保留精确 URL、LAN/localhost、endpoint probe、authenticated engineering request 等确定性能力。
+## 18. Context Pack / Patch 作为 Artifact mechanics
+
+`execution-local` 不新增 ContextPack/Patch Service。它只提供 Execution-owned typed mechanics：
+
+```text
+selected repo-local inputs
+→ bounded scope / secret exclusion / binary & size filters
+→ deterministic manifest + hashes
+→ materialized Artifact(type=context-pack)
+
+GPT-returned patch file
+→ bounded materialization + hash/type validation
+→ Artifact(type=patch-proposal)
+→ validate target/snapshot/precondition
+→ Execution policy/approval
+→ apply
+→ test / Result / Evidence
+```
+
+Context Pack 是给 Worker/Code Interpreter 的派生工作材料，不是 Task truth；Patch 是 proposal artifact，不是“已经修改 repo”的事实。真实 apply/test 仍由 Execution 控制，stale snapshot / scope mismatch / UNKNOWN 均按 Execution 既有规则处理。
+

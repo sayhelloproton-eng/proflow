@@ -147,3 +147,20 @@ File relay/TLS/443 failure
 ```
 
 Doctor 默认只报告事实与 repair recommendation；需要改 Web 配置时返回 `ACTION_REQUIRED`（`actionRequired.kind=WEB`）或新的 repair plan。
+
+
+## 15. Carrier doctor 追加检查
+
+Custom GPT/Browser Carrier doctor 至少应能够表达/引导检查：
+
+```text
+roleRef/package mapping
+role-scoped Action credential/auth
+static OpenAPI drift
+required File Bridge / Code Interpreter / Web Search
+routine consequential=false / Always Allow target state
+ChatGPT login/workspace/domain allowlist
+Browser Conversation observation/recovery capability
+```
+
+Role READY 不要求 Task/Worker存在；`workerRef/c-id` 是 J1 Task-scoped runtime fact，不属于 Deployment manifest。System Observer可读取 doctor summary 做系统评估，但不能把 assessment反写 Deployment READY。

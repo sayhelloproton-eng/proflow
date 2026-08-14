@@ -17,32 +17,57 @@ contractRefs:
 
 # `platform-host` Technical Design
 
-## Composition
+## 1. Composition
 
 ```text
 platform-host
 ├─ @tomflow/proflow-task-orchestration
 ├─ @tomflow/proflow-agent-runtime
 ├─ Execution public client/contracts
-└─ Model public client/contracts
+├─ Model public client/contracts
+└─ local public transport/router
 ```
 
-## Responsibilities
+Extension、Agent Gateway、Execution Runtime、Model Runtime 仍是独立运行/部署单元。
 
-1. 创建 composition root 与 dependency injection graph。
-2. 建立本地 transport/router，把请求交给 owner package。
-3. 按依赖顺序启动/停止 host 内组件。
-4. 聚合轻量 liveness/readiness，但不发明领域 READY。
-5. 将配置对象注入各 Module；配置 schema/owner 仍在对应 Module/Deployment。
+## 2. Responsibilities
 
-## Forbidden
+1. 创建 composition root 与 DI graph。
+2. 建立 local transport/router，把请求转交事实 Owner。
+3. 按依赖顺序启动/停止 host-owned runtime components。
+4. 聚合 process/transport/dependency liveness/readiness，不发明 Domain READY。
+5. 注入由 Deployment materialize 的 config；schema/secret owner 不转移。
+6. 为 Extension application consumers 提供 Task/Agent/Execution/Model public client path。
 
-- Task/Agent business repository。
+## 3. Observer Support，但不拥有 Observer
+
+Task Observer/System Observer 的物理 application logic 位于 Extension background。host 只允许提供：
+
+```text
+Task drive projection/query
+Agent/Collaboration public query
+Execution result/approval/public query
+Model infer/status client
+bounded dependency health projection
+```
+
+System Observer 的 batching/carry-forward/global synthesis orchestration 不进入 platform-host Domain state；Task Observer 也不能由 host 定时器绕过 Extension/Carrier 直接推进 Task。
+
+## 4. Forbidden
+
+- Task/Agent business Repository。
 - Execution Effect implementation。
-- Model provider implementation。
-- Deployment plan/apply logic。
-- cross-domain state mirror/global cache。
+- Model provider/ReasoningSpec owner implementation。
+- Deployment plan/apply/verify truth。
+- cross-domain mutable mirror/global cache。
+- universal scheduler/event bus。
+- Browser DOM operation/frame/tab registry。
+- assessment → direct business mutation。
 
-## Failure Isolation
+## 5. Failure Isolation
 
-某个依赖 Module unavailable 时，host 返回 typed dependency/readiness 状态；不得篡改该领域业务状态。restart 后由 owner Module 自己执行其恢复规则。
+某依赖 unavailable 时，host 返回 typed dependency状态；不得篡改该领域业务状态。restart 后重建 graph 并重新查询 Owner current reality，不 replay mutation。
+
+## 6. Decision Authority
+
+host 只做 transport/composition。Owner current fact/hard rule > deterministic > FAST > REASON > Human 的横切决策层级由各正式组件执行；host 本身不是 Policy/Planner。

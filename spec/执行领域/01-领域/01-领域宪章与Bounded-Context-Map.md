@@ -29,7 +29,7 @@ contractRefs: []
 - sideEffectState
 - Effect policy enforcement
 - Effect Approval semantics
-- Result/Evidence
+- Result / Artifact / Evidence
 - Browser Execution
 - Local Execution
 - UNKNOWN_SIDE_EFFECT
@@ -93,3 +93,7 @@ Requires：
 ## 8. 详细模型与边界正文
 
 本文件只冻结 DDD 导航边界，不重写原高密度技术正文。详细定义继续由本领域 `01-领域/02-*`、`01-领域/03-*` 和 `02-契约/*` 承载。
+
+## 9. 2026-08-14 Journey alignment
+
+Execution 是唯一 real-effect plane。`Artifact` 是本 Context 的受控 materialized output/input identity，与 `Evidence` 分离；Context Pack/Patch 只是 Artifact subtype。Browser Extension 虽承载 Task/System Observer application logic 与 Carrier Controller，但不能因此拥有第二套 Execution truth。Task start confirmation 不产生 Execution approval；只有具体危险 Effect 的 Approval 属于 Execution。

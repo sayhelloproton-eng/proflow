@@ -31,3 +31,7 @@ contractRefs:
 ## Boundary Rule
 
 本文件只定义该 Module 的工程落点，不复制 Domain / Bounded Context 的 canonical facts。若实现需要引入当前 normative Contract 未定义的新算法语义、状态、持久化事实或跨域 Contract，必须先完成对应设计与 Contract Change；不得由 TODO/Codex 自行补全。
+
+## 2026-08-14 typed-ref / Carrier boundary
+
+This library must expose/validate the canonical opaque refs and typed envelopes needed by the v1 Journey, including `taskId/nodeId/runNo/roleRef/workerRef/executionRef/artifactRef/evidenceRef/correlationId`. It does not define Task Observer/System Observer state or WorkerTurn entities. Browser typed DTOs carry transient operation/tab/content details only where necessary; such fields never become stable business identity.

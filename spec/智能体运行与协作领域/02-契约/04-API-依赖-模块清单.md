@@ -14,51 +14,65 @@ contractRefs: []
 
 # 智能体运行与协作领域｜API、依赖与 Module 快速清单
 
-## Domain
+## Domain Owner
 
 ```text
-Owner:
-Agent Package
-Role
-Worker identity
-Role Registry / credential
+Agent Package / generic Role definition
+roleRef registration / role credential
+Worker identity validation
 Collaboration Message Center
-Agent Gateway / Custom GPT carrier protocol
+Agent Gateway / Custom GPT Actions protocol
 ```
 
-不拥有 Task workflow、Browser implementation、real Effect、Model runtime、Deployment lifecycle。
+不拥有 Task workflow、Browser implementation、真实 Effect、Model runtime、Deployment lifecycle。
 
 ## v1 最小业务概念
 
 ```text
-AgentPackageRef
+AgentPackageRef / packageName
 RoleRef
 WorkerRef
 RegisteredRole
 RoleCredential
 CollaborationThread
 CollaborationMessage
-DeliveryState/ReceiptRef
+DeliveryState / ReceiptRef
 ```
 
-不建立 Agent/Session/AgentRun。
+不建立 Agent/Session/AgentRun/WorkerTurn entity。
 
-## 固定角色
+## 固定三个泛化 Role
 
 ```text
-产品 = 运营 + 产品经理
-总控 = 项目管理 + 研发
-测试 = 测试 + 运维
+Product
+Controller / Dev
+Test / Ops
 ```
+
+专业化 Knowledge 不进入 v1；不做动态 Role discovery / capability matching 主链。
+
+## Identity
+
+```text
+agentPackageRef/packageName = logical role type
+roleRef = deployed Custom GPT g-id
+credential = GPT→Gateway secret
+workerRef = Task-scoped Conversation c-id
+conversationLocator = Browser restore locator
+```
+
+Browser不持有Role credential；Task/Agent都不把tab/frame当业务identity。
 
 ## Agent Runtime Public API
 
-### Role Registry
+### Role Registry（management / Deployment / Carrier lookup）
 
 ```text
 listRegisteredRoles(...)
 getRegisteredRole(...)
 ```
+
+**不作为 Product GPT New Task 主链。**
 
 ### Collaboration
 
@@ -67,80 +81,74 @@ askPeer(...)
 replyPeer(...)
 ```
 
-内部 Task Driver 所需 pending/delivery report capability 必须保持 Agent owner 语义，但不直接暴露给 Custom GPT，除非该 operation 被正式列入相应 Agent Package Actions。
+pending/delivery internal capability保持Agent owner语义，不直接变成GPT业务Action。
 
-## Local management CLI
-
-```text
-role register
-role show
-role validate
-role delete
-role key show/rotate
-```
-
-register/delete 不是 GPT runtime Public API。
-
-## Product pre-Task flow
+## New Task / Worker dependency
 
 ```text
-user opens product GPT Conversation
-→ clarify requirement
-→ authoritative Browser identity/c-id observation
-→ createTask(product role+worker, dev/test role requirements)
+Extension New Task
+→ Task.createTask(PENDING)
+→ fixed packageName→roleRef lookup
+→ Browser Carrier CREATE/observe Product + Dev + Test new Conversations
+→ Agent validate Worker identity
+→ Task.bindTaskWorker × 3
+→ Product bound 后即可 Requirement discussion/write
+→ Dev/Test WORKER_BIND only, remain IDLE
+→ Requirement + 3 bindings + prerequisites
+→ Task READY
+→ human confirmation channel
+→ startTask
 ```
 
-## Task execution initialization dependency
+Partial success只补缺失Worker；不得因为一个失败重建已成功Conversation。
 
-```text
-human authorization
-→ Execution Browser CREATE dev Worker
-→ Agent validates/registers worker identity
-→ Task.bindTaskWorker(dev)
-→ Execution Browser CREATE test Worker
-→ Agent validates/registers worker identity
-→ Task.bindTaskWorker(test)
-→ Task may start formal Node work
-```
-
-恢复只补缺失步骤，不重复创建已成功 Worker。
+Product GPT不调用`createTask/listRegisteredRoles/getRegisteredRole`主链。
 
 ## Requires｜Task
 
 ```text
-createTask/getTask/getNodeContext
+createTask（Extension/platform-host application）
+getTask / getNodeContext / getTaskDriveProjection（按consumer）
 bindTaskWorker
-start/complete/wait/reopen Node commands
-TaskDocument reads/writes required by role
-Task participant/status validation
+startTask
+startNode / completeNode / waitNode / reopenNode
+TaskDocument reads/writes
+participant/status/version validation
 ```
 
-Agent 绝不读 Task SQLite。
+Agent绝不读Task SQLite。
 
 ## Requires｜Execution
 
 ```text
-Browser CREATE/RESTORE/WAKE
-Collaboration physical delivery
+Browser CREATE / RESTORE / WAKE / physical delivery
 Local typed capabilities
 File fetch/materialization
-Result/Evidence
+Artifact/Result/Evidence
+UNKNOWN/reality reconciliation
 ```
 
-Agent 绝不直接执行 shell/git/browser effect。
+Agent不直接执行shell/git/browser effect。
+
+## Requires｜Model
+
+Custom GPT cognition不等于Model Domain。平台内部仅：
+
+```text
+Task diagnostic REASON（exceptional）
+System assessment REASON（lowest priority）
+Vision page/screenshot fallback
+```
 
 ## Requires｜Deployment
 
 ```text
-Module Graph/config materialization
-public-ingress external resource
+module config/materialization
+public-ingress External Resource
 Custom GPT carrier readiness
-verify/doctor/upgrade/ACTION_REQUIRED_WEB
+Action Auth / native capability requirements
+verify/doctor/ACTION_REQUIRED_WEB
 ```
-
-## Requires｜Model
-
-仅在 Agent/下游流程需要显式认知算力时使用 Model Public Contract；Custom GPT 自身 Carrier cognition 不等于 Model Domain runtime。
 
 ## Gateway
 
@@ -151,40 +159,49 @@ Custom GPT
 → Agent/Task/Execution public contracts
 ```
 
-约束：45s Action ceiling、request/response `<100k chars`、真实 429/5xx、无 arbitrary custom headers、显式 `x-openai-isConsequential`。
+约束：45s ceiling、request/response `<100k chars`、真实429/5xx、无arbitrary custom headers、File Bridge、显式`x-openai-isConsequential`。
+
+Gateway薄：auth / schema / protocol normalize / routing / serializer；不拥有文件、Task、Execution、Tool Router AI。
+
+## Worker Turn / GPT Native
+
+一次WAKE可形成一个语义Worker Turn；同一Conversation内可连续`0..N` Actions，不在每Action之间Browser wake。
+
+优先复用：
+
+```text
+Conversation context/file search
+File Bridge
+Code Interpreter
+Web Search
+```
+
+大型动态上下文走Task/Artifact→File Bridge，不走Browser DOM注入。
 
 ## Browser
 
-Browser Extension 属于 Execution。Agent 只依赖稳定 logical capabilities/results，不依赖 tab/window/content internal id。
-
-## Dev Tunnel
-
-Dev Tunnel 是 Deployment External Resource Module。Agent Gateway requires `public-ingress` capability/moduleRef，不拥有 tunnel login/start/stop。
-
-## Agent Package static config
-
-```text
-package.json Agent fields
-context/fixed-context.md
-memory/memory.md
-knowledge/*
-actions/custom-gpt.openapi.yaml
-carrier requirements profile
-```
-
-不存在 runtime dynamic Action schema、Capability Catalog、Schema Composer。
+Browser Extension属于Execution。Agent只依赖稳定logical capabilities/results，不依赖tab/window/content/frame internal id。无Frame Registry/iframe workspace/persistent tab business identity。
 
 ## Authentication
 
 ```text
-Custom GPT → Gateway = one Role one Bearer/API key
+Custom GPT → Gateway = one Role one random Bearer/API key
 Browser Extension → Execution Runtime = local-platform-token
 ```
 
 ## Collaboration durable boundary
 
-保存逻辑 thread/message/participants/reply relation/delivery state/idempotency；不复制 full transcript、Task docs、Execution logs/evidence 或 Worker 完整上下文。
+Message Center保存logical thread/message/participants/reply/delivery state/idempotency；不复制full transcript、Task docs、Execution logs/evidence或Worker完整上下文。
 
-## 当前不稳定能力
+## Approval / Permission
 
-Always Allow、Multi-Action Worker Turn、Conversation-native file handling、Context Pack/ZIP 等只按 `06-状态与实施/KNOWN-LIMITATIONS-AND-SPIKES.md` 使用，不成为无 fallback 主链。
+四分：
+
+```text
+Task start confirmation channel → startTask, no Task approval fact
+Execution safety Approval → Execution owner
+Deployment ACTION_REQUIRED(_WEB) → human action + re-observe
+ChatGPT Action permission → Always Allow / carrier recovery
+```
+
+Routine Action `consequential:false`不能绕过Execution effect policy。

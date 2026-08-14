@@ -30,3 +30,8 @@ contractRefs: []
 - Service 只有真实长期 runtime 时才存在。
 - Deployment Unit 的真实生命周期由 Deployment Domain 治理。
 - Module 文档通过链接引用领域级 canonical Contract / Flow / Persistence，不为“模板完整”复制第二套正式事实。
+
+## 2026-08-15 Observer inference alignment
+
+`model-contracts` 继续只定义 `infer()/getRuntimeStatus()` 与 typed Reasoning contracts；Task Diagnostic/System Assessment 通过 versioned `specRef` 复用 `infer()`。`model-runtime` 提供 FAST/REASON/Vision typed inference，不拥有 Task/System Observer Store、batch scheduler 或业务 authority；System Observer 的 batching/carry-forward/drill-down/global synthesis 在 caller/application 侧组织。
+

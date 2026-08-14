@@ -164,3 +164,9 @@ implementationWave: Wave 4
 
 若风险“测试+运维角色负责验证与异常处理；如果能越权推进业务或伪造 evidence，会破坏最后质量门。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Journey / Native Capability Critical Proof Addendum
+
+- [ ] **CP-AGT-TEST-07** — J1 Test/Ops bind-only/IDLE；Node READY WAKE后Worker才`startNode`。
+- [ ] **CP-AGT-TEST-08** — one Worker Turn 0..N Actions，无Browser per-action scheduler。
+- [ ] **CP-AGT-TEST-09** — File Bridge/Code Interpreter可分析artifact/report，但测试PASS/FAIL与Evidence必须经Owner contracts，Browser/GPT文本不是业务真源。
+- [ ] **CP-AGT-TEST-10** — fail→reopen复用same workerRef/Conversation、runNo+1；不重建Worker。

@@ -120,7 +120,7 @@ qualityRefs:
 - AGENT-DOC-05-03
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 Worker identity validate/resolve，不复制 Task binding
+goal: 实现 Task-bound Worker context defensive validation，不复制/解析出第二套 Task binding
 scope:
   allow:
   - packages/agent-runtime/**
@@ -252,3 +252,11 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+## 2026-08-14 Fixed-role / Collaboration Addendum
+
+- [ ] Role Registry 保留 management/Deployment/Carrier lookup，不进入 Product GPT New Task动态发现主链。
+- [ ] v1固定三个Agent Package logical roles；不新增RoleType/Persona/dynamic capability matching。
+- [ ] `roleRef↔credential`认证与Task `agentPackageRef→workerRef` binding职责分离；Browser不读取credential。
+- [ ] askPeer/replyPeer只写Collaboration Message Center；message可带taskId/nodeId/runNo correlation，但不创建Task Node/WAIT/transition。
+- [ ] physical peer delivery/return wake由Extension Carrier path执行；Agent Runtime不保存tab/frame，也不成为Browser scheduler。

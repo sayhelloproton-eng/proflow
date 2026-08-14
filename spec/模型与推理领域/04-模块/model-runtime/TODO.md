@@ -266,3 +266,38 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+### MODEL-RT-008
+
+```yaml
+id: MODEL-RT-008
+status: READY
+implementationReadiness: PLANNED
+priority: PENDING_DECISION
+type: VALIDATION
+owner:
+  domain: model-reasoning
+  boundedContext: model-reasoning
+  moduleRef: model-runtime
+sourceRefs:
+- MODEL-MODEL-RUNTIME-TECH-DESIGN
+- MODEL-DOC-02-01
+- MODEL-DOC-03-08
+qualityRefs:
+- MODEL-DOC-05-02
+dependencyState: NOT_FROZEN
+dependsOn: []
+goal: 验证 Task Diagnostic 与 System Assessment 的 typed REASON、background priority、真实有效负载、batch/carry-forward/drill-down/global synthesis 边界
+scope:
+  allow:
+  - packages/model-runtime/**
+  forbid:
+  - Task/Execution/Collaboration/Deployment 业务 Store
+  - System Observer 业务 Store/Runtime/Scheduler
+  - 通过模型结果直接修改 Owner facts
+  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
+acceptance:
+- ACCEPTANCE_NOT_FROZEN
+verification: []
+evidence: []
+```

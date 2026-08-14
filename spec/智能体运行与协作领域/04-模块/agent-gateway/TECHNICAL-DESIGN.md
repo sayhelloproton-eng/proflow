@@ -188,84 +188,52 @@ Gateway 不自己解析 Task participant table。
 
 ---
 
-# 8. Task Actions
+# 8. GPT-facing business Actions
 
-产品/研发/测试包按角色责任只暴露其实际需要的 Task Actions。
+Gateway只路由Agent Package静态允许的business-purpose operation。
 
-示例：
-
-```text
-产品：
-- listRegisteredRoles（Agent）
-- current carrier context（Agent/Carrier，E2E待定实现）
-- createTask（Task）
-- Task document actions（按最终权限）
-- askPeer/replyPeer
-
-研发：
-- getTask/getNodeContext
-- completeNode/waitNode
-- reopenNode（若总控+研发职责允许）
-- askPeer/replyPeer
-- Execution typed resources
-
-测试：
-- getTask/getNodeContext
-- completeNode/waitNode
-- test/runtime Execution resources
-- askPeer/replyPeer
-```
-
-精确矩阵见本领域 `02-契约/03-角色Action静态权限矩阵.md`；Task operation 以 Task Domain Public Contract 为准。
-
----
-
-# 9. Local Resource 能力归 Execution
-
-Agent Domain 提需求，不拥有真实本机副作用。
-
-角色需要的资源包括：
+Product主链：
 
 ```text
-workspace files
-Git
-CodeGraph
-Node/npm environment
-build/test/lint/typecheck
-services/processes/ports
-health/logs
-machine/network
-authorized LAN data sources
-controlled command execution
+getTask / TaskDocument
+askPeer / replyPeer
 ```
 
-具体 API、审批、安全边界、path rooting、command policy、Result/Receipt 全部由 Execution Domain 设计和实现。
+不暴露Product `createTask/listRegisteredRoles/getRegisteredRole` New Task主链；Extension/application完成这些确定性动作。
 
-Agent Package 只决定“该角色可见哪些已注册能力”。
-
----
-
-# 10. Typed API 优先
-
-优先：
+Controller/Dev 与 Test/Ops：
 
 ```text
-readFile
-listFiles
-searchFiles
-getGitStatus
-getGitDiff
-getRuntimeVersions
-getProjectScripts
-getTestResults
-readLogs
-checkHealth
-...
+getTask / getNodeContext
+startNode / completeNode / waitNode / reopenNode（按角色权限）
+Execution request/result
+Artifact/File Bridge
+askPeer/replyPeer
 ```
 
-`runCommand` 只作为受控 escape hatch，不作为所有查询的统一入口。
+精确矩阵见`AGENT-DOC-02-03`。
 
----
+# 9. Local Resource / real Effect 归 Execution
+
+GPT不应把所有底层fs/git/process/network/browser primitive当高频顶层Actions。业务Action表达intent，真实Effect由Execution capability/policy执行。
+
+底层typed primitives可保留在Execution内部/Public capability surface作为确定性能力，但Gateway不形成“Tool Router AI”。
+
+公开互联网research优先Custom GPT Web Search；Execution Network保留local/private/credentialed/exact deterministic engineering requests。
+
+# 10. Worker Turn / Native Capability
+
+一个WAKE允许同一Conversation连续调用`0..N` Actions。Gateway只处理每个真实Action request，不发`ACTION_FINISHED→CONTINUE`控制信号。
+
+大型上下文优先：
+
+```text
+TaskDocument / Execution Artifact
+→ File Bridge
+→ Conversation / Code Interpreter
+```
+
+而不是Browser DOM大文本注入。Gateway只做File Bridge protocol/relay；physical materialization/hash由Execution。
 
 # 11. Approval / Policy
 
@@ -334,7 +302,7 @@ x-openai-isConsequential: false
 
 真正 Local/Browser Effect 仍经过 Execution Policy / Approval。若未来存在 Action endpoint 自身直接完成高风险外部 Effect，才把该 operation 设为 `true`。
 
-`Always Allow` 在目标 Custom GPT 主链中的实际稳定行为仍需真实 Preview/E2E；在验证通过前，Browser permission recovery 不能删除。
+`Always Allow` 是routine nonconsequential Action的目标主链；真实 Preview/E2E仍必须证明实际行为。Unexpected permission prompt保留为Carrier recovery，而不是恢复成每次Browser permission click主流程。
 
 # 13. GPT Actions File Bridge
 
@@ -458,4 +426,4 @@ Gateway/OpenAI adapter 对外冻结以下 typed error codes；底层 Execution e
 - Gateway 是 Custom GPT Actions 公网 Anti-Corruption Layer，不拥有下游业务状态，不直接触达 Local/Browser Effect。
 - Dev Tunnel 改由 Deployment External Resource Module 管理；Gateway 只 Requires 一个满足 public ingress capability 的 moduleRef/逻辑能力。
 - 本地/浏览器真实能力统一通过 Execution Public Contract；Gateway 不 import execution-local/browser internal implementation。
-- GPT-facing transport 的 OpenAI hard limits 与 File Bridge 官方协议进入 Agent Carrier conformance；只有 Always Allow / Multi-Action Turn / Conversation file search / Context Pack 的目标环境行为保持 `PENDING_SPIKE`。
+- GPT-facing transport 的 OpenAI hard limits 与 File Bridge 官方协议进入 Agent Carrier conformance；Always Allow、Multi-Action Worker Turn、Conversation-native file usage 与 Context Pack→Code Interpreter→Patch 已是 v1 REUSE/PRIMARY PATH，真实目标环境 proof 留到 FINAL MANUAL E2E。只有具体载体格式优化（例如 ZIP Context Pack）可继续保持 `PENDING_SPIKE`。

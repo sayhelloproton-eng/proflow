@@ -24,6 +24,13 @@ paths:
         - {name: taskId, in: query, required: true, schema: {type: string}}
         - {name: nodeId, in: query, required: true, schema: {type: string}}
       responses: {'200': {description: Node context}}
+  /actions/startNode:
+    post:
+      operationId: startNode
+      summary: Start the current ready test or operations node after a verified NODE_READY wake.
+      x-openai-isConsequential: false
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/NodeVersionInput'}}}}
+      responses: {'200': {description: Started node}}
   /actions/completeNode:
     post:
       operationId: completeNode
@@ -80,7 +87,7 @@ paths:
       operationId: executeCapability
       summary: Execute one typed verification or operations capability through Execution owner runtime.
       description: Test PASS remains evidence and never independently changes Task or Execution success.
-      x-openai-isConsequential: true
+      x-openai-isConsequential: false
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExecuteCapabilityInput'}}}}
       responses: {'200': {description: Durable Execution record}}
   /actions/getExecution:

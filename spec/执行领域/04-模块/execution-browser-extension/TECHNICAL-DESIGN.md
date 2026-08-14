@@ -11,90 +11,123 @@ subdomains: []
 provides: []
 requires: []
 contractRefs:
-- EXECUTION-EXECUTION-BROWSER-EXTENSION-TECH-DESIGN
 - EXECUTION-DOC-02-01
 - EXECUTION-DOC-02-02
+- PLATFORM-DOC-01-04
+- TASK-DOC-03-05
+- MODEL-DOC-03-08
 ---
 
 # 04 · execution-browser-extension 详细技术方案
 
+> 2026-08-14 对齐：Extension 不再被描述为一个“Task Driver 万能调度器”。同一 package 内明确分离 Task UI / Approval-Alert UI / Task Observer / System Observer / Background Carrier Controller。Browser Carrier 降为可靠页面载体；Task progression 与 system assessment 分开。
+
+---
+
 ## 1. 定位
 
-Browser Extension 完全归 Execution Domain。
+Browser Extension 完全归 Execution Domain 的 Browser capability，但内部可以组合 Application components。
 
-它是：
+它负责：
 
-> **Browser Executor + Evidence Provider + Task Driver carrier coordinator + P0 Side Panel**
+```text
+Task UI / New Task入口（application composition）
+Approval/Alert UI（interaction channel）
+Task Observer（deterministic progression detection）
+System Observer（lowest-priority whole-system assessment coordination）
+Background Carrier Controller（real page operations）
+P0 Side Panel
+Browser Effect / Evidence
+```
 
-它不是：Task/Agent 业务真源、通用 scheduler、Approval 业务服务。
+它不是：
 
-## 2. 顶层组件
+```text
+Task/Agent/Deployment business owner
+通用 Scheduler/Event Bus
+Approval business service
+File Store
+Agent Runtime
+```
 
-推荐结构：
+---
+
+## 2. 顶层逻辑结构
+
+概念结构：
 
 ```text
 extension/
-├── background/            # MV3 service worker
+├── ui/
+│   ├── task-list-new-task
+│   ├── approval-alert
+│   └── side-panel
+├── background/
 │   ├── runtime-session
-│   ├── task-driver
-│   ├── worker-lanes
-│   ├── recovery-scan
-│   ├── browser-executor
-│   ├── verifier
-│   └── system-observer
+│   ├── task-observer
+│   ├── system-observer
+│   ├── carrier-controller
+│   ├── recovery
+│   └── evidence-log-client
 ├── content/
-│   ├── page-runtime
-│   ├── chatgpt-dom
-│   ├── action-permission
-│   └── evidence
-├── side-panel/
-├── shared/
-└── manifest.*
+│   ├── chatgpt-page-adapter
+│   ├── deterministic-dom-observer
+│   └── screenshot-capture
+└── shared/
 ```
 
-不要求按这些目录原样实现，但职责必须保持。
+物理目录不要求完全一致，但职责不得重新合并成一个“万能 task-driver”。
 
-## 3. Task Driver = 唯一业务驱动线
+---
 
-触发来源只有：
+## 3. New Task / J1
 
-1. Task Node polling（未来可替换 event）；
-2. 当前 Worker Lane 的 Browser events；
-3. Collaboration formal input；
-4. Human Decision result；
-5. Extension/Chrome/Runtime 恢复时的一次性 Recovery Scan。
-
-明确删除：周期扫描 Task/Agent/Execution/Browser 全系统并重新推导业务状态。
-
-## 4. Worker Lane
-
-每个 `(taskId, roleRef, workerRef)` 形成逻辑 Worker Lane。
-
-Worker Lane 保存的是运行 view，不是新的业务实体。
-
-Lane 需要表达：
+Extension 是 v1 唯一 New Task 入口：
 
 ```text
-worker identity
-current tab/content session
-page state
-current activity
-current executionRef
-continuationRef（如等待人工）
-last progress
+user New Task
+→ Task createTask(PENDING)
+→ fixed Product/Dev/Test agentPackageRefs
+→ resolve current roleRefs
+→ Carrier CREATE 3 Conversations（可并发）
+→ observe workerRef/c-id + conversationLocator
+→ Task bindTaskWorker × 3
+→ Product 一经绑定即可 requirement discussion
+→ Dev/Test WORKER_BIND + IDLE
+→ Product formalizes REQUIREMENT
+→ Task deterministic READY
 ```
 
-同 Worker Browser 写串行。
-
-Worker BUSY 只说明 GPT 正在生成，不长期占用全局 Browser 写锁。
-
-## 5. Stable vs Transient Identity
-
-Stable：
+### 3.1 Partial success
 
 ```text
-roleRef
-workerRef
+Product bound / Dev bound / Test missing
+→ keep two successful bindings
+→ only retry/recover Test
+```
+
+不得失败就重建全部 Conversations。
+
+### 3.2 Create Effect uncertainty
+
+如果 submit/bootstrap 后断联，不能直接 CREATE 第二个 Conversation：
+
+```text
+re-observe current tabs/role page/navigation
+→ confirm existing conversation / confirm absent / UNKNOWN
+```
+
+---
+
+## 4. Stable vs transient identity
+
+Stable business/carrier identity：
+
+```text
+agentPackageRef/packageName
+roleRef/g-id
+workerRef/c-id
+conversationLocator
 ```
 
 Transient：
@@ -104,197 +137,303 @@ tabId
 windowId
 extensionInstanceId
 contentInstanceId
+attemptNo
 ```
 
-Tab/Content binding 必须 freshness 校验；旧 persisted READY 无权威性。
+Task 不持久化 transient browser identity。
 
-## 6. Extension Runtime Session
-
-Extension background 启动：
+Worker Lane 如保留，只是 runtime view，建议 key 至少包含：
 
 ```text
-new extensionInstanceId
-→ connect execution-runtime
-→ handshake
-→ heartbeat
+taskId + agentPackageRef + workerRef
 ```
 
-Runtime ONLINE 判断只看活 session + heartbeat freshness。
+不是新 Entity/Store。
 
-Content Script 每次 load/navigation 生成新 `contentInstanceId`；同 tab reload 后旧 content instance 必须失效。
+---
 
-向页面发写命令前至少校验：
+## 5. Background Carrier Controller
+
+唯一负责 typed Browser operations：
 
 ```text
-tab exists
-current contentInstanceId matches
-URL matches expected roleRef/workerRef
+CREATE_CONVERSATION
+OPEN_OR_RESTORE_CONVERSATION
+WAKE_WORKER
+DELIVER_COLLABORATION
+CAPTURE_SCREENSHOT
+OBSERVE_PAGE
+RECOVER_DELIVERY
 ```
+
+UI/Observer 只请求 typed operation；不能直接散落调用 Chrome DOM primitives。
+
+---
+
+## 6. Content Script / DOM strategy
+
+真实 DOM 操作通过受控 Content Script 或 `chrome.scripting.executeScript()`：
+
+```text
+scroll to bottom
+locate composer
+programmatic input
+submit
+observe deterministic success/failure indicators
+```
+
+第一版禁止依赖：
+
+```text
+mouse coordinates
+keyboard coordinates
+frame registry
+frame-role handshake
+iframe workspace
+complex tab/frame topology
+```
+
+DOM first；只有 deterministic DOM 无法解释页面时：
+
+```text
+screenshot
+→ Model Vision
+→ structured observation
+```
+
+Vision 结果只辅助 Carrier判断，不成为 Task/Execution business success。
+
+---
 
 ## 7. CREATE
 
-前置：Task 没有对应 workerRef。
-
-流程：
+前置：对应 TaskRoleBinding 还没有 workerRef。
 
 ```text
-open role URL /g/<role>
+open registered Role URL
 → page ready
-→ submit minimal bootstrap/bind message
-→ observe same-tab navigation
-→ capture new /c/<workerRef>
-→ verify role + worker URL
-→ optional harmless bootstrap-check Action（只读、不得触发人工 permission；用于校验 Instructions/Action/Gateway readiness，不作为 c-id 真源）
-→ call Task API bind worker
-→ stop
+→ minimal Product requirement-start or Dev/Test WORKER_BIND message
+→ observe Conversation navigation / c-id
+→ verify role/c-id
+→ capture conversationLocator
+→ report/bind via Task Public Contract
 ```
 
-注意：
+CREATE 成功 ≠ Task binding 成功；两层事实分别由 Browser/Task持有。
 
-- c-id 的权威 evidence 来自真实 URL/navigation；
-- bootstrap Action 不替代 c-id；
-- CREATE 后不立即开始 Node；
-- 中断且可能已创建 → UNKNOWN，恢复已有 conversation，绝不盲建第二个。
+---
 
 ## 8. RESTORE
 
-前置：已有 workerRef。
+前置：已有 workerRef + conversationLocator。
 
 ```text
-open /g/<role>/c/<workerRef>
-→ load
-→ verify exact role/worker identity
-→ ensure content session
-→ transient bind
+if correct current tab exists → focus/reuse
+else open conversationLocator
+→ wait page ready
+→ observe c-id/role consistency
+→ establish transient content session
 ```
 
-缺 Tab 不是 CREATE 条件。
+缺 Tab 永远不是 CREATE 条件。
+
+---
 
 ## 9. WAKE
 
 ```text
-ensure RESTORE
-→ verify page is writable/not BUSY in conflicting action
-→ build small identity/trigger payload
-→ input
+RESTORE
+→ verify correct writable Conversation
+→ build minimal trigger
+→ scroll/input/submit
+→ verify physical trigger present
+```
+
+Minimal trigger：
+
+```text
+taskId
+nodeId? / runNo?
+workerRef
+triggerType
+underlying execution/message/reopen ref when relevant
+```
+
+不默认注入 Requirement/PRD/代码/长日志。
+
+WAKE success 只证明 physical delivery。
+
+---
+
+## 10. Node READY 顺序
+
+冻结：
+
+```text
+Task Node READY
+→ Task Observer request WAKE
+→ Browser delivers NODE_READY
+→ Worker calls Task.startNode
+→ Task verifies binding/version/runNo
+→ Node IN_PROGRESS
+```
+
+不再采用“Task Driver 先 startNode 再通知 Worker”作为默认语义，也不允许 Browser自己修改 Node状态。
+
+---
+
+## 11. Worker Turn / Multi-action
+
+一次 WAKE 启动一个 Worker Turn；GPT 可以在同一 Turn 内：
+
+```text
+reason
+→ Action
+→ result
+→ Action
+→ ...
+```
+
+Browser 不：
+
+```text
+每 Action 再 WAKE
+自动输入“继续”
+抓 GPT reply 做 Task状态判断
+建立 WorkerTurn Store/Runtime
+```
+
+长 Execution / Approval / cross-worker peer wait 是 Turn boundary，结果 ready 后 Task Observer 再 WAKE同一 Worker。
+
+---
+
+## 12. Task Observer
+
+Task Observer 是 concrete Task progression detector。
+
+### 输入
+
+```text
+Task drive projection
+TaskRoleBinding
+relevant Execution Result readiness
+relevant Collaboration reply/delivery readiness
+last Carrier wake result
+terminal flag
+```
+
+### 正常 deterministic outputs
+
+```text
+NODE_READY → WAKE current Worker
+EXECUTION_RESULT_READY → RESUME same Worker
+PEER_REPLY_READY → RESUME same Worker
+REOPEN READY → WAKE original Worker
+```
+
+规则能判定就不调用模型。
+
+### REASON 例外
+
+只有：
+
+```text
+conflicting facts
+Execution/Delivery UNKNOWN
+repeated recovery failure
+unexplained stalled
+multi-signal prioritization
+```
+
+才请求 Task Diagnostic REASON。模型只能给 finding/recommendation，不可 complete/reopen/approve/replay Effect。
+
+---
+
+## 13. System Observer
+
+System Observer 是**整个系统评估器**，不是全局待办处理器。
+
+读取 bounded views：
+
+```text
+Task
+Agent/Worker
+Collaboration
+Execution
+Carrier
+Model
+Deployment/Services
+Logs/Artifacts/Evidence summaries
+```
+
+通过 Model Runtime执行：
+
+```text
+compact snapshot
+→ concern batches
+→ carry-forward/drill-down
+→ global REASON synthesis
+→ System Assessment
+```
+
+它最低优先级；手机模型忙/业务 lane忙时 defer。输出仅 assessment/findings/risks/recommendations/typed request，不直接改变 Owner facts。
+
+详细合同见 `EXECUTION-DOC-03-04` 与 `MODEL-DOC-03-08`。
+
+---
+
+## 14. GPT Action Permission
+
+Routine platform query/control/intent Actions：
+
+```text
+x-openai-isConsequential:false
+→ user initial Always Allow
+→ happy path no per-action Browser permission click
+```
+
+unexpected permission prompt / changed schema-domain-auth / truly consequential external UI case 才进入 recovery/human path。
+
+OpenAI confirmation ≠ Execution Effect Approval。
+
+---
+
+## 15. Human Decision / Approval UI
+
+Extension UI 可承接：
+
+```text
+Task start confirmation
+Execution Approval
+System alerts
+Deployment ACTION_REQUIRED guidance
+```
+
+但正式结果仍提交给对应 Owner；UI不是 Approval/Task/Deployment真源。Future Feishu 可替换/并存 interaction channel。
+
+---
+
+## 16. Collaboration physical delivery
+
+Agent Message Center owns logical message。
+
+```text
+pending message
+→ resolve target TaskRoleBinding
+→ RESTORE target Conversation
 → submit
-→ verify message inserted in target conversation
-→ Worker uses Actions/File Bridge for large dynamic context
-→ optional observe generation/action signal
+→ verify physical delivery
+→ Execution Evidence/Result
+→ Agent updates logical delivery fact
 ```
 
-trigger 应携带可追踪的语义：node/run/reopen/peer reply 等。
+同一个 messageRef 不得 blind duplicate delivery。
 
-WAKE SUCCEEDED = 指令真实送达 Worker；不是 Node complete。
+---
 
-## 10. Page State / Progress
+## 17. Browser Effect durability / UNKNOWN
 
-运行状态：`IDLE/BUSY/BLOCKED/UNKNOWN`。
-
-`activityKind` 可示例：
-
-```text
-GENERATING
-ACTION_PERMISSION
-ACTION_RUNNING
-WAITING_HUMAN
-WAITING_PEER
-RECOVERING
-```
-
-不要把 activityKind 变成业务状态机。
-
-Progress events 包括：
-
-- GPT 内容继续生成；
-- Action 开始/permission/result；
-- Execution 状态变化；
-- Task/Agent formal fact 变化；
-- Human continuation resolved。
-
-## 11. Progress Gap / Runtime Stall
-
-Progress Gap：page IDLE + Node still IN_PROGRESS。
-
-允许少量安全 continuation，但不能无限 WAKE。
-
-重复无进展：deterministic evidence → FAST → REASON → 必要 Human。
-
-Runtime Stall：page BUSY + 长时间无真实 progress + 排除了模型/Execution/Approval/Peer 的合法等待。
-
-## 12. GPT Action Permission
-
-Static OpenAPI 对 routine query/control/intent operation 必须显式 `x-openai-isConsequential:false`。OpenAI Carrier confirmation 与 Execution Approval 是两层独立语义。
-
-目标 happy path：
-
-```text
-routine non-consequential Action
-→ 若目标环境已验证 Always Allow，则不需要 Browser 每次自动点击
-→ Action 直接进入 Gateway
-```
-
-Browser permission handler 保留为 fallback：
-
-```text
-unexpected prompt / changed schema-domain-auth / consequential prompt / Always Allow 尚未验证
-→ do not Deny first
-→ preserve page
-→ screenshot/log/evidence
-→ lane WAITING_HUMAN or bounded known-action handling
-→ result returns
-→ revalidate page/task/execution/fingerprint
-→ resume same continuation
-```
-
-因此“自动 Allow 每个正常 Action”从目标主路径裁掉，但在 Always Allow Spike 通过前不能删除恢复能力。
-
-## 13. Human Decision
-
-Decision request 应至少带：
-
-```text
-task/node/run
-role/worker
-executionRef
-page identity
-screenshot/log evidence
-model judgement
-exact question/options
-continuationRef
-```
-
-人工回来后不能机械点击，必须重新校验现实前置条件。
-
-用户可能已经手动在页面解决问题；Task Driver 应能识别“现实已经 resolved”并继续。
-
-通知渠道 P0 不锁死；未来可接飞书机器人，但 Browser Task Driver 不依赖具体通知渠道。
-
-## 14. Collaboration Delivery
-
-Agent Message Center owns message semantics。
-
-Task Driver 子流程：
-
-```text
-Agent 有 pending peer message
-→ restore target worker
-→ execution-runtime authorizes browser delivery
-→ submit message
-→ verify delivered in conversation
-→ report Delivery evidence
-→ Agent API 更新 formal message delivery fact
-```
-
-reply 必须物理 DELIVERED 后才能允许下一问。
-
-## 15. Candidate Revalidation 与 Browser Execution Stage Facts
-
-任何从 Task polling / Collaboration / lane event 生成的 execution candidate，在越过 effect 前都要重新读取必要 authoritative facts；如果 task/node/run/worker/precondition 已变化，直接丢弃 stale candidate，不继续执行。Node trigger / message delivery 的幂等必须最终链接到同一 `executionRef`。
-
-### 15.1 Stage Facts
-
-内部阶段：
+Browser real write 应尽量复用 Execution durable record/stage：
 
 ```text
 COMMAND_ACCEPTED
@@ -303,94 +442,76 @@ EFFECT_STARTED
 RESULT_REPORTED
 ```
 
-不要拆成 Attempt/Delivery entity。
+不新增第二套 BrowserOperation business DB / Attempt Entity tree。
 
-`EFFECT_STARTED` 应在真实副作用前可靠记录；实现上建议由 runtime durable acknowledge 后再执行 effect。
-
-EFFECT_STARTED 前可证明 not applied → 同 executionRef 重新校验后继续。
-
-EFFECT_STARTED 后失联 → UNKNOWN；先 reality check。
-
-## 16. Precondition / Verifier
-
-Precondition 是 semantic fingerprint：
+`EFFECT_STARTED` 后失联：
 
 ```text
-role/worker URL
-Task/node/run
-page state
-expected control
-critical content fingerprint
-permission/action state
+UNKNOWN
+→ reopen/observe current reality
+→ delivered / absent / still unknown
 ```
 
-不要整页 hash。
-
-Verifier 按 Capability 定义 postcondition，例如：
-
-- submit：消息存在、fingerprint 匹配；
-- allow：dialog 消失 + Action state changed；
-- create：新 c-id + role 验证；
-- restore：URL/identity/content healthy；
-- wake：trigger message 存在。
-
-## 17. Recovery Scan
-
-仅启动/reload/reconnect 时执行一次：
-
-```text
-new extension session
-→ discover tabs
-→ parse /g + /c
-→ recreate content sessions
-→ rebuild worker runtime bindings
-→ query unfinished browser executions
-→ query waiting human continuations
-→ reality reconcile
-→ resume safe lane states
-→ end scan
-```
-
-恢复示例：
-
-- WAKE 已成功、Worker BUSY → 不再 WAKE；
-- permission 等人工 → 恢复 WAITING_HUMAN；
-- effect_started + result missing → UNKNOWN + observe；
-- Task 有 workerRef、Tab 丢了 → RESTORE，不 CREATE。
-
-## 18. System Observer
-
-只读，最低优先级。
-
-轻量 heartbeat/state/log summary 可以定期；截图、日志 review、FAST/REASON 深评只在资源空闲时。
-
-一旦 business work 到来立即让路。
-
-Observer 输出报告/建议，不自行点击、修复或推进 Task。
-
-## 19. Side Panel
-
-P0 必须实现，详见 `10`。
-
-它应该成为第一排障入口，而不是漂亮 dashboard。
+no blind replay。
 
 ---
 
-## 当前正式约束：唯一 Browser Owner
+## 18. File Bridge / Context Pack
 
-Execution Browser 唯一拥有 CREATE / RESTORE / WAKE / page runtime state / permission / screenshot / click-type-submit / collaboration physical delivery / recovery。Task Driver 只能通过 Task Public API 读取/推进，不得直接写 Task Store；Role/Worker identity 通过 Agent Public API。WAKE 成功不等于 Node/Action/Effect 成功；大型动态上下文不再默认经 DOM 注入，GPT Actions File Bridge 已进入 Carrier transport contract；其 Conversation file search/Code Interpreter 使用效果留 Agent Carrier E2E。
-
-## 20. Browser 与 GPT Actions File Bridge 的职责分层
-
-Browser 不负责大型文件/上下文传输。
+普通文件不由 Browser DOM 搬运。
 
 ```text
-Browser → Conversation identity/lifecycle/page state/submit/recovery
-Gateway → OpenAI Actions/File Bridge protocol
-Task    → TaskDocument
-Execution Local/Network → physical file fetch/materialization
+Conversation → openaiFileIdRefs → Gateway → Execution materialize
+Task/Execution Artifact → Gateway openaiFileResponse → Conversation
 ```
 
-一次 WAKE 只需送达一个小型 trigger；Worker Turn 内可以继续调用多个 Action，Browser 不在每个 Action 之间机械 WAKE。该 Multi-Action 行为需真实 Carrier E2E，但不再把“一 Action 一 WAKE”写成默认流程。
+Context Pack / Patch 都是 Execution Artifact subtype。
 
-`openaiFileResponse` 不能返回 image/video，因此 Browser screenshot + Model Vision 继续保留，不被 File Bridge 替换。
+截图因 OpenAI image return asymmetry继续走 Browser/Execution → Model Vision。
+
+---
+
+## 19. Page runtime / recovery
+
+Page runtime 可表达：
+
+```text
+IDLE / BUSY / BLOCKED / UNKNOWN
+```
+
+但不是业务状态机。
+
+Recovery：
+
+```text
+extension reload/reconnect
+→ discover current tabs
+→ rebuild transient sessions
+→ query durable unfinished Browser Executions
+→ reconcile real page state
+→ safely resume
+```
+
+Task terminal 时 Task Observer stop-driving；历史页面可人工打开，但不主动业务 WAKE。
+
+---
+
+## 20. Side Panel / logging
+
+Side Panel 是 current reality/assessment/alert入口。Structured logs 按统一 correlation轴持久化，禁止 raw credential/full prompt/full file/screenshot binary。详见 `EXECUTION-DOC-03-04`。
+
+---
+
+## 21. 明确不建设
+
+```text
+Frame Registry / frame handshake
+Iframe team workspace
+persistent tab identity
+Browser Task/Message/Artifact business Store
+Browser File Manager
+Action-level scheduler
+Browser natural-language Task progression
+universal Observer/Scheduler
+second durable Effect runtime
+```

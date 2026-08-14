@@ -55,3 +55,9 @@ process/deployment: none / determined by Deployment kind
 ## Testing
 
 见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+
+## 2026-08-14 Journey alignment
+
+Product is one of the three fixed v1 Agent Packages. Extension `New Task` first creates a PENDING Task and binds a fresh Product Worker Conversation; Product then performs requirement discussion **inside that existing Task**. Product GPT does not own the New Task `createTask/listRegisteredRoles/getRegisteredRole` main path and does not dynamically discover Dev/Test roles.
+
+During a Worker Turn, Product should prefer Conversation context and GPT-native File Bridge / Code Interpreter / Web Search when the need is cognitive or file-oriented; formal Task documents/facts still use owner Actions, cross-worker consultation uses Collaboration, and real effects remain Execution-owned. See [`AGENT-DOC-03-07`](../../03-流程与数据/07-Worker-Turn与GPT原生能力使用边界.md).

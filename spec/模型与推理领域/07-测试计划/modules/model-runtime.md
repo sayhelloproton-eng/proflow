@@ -187,3 +187,33 @@ implementationWave: Wave 2
 
 若风险“路由、队列、Provider 能力与结构化输出若不可靠，会把错误认知决策传给 Execution/Agent，并造成资源竞争。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Task Diagnostic / System Assessment Critical Proof Addendum
+
+本节为 `MODEL-DOC-03-08` 与平台 Journey 裁决的增量 Critical Proof，不修改历史 Evidence。
+
+- [ ] **CP-MODEL-RT-09** — 正常 Task Observer progression 不调用 FAST/REASON；只有明确的 Task diagnostic exception 才进入 REASON，且结果没有 workflow/effect authority。
+- [ ] **CP-MODEL-RT-10** — System Observer 八类 bounded views 可被 typed/validated ReasoningSpec 消费；raw secret/full repo/full logs 不进入默认 snapshot。
+- [ ] **CP-MODEL-RT-11** — 当单次输入不适合手机 REASON 时，caller 可执行 batch → explicit carry-forward → targeted drill-down → global synthesis；最终结果能关联跨域 signals，而不是简单拼摘要。
+- [ ] **CP-MODEL-RT-12** — System assessment 以 background priority 运行；business request 可抢占/优先，model busy/offline/server_paused 只 defer assessment，不阻塞 Task 主链。
+- [ ] **CP-MODEL-RT-13** — 真实手机 REASON load gate 记录输入大小、latency、schema pass、cross-batch reference retention、synthesis correctness，并据此冻结有效 batch budget；理论 context window 不能替代真实 gate。
+
+### Failure / Boundary
+
+- `RF-MODEL-RT-09`：正常 READY/result-ready 被错误送入 REASON；
+- `RF-MODEL-RT-10`：System Observer 默认输入包含 raw secret/full logs/full source；
+- `RF-MODEL-RT-11`：各批结果只字符串拼接，没有 global synthesis；
+- `RF-MODEL-RT-12`：background assessment 占住单 Lane 导致 business request 饥饿；
+- `RF-MODEL-RT-13`：REASON unavailable 导致 Task workflow 失败；
+- `RF-MODEL-RT-14`：model confidence 覆盖 Owner fact/Policy。
+
+### Evidence
+
+- `EV-MODEL-RT-09`：normal progression zero-model-call trace；
+- `EV-MODEL-RT-10`：bounded view schema/sample + redaction proof；
+- `EV-MODEL-RT-11`：batch/carry-forward/drill-down/global-synthesis trace；
+- `EV-MODEL-RT-12`：business/background queue/preemption evidence；
+- `EV-MODEL-RT-13`：真实手机 REASON context/load matrix 与 correctness result。
+
+### TODO Binding
+
+`MODEL-RT-008` 至少绑定 `CP-MODEL-RT-09..13`。实现不能通过在 `model-runtime` 内增加 System Observer Store/Engine/Scheduler 来满足这些 Proof；batch/carry-forward orchestration 属于 caller/application，Model Runtime 只提供 typed inference。

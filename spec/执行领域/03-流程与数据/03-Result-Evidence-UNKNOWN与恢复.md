@@ -14,18 +14,21 @@ contractRefs: []
 
 # 09 · Result、Evidence、UNKNOWN_SIDE_EFFECT 与恢复
 
-## 1. Result vs Evidence
+## 1. Result vs Artifact vs Evidence
 
 Result：Execution 对这笔执行的可信结论。
 
-Evidence：支持这个结论的现实证据。
+Artifact：Execution 受控 materialize / 生成的工作产物或大输出，例如 Context Pack、Patch、download、report、stdout artifact。
+
+Evidence：支持 Result / Delivery / Effect 结论的现实证据。
 
 ```text
-Result = SUCCEEDED
-Evidence = commit SHA / file hash / DOM message / HTTP status / screenshot / test report ...
+Result   = SUCCEEDED
+Artifact = patch/context-pack/report/download（可有，也可无）
+Evidence = commit SHA / before-after hash / DOM message fingerprint / HTTP status / screenshot / test result ...
 ```
 
-模型自述不算执行 Evidence。
+Artifact 的存在**不证明** Effect 成功；Evidence 可以引用 Artifact 的 hash/ref 作为证据的一部分。模型自述不算执行 Evidence。
 
 ## 2. 统一 Result Envelope
 
@@ -35,19 +38,16 @@ Evidence = commit SHA / file hash / DOM message / HTTP status / screenshot / tes
 
 Delivery 只用于真实投递边界，例如 Runtime→Browser Extension command、Collaboration message→目标 Conversation。Local 同进程文件读取/函数调用不制造虚假的 Delivery/Receipt 状态。
 
-## 4. Evidence 存储
+## 4. Artifact / Evidence 存储
 
-小结构化 evidence 可入 record；大 evidence 只引用：
+大文件、Context Pack、Patch、download/report、stdout/stderr 等先形成 Execution-owned `ArtifactRef`；小结构化 evidence 可入 Execution record，大 Evidence 通过 `EvidenceRef` 引用受控 evidence object/artifact/hash/日志片段。
 
 ```text
-logs
-screenshots
-test reports
-large stdout/stderr
-artifacts
+ArtifactRef → materialized bytes + hash/MIME/size/scope metadata
+EvidenceRef → 支撑某个 Result/Delivery/Effect 的证明关系与可下钻证据
 ```
 
-建议 `EvidenceRef` 指向 `.proflow` 管理的持久 artifact/log 路径或内部对象引用。
+不要把 `.proflow` 路径本身当跨领域 stable identity；其它领域只持有 opaque ref。TaskDocument 如需要关联某个 materialized file，只引用 canonical artifact/document relation，不复制 Execution Evidence 语义。
 
 ## 5. Browser 写动作可信链
 
@@ -70,7 +70,7 @@ Precondition Evidence
 
 ### Action Allow
 
-成功：permission dialog 消失 + Action state changed/started/result。
+Carrier permission recovery成功：unexpected permission dialog消失且Action request继续；这只是Carrier/UI reality，不等于Execution Effect成功。
 
 ### CREATE
 
@@ -113,7 +113,7 @@ Did it already happen?
 ### Browser
 
 - message 是否已经存在；
-- permission 是否已经消失；
+- unexpected permission dialog是否已经消失/Action request是否继续；
 - Action 是否开始/完成；
 - Conversation 是否已经创建。
 

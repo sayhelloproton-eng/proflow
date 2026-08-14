@@ -33,3 +33,8 @@ contractRefs: []
 - Service 只有真实长期 runtime 时才存在。
 - Deployment Unit 的真实生命周期由 Deployment Domain 治理。
 - Module 文档通过链接引用领域级 canonical Contract / Flow / Persistence，不为“模板完整”复制第二套正式事实。
+
+## 2026-08-15 Fixed-role / Worker boundary alignment
+
+v1 只有 Product、Controller/Dev、Test/Ops 三个 Agent Packages。`agent-runtime` 只拥有 Role Registry/credential/Collaboration 与 Task-bound participant defensive validation；`workerRef/conversationLocator` 的 durable Task binding 归 Task Domain，不新增 Worker Store/Session Runtime。Agent Packages 不把 Knowledge specialization 作为 v1 readiness 前置。
+

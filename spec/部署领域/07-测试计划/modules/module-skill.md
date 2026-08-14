@@ -156,3 +156,18 @@ Skill 若自行发明 Contract/依赖/权限，会成为 AI 侧第二设计真�
 
 若风险“Skill 若自行发明 Contract/依赖/权限，会成为 AI 侧第二设计真源或第二 Runtime。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Journey Architecture Guard Addendum
+
+Module Skill 必须明确拒绝/STOP 以下自创设计：
+
+```text
+RoleType / dynamic agent topology
+frame registry / frame-role handshake
+Browser business store / second effect runtime
+Task start Approval entity
+System Observer business ownership/store/scheduler
+exact ChatGPT model READY pin
+credential == packageName
+```
+
+当 Agent/Carrier/Observer 需求来自本轮 frozen Journey 时，只引用 owner documents/contracts，不在 Skill 内重新解释业务语义。

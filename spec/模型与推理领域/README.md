@@ -44,3 +44,12 @@ contractRefs: []
 ## 实施原则
 
 其他领域只能依赖本领域 Public Contract / logical capability；禁止 direct DB read、internal repository/adapter、deep import 或状态镜像。Module TODO 不得重新定义领域模型。
+
+## 2026-08-14 Task Journey / Observer 对齐
+
+- Task Observer 正常 progression 保持 deterministic；Model 只参与少数单 Task ambiguity diagnosis。
+- System Observer 通过八类 bounded system views + 手机 REASON 做全系统评估；采用 caller-side batch/carry-forward/drill-down/global synthesis，不在 Model Domain 建第二 Store/Scheduler。
+- Owner facts / Policy / deterministic rules 高于 model confidence；模型只能产生 typed judgement/assessment，不直接产生 Effect 或 workflow transition。
+- 真实有效 context/load 以手机 REASON M4 类验证为准，不能用理论 context window 替代。
+
+详见 `MODEL-DOC-03-08` 与平台 `PLATFORM-DOC-01-04`。

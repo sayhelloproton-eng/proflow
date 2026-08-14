@@ -46,7 +46,6 @@ TaskDocumentService
 createTaskGroup
 startTaskGroup
 createTask
-authorizeTask
 bindTaskWorker
 startTask
 pauseTask
@@ -288,3 +287,8 @@ Task Migration Runner 拥有跨领域 migration SQL
 - `platform-host` 只 instantiate / DI / local transport / startup-shutdown；Task package 不得反向依赖 platform-host。
 - 跨领域只能依赖对方 Public Contract / client；禁止深路径 import、共享 SQLite、直接 import Adapter。
 - 同进程调用使用公开 TypeScript interface；只有真实跨进程边界才增加 transport client。
+
+
+## Task Observer integration
+
+`@tomflow/proflow-task-orchestration` 不实现 Scheduler/Observer daemon。它只提供 Task drive projection 与正式 commands。Task Observer 位于 Extension application/background，通过 Public Query 读取 `currentNode/runNo/requiredAgentPackageRef/roleBindings/versions/terminal`，再与 Execution/Collaboration current facts组合；所有写入仍回到 owner commands。

@@ -15,519 +15,184 @@ contractRefs: []
 # 03｜API 与事件约定
 
 > 状态：FROZEN  
-> 目标：统一跨领域命令、查询、事件、幂等、错误与异步结果的交互规则。
+> 目标：统一跨领域 Command、Query、Event、typed request、幂等、版本、异步结果、Observer 与 Human Channel 的交互规则。领域事实仍由 Owner Domain 定义，本文件只冻结跨域形式。
 
 ---
 
-# 1. Public API 必须由 Owner 定义
+# 1. Public API 必须由事实 Owner 定义
 
-一个 Public API 必须能明确回答：
+Public API 必须回答：
 
 ```text
 Owner 是谁？
 解决哪个领域用例？
-输入 Contract 是什么？
-成功结果是什么？
-失败语义是什么？
+输入/输出 Contract 是什么？
+成功/失败语义是什么？
 是否幂等？
-是否有并发版本？
+是否要求 expectedVersion？
 是否产生 Event？
-是否有副作用？
+是否产生真实 Effect？
 ```
 
-禁止为了“方便调用”暴露：
-
-```text
-通用 update(any)
-通用 setStatus(status)
-直接数据库 CRUD
-领域内部 Repository API
-```
+禁止为了“方便调用”暴露通用数据库 CRUD、任意 setStatus、Repository/ORM/internal Adapter。
 
 ---
 
-# 2. Command 与 Query 分离
+# 2. Command / Query / Observation Request 分离
 
-## Query
+## 2.1 Query
 
-Query：
+Query MUST NOT 改变业务事实。允许 cache/metrics/trace 等技术副作用，但不能写 Domain state。
 
-```text
-MUST NOT 改变业务状态
-```
+## 2.2 Command
 
-允许技术副作用：
+Command 表达一个明确业务意图，例如：
 
 ```text
-cache
-metrics
-trace
-```
-
-但不能改变领域事实。
-
-## Command
-
-Command 表达：
-
-> 请求领域做一件有业务含义的事。
-
-Command：
-
-```text
-MAY 成功
-MAY 被拒绝
-MAY 进入异步处理
-MAY 产生 Event
-```
-
-命名应体现业务意图：
-
-```text
-authorizeTask
+createTask
 bindTaskWorker
+startTask
+startNode
+completeNode
+reopenNode
 executeCapability
-resumeTask
+askPeer
+replyPeer
 ```
 
-而不是：
+v1 **没有 `authorizeTask`**。Extension 的“批准并开始”是 human interaction channel；Task READY 后用户确认，Channel 调用正式 `startTask`。Task 不保存独立 authorization/approval fact。
+
+## 2.3 Observation / Drive Request
+
+Observer 可以根据公开事实产生 typed request，例如：
 
 ```text
-updateTask
-patchExecution
-setState
+WAKE_WORKER
+RESUME_WORKER
+RECOVER_WORKER_PAGE
+SHOW_APPROVAL_DIALOG
+REQUEST_DRILLDOWN
 ```
 
-除非该 API 的真实业务语义就是通用资源编辑。
+它们不是 Domain Event，也不是“Observer 自己改业务状态”。真正业务写入仍由 Owner Command 完成；真实 Browser effect 仍经过 Execution/Carrier 边界。
 
 ---
 
 # 3. API 不等于 HTTP
 
-Public Contract 可以通过：
+Public Contract 可以通过 HTTP、in-process Port、local transport、CLI Adapter、future Message Bus 等承载。Transport 不得把 HTTP/Express/SQLite 对象变成领域语义。
 
-```text
-HTTP
-in-process Port
-Message Bus
-MCP（future / non-v1 adapter only）
-A2A
-CLI Adapter
-```
-
-传输。
-
-领域 API 定义的是语义，不应把：
-
-```text
-HTTP status
-Express Request
-数据库对象
-```
-
-直接变成领域语义。
+Custom GPT Actions 是 Agent Gateway 的外部 Carrier adapter。GPT-facing identity/idempotency/version/correlation 必须使用 typed body/path/query；不得依赖任意 Custom Headers。
 
 ---
 
 # 4. 同步与异步
 
-如果动作可以在一次调用内确定完成：
-
-```text
-可同步返回结果
-```
-
-如果动作需要：
-
-```text
-外部系统
-长时间执行
-Human Approval
-设备执行
-异步 Worker
-```
-
-应返回稳定接受事实，例如：
+能在一次调用中确定完成的命令可以同步返回 owner result。需要外部系统、真实 Effect、长执行、Human Approval 或跨 Worker delivery 的动作，应快速返回稳定 ref/status，例如：
 
 ```text
 executionRef
+messageRef
 taskId + nodeId + runNo
-collaborationMessageRef
+artifactRef
 ```
 
-之后通过：
+之后通过 Query、Event、owner-ready fact、Task Observer wake/resume 获得后续结果。
 
-```text
-Query
-Event
-Callback
-Wake / Resume
-```
-
-获得最终结果。
-
-禁止让一个 HTTP 请求假装承担长期 Workflow 生命周期。
+**异步等待不自动等于 Task WAITING。** Execution RUNNING/WAITING_APPROVAL、Collaboration PENDING、Carrier recovery 继续属于各自 Owner；真正 workflow blocker 才进入 Task 的 WAIT 语义。
 
 ---
 
-# 5. 事件只表达“已经发生的事实”
+# 5. Event 只表达“已经发生的事实”
 
-Event Type：
-
-```text
-SHOULD 使用过去事实语义
-```
-
-例如：
+Event SHOULD 使用过去事实语义，例如：
 
 ```text
 TASK_COMPLETED
-WORK_REQUESTED
-EXECUTION_DELIVERED
-AGENT_HANDOFF_COMPLETED
+NODE_BECAME_READY
+EXECUTION_RESULT_READY
+COLLABORATION_REPLY_RECORDED
+DELIVERY_CONFIRMED
 PROVIDER_BECAME_UNAVAILABLE
 ```
 
-Event 不应写成：
+`PLEASE_EXECUTE / DO_TASK / TRY_AGAIN` 属于 Command/Request，不是 Event。
 
-```text
-PLEASE_EXECUTE
-DO_TASK
-TRY_AGAIN
-```
-
-这类属于 Command / Request。
+Event immutable；只有事实 Owner 可以发布其事件。Task 不得伪造 Execution/Collaboration/Carrier 事实。
 
 ---
 
-# 6. Event 是 immutable fact
+# 6. Event delivery 与业务 exactly-once 分开
 
-发布后的领域事件：
+平台 Event transport 默认不能假设 exactly-once。Consumer 必须幂等。
 
-```text
-MUST NOT 被修改
-```
-
-错误修正通过新的事件表达。
-
-例如：
-
-```text
-错误：
-修改旧 EXECUTION_SUCCEEDED payload
-
-正确：
-发布 EXECUTION_RESULT_CORRECTED
-```
-
-是否允许 correction event 以及名字由领域定义。
+真实 Effect 的 exactly-once/effectively-once/UNKNOWN 由 Effect Owner 的 durable intent、idempotency、receipt/evidence 与 reality reconciliation 保证，不能用“Event 已消费”代替。
 
 ---
 
-# 7. Event Producer 是事实 Owner
+# 7. Worker Turn 不建 API/Event 生命周期
 
-只有拥有事实的领域可以发布该事实事件。
+一个 Browser WAKE/Input 可启动一个语义上的 Worker Turn：Custom GPT 在同一 Conversation 内可连续调用 `0..N` Actions、File Bridge、Code Interpreter、Web Search，并根据 Action Result继续工作。
 
-例如：
-
-```text
-执行领域
-→ 发布 EXECUTION_DELIVERED
-
-任务领域
-MUST NOT 代替执行领域发布 EXECUTION_DELIVERED
-```
-
-Task 可以发布：
+因此禁止设计：
 
 ```text
-TASK_WORK_RESULT_ACCEPTED
+ACTION_FINISHED → Browser 再发 CONTINUE
+每 Action 一个 Task Node
+WorkerTurn Entity / Store / Runtime
+Browser 解析 GPT 自然语言决定下一 Task Command
 ```
 
-但不能伪造 Execution 事实。
+真正异步边界结束当前 Turn 后，由新 owner fact + Task Observer 再 WAKE 同一 Worker。
 
 ---
 
-# 8. Event Consumer 必须容忍重复交付
+# 8. Task Observer / System Observer 的 API 边界
 
-平台异步 Event 默认不得假设 exactly-once transport。
+## Task Observer
 
-消费者：
+读取 Task drive projection 与 Execution/Collaboration/Carrier public facts，做 deterministic next-step detection；只发 typed request，不写 Owner state。正常 READY/RESULT/REPLY 不调用模型。
 
-```text
-MUST 具备幂等消费能力
-```
+单 Task conflicting facts / UNKNOWN / repeated recovery / unexplained stall 可请求 Model `task-diagnostic`，但模型只返回 finding/recommendation。
 
-可以使用：
+## System Observer
 
-```text
-eventId
-business key
-consumer checkpoint
-```
+读取 bounded system views，调用低优先级 REASON 形成 derived assessment。它可以请求 drill-down/alert/UI/doctor，但不能直接 complete/reopen/approve/mark delivered/declare READY。
 
-去重。
-
-“Transport 至少一次”与“业务动作恰好一次”是不同问题。
+不建设统一 Global Scheduler / Event Bus 作为新事实 Owner。
 
 ---
 
-# 9. API 幂等
+# 9. Human Interaction Channel 与 Approval Owner 分开
 
-下列操作默认必须设计幂等：
+必须区分四类：
 
-```text
-Task create / authorize / bind / Node write command
-Execution capability submit / Effect Approval
-Collaboration message / physical delivery report
-External result report
-Deployment Apply
-```
-
-如果同一个请求被重复提交：
-
-```text
-不能创建两个不可区分业务事实
-```
-
-尤其真实副作用必须区分：
-
-```text
-重复请求
-重复派发
-重复 Delivery
-重复 Result
-```
+1. Task start confirmation：Extension v1 / Feishu future → `startTask`；无 Task Approval entity。
+2. Execution dangerous-effect approval：正式 fact 属于 Execution；Extension/Feishu 只是 UI channel。
+3. Deployment `ACTION_REQUIRED(_WEB)`：人完成真实动作后 Deployment re-observe；不是 approval flag。
+4. ChatGPT Action permission：OpenAI Carrier UI；routine control/intent operation `x-openai-isConsequential:false` + Always Allow，不能替代 Execution Approval。
 
 ---
 
-# 10. 并发控制
+# 10. 版本、幂等与 fresh reality
 
-涉及版本化状态的 Command：
-
-```text
-SHOULD 使用 expectedVersion
-```
-
-如果版本冲突：
+业务写请求按 Owner Contract 使用：
 
 ```text
-MUST 拒绝或要求调用方重新读取
-MUST NOT 静默 last-write-wins
+actor/authenticated identity
+idempotencyKey
+expectedVersion（需要时）
+current owner facts
 ```
 
-若领域选择其他并发控制方式：
+Conversation memory、Browser DOM impression、Observer assessment、日志均不能替代 fresh owner state。
+
+未知真实副作用：
 
 ```text
-必须在 Public Contract 中明确
+cannot prove applied
++ cannot prove absent
+→ UNKNOWN
+→ observe/reconcile reality
+→ no blind replay
 ```
-
----
-
-# 11. Retry 与副作用
-
-调用方不能只根据：
-
-```text
-HTTP 500
-TIMEOUT
-连接断开
-```
-
-自动判断可以 Retry。
-
-必须看领域语义：
-
-```text
-retryable
-sideEffectCertainty
-delivery state
-idempotency
-```
-
-尤其执行领域：
-
-```text
-UNKNOWN / UNCERTAIN
-```
-
-时不得盲目重新执行真实副作用。
-
----
-
-# 12. Error Contract
-
-错误码命名：
-
-```text
-<DOMAIN>_<SEMANTIC>
-```
-
-例如：
-
-```text
-TASK_VERSION_CONFLICT
-AGENT_WORKER_NOT_FOUND
-EXECUTION_DELIVERY_UNCERTAIN
-INFERENCE_PROVIDER_UNAVAILABLE
-DEPLOYMENT_MODULE_NOT_FOUND
-```
-
-领域拥有业务错误码。
-
-公共约定只拥有：
-
-```text
-Error Envelope
-category
-retryable
-correlation
-```
-
----
-
-# 13. Public API 的最小文档
-
-每个 Public API 至少记录：
-
-```text
-Purpose
-Owner
-Request
-Response
-Errors
-Idempotency
-Concurrency
-Side Effect
-Events
-Version
-Consumers
-```
-
-如果某项不适用：
-
-```text
-明确写 N/A
-```
-
-不要省略导致消费者猜测。
-
----
-
-# 14. Provides / Requires 对齐
-
-跨域接口设计时必须形成成对关系：
-
-```text
-Domain A Provides X v1
-Domain B Requires X v1
-```
-
-禁止：
-
-```text
-A 提供 execution.status
-B 却依赖 execution.internalState
-```
-
-最终五域接口矩阵至少要检查：
-
-```text
-Provider
-Consumer
-Contract
-Version
-Direction
-Sync / Async
-Owner
-Compatibility
-Status
-```
-
----
-
-# 15. Wake / Notification 的语义
-
-Wake / Signal / Notification：
-
-> 只表示“某个主体应重新检查状态或继续工作”。
-
-它不自动等于：
-
-```text
-结果
-响应
-业务完成
-任务推进
-```
-
-接到 Wake 后：
-
-```text
-消费者 SHOULD 重新读取 Owner 的最新 Public State / Context
-```
-
-不能把 Wake payload 当成新的事实真源。
-
----
-
-# 16. Human Approval
-
-Approval **不是独立 Domain**。Task authorization 归 Task；真实 Effect Approval 归 Execution；其他领域只传递 owner-defined `approvalRef`。若某个 Owner 的 Approval 作为准入的一部分：
-
-```text
-必须拥有稳定 approvalRef
-必须绑定具体 action / scope / fingerprint
-必须有状态
-必须有批准者 / 时间
-必须避免把批准扩张到未审动作
-```
-
-批准事件与执行事件必须分开：
-
-```text
-APPROVAL_GRANTED
-≠
-EXECUTION_DELIVERED
-≠
-EXECUTION_SUCCEEDED
-```
-
-批准只代表：
-
-> 允许执行指定动作。
-
----
-
-# 17. API 演进
-
-Public API 新增字段、修改 enum、修改错误、修改事件，是否兼容：
-
-> 一律按 `04-版本与兼容性约定.md` 判断。
-
-禁止“代码能编译”就视为兼容。
-
----
-
-# 18. 外部协议适配
-
-MCP（future / non-v1）/ A2A / AG-UI 等外部协议：
-
-```text
-由 Adapter 把外部协议映射到领域 Public Contract
-```
-
-禁止：
-
-```text
-因为接入 MCP 就让整个执行领域内部模型变成 MCP Schema
-因为接入 A2A 就让 Agent 内部消息完全等于 A2A Task
-```
-
-协议适配层保护领域语义不被外部协议绑死。
-
----
-
-## 当前正式约束：不建设 Global Event Bus
-
-v1 不建设全局 Event Bus/Event Domain。TaskEvent、CollaborationMessage、Execution Result 各归 Owner；主链优先 Public API + 明确 wake/poll/delivery。既有事件约定继续适用于某领域确实公开的 immutable fact，但不得据此强制所有跨域协作事件化。

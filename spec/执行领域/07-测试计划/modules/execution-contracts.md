@@ -160,3 +160,8 @@ Execution Contract 错误会让所有真实 Effect 的状态、证据与不确�
 
 若风险“Execution Contract 错误会让所有真实 Effect 的状态、证据与不确定性失去统一语义。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Journey Contract Critical Proof Addendum
+
+- [ ] **CP-EXE-CONTRACTS-08** — `ArtifactRef` and `EvidenceRef` are distinct opaque/ref-safe contract types; result envelopes can expose artifact and evidence refs without equating artifact existence to success.
+- [ ] **CP-EXE-CONTRACTS-09** — Journey identity fields (`taskId/nodeId/runNo/roleRef/workerRef/correlationId`) remain strongly typed and no frame/persistent-tab identity enters stable owner DTOs.
+- [ ] **CP-EXE-CONTRACTS-10** — Browser Carrier create/restore/wake/delivery messages remain typed Execution-side requests/results; no Task/System Observer business mutation API is introduced in Execution contracts.

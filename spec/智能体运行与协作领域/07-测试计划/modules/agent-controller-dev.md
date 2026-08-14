@@ -164,3 +164,10 @@ implementationWave: Wave 4
 
 若风险“总控/研发 Worker 拥有最广工程能力；Action allowlist 或 real-apply 边界错误会绕过 Execution。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Journey / Native Capability Critical Proof Addendum
+
+- [ ] **CP-AGT-DEV-07** — J1 Dev Conversation bind-only/IDLE；READY WAKE后Worker才`startNode`。
+- [ ] **CP-AGT-DEV-08** — one Worker Turn 0..N Actions，无Browser per-action continue/wake。
+- [ ] **CP-AGT-DEV-09** — File Bridge→bounded Context Pack→Code Interpreter→Patch/Report为正式分析主路径；Patch不等于repo已apply，Execution Evidence才证明真实Effect。
+- [ ] **CP-AGT-DEV-10** — long Execution/peer result后恢复same workerRef/Conversation；UNKNOWN/已成功Effect no blind replay。
+- [ ] **CP-AGT-DEV-11** — public research走GPT Web Search；local/private/credentialed/exact engineering network仍走Execution。

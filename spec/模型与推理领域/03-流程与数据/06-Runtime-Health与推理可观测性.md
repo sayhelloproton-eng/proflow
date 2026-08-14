@@ -95,3 +95,10 @@ Model Domain 只定义 `RuntimeStatus`；是否展示在管理控制台或 Brows
 ## 当前正式约束：fresh health / no global status
 
 READY/DEGRADED/UNAVAILABLE 必须来自当前可验证 runtime/provider reality；持久化 last-ready 不冒充 current health。Model status 只属于 Model，不映射为 Task/Execution/Platform 全局万能 Status；Deployment 只聚合 verify 结果。
+
+
+# 8. System Observer 资源语义
+
+System Observer 只消费 current Model Runtime health summary，不把它复制成 Model truth。System assessment 一律 `background`：当 lane BUSY、business queue有工作、REASON unavailable或 provider degraded 时可 defer/skip；这只能导致 assessment unavailable/stale，不得导致 Task/Execution 主链失败。
+
+System Observer 自身的 derived assessment 记录 `assessmentRef`，Model logs 只记录 `inferenceRef/specRef/trace/metrics/validated result summary`，不保存全系统 raw snapshot 或 private chain-of-thought。

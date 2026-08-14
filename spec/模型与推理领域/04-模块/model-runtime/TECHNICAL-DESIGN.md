@@ -142,3 +142,12 @@ HTTP/API boundary
 ```
 
 任何错误都在相应阶段明确终止，不能通过自由 Prompt 自救。
+
+
+## 9. Task Diagnostic / System Assessment support
+
+不新增服务/API。Static Spec Registry 增加 Task Diagnostic 与 System Assessment 相关 ReasoningSpecs；System Observer 通过现有 `infer(priority=background)` 分批调用。
+
+Resource Coordinator 必须确保 background assessment 不压过 business queue；当前 inference 不抢占。Provider/模型不可用时返回 typed failure，由 Observer defer。
+
+Runtime 不持有跨批 carry-forward；carry-forward 是 caller 传入的 bounded payload / derived assessment reference。

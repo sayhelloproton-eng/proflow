@@ -476,7 +476,7 @@ Module 任务通过 metadata 可精确加载 Domain Charter、BC、Contract、Mo
 保持并映射：`@tomflow/proflow-task-orchestration`、`task-store-sqlite`、`task-migration-runner`；覆盖 Task/Plan/Node、TaskRoleBinding、TaskDocument、TaskMessage/Event、state、concurrency、idempotency、reopen、worker resolution、store、migration。
 
 ## Agent Runtime & Collaboration
-清晰区分 Agent Runtime、Role Registry、Worker Identity、Collaboration Message Center、agent-gateway、Role Agent Packages、Custom GPT Carrier；完整覆盖 Actions/File Bridge/Carrier limits。
+清晰区分 Agent Runtime、Role Registry、Task-owned Worker Binding/Agent identity semantics、Collaboration Message Center、agent-gateway、Role Agent Packages、Custom GPT Carrier；完整覆盖 Actions/File Bridge/Carrier limits，并明确 Knowledge specialization v1 deferred。
 
 ## Execution
 映射 `execution-contracts`、`execution-runtime`、`execution-local`、`execution-browser-extension`；覆盖 Effect、Policy、Approval、Evidence、UNKNOWN、Local capabilities、Browser lifecycle/recovery。

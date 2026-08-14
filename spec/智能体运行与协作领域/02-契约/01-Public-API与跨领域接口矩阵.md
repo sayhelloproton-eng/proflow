@@ -9,30 +9,43 @@ subdomain: null
 subdomains: []
 provides: []
 requires: []
-contractRefs: []
+contractRefs:
+- PLATFORM-DOC-01-04
+- AGENT-DOC-03-07
 ---
 
 # 智能体运行与协作领域｜Public API 与跨领域接口矩阵
 
+> 2026-08-14 对齐：Extension 是 v1 New Task 唯一入口；三个固定 Role 的 logical identity 由 Agent packageName/`agentPackageRef` 表达，实际 Custom GPT identity 为 `roleRef`，Task Worker 为 `workerRef`。Product GPT 不再负责 pre-Task `createTask/listRegisteredRoles` 主链。
+
 ## 1. Agent Domain Provides
 
-### 1.1 Role Registry
+### 1.1 Role Registry（管理/Deployment/Carrier lookup）
 
 #### `listRegisteredRoles`
 
-消费者：产品 Worker、Execution Task Driver、管理 CLI/UI。
+消费者：Deployment、Carrier coordination、管理 CLI/UI、内部诊断。
 
-语义：返回当前工作区已注册 Role；可按 `agentPackageRef` 过滤。输出只包含 Agent-owned Role facts，不携带 Task binding。
+语义：返回工作区已注册 Role，可按 `agentPackageRef` 过滤。它是**管理与解析能力**，不是 Product GPT 创建 Task 的 runtime Action 主链。
 
 #### `getRegisteredRole`
 
-消费者：Execution Task Driver / Browser coordination、管理面。
+消费者：Carrier coordination、Deployment/管理面。
 
-语义：`roleRef → carrierType / carrierUrl-or-gptId metadata / agentPackageRef / registeredPackageVersion`。
+语义：
 
-### 1.2 Worker identity
+```text
+agentPackageRef / roleRef
+→ carrierType
+→ carrierUrl-or-gptId metadata
+→ registeredPackageVersion
+```
 
-Agent Runtime 对 Worker identity 提供校验/解析能力，用于确认 `workerRef` 与 Role/Carrier 语义是否一致。TaskRoleBinding 的持久化仍归 Task Domain。
+Role Registry 不持有 Task binding。
+
+### 1.2 Worker identity validation
+
+Agent Runtime 对 `roleRef/workerRef` 的 Role/Carrier 语义提供校验/解析能力。TaskRoleBinding 的持久化仍归 Task Domain；Browser/Carrier 负责真实 Conversation c-id/URL observation。
 
 ### 1.3 Collaboration
 
@@ -49,7 +62,7 @@ content
 idempotencyKey
 ```
 
-`fromRoleRef` 由 Gateway credential 确定。Agent Runtime 通过 Task Public Contract 验证 sender/target 属于同一 Task，并将 `targetAgentPackageRef` 解析为该 Task 已绑定的 `targetRoleRef + targetWorkerRef`。
+`fromRoleRef` 由 Gateway credential 认证确定。Agent Runtime 通过 Task Public Contract 验证 sender/target 属于同一 Task，并把固定 `targetAgentPackageRef` 解析为该 Task 已绑定的 `targetRoleRef + targetWorkerRef + conversationLocator`。
 
 #### `replyPeer`
 
@@ -62,35 +75,35 @@ content
 idempotencyKey
 ```
 
-`taskId / replyTo / target participant` 由 Thread 当前状态确定，不允许模型自由改写回复目标。Reply 必须物理 `DELIVERED` 回原 Worker 后，同一 Thread 才能进入下一问。
+reply target 由 durable Thread current state 决定，模型不能自由改写目标。
 
 ### 1.4 Agent-internal delivery coordination
 
-Execution Task Driver 可读取待投递 Collaboration Message，并把 Execution physical delivery result 回报给 Agent Runtime。该协调能力属于平台内部 contract，不自动暴露为 GPT Action。
+Collaboration logical message 属于 Agent；physical delivery 通过 Execution Browser Carrier。Agent 可以提供 pending delivery projection/result acknowledgement contract，但不能自己操作 ChatGPT DOM。
+
+---
 
 ## 2. Local management surface
 
-以下是本地管理 CLI，不是 GPT runtime Action：
+以下是本地管理/Deployment surface，不是 GPT runtime Actions：
 
 ```text
 custom-gpt setup/materialize/show
 role register
-role show
-role validate
-role delete
-role key show
-role key rotate
+role show/list/validate/delete
+role key show/rotate
 ```
+
+---
 
 ## 3. Requires｜Task Domain
 
-Agent/Execution Task Driver 只通过 Task Public Contract 使用：
+Agent/Gateway/Observer 只通过 Task Public Contract 使用：
 
 ```text
-createTask
 listTasks
 getTask
-authorizeTask
+getTaskDriveProjection
 bindTaskWorker
 startTask
 getNodeContext
@@ -101,73 +114,64 @@ failNode
 reopenNode
 putTaskDocument
 getTaskDocument
-listPendingMessages
+listPendingMessages（Task-owned workflow message only）
 ```
 
-### TaskRoleBinding
+`createTask` 属于 Extension/platform-host New Task flow，不是 Product GPT Action 主链。
 
-`createTask` 必须能表达：
+### 3.1 TaskRoleBinding
+
+Task binding 统一表达：
 
 ```json
 {
-  "roleBindings": [
-    {"roleRef": "<product-role>", "workerRef": "<product-worker>"},
-    {"roleRef": "<dev-role>", "workerRef": null},
-    {"roleRef": "<test-role>", "workerRef": null}
-  ]
+  "agentPackageRef": "@tomflow/proflow-agent-controller-dev",
+  "roleRef": "g-dev",
+  "workerRef": "c-dev-001",
+  "conversationLocator": "https://chatgpt.com/..."
 }
 ```
 
 规则：
 
-- `roleRef` 在 Task 内唯一；
-- Node.requiredRoleRef 必须指向 Task 声明角色；
-- 产品 Worker 可创建 Task 时直接绑定；
-- 研发/测试 Worker 在授权后 provisioning 时 one-time 绑定；
-- 相同 workerRef 重放幂等；不同 workerRef 覆盖冲突；
-- terminal Task 默认不允许修改 binding；
-- reopen 保留 Task-level binding。
+- stable key = `(taskId, agentPackageRef)`；
+- `agentPackageRef/packageName` = logical role type；
+- `roleRef` = deployed Custom GPT g-id；
+- `workerRef` = Task-scoped Conversation identity；
+- `conversationLocator` = page restore locator；
+- Task 不持久化 tab/frame；
+- reopen 保留整条 TaskRoleBinding。
 
-### `bindTaskWorker`
+### 3.2 Node role requirement
 
-概念请求：
+Node 使用：
 
-```json
-{
-  "taskId": "task-001",
-  "roleRef": "g-...",
-  "workerRef": "conversation-id",
-  "expectedTaskVersion": 5,
-  "actorRef": "execution-task-driver",
-  "idempotencyKey": "..."
-}
+```text
+requiredAgentPackageRef
 ```
 
-Task 是该动作唯一 Owner。
+而不是用 `roleRef/g-id` 表达逻辑岗位。
 
-### Drive projection
+### 3.3 Drive projection
 
 Task Query 必须能提供：
 
 ```text
-Task/Node 当前状态
-requiredRoleRef
-roleBindings
-canStart/canDrive
-blockedReason
+Task/Node current state
+requiredAgentPackageRef
+current roleBinding
 currentNodeId/runNo/version
-reopenContext（如适用）
+canDrive/blockedReason
+terminal
 ```
 
-Execution Task Driver 不复制 eligibility/state-machine 规则。
+Task Observer 不复制 eligibility/state-machine。
 
-### reopen
-
-Task-level role binding 保持原 workerRef；Node 新 run 按当前 Task 规则重置 run-local binding/state，再由 `requiredRoleRef → TaskRoleBinding.workerRef` 解析同一个 Worker。
+---
 
 ## 4. Requires｜Execution Domain
 
-Agent 只依赖 Execution Public Contract / typed capabilities：
+Agent 只通过 Execution canonical Public Contract 请求真实 Effect：
 
 ```text
 executeCapability(...)
@@ -176,97 +180,170 @@ readExecutionOutput(...)
 cancelExecution(...)
 ```
 
-GPT-facing role-specific operations可以是 `readFile/getGitDiff/runTests/...` 等清晰 facade，但 Gateway 最终归一化为 Execution canonical capability request。
+真实：
 
-Browser CREATE/RESTORE/WAKE、physical collaboration delivery、screenshot/permission/recovery 都由 Execution-owned Browser path 实现。
+```text
+File/Git/Shell/Process/Network/Browser submit
+Artifact materialization
+Result/Evidence
+Effect Approval
+UNKNOWN/recovery
+```
 
-Agent 不实现 File/Git/Shell/Browser real Effect。
+全部归 Execution。
+
+### 4.1 GPT 文件进入平台
+
+```text
+openaiFileIdRefs
+→ Gateway normalization
+→ Execution bounded fetch/materialize/hash/MIME/size/scope
+→ artifactRef / canonical TaskDocument input
+```
+
+### 4.2 平台文件回 GPT
+
+```text
+TaskDocument / Execution Artifact
+→ Gateway openaiFileResponse
+→ current Worker Conversation
+```
+
+File Bridge 是 transport，不改变 Owner。
+
+---
 
 ## 5. Requires｜Deployment Domain
 
-Agent-owned packages、Gateway Service、ChatGPT Carrier、Dev Tunnel 等进入统一 Module Governance。
-
-Agent Domain 声明：
+Deployment 负责：
 
 ```text
-required modules/resources
-config slots/secret refs
-real lifecycle primitives
-carrier requirements
-verify/doctor expectations
+Agent packages / Gateway / Carrier external resources
+config/secret slots
+Role registration readiness
+Actions/Auth/Capabilities verification
+Web-only ACTION_REQUIRED
+verify/doctor/upgrade
 ```
 
-Deployment 负责 dependency graph、plan/apply、status/verify/doctor/upgrade 与 ACTION_REQUIRED；不拥有 Role/Worker/Collaboration 业务语义。
+Role READY 按 behavior/capability/auth verification，不按 exact model id。
 
-## 6. Agent ↔ Execution Browser 边界
+---
+
+## 6. Agent ↔ Browser Carrier 边界
 
 ### Agent provides
 
 ```text
 Registered Role lookup
 Worker identity validation
-Collaboration logical pending/result update
+Collaboration logical message truth
 ```
 
 ### Task provides
 
 ```text
+TaskRoleBinding
 Task drive projection
-authorization state
-TaskRoleBinding commands/query
-Node commands/query
+Node/workflow commands
 ```
 
 ### Execution Browser provides
 
 ```text
-Conversation CREATE/RESTORE/WAKE
-workerRef/c-id observation from real URL
-page state/permission/screenshot
-physical message/action delivery
-Browser evidence/recovery result
+Conversation CREATE / RESTORE / WAKE
+c-id / Conversation URL observation
+page state / screenshot / recovery
+physical collaboration delivery
+Browser Effect Result/Evidence
 ```
 
-Browser Extension 本体不直接读写 Task/Agent store。
+Browser 不持有 Role Bearer credential，也不直接写 Task/Agent Store。
 
-## 7. Product Worker → createTask
+---
+
+## 7. New Task main path
+
+正式顺序：
 
 ```text
-User ↔ Product Custom GPT Conversation
-→ requirement complete
-→ Browser observes/verifies product workerRef/c-id
-→ listRegisteredRoles
-→ createTask(product role+worker, dev/test role requirements)
+Extension New Task
+→ Task createTask(PENDING)
+→ 读取三个固定 agentPackageRef → registered roleRef
+→ Carrier 并发创建 Product/Dev/Test 新 Conversation
+→ observe workerRef + conversationLocator
+→ Task bindTaskWorker × 3（partial success 只补缺失）
+→ Product bound 后即可 requirement discussion
+→ Product putTaskDocument(REQUIREMENT)
+→ deterministic readiness → Task READY
+→ human confirmation channel → startTask
 ```
 
-Action/current-link shortcut 只有在真实 E2E 验证后才能作为优化；Action request 不被假定携带 stable Conversation c-id。
-
-## 8. API identity / actorRef
+Product GPT 不调用：
 
 ```text
-Bearer key → authenticatedRoleRef
-workerRef → request + Task binding validation
-actorRef → Gateway 根据 authenticated role + validated worker 规范化
+listRegisteredRoles
+getRegisteredRole
+createTask
 ```
 
-模型不得自由伪造 roleRef/actorRef。
+作为主业务入口。
 
-## 9. Public API ownership rules
+---
 
-- Agent：Role Registry、Worker identity、Collaboration logical API。
-- Task：TaskRoleBinding、workflow、TaskDocument。
-- Execution：physical Browser/local delivery/effect/evidence。
-- Gateway 不持久化第二份 binding 或 effect state。
-- 所有跨域 request/response 统一 contract/version/error envelope，外部边界 runtime validation，Refs opaque。
+## 8. Worker Turn / Actions
 
-## 10. OpenAI Carrier DTO 与 Domain Contract 分层
+一次 WAKE 启动一个 Worker Turn；同一 Turn 内 Custom GPT 可以调用 `0..N` 个 Actions。Browser 不在每个 Action 之间机械 WAKE，也不通过自然语言回复判断 Task 下一步。
 
-`openaiFileIdRefs`、`openaiFileResponse`、`x-openai-isConsequential` 都属于 GPT Actions/OpenAI transport contract，不是 Task/Agent/Execution business fields。
+Native GPT capability 优先级：
 
 ```text
-Custom GPT OpenAPI
-→ Gateway OpenAI Adapter
-→ canonical Domain Public Contract
+知识/公开 research → Conversation/Web Search
+多文件/数据/代码分析 → File Bridge + Code Interpreter
+正式 ProFlow facts → Actions
+真实机器/外部 Effect → Execution
+跨 Worker → Collaboration
 ```
 
-不得把 `download_link`、OpenAI file id、consequential flag 写成 Task/Execution durable business identity。
+---
+
+## 9. API identity / actorRef
+
+```text
+Bearer credential → authenticatedRoleRef
+request workerRef → Task binding validation
+actorRef → Gateway 按 authenticated role + validated worker 规范化
+```
+
+模型不得自由伪造 `roleRef/actorRef`；Browser 不参与 Role credential 验证。
+
+---
+
+## 10. OpenAI transport boundary
+
+GPT-facing contract 不依赖 arbitrary custom headers。以下字段通过 typed body/path/query：
+
+```text
+taskId
+nodeId
+workerRef
+idempotencyKey
+correlationId
+expectedTaskVersion
+expectedNodeVersion
+```
+
+`openaiFileIdRefs/openaiFileResponse/x-openai-isConsequential` 只属于 Carrier transport，不进入 Owner business identity。
+
+Routine query/control/intent Action 应显式 `x-openai-isConsequential:false`；真实高风险 Effect 是否需要 Approval仍由 Execution Policy决定。
+
+---
+
+## 11. Ownership summary
+
+- Agent：Role Registry/Worker identity validation/Collaboration。
+- Task：TaskRoleBinding/workflow/TaskDocument。
+- Execution：real Effect/Artifact/Result/Evidence/Browser physical delivery/Approval。
+- Gateway：auth/protocol adaptation/routing；不持久化第二份 business state。
+- Task Observer：deterministic next-step detection；不是 Owner。
+- System Observer：cross-system derived assessment；不是 Owner。

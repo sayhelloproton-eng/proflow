@@ -57,3 +57,7 @@ process/deployment: agent-gateway-process
 ## Testing
 
 见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+
+## 2026-08-14 Worker Turn / File Bridge alignment
+
+Gateway is a thin, stateless Custom GPT Action anti-corruption layer. Product New Task create/discovery operations are not part of its Product GPT-facing main surface. A Worker Turn may contain multiple sequential Actions without Gateway/Browser continuation state. File Bridge transport is normalized/relayed here, while bytes/materialized Artifact ownership remains Execution/owner-domain responsibility.

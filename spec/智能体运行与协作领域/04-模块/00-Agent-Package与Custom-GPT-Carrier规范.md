@@ -104,12 +104,12 @@ Agent manifest 信息放入 npm `package.json` 的平台命名字段中，避免
 
 # 3. 长期资料文件
 
-v1 明确分开：
+v1 package authoring material 与 future Knowledge 必须分开：
 
 ```text
-context/fixed-context.md
-memory/memory.md
-knowledge/*
+context/fixed-context.md      # v1 local authoring/reference material
+memory/memory.md             # v1 local authoring/reference material
+knowledge/*                  # future/deferred specialization material；不是 v1 必需
 ```
 
 ## fixed-context.md
@@ -119,7 +119,9 @@ knowledge/*
 - 平台架构长期背景；
 - 角色长期职责解释；
 - 稳定边界；
-- 长期 Knowledge 语义。
+- 适合帮助维护 Instructions 的长期 authoring context。
+
+它不是一个新的运行时 Context Store，也不要求在 v1 上传为 Web Knowledge。
 
 ## memory.md
 
@@ -130,15 +132,13 @@ knowledge/*
 - 操作习惯；
 - 不属于 Task 的长期知识。
 
-## knowledge/
+## knowledge/（DEFERRED）
 
-保存适合长期复用的静态 Knowledge 材料。
+OpenAI Custom GPT 支持 Knowledge 文件，但 **ProFlow v1 不把 Knowledge/专业化作为 Role READY、setup、verify 或业务主链前置**。`knowledge/*` 若保留，只是 future specialization 的静态材料占位/说明，不要求上传，也不建设 Knowledge Service/Router/Registry。
 
-Custom GPT 没有独立“fixed context / memory”槽位；Custom GPT Carrier setup 把上述适合作为长期 Knowledge 的文件手工上传。
+Custom GPT 没有独立“fixed context / memory”槽位；v1 的行为规则、职责、流程和边界必须由 Instructions 提供，不依赖 Web Knowledge。`fixed-context.md` / `memory.md` 是本地 package authoring/reference material，不自动等同于需要上传的 Knowledge。
 
-行为规则、必须遵循的流程与边界必须放 Instructions，不依赖 Knowledge 作为行为控制。
-
-Task Requirement / PRD / Technical Design / Test Result 等动态正文**禁止**进入 Agent Package 永久 Knowledge。
+Task Requirement / PRD / Technical Design / Test Result 等动态正文永远禁止进入永久 Role Knowledge；它们通过 TaskDocument / Artifact / File Bridge 按当前 Worker 需要获取。
 
 ---
 
@@ -189,20 +189,17 @@ advanceTask
 executeAnything
 ```
 
-优先：
+优先围绕业务目的：
 
 ```text
-getNodeContext
-completeNode
-waitNode
-reopenNode
-askPeer
-replyPeer
-readFile
-getGitStatus
-getTestResults
-runCommand
+getTask / getNodeContext
+startNode / completeNode / waitNode / reopenNode
+askPeer / replyPeer
+requestExecution / getExecution / readExecutionOutput
+TaskDocument / Artifact File Bridge
 ```
+
+底层 `readFile/writeFile/git/process/network/browser` primitive 可保留在 Execution capability registry，但不要求全部平铺为 GPT 高频 Actions。
 
 模型负责选择意图，但服务端负责最终合法性。
 
@@ -256,7 +253,7 @@ CLI 必须逐项对应真实 Web 配置：
 | 描述 | package.json | 复制/粘贴 |
 | 对话开场白 | package.json | 复制/粘贴 |
 | Instructions | package.json Markdown field | 复制/粘贴 |
-| Knowledge | fixed-context / memory / knowledge files | 手工上传 |
+| Knowledge | **DEFERRED in v1**；future specialization only | v1 不要求上传/verify |
 | 推荐模型 | package.json carrier profile | 手工选择 |
 | 功能开关 | package.json carrier profile | 手工勾选 |
 | Actions Schema | static OpenAPI + current Gateway URL | 粘贴/导入 |
@@ -286,15 +283,15 @@ npx <agent-package> custom-gpt setup
 2. 描述
 3. Instructions
 4. 对话开场白
-5. 要上传的 Knowledge 文件
-6. 推荐模型
-7. 功能开关
-8. Action Schema
-9. 提醒：先创建/保存 GPT，拿到真实 GPT URL
-10. register-role
-11. 生成 role-scoped Bearer Key
-12. 回 Web 填 Key
-13. validate-role
+5. 推荐模型 hint / 必要 Capabilities
+6. Action Schema
+7. 提醒：先创建/保存 GPT，拿到真实 GPT URL
+8. register-role
+9. 生成 role-scoped Bearer Key
+10. 回 Web 填 Key
+11. validate-role
+
+Knowledge upload 不属于 v1 必需步骤；future specialization 启用时再作为增量 human action。
 ```
 
 ## 6.2 字段级命令
@@ -374,9 +371,10 @@ role key rotate
 不能可靠自动验证（v1）：
 
 - Web 中实际粘贴的 Instructions 是否完整；
-- Knowledge 是否全部正确上传；
-- 推荐模型是否被用户正确选择；
+- 推荐模型/Capabilities 是否符合当前 capability requirements；
 - Web 中 Action Schema 是否与本地完全一致。
+
+Knowledge 在 v1 deferred，因此不属于 Role READY / verify checklist。
 
 因此 CLI 需要给人工 checklist。
 
@@ -394,7 +392,7 @@ role key rotate
 
 ## minor
 
-- Knowledge 增补；
+- future Knowledge/专业化增补（仅在 Knowledge 功能启用后适用）；
 - 兼容性的 Action 增加；
 - 能力增强但旧配置仍可使用。
 
@@ -427,8 +425,8 @@ Agent Package 自己应引导/实现与自己有关的：
 setup
 configure
 Custom GPT Web 创建材料
-Knowledge upload checklist
 Action Schema/Auth 配置
+Knowledge upload（future/deferred；不进入 v1 apply/verify happy path）
 role register/show/validate/delete
 role key show/rotate
 status/verify/doctor
@@ -448,3 +446,33 @@ status/verify/doctor
 Module 声明 requirements/config/lifecycle primitives；Deployment Planner 负责实例级 dependency graph、plan/apply 与 ACTION_REQUIRED resume。
 
 最终 `package.json` lifecycle descriptor、bin/exports、structured output 仍必须由 Deployment Domain 统一 Contract 冻结。
+
+
+---
+
+# 9. 2026-08-14 Carrier Reuse First 对齐
+
+### Product Package
+
+Product GPT 主路径不再暴露 `createTask/listRegisteredRoles/getRegisteredRole`。Extension New Task 先创建 PENDING Task并建立三 Worker，Product只负责该 Task 内 Requirement/TaskDocument 与后续 Collaboration。
+
+### Worker Turn
+
+一个 WAKE 后允许同一 Conversation 连续调用多个 Actions；Agent Package Instructions 必须禁止把“每 Action 后等待 Browser 再输入继续”写成工作流。
+
+### Native capabilities
+
+```text
+public research → Web Search
+多文件/数据分析 → File Bridge + Code Interpreter
+正式平台事实 → Actions
+真实 effect → Execution
+```
+
+### Action permission
+
+Routine query/control/intent operation 明确 `x-openai-isConsequential:false`，以用户首次 `Always Allow` 后退出 happy path 为目标；unexpected permission prompt 保留为 Carrier recovery。Execution Approval完全独立。
+
+### Knowledge
+
+v1 三个 Role 继续保持泛化岗位。专业化 Knowledge 明确 DEFER，不建设 Knowledge Service/Router/Registry。

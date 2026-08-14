@@ -21,7 +21,7 @@ contractRefs: []
 | Parent Domain | `execution` |
 | Context Ref | `execution` |
 | Subdomain | v1 未进一步拆分正式 Subdomain |
-| Language Scope | Execution Request/Record、Capability、PolicyDecision、Approval、ExecutionStatus、SideEffectState、Result、Evidence、UNKNOWN、reality reconciliation。 |
+| Language Scope | Execution Request/Record、Capability、PolicyDecision、Approval、ExecutionStatus、SideEffectState、Result、Artifact、Evidence、UNKNOWN、reality reconciliation。 |
 
 v1 未进一步冻结独立 Subdomain；Browser、Local、Contracts、Runtime 是同一 Effect Plane 下的 Module，不拆成独立 BC。
 
@@ -45,7 +45,7 @@ Task/Agent Public facts 提供业务身份与 scope；Model Public Contract 提�
 
 ## Downstream
 
-Task/Agent/Gateway 消费 Result/Evidence；Browser/Local executors 由 Execution Runtime 统一调度。
+Task/Agent/Gateway 消费 Result/Artifact/Evidence；Browser/Local executors 由 Execution Runtime 统一调度。Task/System Observer 只能通过 Public Facts 观察 Execution readiness/result/unknown，不拥有或镜像 Execution state。
 
 下游只能通过本 Context/Domain Public Contract 使用能力，不得 deep import 内部 Module。
 

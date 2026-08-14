@@ -39,3 +39,6 @@ Health & Observability
 - `03-流程与数据/03-路由-单Lane-队列-超时-取消.md`
 - `03-流程与数据/06-Runtime-Health与推理可观测性.md`
 - `04-模块/model-runtime/TECHNICAL-DESIGN.md`
+
+
+Observer integration 不新增内部“System Observer Engine”。现有 Spec Resolver/Router/Resource Coordinator/Validator 足以承载 Task Diagnostic 与 System Assessment；跨批 orchestration 由 caller 完成。

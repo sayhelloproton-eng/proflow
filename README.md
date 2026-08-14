@@ -42,3 +42,16 @@ Examples:
 Do not begin Phase 3 implementation merely because this repository exists.
 
 The FINAL FROZEN Phase 3 DDD/SDD baseline and FINAL FROZEN pre-development Test Plan are available through the [Frozen truth entrypoint](spec/README.md). This landing used an independently verified directory fallback because the original ZIP artifacts were unavailable; provenance records that their expected SHA values were not reverified. Implementation proceeds TDD-first only when a separate task opens the applicable Wave/TDD gate.
+
+## v1 Task Journey / Carrier / Observer baseline
+
+The current v1 architecture is Task-fact-driven rather than Browser-orchestration-driven. New Task starts in the Extension, binds exactly three long-lived Custom GPT Worker Conversations, and then advances through deterministic Task facts plus a thin Browser Carrier. Custom GPT native File Bridge / Code Interpreter / Web Search / multi-Action behavior are reused instead of reimplemented.
+
+Before implementing Task/Agent/Browser/Model/Deployment integration, read:
+
+- `spec/平台架构与公共约定/01-架构/04-Task-Journey-Carrier与Observer-v1集成基线.md`
+- `spec/任务与编排领域/03-流程与数据/05-Task-Observer推进与异常诊断边界.md`
+- `spec/智能体运行与协作领域/03-流程与数据/07-Worker-Turn与GPT原生能力使用边界.md`
+- `spec/模型与推理领域/03-流程与数据/08-Task-Diagnostic与System-Assessment推理规范.md`
+
+Key invariants: Owner facts beat model/DOM/log guesses; normal Task progression is deterministic; System Observer is a low-priority derived assessment path; real Effects remain Execution-owned; v1 has no frame registry/iframe team workspace/persistent-tab business identity.

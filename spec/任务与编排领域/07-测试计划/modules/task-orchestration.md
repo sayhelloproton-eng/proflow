@@ -82,7 +82,7 @@ Task 是长期工作事实与状态推进 Owner；错误 transition、binding、
 
 - [ ] **CP-TASK-ORCH-01** — Task/TaskGroup/Node 的所有冻结合法 transition 成功，非法 transition zero side effect。
 - [ ] **CP-TASK-ORCH-02** — Node 是唯一调度单元；不出现 WorkItem/Claim/Lease/parallel Node 的替代路径。
-- [ ] **CP-TASK-ORCH-03** — TaskRoleBinding one-time + idempotent：同值重放安全，不同值覆盖冲突；`startNode` 只能自动解析 binding.workerRef。
+- [ ] **CP-TASK-ORCH-03** — TaskRoleBinding(`agentPackageRef/roleRef/workerRef/conversationLocator`) one-time + idempotent：同值重放安全，不同值覆盖冲突；`startNode` 只能按 `requiredAgentPackageRef` 自动解析 binding.workerRef。
 - [ ] **CP-TASK-ORCH-04** — actorRef/idempotencyKey/expectedVersion 共同约束 Command；stale version、duplicate、same-key-different-fingerprint 均有明确结果。
 - [ ] **CP-TASK-ORCH-05** — `reopenNode` 保留旧 execution history、runNo 递增、后续 Node 受控重置，Task currentNodeId 回到目标 Node。
 - [ ] **CP-TASK-ORCH-06** — TaskDocument 只返回 Node 声明 input；缺 required output 不允许 complete；正文 Git 真源与 SQLite metadata/hash 可 reconciliation。
@@ -182,3 +182,12 @@ Task 是长期工作事实与状态推进 Owner；错误 transition、binding、
 
 若风险“Task 是长期工作事实与状态推进 Owner；错误 transition、binding、reopen、文档约束会污染整个跨域主链。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Journey Alignment Critical Proof Addendum
+
+- [ ] **CP-TASK-ORCH-09** — `createTask` 初始 PENDING；Product GPT不拥有pre-Task create；Requirement可在PENDING写入；3 required bindings + required docs + group prerequisite确定性形成READY。
+- [ ] **CP-TASK-ORCH-10** — simple Task start confirmation不持久化`authorizeTask/authorizedByRef/authorizedAt/APPROVAL_PENDING`；human channel只调用`startTask`。
+- [ ] **CP-TASK-ORCH-11** — `getTaskDriveProjection`提供bounded Task facts给Task Observer，Observer无法通过该API写Task；READY wake后由Worker正式`startNode`。
+- [ ] **CP-TASK-ORCH-12** — Execution/Collaboration/Carrier async pending默认不改变Task WAITING；只有正式workflow blocker可`waitNode`。
+- [ ] **CP-TASK-ORCH-13** — reopen same node/workerRef/Conversation，runNo+1；terminal后Task Observer stop-driving。
+
+新增 proof 不修改历史Evidence；开发后以新的test/evidence记录证明。

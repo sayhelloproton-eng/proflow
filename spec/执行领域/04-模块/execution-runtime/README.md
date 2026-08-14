@@ -59,3 +59,9 @@ process/deployment: execution-runtime-process
 ## Testing
 
 见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+
+## 2026-08-14 Journey / File Bridge alignment
+
+`execution-runtime` remains the single durable real-effect truth for local and Browser writes. It accepts Browser Carrier/owner requests through typed ports, performs policy/idempotency/approval/UNKNOWN control, and converges to Result/Evidence; Task/System Observers have no direct mutation path.
+
+OpenAI File Bridge is transport, not a new file domain. Inbound file refs are normalized by Gateway then materialized through bounded Execution capabilities; Context Pack and Patch are Execution Artifact subtypes. Outbound OpenAI relay remains Gateway transport over existing artifact truth. A Browser file manager or second Browser durable effect runtime is forbidden.

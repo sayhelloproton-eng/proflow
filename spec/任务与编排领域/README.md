@@ -54,3 +54,14 @@ contractRefs: []
 ## 实施原则
 
 其他领域只能依赖本领域 Public Contract / logical capability；禁止 direct DB read、internal repository/adapter、deep import 或状态镜像。Module TODO 不得重新定义领域模型。
+
+
+## 2026-08-14 v1 Journey alignment
+
+- Extension `New Task` 先创建 PENDING Task，再一次建立 Product/Dev/Test 三个 Worker；Product requirement 在 PENDING Task 内完成。
+- Task READY 由 requirement + required bindings + group prerequisites 决定，不保存独立 Task approval/authorization fact；用户确认后调用 `startTask`。
+- Node role requirement 使用固定 `agentPackageRef/packageName`；TaskRoleBinding 保存实际 roleRef/workerRef/conversationLocator。
+- Task Observer 是外部 application detector，不是 Task Scheduler；正常 progression deterministic，异常 REASON 只诊断。
+- Execution/Peer/Approval pending 不自动变 Task WAITING。
+
+跨域主链见 `PLATFORM-DOC-01-04`，Task Observer 细节见 `TASK-DOC-03-05`。

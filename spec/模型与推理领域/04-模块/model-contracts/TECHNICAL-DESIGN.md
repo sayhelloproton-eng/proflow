@@ -31,3 +31,10 @@ contractRefs:
 ## Boundary Rule
 
 本文件只定义该 Module 的工程落点，不复制 Domain / Bounded Context 的 canonical facts。若实现需要引入当前 normative Contract 未定义的新算法语义、状态、持久化事实或跨域 Contract，必须先完成对应设计与 Contract Change；不得由 TODO/Codex 自行补全。
+## Observer-specific contract constraints
+
+- 不新增 `assessSystem()` / `judgeTask()` API；复用 `infer()`。
+- `InferenceTraceContext` 可携带 `assessmentRef`；System Assessment 使用 `priority=background`。
+- context budget 超限必须显式 `CONTEXT_TOO_LARGE`/等价 typed error，由 caller 拆 batch；contract/runtime 不偷偷截断或“自动总结”。
+- Model output 是 judgment/assessment，不是 Task transition、Execution Approval 或 Effect authorization。
+

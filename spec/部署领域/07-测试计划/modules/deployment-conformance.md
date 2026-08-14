@@ -160,3 +160,12 @@ Conformance 若误把结构 PASS 当业务 PASS，或不能拒绝错误 Module�
 
 若风险“Conformance 若误把结构 PASS 当业务 PASS，或不能拒绝错误 Module，会让平台治理失效。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Custom GPT Carrier Conformance Addendum
+
+追加 Critical Proof：
+
+- [ ] Agent Package 对 Custom GPT required capabilities / static Action schema / auth requirement 的声明可被机器读取且不要求 exact model pin；
+- [ ] Product Agent Package 的 GPT-facing schema 不允许重新出现 `createTask/listRegisteredRoles/getRegisteredRole` New Task主链；
+- [ ] Controller/Test 的 Execution request-intent routine Action 与真实危险 Effect Approval 分层，Conformance 不把 `x-openai-isConsequential:false` 解释成 Effect 自动授权；
+- [ ] Carrier descriptor 不声明稳定 c-id 来自 GPT Actions，也不把 tab/frame 当 Worker business identity；
+- [ ] System Observer/Task Observer 不被建模为 Deployment-owned Module capability/business state。

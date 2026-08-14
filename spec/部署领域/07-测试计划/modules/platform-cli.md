@@ -181,3 +181,12 @@ CLI 是唯一全局 Deployment Planner/Executor；错误 graph、stale state 或
 
 若风险“CLI 是唯一全局 Deployment Planner/Executor；错误 graph、stale state 或不可恢复 apply 会直接造成部署错误。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 Carrier Readiness / Human Action Addendum
+
+`platform-cli` 对 Carrier/Role readiness 还必须证明：
+
+- Web-only GPT/workspace/auth/domain/privacy/Always Allow 等未满足时输出 structured `ACTION_REQUIRED(_WEB)`，resume 后重新 discover/verify current reality；
+- stale verification 不能让 Role/Platform READY；
+- exact model id 不是 readiness gate，required behavior/capability/auth 才是；
+- CLI 不生成/猜测 Task `workerRef/c-id`，也不持久化 tab/frame；
+- System Observer 的 assessment 不作为 manifest READY 输入真源；只有 owner verification facts 可被聚合。

@@ -55,3 +55,7 @@ process/deployment: none / determined by Deployment kind
 ## Testing
 
 见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+
+## 2026-08-14 Journey alignment
+
+Controller/Dev is one of the three fixed v1 Agent Packages. Its Task Worker Conversation is created/bound during Extension New Task and remains IDLE until a Node wake. Worker Turn/native capability rules are normative in [`AGENT-DOC-03-07`](../../03-流程与数据/07-Worker-Turn与GPT原生能力使用边界.md): File Bridge + bounded Context Pack + Code Interpreter may produce patch/report artifacts, while real repo effects remain Execution-owned.

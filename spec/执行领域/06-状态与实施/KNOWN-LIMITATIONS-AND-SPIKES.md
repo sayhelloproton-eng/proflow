@@ -30,10 +30,10 @@ FUTURE = 不属于 v1 当前范围
 - Current fallback: `IDLE/BUSY/BLOCKED/UNKNOWN`、permission fallback、Recovery Scan、reality verification。
 - Blocks P0: No，只要真实 E2E/fault tests 通过。
 
-## EXE-SPIKE-002｜Carrier Multi-Action 对 Browser WAKE 频率的优化收益
-- Type: `PENDING_SPIKE`
-- Execution correctness 不依赖该能力。
-- Current fallback: bounded multiple Worker Turns；Browser 只在需要新 Turn 时 WAKE。
+## EXE-LIMIT-002｜Multi-Action Worker Turn 的真实 Carrier 证明
+- Type: `KNOWN_LIMITATION`（真实目标环境最终 E2E 待执行）
+- 架构主路径已冻结：一次 WAKE 对应语义 Worker Turn，同一 Turn 可连续 `0..N` Actions，Browser 不做 per-action scheduler。
+- Execution correctness 不依赖 GPT 连续调用次数；若 Turn 因外部原因结束，只在新的 result/reply/trigger 需要时恢复同一 Worker，且 UNKNOWN/已成功 Effect 不得盲重放。
 
 ## EXE-FUTURE-003｜Knowledge Access
 - Type: `FUTURE`

@@ -65,17 +65,18 @@ Knowledge
 → 上传文件中的长期 Knowledge 材料
 ```
 
-因此 v1 Carrier Mapping：
+因此必须区分“OpenAI 官方支持”与“ProFlow v1 是否采用”：
 
 ```text
 package.json agent.instructions
-→ Web Instructions
+→ Web Instructions                  # v1 REQUIRED
 
-fixed-context.md / memory.md / knowledge/* 中适合长期复用的文件
-→ Web Knowledge 手动上传
+Web Knowledge
+→ official capability               # ProFlow v1 DEFERRED
+→ future generic-role specialization only
 ```
 
-Task/Node/reopen 动态事实不进入 Knowledge。
+`fixed-context.md` / `memory.md` 在 v1 是 package authoring/reference material，不自动映射成 Web Knowledge。Task/Node/reopen 动态事实永远不进入 permanent Knowledge，而通过 Task/Artifact/File Bridge 进入当前 Worker。
 
 ---
 
@@ -168,15 +169,23 @@ API Key / Bearer
 
 ---
 
-# 8. 用户控制与 Action approval
+# 8. 用户控制、`x-openai-isConsequential` 与 Always Allow
 
-官方说明用户在 Action 使用时可能被要求批准/确认。
+OpenAI Action 的 UI confirmation 与 ProFlow Execution Approval 是两层完全独立的事实。v1 正式目标不是让 Browser 在每个 routine Action 前机械点击 permission，而是：
 
-因此：
+```text
+routine query/control/intent operation
+→ static OpenAPI x-openai-isConsequential:false
+→ user 首次可选择 Always Allow
+→ 后续 happy path 不再把 permission prompt 当业务调度点
+```
 
-- v1 不假设 Custom GPT Action 永远无 UI confirmation；
-- 平台自己的高风险副作用 Approval 仍由 Execution Domain 拥有；
-- OpenAI UI 的 Action confirmation 与平台 Execution Approval 不是同一个事实。
+规则：
+
+- `x-openai-isConsequential:false` 只表示 **GPT-facing Action 本身是 routine query/control/intent**；如果它提交一个真实 Effect request，真正 Effect 是否允许仍由 Execution Policy/Approval 决定；
+- unexpected permission prompt 继续作为 Browser Carrier recovery / human-interaction 情况处理；
+- 不把 OpenAI permission 结果写入 Task/Execution Approval truth；
+- 不通过设置 consequential=false 绕过 scope/DENY/REQUIRE_APPROVAL/version/idempotency。
 
 ---
 
@@ -215,9 +224,10 @@ local OpenAPI validation
 
 需人工：
 Instructions 是否最新
-Knowledge 是否上传正确
-推荐模型/Capabilities 是否选择正确
+推荐模型/Capabilities 是否满足 capability requirements
 Web Action Schema 是否已更新
+
+Knowledge 在 v1 deferred，不进入当前 verify/READY checklist。
 ```
 
 这也是 v1 setup CLI 要逐步引导用户的原因。
@@ -225,9 +235,9 @@ Web Action Schema 是否已更新
 
 ---
 
-# 11. Current page URL / Conversation c-id 不是已冻结的官方 Action metadata
+# 11. Current page URL / Conversation c-id 不是官方 Action metadata
 
-产品 pre-Task Worker 需要在 `createTask` 前取得自身 `workerRef=c-id`。Action/current-link 是轻量优化候选，但在真实验证完成前只属于 `PENDING_SPIKE`：
+第一版已经明确：**GPT Action 不提供可作为 ProFlow Worker identity truth 的稳定 Conversation c-id。** 因此三个 Worker 的 `workerRef/c-id + conversationLocator` 都由 Browser Carrier 在真实页面创建/恢复时观察与验证，再通过 Task `bindTaskWorker` 固化。
 
 ```text
 不得假设 GPT Action HTTP request 天然携带 window.location.href
@@ -235,9 +245,16 @@ Web Action Schema 是否已更新
 不得信任模型任意自报 URL 作为可信身份
 ```
 
-必须用真实 Custom GPT + Gateway debug Action 验证可获得的 request metadata，再冻结 Carrier Context 的实现。
+这不再是 Product pre-Task createTask 的阻塞 Spike，因为 Product Task creation 已移到 Extension：
 
-若需要本地页面 provider，也不得改变“产品 GPT 是 Task 前用户主动沟通”的业务流程。
+```text
+Extension createTask(PENDING)
+→ Browser CREATE Product/Dev/Test Conversation
+→ observe c-id / locator
+→ bindTaskWorker
+```
+
+真实 E2E 仍需验证 ChatGPT 页面 URL/c-id observation 的具体稳定性与恢复策略，但不会改变“Browser owns Conversation identity observation、Action does not”这一架构边界。
 
 ---
 
@@ -403,7 +420,7 @@ Custom GPT 创建/编辑仍按 Web-only 流程处理；Deployment 继续使用�
 
 ### B. PENDING_SPIKE｜官方能力存在，但本平台使用方式仍需真实 E2E
 
-下面只验证“在我们的 Role / Worker / Task Driver 主链中是否稳定”，不是验证 OpenAI 文档是否存在：
+下面只验证“在我们的 Role / Worker / Task Observer + Carrier 主链中是否稳定”，不是验证 OpenAI 文档是否存在：
 
 ```text
 1. x-openai-isConsequential:false 后选择 Always Allow，后续 routine Actions 是否稳定无确认；
@@ -418,7 +435,7 @@ Custom GPT 创建/编辑仍按 Web-only 流程处理；Deployment 继续使用�
 
 ```text
 不得假设 GPT Action request 自动提供稳定 Conversation c-id
-不得用 ChatGPT Scheduled Tasks 替代 GPT Worker Task Driver
+不得用 ChatGPT Scheduled Tasks 替代 ProFlow Task Observer + Worker Carrier 驱动
 不得用 Code Interpreter 替代真实本机/Browser Execution
 不得因 File Bridge 删除 Browser/Vision
 不得把 Custom GPT native Actions/Function Calling 等同于 Model Runtime native tool_calls

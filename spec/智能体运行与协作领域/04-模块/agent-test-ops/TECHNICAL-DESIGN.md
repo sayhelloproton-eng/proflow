@@ -31,3 +31,7 @@ contractRefs:
 ## Boundary Rule
 
 本文件只定义该 Module 的工程落点，不复制 Domain / Bounded Context 的 canonical facts。若实现需要引入当前 normative Contract 未定义的新算法语义、状态、持久化事实或跨域 Contract，必须先完成对应设计与 Contract Change；不得由 TODO/Codex 自行补全。
+
+## 2026-08-14 Worker Turn / Test Result Alignment
+
+Test/Ops 是固定三Role之一。New Task时只bind/IDLE；business Node READY后由Carrier WAKE，Worker正式`startNode`。测试/运维分析可以复用Conversation、File Bridge、Code Interpreter与Web Search，但正式测试结果/Evidence、doctor/verify和真实Effect仍通过Owner/Execution合同。Browser不从GPT自然语言判PASS；需要返工时使用Task正式reopen，同一workerRef/Conversation、runNo+1。

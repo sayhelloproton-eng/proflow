@@ -273,3 +273,10 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+## 2026-08-14 Worker Turn / Action Surface Addendum
+
+- [ ] Product GPT-facing schema移除New Task `createTask/listRegisteredRoles/getRegisteredRole`主链；Role Registry query只保留management/internal surface。
+- [ ] Gateway保持stateless/thin：同一Worker Turn多Action不建立Turn Store/Action scheduler，不根据上一次Action completion要求Browser继续。
+- [ ] routine query/control/intent operation显式`x-openai-isConsequential:false`；Always Allow是Carrier happy-path setup，Execution Effect Approval仍由Execution。
+- [ ] File Bridge只transport/normalize/relay；inbound bytes交Execution materialize，Gateway不建立Artifact/File Store。

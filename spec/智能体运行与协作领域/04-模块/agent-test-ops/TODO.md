@@ -159,3 +159,10 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+## 2026-08-14 Journey / Native Capability Addendum
+
+- [ ] Test/Ops Worker 在 J1 只完成 WORKER_BIND 后 IDLE；只在其 business Node READY/其他合法 trigger 时WAKE。
+- [ ] READY WAKE后由Worker正式 `startNode`，测试结果/证据通过Task/Execution正式合同提交；Browser不从GPT自然语言判PASS。
+- [ ] 一个Worker Turn可连续`0..N` Actions；File Bridge/Code Interpreter用于报告、日志、artifact分析，真实 Effect/verify/doctor仍走Owner contract/Execution。
+- [ ] 测试失败需要业务返工时调用正式Task reopen path；same workerRef/Conversation + runNo+1，不创建新Worker。

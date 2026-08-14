@@ -25,29 +25,27 @@ FUTURE = 不属于 v1 当前范围
 
 任何 `PENDING_SPIKE` 都不得成为没有 fallback 的 correctness dependency。只有真实 E2E/实验通过，并确认不破坏 ownership / contract / recovery 后，才可提升为正式主路径。
 
-## OAI-CARRIER-001｜Always Allow 稳定性
-- Type: `PENDING_SPIKE`
-- 目标：验证 `x-openai-isConsequential:false` 后 routine Action 是否可长期稳定免确认。
-- Current fallback: Browser permission detection/handling。
-- Blocks P0: No。
+## OAI-CARRIER-001｜Always Allow 真实环境证明
+- Architecture Status: `FROZEN_PRIMARY_PATH`
+- Validation Status: `FINAL_MANUAL_E2E_PENDING`
+- 正式路径：routine Action 使用 `x-openai-isConsequential:false`，用户完成 `Always Allow` 后 happy path 不再由 Browser 逐次点击 permission。
+- Unexpected permission prompt: Carrier recovery / human interaction condition，不是 Execution Approval，也不恢复 action-level Browser scheduler。
 
-## OAI-CARRIER-002｜Multi-Action Worker Turn
-- Type: `PENDING_SPIKE`
-- 目标：验证单个 Worker Turn 内多次 Action 调用的真实稳定性。
-- Current fallback: bounded multiple Worker Turns；每 Turn 前重读 owner facts；不得重放已成功 Action/Effect。
-- Blocks P0: No。
+## OAI-CARRIER-002｜Multi-Action Worker Turn 真实环境证明
+- Architecture Status: `FROZEN_PRIMARY_PATH`
+- Validation Status: `FINAL_MANUAL_E2E_PENDING`
+- 正式路径：一次 WAKE 可形成一个语义 Worker Turn，同一 Conversation 内可连续 `0..N` Actions；Browser 不在每个 Action 中间 WAKE/发送“继续”。
+- 若真实目标环境发生中断：只在确实需要新 Turn 时恢复同一 Worker，并先重读 Owner current facts；不得恢复 action-level Browser scheduler 或重放已成功 Effect。
 
-## OAI-CARRIER-003｜Conversation-native file handling
-- Type: `PENDING_SPIKE`
-- 目标：验证返回/输入文件在后续 Conversation file search / Code Interpreter 中的稳定可用性。
-- Current fallback: TaskDocument canonical truth + 显式 File Bridge/typed Action。
-- Blocks P0: No。
+## OAI-CARRIER-003｜Conversation-native file handling 真实环境证明
+- Architecture Status: `FROZEN_REUSE`
+- Validation Status: `FINAL_MANUAL_E2E_PENDING`
+- 正式边界：File Bridge 负责传输；TaskDocument/Execution Artifact 继续是平台正式引用，Conversation file 永不成为 canonical truth。
 
-## OAI-CARRIER-004｜Context Pack → Code Interpreter → Patch round trip
-- Type: `PENDING_SPIKE`
-- 目标：验证代码上下文打包、Code Interpreter 修改、文件回传、Execution apply/verify 的稳定链路。
-- Current fallback: 2–10 个显式 code/text files + typed deterministic Execution capability。
-- Blocks P0: No。
+## OAI-CARRIER-004｜Context Pack → Code Interpreter → Patch round trip 真实环境证明
+- Architecture Status: `FROZEN_REUSE`
+- Validation Status: `FINAL_MANUAL_E2E_PENDING`
+- 正式边界：Context Pack/Patch 都是 Execution Artifact subtype；GPT/Code Interpreter 只产候选 Artifact，真实 apply/test/evidence 仍由 Execution。具体 pack 格式可根据真实 E2E 调整。
 
 ## OAI-CARRIER-005｜ZIP Context Pack
 - Type: `PENDING_SPIKE`

@@ -46,3 +46,7 @@ contractRefs: []
 ## 实施原则
 
 其他领域只能依赖本领域 Public Contract / logical capability；禁止 direct DB read、internal repository/adapter、deep import 或状态镜像。Module TODO 不得重新定义领域模型。
+
+## v1 Carrier / Observer 对齐
+
+Execution Browser Extension同时承载薄Browser Carrier与Extension application blocks（Task UI、Approval/Alert UI、Task Observer、System Observer、Carrier Controller），但这些application blocks不成为Execution业务facts。真实Effect仍统一由Execution durable semantics控制；Worker Turn/native GPT/file transport不在Browser另建runtime。

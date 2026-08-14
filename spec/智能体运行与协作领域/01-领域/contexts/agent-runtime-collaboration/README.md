@@ -68,3 +68,7 @@ Task 使用 Worker/Role identity；Execution 使用 Role/Worker/Collaboration ta
 ## Testing / Acceptance / TODO
 
 见 [质量与验收](../../../05-质量与部署/01-失败恢复版本安全与验收.md) 与各 Module `TODO.md`。
+
+## v1 fixed-role / Worker Turn alignment
+
+本 Context 的 Role 集合在 v1 固定为三个泛化 Agent Package。Worker 是 Task-scoped Custom GPT Conversation identity，但 `TaskRoleBinding` 的持久化真源归 Task。Conversation 内可在一个语义 Worker Turn 连续使用 GPT-native File Bridge/Code Interpreter/Web Search 与 0..N Actions；本 Context 不建立 WorkerTurn Store/Runtime，也不把 Browser page state 变成业务事实。

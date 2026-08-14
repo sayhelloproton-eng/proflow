@@ -45,7 +45,7 @@ v1 未进一步冻结独立 Subdomain；2 packages / 1 runtime service / 6 inter
 
 ## Downstream
 
-Execution、Agent 以及少量明确场景下的 Task 通过 Model Public Contract 消费认知结果；Model 不反向读取业务事实。
+Execution、Agent，以及 Extension application 中明确的 Task Diagnostic / System Observer 调用方通过 Model Public Contract 消费认知结果；Model 不反向读取业务事实。正常 Task progression 不调用模型，System assessment 是最低优先级 derived reasoning。
 
 下游只能通过本 Context/Domain Public Contract 使用能力，不得 deep import 内部 Module。
 
@@ -68,3 +68,7 @@ Execution、Agent 以及少量明确场景下的 Task 通过 Model Public Contra
 ## Testing / Acceptance / TODO
 
 见 [质量与验收](../../../05-质量与部署/02-测试验收-M1到M4.md) 与各 Module `TODO.md`。
+
+## Observer reasoning boundary
+
+Task Diagnostic 只处理单 Task 的 ambiguity/UNKNOWN/repeated recovery/stall；System Assessment 处理跨 Task/Execution/Carrier/Model/Deployment 的 bounded synthesis。两者统一调用 `infer()`，不新增 `assessSystem/judgeTask` API，不在 Model Domain 持久化 Observer business state。batch/carry-forward/drill-down/global-synthesis orchestration 属于 caller/application。

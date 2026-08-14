@@ -271,3 +271,38 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+### TASK-ORCH-008
+
+```yaml
+id: TASK-ORCH-008
+status: READY
+implementationReadiness: PLANNED
+priority: PENDING_DECISION
+type: IMPLEMENTATION
+owner:
+  domain: task-orchestration
+  boundedContext: task-orchestration
+  moduleRef: task-orchestration
+sourceRefs:
+- TASK-DOC-02-01
+- TASK-DOC-03-05
+- PLATFORM-DOC-01-04
+qualityRefs:
+- TASK-DOC-05-02
+dependencyState: NOT_FROZEN
+dependsOn: []
+goal: 对齐 Extension-first New Task readiness、getTaskDriveProjection、Task Observer read-only boundary、async owner wait separation 与 terminal stop-driving
+scope:
+  allow:
+  - packages/task-orchestration/**
+  forbid:
+  - Observer-owned Task state
+  - Task approval workflow/entity for simple start confirmation
+  - Execution/Collaboration pending 自动写 Task WAITING
+  - 其他领域 internal deep import
+acceptance:
+- ACCEPTANCE_NOT_FROZEN
+verification: []
+evidence: []
+```

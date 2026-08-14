@@ -4,7 +4,7 @@
     "domain": "task-orchestration",
     "boundedContext": "task-orchestration",
     "kind": "library/in-process runtime",
-    "purpose": "负责 Task/TaskGroup/Node/TaskRoleBinding/TaskDocument 的 Domain/Application Services。",
+    "purpose": "负责 Task/TaskGroup/Node/TaskRoleBinding/TaskDocument 的 Domain/Application Services；Task progression truth 归 Task，Task Observer 仅消费只读 drive projection，不属于 Task 业务 Store。",
     "subdomains": [
       "task-lifecycle",
       "task-chain",
@@ -25,7 +25,8 @@
     "contractRefs": [
       "TASK-ORCHESTRATION-TECH-TASK-ORCHESTRATION",
       "TASK-DOC-02-01",
-      "TASK-DOC-02-02"
+      "TASK-DOC-02-02",
+      "TASK-DOC-03-05"
     ],
     "docs": "任务与编排领域/04-模块/task-orchestration/README.md",
     "engineeringStatus": "DESIGNED"
@@ -90,7 +91,7 @@
     "domain": "agent-runtime-collaboration",
     "boundedContext": "agent-runtime-collaboration",
     "kind": "library/in-process runtime",
-    "purpose": "platform-host 进程内装配的 Agent Domain runtime，承载 Role Registry、Role credential domain service、Collaboration Message Center 与 Agent Public API。",
+    "purpose": "platform-host 进程内装配的 Agent Domain runtime，承载 Role Registry（management/Deployment/Carrier lookup）、role credential domain service 与 Collaboration Message Center；不承担 New Task 动态组队或 Browser scheduler。",
     "subdomains": [],
     "provides": [],
     "requires": [],
@@ -107,7 +108,8 @@
       "AGENT-DOC-02-01",
       "AGENT-DOC-03-01",
       "AGENT-DOC-03-03",
-      "AGENT-DOC-03-05"
+      "AGENT-DOC-03-05",
+      "AGENT-DOC-03-07"
     ],
     "docs": "智能体运行与协作领域/04-模块/agent-runtime/README.md",
     "engineeringStatus": "DESIGNED"
@@ -117,7 +119,7 @@
     "domain": "agent-runtime-collaboration",
     "boundedContext": "agent-runtime-collaboration",
     "kind": "service",
-    "purpose": "负责 Custom GPT Action public ingress、authentication、role identity、request/schema validation、Action routing、protocol adaptation 与 result normalization；不拥有下游领域业务。",
+    "purpose": "Custom GPT Actions 公网 Anti-Corruption Layer：认证 roleRef、typed request/schema validation、业务 Action routing、File Bridge transport normalization 与 result serialization；stateless/thin，不拥有业务/Artifact store 或 WorkerTurn scheduler。",
     "subdomains": [],
     "provides": [],
     "requires": [],
@@ -148,7 +150,7 @@
     "domain": "agent-runtime-collaboration",
     "boundedContext": "agent-runtime-collaboration",
     "kind": "agent-package",
-    "purpose": "产品 Role Agent Package；包含 Custom GPT 创建材料、Instructions/Knowledge/Actions requirements 与 role registration 管理。",
+    "purpose": "产品 Role Agent Package；固定泛化 Product 角色，包含 Custom GPT Instructions、静态 Actions 与 carrier capability requirements；New Task 由 Extension 创建，v1 不引入 Knowledge 专业化。",
     "subdomains": [],
     "provides": [],
     "requires": [],
@@ -174,7 +176,7 @@
     "domain": "agent-runtime-collaboration",
     "boundedContext": "agent-runtime-collaboration",
     "kind": "agent-package",
-    "purpose": "总控/研发 Role Agent Package；载体与权限要求由 Agent Package/Action matrix 约束。",
+    "purpose": "总控/研发 Role Agent Package；固定泛化 Controller/Dev 角色，按 Worker Turn 使用 GPT Native/Actions，并把真实工程 Effect 交给 Execution。",
     "subdomains": [],
     "provides": [],
     "requires": [],
@@ -200,7 +202,7 @@
     "domain": "agent-runtime-collaboration",
     "boundedContext": "agent-runtime-collaboration",
     "kind": "agent-package",
-    "purpose": "测试/运维 Role Agent Package；载体与权限要求由 Agent Package/Action matrix 约束。",
+    "purpose": "测试/运维 Role Agent Package；固定泛化 Test/Ops 角色，按正式 Task/Execution 合同提交测试结果、Evidence 与运维 Effect。",
     "subdomains": [],
     "provides": [],
     "requires": [],
@@ -226,7 +228,7 @@
     "domain": "execution",
     "boundedContext": "execution",
     "kind": "library",
-    "purpose": "薄 Public Contract Module，只包含 TS DTO/schema/error/ref/version 等公共合同，不承担 Runtime。",
+    "purpose": "薄 Public Contract Module，只包含 TS DTO/schema/error/ref/version 等公共合同；显式区分 Result、ArtifactRef、EvidenceRef 与稳定业务 identity / transient Browser identity，不承担 Runtime。",
     "subdomains": [],
     "provides": [],
     "requires": [],
@@ -251,7 +253,7 @@
     "domain": "execution",
     "boundedContext": "execution",
     "kind": "service",
-    "purpose": "Execution Domain 唯一后端服务与控制真源，负责受控执行决策、Execution 生命周期持久化、Executor 调度与结果收敛。",
+    "purpose": "Execution Domain 唯一后端服务与控制真源，负责受控执行决策、Execution 生命周期持久化、Executor 调度、Artifact materialization、Result/Evidence 收敛与 UNKNOWN/recovery；不拥有 Task Observer/System Observer。",
     "subdomains": [],
     "provides": [],
     "requires": [],
@@ -282,7 +284,7 @@
     "domain": "execution",
     "boundedContext": "execution",
     "kind": "library",
-    "purpose": "本机真实 Executor，v1 作为 npm library 被 execution-runtime 同进程加载；不拥有 Policy/Approval/Task/Model 业务逻辑。",
+    "purpose": "本机真实 Executor，v1 作为 npm library 被 execution-runtime 同进程加载；执行本地 fs/git/process/network 等真实 Effect，并承接 bounded file materialization / Context Pack / Patch apply 的本机能力，不拥有 Policy/Approval/Task/Model 业务逻辑。",
     "subdomains": [],
     "provides": [],
     "requires": [],
@@ -306,7 +308,7 @@
     "domain": "execution",
     "boundedContext": "execution",
     "kind": "browser-extension",
-    "purpose": "Execution Domain 的 Browser Executor、Evidence Provider、Task Driver carrier coordinator 与 P0 Side Panel；不是 Task/Agent 业务真源。",
+    "purpose": "Chrome Extension：承载 Browser Executor/Evidence Provider，以及 application-side Task UI、Approval/Alert UI、Task Observer、System Observer 与 Background Carrier Controller；不拥有 Task/Agent/Collaboration 业务事实。",
     "subdomains": [],
     "provides": [],
     "requires": [],
@@ -326,7 +328,10 @@
     "contractRefs": [
       "EXECUTION-EXECUTION-BROWSER-EXTENSION-TECH-DESIGN",
       "EXECUTION-DOC-02-01",
-      "EXECUTION-DOC-02-02"
+      "EXECUTION-DOC-02-02",
+      "PLATFORM-DOC-01-04",
+      "TASK-DOC-03-05",
+      "MODEL-DOC-03-08"
     ],
     "docs": "执行领域/04-模块/execution-browser-extension/README.md",
     "engineeringStatus": "DESIGNED"
@@ -361,7 +366,7 @@
     "domain": "model-reasoning",
     "boundedContext": "model-reasoning",
     "kind": "service",
-    "purpose": "Model Domain 唯一服务，对外提供受规范约束的 inference 能力与 runtime status；不是 Agent 或 Workflow Engine。",
+    "purpose": "Model Domain 唯一服务，提供 typed FAST/REASON/Vision inference 与 runtime status；支持 Task diagnostic/System assessment 推理负载，但不拥有 Observer store/scheduler、Task workflow 或 Effect authority。",
     "subdomains": [],
     "provides": [],
     "requires": [
@@ -384,7 +389,8 @@
     "contractRefs": [
       "MODEL-MODEL-RUNTIME-TECH-DESIGN",
       "MODEL-DOC-02-01",
-      "MODEL-DOC-02-02"
+      "MODEL-DOC-02-02",
+      "MODEL-DOC-03-08"
     ],
     "docs": "模型与推理领域/04-模块/model-runtime/README.md",
     "engineeringStatus": "DESIGNED"
@@ -510,7 +516,7 @@
     "domain": "platform",
     "boundedContext": null,
     "kind": "application-composition-root",
-    "purpose": "本地 Application Composition Root：装配独立 Task/Agent package，注入 Execution/Model client，提供本地 transport、startup/shutdown 与轻量 health aggregation。",
+    "purpose": "本地 Application Composition Root：装配独立 Task/Agent package，注入 Execution/Model client，提供本地 transport、startup/shutdown 与轻量 health aggregation；不拥有 Extension Observer/Carrier loop。",
     "subdomains": [],
     "provides": [],
     "requires": [],

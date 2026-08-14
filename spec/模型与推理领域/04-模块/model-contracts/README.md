@@ -55,3 +55,7 @@ process/deployment: none / determined by Deployment kind
 ## Testing
 
 见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+## Observer / diagnostic contract boundary
+
+Task Diagnostic 与 System Assessment 不新增 Model Public API；都通过 `infer()` + versioned `specRef` + typed payload/output。`assessmentRef` 只是 trace/carry-forward 关联，不意味着 model-contracts 拥有 Assessment Store。System Observer 的 batching/carry-forward/drill-down/global synthesis 由 caller/application 组织。
+

@@ -38,3 +38,7 @@ contractRefs:
 ## Boundary Rule
 
 本文件只定义该 Module 的工程落点，不复制 Domain / Bounded Context 的 canonical facts。若实现需要引入当前 normative Contract 未定义的新算法语义、状态、持久化事实或跨域 Contract，必须先完成对应设计与 Contract Change；不得由 TODO/Codex 自行补全。
+
+## 2026-08-14 Persistence Alignment
+
+`task_role_bindings`是正式Task表；新规范不再把`authorizedByRef/authorizedAt`作为Task start truth。若历史schema含授权列，迁移兼容不得让这些列继续参与readiness/start判断。Task Store不持久化tab/frame、Observer assessment或Execution/Collaboration pending mirror。

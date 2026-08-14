@@ -55,3 +55,7 @@ process/deployment: none / determined by Deployment kind
 ## Testing
 
 见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+
+## 2026-08-14 Journey alignment
+
+Test/Ops is one of the three fixed v1 Agent Packages. Its Worker is created/bound at New Task, stays IDLE until a legal wake, and uses formal Task/Execution contracts for test result, evidence, reopen and operational effects. Browser/GPT natural-language output is never test PASS truth. See [`AGENT-DOC-03-07`](../../03-流程与数据/07-Worker-Turn与GPT原生能力使用边界.md).

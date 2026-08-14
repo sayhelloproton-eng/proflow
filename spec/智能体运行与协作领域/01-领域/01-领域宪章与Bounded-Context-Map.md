@@ -58,7 +58,7 @@ folder == Bounded Context
 ## 5. 现有能力/问题分组
 
 - Agent Package & Carrier
-- Role/Worker Identity
+- Role / Worker identity semantics（TaskRoleBinding durable truth 仍归 Task）
 - Collaboration
 - Gateway/Actions
 
@@ -90,3 +90,9 @@ Requires：
 ## 8. 详细模型与边界正文
 
 本文件只冻结 DDD 导航边界，不重写原高密度技术正文。详细定义继续由本领域 `01-领域/02-*`、`01-领域/03-*` 和 `02-契约/*` 承载。
+
+## 9. 2026-08-14 v1 Role / Worker boundary
+
+v1 固定 Product、Controller/Dev、Test/Ops 三个泛化 Agent Package；`agentPackageRef/packageName` 是逻辑岗位，`roleRef` 是已部署 Custom GPT identity，role-scoped credential 只用于 Gateway auth，`workerRef/c-id` 表示某 Task 的具体 Conversation Worker。Task Domain 持久化 TaskRoleBinding；Agent Domain 只拥有 Role/Worker/Carrier identity 语义与 Collaboration，不镜像 Task binding。
+
+Product GPT 不负责 New Task `createTask/listRegisteredRoles` 主链；固定 Role 的 New Task/Worker one-time teaming 属于 Extension/application + Task/Carrier 组合。专业化 Role/Persona/dynamic capability matching 不进入 v1。

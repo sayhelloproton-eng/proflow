@@ -138,3 +138,19 @@ Cross-Domain Integration
 ```
 
 E4/关键 reliability 不 PASS，不进入最终跨域 E2E freeze。
+
+## Current Closure Alignment｜Batch4 前文档与实现 Gate
+
+当前 J0→J6 / X1→X7 架构裁决完成后，原 Wave 0～7 只保留历史施工顺序意义；Batch4 开工前新增一个**不改变 Domain dependency graph**的 closure gate：
+
+```text
+Documentation Alignment
+→ OpenAI native capability reuse alignment
+→ OpenTeam clean-room Carrier mechanism absorption
+→ Task Observer / System Observer integration
+→ stale architecture removal
+→ Cross-domain non-E2E gates
+→ FINAL MANUAL E2E
+```
+
+Batch4 不允许重新引入 frame topology、Product GPT createTask主链、Task start approval entity、action-level Browser scheduler、Browser file manager、System Observer business ownership。真实 Chrome/Custom GPT/Actions/Gateway/File Bridge/Carrier main-chain验证仍在最终手工E2E执行。

@@ -158,4 +158,21 @@ Model Contract 若不严格，调用方无法区分 mode/capability/error/health
 - 为了让测试通过必须改变 frozen TODO goal。
 
 若风险“Model Contract 若不严格，调用方无法区分 mode/capability/error/health，Runtime 也会把模型输出直接泄漏为不可信业务数据。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
+## 11. 2026-08-15 Observer / Diagnostic Contract Addendum
+
+- [ ] **CP-MODEL-CON-05** — Task Diagnostic/System Assessment 均复用 `infer()` + versioned `specRef`；不存在额外 `assessSystem/judgeTask` Public API。
+- [ ] **CP-MODEL-CON-06** — trace 支持 `assessmentRef`，System Assessment 可声明 background priority；超出 Spec/context budget 时返回 typed `CONTEXT_TOO_LARGE`/等价错误，不静默截断。
+- [ ] **CP-MODEL-CON-07** — Observer output contract 只能表达 structured judgment/assessment，不包含直接 Task transition、Execution approval/effect authority。
+
+Failure / boundary：
+
+- `RF-MODEL-CON-05`：为 Observer 新增第二套 Model API/Assessment Store contract；
+- `RF-MODEL-CON-06`：oversized System input 被 runtime/contract 静默截断或自动总结；
+- `RF-MODEL-CON-07`：模型输出 schema 获得 workflow/effect authorization 字段。
+
+Evidence：
+
+- `EV-MODEL-CON-05`：observer specRef / trace / priority contract fixtures；
+- `EV-MODEL-CON-06`：oversized payload typed rejection；
+- `EV-MODEL-CON-07`：authority-negative schema proof。
 

@@ -31,3 +31,7 @@ contractRefs:
 ## Boundary Rule
 
 本文件只定义该 Module 的工程落点，不复制 Domain / Bounded Context 的 canonical facts。若实现需要引入当前 normative Contract 未定义的新算法语义、状态、持久化事实或跨域 Contract，必须先完成对应设计与 Contract Change；不得由 TODO/Codex 自行补全。
+
+## 2026-08-14 Worker Turn / Native Capability Alignment
+
+Controller/Dev 是固定三Role之一。New Task时其Conversation只被创建/绑定并保持IDLE；Node READY后由Carrier WAKE，Worker再调用Task `startNode`。一个Worker Turn可连续0..N Actions。公开research优先Web Search；多文件代码分析采用File Bridge→bounded Context Pack→Code Interpreter→Patch/Report；Patch只是候选Execution Artifact，真实apply/test/evidence由Execution。长Execution/Collaboration等待结束当前Turn时，后续恢复必须复用同一workerRef/Conversation。

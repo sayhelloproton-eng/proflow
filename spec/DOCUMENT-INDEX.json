@@ -62,7 +62,7 @@
     ],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -79,7 +79,7 @@
     "subdomains": [],
     "boundedContext": "task-orchestration",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -102,7 +102,7 @@
     ],
     "boundedContext": "task-orchestration",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -125,7 +125,7 @@
     ],
     "boundedContext": "task-orchestration",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -133,7 +133,7 @@
   {
     "path": "任务与编排领域/02-契约/01-Public-API-契约.md",
     "docId": "TASK-DOC-02-01",
-    "title": "任务与编排领域｜Public API Contract v0.1",
+    "title": "任务与编排领域｜Public API Contract v0.2",
     "docType": "contract",
     "authority": "normative",
     "lifecycle": "active",
@@ -148,10 +148,13 @@
     ],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
-    "contractRefs": []
+    "contractRefs": [
+      "PLATFORM-DOC-01-04",
+      "TASK-DOC-03-05"
+    ]
   },
   {
     "path": "任务与编排领域/02-契约/02-API-依赖-模块清单.md",
@@ -171,7 +174,7 @@
     ],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -192,7 +195,7 @@
     ],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -213,7 +216,7 @@
     ],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -236,7 +239,7 @@
     ],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -256,10 +259,32 @@
     ],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
+  },
+  {
+    "path": "任务与编排领域/03-流程与数据/05-Task-Observer推进与异常诊断边界.md",
+    "docId": "TASK-DOC-03-05",
+    "title": "任务与编排领域｜Task Observer 推进投影与异常诊断边界",
+    "docType": "cross-domain-flow",
+    "authority": "normative",
+    "lifecycle": "active",
+    "domain": "task-orchestration",
+    "subdomain": null,
+    "subdomains": [
+      "task-lifecycle",
+      "node-workflow"
+    ],
+    "boundedContext": "task-orchestration",
+    "moduleRef": null,
+    "canonicalFor": [],
+    "provides": [],
+    "requires": [],
+    "contractRefs": [
+      "PLATFORM-DOC-01-04"
+    ]
   },
   {
     "path": "任务与编排领域/04-模块/00-Service与npm模块设计.md",
@@ -273,7 +298,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -315,7 +340,7 @@
     "subdomains": [],
     "boundedContext": "task-orchestration",
     "moduleRef": "task-migration-runner",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -335,7 +360,7 @@
     "subdomains": [],
     "boundedContext": "task-orchestration",
     "moduleRef": "task-migration-runner",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -355,7 +380,7 @@
     "subdomains": [],
     "boundedContext": "task-orchestration",
     "moduleRef": "task-migration-runner",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -381,7 +406,7 @@
     ],
     "boundedContext": "task-orchestration",
     "moduleRef": "task-orchestration",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -408,7 +433,7 @@
     ],
     "boundedContext": "task-orchestration",
     "moduleRef": "task-orchestration",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -435,7 +460,7 @@
     ],
     "boundedContext": "task-orchestration",
     "moduleRef": "task-orchestration",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -462,7 +487,7 @@
     ],
     "boundedContext": "task-orchestration",
     "moduleRef": "task-store-sqlite",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -489,7 +514,7 @@
     ],
     "boundedContext": "task-orchestration",
     "moduleRef": "task-store-sqlite",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -516,7 +541,7 @@
     ],
     "boundedContext": "task-orchestration",
     "moduleRef": "task-store-sqlite",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -537,7 +562,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -554,7 +579,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -571,7 +596,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -588,7 +613,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -611,7 +636,7 @@
     ],
     "boundedContext": "task-orchestration",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -628,7 +653,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -667,7 +692,28 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
+    "provides": [],
+    "requires": [],
+    "contractRefs": []
+  },
+  {
+    "path": "平台架构与公共约定/01-架构/04-Task-Journey-Carrier与Observer-v1集成基线.md",
+    "docId": "PLATFORM-DOC-01-04",
+    "title": "04｜Task Journey、Custom GPT Carrier 与 Observer v1 集成基线",
+    "docType": "cross-domain-architecture",
+    "authority": "normative",
+    "lifecycle": "active",
+    "domain": "platform",
+    "subdomain": null,
+    "subdomains": [],
+    "boundedContext": null,
+    "moduleRef": null,
+    "canonicalFor": [
+      "proflow.task-journey.v1",
+      "proflow.observer-boundary.v1",
+      "proflow.custom-gpt-carrier.integration.v1"
+    ],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -684,7 +730,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -701,7 +747,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -718,7 +764,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -735,7 +781,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -752,7 +798,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -769,7 +815,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -786,7 +832,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -822,7 +868,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "platform-host",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -842,7 +888,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "platform-host",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -862,7 +908,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "platform-host",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -882,7 +928,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "platform-host",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -902,7 +948,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -939,7 +985,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -956,7 +1002,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -973,7 +1019,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -990,7 +1036,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1007,7 +1053,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1024,7 +1070,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1041,10 +1087,13 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
-    "contractRefs": []
+    "contractRefs": [
+      "PLATFORM-DOC-01-04",
+      "MODEL-DOC-03-08"
+    ]
   },
   {
     "path": "执行领域/03-流程与数据/03-Result-Evidence-UNKNOWN与恢复.md",
@@ -1058,7 +1107,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1075,10 +1124,13 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
-    "contractRefs": []
+    "contractRefs": [
+      "PLATFORM-DOC-01-04",
+      "MODEL-DOC-03-08"
+    ]
   },
   {
     "path": "执行领域/04-模块/00-总体架构-包-服务-运行拓扑.md",
@@ -1092,7 +1144,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1118,44 +1170,41 @@
   },
   {
     "path": "执行领域/04-模块/execution-browser-extension/README.md",
-    "docId": "EXECUTION-MODULE-EXECUTION-BROWSER-EXTENSION",
-    "title": "`execution-browser-extension` Module",
-    "docType": "module-index",
+    "docId": "EXECUTION-EXECUTION-BROWSER-EXTENSION-README",
+    "title": "`execution-browser-extension`",
+    "docType": "module-readme",
     "authority": "normative",
     "lifecycle": "active",
     "domain": "execution",
     "subdomain": null,
     "subdomains": [],
-    "boundedContext": "execution",
+    "boundedContext": null,
     "moduleRef": "execution-browser-extension",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
-      "EXECUTION-EXECUTION-BROWSER-EXTENSION-TECH-DESIGN",
-      "EXECUTION-DOC-02-01",
-      "EXECUTION-DOC-02-02"
+      "EXECUTION-EXECUTION-BROWSER-EXTENSION-TECH-DESIGN"
     ]
   },
   {
     "path": "执行领域/04-模块/execution-browser-extension/RUNTIME.md",
-    "docId": "EXECUTION-BROWSER-EXTENSION-RUNTIME",
+    "docId": "EXECUTION-EXECUTION-BROWSER-EXTENSION-RUNTIME",
     "title": "`execution-browser-extension` Runtime",
-    "docType": "runtime",
+    "docType": "runtime-design",
     "authority": "normative",
     "lifecycle": "active",
     "domain": "execution",
     "subdomain": null,
     "subdomains": [],
-    "boundedContext": "execution",
+    "boundedContext": null,
     "moduleRef": "execution-browser-extension",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
       "EXECUTION-EXECUTION-BROWSER-EXTENSION-TECH-DESIGN",
-      "EXECUTION-DOC-02-01",
-      "EXECUTION-DOC-02-02"
+      "PLATFORM-DOC-01-04"
     ]
   },
   {
@@ -1170,13 +1219,15 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "execution-browser-extension",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
-      "EXECUTION-EXECUTION-BROWSER-EXTENSION-TECH-DESIGN",
       "EXECUTION-DOC-02-01",
-      "EXECUTION-DOC-02-02"
+      "EXECUTION-DOC-02-02",
+      "PLATFORM-DOC-01-04",
+      "TASK-DOC-03-05",
+      "MODEL-DOC-03-08"
     ]
   },
   {
@@ -1191,7 +1242,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": "execution-browser-extension",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1212,7 +1263,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": "execution-contracts",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1233,7 +1284,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": "execution-contracts",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1254,7 +1305,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": "execution-contracts",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1275,7 +1326,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": "execution-local",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1295,7 +1346,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "execution-local",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1315,7 +1366,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": "execution-local",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1335,7 +1386,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": "execution-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1358,7 +1409,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": "execution-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1381,7 +1432,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "execution-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1404,7 +1455,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": "execution-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1427,7 +1478,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1444,7 +1495,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1461,7 +1512,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1478,7 +1529,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1495,7 +1546,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1512,7 +1563,7 @@
     "subdomains": [],
     "boundedContext": "execution",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1549,7 +1600,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1566,7 +1617,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1583,7 +1634,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1600,10 +1651,13 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
-    "contractRefs": []
+    "contractRefs": [
+      "PLATFORM-DOC-01-04",
+      "AGENT-DOC-03-07"
+    ]
   },
   {
     "path": "智能体运行与协作领域/02-契约/02-Custom-GPT-官方能力与v1约束.md",
@@ -1617,7 +1671,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1634,10 +1688,13 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
-    "contractRefs": []
+    "contractRefs": [
+      "AGENT-DOC-03-07",
+      "PLATFORM-DOC-01-04"
+    ]
   },
   {
     "path": "智能体运行与协作领域/02-契约/04-API-依赖-模块清单.md",
@@ -1651,7 +1708,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1668,7 +1725,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1676,7 +1733,7 @@
   {
     "path": "智能体运行与协作领域/03-流程与数据/02-Task与Browser-Extension驱动协议.md",
     "docId": "AGENT-DOC-03-02",
-    "title": "智能体运行与协作领域｜Task 与 Browser Extension 驱动协议",
+    "title": "智能体运行与协作领域｜Task Observer、Worker 与 Browser Carrier 驱动协议",
     "docType": "cross-domain-flow",
     "authority": "normative",
     "lifecycle": "active",
@@ -1685,10 +1742,15 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
-    "contractRefs": []
+    "contractRefs": [
+      "PLATFORM-DOC-01-04",
+      "TASK-DOC-03-05",
+      "AGENT-DOC-03-04",
+      "AGENT-DOC-03-07"
+    ]
   },
   {
     "path": "智能体运行与协作领域/03-流程与数据/03-Collaboration-Message-Center.md",
@@ -1702,7 +1764,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1710,7 +1772,7 @@
   {
     "path": "智能体运行与协作领域/03-流程与数据/04-Browser注入与Worker唤醒消息协议.md",
     "docId": "AGENT-DOC-03-04",
-    "title": "智能体运行与协作领域｜Browser 注入与 Worker 唤醒消息协议",
+    "title": "智能体运行与协作领域｜Worker 唤醒与 Carrier Trigger 协议",
     "docType": "carrier-flow",
     "authority": "normative",
     "lifecycle": "active",
@@ -1719,10 +1781,14 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
-    "contractRefs": []
+    "contractRefs": [
+      "PLATFORM-DOC-01-04",
+      "AGENT-DOC-03-02",
+      "AGENT-DOC-03-07"
+    ]
   },
   {
     "path": "智能体运行与协作领域/03-流程与数据/05-事务并发幂等与SQLite-DDL.md",
@@ -1736,7 +1802,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1744,7 +1810,7 @@
   {
     "path": "智能体运行与协作领域/03-流程与数据/06-产品前置工作流与Carrier身份.md",
     "docId": "AGENT-DOC-03-06",
-    "title": "智能体运行与协作领域｜产品前置工作流与 Carrier Identity",
+    "title": "智能体运行与协作领域｜New Task、Product Worker 与 Carrier Identity",
     "docType": "business-flow",
     "authority": "normative",
     "lifecycle": "active",
@@ -1753,10 +1819,33 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
-    "contractRefs": []
+    "contractRefs": [
+      "PLATFORM-DOC-01-04",
+      "TASK-DOC-02-01"
+    ]
+  },
+  {
+    "path": "智能体运行与协作领域/03-流程与数据/07-Worker-Turn与GPT原生能力使用边界.md",
+    "docId": "AGENT-DOC-03-07",
+    "title": "智能体运行与协作领域｜Worker Turn 与 GPT 原生能力使用边界",
+    "docType": "carrier-flow",
+    "authority": "normative",
+    "lifecycle": "active",
+    "domain": "agent-runtime-collaboration",
+    "subdomain": null,
+    "subdomains": [],
+    "boundedContext": "agent-runtime-collaboration",
+    "moduleRef": null,
+    "canonicalFor": [],
+    "provides": [],
+    "requires": [],
+    "contractRefs": [
+      "PLATFORM-DOC-01-04",
+      "AGENT-DOC-02-02"
+    ]
   },
   {
     "path": "智能体运行与协作领域/04-模块/00-Agent-Package与Custom-GPT-Carrier规范.md",
@@ -1770,7 +1859,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1787,7 +1876,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1804,7 +1893,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -1840,7 +1929,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-controller-dev",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1860,7 +1949,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-controller-dev",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1880,7 +1969,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-controller-dev",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1900,7 +1989,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-gateway",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1921,7 +2010,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-gateway",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1942,7 +2031,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "agent-gateway",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1963,7 +2052,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-gateway",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -1984,7 +2073,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-product",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2004,7 +2093,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-product",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2024,7 +2113,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-product",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2044,7 +2133,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2067,7 +2156,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2090,7 +2179,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2113,7 +2202,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-test-ops",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2133,7 +2222,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-test-ops",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2153,7 +2242,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": "agent-test-ops",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2173,7 +2262,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2190,7 +2279,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2207,7 +2296,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2224,7 +2313,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2241,7 +2330,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2258,7 +2347,7 @@
     "subdomains": [],
     "boundedContext": "agent-runtime-collaboration",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2295,7 +2384,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2312,7 +2401,7 @@
     "subdomains": [],
     "boundedContext": "model-reasoning",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2329,7 +2418,7 @@
     "subdomains": [],
     "boundedContext": "model-reasoning",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2346,7 +2435,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2363,7 +2452,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2380,7 +2469,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2397,7 +2486,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2414,7 +2503,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2431,7 +2520,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2448,7 +2537,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2465,7 +2554,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2482,10 +2571,29 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
+  },
+  {
+    "path": "模型与推理领域/03-流程与数据/08-Task-Diagnostic与System-Assessment推理规范.md",
+    "docId": "MODEL-DOC-03-08",
+    "title": "模型与推理领域｜Task Diagnostic 与 System Assessment 推理规范",
+    "docType": "reasoning-spec",
+    "authority": "normative",
+    "lifecycle": "active",
+    "domain": "model-reasoning",
+    "subdomain": null,
+    "subdomains": [],
+    "boundedContext": "model-reasoning",
+    "moduleRef": null,
+    "canonicalFor": [],
+    "provides": [],
+    "requires": [],
+    "contractRefs": [
+      "PLATFORM-DOC-01-04"
+    ]
   },
   {
     "path": "模型与推理领域/04-模块/00-总体架构-包-服务-运行拓扑.md",
@@ -2499,7 +2607,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2535,7 +2643,7 @@
     "subdomains": [],
     "boundedContext": "model-reasoning",
     "moduleRef": "model-contracts",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2556,7 +2664,7 @@
     "subdomains": [],
     "boundedContext": "model-reasoning",
     "moduleRef": "model-contracts",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2577,7 +2685,7 @@
     "subdomains": [],
     "boundedContext": "model-reasoning",
     "moduleRef": "model-contracts",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2598,7 +2706,7 @@
     "subdomains": [],
     "boundedContext": "model-reasoning",
     "moduleRef": "model-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2619,7 +2727,7 @@
     "subdomains": [],
     "boundedContext": "model-reasoning",
     "moduleRef": "model-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2640,7 +2748,7 @@
     "subdomains": [],
     "boundedContext": "model-reasoning",
     "moduleRef": "model-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2661,7 +2769,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "model-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2682,7 +2790,7 @@
     "subdomains": [],
     "boundedContext": "model-reasoning",
     "moduleRef": "model-runtime",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -2703,7 +2811,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2720,7 +2828,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2737,7 +2845,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2754,7 +2862,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2771,7 +2879,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2788,7 +2896,7 @@
     "subdomains": [],
     "boundedContext": "model-reasoning",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2825,7 +2933,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2842,7 +2950,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2859,7 +2967,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2876,7 +2984,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2893,7 +3001,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2910,7 +3018,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2927,7 +3035,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2944,7 +3052,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2961,7 +3069,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -2997,7 +3105,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "deployment-conformance",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3016,7 +3124,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "deployment-conformance",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3035,7 +3143,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "deployment-conformance",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3054,7 +3162,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -3071,7 +3179,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "module-contract",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3090,7 +3198,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "module-contract",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3109,7 +3217,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "module-contract",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3128,7 +3236,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "module-skill",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3147,7 +3255,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "module-skill",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3166,7 +3274,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "module-skill",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3185,7 +3293,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "module-template",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3204,7 +3312,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "module-template",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3223,7 +3331,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "module-template",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3242,7 +3350,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "platform-cli",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3262,7 +3370,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": "platform-cli",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3282,7 +3390,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": "platform-cli",
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": [
@@ -3302,7 +3410,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -3319,7 +3427,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -3336,7 +3444,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -3353,7 +3461,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -3370,7 +3478,7 @@
     "subdomains": [],
     "boundedContext": null,
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []
@@ -3387,7 +3495,7 @@
     "subdomains": [],
     "boundedContext": "deployment-governance",
     "moduleRef": null,
-    "canonicalFor": null,
+    "canonicalFor": [],
     "provides": [],
     "requires": [],
     "contractRefs": []

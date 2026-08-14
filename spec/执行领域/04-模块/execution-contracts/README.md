@@ -55,3 +55,7 @@ process/deployment: none / determined by Deployment kind
 ## Testing
 
 见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+
+## 2026-08-14 Contract alignment
+
+The contract surface now explicitly separates `ArtifactRef` from `EvidenceRef`: artifacts identify bounded materialized inputs/outputs such as Context Pack/Patch/report/download; evidence proves Result/Delivery/Effect. Browser Carrier operations remain typed Execution capabilities/results and must not introduce frame/persistent-tab business identity or Observer business-write contracts.

@@ -24,3 +24,8 @@ Deployment Governance
 Observes the real Chrome runtime (version, platform detection) and the MV3
 extension load prerequisite. Extension load/authorization evidence is never
 faked.
+
+
+## 2026-08-14 Carrier boundary
+
+Chrome runtime is an external browser prerequisite, not a Task/Worker identity owner. Task-scoped `workerRef/c-id` and `conversationLocator` are observed by execution-browser-extension at runtime; tab/window ids remain transient. No frame registry/iframe team topology is part of v1 readiness.

@@ -81,7 +81,7 @@ Git ignored：SQLite db、WAL / SHM、lock、cache、tmp、默认 logs、可重�
 
 > **Git / Markdown 管任务正文历史；SQLite 管机器状态与索引。**
 
-SQLite 保存 taskId、TaskGroup、Task status/version、currentNodeId、nodeId、Node status/version/runNo、requiredRoleRef、workerRef、TaskDocument path/hash、Event、Message、Idempotency、Execution History metadata。
+SQLite 保存 taskId、TaskGroup、Task status/version、currentNodeId、nodeId、Node status/version/runNo、requiredAgentPackageRef、TaskRoleBinding(agentPackageRef/roleRef/workerRef/conversationLocator)、TaskDocument path/hash、Event、Message、Idempotency、Execution History metadata。
 
 Markdown 保存 Requirement / PRD / Technical Design / Test Plan / Test Result / Release Result 等 Task-scoped 正文。
 
@@ -223,3 +223,10 @@ getNodeContext 返回小型 Task/Node + document metadata
 - Execution 生成的 patch/stdout/download/screenshot 首先是 Execution output/artifact/evidence；只有通过 Task Public Contract 显式接收后才成为 TaskDocument。
 - `getNodeContext` 只组合 Task 已拥有/引用的任务事实与文档，不升级为全平台 Context Aggregator。
 - 大型输出优先传 `documentRef/outputRef/evidenceRef`；Custom GPT File Bridge 已作为 Carrier transport 吸收，但不改变 TaskDocument 真源。Conversation-native file search/Code Interpreter 使用效果仍由 Carrier E2E 验证。
+
+
+# 11. Artifact / File Bridge 与 TaskDocument 边界
+
+Conversation File 不是 TaskDocument。GPT 通过 `openaiFileIdRefs` 提交的文件先经 Gateway transport normalization，再由 Execution 负责 bounded fetch/materialize/hash/MIME/size/scope；Task 只接收 canonical document content 或受控 artifact reference。
+
+TaskDocument 是业务文档关系真源；Execution Artifact 是真实 materialized bytes/产物；Evidence 是证明 Result 的证据。三者不得因为共享同一文件 bytes 而合并语义。PENDING Task 的 Product requirement 可以作为 task-scoped document 写入，`source_node_id` 允许为空。

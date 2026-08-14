@@ -70,3 +70,28 @@ STOP
 → 重新验证
 → 继续 TDD
 ```
+
+## Current v1 Task Journey / Observer architecture baseline
+
+2026-08-14/15 的 Batch4 前架构收敛已经进入当前规范真源。实现 Task / Agent / Browser Carrier / Model / Deployment 交叉能力前，除本文件外必须读取：
+
+```text
+PLATFORM-DOC-01-04  J0→J6 / X1→X7 跨域组合与决策权
+TASK-DOC-03-05      Task Observer deterministic progression / diagnostic exception
+AGENT-DOC-03-07     Worker Turn / GPT Native / File Bridge / Code Interpreter / Web Search
+MODEL-DOC-03-08     Task Diagnostic / System Assessment bounded reasoning
+```
+
+当前最高层实现不变量：
+
+```text
+Owner current fact > deterministic policy/invariant > model assessment > Conversation/DOM/log guess
+normal Task progression = deterministic
+Task diagnostic REASON = exception-only, no workflow authority
+System Observer = lowest-priority derived assessment, no business ownership
+real Effect = Execution
+Browser Carrier = page create/restore/wake/observe, not business orchestrator
+workerRef/conversationLocator = stable; tab/window/content identity = transient
+```
+
+如果当前代码与这些规范冲突，视为 implementation gap；不得为了迁就代码回写弱化规范。

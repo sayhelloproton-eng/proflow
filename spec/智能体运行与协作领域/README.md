@@ -47,3 +47,7 @@ contractRefs: []
 ## 实施原则
 
 其他领域只能依赖本领域 Public Contract / logical capability；禁止 direct DB read、internal repository/adapter、deep import 或状态镜像。Module TODO 不得重新定义领域模型。
+
+## v1 Journey 对齐
+
+New Task由Extension先创建PENDING Task并一次绑定Product/Controller-Dev/Test-Ops三个Worker；Product不再createTask/dynamic discover roles。Worker Turn利用Custom GPT native File Bridge/Code Interpreter/Web Search与multi-action；Task Observer/System Observer均不是Agent Domain事实Owner。详见`AGENT-DOC-03-07`与`PLATFORM-DOC-01-04`。

@@ -32,3 +32,11 @@ contractRefs: []
 - Service 只有真实长期 runtime 时才存在。
 - Deployment Unit 的真实生命周期由 Deployment Domain 治理。
 - Module 文档通过链接引用领域级 canonical Contract / Flow / Persistence，不为“模板完整”复制第二套正式事实。
+
+## 2026-08-15 Journey / Artifact alignment
+
+- `execution-contracts` 是 `Result / ArtifactRef / EvidenceRef` 与跨边界 identity 的薄合同包。
+- `execution-runtime` 是唯一 Execution durable/control truth，负责 policy/approval/UNKNOWN、Artifact materialization 与 Result/Evidence 收敛。
+- `execution-local` 提供本机 Effect 与 bounded file/context-pack/patch mechanics，不拥有 policy/workflow。
+- `execution-browser-extension` 同包承载 Browser Executor/Carrier，以及 application-side Task UI、Approval/Alert UI、Task Observer、System Observer；Observer 不因此变成 Execution business fact owner。
+

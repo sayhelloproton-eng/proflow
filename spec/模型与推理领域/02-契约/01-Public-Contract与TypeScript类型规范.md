@@ -38,7 +38,11 @@ type InferenceTraceContext = {
   correlationId?: string;
   taskId?: string;
   nodeId?: string;
+  runNo?: number;
+  workerRef?: string;
   executionRef?: string;
+  messageRef?: string;
+  assessmentRef?: string;
 };
 
 type InferenceRequest<I> = {
@@ -167,3 +171,10 @@ specRef
 ## 当前正式约束：Public Contract
 
 核心 Public API 冻结为 `infer()` + `getRuntimeStatus()`；`judgeFast/judgeReason/visionJudge` 不属于当前 Public API。Contract name/version/error envelope/runtime validation 与平台公共约定一致。Capability Proposal 最多一个，只能从 caller allowlist 选择，不是 Tool Call/Execution authorization。
+
+
+# 9. Observer callers
+
+`infer()` 继续是唯一推理入口，不新增 `assessSystem/judgeTask` Public API。Task Diagnostic/System Assessment 都通过 versioned `specRef` 使用 `infer()`。
+
+System Observer 请求必须使用 `priority=background`；Task mainline/Execution business judgement 使用 `business`。若 background context 超过 Spec `maxContextBytes`，Runtime 返回 `CONTEXT_TOO_LARGE`，由 caller 拆 concern batch；Runtime 不偷偷摘要/截断。

@@ -59,3 +59,7 @@ process/deployment: none / determined by Deployment kind
 ## Testing
 
 见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+
+## 2026-08-14 Fixed-role / Collaboration alignment
+
+Role Registry remains a management/Deployment/Carrier lookup boundary, not Product New Task dynamic discovery. Task owns TaskRoleBinding; Agent Runtime validates authenticated role/worker context without mirroring the binding. Collaboration Message Center owns askPeer/replyPeer facts only; Extension Carrier performs physical wake/delivery and Agent Runtime stores no tab/frame/Observer scheduler state.

@@ -28,7 +28,7 @@ contractRefs:
 加载 config/store → 恢复 durable running/unknown records 的可观察状态 → 注册 executors → 启动 public API → health/ready。
 
 ## Runtime
-`executeCapability` 进入 scope/policy/idempotency → 必要 FAST/REASON/Human → persist effect intent → executor → result/evidence。Effect 不确定进入 UNKNOWN，禁止 blind retry。
+`executeCapability` 进入 scope/policy/idempotency → 必要 FAST/REASON/Human → persist effect intent → executor → typed Result + Artifact refs + Evidence refs。File Bridge ingress、Context Pack/Patch 等 materialization 仍收敛为 Execution Artifact；Effect 不确定进入 UNKNOWN，禁止 blind retry。
 
 ## Concurrency
 遵守 v1 bounded queue/serialization；Browser writes 全局串行；同一 idempotency identity 不并发执行不同 fingerprint。

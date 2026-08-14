@@ -174,3 +174,9 @@ Local executor 直接接触真实文件/Git/process/network；路径、secret、
 
 若风险“Local executor 直接接触真实文件/Git/process/network；路径、secret、重试或 shell 边界错误会造成不可逆本机副作用。”无法通过当前 Frozen Contract/Boundary 得到可执行证明，标记 `SPEC_GAP` 并停止进入实现。
 
+## 11. 2026-08-14 File materialization Critical Proof Addendum
+
+- [ ] **CP-EXE-LOCAL-08** — external/OpenAI file locator materialization enforces timeout, redirect/private-target rules, size/MIME/hash/path safety and produces bounded typed artifact metadata.
+- [ ] **CP-EXE-LOCAL-09** — expired locator/fetch failure does not get interpreted as owner business mutation failure; retry only occurs when transport/effect reality is safe to retry.
+- [ ] **CP-EXE-LOCAL-10** — Context Pack construction is node-scoped/bounded, excludes secrets and irrelevant binaries, and does not create a new ContextPack Store/Service.
+- [ ] **CP-EXE-LOCAL-11** — Patch materialization and Patch apply are distinct: candidate bytes can exist without implying repo effect success; apply/test Evidence remains Execution-owned.

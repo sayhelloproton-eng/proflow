@@ -50,7 +50,7 @@ Agent Public Worker/Role facts；Execution/Browser 调用时提供的合法 acto
 
 ## Downstream
 
-Agent Runtime/Gateway、Execution Runtime/Browser Task Driver、平台查询与管理界面通过 Task Public Contract 消费 Task/Node/Document facts。
+Agent Runtime/Gateway、Execution Runtime、Extension Task Observer/Browser Carrier Controller、平台查询与管理界面通过 Task Public Contract 消费 Task/Node/Document facts；Observer/Carrier 均不得写 Task Store 或镜像 Task truth。
 
 下游只能通过本 Context/Domain Public Contract 使用能力，不得 deep import 内部 Module。
 

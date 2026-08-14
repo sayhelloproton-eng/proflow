@@ -144,3 +144,22 @@ Runtime 不偷偷摘要、裁剪、丢字段。
 一个 Spec 只有在 M3 场景回归中对 FAST/REASON 配置模型表现稳定，才可以成为平台控制路径依赖。
 
 Prompt “看起来合理”不等于 Spec 合格。
+
+
+# 10. Task Diagnostic / System Assessment Spec
+
+Observer reasoning 继续遵守静态 ReasoningSpec，不接受“把全系统文本塞进自由 prompt”。
+
+Task Diagnostic 输入是单 Task bounded facts + relevant owner summaries，输出 `finding/probableCause/confidence/recommendedNextObservation/recommendedRecoveryAction/needsHumanAttention`。
+
+System Assessment 输入采用 `MODEL-DOC-03-08` 的 bounded view/batch contract。调用方负责：
+
+```text
+compact snapshot
+concern batching
+previous unresolved carry-forward
+targeted drill-down data
+global synthesis input
+```
+
+Runtime仍只负责当前单次 Spec invocation；不建立跨批次 memory/store。

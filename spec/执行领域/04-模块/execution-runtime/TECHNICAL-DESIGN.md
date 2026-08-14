@@ -169,7 +169,7 @@ status
 
 approval 不匹配 → `APPROVAL_INVALID`。
 
-Browser carrier permission（例如 ChatGPT Allow popup）不自动等于 Effect Approval；它由 Browser Task Driver 按页面现实处理。
+Browser carrier permission（例如 ChatGPT Allow popup）不自动等于 Effect Approval；它由 Browser Carrier Controller 按页面现实处理。
 
 ## 9. Recovery
 

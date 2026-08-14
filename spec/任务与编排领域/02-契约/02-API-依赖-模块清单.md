@@ -48,7 +48,7 @@ Task:
 createTask
 listTasks
 getTask
-authorizeTask
+
 bindTaskWorker
 startTask
 pauseTask
@@ -75,7 +75,7 @@ listTaskEvents
 
 ## Requires
 
-业务只接受 opaque refs：`requiredRoleRef / workerRef / actorRef / relatedRef`。
+业务只接受 opaque refs：`requiredAgentPackageRef / workerRef / actorRef / relatedRef`。
 
 基础运行：Node.js / filesystem / SQLite / Git repository workspace / clock / ID generator / hash。
 
@@ -165,3 +165,8 @@ WAITING 停整个 Task
 ## 当前正式约束
 
 新增 Provides：TaskRoleBinding query/command；新增 Runtime composition requirement：由 `@tomflow/proflow-platform-host` in-process 装配。Requires 只能指向 Agent/Execution/Model Public Contract；禁止依赖其内部 package/Store/Adapter。
+
+
+## Observer consumer
+
+Extension Task Observer 是 Task Query consumer，而不是 Task owner。它读取 drive projection，并通过 Carrier/Owner typed commands触发下一步；不得读取 Task SQLite 或在本地复制 eligibility/state-machine。
