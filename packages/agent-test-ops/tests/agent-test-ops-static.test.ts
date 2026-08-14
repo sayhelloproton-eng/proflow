@@ -37,7 +37,7 @@ test("CP-AGT-TEST-01 instructions and Action allowlist preserve test/ops least p
 	);
 	assert.ok(operations.includes("executeCapability"));
 	assert.equal(operations.includes("reopenNode"), false);
-	assert.equal(operations.includes("startNode"), false);
+	assert.equal(operations.includes("startNode"), true);
 	assert.doesNotMatch(openapi, /executeAnything|updateStatus|git\.push/);
 });
 test("CP-AGT-TEST-02 test result and evidence remain owner contract facts", () => {

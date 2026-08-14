@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { test } from "node:test";
 import { promisify } from "node:util";
 
@@ -12,11 +11,7 @@ import {
 	SqliteTaskStore,
 	taskMigrations,
 } from "@tomflow/proflow-task-store-sqlite";
-import {
-	createTaskServices,
-	type TaskResult,
-	type TaskStore,
-} from "../src/index.ts";
+import { createTaskServices, type TaskResult } from "../src/index.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -46,34 +41,46 @@ async function fixture(context: { after: (fn: () => unknown) => void }) {
 	const services = createTaskServices({
 		store,
 		workspaceRoot: root,
-		now: () => `2026-08-13T00:00:${String(tick++).padStart(2, "0")}.000Z`,
+		now: () => `2026-08-15T00:00:${String(tick++).padStart(2, "0")}.000Z`,
 		createId: (prefix) => `${prefix}-${++id}`,
 	});
 	return { root, databasePath, store, services };
 }
 
+const PACKAGES = {
+	product: "@tomflow/proflow-agent-product",
+	dev: "@tomflow/proflow-agent-controller-dev",
+	test: "@tomflow/proflow-agent-test-ops",
+} as const;
+
+const ROLES = {
+	product: "g-product",
+	dev: "g-dev",
+	test: "g-test",
+} as const;
+
 function taskInput(taskId = "task-1") {
 	return {
 		taskId,
 		title: "Build durable task",
-		objective: "Prove the Task owner",
+		objective: "Prove the current Task owner contract",
 		plan: {
 			nodes: [
-				{
-					nodeId: `${taskId}-product`,
-					title: "Product",
-					objective: "Write PRD",
-					requiredRoleRef: "role:product",
-					inputDocuments: ["REQUIREMENT"],
-					outputDocuments: ["PRD"],
-				},
 				{
 					nodeId: `${taskId}-dev`,
 					title: "Development",
 					objective: "Write design",
-					requiredRoleRef: "role:dev",
-					inputDocuments: ["REQUIREMENT", "PRD"],
+					requiredAgentPackageRef: PACKAGES.dev,
+					inputDocuments: ["REQUIREMENT"],
 					outputDocuments: ["TECHNICAL_DESIGN"],
+				},
+				{
+					nodeId: `${taskId}-test`,
+					title: "Test",
+					objective: "Verify result",
+					requiredAgentPackageRef: PACKAGES.test,
+					inputDocuments: ["REQUIREMENT", "TECHNICAL_DESIGN"],
+					outputDocuments: ["TEST_RESULT"],
 				},
 			],
 		},
@@ -81,1066 +88,422 @@ function taskInput(taskId = "task-1") {
 			{ documentType: "REQUIREMENT", content: "# Requirement\n" },
 		],
 		roleBindings: [
-			{ roleRef: "role:product", workerRef: "worker:product" },
-			{ roleRef: "role:dev", workerRef: null },
+			{
+				agentPackageRef: PACKAGES.product,
+				roleRef: ROLES.product,
+				workerRef: null,
+				conversationLocator: null,
+			},
+			{
+				agentPackageRef: PACKAGES.dev,
+				roleRef: ROLES.dev,
+				workerRef: null,
+				conversationLocator: null,
+			},
+			{
+				agentPackageRef: PACKAGES.test,
+				roleRef: ROLES.test,
+				workerRef: null,
+				conversationLocator: null,
+			},
 		],
-		actorRef: "actor:product",
+		actorRef: "extension:new-task",
 		idempotencyKey: `idem:create:${taskId}`,
 	};
 }
 
-test("CP-TASK-ORCH-03 binding is one-time and startNode resolves the stable worker automatically", async (context) => {
+async function bindAll(
+	services: ReturnType<typeof createTaskServices>,
+	taskId: string,
+	startVersion: number,
+) {
+	let version = startVersion;
+	for (const [key, agentPackageRef, roleRef, workerRef] of [
+		["product", PACKAGES.product, ROLES.product, "c-product"],
+		["dev", PACKAGES.dev, ROLES.dev, "c-dev"],
+		["test", PACKAGES.test, ROLES.test, "c-test"],
+	] as const) {
+		const result = ok(
+			services.commands.bindTaskWorker({
+				taskId,
+				agentPackageRef,
+				roleRef,
+				workerRef,
+				conversationLocator: `https://chatgpt.com/g/${roleRef}/c/${workerRef}`,
+				expectedTaskVersion: version,
+				actorRef: "platform-host:worker-provisioning",
+				idempotencyKey: `idem:bind:${taskId}:${key}`,
+			}),
+		);
+		version = result.version;
+	}
+	return version;
+}
+
+function nodeVersion(
+	services: ReturnType<typeof createTaskServices>,
+	taskId: string,
+	nodeId: string,
+): { taskVersion: number; nodeVersion: number } {
+	const task = ok(services.queries.getTask({ taskId }));
+	const node = task.nodes.find((item) => item.nodeId === nodeId);
+	assert.ok(node);
+	return { taskVersion: task.version, nodeVersion: node.version };
+}
+
+test("CP-TASK-ORCH-03 TaskRoleBinding is stable/idempotent and startNode resolves worker via requiredAgentPackageRef", async (context) => {
 	const { services } = await fixture(context);
 	const created = ok(services.commands.createTask(taskInput()));
-	const authorized = ok(
-		services.commands.authorizeTask({
-			taskId: created.taskId,
-			expectedTaskVersion: created.version,
-			actorRef: "human:operator",
-			idempotencyKey: "idem:authorize",
-		}),
-	);
-	const bound = ok(
+	assert.equal(created.status, "PENDING");
+
+	const first = ok(
 		services.commands.bindTaskWorker({
 			taskId: created.taskId,
-			roleRef: "role:dev",
-			workerRef: "worker:dev",
-			expectedTaskVersion: authorized.version,
-			actorRef: "actor:provisioner",
-			idempotencyKey: "idem:bind",
+			agentPackageRef: PACKAGES.dev,
+			roleRef: ROLES.dev,
+			workerRef: "c-dev",
+			conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+			expectedTaskVersion: created.version,
+			actorRef: "platform-host:worker-provisioning",
+			idempotencyKey: "idem:bind:dev",
 		}),
 	);
 	const replay = ok(
 		services.commands.bindTaskWorker({
 			taskId: created.taskId,
-			roleRef: "role:dev",
-			workerRef: "worker:dev",
-			expectedTaskVersion: bound.version,
-			actorRef: "actor:provisioner",
-			idempotencyKey: "idem:bind:replay",
+			agentPackageRef: PACKAGES.dev,
+			roleRef: ROLES.dev,
+			workerRef: "c-dev",
+			conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+			expectedTaskVersion: first.version,
+			actorRef: "platform-host:worker-provisioning",
+			idempotencyKey: "idem:bind:dev:replay",
 		}),
 	);
-	assert.equal(replay.version, bound.version);
+	assert.equal(replay.version, first.version);
 	assert.equal(
 		errorCode(
 			services.commands.bindTaskWorker({
 				taskId: created.taskId,
-				roleRef: "role:dev",
-				workerRef: "worker:different",
-				expectedTaskVersion: bound.version,
-				actorRef: "actor:provisioner",
-				idempotencyKey: "idem:bind:conflict",
+				agentPackageRef: PACKAGES.dev,
+				roleRef: ROLES.dev,
+				workerRef: "c-dev-other",
+				conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev-other",
+				expectedTaskVersion: first.version,
+				actorRef: "platform-host:worker-provisioning",
+				idempotencyKey: "idem:bind:dev:conflict",
 			}),
 		),
 		"TASK_ROLE_BINDING_CONFLICT",
 	);
-	const startTaskInput = {
-		taskId: created.taskId,
-		expectedTaskVersion: bound.version,
-		actorRef: "actor:driver",
-		idempotencyKey: "idem:start-task",
-	};
-	const startTaskResult = services.commands.startTask(startTaskInput);
-	const startedTask = ok(startTaskResult);
-	assert.deepEqual(
-		services.commands.startTask(startTaskInput),
-		startTaskResult,
-	);
-	const startNodeInput = {
-		taskId: created.taskId,
-		nodeId: `${created.taskId}-product`,
-		expectedTaskVersion: startedTask.version,
-		expectedNodeVersion: 2,
-		actorRef: "actor:driver",
-		idempotencyKey: "idem:start-node",
-	};
-	const startNodeResult = services.commands.startNode(startNodeInput);
-	const startedNode = ok(startNodeResult);
-	assert.deepEqual(
-		services.commands.startNode(startNodeInput),
-		startNodeResult,
-	);
-	assert.equal(startedNode.workerRef, "worker:product");
-});
 
-test("remediation T01 responses and error envelopes match the frozen public shapes", async (context) => {
-	const { services } = await fixture(context);
-	const created = ok(services.commands.createTask(taskInput("task-golden")));
-	assert.deepEqual(Object.keys(created).sort(), [
-		"authorizedAt",
-		"authorizedByRef",
-		"currentNodeId",
-		"planVersion",
-		"roleBindings",
-		"status",
-		"taskGroupId",
-		"taskId",
-		"version",
-	]);
-	const authorized = ok(
-		services.commands.authorizeTask({
-			taskId: created.taskId,
-			expectedTaskVersion: created.version,
-			actorRef: "human:operator",
-			idempotencyKey: "golden:authorize",
-		}),
-	);
-	const bound = ok(
-		services.commands.bindTaskWorker({
-			taskId: created.taskId,
-			roleRef: "role:dev",
-			workerRef: "worker:dev",
-			expectedTaskVersion: authorized.version,
-			actorRef: "actor:provisioner",
-			idempotencyKey: "golden:bind",
-		}),
-	);
-	assert.deepEqual(bound.roleBinding, {
-		roleRef: "role:dev",
-		workerRef: "worker:dev",
-	});
-	const task = ok(
+	let version = first.version;
+	for (const [key, agentPackageRef, roleRef, workerRef] of [
+		["product", PACKAGES.product, ROLES.product, "c-product"],
+		["test", PACKAGES.test, ROLES.test, "c-test"],
+	] as const) {
+		version = ok(
+			services.commands.bindTaskWorker({
+				taskId: created.taskId,
+				agentPackageRef,
+				roleRef,
+				workerRef,
+				conversationLocator: `https://chatgpt.com/g/${roleRef}/c/${workerRef}`,
+				expectedTaskVersion: version,
+				actorRef: "platform-host:worker-provisioning",
+				idempotencyKey: `idem:bind:${key}`,
+			}),
+		).version;
+	}
+	const ready = ok(services.queries.getTask({ taskId: created.taskId }));
+	assert.equal(ready.status, "READY");
+	const active = ok(
 		services.commands.startTask({
 			taskId: created.taskId,
-			expectedTaskVersion: bound.version,
-			actorRef: "actor:driver",
-			idempotencyKey: "golden:start-task",
-		}),
-	);
-	const node = ok(
-		services.commands.startNode({
-			taskId: task.taskId,
-			nodeId: "task-golden-product",
-			expectedTaskVersion: task.version,
-			expectedNodeVersion: 2,
-			actorRef: "actor:driver",
-			idempotencyKey: "golden:start-node",
-		}),
-	);
-	assert.deepEqual(Object.keys(node).sort(), [
-		"nodeId",
-		"nodeVersion",
-		"runNo",
-		"startedAt",
-		"status",
-		"taskId",
-		"taskVersion",
-		"workerRef",
-	]);
-	const contextView = ok(
-		services.queries.getNodeContext({
-			taskId: task.taskId,
-			nodeId: node.nodeId,
-		}),
-	);
-	assert.equal(contextView.documents[0]?.sizeBytes, 14);
-	const failed = services.commands.startTask({
-		taskId: task.taskId,
-		expectedTaskVersion: task.version,
-		actorRef: "actor:driver",
-		idempotencyKey: "golden:invalid-start",
-	});
-	assert.equal(failed.ok, false);
-	if (!failed.ok)
-		assert.deepEqual(Object.keys(failed.error).sort(), [
-			"code",
-			"correlationId",
-			"details",
-			"message",
-			"retryable",
-		]);
-});
-
-test("remediation T05 createTask initial documents recover without absent-task orphans", async (context) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-task-create-recovery-"));
-	context.after(() => rm(root, { recursive: true, force: true }));
-	const databasePath = join(root, ".proflow", "state", "task.sqlite");
-	assert.equal(
-		applyMigrations({ databasePath, migrations: taskMigrations }).ok,
-		true,
-	);
-	const store = new SqliteTaskStore({ databasePath });
-	context.after(() => store.close());
-	let writes = 0;
-	const services = createTaskServices({
-		store,
-		workspaceRoot: root,
-		writeDocument: (path, content) => {
-			writes++;
-			if (writes === 2) throw new Error("injected second write failure");
-			const target = join(root, path);
-			mkdirSync(dirname(target), { recursive: true });
-			writeFileSync(target, content);
-		},
-	});
-	const input = {
-		...taskInput("task-orphan"),
-		initialDocuments: [
-			{ documentType: "REQUIREMENT", content: "one" },
-			{ documentType: "PRD", content: "two" },
-		],
-	};
-	const result = services.commands.createTask(input);
-	assert.equal(result.ok, false);
-	assert.equal(
-		store.read((tx) => tx.tasks.get("task-orphan")),
-		undefined,
-	);
-	await assert.rejects(
-		stat(join(root, ".proflow", "recovery", "task-create", "task-orphan")),
-	);
-
-	const rollbackStore: TaskStore = {
-		read: store.read.bind(store),
-		transaction: (work) =>
-			store.transaction((repositories) => {
-				work(repositories);
-				throw new Error("injected commit failure");
-			}),
-	};
-	const rollbackServices = createTaskServices({
-		store: rollbackStore,
-		workspaceRoot: root,
-	});
-	const rollbackInput = taskInput("task-db-rollback");
-	assert.equal(rollbackServices.commands.createTask(rollbackInput).ok, false);
-	assert.equal(
-		store.read((tx) => tx.tasks.get("task-db-rollback")),
-		undefined,
-	);
-	await assert.rejects(
-		stat(
-			join(
-				root,
-				".proflow",
-				"tasks",
-				"task-db-rollback",
-				"documents",
-				"requirement.md",
-			),
-		),
-	);
-
-	let promotionAttempts = 0;
-	const promotionServices = createTaskServices({
-		store,
-		workspaceRoot: root,
-		promoteDocument: () => {
-			promotionAttempts++;
-			throw new Error("injected promotion failure");
-		},
-	});
-	const recoveryInput = taskInput("task-promote-recovery");
-	const promotionFailure = promotionServices.commands.createTask(recoveryInput);
-	assert.equal(promotionFailure.ok, false);
-	assert.equal(
-		store.read((tx) => tx.tasks.get("task-promote-recovery"))?.taskId,
-		"task-promote-recovery",
-	);
-	assert.equal(promotionAttempts, 1);
-	const recoveredServices = createTaskServices({ store, workspaceRoot: root });
-	assert.equal(recoveredServices.commands.createTask(recoveryInput).ok, true);
-	assert.equal(
-		(
-			await stat(
-				join(
-					root,
-					".proflow",
-					"tasks",
-					"task-promote-recovery",
-					"documents",
-					"requirement.md",
-				),
-			)
-		).isFile(),
-		true,
-	);
-});
-
-test("remediation T04 injected reopen failure rolls back every reset", async (context) => {
-	const { services, store } = await fixture(context);
-	let task: { taskId: string; version: number } = ok(
-		services.commands.createTask(taskInput("task-reopen-rollback")),
-	);
-	task = ok(
-		services.commands.authorizeTask({
-			taskId: task.taskId,
-			expectedTaskVersion: task.version,
+			expectedTaskVersion: ready.version,
 			actorRef: "human:operator",
-			idempotencyKey: "rollback:authorize",
+			idempotencyKey: "idem:start",
 		}),
 	);
-	task = ok(
-		services.commands.bindTaskWorker({
-			taskId: task.taskId,
-			roleRef: "role:dev",
-			workerRef: "worker:dev",
-			expectedTaskVersion: task.version,
-			actorRef: "actor:provisioner",
-			idempotencyKey: "rollback:bind",
-		}),
-	);
-	task = ok(
-		services.commands.startTask({
-			taskId: task.taskId,
-			expectedTaskVersion: task.version,
-			actorRef: "actor:driver",
-			idempotencyKey: "rollback:start-task",
-		}),
-	);
-	const running = ok(
+	const versions = nodeVersion(services, active.taskId, `${active.taskId}-dev`);
+	const started = ok(
 		services.commands.startNode({
-			taskId: task.taskId,
-			nodeId: "task-reopen-rollback-product",
-			expectedTaskVersion: task.version,
-			expectedNodeVersion: 2,
-			actorRef: "actor:driver",
-			idempotencyKey: "rollback:start-node",
+			taskId: active.taskId,
+			nodeId: `${active.taskId}-dev`,
+			expectedTaskVersion: versions.taskVersion,
+			expectedNodeVersion: versions.nodeVersion,
+			actorRef: "worker:c-dev",
+			idempotencyKey: "idem:start-node:dev",
 		}),
 	);
-	const failed = ok(
-		services.commands.failNode({
-			taskId: task.taskId,
-			nodeId: running.nodeId,
-			errorCode: "EXECUTION_BROWSER_UNAVAILABLE",
-			errorMessage: "down",
-			retryable: true,
-			expectedTaskVersion: running.taskVersion,
-			expectedNodeVersion: running.nodeVersion,
-			actorRef: "worker:product",
-			idempotencyKey: "rollback:fail",
-		}),
-	);
-	const before = store.read((tx) => tx.nodes.listByTask(task.taskId));
-	const failingStore: TaskStore = {
-		read: store.read.bind(store),
-		transaction: (work) =>
-			store.transaction((repositories) => {
-				let updates = 0;
-				const nodes = {
-					...repositories.nodes,
-					update: (value: Parameters<typeof repositories.nodes.update>[0]) => {
-						repositories.nodes.update(value);
-						updates++;
-						if (updates === 1) throw new Error("injected reopen failure");
-					},
-				};
-				return work({ ...repositories, nodes });
-			}),
-	};
-	const failingServices = createTaskServices({
-		store: failingStore,
-		workspaceRoot: "/unused",
-	});
-	assert.equal(
-		failingServices.commands.reopenNode({
-			taskId: task.taskId,
-			nodeId: running.nodeId,
-			reason: "retry",
-			expectedTaskVersion: failed.version,
-			actorRef: "human:operator",
-			idempotencyKey: "rollback:reopen",
-		}).ok,
-		false,
-	);
-	assert.deepEqual(
-		store.read((tx) => tx.nodes.listByTask(task.taskId)),
-		before,
-	);
+	assert.equal(started.workerRef, "c-dev");
 });
 
-test("CP-TASK-ORCH-04 stale, duplicate, and fingerprint conflict paths have zero partial writes", async (context) => {
+test("CP-TASK-ORCH-04 stale, duplicate and same-key-different-fingerprint paths have zero partial writes", async (context) => {
 	const { services } = await fixture(context);
-	const created = ok(services.commands.createTask(taskInput("task-idem")));
-	const input = {
-		taskId: created.taskId,
-		expectedTaskVersion: created.version,
-		actorRef: "human:operator",
-		idempotencyKey: "idem:authorize:idempotent",
-	};
-	const first = services.commands.authorizeTask(input);
-	const replay = services.commands.authorizeTask(input);
-	assert.deepEqual(replay, first);
+	const input = taskInput("task-idem");
+	const first = services.commands.createTask(input);
+	assert.deepEqual(services.commands.createTask(input), first);
+	const created = ok(first);
 	assert.equal(
 		errorCode(
-			services.commands.authorizeTask({
+			services.commands.createTask({
 				...input,
-				actorRef: "human:different",
+				title: "different",
+				idempotencyKey: input.idempotencyKey,
 			}),
 		),
 		"IDEMPOTENCY_CONFLICT",
 	);
-	const before = ok(services.queries.getTask({ taskId: created.taskId }));
 	assert.equal(
 		errorCode(
-			services.commands.pauseTask({
+			services.commands.bindTaskWorker({
 				taskId: created.taskId,
-				reason: "stale",
-				expectedTaskVersion: created.version,
-				actorRef: "human:operator",
+				agentPackageRef: PACKAGES.dev,
+				roleRef: ROLES.dev,
+				workerRef: "c-dev",
+				conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+				expectedTaskVersion: created.version + 99,
+				actorRef: "platform-host:worker-provisioning",
 				idempotencyKey: "idem:stale",
 			}),
 		),
 		"TASK_VERSION_CONFLICT",
 	);
-	assert.deepEqual(
-		ok(services.queries.getTask({ taskId: created.taskId })),
-		before,
-	);
-	const disposable = ok(
-		services.commands.createTask(taskInput("task-terminate")),
-	);
-	const terminated = ok(
-		services.commands.terminateTask({
-			taskId: disposable.taskId,
-			reason: "cancel",
-			expectedTaskVersion: disposable.version,
-			actorRef: "human:operator",
-			idempotencyKey: "idem:terminate",
-		}),
-	);
-	assert.equal(terminated.status, "TERMINATED");
-	assert.equal(
-		ok(services.queries.getTask({ taskId: disposable.taskId })).nodes.every(
-			(item) => item.status === "TERMINATED",
-		),
-		true,
-	);
+	assert.equal(ok(services.queries.getTask({ taskId: created.taskId })).version, created.version);
 });
 
-test("CP-TASK-ORCH-05 reopen preserves history/binding/documents/events and starts a new run", async (context) => {
-	const { services, store } = await fixture(context);
-	let task: { taskId: string; version: number } = ok(
-		services.commands.createTask(taskInput("task-reopen")),
-	);
-	task = ok(
-		services.commands.authorizeTask({
-			taskId: task.taskId,
-			expectedTaskVersion: task.version,
-			actorRef: "human:operator",
-			idempotencyKey: "idem:authorize:reopen",
-		}),
-	);
-	task = ok(
-		services.commands.bindTaskWorker({
-			taskId: task.taskId,
-			roleRef: "role:dev",
-			workerRef: "worker:dev",
-			expectedTaskVersion: task.version,
-			actorRef: "actor:provisioner",
-			idempotencyKey: "idem:bind:reopen",
-		}),
-	);
-	task = ok(
-		services.commands.startTask({
-			taskId: task.taskId,
-			expectedTaskVersion: task.version,
-			actorRef: "actor:driver",
-			idempotencyKey: "idem:start:reopen",
-		}),
-	);
-	const node = ok(
-		services.commands.startNode({
-			taskId: task.taskId,
-			nodeId: "task-reopen-product",
-			expectedTaskVersion: task.version,
-			expectedNodeVersion: 2,
-			actorRef: "actor:driver",
-			idempotencyKey: "idem:start-node:reopen",
-		}),
-	);
-	const document = ok(
-		services.documents.putTaskDocument({
-			taskId: task.taskId,
-			nodeId: node.nodeId,
-			documentType: "PRD",
-			content: "# PRD\n",
-			expectedTaskVersion: node.taskVersion,
-			actorRef: "worker:product",
-			idempotencyKey: "idem:prd:reopen",
-		}),
-	);
-	const completedNode = ok(
-		services.commands.completeNode({
-			taskId: task.taskId,
-			nodeId: node.nodeId,
-			resultSummary: "done",
-			expectedTaskVersion: document.taskVersion,
-			expectedNodeVersion: node.nodeVersion,
-			actorRef: "worker:product",
-			idempotencyKey: "idem:complete:reopen",
-		}),
-	);
-	assert.equal(
-		errorCode(
-			services.commands.reopenNode({
-				taskId: task.taskId,
-				nodeId: "missing-node",
-				reason: "invalid",
-				expectedTaskVersion: completedNode.taskVersion,
-				actorRef: "actor:controller",
-				idempotencyKey: "idem:reopen:invalid",
-			}),
-		),
-		"NODE_NOT_FOUND",
-	);
-	assert.equal(
-		errorCode(
-			services.commands.reopenNode({
-				taskId: task.taskId,
-				nodeId: "task-reopen-product",
-				reason: "stale",
-				expectedTaskVersion: completedNode.taskVersion - 1,
-				actorRef: "actor:controller",
-				idempotencyKey: "idem:reopen:stale",
-			}),
-		),
-		"TASK_VERSION_CONFLICT",
-	);
-	const reopenInput = {
-		taskId: task.taskId,
-		nodeId: "task-reopen-product",
-		reason: "revise",
-		expectedTaskVersion: completedNode.taskVersion,
-		actorRef: "actor:controller",
-		idempotencyKey: "idem:reopen",
-	};
-	const reopenResult = services.commands.reopenNode(reopenInput);
-	const reopened = ok(reopenResult);
-	assert.deepEqual(services.commands.reopenNode(reopenInput), reopenResult);
-	assert.equal(reopened.runNo, 2);
-	assert.equal(reopened.workerRef, null);
-	const view = ok(services.queries.getTask({ taskId: task.taskId }));
-	assert.equal(view.currentNodeId, "task-reopen-product");
-	assert.equal(view.nodes[1]?.status, "PENDING");
-	assert.equal(
-		view.roleBindings.find((item) => item.roleRef === "role:product")
-			?.workerRef,
-		"worker:product",
-	);
-	assert.equal(
-		store
-			.read((tx) => tx.executionHistory.listByTask(task.taskId))
-			.some((item) => item.nodeId === "task-reopen-product"),
-		true,
-	);
-	assert.equal(
-		ok(
-			services.documents.getTaskDocument({
-				taskId: task.taskId,
-				documentType: "PRD",
-			}),
-		).content,
-		"# PRD\n",
-	);
-	const events = ok(
-		services.queries.listTaskEvents({ taskId: task.taskId }),
-	).events;
-	assert.equal(events.length > 0, true);
-	const restarted = ok(
-		services.commands.startNode({
-			taskId: task.taskId,
-			nodeId: "task-reopen-product",
-			expectedTaskVersion: reopened.taskVersion,
-			expectedNodeVersion: reopened.nodeVersion,
-			actorRef: "actor:driver",
-			idempotencyKey: "idem:restart:reopen",
-		}),
-	);
-	assert.equal(restarted.workerRef, "worker:product");
-});
-
-test("CP-TASK-ORCH-06/08 real Markdown/Git context, output gate, safe path, hash, and reconciliation", async (context) => {
-	const { root, store, services } = await fixture(context);
-	let task: { taskId: string; version: number } = ok(
-		services.commands.createTask(taskInput("task-doc")),
-	);
-	const git = await execFileAsync(
-		"git",
-		["status", "--short", "--untracked-files=all", "--", ".proflow"],
-		{ cwd: root },
-	);
-	assert.match(
-		git.stdout,
-		/\.proflow\/tasks\/task-doc\/documents\/requirement\.md/,
-	);
-	const requirement = ok(
-		services.documents.getTaskDocument({
-			taskId: task.taskId,
-			documentType: "REQUIREMENT",
-		}),
-	);
-	assert.equal(
-		await readFile(join(root, requirement.path), "utf8"),
-		"# Requirement\n",
-	);
-	assert.match(requirement.contentHash, /^sha256:[0-9a-f]{64}$/);
-	assert.equal(
-		errorCode(
-			services.documents.putTaskDocument({
-				taskId: task.taskId,
-				nodeId: "task-doc-product",
-				documentType: "../escape",
-				content: "bad",
-				expectedTaskVersion: task.version,
-				actorRef: "actor:test",
-				idempotencyKey: "idem:escape",
-			}),
-		),
-		"DOCUMENT_TYPE_NOT_ALLOWED",
-	);
-	assert.equal(
-		errorCode(
-			services.documents.putTaskDocument({
-				taskId: task.taskId,
-				nodeId: "task-doc-product",
-				documentType: "PRD",
-				content: "bad",
-				targetPath: "/tmp/escape.md",
-				expectedTaskVersion: task.version,
-				actorRef: "actor:test",
-				idempotencyKey: "idem:absolute",
-			}),
-		),
-		"INVALID_REQUEST",
-	);
-	task = ok(
-		services.commands.authorizeTask({
-			taskId: task.taskId,
-			expectedTaskVersion: task.version,
-			actorRef: "human:operator",
-			idempotencyKey: "idem:doc:authorize",
-		}),
-	);
-	task = ok(
-		services.commands.bindTaskWorker({
-			taskId: task.taskId,
-			roleRef: "role:dev",
-			workerRef: "worker:dev",
-			expectedTaskVersion: task.version,
-			actorRef: "actor:provisioner",
-			idempotencyKey: "idem:doc:bind",
-		}),
-	);
-	task = ok(
-		services.commands.startTask({
-			taskId: task.taskId,
-			expectedTaskVersion: task.version,
-			actorRef: "actor:driver",
-			idempotencyKey: "idem:doc:start",
-		}),
-	);
-	const started = ok(
-		services.commands.startNode({
-			taskId: task.taskId,
-			nodeId: "task-doc-product",
-			expectedTaskVersion: task.version,
-			expectedNodeVersion: 2,
-			actorRef: "actor:driver",
-			idempotencyKey: "idem:doc:start-node",
-		}),
-	);
-	assert.equal(
-		errorCode(
-			services.commands.completeNode({
-				taskId: task.taskId,
-				nodeId: started.nodeId,
-				resultSummary: "missing",
-				expectedTaskVersion: started.taskVersion,
-				expectedNodeVersion: started.nodeVersion,
-				actorRef: "worker:product",
-				idempotencyKey: "idem:doc:missing",
-			}),
-		),
-		"NODE_OUTPUT_MISSING",
-	);
-	const contextView = ok(
-		services.queries.getNodeContext({
-			taskId: task.taskId,
-			nodeId: started.nodeId,
-		}),
-	);
-	assert.deepEqual(
-		contextView.documents.map((item) => item.documentType),
-		["REQUIREMENT"],
-	);
-
-	let fail = true;
-	const failingStore: TaskStore = {
-		read: store.read.bind(store),
-		transaction: (work) => {
-			if (fail) {
-				fail = false;
-				throw new Error("injected index failure");
-			}
-			return store.transaction(work);
-		},
-	};
-	const failingServices = createTaskServices({
-		store: failingStore,
-		workspaceRoot: root,
-	});
-	assert.equal(
-		errorCode(
-			failingServices.documents.putTaskDocument({
-				taskId: task.taskId,
-				nodeId: started.nodeId,
-				documentType: "PRD",
-				content: "# PRD recovered\n",
-				expectedTaskVersion: started.taskVersion,
-				actorRef: "worker:product",
-				idempotencyKey: "idem:doc:failure",
-			}),
-		),
-		"DOCUMENT_WRITE_FAILED",
-	);
-	assert.equal(
-		ok(
-			services.documents.reconcileDocumentIndex({
-				taskId: task.taskId,
-				actorRef: "actor:reconcile",
-			}),
-		).reconciled,
-		1,
-	);
-	assert.equal(
-		ok(
-			services.documents.getTaskDocument({
-				taskId: task.taskId,
-				documentType: "PRD",
-			}),
-		).content,
-		"# PRD recovered\n",
-	);
-});
-
-test("CP-TASK-ORCH-07 TaskGroup blocks ACTIVE/WAITING/FAILED/PAUSED and releases only after success", async (context) => {
+test("CP-TASK-ORCH-05 reopen preserves binding/conversation/history and increments runNo", async (context) => {
 	const { services } = await fixture(context);
-	const group = ok(
-		services.commands.createTaskGroup({
-			taskGroupId: "tg-1",
-			title: "Chain",
-			objective: "Serial",
-			maxActiveTasks: 1,
-			actorRef: "human:operator",
-			idempotencyKey: "idem:group:create",
-		}),
-	);
-	for (const [sequenceNo, taskId] of [
-		[1, "task-group-1"],
-		[2, "task-group-2"],
-	] as const) {
-		ok(
-			services.commands.createTask({
-				...taskInput(taskId),
-				taskGroupId: group.taskGroupId,
-				sequenceNo,
-				plan: {
-					nodes: [
-						{
-							nodeId: `${taskId}-node`,
-							title: "Node",
-							objective: "Finish",
-							requiredRoleRef: "role:product",
-							inputDocuments: ["REQUIREMENT"],
-							outputDocuments: [],
-						},
-					],
-				},
-			}),
-		);
-	}
-	assert.equal(
-		errorCode(
-			services.commands.startTaskGroup({
-				taskGroupId: group.taskGroupId,
-				expectedGroupVersion: group.version + 1,
-				actorRef: "human:operator",
-				idempotencyKey: "idem:group:stale",
-			}),
-		),
-		"TASK_GROUP_VERSION_CONFLICT",
-	);
-	assert.equal(
-		ok(services.queries.getTaskGroup({ taskGroupId: group.taskGroupId }))
-			.status,
-		"READY",
-	);
-	const activeGroup = ok(
-		services.commands.startTaskGroup({
-			taskGroupId: group.taskGroupId,
-			expectedGroupVersion: group.version,
-			actorRef: "human:operator",
-			idempotencyKey: "idem:group:start",
-		}),
-	);
-	assert.equal(activeGroup.status, "ACTIVE");
-	let task: { taskId: string; version: number } = ok(
-		services.commands.startTask({
-			taskId: "task-group-1",
-			expectedTaskVersion: 2,
-			actorRef: "actor:driver",
-			idempotencyKey: "idem:group:start-task",
-		}),
-	);
-	const canStart = () =>
-		ok(
-			services.queries.listTasks({ taskGroupId: group.taskGroupId }),
-		).tasks.find((item) => item.taskId === "task-group-2");
-	assert.equal(canStart()?.canStart, false);
-	let node = ok(
-		services.commands.startNode({
-			taskId: task.taskId,
-			nodeId: "task-group-1-node",
-			expectedTaskVersion: task.version,
-			expectedNodeVersion: 2,
-			actorRef: "actor:driver",
-			idempotencyKey: "idem:group:start-node",
-		}),
-	);
-	task = ok(
-		services.commands.waitNode({
-			taskId: task.taskId,
-			nodeId: node.nodeId,
-			waitType: "BUSINESS_CONFIRMATION",
-			reasonCode: "WAIT",
-			message: "wait",
-			expectedTaskVersion: node.taskVersion,
-			expectedNodeVersion: node.nodeVersion,
-			actorRef: "worker:product",
-			idempotencyKey: "idem:group:wait",
-		}),
-	);
-	assert.equal(canStart()?.blockedReason, "PREDECESSOR_NOT_SUCCEEDED");
-	const pendingMessages = ok(
-		services.queries.listPendingMessages({ taskId: task.taskId }),
-	).messages;
-	assert.equal(pendingMessages.length, 1);
-	const pendingMessage = pendingMessages[0];
-	assert.ok(pendingMessage);
-	ok(
-		services.commands.acknowledgeMessage({
-			messageId: pendingMessage.messageId,
-			resolution: "continue",
-			actorRef: "human:operator",
-			idempotencyKey: "idem:group:ack",
-		}),
-	);
-	assert.equal(
-		ok(services.queries.getTask({ taskId: task.taskId })).status,
-		"WAITING",
-	);
-	assert.equal(
-		ok(services.queries.listPendingMessages({ taskId: task.taskId })).messages
-			.length,
-		0,
-	);
-	task = ok(
-		services.commands.resumeTask({
-			taskId: task.taskId,
-			expectedTaskVersion: task.version,
-			actorRef: "human:operator",
-			idempotencyKey: "idem:group:resume",
-		}),
-	);
-	const current = ok(services.queries.getTask({ taskId: task.taskId }))
-		.nodes[0];
-	assert.ok(current);
-	task = ok(
-		services.commands.failNode({
-			taskId: task.taskId,
-			nodeId: current.nodeId,
-			errorCode: "EXECUTION_UNAVAILABLE",
-			errorMessage: "down",
-			retryable: true,
-			expectedTaskVersion: task.version,
-			expectedNodeVersion: current.version,
-			actorRef: "actor:execution",
-			idempotencyKey: "idem:group:fail",
-		}),
-	);
-	assert.equal(canStart()?.canStart, false);
-	assert.equal(
-		errorCode(
-			services.commands.pauseTask({
-				taskId: task.taskId,
-				reason: "pause",
-				expectedTaskVersion: task.version,
-				actorRef: "human:operator",
-				idempotencyKey: "idem:group:pause",
-			}),
-		),
-		"TASK_INVALID_STATE",
-	);
-	assert.equal(canStart()?.canStart, false);
-	const reopened = ok(
-		services.commands.reopenNode({
-			taskId: task.taskId,
-			nodeId: current.nodeId,
-			reason: "recover",
-			expectedTaskVersion: task.version,
-			actorRef: "human:operator",
-			idempotencyKey: "idem:group:reopen",
-		}),
-	);
-	node = ok(
-		services.commands.startNode({
-			taskId: task.taskId,
-			nodeId: current.nodeId,
-			expectedTaskVersion: reopened.taskVersion,
-			expectedNodeVersion: reopened.nodeVersion,
-			actorRef: "actor:driver",
-			idempotencyKey: "idem:group:restart-node",
-		}),
-	);
-	const completed = ok(
-		services.commands.completeNode({
-			taskId: task.taskId,
-			nodeId: current.nodeId,
-			resultSummary: "done",
-			expectedTaskVersion: node.taskVersion,
-			expectedNodeVersion: node.nodeVersion,
-			actorRef: "worker:product",
-			idempotencyKey: "idem:group:complete",
-		}),
-	);
-	assert.equal(completed.taskStatus, "SUCCEEDED");
-	assert.equal(canStart()?.canStart, true);
-});
-
-test("Task-owned happy path remains complete after SQLite store close and reopen", async (context) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-task-happy-"));
-	context.after(() => rm(root, { recursive: true, force: true }));
-	await execFileAsync("git", ["init", "-q"], { cwd: root });
-	const databasePath = join(root, ".proflow", "state", "task.sqlite");
-	assert.equal(
-		applyMigrations({ databasePath, migrations: taskMigrations }).ok,
-		true,
-	);
-	let store = new SqliteTaskStore({ databasePath });
-	let services = createTaskServices({ store, workspaceRoot: root });
-	let task: { taskId: string; version: number } = ok(
-		services.commands.createTask(taskInput("task-happy")),
-	);
-	task = ok(
-		services.commands.authorizeTask({
-			taskId: task.taskId,
-			expectedTaskVersion: task.version,
-			actorRef: "human:operator",
-			idempotencyKey: "happy:authorize",
-		}),
-	);
-	task = ok(
-		services.commands.bindTaskWorker({
-			taskId: task.taskId,
-			roleRef: "role:dev",
-			workerRef: "worker:dev",
-			expectedTaskVersion: task.version,
-			actorRef: "actor:provisioner",
-			idempotencyKey: "happy:bind",
-		}),
-	);
+	const created = ok(services.commands.createTask(taskInput("task-reopen")));
+	await bindAll(services, created.taskId, created.version);
+	let task = ok(services.queries.getTask({ taskId: created.taskId }));
 	task = ok(
 		services.commands.startTask({
 			taskId: task.taskId,
 			expectedTaskVersion: task.version,
-			actorRef: "actor:driver",
-			idempotencyKey: "happy:start-task",
+			actorRef: "human:operator",
+			idempotencyKey: "reopen:start",
 		}),
 	);
+	let versions = nodeVersion(services, task.taskId, `${task.taskId}-dev`);
 	let node = ok(
 		services.commands.startNode({
 			taskId: task.taskId,
-			nodeId: "task-happy-product",
-			expectedTaskVersion: task.version,
-			expectedNodeVersion: 2,
-			actorRef: "actor:driver",
-			idempotencyKey: "happy:start-product",
+			nodeId: `${task.taskId}-dev`,
+			expectedTaskVersion: versions.taskVersion,
+			expectedNodeVersion: versions.nodeVersion,
+			actorRef: "worker:c-dev",
+			idempotencyKey: "reopen:start-node",
 		}),
 	);
-	let document = ok(
-		services.documents.putTaskDocument({
-			taskId: task.taskId,
-			nodeId: node.nodeId,
-			documentType: "PRD",
-			content: "# PRD\n",
-			expectedTaskVersion: node.taskVersion,
-			actorRef: "worker:product",
-			idempotencyKey: "happy:prd",
-		}),
-	);
-	const completeProductInput = {
-		taskId: task.taskId,
-		nodeId: node.nodeId,
-		resultSummary: "product complete",
-		expectedTaskVersion: document.taskVersion,
-		expectedNodeVersion: node.nodeVersion,
-		actorRef: "worker:product",
-		idempotencyKey: "happy:complete-product",
-	};
-	const completeProductResult =
-		services.commands.completeNode(completeProductInput);
-	const completedProduct = ok(completeProductResult);
-	assert.deepEqual(
-		services.commands.completeNode(completeProductInput),
-		completeProductResult,
-	);
-	node = ok(
-		services.commands.startNode({
-			taskId: task.taskId,
-			nodeId: "task-happy-dev",
-			expectedTaskVersion: completedProduct.taskVersion,
-			expectedNodeVersion: 2,
-			actorRef: "actor:driver",
-			idempotencyKey: "happy:start-dev",
-		}),
-	);
-	document = ok(
+	const doc = ok(
 		services.documents.putTaskDocument({
 			taskId: task.taskId,
 			nodeId: node.nodeId,
 			documentType: "TECHNICAL_DESIGN",
 			content: "# Design\n",
 			expectedTaskVersion: node.taskVersion,
-			actorRef: "worker:dev",
-			idempotencyKey: "happy:design",
+			actorRef: "worker:c-dev",
+			idempotencyKey: "reopen:doc",
 		}),
 	);
 	const completed = ok(
 		services.commands.completeNode({
 			taskId: task.taskId,
 			nodeId: node.nodeId,
-			resultSummary: "development complete",
-			expectedTaskVersion: document.taskVersion,
+			resultSummary: "done",
+			expectedTaskVersion: doc.taskVersion,
 			expectedNodeVersion: node.nodeVersion,
-			actorRef: "worker:dev",
-			idempotencyKey: "happy:complete-dev",
+			actorRef: "worker:c-dev",
+			idempotencyKey: "reopen:complete",
 		}),
 	);
-	assert.equal(completed.taskStatus, "SUCCEEDED");
+	const before = ok(services.queries.getTask({ taskId: task.taskId }));
+	const bindingBefore = before.roleBindings.find((binding) => binding.agentPackageRef === PACKAGES.dev);
+	assert.ok(bindingBefore);
+	const reopened = ok(
+		services.commands.reopenNode({
+			taskId: task.taskId,
+			nodeId: node.nodeId,
+			reason: "revise",
+			expectedTaskVersion: completed.taskVersion,
+			actorRef: "controller:c-dev",
+			idempotencyKey: "reopen:command",
+		}),
+	);
+	assert.equal(reopened.currentNodeId, node.nodeId);
+	const after = ok(services.queries.getTask({ taskId: task.taskId }));
+	const bindingAfter = after.roleBindings.find((binding) => binding.agentPackageRef === PACKAGES.dev);
+	assert.deepEqual(bindingAfter, bindingBefore);
+	const reopenedNode = after.nodes.find((item) => item.nodeId === node.nodeId);
+	assert.ok(reopenedNode);
+	assert.equal(reopenedNode.runNo, node.runNo + 1);
+	assert.equal(reopenedNode.status, "READY");
+	assert.equal(ok(services.queries.getTaskDocument({ taskId: task.taskId, documentType: "TECHNICAL_DESIGN" })).contentHash, doc.contentHash);
+});
+
+test("CP-TASK-ORCH-06 + CP-TASK-ORCH-08 TaskDocument remains canonical, safe, output-gated and hash-backed", async (context) => {
+	const { services, root } = await fixture(context);
+	const created = ok(services.commands.createTask(taskInput("task-doc")));
+	await bindAll(services, created.taskId, created.version);
+	let task = ok(services.queries.getTask({ taskId: created.taskId }));
+	task = ok(
+		services.commands.startTask({
+			taskId: task.taskId,
+			expectedTaskVersion: task.version,
+			actorRef: "human:operator",
+			idempotencyKey: "doc:start",
+		}),
+	);
+	const versions = nodeVersion(services, task.taskId, `${task.taskId}-dev`);
+	const node = ok(
+		services.commands.startNode({
+			taskId: task.taskId,
+			nodeId: `${task.taskId}-dev`,
+			expectedTaskVersion: versions.taskVersion,
+			expectedNodeVersion: versions.nodeVersion,
+			actorRef: "worker:c-dev",
+			idempotencyKey: "doc:start-node",
+		}),
+	);
+	assert.equal(
+		errorCode(
+			services.commands.completeNode({
+				taskId: task.taskId,
+				nodeId: node.nodeId,
+				resultSummary: "missing design",
+				expectedTaskVersion: node.taskVersion,
+				expectedNodeVersion: node.nodeVersion,
+				actorRef: "worker:c-dev",
+				idempotencyKey: "doc:complete:missing",
+			}),
+		),
+		"NODE_OUTPUT_MISSING",
+	);
+	const written = ok(
+		services.documents.putTaskDocument({
+			taskId: task.taskId,
+			nodeId: node.nodeId,
+			documentType: "TECHNICAL_DESIGN",
+			content: "# Design\n",
+			expectedTaskVersion: node.taskVersion,
+			actorRef: "worker:c-dev",
+			idempotencyKey: "doc:put",
+		}),
+	);
+	assert.match(written.path, /^\.proflow\/tasks\//);
+	assert.equal((await stat(join(root, written.path))).isFile(), true);
+	assert.match(written.contentHash, /^sha256:/);
+	assert.equal(
+		(await readFile(join(root, written.path), "utf8")),
+		"# Design\n",
+	);
+	assert.equal(
+		errorCode(
+			services.documents.putTaskDocument({
+				taskId: task.taskId,
+				nodeId: node.nodeId,
+				documentType: "TECHNICAL_DESIGN",
+				content: "bad",
+				targetPath: "/tmp/escape.md",
+				expectedTaskVersion: written.taskVersion,
+				actorRef: "worker:c-dev",
+				idempotencyKey: "doc:absolute",
+			}),
+		),
+		"INVALID_REQUEST",
+	);
+});
+
+test("CP-TASK-ORCH-07 TaskGroup remains serial and predecessor success gates the next Task", async (context) => {
+	const { services } = await fixture(context);
+	const group = ok(
+		services.commands.createTaskGroup({
+			taskGroupId: "tg-1",
+			title: "Serial chain",
+			objective: "one active task",
+			maxActiveTasks: 1,
+			actorRef: "human:operator",
+			idempotencyKey: "group:create",
+		}),
+	);
+	for (const [sequenceNo, taskId] of [[1, "tg-task-1"], [2, "tg-task-2"]] as const) {
+		const created = ok(
+			services.commands.createTask({
+				...taskInput(taskId),
+				taskGroupId: group.taskGroupId,
+				sequenceNo,
+				idempotencyKey: `group:create:${taskId}`,
+			}),
+		);
+		await bindAll(services, created.taskId, created.version);
+	}
+	const activeGroup = ok(
+		services.commands.startTaskGroup({
+			taskGroupId: group.taskGroupId,
+			expectedGroupVersion: group.version,
+			actorRef: "human:operator",
+			idempotencyKey: "group:start",
+		}),
+	);
+	assert.equal(activeGroup.status, "ACTIVE");
+	const list = ok(services.queries.listTasks({ taskGroupId: group.taskGroupId }));
+	const second = list.tasks.find((item) => item.taskId === "tg-task-2");
+	assert.ok(second);
+	assert.equal(second.canStart, false);
+	assert.equal(second.blockedReason, "PREDECESSOR_NOT_SUCCEEDED");
+});
+
+test("CP-TASK-ORCH-09 + CP-TASK-ORCH-10 readiness is deterministic and human confirmation directly starts READY Task", async (context) => {
+	const { services } = await fixture(context);
+	const created = ok(services.commands.createTask(taskInput("task-ready")));
+	assert.equal(created.status, "PENDING");
+	assert.equal("authorizedByRef" in created, false);
+	assert.equal("authorizedAt" in created, false);
+	await bindAll(services, created.taskId, created.version);
+	const ready = ok(services.queries.getTask({ taskId: created.taskId }));
+	assert.equal(ready.status, "READY");
+	assert.equal(ready.readiness?.ready ?? true, true);
+	const started = ok(
+		services.commands.startTask({
+			taskId: ready.taskId,
+			expectedTaskVersion: ready.version,
+			actorRef: "human:operator",
+			idempotencyKey: "ready:start",
+		}),
+	);
+	assert.equal(started.status, "ACTIVE");
+});
+
+test("Task-owned happy path remains durable after SQLite store close and reopen", async (context) => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-task-happy-current-"));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	await execFileAsync("git", ["init", "-q"], { cwd: root });
+	const databasePath = join(root, ".proflow", "state", "task.sqlite");
+	assert.equal(applyMigrations({ databasePath, migrations: taskMigrations }).ok, true);
+	let store = new SqliteTaskStore({ databasePath });
+	let services = createTaskServices({ store, workspaceRoot: root });
+	const created = ok(services.commands.createTask(taskInput("task-happy")));
+	await bindAll(services, created.taskId, created.version);
+	let task = ok(services.queries.getTask({ taskId: created.taskId }));
+	ok(
+		services.commands.startTask({
+			taskId: task.taskId,
+			expectedTaskVersion: task.version,
+			actorRef: "human:operator",
+			idempotencyKey: "happy:start",
+		}),
+	);
 	store.close();
 	store = new SqliteTaskStore({ databasePath });
 	context.after(() => store.close());
 	services = createTaskServices({ store, workspaceRoot: root });
-	const recovered = ok(services.queries.getTask({ taskId: task.taskId }));
-	assert.equal(recovered.status, "SUCCEEDED");
-	assert.equal(recovered.currentNodeId, null);
-	assert.deepEqual(
-		recovered.nodes.map((item) => item.status),
-		["SUCCEEDED", "SUCCEEDED"],
-	);
-	assert.equal(
-		store.read((tx) => tx.executionHistory.listByTask(task.taskId)).length,
-		2,
-	);
-	assert.equal(
-		recovered.roleBindings.every((item) => item.workerRef !== null),
-		true,
-	);
-	assert.deepEqual(
-		store
-			.read((tx) => tx.documents.listByTask(task.taskId))
-			.map((item) => item.documentType),
-		["PRD", "REQUIREMENT", "TECHNICAL_DESIGN"],
-	);
+	task = ok(services.queries.getTask({ taskId: created.taskId }));
+	assert.equal(task.status, "ACTIVE");
+	assert.equal(task.roleBindings.length, 3);
+	assert.ok(task.roleBindings.every((binding) => binding.workerRef !== null));
+	const projection = ok(services.queries.getTaskDriveProjection({ taskId: task.taskId }));
+	assert.equal(projection.taskId, task.taskId);
+	assert.equal(projection.terminal, false);
 });

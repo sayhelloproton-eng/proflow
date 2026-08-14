@@ -244,7 +244,7 @@ test("apply executes a package step and re-checks the postcondition", async () =
 	}
 });
 
-test("resume re-observes reality and skips already-satisfied steps without re-execution", async () => {
+test("CP-DPL-CLI-02 resume re-observes reality and skips already-satisfied steps without re-execution", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
 		const svc = moduleFixture({ moduleRef: "svc" });
@@ -284,7 +284,7 @@ test("resume re-observes reality and skips already-satisfied steps without re-ex
 	}
 });
 
-test("a stale plan is BLOCKED and never applied", async () => {
+test("CP-DPL-CLI-02 a stale plan is BLOCKED and never applied", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
 		const svc = moduleFixture({ moduleRef: "svc" });

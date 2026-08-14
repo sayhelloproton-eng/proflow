@@ -1,0 +1,330 @@
+{
+  "contract": "proflow.service-test-coverage.v1",
+  "services": [
+    {
+      "service": "agent-gateway",
+      "serviceRuntimeDocId": "AGENT-GATEWAY-SERVICE-RUNTIME",
+      "criticalProofs": [
+        "CP-AGT-GW-01",
+        "CP-AGT-GW-02",
+        "CP-AGT-GW-03",
+        "CP-AGT-GW-04",
+        "CP-AGT-GW-05",
+        "CP-AGT-GW-06",
+        "CP-AGT-GW-07",
+        "CP-AGT-GW-08",
+        "CP-AGT-GW-09",
+        "CP-AGT-GW-10",
+        "CP-AGT-GW-11",
+        "CP-AGT-GW-12",
+        "CP-AGT-GW-13"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 64,
+          "title": "CP-AGT-GW-01 bearer owns role identity and unknown input is validated"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 80,
+          "title": "CP-AGT-GW-02 body/path/query normalize without arbitrary custom headers"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 93,
+          "title": "CP-AGT-GW-02 static OpenAPI POST path maps directly to its canonical operation"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 117,
+          "title": "CP-AGT-GW-03 request response budgets and real 429/5xx semantics"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 166,
+          "title": "CP-AGT-GW-04 file input count is bounded and normalization maps to Execution descriptors without fetching"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 203,
+          "title": "CP-AGT-GW-05 URL SSRF and filename path control fail closed at ingress normalization"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 235,
+          "title": "CP-AGT-GW-06 relay token is opaque GET-only scoped TTL and header safe"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 317,
+          "title": "CP-AGT-GW-06 relay is a real unauthenticated opaque HTTP download with strict artifact scope"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 353,
+          "title": "CP-AGT-GW-07 every operation has explicit consequential metadata independent from approval"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 364,
+          "title": "CP-AGT-GW-08 gateway has no business persistence and uncertainty looks up owner result"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 377,
+          "title": "CP-AGT-GW-09 readiness blocks missing dependencies and restart replays zero mutation"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 385,
+          "title": "CP-AGT-GW-09 HTTP health and readiness expose only service and dependency status"
+        },
+        {
+          "path": "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+          "line": 23,
+          "title": "CP-AGT-GW-10 Product GPT-facing Action surface excludes New Task dynamic-discovery operations"
+        },
+        {
+          "path": "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+          "line": 36,
+          "title": "CP-AGT-GW-11 Gateway remains stateless across 0..N Actions in one Worker Turn"
+        },
+        {
+          "path": "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+          "line": 47,
+          "title": "CP-AGT-GW-12 nonconsequential Action metadata never grants Execution approval"
+        },
+        {
+          "path": "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+          "line": 60,
+          "title": "CP-AGT-GW-13 File Bridge is transport over Execution-owned Artifact truth"
+        }
+      ],
+      "status": "COVERED"
+    },
+    {
+      "service": "platform-host",
+      "serviceRuntimeDocId": "PLATFORM-HOST-SERVICE-RUNTIME",
+      "criticalProofs": [
+        "CP-HOST-01",
+        "CP-HOST-02",
+        "CP-HOST-03",
+        "CP-HOST-04",
+        "CP-HOST-05",
+        "CP-HOST-06",
+        "CP-HOST-07"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
+          "line": 73,
+          "title": "CP-HOST-01 + CP-HOST-02 composition root wires owner packages/public clients and owns no business repository"
+        },
+        {
+          "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
+          "line": 11,
+          "title": "CP-HOST-03 current host transport surface has no Task authorization compatibility command"
+        },
+        {
+          "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
+          "line": 92,
+          "title": "CP-HOST-03 local transport is loopback-only, restartable, and shutdown drains in-flight requests"
+        },
+        {
+          "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
+          "line": 18,
+          "title": "CP-HOST-04 readiness stays a host/dependency projection and never becomes System Assessment truth"
+        },
+        {
+          "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
+          "line": 132,
+          "title": "CP-HOST-04 dependency unavailability is reported as dependency health, never invented Domain READY/System Assessment"
+        },
+        {
+          "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
+          "line": 24,
+          "title": "CP-HOST-05 restart reconstructs owner graph and contains no mutation replay journal"
+        },
+        {
+          "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
+          "line": 149,
+          "title": "CP-HOST-05 restart rebuilds composition and has no host mutation replay/cache truth"
+        },
+        {
+          "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
+          "line": 30,
+          "title": "CP-HOST-06 host exposes routing paths for Task drive projection and Model infer without owning Observer loops"
+        },
+        {
+          "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
+          "line": 37,
+          "title": "CP-HOST-07 host has no universal scheduler, Browser frame registry, or direct observer business mutation path"
+        }
+      ],
+      "status": "COVERED"
+    },
+    {
+      "service": "execution-runtime",
+      "serviceRuntimeDocId": "EXECUTION-RUNTIME-SERVICE-RUNTIME",
+      "criticalProofs": [
+        "CP-EXE-RT-01",
+        "CP-EXE-RT-02",
+        "CP-EXE-RT-03",
+        "CP-EXE-RT-04",
+        "CP-EXE-RT-05",
+        "CP-EXE-RT-06",
+        "CP-EXE-RT-07",
+        "CP-EXE-RT-08",
+        "CP-EXE-RT-09",
+        "CP-EXE-RT-10",
+        "CP-EXE-RT-11"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+          "line": 91,
+          "title": "CP-EXE-RT-01 durable lifecycle and idempotency fingerprint"
+        },
+        {
+          "path": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+          "line": 149,
+          "title": "CP-EXE-RT-02 deterministic deny precedes model and approval cannot be overridden"
+        },
+        {
+          "path": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+          "line": 368,
+          "title": "CP-EXE-RT-03 persist STARTED then reconcile a real lost response without replay"
+        },
+        {
+          "path": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+          "line": 412,
+          "title": "CP-EXE-RT-04 persisted UNKNOWN later converges through its reality verifier"
+        },
+        {
+          "path": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+          "line": 461,
+          "title": "CP-EXE-RT-05 output evidence pagination and persisted secret redaction"
+        },
+        {
+          "path": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+          "line": 752,
+          "title": "CP-EXE-RT-06 injected browser executor uses the same durable admission and record path"
+        },
+        {
+          "path": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+          "line": 652,
+          "title": "CP-EXE-RT-07 queue concurrency, cancellation signal and restart do not blind replay"
+        },
+        {
+          "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
+          "line": 16,
+          "title": "CP-EXE-RT-08 Browser/local effects converge to one durable Execution truth"
+        },
+        {
+          "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
+          "line": 24,
+          "title": "CP-EXE-RT-09 File Bridge locator materialization produces Artifact truth before reuse"
+        },
+        {
+          "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
+          "line": 35,
+          "title": "CP-EXE-RT-10 Context Pack/Patch remain Artifact subtypes and patch apply is a separate effect"
+        },
+        {
+          "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
+          "line": 45,
+          "title": "CP-EXE-RT-11 model/observer judgment cannot bypass hard Execution authority"
+        }
+      ],
+      "status": "COVERED"
+    },
+    {
+      "service": "model-runtime",
+      "serviceRuntimeDocId": "MODEL-RUNTIME-SERVICE-RUNTIME",
+      "criticalProofs": [
+        "CP-MODEL-RT-01",
+        "CP-MODEL-RT-02",
+        "CP-MODEL-RT-03",
+        "CP-MODEL-RT-04",
+        "CP-MODEL-RT-05",
+        "CP-MODEL-RT-06",
+        "CP-MODEL-RT-07",
+        "CP-MODEL-RT-08",
+        "CP-MODEL-RT-09",
+        "CP-MODEL-RT-10",
+        "CP-MODEL-RT-11",
+        "CP-MODEL-RT-12",
+        "CP-MODEL-RT-13"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
+          "line": 51,
+          "title": "CP-MODEL-RT-01 FAST/REASON never fallback and AUTO escalates only by Spec"
+        },
+        {
+          "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
+          "line": 74,
+          "title": "CP-MODEL-RT-02 one real lane prioritizes queued business and distinguishes timeouts"
+        },
+        {
+          "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
+          "line": 119,
+          "title": "CP-MODEL-RT-03 capability verification mismatch makes role and health unavailable"
+        },
+        {
+          "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
+          "line": 157,
+          "title": "CP-MODEL-RT-04 deterministic prompt and invalid output perform at most one repair"
+        },
+        {
+          "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
+          "line": 177,
+          "title": "CP-MODEL-RT-05 proposal remains max-one data and Model exposes no Effect executor"
+        },
+        {
+          "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
+          "line": 188,
+          "title": "CP-MODEL-RT-06 queued/running cancel and restart are explicit with no inference DB"
+        },
+        {
+          "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
+          "line": 200,
+          "title": "CP-MODEL-RT-07 status reports fresh READY/DEGRADED/UNAVAILABLE lane and role diagnostics"
+        },
+        {
+          "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
+          "line": 207,
+          "title": "CP-MODEL-RT-08 M2/M3/M4 require committed real-provider evidence"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 17,
+          "title": "CP-MODEL-RT-09 normal Task progression is not a Model Runtime scheduling concern"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 24,
+          "title": "CP-MODEL-RT-10 System Assessment spec consumes bounded views and excludes raw secret/full-repo/full-log payloads"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 39,
+          "title": "CP-MODEL-RT-11 batch/carry-forward/drill-down/global synthesis stay caller-owned"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 47,
+          "title": "CP-MODEL-RT-12 background assessments defer behind business and model unavailability cannot mutate Task"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 54,
+          "title": "CP-MODEL-RT-13 real phone REASON load gate remains evidence-backed, not inferred from contextWindow"
+        }
+      ],
+      "status": "COVERED"
+    }
+  ]
+}

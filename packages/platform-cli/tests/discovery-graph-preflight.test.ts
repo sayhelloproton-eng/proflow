@@ -137,7 +137,7 @@ test("versionSatisfies covers exact and comparator ranges", () => {
 	assert.equal(versionSatisfies("not-a-version", ">=1.0.0"), false);
 });
 
-test("graph throws DEPENDENCY_UNRESOLVED for a missing required provider", () => {
+test("CP-DPL-CLI-01 graph throws DEPENDENCY_UNRESOLVED for a missing required provider", () => {
 	const modules = [
 		moduleFixture({
 			moduleRef: "consumer",
@@ -152,7 +152,7 @@ test("graph throws DEPENDENCY_UNRESOLVED for a missing required provider", () =>
 	);
 });
 
-test("graph throws DEPENDENCY_INCOMPATIBLE for an out-of-range provider", () => {
+test("CP-DPL-CLI-01 graph throws DEPENDENCY_INCOMPATIBLE for an out-of-range provider", () => {
 	const modules = [
 		moduleFixture({
 			moduleRef: "provider",
@@ -169,7 +169,7 @@ test("graph throws DEPENDENCY_INCOMPATIBLE for an out-of-range provider", () => 
 	);
 });
 
-test("graph throws DEPENDENCY_CYCLE for cyclic dependencies", () => {
+test("CP-DPL-CLI-01 graph throws DEPENDENCY_CYCLE for cyclic dependencies", () => {
 	const modules = [
 		moduleFixture({
 			moduleRef: "a",

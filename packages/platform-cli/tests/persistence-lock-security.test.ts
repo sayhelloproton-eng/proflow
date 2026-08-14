@@ -208,7 +208,7 @@ test("pending actions persist durably as an interrupted-apply resume signal", as
 
 // ---- Plans ----
 
-test("plan save/load roundtrips and is atomic", async () => {
+test("CP-DPL-CLI-07 plan save/load roundtrips and is atomic", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
 		const plan = makePlan("plan-001");
@@ -376,7 +376,7 @@ test("acquire records lock metadata and release removes it", async () => {
 	}
 });
 
-test("second same-workspace apply is blocked with WORKSPACE_LOCKED", async () => {
+test("CP-DPL-CLI-07 second same-workspace apply is blocked with WORKSPACE_LOCKED", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
 		const lock = await acquireWorkspaceLock(paths, "plan-1");

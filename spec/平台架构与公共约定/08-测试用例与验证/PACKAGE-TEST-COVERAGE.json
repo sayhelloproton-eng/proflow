@@ -1,0 +1,838 @@
+{
+  "contract": "proflow.package-test-coverage.v2",
+  "summary": {
+    "packages": 24,
+    "allAuditedUpdated": true
+  },
+  "packages": [
+    {
+      "package": "agent-controller-dev",
+      "formalModuleTestPlan": "智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md",
+      "baselineTestFiles": 2,
+      "currentTestFiles": 4,
+      "baselineExecutableCases": 5,
+      "currentExecutableCases": 11,
+      "addedTestFiles": [
+        "packages/agent-controller-dev/tests/current-spec-alignment.test.ts",
+        "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-AGT-DEV-01",
+        "CP-AGT-DEV-02",
+        "CP-AGT-DEV-03",
+        "CP-AGT-DEV-04",
+        "CP-AGT-DEV-07",
+        "CP-AGT-DEV-08",
+        "CP-AGT-DEV-09",
+        "CP-AGT-DEV-10",
+        "CP-AGT-DEV-11"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-AGT-DEV-01",
+        "CP-AGT-DEV-02",
+        "CP-AGT-DEV-03",
+        "CP-AGT-DEV-04",
+        "CP-AGT-DEV-07",
+        "CP-AGT-DEV-08",
+        "CP-AGT-DEV-09",
+        "CP-AGT-DEV-10",
+        "CP-AGT-DEV-11"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "agent-gateway",
+      "formalModuleTestPlan": "智能体运行与协作领域/07-测试计划/modules/agent-gateway.md",
+      "baselineTestFiles": 3,
+      "currentTestFiles": 5,
+      "baselineExecutableCases": 18,
+      "currentExecutableCases": 23,
+      "addedTestFiles": [
+        "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+        "packages/agent-gateway/tests/current-spec-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-AGT-GW-01",
+        "CP-AGT-GW-02",
+        "CP-AGT-GW-03",
+        "CP-AGT-GW-04",
+        "CP-AGT-GW-05",
+        "CP-AGT-GW-06",
+        "CP-AGT-GW-07",
+        "CP-AGT-GW-08",
+        "CP-AGT-GW-09",
+        "CP-AGT-GW-10",
+        "CP-AGT-GW-11",
+        "CP-AGT-GW-12",
+        "CP-AGT-GW-13"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-AGT-GW-01",
+        "CP-AGT-GW-02",
+        "CP-AGT-GW-03",
+        "CP-AGT-GW-04",
+        "CP-AGT-GW-05",
+        "CP-AGT-GW-06",
+        "CP-AGT-GW-07",
+        "CP-AGT-GW-08",
+        "CP-AGT-GW-09",
+        "CP-AGT-GW-10",
+        "CP-AGT-GW-11",
+        "CP-AGT-GW-12",
+        "CP-AGT-GW-13"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "agent-product",
+      "formalModuleTestPlan": "智能体运行与协作领域/07-测试计划/modules/agent-product.md",
+      "baselineTestFiles": 2,
+      "currentTestFiles": 3,
+      "baselineExecutableCases": 5,
+      "currentExecutableCases": 7,
+      "addedTestFiles": [
+        "packages/agent-product/tests/current-spec-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [
+        "packages/agent-product/tests/agent-product-static.test.ts"
+      ],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-AGT-PROD-01",
+        "CP-AGT-PROD-02",
+        "CP-AGT-PROD-03",
+        "CP-AGT-PROD-04",
+        "CP-AGT-PROD-05",
+        "CP-AGT-PROD-06"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-AGT-PROD-01",
+        "CP-AGT-PROD-02",
+        "CP-AGT-PROD-03",
+        "CP-AGT-PROD-04",
+        "CP-AGT-PROD-05",
+        "CP-AGT-PROD-06"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "agent-runtime",
+      "formalModuleTestPlan": "智能体运行与协作领域/07-测试计划/modules/agent-runtime.md",
+      "baselineTestFiles": 2,
+      "currentTestFiles": 4,
+      "baselineExecutableCases": 13,
+      "currentExecutableCases": 18,
+      "addedTestFiles": [
+        "packages/agent-runtime/tests/current-spec-alignment.test.ts",
+        "packages/agent-runtime/tests/journey-collaboration-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts"
+      ],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-AGT-RUNTIME-01",
+        "CP-AGT-RUNTIME-02",
+        "CP-AGT-RUNTIME-03",
+        "CP-AGT-RUNTIME-04",
+        "CP-AGT-RUNTIME-05",
+        "CP-AGT-RUNTIME-06",
+        "CP-AGT-RUNTIME-07",
+        "CP-AGT-RUNTIME-08",
+        "CP-AGT-RUNTIME-09",
+        "CP-AGT-RUNTIME-10"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-AGT-RUNTIME-01",
+        "CP-AGT-RUNTIME-02",
+        "CP-AGT-RUNTIME-03",
+        "CP-AGT-RUNTIME-04",
+        "CP-AGT-RUNTIME-05",
+        "CP-AGT-RUNTIME-06",
+        "CP-AGT-RUNTIME-07",
+        "CP-AGT-RUNTIME-08",
+        "CP-AGT-RUNTIME-09",
+        "CP-AGT-RUNTIME-10"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "agent-test-ops",
+      "formalModuleTestPlan": "智能体运行与协作领域/07-测试计划/modules/agent-test-ops.md",
+      "baselineTestFiles": 2,
+      "currentTestFiles": 4,
+      "baselineExecutableCases": 5,
+      "currentExecutableCases": 10,
+      "addedTestFiles": [
+        "packages/agent-test-ops/tests/current-spec-alignment.test.ts",
+        "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts"
+      ],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-AGT-TEST-01",
+        "CP-AGT-TEST-02",
+        "CP-AGT-TEST-03",
+        "CP-AGT-TEST-04",
+        "CP-AGT-TEST-07",
+        "CP-AGT-TEST-08",
+        "CP-AGT-TEST-09",
+        "CP-AGT-TEST-10"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-AGT-TEST-01",
+        "CP-AGT-TEST-02",
+        "CP-AGT-TEST-03",
+        "CP-AGT-TEST-04",
+        "CP-AGT-TEST-07",
+        "CP-AGT-TEST-08",
+        "CP-AGT-TEST-09",
+        "CP-AGT-TEST-10"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "chatgpt-carrier",
+      "formalModuleTestPlan": null,
+      "baselineTestFiles": 1,
+      "currentTestFiles": 3,
+      "baselineExecutableCases": 8,
+      "currentExecutableCases": 14,
+      "addedTestFiles": [
+        "packages/chatgpt-carrier/tests/current-spec-alignment.test.ts",
+        "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [],
+      "explicitCriticalProofCoverage": [],
+      "externalResourceCases": [
+        "EXT-CHATGPT-01",
+        "EXT-CHATGPT-02",
+        "EXT-CHATGPT-03",
+        "EXT-CHATGPT-04",
+        "EXT-CHATGPT-05"
+      ],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "chrome-runtime",
+      "formalModuleTestPlan": null,
+      "baselineTestFiles": 1,
+      "currentTestFiles": 3,
+      "baselineExecutableCases": 3,
+      "currentExecutableCases": 8,
+      "addedTestFiles": [
+        "packages/chrome-runtime/tests/current-spec-alignment.test.ts",
+        "packages/chrome-runtime/tests/v1-carrier-boundary.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [],
+      "explicitCriticalProofCoverage": [],
+      "externalResourceCases": [
+        "EXT-CHROME-01",
+        "EXT-CHROME-02",
+        "EXT-CHROME-03",
+        "EXT-CHROME-04"
+      ],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "deployment-conformance",
+      "formalModuleTestPlan": "部署领域/07-测试计划/modules/deployment-conformance.md",
+      "baselineTestFiles": 4,
+      "currentTestFiles": 5,
+      "baselineExecutableCases": 12,
+      "currentExecutableCases": 13,
+      "addedTestFiles": [
+        "packages/deployment-conformance/tests/current-spec-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-DPL-CONF-01",
+        "CP-DPL-CONF-02",
+        "CP-DPL-CONF-03",
+        "CP-DPL-CONF-04"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-DPL-CONF-01",
+        "CP-DPL-CONF-02",
+        "CP-DPL-CONF-03",
+        "CP-DPL-CONF-04"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "dev-tunnel",
+      "formalModuleTestPlan": null,
+      "baselineTestFiles": 1,
+      "currentTestFiles": 3,
+      "baselineExecutableCases": 13,
+      "currentExecutableCases": 17,
+      "addedTestFiles": [
+        "packages/dev-tunnel/tests/current-spec-alignment.test.ts",
+        "packages/dev-tunnel/tests/v1-owner-boundary.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [],
+      "explicitCriticalProofCoverage": [],
+      "externalResourceCases": [
+        "EXT-TUNNEL-01",
+        "EXT-TUNNEL-02",
+        "EXT-TUNNEL-03"
+      ],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "execution-browser-extension",
+      "formalModuleTestPlan": "执行领域/07-测试计划/modules/execution-browser-extension.md",
+      "baselineTestFiles": 4,
+      "currentTestFiles": 6,
+      "baselineExecutableCases": 16,
+      "currentExecutableCases": 27,
+      "addedTestFiles": [
+        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+        "packages/execution-browser-extension/tests/current-spec-alignment.test.ts",
+        "packages/execution-browser-extension/tests/observer-carrier-boundary.test.ts"
+      ],
+      "modifiedTestFiles": [
+        "packages/execution-browser-extension/tests/browser-reality-bridge.test.ts",
+        "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts"
+      ],
+      "removedHistoricalTestFiles": [
+        "packages/execution-browser-extension/tests/task-driver.test.ts"
+      ],
+      "formalCriticalProofs": [
+        "CP-EXE-BR-01",
+        "CP-EXE-BR-02",
+        "CP-EXE-BR-03",
+        "CP-EXE-BR-04",
+        "CP-EXE-BR-05",
+        "CP-EXE-BR-06",
+        "CP-EXE-BR-07",
+        "CP-EXE-BR-08",
+        "CP-EXE-BR-09",
+        "CP-EXE-BR-10",
+        "CP-EXE-BR-11",
+        "CP-EXE-BR-12"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-EXE-BR-01",
+        "CP-EXE-BR-02",
+        "CP-EXE-BR-03",
+        "CP-EXE-BR-04",
+        "CP-EXE-BR-05",
+        "CP-EXE-BR-06",
+        "CP-EXE-BR-07",
+        "CP-EXE-BR-08",
+        "CP-EXE-BR-09",
+        "CP-EXE-BR-10",
+        "CP-EXE-BR-11",
+        "CP-EXE-BR-12"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "execution-contracts",
+      "formalModuleTestPlan": "执行领域/07-测试计划/modules/execution-contracts.md",
+      "baselineTestFiles": 1,
+      "currentTestFiles": 3,
+      "baselineExecutableCases": 4,
+      "currentExecutableCases": 8,
+      "addedTestFiles": [
+        "packages/execution-contracts/tests/current-spec-alignment.test.ts",
+        "packages/execution-contracts/tests/journey-artifact-contract-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-EXE-CON-01",
+        "CP-EXE-CON-02",
+        "CP-EXE-CON-03",
+        "CP-EXE-CON-04",
+        "CP-EXE-CONTRACTS-08",
+        "CP-EXE-CONTRACTS-09",
+        "CP-EXE-CONTRACTS-10"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-EXE-CON-01",
+        "CP-EXE-CON-02",
+        "CP-EXE-CON-03",
+        "CP-EXE-CON-04",
+        "CP-EXE-CONTRACTS-08",
+        "CP-EXE-CONTRACTS-09",
+        "CP-EXE-CONTRACTS-10"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "execution-local",
+      "formalModuleTestPlan": "执行领域/07-测试计划/modules/execution-local.md",
+      "baselineTestFiles": 2,
+      "currentTestFiles": 4,
+      "baselineExecutableCases": 18,
+      "currentExecutableCases": 23,
+      "addedTestFiles": [
+        "packages/execution-local/tests/artifact-context-pack-patch-alignment.test.ts",
+        "packages/execution-local/tests/current-spec-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-EXE-LOCAL-01",
+        "CP-EXE-LOCAL-02",
+        "CP-EXE-LOCAL-03",
+        "CP-EXE-LOCAL-04",
+        "CP-EXE-LOCAL-05",
+        "CP-EXE-LOCAL-06",
+        "CP-EXE-LOCAL-08",
+        "CP-EXE-LOCAL-09",
+        "CP-EXE-LOCAL-10",
+        "CP-EXE-LOCAL-11"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-EXE-LOCAL-01",
+        "CP-EXE-LOCAL-02",
+        "CP-EXE-LOCAL-03",
+        "CP-EXE-LOCAL-04",
+        "CP-EXE-LOCAL-05",
+        "CP-EXE-LOCAL-06",
+        "CP-EXE-LOCAL-08",
+        "CP-EXE-LOCAL-09",
+        "CP-EXE-LOCAL-10",
+        "CP-EXE-LOCAL-11"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "execution-runtime",
+      "formalModuleTestPlan": "执行领域/07-测试计划/modules/execution-runtime.md",
+      "baselineTestFiles": 2,
+      "currentTestFiles": 4,
+      "baselineExecutableCases": 19,
+      "currentExecutableCases": 24,
+      "addedTestFiles": [
+        "packages/execution-runtime/tests/current-spec-alignment.test.ts",
+        "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-EXE-RT-01",
+        "CP-EXE-RT-02",
+        "CP-EXE-RT-03",
+        "CP-EXE-RT-04",
+        "CP-EXE-RT-05",
+        "CP-EXE-RT-06",
+        "CP-EXE-RT-07",
+        "CP-EXE-RT-08",
+        "CP-EXE-RT-09",
+        "CP-EXE-RT-10",
+        "CP-EXE-RT-11"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-EXE-RT-01",
+        "CP-EXE-RT-02",
+        "CP-EXE-RT-03",
+        "CP-EXE-RT-04",
+        "CP-EXE-RT-05",
+        "CP-EXE-RT-06",
+        "CP-EXE-RT-07",
+        "CP-EXE-RT-08",
+        "CP-EXE-RT-09",
+        "CP-EXE-RT-10",
+        "CP-EXE-RT-11"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "model-contracts",
+      "formalModuleTestPlan": "模型与推理领域/07-测试计划/modules/model-contracts.md",
+      "baselineTestFiles": 1,
+      "currentTestFiles": 3,
+      "baselineExecutableCases": 5,
+      "currentExecutableCases": 9,
+      "addedTestFiles": [
+        "packages/model-contracts/tests/current-spec-alignment.test.ts",
+        "packages/model-contracts/tests/observer-contract-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-MODEL-CON-01",
+        "CP-MODEL-CON-02",
+        "CP-MODEL-CON-03",
+        "CP-MODEL-CON-04",
+        "CP-MODEL-CON-05",
+        "CP-MODEL-CON-06",
+        "CP-MODEL-CON-07"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-MODEL-CON-01",
+        "CP-MODEL-CON-02",
+        "CP-MODEL-CON-03",
+        "CP-MODEL-CON-04",
+        "CP-MODEL-CON-05",
+        "CP-MODEL-CON-06",
+        "CP-MODEL-CON-07"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "model-provider-api",
+      "formalModuleTestPlan": null,
+      "baselineTestFiles": 1,
+      "currentTestFiles": 3,
+      "baselineExecutableCases": 10,
+      "currentExecutableCases": 14,
+      "addedTestFiles": [
+        "packages/model-provider-api/tests/current-spec-alignment.test.ts",
+        "packages/model-provider-api/tests/v1-provider-boundary.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [],
+      "explicitCriticalProofCoverage": [],
+      "externalResourceCases": [
+        "EXT-MODEL-PROVIDER-01",
+        "EXT-MODEL-PROVIDER-02",
+        "EXT-MODEL-PROVIDER-03"
+      ],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "model-runtime",
+      "formalModuleTestPlan": "模型与推理领域/07-测试计划/modules/model-runtime.md",
+      "baselineTestFiles": 4,
+      "currentTestFiles": 6,
+      "baselineExecutableCases": 28,
+      "currentExecutableCases": 35,
+      "addedTestFiles": [
+        "packages/model-runtime/tests/current-spec-alignment.test.ts",
+        "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-MODEL-RT-01",
+        "CP-MODEL-RT-02",
+        "CP-MODEL-RT-03",
+        "CP-MODEL-RT-04",
+        "CP-MODEL-RT-05",
+        "CP-MODEL-RT-06",
+        "CP-MODEL-RT-07",
+        "CP-MODEL-RT-08",
+        "CP-MODEL-RT-09",
+        "CP-MODEL-RT-10",
+        "CP-MODEL-RT-11",
+        "CP-MODEL-RT-12",
+        "CP-MODEL-RT-13"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-MODEL-RT-01",
+        "CP-MODEL-RT-02",
+        "CP-MODEL-RT-03",
+        "CP-MODEL-RT-04",
+        "CP-MODEL-RT-05",
+        "CP-MODEL-RT-06",
+        "CP-MODEL-RT-07",
+        "CP-MODEL-RT-08",
+        "CP-MODEL-RT-09",
+        "CP-MODEL-RT-10",
+        "CP-MODEL-RT-11",
+        "CP-MODEL-RT-12",
+        "CP-MODEL-RT-13"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "module-contract",
+      "formalModuleTestPlan": "部署领域/07-测试计划/modules/module-contract.md",
+      "baselineTestFiles": 2,
+      "currentTestFiles": 3,
+      "baselineExecutableCases": 6,
+      "currentExecutableCases": 7,
+      "addedTestFiles": [
+        "packages/module-contract/tests/current-spec-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-DPL-CON-01",
+        "CP-DPL-CON-02",
+        "CP-DPL-CON-03",
+        "CP-DPL-CON-04",
+        "CP-DPL-CON-05"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-DPL-CON-01",
+        "CP-DPL-CON-02",
+        "CP-DPL-CON-03",
+        "CP-DPL-CON-04",
+        "CP-DPL-CON-05"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "module-skill",
+      "formalModuleTestPlan": "部署领域/07-测试计划/modules/module-skill.md",
+      "baselineTestFiles": 2,
+      "currentTestFiles": 3,
+      "baselineExecutableCases": 10,
+      "currentExecutableCases": 11,
+      "addedTestFiles": [
+        "packages/module-skill/tests/current-spec-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-DPL-SKILL-01",
+        "CP-DPL-SKILL-02",
+        "CP-DPL-SKILL-03",
+        "CP-DPL-SKILL-04"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-DPL-SKILL-01",
+        "CP-DPL-SKILL-02",
+        "CP-DPL-SKILL-03",
+        "CP-DPL-SKILL-04"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "module-template",
+      "formalModuleTestPlan": "部署领域/07-测试计划/modules/module-template.md",
+      "baselineTestFiles": 3,
+      "currentTestFiles": 4,
+      "baselineExecutableCases": 10,
+      "currentExecutableCases": 11,
+      "addedTestFiles": [
+        "packages/module-template/tests/current-spec-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-DPL-TPL-01",
+        "CP-DPL-TPL-02",
+        "CP-DPL-TPL-03",
+        "CP-DPL-TPL-04"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-DPL-TPL-01",
+        "CP-DPL-TPL-02",
+        "CP-DPL-TPL-03",
+        "CP-DPL-TPL-04"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "platform-cli",
+      "formalModuleTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
+      "baselineTestFiles": 16,
+      "currentTestFiles": 18,
+      "baselineExecutableCases": 201,
+      "currentExecutableCases": 205,
+      "addedTestFiles": [
+        "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
+        "packages/platform-cli/tests/current-spec-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [
+        "packages/platform-cli/tests/apply-resume.test.ts",
+        "packages/platform-cli/tests/deployment-final-integration.test.ts",
+        "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
+        "packages/platform-cli/tests/persistence-lock-security.test.ts"
+      ],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-DPL-CLI-01",
+        "CP-DPL-CLI-02",
+        "CP-DPL-CLI-03",
+        "CP-DPL-CLI-04",
+        "CP-DPL-CLI-05",
+        "CP-DPL-CLI-06",
+        "CP-DPL-CLI-07"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-DPL-CLI-01",
+        "CP-DPL-CLI-02",
+        "CP-DPL-CLI-03",
+        "CP-DPL-CLI-04",
+        "CP-DPL-CLI-05",
+        "CP-DPL-CLI-06",
+        "CP-DPL-CLI-07"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "platform-host",
+      "formalModuleTestPlan": "平台架构与公共约定/06-测试计划/modules/platform-host.md",
+      "baselineTestFiles": 5,
+      "currentTestFiles": 5,
+      "baselineExecutableCases": 9,
+      "currentExecutableCases": 13,
+      "addedTestFiles": [
+        "packages/platform-host/tests/cross-domain-composition-integration.test.ts",
+        "packages/platform-host/tests/current-spec-alignment.test.ts",
+        "packages/platform-host/tests/journey-observer-composition-boundary.test.ts"
+      ],
+      "modifiedTestFiles": [
+        "packages/platform-host/tests/platform-host-critical-proofs.test.ts"
+      ],
+      "removedHistoricalTestFiles": [
+        "packages/platform-host/tests/non-deployment-runtime-integration.test.ts",
+        "packages/platform-host/tests/platform-host-b2-agt-05.test.ts",
+        "packages/platform-host/tests/real-carrier-e2e-harness.test.ts"
+      ],
+      "formalCriticalProofs": [
+        "CP-HOST-01",
+        "CP-HOST-02",
+        "CP-HOST-03",
+        "CP-HOST-04",
+        "CP-HOST-05",
+        "CP-HOST-06",
+        "CP-HOST-07"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-HOST-01",
+        "CP-HOST-02",
+        "CP-HOST-03",
+        "CP-HOST-04",
+        "CP-HOST-05",
+        "CP-HOST-06",
+        "CP-HOST-07"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "task-migration-runner",
+      "formalModuleTestPlan": "任务与编排领域/07-测试计划/modules/task-migration-runner.md",
+      "baselineTestFiles": 1,
+      "currentTestFiles": 2,
+      "baselineExecutableCases": 5,
+      "currentExecutableCases": 6,
+      "addedTestFiles": [
+        "packages/task-migration-runner/tests/current-spec-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-TASK-MIG-01",
+        "CP-TASK-MIG-02",
+        "CP-TASK-MIG-03",
+        "CP-TASK-MIG-04"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-TASK-MIG-01",
+        "CP-TASK-MIG-02",
+        "CP-TASK-MIG-03",
+        "CP-TASK-MIG-04"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "task-orchestration",
+      "formalModuleTestPlan": "任务与编排领域/07-测试计划/modules/task-orchestration.md",
+      "baselineTestFiles": 3,
+      "currentTestFiles": 5,
+      "baselineExecutableCases": 15,
+      "currentExecutableCases": 20,
+      "addedTestFiles": [
+        "packages/task-orchestration/tests/current-spec-alignment.test.ts",
+        "packages/task-orchestration/tests/journey-observer-contract.test.ts"
+      ],
+      "modifiedTestFiles": [
+        "packages/task-orchestration/tests/contracts-domain.test.ts",
+        "packages/task-orchestration/tests/task-owned-integration.test.ts"
+      ],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-TASK-ORCH-01",
+        "CP-TASK-ORCH-02",
+        "CP-TASK-ORCH-03",
+        "CP-TASK-ORCH-04",
+        "CP-TASK-ORCH-05",
+        "CP-TASK-ORCH-06",
+        "CP-TASK-ORCH-07",
+        "CP-TASK-ORCH-08",
+        "CP-TASK-ORCH-09",
+        "CP-TASK-ORCH-10",
+        "CP-TASK-ORCH-11",
+        "CP-TASK-ORCH-12",
+        "CP-TASK-ORCH-13"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-TASK-ORCH-01",
+        "CP-TASK-ORCH-02",
+        "CP-TASK-ORCH-03",
+        "CP-TASK-ORCH-04",
+        "CP-TASK-ORCH-05",
+        "CP-TASK-ORCH-06",
+        "CP-TASK-ORCH-07",
+        "CP-TASK-ORCH-08",
+        "CP-TASK-ORCH-09",
+        "CP-TASK-ORCH-10",
+        "CP-TASK-ORCH-11",
+        "CP-TASK-ORCH-12",
+        "CP-TASK-ORCH-13"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    },
+    {
+      "package": "task-store-sqlite",
+      "formalModuleTestPlan": "任务与编排领域/07-测试计划/modules/task-store-sqlite.md",
+      "baselineTestFiles": 1,
+      "currentTestFiles": 2,
+      "baselineExecutableCases": 6,
+      "currentExecutableCases": 7,
+      "addedTestFiles": [
+        "packages/task-store-sqlite/tests/current-spec-alignment.test.ts"
+      ],
+      "modifiedTestFiles": [],
+      "removedHistoricalTestFiles": [],
+      "formalCriticalProofs": [
+        "CP-TASK-STORE-01",
+        "CP-TASK-STORE-02",
+        "CP-TASK-STORE-03",
+        "CP-TASK-STORE-04",
+        "CP-TASK-STORE-05"
+      ],
+      "explicitCriticalProofCoverage": [
+        "CP-TASK-STORE-01",
+        "CP-TASK-STORE-02",
+        "CP-TASK-STORE-03",
+        "CP-TASK-STORE-04",
+        "CP-TASK-STORE-05"
+      ],
+      "externalResourceCases": [],
+      "status": "AUDITED_UPDATED"
+    }
+  ]
+}

@@ -1,0 +1,2180 @@
+{
+  "contract": "proflow.cross-domain-acceptance-cases.v1",
+  "cases": [
+    {
+      "caseId": "JOURNEY-J0-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Exactly three generic Role packages become behavior/capability READY without exact model pin or Knowledge prerequisite.",
+      "boundCpIds": [
+        "CP-AGT-PROD-01",
+        "CP-AGT-DEV-01",
+        "CP-AGT-TEST-01",
+        "CP-DPL-CLI-03"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Exactly three generic Role packages become behavior/capability READY without exact model pin or Knowledge prerequisite."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-product/tests/agent-product-static.test.ts",
+          "line": 32,
+          "title": "CP-AGT-PROD-01 generic Product package does not own pre-Task creation or require Knowledge specialization in v1",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+          "line": 26,
+          "title": "CP-AGT-DEV-01 instructions and Action allowlist are role-minimal",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+          "line": 26,
+          "title": "CP-AGT-TEST-01 instructions and Action allowlist preserve test/ops least privilege",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
+          "line": 25,
+          "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J1-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Extension creates PENDING Task first, then creates/observes/binds Product+Dev+Test Workers; Product may begin requirement after its binding while missing bindings continue in background.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-09",
+        "CP-AGT-PROD-03",
+        "CP-AGT-PROD-04",
+        "CP-EXE-BR-02"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Extension creates PENDING Task first, then creates/observes/binds Product+Dev+Test Workers; Product may begin requirement after its binding while missing bindings continue in background."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/contracts-domain.test.ts",
+          "line": 217,
+          "title": "CP-TASK-ORCH-09/10 create starts PENDING and start confirmation is startTask, not authorization",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+          "line": 83,
+          "title": "CP-TASK-ORCH-09 createTask is Extension-first, PENDING-compatible and keyed by fixed agentPackageRef bindings",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+          "line": 458,
+          "title": "CP-TASK-ORCH-09 + CP-TASK-ORCH-10 readiness is deterministic and human confirmation directly starts READY Task",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/agent-product/tests/agent-product-static.test.ts",
+          "line": 64,
+          "title": "CP-AGT-PROD-03 + CP-AGT-PROD-04 Extension-first Task ownership is reflected by the Product surface while real c-id binding remains external",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 34,
+          "title": "CP-EXE-BR-02 New Task provisioning starts from PENDING, keeps successful bindings, and has no authorization-gated all-or-nothing rebuild",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J1-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Worker CREATE partial success preserves completed bindings and retries only missing workers; existing Task binding never duplicates Conversation.",
+      "boundCpIds": [
+        "CP-EXE-BR-02",
+        "CP-AGT-DEV-04",
+        "CP-AGT-TEST-04"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Worker CREATE partial success preserves completed bindings and retries only missing workers; existing Task binding never duplicates Conversation."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 34,
+          "title": "CP-EXE-BR-02 New Task provisioning starts from PENDING, keeps successful bindings, and has no authorization-gated all-or-nothing rebuild",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+          "line": 70,
+          "title": "CP-AGT-DEV-04 provisioning/reopen real evidence remains external ACTION_REQUIRED",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+          "line": 58,
+          "title": "CP-AGT-TEST-04 provisioning/reopen real evidence remains external ACTION_REQUIRED",
+          "disposition": "UPDATE"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J2-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Human Task start confirmation directly calls startTask; no Task approval/authorization fact or APPROVAL_PENDING state is created.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-10",
+        "CP-EXE-BR-06"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Human Task start confirmation directly calls startTask; no Task approval/authorization fact or APPROVAL_PENDING state is created."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+          "line": 91,
+          "title": "CP-TASK-ORCH-10 v1 has no authorizeTask or persisted Task approval/authorization surface",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+          "line": 458,
+          "title": "CP-TASK-ORCH-09 + CP-TASK-ORCH-10 readiness is deterministic and human confirmation directly starts READY Task",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 71,
+          "title": "CP-EXE-BR-06 routine Action permission recovery remains separate from Execution effect approval",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J3-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Task Observer deterministically detects READY, Carrier restores/wakes the bound Conversation, physical wake is confirmed, then Worker formally calls startNode.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-11",
+        "CP-EXE-BR-03",
+        "CP-EXE-BR-04"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Task Observer deterministically detects READY, Carrier restores/wakes the bound Conversation, physical wake is confirmed, then Worker formally calls startNode."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+          "line": 102,
+          "title": "CP-TASK-ORCH-11 Task Observer receives a bounded read-only drive projection and cannot mutate Task through it",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 43,
+          "title": "CP-EXE-BR-03 WAKE targets the existing Conversation with a minimal trigger and claims only physical delivery",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 52,
+          "title": "CP-EXE-BR-04 Task Observer requests WAKE before the Worker formally startNode; Browser does not mutate Node state",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J3-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "WAKE submit disconnect is reconciled by re-observing the same Conversation; uncertain delivery becomes UNKNOWN and is never blindly replayed.",
+      "boundCpIds": [
+        "CP-EXE-BR-09",
+        "CP-EXE-RT-09"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "WAKE submit disconnect is reconciled by re-observing the same Conversation; uncertain delivery becomes UNKNOWN and is never blindly replayed."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 93,
+          "title": "CP-EXE-BR-09 uncertain submit/WAKE reconciles DELIVERED/ABSENT/UNKNOWN and contains no blind replay loop",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
+          "line": 24,
+          "title": "CP-EXE-RT-09 File Bridge locator materialization produces Artifact truth before reuse",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J4-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "One Worker Turn supports 0..N Actions without Browser per-action continue/scheduler semantics.",
+      "boundCpIds": [
+        "CP-AGT-PROD-05",
+        "CP-AGT-DEV-07",
+        "CP-AGT-TEST-07",
+        "CP-EXE-BR-05"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "One Worker Turn supports 0..N Actions without Browser per-action continue/scheduler semantics."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-product/tests/agent-product-static.test.ts",
+          "line": 74,
+          "title": "CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browser continue protocol",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+          "line": 18,
+          "title": "CP-AGT-DEV-07 J1 bind is IDLE and formal Node work starts only after NODE_READY wake",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
+          "line": 18,
+          "title": "CP-AGT-TEST-07 J1 Test/Ops is bind-only/IDLE and starts the formal Node only after NODE_READY wake",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 59,
+          "title": "CP-EXE-BR-05 one Worker Turn has no per-Action Browser continue/wake scheduler or natural-language Task progression",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J4-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "File Bridge/Code Interpreter use bounded Context Pack and Patch artifacts; real apply/test/evidence remains in Execution.",
+      "boundCpIds": [
+        "CP-AGT-DEV-08",
+        "CP-AGT-TEST-08",
+        "CP-EXE-LOCAL-08",
+        "CP-EXE-LOCAL-10",
+        "CP-EXE-LOCAL-11"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "File Bridge/Code Interpreter use bounded Context Pack and Patch artifacts; real apply/test/evidence remains in Execution."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+          "line": 24,
+          "title": "CP-AGT-DEV-08 one Worker Turn uses 0..N routine Actions and has no Browser per-action scheduler protocol",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
+          "line": 24,
+          "title": "CP-AGT-TEST-08 one Worker Turn permits 0..N routine Actions without Browser per-action scheduling",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-local/tests/artifact-context-pack-patch-alignment.test.ts",
+          "line": 11,
+          "title": "CP-EXE-LOCAL-08 File Bridge materialization is bounded and yields typed artifact metadata",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-local/tests/artifact-context-pack-patch-alignment.test.ts",
+          "line": 43,
+          "title": "CP-EXE-LOCAL-10 Context Pack is bounded Artifact mechanics, not a new Store/Service",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-local/tests/artifact-context-pack-patch-alignment.test.ts",
+          "line": 55,
+          "title": "CP-EXE-LOCAL-11 Patch proposal materialization is distinct from apply/test Evidence",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J4-03",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Public research uses GPT Web Search while deterministic/local/private/credentialed network effects remain Execution-owned.",
+      "boundCpIds": [
+        "CP-AGT-DEV-11",
+        "CP-AGT-TEST-08"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Public research uses GPT Web Search while deterministic/local/private/credentialed network effects remain Execution-owned."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+          "line": 44,
+          "title": "CP-AGT-DEV-11 public research uses native Web Search while local/private/credentialed engineering requests remain Execution-owned",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
+          "line": 24,
+          "title": "CP-AGT-TEST-08 one Worker Turn permits 0..N routine Actions without Browser per-action scheduling",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J5-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Task-relevant Execution result readiness requests resume/wake without automatically mapping async pending to Task WAITING.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-12",
+        "CP-EXE-RT-10",
+        "CP-EXE-BR-10"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Task-relevant Execution result readiness requests resume/wake without automatically mapping async pending to Task WAITING."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+          "line": 110,
+          "title": "CP-TASK-ORCH-12 async Execution/Collaboration/Carrier pending is not a hidden Task WAIT command",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
+          "line": 35,
+          "title": "CP-EXE-RT-10 Context Pack/Patch remain Artifact subtypes and patch apply is a separate effect",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 101,
+          "title": "CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON is diagnostic-only, and terminal stops driving",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J5-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Peer reply is Agent-owned durable truth; target/source Worker wake is physical delivery only and does not auto-transition Task.",
+      "boundCpIds": [
+        "CP-AGT-RUNTIME-04",
+        "CP-EXE-BR-08"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Peer reply is Agent-owned durable truth; target/source Worker wake is physical delivery only and does not auto-transition Task."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+          "line": 168,
+          "title": "CP-AGT-RUNTIME-04 ask/reply is idempotent and next question waits for physical reply delivery",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 85,
+          "title": "CP-EXE-BR-08 Collaboration delivery stays a physical Execution concern and logical message truth remains Agent-owned",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J5-03",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Business reopen reuses same node/workerRef/Conversation, increments runNo, while technical recovery does not change Task business truth.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-05",
+        "CP-TASK-ORCH-13",
+        "CP-AGT-DEV-10",
+        "CP-AGT-TEST-06"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Business reopen reuses same node/workerRef/Conversation, increments runNo, while technical recovery does not change Task business truth."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+          "line": 276,
+          "title": "CP-TASK-ORCH-05 reopen preserves binding/conversation/history and increments runNo",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+          "line": 125,
+          "title": "CP-TASK-ORCH-13 reopen/terminal contracts preserve stable Task binding semantics and stop-driving is a projection concern",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+          "line": 38,
+          "title": "CP-AGT-DEV-10 reopen and async result resume reuse the Task-bound Worker/Conversation instead of creating another Worker",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "JOURNEY-J6-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Terminal Task stops Task Observer business driving/ghost wake while durable Worker/Conversation/Artifact/Evidence history remains available.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-13",
+        "CP-EXE-BR-10"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Terminal Task stops Task Observer business driving/ghost wake while durable Worker/Conversation/Artifact/Evidence history remains available."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+          "line": 125,
+          "title": "CP-TASK-ORCH-13 reopen/terminal contracts preserve stable Task binding semantics and stop-driving is a projection concern",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 101,
+          "title": "CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON is diagnostic-only, and terminal stops driving",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "TASK-OBS-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Normal Node READY progression is deterministic and does not call REASON.",
+      "boundCpIds": [
+        "CP-EXE-BR-10",
+        "CP-MODEL-RT-09"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Normal Node READY progression is deterministic and does not call REASON."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 101,
+          "title": "CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON is diagnostic-only, and terminal stops driving",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 17,
+          "title": "CP-MODEL-RT-09 normal Task progression is not a Model Runtime scheduling concern",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "TASK-OBS-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Task Observer can react to Node READY, task-relevant Execution result READY, peer reply READY, and reopen READY using bounded owner projections.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-11",
+        "CP-EXE-BR-10"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Task Observer can react to Node READY, task-relevant Execution result READY, peer reply READY, and reopen READY using bounded owner projections."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+          "line": 102,
+          "title": "CP-TASK-ORCH-11 Task Observer receives a bounded read-only drive projection and cannot mutate Task through it",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 101,
+          "title": "CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON is diagnostic-only, and terminal stops driving",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "TASK-OBS-03",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Task Observer never calls startNode/complete/reopen/approve or writes Task/Execution/Collaboration facts.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-11",
+        "CP-EXE-BR-10",
+        "CP-HOST-07"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Task Observer never calls startNode/complete/reopen/approve or writes Task/Execution/Collaboration facts."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+          "line": 102,
+          "title": "CP-TASK-ORCH-11 Task Observer receives a bounded read-only drive projection and cannot mutate Task through it",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 101,
+          "title": "CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON is diagnostic-only, and terminal stops driving",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
+          "line": 37,
+          "title": "CP-HOST-07 host has no universal scheduler, Browser frame registry, or direct observer business mutation path",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "TASK-OBS-04",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Only single-Task ambiguity/UNKNOWN/repeated recovery failure/unexplained stall may request REASON diagnostic; result remains non-authoritative.",
+      "boundCpIds": [
+        "CP-EXE-BR-10",
+        "CP-MODEL-RT-09"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Only single-Task ambiguity/UNKNOWN/repeated recovery failure/unexplained stall may request REASON diagnostic; result remains non-authoritative."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 101,
+          "title": "CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON is diagnostic-only, and terminal stops driving",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 17,
+          "title": "CP-MODEL-RT-09 normal Task progression is not a Model Runtime scheduling concern",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "SYS-OBS-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "System Observer consumes exactly bounded projections across Task, Agent/Worker, Collaboration, Execution, Carrier, Model, Deployment/Services, and Logs/Artifact/Evidence.",
+      "boundCpIds": [
+        "CP-EXE-BR-11",
+        "CP-MODEL-RT-10"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "System Observer consumes exactly bounded projections across Task, Agent/Worker, Collaboration, Execution, Carrier, Model, Deployment/Services, and Logs/Artifact/Evidence."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 109,
+          "title": "CP-EXE-BR-11 System Observer covers eight bounded concern families, defers as lowest priority, and never owns mutation",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 24,
+          "title": "CP-MODEL-RT-10 System Assessment spec consumes bounded views and excludes raw secret/full-repo/full-log payloads",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "SYS-OBS-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "System assessment uses deterministic snapshot → concern batches → explicit carry-forward/drill-down → cross-domain global synthesis, not string concatenation.",
+      "boundCpIds": [
+        "CP-EXE-BR-11",
+        "CP-MODEL-RT-11"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "System assessment uses deterministic snapshot → concern batches → explicit carry-forward/drill-down → cross-domain global synthesis, not string concatenation."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 109,
+          "title": "CP-EXE-BR-11 System Observer covers eight bounded concern families, defers as lowest priority, and never owns mutation",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 39,
+          "title": "CP-MODEL-RT-11 batch/carry-forward/drill-down/global synthesis stay caller-owned",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "SYS-OBS-03",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "System Observer is lowest priority; model busy/unavailable defers assessment and cannot block Task workflow.",
+      "boundCpIds": [
+        "CP-MODEL-RT-12",
+        "CP-EXE-BR-11"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "System Observer is lowest priority; model busy/unavailable defers assessment and cannot block Task workflow."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 47,
+          "title": "CP-MODEL-RT-12 background assessments defer behind business and model unavailability cannot mutate Task",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 109,
+          "title": "CP-EXE-BR-11 System Observer covers eight bounded concern families, defers as lowest priority, and never owns mutation",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "SYS-OBS-04",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Assessment is derived judgment only: fresh Owner facts and hard Policy outrank model confidence/recommendations.",
+      "boundCpIds": [
+        "CP-MODEL-CON-07",
+        "CP-MODEL-RT-12"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Assessment is derived judgment only: fresh Owner facts and hard Policy outrank model confidence/recommendations."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/model-contracts/tests/observer-contract-alignment.test.ts",
+          "line": 33,
+          "title": "CP-MODEL-CON-07 Observer output contract carries judgment only, never Task/Execution authority",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 47,
+          "title": "CP-MODEL-RT-12 background assessments defer behind business and model unavailability cannot mutate Task",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "IDENTITY-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "agentPackageRef/packageName, roleRef, workerRef, conversationLocator, taskId/nodeId/runNo are stable typed identities; tab/window are transient and frame identity is absent.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-03",
+        "CP-EXE-CON-06",
+        "CP-EXE-BR-01"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "agentPackageRef/packageName, roleRef, workerRef, conversationLocator, taskId/nodeId/runNo are stable typed identities; tab/window are transient and frame identity is absent."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+          "line": 154,
+          "title": "CP-TASK-ORCH-03 TaskRoleBinding is stable/idempotent and startNode resolves worker via requiredAgentPackageRef",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 25,
+          "title": "CP-EXE-BR-01 stable Carrier identity is package/role/worker/conversation based and frame/persistent-tab identity is absent",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "IDENTITY-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Per-role credential authenticates Gateway roleRef but is distinct from packageName; Browser never receives/validates the credential.",
+      "boundCpIds": [
+        "CP-AGT-GW-01",
+        "CP-AGT-RUNTIME-01"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Per-role credential authenticates Gateway roleRef but is distinct from packageName; Browser never receives/validates the credential."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 64,
+          "title": "CP-AGT-GW-01 bearer owns role identity and unknown input is validated",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+          "line": 75,
+          "title": "CP-AGT-RUNTIME-01 registry is one-package-one-current-role and ROLE_IN_USE is zero mutation",
+          "disposition": "UPDATE"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "OPENAI-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "GPT-facing identity/correlation travels in typed body/path/query; arbitrary custom headers are not required.",
+      "boundCpIds": [
+        "CP-AGT-GW-02"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "GPT-facing identity/correlation travels in typed body/path/query; arbitrary custom headers are not required."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 80,
+          "title": "CP-AGT-GW-02 body/path/query normalize without arbitrary custom headers",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 93,
+          "title": "CP-AGT-GW-02 static OpenAPI POST path maps directly to its canonical operation",
+          "disposition": "KEEP"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "OPENAI-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Actions never assume an official stable Conversation c-id; Browser/Carrier observes and binds workerRef/c-id.",
+      "boundCpIds": [
+        "CP-AGT-PROD-03",
+        "CP-EXE-BR-01"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Actions never assume an official stable Conversation c-id; Browser/Carrier observes and binds workerRef/c-id."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-product/tests/agent-product-static.test.ts",
+          "line": 64,
+          "title": "CP-AGT-PROD-03 + CP-AGT-PROD-04 Extension-first Task ownership is reflected by the Product surface while real c-id binding remains external",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 25,
+          "title": "CP-EXE-BR-01 stable Carrier identity is package/role/worker/conversation based and frame/persistent-tab identity is absent",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "OPENAI-03",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Routine Actions are non-consequential/Always-Allow target behavior, but that never bypasses Execution safety approval.",
+      "boundCpIds": [
+        "CP-AGT-GW-07",
+        "CP-EXE-BR-06"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Routine Actions are non-consequential/Always-Allow target behavior, but that never bypasses Execution safety approval."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 353,
+          "title": "CP-AGT-GW-07 every operation has explicit consequential metadata independent from approval",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 71,
+          "title": "CP-EXE-BR-06 routine Action permission recovery remains separate from Execution effect approval",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "OPENAI-04",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "File Bridge honors count/size/fetch/relay/type limits and image asymmetry; screenshots keep a separate Vision path.",
+      "boundCpIds": [
+        "CP-AGT-GW-04",
+        "CP-AGT-GW-05",
+        "CP-AGT-GW-06",
+        "CP-EXE-BR-07"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "File Bridge honors count/size/fetch/relay/type limits and image asymmetry; screenshots keep a separate Vision path."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 166,
+          "title": "CP-AGT-GW-04 file input count is bounded and normalization maps to Execution descriptors without fetching",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 203,
+          "title": "CP-AGT-GW-05 URL SSRF and filename path control fail closed at ingress normalization",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 235,
+          "title": "CP-AGT-GW-06 relay token is opaque GET-only scoped TTL and header safe",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 317,
+          "title": "CP-AGT-GW-06 relay is a real unauthenticated opaque HTTP download with strict artifact scope",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 78,
+          "title": "CP-EXE-BR-07 DOM-first operation may use screenshot/Vision only as ambiguity recovery, never as business success",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "OPENAI-05",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Knowledge specialization and exact ChatGPT model pin are not v1 Role READY prerequisites.",
+      "boundCpIds": [
+        "CP-AGT-PROD-01",
+        "CP-DPL-CLI-03"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Knowledge specialization and exact ChatGPT model pin are not v1 Role READY prerequisites."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-product/tests/agent-product-static.test.ts",
+          "line": 32,
+          "title": "CP-AGT-PROD-01 generic Product package does not own pre-Task creation or require Knowledge specialization in v1",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
+          "line": 25,
+          "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "APPROVAL-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Task start confirmation, Execution safety Approval, Deployment ACTION_REQUIRED(_WEB), and ChatGPT permission/Always Allow remain four distinct mechanisms.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-10",
+        "CP-EXE-BR-06",
+        "CP-DPL-CLI-03"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Task start confirmation, Execution safety Approval, Deployment ACTION_REQUIRED(_WEB), and ChatGPT permission/Always Allow remain four distinct mechanisms."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+          "line": 91,
+          "title": "CP-TASK-ORCH-10 v1 has no authorizeTask or persisted Task approval/authorization surface",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+          "line": 458,
+          "title": "CP-TASK-ORCH-09 + CP-TASK-ORCH-10 readiness is deterministic and human confirmation directly starts READY Task",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 71,
+          "title": "CP-EXE-BR-06 routine Action permission recovery remains separate from Execution effect approval",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
+          "line": 25,
+          "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "RECOVERY-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Effect retry rule is: confirmed absent→retry; confirmed applied→reuse; uncertain→observe; still unknown→UNKNOWN/no blind replay.",
+      "boundCpIds": [
+        "CP-EXE-RT-09",
+        "CP-EXE-BR-09"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Effect retry rule is: confirmed absent→retry; confirmed applied→reuse; uncertain→observe; still unknown→UNKNOWN/no blind replay."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
+          "line": 24,
+          "title": "CP-EXE-RT-09 File Bridge locator materialization produces Artifact truth before reuse",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 93,
+          "title": "CP-EXE-BR-09 uncertain submit/WAKE reconciles DELIVERED/ABSENT/UNKNOWN and contains no blind replay loop",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "RECOVERY-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Execution/Carrier/Collaboration recovery never invents Task WAITING or Task success.",
+      "boundCpIds": [
+        "CP-TASK-ORCH-12",
+        "CP-EXE-BR-09"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Execution/Carrier/Collaboration recovery never invents Task WAITING or Task success."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+          "line": 110,
+          "title": "CP-TASK-ORCH-12 async Execution/Collaboration/Carrier pending is not a hidden Task WAIT command",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 93,
+          "title": "CP-EXE-BR-09 uncertain submit/WAKE reconciles DELIVERED/ABSENT/UNKNOWN and contains no blind replay loop",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "SECURITY-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Secrets/tokens/cookies/private keys are excluded from Git/Task Markdown/logs/Browser wake/System Observer model payload.",
+      "boundCpIds": [
+        "CP-AGT-GW-05",
+        "CP-EXE-LOCAL-02",
+        "CP-MODEL-RT-10"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Secrets/tokens/cookies/private keys are excluded from Git/Task Markdown/logs/Browser wake/System Observer model payload."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 203,
+          "title": "CP-AGT-GW-05 URL SSRF and filename path control fail closed at ingress normalization",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
+          "line": 115,
+          "title": "CP-EXE-LOCAL-02 real file, Git, project, quality and code capability families",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 24,
+          "title": "CP-MODEL-RT-10 System Assessment spec consumes bounded views and excludes raw secret/full-repo/full-log payloads",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "SECURITY-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "File/path/URL boundaries reject traversal/symlink/private/metadata redirects/MIME mismatch and Context Pack filters secret/binary/oversize input.",
+      "boundCpIds": [
+        "CP-AGT-GW-05",
+        "CP-EXE-LOCAL-02",
+        "CP-EXE-LOCAL-08"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "File/path/URL boundaries reject traversal/symlink/private/metadata redirects/MIME mismatch and Context Pack filters secret/binary/oversize input."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 203,
+          "title": "CP-AGT-GW-05 URL SSRF and filename path control fail closed at ingress normalization",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
+          "line": 115,
+          "title": "CP-EXE-LOCAL-02 real file, Git, project, quality and code capability families",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/execution-local/tests/artifact-context-pack-patch-alignment.test.ts",
+          "line": 11,
+          "title": "CP-EXE-LOCAL-08 File Bridge materialization is bounded and yields typed artifact metadata",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "SECURITY-03",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "DOM/Vision/Conversation memory/log guess cannot directly become Task success or override fresh owner state.",
+      "boundCpIds": [
+        "CP-EXE-BR-07",
+        "CP-MODEL-CON-07"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "DOM/Vision/Conversation memory/log guess cannot directly become Task success or override fresh owner state."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 78,
+          "title": "CP-EXE-BR-07 DOM-first operation may use screenshot/Vision only as ambiguity recovery, never as business success",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/model-contracts/tests/observer-contract-alignment.test.ts",
+          "line": 33,
+          "title": "CP-MODEL-CON-07 Observer output contract carries judgment only, never Task/Execution authority",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "STABILITY-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Business inference outranks background System Observer work on the single model lane; oversized batches/drill-down failures remain bounded/deferred.",
+      "boundCpIds": [
+        "CP-MODEL-RT-02",
+        "CP-MODEL-RT-12",
+        "CP-MODEL-RT-13"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Business inference outranks background System Observer work on the single model lane; oversized batches/drill-down failures remain bounded/deferred."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
+          "line": 74,
+          "title": "CP-MODEL-RT-02 one real lane prioritizes queued business and distinguishes timeouts",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 47,
+          "title": "CP-MODEL-RT-12 background assessments defer behind business and model unavailability cannot mutate Task",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 54,
+          "title": "CP-MODEL-RT-13 real phone REASON load gate remains evidence-backed, not inferred from contextWindow",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "STABILITY-02",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Gateway transport budgets, Execution timeouts/cancel/UNKNOWN, SQLite crash-reopen, Browser reload, and Deployment interrupted apply remain bounded and recoverable.",
+      "boundCpIds": [
+        "CP-AGT-GW-03",
+        "CP-EXE-RT-06",
+        "CP-DPL-CLI-02",
+        "CP-DPL-CLI-07",
+        "CP-TASK-STORE-05"
+      ],
+      "automationLevel": "NON_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Gateway transport budgets, Execution timeouts/cancel/UNKNOWN, SQLite crash-reopen, Browser reload, and Deployment interrupted apply remain bounded and recoverable."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 117,
+          "title": "CP-AGT-GW-03 request response budgets and real 429/5xx semantics",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+          "line": 752,
+          "title": "CP-EXE-RT-06 injected browser executor uses the same durable admission and record path",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/platform-cli/tests/apply-resume.test.ts",
+          "line": 247,
+          "title": "CP-DPL-CLI-02 resume re-observes reality and skips already-satisfied steps without re-execution",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/apply-resume.test.ts",
+          "line": 287,
+          "title": "CP-DPL-CLI-02 a stale plan is BLOCKED and never applied",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
+          "line": 211,
+          "title": "CP-DPL-CLI-07 plan save/load roundtrips and is atomic",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
+          "line": 379,
+          "title": "CP-DPL-CLI-07 second same-workspace apply is blocked with WORKSPACE_LOCKED",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/task-store-sqlite/tests/store-critical-proofs.test.ts",
+          "line": 146,
+          "title": "CP-TASK-STORE-05 same/same idempotency replays and concurrent same/different is unique",
+          "disposition": "KEEP"
+        }
+      ],
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
+    },
+    {
+      "caseId": "E2E-J0-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Real GPT Builder/Web setup proves three generic Roles, role-scoped Action auth, current OpenAPI, native capabilities and no exact-model/Knowledge dependency.",
+      "boundCpIds": [
+        "CP-AGT-PROD-06",
+        "CP-AGT-DEV-04",
+        "CP-AGT-TEST-04"
+      ],
+      "automationLevel": "FINAL_MANUAL_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Real GPT Builder/Web setup proves three generic Roles, role-scoped Action auth, current OpenAPI, native capabilities and no exact-model/Knowledge dependency."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-product/tests/agent-product-static.test.ts",
+          "line": 83,
+          "title": "CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked by package-local fixtures",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+          "line": 70,
+          "title": "CP-AGT-DEV-04 provisioning/reopen real evidence remains external ACTION_REQUIRED",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+          "line": 58,
+          "title": "CP-AGT-TEST-04 provisioning/reopen real evidence remains external ACTION_REQUIRED",
+          "disposition": "UPDATE"
+        }
+      ],
+      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+    },
+    {
+      "caseId": "E2E-J1-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Real Chrome/ChatGPT proves New Task creates and binds three fresh Conversations with actual c-id/locator; partial creation recovers without duplicates.",
+      "boundCpIds": [
+        "CP-EXE-BR-02",
+        "CP-AGT-DEV-04",
+        "CP-AGT-TEST-04"
+      ],
+      "automationLevel": "FINAL_MANUAL_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Real Chrome/ChatGPT proves New Task creates and binds three fresh Conversations with actual c-id/locator; partial creation recovers without duplicates."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 34,
+          "title": "CP-EXE-BR-02 New Task provisioning starts from PENDING, keeps successful bindings, and has no authorization-gated all-or-nothing rebuild",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+          "line": 70,
+          "title": "CP-AGT-DEV-04 provisioning/reopen real evidence remains external ACTION_REQUIRED",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+          "line": 58,
+          "title": "CP-AGT-TEST-04 provisioning/reopen real evidence remains external ACTION_REQUIRED",
+          "disposition": "UPDATE"
+        }
+      ],
+      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+    },
+    {
+      "caseId": "E2E-J3-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Real Carrier proves RESTORE/WAKE physical delivery into the correct Conversation and submit-disconnect reconciliation without blind replay.",
+      "boundCpIds": [
+        "CP-EXE-BR-03",
+        "CP-EXE-BR-09"
+      ],
+      "automationLevel": "FINAL_MANUAL_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Real Carrier proves RESTORE/WAKE physical delivery into the correct Conversation and submit-disconnect reconciliation without blind replay."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 43,
+          "title": "CP-EXE-BR-03 WAKE targets the existing Conversation with a minimal trigger and claims only physical delivery",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 93,
+          "title": "CP-EXE-BR-09 uncertain submit/WAKE reconciles DELIVERED/ABSENT/UNKNOWN and contains no blind replay loop",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+    },
+    {
+      "caseId": "E2E-J4-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Real Custom GPT proves one wake can perform multiple sequential Actions without per-action Browser permission/scheduler intervention.",
+      "boundCpIds": [
+        "CP-AGT-PROD-05",
+        "CP-AGT-DEV-07",
+        "CP-AGT-TEST-07"
+      ],
+      "automationLevel": "FINAL_MANUAL_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Real Custom GPT proves one wake can perform multiple sequential Actions without per-action Browser permission/scheduler intervention."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-product/tests/agent-product-static.test.ts",
+          "line": 74,
+          "title": "CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browser continue protocol",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+          "line": 18,
+          "title": "CP-AGT-DEV-07 J1 bind is IDLE and formal Node work starts only after NODE_READY wake",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
+          "line": 18,
+          "title": "CP-AGT-TEST-07 J1 Test/Ops is bind-only/IDLE and starts the formal Node only after NODE_READY wake",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+    },
+    {
+      "caseId": "E2E-FILE-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Real File Bridge proves inbound/outbound file handling, relay limits, image asymmetry and Context Pack→Code Interpreter→Patch handoff.",
+      "boundCpIds": [
+        "CP-AGT-GW-04",
+        "CP-AGT-GW-06",
+        "CP-AGT-DEV-08"
+      ],
+      "automationLevel": "FINAL_MANUAL_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Real File Bridge proves inbound/outbound file handling, relay limits, image asymmetry and Context Pack→Code Interpreter→Patch handoff."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 166,
+          "title": "CP-AGT-GW-04 file input count is bounded and normalization maps to Execution descriptors without fetching",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 235,
+          "title": "CP-AGT-GW-06 relay token is opaque GET-only scoped TTL and header safe",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 317,
+          "title": "CP-AGT-GW-06 relay is a real unauthenticated opaque HTTP download with strict artifact scope",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+          "line": 24,
+          "title": "CP-AGT-DEV-08 one Worker Turn uses 0..N routine Actions and has no Browser per-action scheduler protocol",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+    },
+    {
+      "caseId": "E2E-MODEL-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Real phone/provider proves M2/M3/M4, single-lane FAST/REASON switching, System Assessment effective load and background defer.",
+      "boundCpIds": [
+        "CP-MODEL-RT-08",
+        "CP-MODEL-RT-13"
+      ],
+      "automationLevel": "FINAL_MANUAL_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Real phone/provider proves M2/M3/M4, single-lane FAST/REASON switching, System Assessment effective load and background defer."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
+          "line": 207,
+          "title": "CP-MODEL-RT-08 M2/M3/M4 require committed real-provider evidence",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
+          "line": 54,
+          "title": "CP-MODEL-RT-13 real phone REASON load gate remains evidence-backed, not inferred from contextWindow",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+    },
+    {
+      "caseId": "E2E-DEPLOY-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Real GPT/Chrome/Dev Tunnel/Model Provider verification re-observes current reality after human actions and never marks READY from history alone.",
+      "boundCpIds": [
+        "CP-DPL-CLI-03",
+        "CP-DPL-CLI-05"
+      ],
+      "automationLevel": "FINAL_MANUAL_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Real GPT/Chrome/Dev Tunnel/Model Provider verification re-observes current reality after human actions and never marks READY from history alone."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
+          "line": 25,
+          "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
+          "line": 17,
+          "title": "CP-DPL-CLI-05 Carrier/Role readiness is current owner verification, not exact model pin or System Assessment",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+    },
+    {
+      "caseId": "E2E-FAULT-01",
+      "caseType": "CROSS_DOMAIN_ACCEPTANCE",
+      "domain": "platform",
+      "moduleRef": null,
+      "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
+      "requirement": "Real fault injection covers Chrome reload, locator stale, permission prompt unexpected, tunnel/provider loss and lost-result/UNKNOWN recovery with no duplicate business effect.",
+      "boundCpIds": [
+        "CP-EXE-BR-09",
+        "CP-AGT-GW-08",
+        "CP-DPL-CLI-05"
+      ],
+      "automationLevel": "FINAL_MANUAL_E2E",
+      "preconditions": [
+        "Latest owner/domain/technical/test docs are loaded as truth",
+        "Use fresh owner state; Conversation/DOM/log memory cannot replace current owner facts"
+      ],
+      "action": [
+        "Execute the bound contract/integration tests in owner order",
+        "Capture owner state/result/evidence and transport/recovery observations"
+      ],
+      "expected": [
+        "Real fault injection covers Chrome reload, locator stale, permission prompt unexpected, tunnel/provider loss and lost-result/UNKNOWN recovery with no duplicate business effect."
+      ],
+      "forbidden": [
+        "Duplicate business ownership",
+        "Transport success interpreted as business success without owner fact/evidence",
+        "Model/Observer/Browser bypass of Owner or Policy"
+      ],
+      "executableRefs": [
+        {
+          "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+          "line": 93,
+          "title": "CP-EXE-BR-09 uncertain submit/WAKE reconciles DELIVERED/ABSENT/UNKNOWN and contains no blind replay loop",
+          "disposition": "ADD"
+        },
+        {
+          "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+          "line": 364,
+          "title": "CP-AGT-GW-08 gateway has no business persistence and uncertainty looks up owner result",
+          "disposition": "KEEP"
+        },
+        {
+          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
+          "line": 17,
+          "title": "CP-DPL-CLI-05 Carrier/Role readiness is current owner verification, not exact model pin or System Assessment",
+          "disposition": "ADD"
+        }
+      ],
+      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+    }
+  ]
+}

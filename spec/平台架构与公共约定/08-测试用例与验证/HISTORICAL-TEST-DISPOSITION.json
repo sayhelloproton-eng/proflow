@@ -1,0 +1,53 @@
+{
+  "removed": [
+    {
+      "path": "packages/execution-browser-extension/tests/task-driver.test.ts",
+      "reason": "Historical universal Task Driver semantics conflict with current Task Observer + Carrier Controller split; valid carrier/wake/recovery regressions are retained in current REG and CP tests.",
+      "replacementRefs": [
+        "packages/execution-browser-extension/tests/observer-carrier-boundary.test.ts",
+        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts"
+      ]
+    },
+    {
+      "path": "packages/platform-host/tests/non-deployment-runtime-integration.test.ts",
+      "reason": "Old platform-host business-driver orchestration used authorizeTask/requiredRoleRef/taskDriverPorts; cross-domain owner behavior now belongs to owner packages and Host only proves composition/transport.",
+      "replacementRefs": [
+        "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
+        "packages/platform-host/tests/cross-domain-composition-integration.test.ts"
+      ]
+    },
+    {
+      "path": "packages/platform-host/tests/platform-host-b2-agt-05.test.ts",
+      "reason": "Terminal collaboration delivery rule is Agent/Collaboration owner behavior and already retained in agent-runtime; Host must not own that guard.",
+      "replacementRefs": [
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts"
+      ]
+    },
+    {
+      "path": "packages/platform-host/tests/real-carrier-e2e-harness.test.ts",
+      "reason": "Real Carrier main-chain proof belongs to execution-browser-extension/Agent/FINAL MANUAL E2E, not platform-host.",
+      "replacementRefs": [
+        "CROSS-DOMAIN-ACCEPTANCE-CASES.json:E2E-*"
+      ]
+    },
+    {
+      "path": "packages/platform-host/tests/real-carrier-e2e-harness.ts",
+      "reason": "Test utility encoded the removed Task Driver/authorizeTask Carrier flow; it must not survive as a misleading executable harness.",
+      "replacementRefs": [
+        "CROSS-DOMAIN-ACCEPTANCE-CASES.json:E2E-*"
+      ]
+    }
+  ],
+  "relabeled": [
+    {
+      "paths": [
+        "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
+        "packages/execution-browser-extension/tests/browser-reality-bridge.test.ts"
+      ],
+      "from": "historical CP-EXE-BR-* / CP-BR-* labels",
+      "to": "REG-EXE-BR-*",
+      "reason": "Keep valid low-level regression behavior without falsely claiming the new CP-BR-01..12 meanings."
+    }
+  ],
+  "principle": "Retain valid regression value; remove/rewrite only tests whose asserted architecture/owner/identity/main-chain semantics are historical."
+}

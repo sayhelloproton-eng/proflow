@@ -789,7 +789,7 @@ test("Track B — unverified external resources yield a Manifest that is not fak
 // Upgrade integration — real current/target catalogs (v1 vs v2)
 // ---------------------------------------------------------------------------
 
-test("upgrade — current != target drives a migrate step and never a rollback step", () => {
+test("CP-DPL-CLI-06 upgrade — current != target drives a migrate step and never a rollback step", () => {
 	const current = descriptor({
 		moduleRef: "m",
 		moduleVersion: "1.0.0",
@@ -858,7 +858,7 @@ test("upgrade — migration is emitted only when the target declares migrate", (
 	);
 });
 
-test("upgrade — a verify FAIL during upgrade preserves prior PASS history (no erase)", async () => {
+test("CP-DPL-CLI-06 upgrade — a verify FAIL during upgrade preserves prior PASS history (no erase)", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
 		const svc = moduleFixture({

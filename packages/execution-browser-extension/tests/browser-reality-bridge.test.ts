@@ -45,7 +45,7 @@ const observation = {
 	observedAt: "2026-08-13T00:00:00.000Z",
 };
 
-test("CP-EXE-BR-08 loopback bridge authenticates exact extension session and transports typed reality", async () => {
+test("REG-EXE-BR-08 loopback bridge authenticates exact extension session and transports typed reality", async () => {
 	const bridge = await createBrowserRealityBridgeServer({
 		token,
 		extensionId,
@@ -94,7 +94,7 @@ test("CP-EXE-BR-08 loopback bridge authenticates exact extension session and tra
 	}
 });
 
-test("CP-EXE-BR-07 lost bridge result times out once and is never requeued", async () => {
+test("REG-EXE-BR-07 lost bridge result times out once and is never requeued", async () => {
 	const bridge = await createBrowserRealityBridgeServer({
 		token,
 		extensionId,
@@ -129,7 +129,7 @@ test("CP-EXE-BR-07 lost bridge result times out once and is never requeued", asy
 	}
 });
 
-test("CP-EXE-BR-08 durable Execution Runtime reaches browser reality through the live bridge transport", async () => {
+test("REG-EXE-BR-08 durable Execution Runtime reaches browser reality through the live bridge transport", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "proflow-browser-bridge-"));
 	const bridge = await createBrowserRealityBridgeServer({
 		token,

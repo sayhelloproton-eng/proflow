@@ -134,7 +134,7 @@ async function fixture() {
 	return { extension, browser, bindings, deliveryReports };
 }
 
-test("CP-EXE-BR-01 stable role/worker identity rejects stale transient content instances", async () => {
+test("REG-EXE-BR-01 stable role/worker identity rejects stale transient content instances", async () => {
 	const { extension, browser } = await fixture();
 	const tab = await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
 	extension.registerContentSession(tab);
@@ -165,7 +165,7 @@ test("CP-EXE-BR-01 stable role/worker identity rejects stale transient content i
 	);
 });
 
-test("CP-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, duplicate CREATE is zero", async () => {
+test("REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, duplicate CREATE is zero", async () => {
 	const { extension, browser, bindings } = await fixture();
 	const created = await extension.execute({
 		request: request("worker.create", {
@@ -215,7 +215,7 @@ test("CP-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, 
 	);
 });
 
-test("CP-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Node or Effect completion", async () => {
+test("REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Node or Effect completion", async () => {
 	const { extension, browser, bindings } = await fixture();
 	bindings.set("task:1:g-dev", "c-dev");
 	const result = await extension.execute({
@@ -249,7 +249,7 @@ test("CP-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Nod
 	);
 });
 
-test("CP-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministic observations", async () => {
+test("REG-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministic observations", async () => {
 	const { extension } = await fixture();
 	assert.equal(
 		extension.classifyProgress({
@@ -280,7 +280,7 @@ test("CP-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministic
 	);
 });
 
-test("CP-EXE-BR-05 permission fallback captures evidence and Side Panel remains read-only", async () => {
+test("REG-EXE-BR-05 permission fallback captures evidence and Side Panel remains read-only", async () => {
 	const { extension, browser } = await fixture();
 	const tab = await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
 	extension.registerContentSession({
@@ -306,7 +306,7 @@ test("CP-EXE-BR-05 permission fallback captures evidence and Side Panel remains 
 	);
 });
 
-test("CP-EXE-BR-06 writes are globally serial and logical delivery follows physical verification", async () => {
+test("REG-EXE-BR-06 writes are globally serial and logical delivery follows physical verification", async () => {
 	const { extension, browser, bindings, deliveryReports } = await fixture();
 	bindings.set("task:1:g-dev", "c-dev");
 	await Promise.all([
@@ -347,7 +347,7 @@ test("CP-EXE-BR-06 writes are globally serial and logical delivery follows physi
 	);
 });
 
-test("CP-EXE-BR-06 logical delivery finalizes only after durable Execution success", async () => {
+test("REG-EXE-BR-06 logical delivery finalizes only after durable Execution success", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "proflow-delivery-order-"));
 	const { extension, browser, bindings, deliveryReports } = await fixture();
 	bindings.set("task:1:g-dev", "c-dev");
@@ -410,7 +410,7 @@ test("CP-EXE-BR-06 logical delivery finalizes only after durable Execution succe
 	}
 });
 
-test("CP-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay", async () => {
+test("REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay", async () => {
 	const { extension, browser, bindings } = await fixture();
 	bindings.set("task:1:g-dev", "c-dev");
 	const tab = await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
@@ -432,7 +432,7 @@ test("CP-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without
 	assert.equal(browser.submitCount, 0);
 });
 
-test("CP-EXE-BR-08 real Chrome and ChatGPT E3/E4 remains ACTION_REQUIRED locally", async () => {
+test("REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remains ACTION_REQUIRED locally", async () => {
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
 	assert.equal(behaviorAdapter.status().result.status, "ACTION_REQUIRED");
 });
