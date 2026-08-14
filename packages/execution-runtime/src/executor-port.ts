@@ -53,6 +53,9 @@ export type ExecutorPrecondition =
 			kind: "install-dependency";
 			capability: "project.installDependency";
 			packageManager: "pnpm" | "npm" | "yarn";
+			packageName: string;
+			manifestPackageName?: string;
+			receiptFile: string;
 			requested: string;
 			dev: boolean;
 			beforeManifestHash: string;
@@ -64,6 +67,10 @@ export type ExecutorPrecondition =
 			capability: "process.start";
 			processRef: string;
 			mode: "one-shot" | "managed";
+			readiness?:
+				| { kind: "port"; port: number }
+				| { kind: "http"; url: string }
+				| { kind: "log"; pattern: string };
 	  }
 	| {
 			kind: "process.stop";
@@ -80,6 +87,10 @@ export type ExecutorPrecondition =
 			taskId?: string;
 			targetRef?: string;
 			fingerprint?: string;
+			roleUrl?: string;
+			conversationUrl?: string;
+			messageRef?: string;
+			expectedUrl?: string;
 	  }
 	| {
 			kind: "opaque";

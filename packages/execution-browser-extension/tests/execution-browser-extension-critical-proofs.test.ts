@@ -178,6 +178,7 @@ test("CP-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, 
 			decisionPath: "deterministic",
 			approval: "NOT_REQUIRED",
 		},
+		onEffectStarted() {},
 	});
 	assert.equal(created.result.capability, "worker.create");
 	assert.equal(bindings.get("task:1:g-dev"), "c-created");
@@ -229,6 +230,7 @@ test("CP-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Nod
 			decisionPath: "deterministic",
 			approval: "NOT_REQUIRED",
 		},
+		onEffectStarted() {},
 	});
 	assert.deepEqual(result.result, {
 		capability: "worker.wake",
@@ -320,6 +322,7 @@ test("CP-EXE-BR-06 writes are globally serial and logical delivery follows physi
 				decisionPath: "deterministic",
 				approval: "NOT_REQUIRED",
 			},
+			onEffectStarted() {},
 		}),
 		extension.execute({
 			request: request("collaboration.deliver", {
@@ -333,6 +336,7 @@ test("CP-EXE-BR-06 writes are globally serial and logical delivery follows physi
 				decisionPath: "deterministic",
 				approval: "NOT_REQUIRED",
 			},
+			onEffectStarted() {},
 		}),
 	]);
 	assert.equal(browser.maxActiveWrites, 1);

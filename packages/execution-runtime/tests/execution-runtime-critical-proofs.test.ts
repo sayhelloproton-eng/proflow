@@ -209,7 +209,11 @@ test("carry-forward policy protects process and browser mutation and revalidates
 			return readResult();
 		}),
 		modelDecision: {
-			decide: async () => ({ decision: "ALLOW", decisionPath: "reason" }),
+			decide: async () => ({
+				decision: "ALLOW",
+				decisionPath: "reason",
+				approvalRequired: true,
+			}),
 		},
 		approval: {
 			validate(value) {
@@ -364,27 +368,23 @@ test("carry-forward PENDING restart remains safely resumable under the same exec
 test("CP-EXE-RT-03 persist STARTED then reconcile a real lost response without replay", async () => {
 	const { root, databasePath, local } = await fixture();
 	let effects = 0;
-	let lastResult: ExecutorResult | undefined;
 	const wrapper: ExecutionExecutorPort = {
 		async execute(invocation) {
 			effects += 1;
-			lastResult = await local.execute(invocation);
+			await local.execute(invocation);
 			throw new Error("transport response lost");
 		},
 		async reconcile(request, precondition) {
-			const reality = await local.reconcile(request, precondition);
-			return {
-				...reality,
-				...(reality.state === "APPLIED" && lastResult
-					? { result: lastResult.result }
-					: {}),
-			};
+			return local.reconcile(request, precondition);
 		},
 		readArtifact: local.readArtifact,
 	};
 	const runtime = await createExecutionRuntime({
 		databasePath,
 		localExecutor: wrapper,
+		modelDecision: {
+			decide: async () => ({ decision: "ALLOW", decisionPath: "fast" }),
+		},
 	});
 	const record = await runtime.executeCapability(
 		input("file.write", { path: "real.txt", content: "once" }, "lost", {
@@ -436,6 +436,9 @@ test("CP-EXE-RT-04 persisted UNKNOWN later converges through its reality verifie
 	const runtime = await createExecutionRuntime({
 		databasePath,
 		localExecutor: executor,
+		modelDecision: {
+			decide: async () => ({ decision: "ALLOW", decisionPath: "fast" }),
+		},
 	});
 	const unknown = await runtime.executeCapability(
 		input("file.write", { path: "unknown.txt", content: "once" }, "unknown"),
@@ -786,9 +789,16 @@ test("CP-EXE-RT-06 injected browser executor uses the same durable admission and
 
 test("B1-EXE-01 default policy routes ordinary mutations through FAST and read-only through deterministic", async () => {
 	const { root, databasePath } = await fixture();
+	let fastCalls = 0;
 	const runtime = await createExecutionRuntime({
 		databasePath,
 		localExecutor: fakeExecutor(async () => readResult()),
+		modelDecision: {
+			async decide() {
+				fastCalls += 1;
+				return { decision: "ALLOW", decisionPath: "fast" };
+			},
+		},
 	});
 	const mutation = await runtime.executeCapability(
 		input("file.write", { path: "a.txt", content: "x" }, "fast-mut", {
@@ -805,10 +815,12 @@ test("B1-EXE-01 default policy routes ordinary mutations through FAST and read-o
 		),
 	);
 	assert.equal(commit.decisionPath, "fast");
+	assert.equal(fastCalls, 2);
 	const read = await runtime.executeCapability(
 		input("file.read", { path: "a.txt" }, "det-read", { projectRoot: root }),
 	);
 	assert.equal(read.decisionPath, "deterministic");
+	assert.equal(fastCalls, 2);
 	runtime.close();
 });
 
@@ -816,6 +828,7 @@ test("B1-EXE-12 approval revalidates against the concrete effect-boundary precon
 	const { databasePath } = await fixture();
 	let checks = 0;
 	let boundPrecondition: unknown;
+	let boundExecutionRef: string | undefined;
 	const runtime = await createExecutionRuntime({
 		databasePath,
 		localExecutor: fakeExecutor(async (invocation) => {
@@ -847,11 +860,16 @@ test("B1-EXE-12 approval revalidates against the concrete effect-boundary precon
 			};
 		}),
 		modelDecision: {
-			decide: async () => ({ decision: "ALLOW", decisionPath: "reason" }),
+			decide: async () => ({
+				decision: "ALLOW",
+				decisionPath: "reason",
+				approvalRequired: true,
+			}),
 		},
 		approval: {
 			validate(value) {
 				checks += 1;
+				boundExecutionRef = value.executionRef;
 				if (value.precondition) boundPrecondition = value.precondition;
 				return true;
 			},
@@ -866,6 +884,7 @@ test("B1-EXE-12 approval revalidates against the concrete effect-boundary precon
 		),
 	);
 	assert.equal(record.status, "SUCCEEDED");
+	assert.equal(boundExecutionRef, record.executionRef);
 	assert.equal(checks, 3);
 	assert.deepEqual(boundPrecondition, {
 		kind: "process.start",
@@ -891,7 +910,11 @@ test("B1-EXE-11 cancel racing the RUNNING transition never runs the executor", a
 			return readResult();
 		}),
 		modelDecision: {
-			decide: async () => ({ decision: "ALLOW", decisionPath: "reason" }),
+			decide: async () => ({
+				decision: "ALLOW",
+				decisionPath: "reason",
+				approvalRequired: true,
+			}),
 		},
 		approval: {
 			validate() {

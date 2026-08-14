@@ -40,13 +40,16 @@ export interface ExecutionModelDecisionPort {
 	decide(request: ExecuteCapabilityRequest): Promise<{
 		decision: "ALLOW" | "DENY";
 		decisionPath: "fast" | "reason";
+		approvalRequired?: boolean;
 		reason?: string;
 	}>;
 }
 export interface ExecutionApprovalPort {
 	validate(input: {
 		approvalRef: string;
+		executionRef: string;
 		callerRef: string;
+		taskId?: string;
 		capability: string;
 		inputFingerprint: string;
 		request: ExecuteCapabilityRequest;
@@ -221,30 +224,6 @@ function runtimeError(error: unknown): ExecutionRuntimeError {
 
 const defaultPolicy: ExecutionPolicyPort = {
 	decide(request) {
-		if (
-			request.capability === "git.push" ||
-			request.capability === "project.installDependency" ||
-			request.capability === "shell.run" ||
-			request.capability === "process.start" ||
-			request.capability === "process.stop" ||
-			(request.capability === "network.request" &&
-				request.input.method !== "GET" &&
-				request.input.method !== "HEAD") ||
-			request.capability === "browser.navigate" ||
-			request.capability === "browser.input" ||
-			request.capability === "browser.click" ||
-			request.capability === "browser.upload" ||
-			request.capability === "browser.submit" ||
-			request.capability === "worker.create" ||
-			request.capability === "worker.wake" ||
-			request.capability === "collaboration.deliver"
-		) {
-			return {
-				decision: "REVIEW",
-				decisionPath: "reason",
-				approvalRequired: true,
-			};
-		}
 		const readOnly =
 			request.capability === "file.read" ||
 			request.capability === "file.searchText" ||
@@ -254,11 +233,23 @@ const defaultPolicy: ExecutionPolicyPort = {
 			request.capability === "code.findSymbol" ||
 			request.capability === "code.findReferences" ||
 			request.capability === "process.status" ||
+			request.capability === "browser.observe" ||
+			request.capability === "browser.screenshot" ||
+			request.capability === "browser.verify" ||
 			(request.capability === "network.request" &&
 				(request.input.method === "GET" || request.input.method === "HEAD"));
+		if (readOnly)
+			return {
+				decision: "ALLOW",
+				decisionPath: "deterministic",
+				approvalRequired: false,
+			};
+
+		// Frozen policy: every ordinary real side effect is semantically judged by
+		// FAST first. REASON/Human are escalation paths, never a blanket gate.
 		return {
-			decision: "ALLOW",
-			decisionPath: readOnly ? "deterministic" : "fast",
+			decision: "REVIEW",
+			decisionPath: "fast",
 			approvalRequired: false,
 		};
 	},
@@ -381,6 +372,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 	async function admit(
 		request: ExecuteCapabilityRequest,
 		inputFingerprint: string,
+		executionRef: string,
 	) {
 		if (options.identity && !(await options.identity.authorize(request)))
 			throw new ExecutionRuntimeError(
@@ -393,7 +385,9 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				"POLICY_DENIED",
 				policy.reason ?? "deterministic policy denied execution",
 			);
-		let decisionPath = policy.decisionPath;
+		let decisionPath: "deterministic" | "fast" | "reason" | "human" =
+			policy.decisionPath;
+		let approvalRequired = policy.approvalRequired === true;
 		if (policy.decision === "REVIEW") {
 			if (!options.modelDecision)
 				throw new ExecutionRuntimeError(
@@ -402,6 +396,8 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				);
 			const model = await options.modelDecision.decide(request);
 			decisionPath = model.decisionPath;
+			approvalRequired = approvalRequired || model.approvalRequired === true;
+			if (approvalRequired) decisionPath = "human";
 			if (model.decision === "DENY")
 				throw new ExecutionRuntimeError(
 					"POLICY_DENIED",
@@ -409,7 +405,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				);
 		}
 		const validateApproval = async (precondition?: ExecutorPrecondition) => {
-			if (!policy.approvalRequired) return;
+			if (!approvalRequired) return;
 			if (!request.approvalRef)
 				throw new ExecutionRuntimeError(
 					"APPROVAL_REQUIRED",
@@ -419,7 +415,9 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				!options.approval ||
 				!(await options.approval.validate({
 					approvalRef: request.approvalRef,
+					executionRef,
 					callerRef: request.callerRef,
+					...(request.taskId ? { taskId: request.taskId } : {}),
 					capability: request.capability,
 					inputFingerprint,
 					request,
@@ -437,7 +435,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 		return {
 			policy: "ALLOW" as const,
 			decisionPath,
-			approval: policy.approvalRequired
+			approval: approvalRequired
 				? ("VALID" as const)
 				: ("NOT_REQUIRED" as const),
 			validateApproval,
@@ -566,7 +564,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 		}
 		let admission: Awaited<ReturnType<typeof admit>>;
 		try {
-			admission = await admit(request, inputFingerprint);
+			admission = await admit(request, inputFingerprint, record.executionRef);
 		} catch (error) {
 			record = failRecord(record, runtimeError(error));
 			save(record);
@@ -602,6 +600,13 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					}, request.timeoutMs);
 		try {
 			await admission.validateApproval();
+			if (controller.signal.aborted)
+				throw new ExecutionRuntimeError(
+					timedOut ? "TIMEOUT" : "CANCELLED",
+					timedOut
+						? "execution runtime timeout elapsed during admission"
+						: "execution was cancelled during admission",
+				);
 			// CAS: only transition to RUNNING if the record is still PENDING.
 			// A concurrent cancel/timeout finalizes PENDING records, so a
 			// stale RUNNING write would silently resurrect a cancelled intent.
@@ -637,6 +642,13 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				signal: controller.signal,
 				async onEffectStarted(value) {
 					await admission.validateApproval(value);
+					if (controller.signal.aborted)
+						throw new ExecutionRuntimeError(
+							timedOut ? "TIMEOUT" : "CANCELLED",
+							timedOut
+								? "execution runtime timeout elapsed before effect"
+								: "execution was cancelled before effect",
+						);
 					precondition = value;
 					record = parseExecutionRecord({
 						...record,

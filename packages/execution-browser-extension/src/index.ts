@@ -9,7 +9,10 @@ import {
 	executeCapabilityRequestSchema,
 	parseExecutionRecord,
 } from "@tomflow/proflow-execution-contracts";
-import type { ExecutionExecutorPort } from "@tomflow/proflow-execution-runtime";
+import type {
+	ExecutionExecutorPort,
+	ExecutorPrecondition,
+} from "@tomflow/proflow-execution-runtime";
 
 export type { BrowserRealityBridgeOptions } from "./bridge.ts";
 export {
@@ -110,7 +113,8 @@ export class ExecutionBrowserError extends Error {
 	readonly code:
 		| "PRECONDITION_FAILED"
 		| "EXECUTOR_UNAVAILABLE"
-		| "UNKNOWN_SIDE_EFFECT";
+		| "UNKNOWN_SIDE_EFFECT"
+		| "CANCELLED";
 	readonly retryable = false;
 	constructor(code: ExecutionBrowserError["code"], message: string) {
 		super(message);
@@ -161,7 +165,7 @@ function browserEvidence(
 	idFactory: () => string,
 	observation: BrowserPageObservation,
 	verified: boolean,
-): ExecutionEvidence {
+): Extract<ExecutionEvidence, { kind: "browser" }> {
 	return {
 		kind: "browser",
 		evidenceRef: `evidence:${idFactory()}`,
@@ -269,26 +273,87 @@ export function createExecutionBrowserExtension(
 		return observed;
 	};
 
-	const effectStarted = async (invocation: ExecutorInvocation) => {
-		const { request } = invocation;
-		await invocation.onEffectStarted?.({
+	const browserPrecondition = (
+		request: ExecuteCapabilityRequest,
+	): Extract<ExecutorPrecondition, { kind: "browser" }> => {
+		const precondition: Extract<ExecutorPrecondition, { kind: "browser" }> = {
 			kind: "browser",
 			capability: request.capability as BrowserCapabilityId,
+			...(request.taskId ? { taskId: request.taskId } : {}),
 			...(request.roleRef ? { roleRef: request.roleRef } : {}),
 			...(request.workerRef ? { workerRef: request.workerRef } : {}),
-			...(request.taskId ? { taskId: request.taskId } : {}),
-		});
+		};
+		if (request.capability === "worker.create")
+			return {
+				...precondition,
+				roleRef: request.input.roleRef,
+				roleUrl: request.input.roleUrl,
+				fingerprint: request.input.bootstrapFingerprint,
+			};
+		if (request.capability === "worker.restore")
+			return {
+				...precondition,
+				roleRef: request.input.roleRef,
+				workerRef: request.input.workerRef,
+				conversationUrl: request.input.conversationUrl,
+			};
+		if (request.capability === "worker.wake")
+			return {
+				...precondition,
+				roleRef: request.input.roleRef,
+				workerRef: request.input.workerRef,
+				fingerprint: request.input.fingerprint,
+			};
+		if (request.capability === "collaboration.deliver")
+			return {
+				...precondition,
+				roleRef: request.input.roleRef,
+				workerRef: request.input.workerRef,
+				fingerprint: request.input.contentFingerprint,
+				messageRef: request.input.messageRef,
+			};
+		if ("targetRef" in request.input)
+			precondition.targetRef = request.input.targetRef;
+		if (request.capability === "browser.submit")
+			precondition.fingerprint = request.input.fingerprint;
+		if (request.capability === "browser.navigate")
+			precondition.expectedUrl = request.input.url;
+		return precondition;
+	};
+
+	const assertNotAborted = (invocation: ExecutorInvocation) => {
+		if (invocation.signal?.aborted)
+			throw new ExecutionBrowserError(
+				"CANCELLED",
+				"EXECUTION_ABORTED_BEFORE_BROWSER_EFFECT",
+			);
+	};
+
+	const effectStarted = async (
+		invocation: ExecutorInvocation,
+	): Promise<Extract<ExecutorPrecondition, { kind: "browser" }>> => {
+		assertNotAborted(invocation);
+		const precondition = browserPrecondition(invocation.request);
+		if (!invocation.onEffectStarted)
+			throw new ExecutionBrowserError(
+				"PRECONDITION_FAILED",
+				"DURABLE_EFFECT_BOUNDARY_REQUIRED",
+			);
+		await invocation.onEffectStarted(precondition);
+		assertNotAborted(invocation);
+		return precondition;
 	};
 
 	const result = (
 		capabilityResult: ExecutionCapabilityResult,
 		observation: BrowserPageObservation,
 		effectApplied: boolean,
+		precondition?: Extract<ExecutorPrecondition, { kind: "browser" }>,
 	): ExecutorResult => ({
 		result: capabilityResult,
 		evidence: [browserEvidence(idFactory, observation, true)],
 		artifacts: [],
-		precondition: {
+		precondition: precondition ?? {
 			kind: "browser",
 			capability: capabilityResult.capability as BrowserCapabilityId,
 		},
@@ -297,6 +362,7 @@ export function createExecutionBrowserExtension(
 	});
 
 	const execute = async (raw: ExecutorInvocation): Promise<ExecutorResult> => {
+		assertNotAborted(raw);
 		const request = executeCapabilityRequestSchema.parse(raw.request);
 		if (!browserCapabilities.has(request.capability))
 			throw new ExecutionBrowserError(
@@ -334,8 +400,8 @@ export function createExecutionBrowserExtension(
 						"PRECONDITION_FAILED",
 						"ROLE_URL_MISMATCH",
 					);
+				const precondition = await effectStarted(raw);
 				const opened = await options.browser.open(request.input.roleUrl);
-				await effectStarted(raw);
 				await options.browser.submit(
 					opened.tabId,
 					`WORKER_BIND ${request.input.bootstrapFingerprint}`,
@@ -366,6 +432,7 @@ export function createExecutionBrowserExtension(
 					},
 					observed,
 					true,
+					precondition,
 				);
 			});
 
@@ -406,7 +473,7 @@ export function createExecutionBrowserExtension(
 						"PRECONDITION_FAILED",
 						"PAGE_NOT_WRITABLE",
 					);
-				await effectStarted(raw);
+				const precondition = await effectStarted(raw);
 				const trigger = JSON.stringify({
 					protocol: "aap.agent.browser-trigger.v1",
 					triggerId: request.input.fingerprint,
@@ -446,6 +513,7 @@ export function createExecutionBrowserExtension(
 					},
 					after,
 					true,
+					precondition,
 				);
 			});
 
@@ -470,7 +538,7 @@ export function createExecutionBrowserExtension(
 					request.input.roleRef,
 					request.input.workerRef,
 				);
-				await effectStarted(raw);
+				const precondition = await effectStarted(raw);
 				const trigger = JSON.stringify({
 					protocol: "aap.agent.browser-trigger.v1",
 					triggerId: message.messageId,
@@ -510,6 +578,7 @@ export function createExecutionBrowserExtension(
 						},
 						after,
 						true,
+						precondition,
 					),
 					evidence: [evidence],
 				};
@@ -598,7 +667,7 @@ export function createExecutionBrowserExtension(
 				"BROWSER_PRIMITIVE_UNAVAILABLE",
 			);
 		return serializeWrite(async () => {
-			await effectStarted(raw);
+			const precondition = await effectStarted(raw);
 			const after = await options.browser.perform?.(request, observed.tabId);
 			if (!after)
 				throw new ExecutionBrowserError(
@@ -616,53 +685,103 @@ export function createExecutionBrowserExtension(
 				} as ExecutionCapabilityResult,
 				after,
 				true,
+				precondition,
 			);
 		});
 	};
 
 	const reconcile = async (
 		requestRaw: ExecuteCapabilityRequest,
+		preconditionRaw: ExecutorPrecondition,
 	): Promise<Reconciliation> => {
 		const request = executeCapabilityRequestSchema.parse(requestRaw);
-		let roleRef: string | undefined;
-		let workerRef: string | undefined;
-		let fingerprint: string | undefined;
-		if (request.capability === "worker.wake")
-			({ roleRef, workerRef, fingerprint } = request.input);
-		else if (request.capability === "collaboration.deliver") {
-			roleRef = request.input.roleRef;
-			workerRef = request.input.workerRef;
-			fingerprint = request.input.contentFingerprint;
-		} else if (request.capability === "worker.restore")
-			({ roleRef, workerRef } = request.input);
-		else if (request.capability === "worker.create") {
-			roleRef = request.input.roleRef;
-			const candidates = (await options.browser.listTabs()).filter((tab) => {
+		if (
+			preconditionRaw.kind !== "browser" ||
+			preconditionRaw.capability !== request.capability
+		)
+			return { state: "UNKNOWN", evidence: [] };
+		const precondition = preconditionRaw;
+
+		const observeTarget = async (): Promise<BrowserPageObservation | null> => {
+			if (precondition.roleRef && precondition.workerRef)
+				return matchingTab(precondition.roleRef, precondition.workerRef);
+			if (precondition.targetRef) {
+				const numericTab = Number(precondition.targetRef.replace(/^tab:/, ""));
+				if (Number.isInteger(numericTab)) {
+					try {
+						return await options.browser.observe(numericTab);
+					} catch {
+						return null;
+					}
+				}
+			}
+			return null;
+		};
+
+		if (request.capability === "worker.create") {
+			const roleRef = precondition.roleRef;
+			const taskId = precondition.taskId;
+			if (!roleRef || !taskId || !precondition.fingerprint)
+				return { state: "UNKNOWN", evidence: [] };
+
+			const boundWorker = await options.task.getWorkerBinding(taskId, roleRef);
+			if (boundWorker) {
+				const observed = await matchingTab(roleRef, boundWorker);
+				if (!observed) return { state: "UNKNOWN", evidence: [] };
+				if (
+					!(await options.browser.hasMessage(
+						observed.tabId,
+						precondition.fingerprint,
+					))
+				)
+					return { state: "UNKNOWN", evidence: [] };
+				const evidence = browserEvidence(idFactory, observed, true);
+				return {
+					state: "APPLIED",
+					evidence: [evidence],
+					result: {
+						capability: "worker.create",
+						data: {
+							roleRef,
+							workerRef: boundWorker,
+							conversationUrl: observed.url,
+							verified: true,
+						},
+					},
+				};
+			}
+
+			const candidates: BrowserPageObservation[] = [];
+			for (const tab of await options.browser.listTabs()) {
 				try {
 					const identity = parseCarrierIdentity(tab.url);
-					return identity.roleRef === roleRef && identity.workerRef !== null;
+					if (
+						identity.roleRef === roleRef &&
+						identity.workerRef !== null &&
+						(await options.browser.hasMessage(
+							tab.tabId,
+							precondition.fingerprint,
+						))
+					)
+						candidates.push(tab);
 				} catch {
-					return false;
+					// Ignore unrelated/non-carrier tabs.
 				}
-			});
-			if (candidates.length !== 1)
-				return {
-					state: candidates.length === 0 ? "NOT_APPLIED" : "UNKNOWN",
-					evidence: [],
-				};
+			}
+			if (candidates.length !== 1) return { state: "UNKNOWN", evidence: [] };
 			const observed = candidates[0];
 			if (!observed) return { state: "UNKNOWN", evidence: [] };
 			const identity = parseCarrierIdentity(observed.url);
-			if (!identity.workerRef || !request.taskId)
-				return { state: "UNKNOWN", evidence: [] };
+			if (!identity.workerRef) return { state: "UNKNOWN", evidence: [] };
 			await options.task.bindWorker({
-				taskId: request.taskId,
+				taskId,
 				roleRef,
 				workerRef: identity.workerRef,
 			});
+			const evidence = browserEvidence(idFactory, observed, true);
 			return {
 				state: "APPLIED",
-				evidence: [browserEvidence(idFactory, observed, true)],
+				evidence: [evidence],
 				result: {
 					capability: "worker.create",
 					data: {
@@ -674,21 +793,118 @@ export function createExecutionBrowserExtension(
 				},
 			};
 		}
-		if (!roleRef || !workerRef) return { state: "UNKNOWN", evidence: [] };
-		const observed = await matchingTab(roleRef, workerRef);
-		if (!observed) return { state: "NOT_APPLIED", evidence: [] };
-		if (
-			fingerprint &&
-			!(await options.browser.hasMessage(observed.tabId, fingerprint))
-		)
+
+		if (request.capability === "worker.wake") {
+			if (
+				!precondition.roleRef ||
+				!precondition.workerRef ||
+				!precondition.fingerprint
+			)
+				return { state: "UNKNOWN", evidence: [] };
+			const observed = await matchingTab(
+				precondition.roleRef,
+				precondition.workerRef,
+			);
+			if (!observed) return { state: "UNKNOWN", evidence: [] };
+			const delivered = await options.browser.hasMessage(
+				observed.tabId,
+				precondition.fingerprint,
+			);
+			const evidence = browserEvidence(idFactory, observed, delivered);
+			if (!delivered) return { state: "NOT_APPLIED", evidence: [evidence] };
 			return {
-				state: "NOT_APPLIED",
-				evidence: [browserEvidence(idFactory, observed, false)],
+				state: "APPLIED",
+				evidence: [evidence],
+				result: {
+					capability: "worker.wake",
+					data: {
+						roleRef: precondition.roleRef,
+						workerRef: precondition.workerRef,
+						triggerFingerprint: precondition.fingerprint,
+						delivered: true,
+					},
+				},
 			};
-		return {
-			state: "APPLIED",
-			evidence: [browserEvidence(idFactory, observed, true)],
-		};
+		}
+
+		if (request.capability === "collaboration.deliver") {
+			if (
+				!precondition.roleRef ||
+				!precondition.workerRef ||
+				!precondition.fingerprint ||
+				!precondition.messageRef
+			)
+				return { state: "UNKNOWN", evidence: [] };
+			const observed = await matchingTab(
+				precondition.roleRef,
+				precondition.workerRef,
+			);
+			if (!observed) return { state: "UNKNOWN", evidence: [] };
+			const delivered = await options.browser.hasMessage(
+				observed.tabId,
+				precondition.fingerprint,
+			);
+			const evidence = browserEvidence(idFactory, observed, delivered);
+			if (!delivered) return { state: "NOT_APPLIED", evidence: [evidence] };
+			return {
+				state: "APPLIED",
+				evidence: [evidence],
+				result: {
+					capability: "collaboration.deliver",
+					data: {
+						messageRef: precondition.messageRef,
+						delivered: true,
+						evidenceRef: evidence.evidenceRef,
+					},
+				},
+			};
+		}
+
+		if (request.capability === "browser.submit" && precondition.fingerprint) {
+			const observed = await observeTarget();
+			if (!observed) return { state: "UNKNOWN", evidence: [] };
+			const delivered = await options.browser.hasMessage(
+				observed.tabId,
+				precondition.fingerprint,
+			);
+			const evidence = browserEvidence(idFactory, observed, delivered);
+			if (!delivered) return { state: "NOT_APPLIED", evidence: [evidence] };
+			return {
+				state: "APPLIED",
+				evidence: [evidence],
+				result: {
+					capability: "browser.submit",
+					data: {
+						targetRef: precondition.targetRef ?? `tab:${observed.tabId}`,
+						verified: true,
+						observationRef: evidence.observationRef,
+					},
+				},
+			};
+		}
+
+		if (request.capability === "browser.navigate" && precondition.expectedUrl) {
+			const observed = await observeTarget();
+			if (!observed || observed.url !== precondition.expectedUrl)
+				return { state: "UNKNOWN", evidence: [] };
+			const evidence = browserEvidence(idFactory, observed, true);
+			return {
+				state: "APPLIED",
+				evidence: [evidence],
+				result: {
+					capability: "browser.navigate",
+					data: {
+						targetRef: precondition.targetRef ?? `tab:${observed.tabId}`,
+						verified: true,
+						observationRef: evidence.observationRef,
+					},
+				},
+			};
+		}
+
+		// click/input/upload and other writes lack a durable postcondition that can
+		// prove the exact effect after restart. Never infer APPLIED from tab presence.
+		return { state: "UNKNOWN", evidence: [] };
 	};
 
 	return Object.freeze({
@@ -799,7 +1015,7 @@ export function createExecutionBrowserExtension(
 			for (const item of unfinished)
 				reconciled.push(
 					item.effectStarted
-						? await reconcile(item.request)
+						? await reconcile(item.request, browserPrecondition(item.request))
 						: { state: "NOT_APPLIED" as const, evidence: [] },
 				);
 			return { status: "COMPLETED" as const, reconciled };

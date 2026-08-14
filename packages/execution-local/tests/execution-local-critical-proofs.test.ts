@@ -572,7 +572,7 @@ test("B1-EXE-04 installDependency crash recovers reality from package.json/lockf
 		root,
 	);
 
-	// NOT_APPLIED: manifest and lockfile both unchanged before any install.
+	// UNKNOWN: EFFECT_STARTED without a durable completion receipt cannot prove no install ran.
 	const beforeManifest = createHash("sha256")
 		.update(await readFile(join(root, "package.json")))
 		.digest("hex");
@@ -580,11 +580,13 @@ test("B1-EXE-04 installDependency crash recovers reality from package.json/lockf
 		kind: "install-dependency",
 		capability: "project.installDependency",
 		packageManager: "npm",
+		packageName: "./recover-dep",
+		receiptFile: "missing.install-receipt.json",
 		requested: "./recover-dep",
 		dev: false,
 		beforeManifestHash: `sha256:${beforeManifest}`,
 	});
-	assert.equal(notApplied.state, "NOT_APPLIED");
+	assert.equal(notApplied.state, "UNKNOWN");
 
 	// APPLIED: a real install mutates package.json, then reconcile reconstructs Result.
 	await mkdir(join(root, "recover-dep"));
@@ -613,6 +615,7 @@ test("B1-EXE-04 installDependency crash recovers reality from package.json/lockf
 	assert.equal(result.data.lockfileChanged, true);
 	assert.equal(result.data.packageManager, "npm");
 	assert.equal(result.data.requested, "./recover-dep");
+	assert.equal(result.data.resolvedVersion, "1.0.0");
 	assert.equal(result.data.output.exitCode, 0);
 });
 

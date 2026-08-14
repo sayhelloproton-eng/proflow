@@ -65,6 +65,9 @@ export type LocalPrecondition =
 			kind: "install-dependency";
 			capability: "project.installDependency";
 			packageManager: "pnpm" | "npm" | "yarn";
+			packageName: string;
+			manifestPackageName?: string;
+			receiptFile: string;
 			requested: string;
 			dev: boolean;
 			beforeManifestHash: string;
@@ -76,6 +79,10 @@ export type LocalPrecondition =
 			capability: "process.start";
 			processRef: string;
 			mode: "one-shot" | "managed";
+			readiness?:
+				| { kind: "port"; port: number }
+				| { kind: "http"; url: string }
+				| { kind: "log"; pattern: string };
 	  }
 	| {
 			kind: "process.stop";
@@ -442,6 +449,11 @@ async function captureCommand(input: {
 	id: string;
 	signal?: AbortSignal;
 }): Promise<CapturedProcessResult> {
+	if (input.signal?.aborted)
+		throw new LocalExecutionError(
+			"CANCELLED",
+			"local process cancelled before spawn",
+		);
 	const stdoutPath = join(input.artifactRoot, `${input.id}.stdout.log`);
 	const stderrPath = join(input.artifactRoot, `${input.id}.stderr.log`);
 	const stdoutHandle = await open(stdoutPath, "w", 0o600);
@@ -748,6 +760,135 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 		);
 	};
 
+	const packageManagerLockPath = (manager: "pnpm" | "npm" | "yarn") =>
+		manager === "pnpm"
+			? join(projectRoot, "pnpm-lock.yaml")
+			: manager === "yarn"
+				? join(projectRoot, "yarn.lock")
+				: join(projectRoot, "package-lock.json");
+
+	const detectPackageManager = async (): Promise<"pnpm" | "npm" | "yarn"> => {
+		if (await fileExists(join(projectRoot, "pnpm-lock.yaml"))) return "pnpm";
+		if (await fileExists(join(projectRoot, "yarn.lock"))) return "yarn";
+		if (await fileExists(join(projectRoot, "package-lock.json"))) return "npm";
+		try {
+			const manifest: unknown = JSON.parse(
+				await readFile(join(projectRoot, "package.json"), "utf8"),
+			);
+			if (typeof manifest === "object" && manifest !== null) {
+				const declared = Reflect.get(manifest, "packageManager");
+				if (typeof declared === "string") {
+					if (declared.startsWith("pnpm@")) return "pnpm";
+					if (declared.startsWith("yarn@")) return "yarn";
+					if (declared.startsWith("npm@")) return "npm";
+				}
+			}
+		} catch {
+			// Fall through to npm only when no durable manager signal exists.
+		}
+		return "npm";
+	};
+
+	const packageDeclaration = (
+		manifest: unknown,
+		packageName: string,
+		dev: boolean,
+	): string | undefined => {
+		if (typeof manifest !== "object" || manifest === null) return undefined;
+		const bucket = Reflect.get(
+			manifest,
+			dev ? "devDependencies" : "dependencies",
+		);
+		if (typeof bucket !== "object" || bucket === null) return undefined;
+		const value = Reflect.get(bucket, packageName);
+		return typeof value === "string" ? value : undefined;
+	};
+
+	const resolveManifestPackageName = async (
+		packageName: string,
+	): Promise<string | undefined> => {
+		if (/^(?:@[A-Za-z0-9._~-]+\/)?[A-Za-z0-9._~-]+$/.test(packageName))
+			return packageName;
+		if (
+			packageName === "." ||
+			packageName.startsWith("./") ||
+			packageName.startsWith("../")
+		) {
+			try {
+				const dependencyRoot = await safePath(packageName);
+				const metadata: unknown = JSON.parse(
+					await readFile(join(dependencyRoot, "package.json"), "utf8"),
+				);
+				if (typeof metadata !== "object" || metadata === null) return undefined;
+				const name = Reflect.get(metadata, "name");
+				return typeof name === "string" && name.length > 0 ? name : undefined;
+			} catch {
+				return undefined;
+			}
+		}
+		return undefined;
+	};
+
+	const resolveInstalledVersion = async (
+		manifestPackageName: string | undefined,
+	): Promise<string | undefined> => {
+		if (
+			!manifestPackageName ||
+			!/^(?:@[A-Za-z0-9._~-]+\/)?[A-Za-z0-9._~-]+$/.test(manifestPackageName)
+		)
+			return undefined;
+		try {
+			const metadataPath = await safePath(
+				`node_modules/${manifestPackageName}/package.json`,
+			);
+			const metadata: unknown = JSON.parse(
+				await readFile(metadataPath, "utf8"),
+			);
+			if (typeof metadata !== "object" || metadata === null) return undefined;
+			const version = Reflect.get(metadata, "version");
+			return typeof version === "string" && version.length > 0
+				? version
+				: undefined;
+		} catch {
+			return undefined;
+		}
+	};
+
+	const checkManagedReadiness = async (
+		record: ManagedProcessRecord,
+		readiness:
+			| { kind: "port"; port: number }
+			| { kind: "http"; url: string }
+			| { kind: "log"; pattern: string }
+			| undefined,
+	): Promise<boolean> => {
+		if (readiness === undefined) return true;
+		if (readiness.kind === "log") {
+			const content = (await fileExists(record.stdoutPath))
+				? await readFile(record.stdoutPath, "utf8")
+				: "";
+			return content.includes(readiness.pattern);
+		}
+		const target =
+			readiness.kind === "port"
+				? new URL(`http://127.0.0.1:${readiness.port}`)
+				: new URL(readiness.url);
+		if (
+			!["http:", "https:"].includes(target.protocol) ||
+			(!isLanOrLocal(target.hostname) && !exactNetworkTargets.has(target.href))
+		)
+			return false;
+		try {
+			const response = await fetch(target, {
+				signal: AbortSignal.timeout(500),
+				redirect: "manual",
+			});
+			return response.status > 0 && response.status < 300;
+		} catch {
+			return false;
+		}
+	};
+
 	async function safePath(
 		input: string,
 		allowMissing = false,
@@ -792,6 +933,11 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 	async function validateInvocation(
 		invocation: LocalExecutorInvocation,
 	): Promise<void> {
+		if (invocation.signal?.aborted)
+			throw new LocalExecutionError(
+				"CANCELLED",
+				"local execution was cancelled before validation",
+			);
 		if (!localCapabilities.has(invocation.request.capability))
 			throw new LocalExecutionError(
 				"EXECUTOR_UNAVAILABLE",
@@ -824,12 +970,22 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 		invocation: LocalExecutorInvocation,
 		precondition: LocalPrecondition,
 	): Promise<void> {
+		if (invocation.signal?.aborted)
+			throw new LocalExecutionError(
+				"CANCELLED",
+				"local execution was cancelled before effect",
+			);
 		if (invocation.onEffectStarted === undefined)
 			throw new LocalExecutionError(
 				"PRECONDITION_FAILED",
 				"durable effect boundary acknowledgement is required",
 			);
 		await invocation.onEffectStarted(precondition);
+		if (invocation.signal?.aborted)
+			throw new LocalExecutionError(
+				"CANCELLED",
+				"local execution was cancelled at the effect boundary",
+			);
 	}
 
 	async function outputResult(
@@ -1236,13 +1392,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 								? Object.keys(Reflect.get(object, key))
 								: [],
 					);
-					const packageManager = (await fileExists(
-						join(projectRoot, "pnpm-lock.yaml"),
-					))
-						? "pnpm"
-						: (await fileExists(join(projectRoot, "yarn.lock")))
-							? "yarn"
-							: "npm";
+					const packageManager = await detectPackageManager();
 					return {
 						result: {
 							capability: request.capability,
@@ -1256,41 +1406,56 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 				}
 				case "project.installDependency": {
 					const manager =
-						request.input.packageManager ??
-						((await fileExists(join(projectRoot, "pnpm-lock.yaml")))
-							? "pnpm"
-							: "npm");
+						request.input.packageManager ?? (await detectPackageManager());
 					const requested = `${request.input.packageName}${request.input.version ? `@${request.input.version}` : ""}`;
-					const beforeManifest = sha256(
-						await readFile(join(projectRoot, "package.json")),
+					const beforeManifestBytes = await readFile(
+						join(projectRoot, "package.json"),
 					);
-					const lockPath =
-						manager === "pnpm"
-							? join(projectRoot, "pnpm-lock.yaml")
-							: join(projectRoot, "package-lock.json");
+					const beforeManifestObject: unknown = JSON.parse(
+						beforeManifestBytes.toString("utf8"),
+					);
+					const beforeManifest = sha256(beforeManifestBytes);
+					const lockPath = packageManagerLockPath(manager);
 					const beforeLock = (await fileExists(lockPath))
 						? sha256(await readFile(lockPath))
 						: undefined;
+					const manifestPackageName = await resolveManifestPackageName(
+						request.input.packageName,
+					);
+					const beforeDeclaration = manifestPackageName
+						? packageDeclaration(
+								beforeManifestObject,
+								manifestPackageName,
+								request.input.dev ?? false,
+							)
+						: undefined;
+					const id = idFactory();
+					const receiptFile = `${id}.install-receipt.json`;
 					const precondition: LocalPrecondition = {
 						kind: "install-dependency",
 						capability: "project.installDependency",
-						packageManager: manager as "pnpm" | "npm" | "yarn",
+						packageManager: manager,
+						packageName: request.input.packageName,
+						...(manifestPackageName ? { manifestPackageName } : {}),
+						receiptFile,
 						requested,
 						dev: request.input.dev ?? false,
 						beforeManifestHash: beforeManifest,
 						...(beforeLock ? { beforeLockHash: beforeLock } : {}),
+						...(beforeDeclaration ? { beforeDeclaration } : {}),
 					};
 					await markEffect(invocation, precondition);
 					const environment = safeEnvironment(options.baseEnv ?? {}, undefined);
-					const id = idFactory();
 					const args =
 						manager === "pnpm"
 							? ["add", ...(request.input.dev ? ["-D"] : []), requested]
-							: [
-									"install",
-									...(request.input.dev ? ["--save-dev"] : ["--save"]),
-									requested,
-								];
+							: manager === "yarn"
+								? ["add", ...(request.input.dev ? ["--dev"] : []), requested]
+								: [
+										"install",
+										...(request.input.dev ? ["--save-dev"] : ["--save"]),
+										requested,
+									];
 					const captured = await captureCommand({
 						command: manager,
 						args,
@@ -1309,6 +1474,8 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					const afterLock = (await fileExists(lockPath))
 						? sha256(await readFile(lockPath))
 						: undefined;
+					const resolvedVersion =
+						await resolveInstalledVersion(manifestPackageName);
 					const output = {
 						exitCode: captured.exitCode,
 						durationMs: captured.durationMs,
@@ -1317,12 +1484,27 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						stdoutRef: captured.stdout.ref,
 						stderrRef: captured.stderr.ref,
 					};
+					await writeFile(
+						join(artifactRoot, receiptFile),
+						`${JSON.stringify({
+							contract: "proflow.install-receipt.v1",
+							packageManager: manager,
+							requested,
+							...(resolvedVersion ? { resolvedVersion } : {}),
+							manifestChanged: beforeManifest !== afterManifest,
+							lockfileChanged: beforeLock !== afterLock,
+							successful: captured.exitCode === 0,
+							output,
+						})}\n`,
+						{ mode: 0o600 },
+					);
 					return {
 						result: {
 							capability: request.capability,
 							data: {
 								packageManager: manager,
 								requested,
+								...(resolvedVersion ? { resolvedVersion } : {}),
 								manifestChanged: beforeManifest !== afterManifest,
 								lockfileChanged: beforeLock !== afterLock,
 								output,
@@ -1398,6 +1580,9 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						capability: "process.start",
 						processRef,
 						mode: request.input.mode,
+						...(request.input.readiness
+							? { readiness: request.input.readiness }
+							: {}),
 					};
 					await markEffect(invocation, precondition);
 					if (request.input.mode === "one-shot") {
@@ -1455,6 +1640,11 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					];
 					const stdoutRedactor = createStreamingRedactor(managedSecrets);
 					const stderrRedactor = createStreamingRedactor(managedSecrets);
+					if (invocation.signal?.aborted)
+						throw new LocalExecutionError(
+							"CANCELLED",
+							"managed process cancelled before spawn",
+						);
 					const child = spawn(request.input.command, [...request.input.args], {
 						cwd,
 						env: environment.env,
@@ -1756,6 +1946,14 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 									"SCOPE_DENIED",
 									"redirect target is outside deterministic engineering scope",
 								);
+							if (
+								next.origin !== currentUrl.origin &&
+								request.input.body !== undefined
+							)
+								throw new LocalExecutionError(
+									"SCOPE_DENIED",
+									"cross-origin redirect cannot forward a request body",
+								);
 							currentUrl = next;
 						}
 					} catch (error) {
@@ -1974,17 +2172,20 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 			precondition.kind === "install-dependency" &&
 			request.capability === "project.installDependency"
 		) {
-			const lockPath =
-				precondition.packageManager === "pnpm"
-					? join(projectRoot, "pnpm-lock.yaml")
-					: precondition.packageManager === "yarn"
-						? join(projectRoot, "yarn.lock")
-						: join(projectRoot, "package-lock.json");
+			const lockPath = packageManagerLockPath(precondition.packageManager);
 			const manifest = await readFile(join(projectRoot, "package.json"));
 			const manifestHash = sha256(manifest);
+			const manifestObject: unknown = JSON.parse(manifest.toString("utf8"));
 			const lockExists = await fileExists(lockPath);
 			const lockHash = lockExists
 				? sha256(await readFile(lockPath))
+				: undefined;
+			const currentDeclaration = precondition.manifestPackageName
+				? packageDeclaration(
+						manifestObject,
+						precondition.manifestPackageName,
+						precondition.dev,
+					)
 				: undefined;
 			const manifestChanged = manifestHash !== precondition.beforeManifestHash;
 			const lockfileChanged =
@@ -1999,32 +2200,90 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 				afterHash: manifestHash,
 				bytes: manifest.byteLength,
 			};
-			if (manifestChanged)
-				return {
-					state: "APPLIED",
-					evidence: [evidence],
-					result: {
-						capability: "project.installDependency",
-						data: {
-							packageManager: precondition.packageManager,
-							requested: precondition.requested,
-							manifestChanged: true,
-							lockfileChanged,
-							output: {
-								exitCode: 0,
-								durationMs: 0,
-								stdoutSummary: "",
-								stderrSummary: "",
-								stdoutRef: "output:reconciled:stdout",
-								stderrRef: "output:reconciled:stderr",
-							},
-						},
-					},
-				};
-			if (!lockfileChanged)
-				return { state: "NOT_APPLIED", evidence: [evidence] };
+			if (basename(precondition.receiptFile) === precondition.receiptFile) {
+				const receiptPath = join(artifactRoot, precondition.receiptFile);
+				if (await fileExists(receiptPath)) {
+					try {
+						const receipt: unknown = JSON.parse(
+							await readFile(receiptPath, "utf8"),
+						);
+						if (typeof receipt === "object" && receipt !== null) {
+							const output = Reflect.get(receipt, "output");
+							if (
+								Reflect.get(receipt, "contract") ===
+									"proflow.install-receipt.v1" &&
+								Reflect.get(receipt, "packageManager") ===
+									precondition.packageManager &&
+								Reflect.get(receipt, "requested") === precondition.requested &&
+								Reflect.get(receipt, "successful") === true &&
+								typeof output === "object" &&
+								output !== null &&
+								typeof Reflect.get(output, "exitCode") === "number" &&
+								typeof Reflect.get(output, "durationMs") === "number" &&
+								typeof Reflect.get(output, "stdoutSummary") === "string" &&
+								typeof Reflect.get(output, "stderrSummary") === "string" &&
+								typeof Reflect.get(output, "stdoutRef") === "string" &&
+								typeof Reflect.get(output, "stderrRef") === "string"
+							)
+								return {
+									state: "APPLIED",
+									evidence: [evidence],
+									result: {
+										capability: "project.installDependency",
+										data: {
+											packageManager: precondition.packageManager,
+											requested: precondition.requested,
+											...(typeof Reflect.get(receipt, "resolvedVersion") ===
+											"string"
+												? {
+														resolvedVersion: Reflect.get(
+															receipt,
+															"resolvedVersion",
+														) as string,
+													}
+												: {}),
+											manifestChanged:
+												Reflect.get(receipt, "manifestChanged") === true,
+											lockfileChanged:
+												Reflect.get(receipt, "lockfileChanged") === true,
+											output: output as {
+												exitCode: number;
+												durationMs: number;
+												stdoutSummary: string;
+												stderrSummary: string;
+												stdoutRef: string;
+												stderrRef: string;
+											},
+										},
+									},
+								};
+						}
+					} catch {
+						// Corrupt/incomplete receipt cannot authorize recovered success.
+					}
+				}
+			}
+			if (
+				!manifestChanged &&
+				!lockfileChanged &&
+				currentDeclaration === precondition.beforeDeclaration
+			)
+				return { state: "UNKNOWN", evidence: [evidence] };
+
+			// A changed declaration for the exact requested package is strong reality
+			// evidence that the install applied. Do not fabricate exitCode/duration or
+			// synthetic output refs after a crash: Runtime will keep the execution
+			// UNKNOWN until a trustworthy Result can be reconstructed.
+			if (
+				currentDeclaration !== undefined &&
+				currentDeclaration !== precondition.beforeDeclaration &&
+				(manifestChanged || lockfileChanged)
+			)
+				return { state: "APPLIED", evidence: [evidence] };
+
 			return { state: "UNKNOWN", evidence: [evidence] };
 		}
+
 		if (precondition.kind === "process.start") {
 			if (precondition.mode === "one-shot")
 				return { state: "UNKNOWN", evidence: [] };
@@ -2034,6 +2293,8 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 			if (!record) return { state: "UNKNOWN", evidence: [] };
 			try {
 				if (!(await ownsManagedProcess(record)))
+					return { state: "UNKNOWN", evidence: [] };
+				if (!(await checkManagedReadiness(record, precondition.readiness)))
 					return { state: "UNKNOWN", evidence: [] };
 				return {
 					state: "APPLIED",
