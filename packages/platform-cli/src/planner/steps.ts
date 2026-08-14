@@ -100,7 +100,14 @@ export function configStep(
 export function externalResourceStep(
 	seq: StepSequencer,
 	module: ResolvedModule,
-): DeploymentStep {
+): DeploymentStep | undefined {
+	if (!module.lifecycle.includes("start")) {
+		// Status/verify-only external resources (e.g. chatgpt-carrier,
+		// chrome-runtime, model-provider-api) have no activation primitive.
+		// Their configuration is satisfied by config + human prerequisite +
+		// verification steps, never by a forged `start` mutation.
+		return undefined;
+	}
 	return {
 		stepRef: seq.next("external-resource", module.moduleRef),
 		moduleRef: module.moduleRef,

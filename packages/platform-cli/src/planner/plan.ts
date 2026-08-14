@@ -88,7 +88,8 @@ function installSteps(
 			steps.push(configStep(seq, module));
 		}
 		if (module.kind === "external-resource") {
-			steps.push(externalResourceStep(seq, module));
+			const step = externalResourceStep(seq, module);
+			if (step !== undefined) steps.push(step);
 		}
 		for (const requirement of module.requirements) {
 			if (requirement.kind === "human") {
@@ -113,7 +114,8 @@ function configureSteps(
 			steps.push(configStep(seq, module));
 		}
 		if (module.kind === "external-resource") {
-			steps.push(externalResourceStep(seq, module));
+			const step = externalResourceStep(seq, module);
+			if (step !== undefined) steps.push(step);
 		}
 		if (module.kind === "service") {
 			if (module.lifecycle.includes("restart")) {

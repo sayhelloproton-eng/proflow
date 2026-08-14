@@ -31,31 +31,25 @@ function isStringMap(value: unknown): value is Record<string, string> {
 	return Object.values(value).every((item) => typeof item === "string");
 }
 
-// Secret values are materialized to a separate 0o600 file; non-secret values go
-// to the public config file so raw secrets never appear in readable artifacts.
+// secretRef config values are opaque reference identities (e.g.
+// `secret://model-provider/default`), not raw secrets, so they materialize to
+// the public config file verbatim. A raw secret would go to the separate 0o600
+// secrets file — but v1 planning produces no raw secrets, so it stays empty and
+// must never hold a secretRef reference.
 export async function materializeConfig(
 	paths: WorkspacePaths,
 	config: ModuleConfig,
 ): Promise<void> {
 	const publicValues: Record<string, string> = {};
-	const secretValues: Record<string, string> = {};
 	for (const [key, value] of Object.entries(config.values)) {
-		if (config.secretRefs.includes(key)) {
-			secretValues[key] = value;
-		} else {
-			publicValues[key] = value;
-		}
+		publicValues[key] = value;
 	}
 	await writeJsonAtomic(
 		configFilePath(paths, config.moduleRef),
 		publicValues,
 		0o644,
 	);
-	await writeJsonAtomic(
-		secretsFilePath(paths, config.moduleRef),
-		secretValues,
-		0o600,
-	);
+	await writeJsonAtomic(secretsFilePath(paths, config.moduleRef), {}, 0o600);
 }
 
 export async function loadConfig(

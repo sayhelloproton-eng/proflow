@@ -53,9 +53,13 @@ function collectRawSecrets(
 	const secrets: string[] = [];
 	for (const module of modules) {
 		const resolved = resolveModuleConfig(module, config?.[module.moduleRef]);
-		const secretKeys = new Set(resolved.secretRefs);
+		const sensitiveKeys = new Set(
+			module.configSlots
+				.filter((slot) => slot.sensitive === true && slot.type !== "secretRef")
+				.map((slot) => slot.key),
+		);
 		for (const [key, value] of Object.entries(resolved.values)) {
-			if (secretKeys.has(key) && value.length > 0) secrets.push(value);
+			if (sensitiveKeys.has(key) && value.length > 0) secrets.push(value);
 		}
 	}
 	return secrets;

@@ -186,6 +186,8 @@ test("pending actions persist durably as an interrupted-apply resume signal", as
 		state.pendingActions = [
 			{
 				planRef: "plan-1",
+				stepRef: "step-human",
+				moduleRef: "svc",
 				action: "approve-external-resource",
 				createdAt: new Date().toISOString(),
 			},
@@ -233,18 +235,18 @@ test("missing plan loads as undefined", async () => {
 	}
 });
 
-test("raw secret never reaches the persisted plan", async () => {
+test("secretRef reference persists verbatim in the plan", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
-		const secret = "super-secret-token-12345";
-		const plan = makePlan("plan-002", { secretConfig: { apiKey: secret } });
+		const reference = "secret://model-provider/default";
+		const plan = makePlan("plan-002", { secretConfig: { apiKey: reference } });
 		await savePlan(paths, plan);
 
 		const raw = await readFile(join(paths.plans, "plan-002.json"), "utf8");
-		assert.ok(!raw.includes(secret));
+		assert.ok(raw.includes(reference));
 
 		const loaded = await loadPlan(paths, "plan-002");
-		assert.notEqual(loaded?.moduleTargets[0]?.config?.apiKey, secret);
+		assert.equal(loaded?.moduleTargets[0]?.config?.apiKey, reference);
 	} finally {
 		await cleanup();
 	}
@@ -300,33 +302,33 @@ test("verification records for distinct modules stay isolated", async () => {
 
 // ---- Config materialization ----
 
-test("config materialization separates secrets with restricted permissions", async () => {
+test("config materialization preserves secretRef references in public config, never .secrets.json", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
-		const secret = "credential-raw-value";
+		const reference = "secret://model-provider/default";
 		await materializeConfig(paths, {
 			moduleRef: "mod-a",
-			values: { apiKey: secret, endpoint: "https://example.com" },
+			values: { apiKey: reference, endpoint: "https://example.com" },
 			secretRefs: ["apiKey"],
 		});
 
 		const publicRaw = await readFile(join(paths.config, "mod-a.json"), "utf8");
-		assert.ok(!publicRaw.includes(secret));
+		assert.ok(publicRaw.includes(reference));
 		assert.ok(publicRaw.includes("https://example.com"));
 
 		const secretRaw = await readFile(
 			join(paths.config, "mod-a.secrets.json"),
 			"utf8",
 		);
-		assert.ok(secretRaw.includes(secret));
+		assert.ok(!secretRaw.includes(reference));
 
 		const secretStat = await stat(join(paths.config, "mod-a.secrets.json"));
 		assert.equal(secretStat.mode & 0o777, 0o600);
 
 		const loaded = await loadConfig(paths, "mod-a");
 		assert.equal(loaded?.publicValues.endpoint, "https://example.com");
-		assert.equal(loaded?.publicValues.apiKey, undefined);
-		assert.equal(loaded?.secretValues.apiKey, secret);
+		assert.equal(loaded?.publicValues.apiKey, reference);
+		assert.equal(loaded?.secretValues.apiKey, undefined);
 	} finally {
 		await cleanup();
 	}
@@ -447,13 +449,13 @@ test("a lock that cannot be proven stale is never reclaimed", async () => {
 
 // ---- Redaction ----
 
-test("redactSecretValues replaces secretRef slots with a reference marker", () => {
-	const out = redactSecretValues({ apiKey: "raw-secret-value", name: "app" }, [
+test("redactSecretValues preserves secretRef references verbatim", () => {
+	const reference = "secret://model-provider/default";
+	const out = redactSecretValues({ apiKey: reference, name: "app" }, [
 		"apiKey",
 	]);
-	assert.equal(out.apiKey, SECRET_REDACTED);
+	assert.equal(out.apiKey, reference);
 	assert.equal(out.name, "app");
-	assert.ok(!JSON.stringify(out).includes("raw-secret-value"));
 });
 
 test("redactDeep scrubs raw secrets from nested structures", () => {
@@ -469,13 +471,13 @@ test("redactDeep scrubs raw secrets from nested structures", () => {
 	assert.ok(serialized.includes(SECRET_REDACTED));
 });
 
-test("redactPlanSecrets returns a redacted copy without mutating the input", () => {
-	const secret = "plan-secret-value";
-	const plan = makePlan("plan-9", { secretConfig: { apiKey: secret } });
-	const redacted = redactPlanSecrets(plan);
+test("redactPlanSecrets preserves secretRef references without mutating the input", () => {
+	const reference = "secret://model-provider/default";
+	const plan = makePlan("plan-9", { secretConfig: { apiKey: reference } });
+	const cloned = redactPlanSecrets(plan);
 
-	assert.notEqual(redacted.moduleTargets[0]?.config?.apiKey, secret);
-	assert.ok(!JSON.stringify(redacted).includes(secret));
+	assert.equal(cloned.moduleTargets[0]?.config?.apiKey, reference);
+	assert.notEqual(cloned, plan);
 	// original untouched
-	assert.equal(plan.moduleTargets[0]?.config?.apiKey, secret);
+	assert.equal(plan.moduleTargets[0]?.config?.apiKey, reference);
 });

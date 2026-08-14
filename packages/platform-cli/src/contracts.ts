@@ -90,8 +90,17 @@ export interface DeploymentState {
 		appliedAt: string;
 	}[];
 	verificationIndex: { moduleRef: string; latestRef: string }[];
-	pendingActions: { planRef: string; action: string; createdAt: string }[];
+	pendingActions: PendingActionRecord[];
 	updatedAt: string;
+}
+
+export interface PendingActionRecord {
+	planRef: string;
+	stepRef: string;
+	moduleRef: string;
+	action: string;
+	description?: string;
+	createdAt: string;
 }
 
 export interface LockRecord {

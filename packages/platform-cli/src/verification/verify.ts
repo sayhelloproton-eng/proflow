@@ -39,12 +39,17 @@ export function verificationRefOf(
  * Fingerprints the identity-defining config of an external resource. Key order
  * is normalized so the fingerprint is stable regardless of insertion order.
  */
-export function configFingerprint(values: Record<string, string>): string {
-	const canonical = Object.entries(values)
-		.sort(([left], [right]) => left.localeCompare(right))
-		.map(([key, value]) => `${key}=${value}`)
-		.join("\n");
-	const digest = createHash("sha256").update(canonical).digest("hex");
+export function configFingerprint(
+	values: Record<string, string>,
+	secretRefs: readonly string[] = [],
+): string {
+	const entries = [
+		...Object.entries(values)
+			.sort(([left], [right]) => left.localeCompare(right))
+			.map(([key, value]) => `${key}=${value}`),
+		...[...secretRefs].sort().map((key) => `secretRef=${key}`),
+	];
+	const digest = createHash("sha256").update(entries.join("\n")).digest("hex");
 	return `fp-${digest.slice(0, 16)}`;
 }
 
@@ -100,7 +105,13 @@ export async function verifyModule(
 	let resourceVersion: string | undefined;
 	if (module.kind === "external-resource") {
 		const config = await loadConfig(paths, module.moduleRef);
-		resourceIdentity = configFingerprint(config?.publicValues ?? {});
+		const secretRefs = module.configSlots
+			.filter((slot) => slot.type === "secretRef")
+			.map((slot) => slot.key);
+		resourceIdentity = configFingerprint(
+			config?.publicValues ?? {},
+			secretRefs,
+		);
 		resourceVersion = result.resourceVersion;
 	}
 

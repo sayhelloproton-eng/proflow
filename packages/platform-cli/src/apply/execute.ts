@@ -1,4 +1,8 @@
-import type { LifecyclePrimitive } from "@tomflow/proflow-module-contract";
+import type {
+	HumanAction,
+	LifecyclePrimitive,
+	ModuleOperationResult,
+} from "@tomflow/proflow-module-contract";
 
 import type {
 	DeploymentPlan,
@@ -18,6 +22,19 @@ export interface ExecuteDeps {
 	catalog: ModuleCatalog;
 	driver: PackageManagerDriver;
 }
+
+/**
+ * Structured result of executing one non-human step. A lifecycle adapter's
+ * `ModuleOperationResult` is preserved verbatim: ACTION_REQUIRED / BLOCKED /
+ * FAILED are returned as values, never collapsed into a thrown APPLY_FAILED.
+ * Only genuine boundary violations (missing module, unsupported strategy,
+ * malformed adapter result) still throw.
+ */
+export type ExecuteStepOutcome =
+	| { kind: "SUCCEEDED" }
+	| { kind: "ACTION_REQUIRED"; actionRequired: HumanAction }
+	| { kind: "BLOCKED"; reason: string }
+	| { kind: "FAILED"; reason: string };
 
 function moduleOf(
 	plan: DeploymentPlan,
@@ -65,30 +82,60 @@ function lifecyclePrimitive(step: DeploymentStep): LifecyclePrimitive {
 	}
 }
 
-function assertSucceeded(
-	moduleRef: string,
-	primitive: LifecyclePrimitive,
-	ok: boolean,
-	status: string,
-): void {
-	if (!ok) {
+function externalResourcePrimitive(step: DeploymentStep): LifecyclePrimitive {
+	if (step.executeStrategy === ExecuteStrategy.externalResourceConfigure) {
+		return "start";
+	}
+	throw new PlatformError(
+		"APPLY_FAILED",
+		`unsupported external-resource strategy ${step.executeStrategy ?? "<none>"}`,
+	);
+}
+
+function requiredActionRequired(result: ModuleOperationResult): HumanAction {
+	const actionRequired = result.actionRequired;
+	if (actionRequired === undefined) {
 		throw new PlatformError(
 			"APPLY_FAILED",
-			`module ${moduleRef} "${primitive}" did not succeed (${status})`,
+			`module ${result.moduleRef} reported ACTION_REQUIRED without a recoverable action`,
 		);
+	}
+	return actionRequired;
+}
+
+function operationOutcome(result: ModuleOperationResult): ExecuteStepOutcome {
+	switch (result.status) {
+		case "SUCCEEDED":
+			return { kind: "SUCCEEDED" };
+		case "ACTION_REQUIRED":
+			return {
+				kind: "ACTION_REQUIRED",
+				actionRequired: requiredActionRequired(result),
+			};
+		case "BLOCKED":
+			return {
+				kind: "BLOCKED",
+				reason: `module ${result.moduleRef} is blocked`,
+			};
+		case "FAILED":
+			return {
+				kind: "FAILED",
+				reason: result.error?.message ?? `module ${result.moduleRef} failed`,
+			};
 	}
 }
 
 /**
- * Executes a single non-human step by kind + execute strategy. A step that
- * cannot complete on its own (a failed/blocked/action-required adapter result)
- * throws, and the caller stops the apply; effects are never blindly repeated.
+ * Executes a single non-human step by kind + execute strategy, returning a
+ * structured outcome instead of throwing for ACTION_REQUIRED / BLOCKED / FAILED
+ * lifecycle results. Package/config mutations still throw on genuine driver or
+ * boundary errors; those are not lifecycle outcomes and must not be swallowed.
  */
 export async function executeStep(
 	deps: ExecuteDeps,
 	step: DeploymentStep,
 	plan: DeploymentPlan,
-): Promise<void> {
+): Promise<ExecuteStepOutcome> {
 	const module = moduleOf(plan, step);
 	if (module === undefined) {
 		throw new PlatformError(
@@ -104,7 +151,7 @@ export async function executeStep(
 			} else {
 				await deps.driver.install(module);
 			}
-			return;
+			return { kind: "SUCCEEDED" };
 		}
 		case "config": {
 			const config = configForStep(plan, step, module);
@@ -115,7 +162,7 @@ export async function executeStep(
 				);
 			}
 			await materializeConfig(deps.paths, config);
-			return;
+			return { kind: "SUCCEEDED" };
 		}
 		case "lifecycle": {
 			const primitive = lifecyclePrimitive(step);
@@ -124,26 +171,16 @@ export async function executeStep(
 				module,
 				primitive,
 			);
-			assertSucceeded(
-				module.moduleRef,
-				primitive,
-				dispatched.result.ok,
-				dispatched.result.status,
-			);
-			return;
+			return operationOutcome(dispatched.result);
 		}
 		case "external-resource": {
-			// Provisioning/configuring an external resource is its activation
-			// primitive. Resources that do not declare `start` are rejected by
-			// dispatchLifecycle (LIFECYCLE_UNSUPPORTED) rather than forged.
-			const dispatched = await dispatchLifecycle(deps.catalog, module, "start");
-			assertSucceeded(
-				module.moduleRef,
-				"start",
-				dispatched.result.ok,
-				dispatched.result.status,
+			const primitive = externalResourcePrimitive(step);
+			const dispatched = await dispatchLifecycle(
+				deps.catalog,
+				module,
+				primitive,
 			);
-			return;
+			return operationOutcome(dispatched.result);
 		}
 		case "human":
 			throw new PlatformError(

@@ -220,6 +220,19 @@ importers:
         specifier: 4.1.12
         version: 4.1.12
 
+  packages/module-skill:
+    dependencies:
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+      '@tomflow/proflow-module-template':
+        specifier: workspace:^
+        version: link:../module-template
+
   packages/module-template:
     dependencies:
       '@tomflow/proflow-module-contract':
@@ -235,6 +248,9 @@ importers:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
+      '@tomflow/proflow-module-template':
+        specifier: workspace:^
+        version: link:../module-template
 
   packages/platform-host:
     dependencies:

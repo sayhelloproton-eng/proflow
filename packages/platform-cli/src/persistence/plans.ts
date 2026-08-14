@@ -2,7 +2,6 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { DeploymentPlan } from "../contracts.ts";
 import { readJson, type WorkspacePaths } from "../paths.ts";
-import { redactPlanSecrets } from "../security/redact.ts";
 import { writeJsonAtomic } from "./atomic.ts";
 import { assertSafeFileName, isDeploymentPlan } from "./guards.ts";
 
@@ -11,14 +10,14 @@ function planFilePath(paths: WorkspacePaths, planRef: string): string {
 	return join(paths.plans, `${planRef}.json`);
 }
 
-// Plans are public DTOs: secretRef config values are redacted to references
-// before they ever touch disk.
+// Plans are public DTOs: secretRef config values are opaque reference
+// identities (e.g. `secret://model-provider/default`), safe to persist verbatim.
+// No raw secret ever enters a plan, so no redaction is applied on save.
 export async function savePlan(
 	paths: WorkspacePaths,
 	plan: DeploymentPlan,
 ): Promise<void> {
-	const sanitized = redactPlanSecrets(plan);
-	await writeJsonAtomic(planFilePath(paths, plan.planRef), sanitized);
+	await writeJsonAtomic(planFilePath(paths, plan.planRef), plan);
 }
 
 export async function loadPlan(

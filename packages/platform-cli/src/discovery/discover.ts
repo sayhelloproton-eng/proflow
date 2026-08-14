@@ -7,6 +7,7 @@ import type { ResolvedModule } from "../contracts.ts";
 import { PlatformError } from "../errors.ts";
 import type { ModuleCatalog, ModuleSource } from "../modules.ts";
 import { WorkspaceModuleCatalog } from "./catalog.ts";
+import { InstalledModuleCatalog } from "./installed.ts";
 import { readPackageJson } from "./workspace.ts";
 
 export interface DiscoverOptions {
@@ -15,11 +16,47 @@ export interface DiscoverOptions {
 	sources?: ModuleSource[];
 }
 
+// Workspace sources win over installed dependencies on a packageName collision.
+export class AutoModuleCatalog implements ModuleCatalog {
+	private readonly workspace: WorkspaceModuleCatalog;
+	private readonly installed: InstalledModuleCatalog;
+
+	constructor(root?: string) {
+		this.workspace = new WorkspaceModuleCatalog(root);
+		this.installed = new InstalledModuleCatalog(root);
+	}
+
+	async sources(): Promise<ModuleSource[]> {
+		const workspaceSources = await this.workspace.sources();
+		const installedSources = await this.installed.sources();
+		const merged: ModuleSource[] = [...workspaceSources];
+		const seen = new Set(workspaceSources.map((source) => source.packageName));
+		for (const source of installedSources) {
+			if (seen.has(source.packageName)) continue;
+			seen.add(source.packageName);
+			merged.push(source);
+		}
+		return merged;
+	}
+
+	async loadDescriptor(source: ModuleSource): Promise<unknown> {
+		return source.type === "workspace"
+			? this.workspace.loadDescriptor(source)
+			: this.installed.loadDescriptor(source);
+	}
+
+	async loadAdapter(source: ModuleSource): Promise<unknown> {
+		return source.type === "workspace"
+			? this.workspace.loadAdapter(source)
+			: this.installed.loadAdapter(source);
+	}
+}
+
 export async function discoverModules(
 	options: DiscoverOptions = {},
 ): Promise<ResolvedModule[]> {
 	const catalog =
-		options.catalog ?? new WorkspaceModuleCatalog(options.workspaceRoot);
+		options.catalog ?? new AutoModuleCatalog(options.workspaceRoot);
 	const sources = options.sources ?? (await catalog.sources());
 	return resolveModules(catalog, sources);
 }

@@ -42,6 +42,34 @@ export function assessUpgrade(
 	};
 }
 
+function canonicalize(value: unknown): unknown {
+	if (Array.isArray(value)) return value.map(canonicalize);
+	if (value !== null && typeof value === "object") {
+		const record = value as Record<string, unknown>;
+		const out: Record<string, unknown> = {};
+		for (const key of Object.keys(record).sort()) {
+			out[key] = canonicalize(record[key]);
+		}
+		return out;
+	}
+	return value;
+}
+
+/**
+ * Deterministic descriptor equality (key-order independent). Used to detect
+ * an already-satisfied upgrade target so we never emit a pretend
+ * `package:upgrade` mutation for an unchanged module.
+ */
+export function descriptorsEqual(
+	current: ModuleDescriptor,
+	target: ModuleDescriptor,
+): boolean {
+	return (
+		JSON.stringify(canonicalize(current)) ===
+		JSON.stringify(canonicalize(target))
+	);
+}
+
 export function planUpgrade(input: PlanInput): DeploymentPlan {
 	const currentDescriptors = input.currentDescriptors;
 	const targetDescriptors = input.targetDescriptors;
@@ -71,6 +99,16 @@ export function planUpgrade(input: PlanInput): DeploymentPlan {
 		if (module === undefined) continue;
 		const current = currentByRef.get(ref);
 		const target = targetByRef.get(ref);
+
+		if (
+			current !== undefined &&
+			target !== undefined &&
+			descriptorsEqual(current, target)
+		) {
+			// already satisfied: no pretend package/config/lifecycle mutation
+			continue;
+		}
+
 		const assessment =
 			current !== undefined && target !== undefined
 				? assessUpgrade(current, target)

@@ -3,6 +3,7 @@ import type {
 	DeploymentPlan,
 	DeploymentState,
 	LockRecord,
+	PendingActionRecord,
 	SelectedModuleFact,
 	VerificationRecord,
 } from "../contracts.ts";
@@ -66,13 +67,14 @@ function isVerificationIndexEntry(
 	);
 }
 
-function isPendingAction(
-	value: unknown,
-): value is DeploymentState["pendingActions"][number] {
+function isPendingAction(value: unknown): value is PendingActionRecord {
 	return (
 		isRecord(value) &&
 		isString(value.planRef) &&
+		isString(value.stepRef) &&
+		isString(value.moduleRef) &&
 		isString(value.action) &&
+		(value.description === undefined || isString(value.description)) &&
 		isString(value.createdAt)
 	);
 }

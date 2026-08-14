@@ -7,9 +7,9 @@ import {
 	parseModuleDescriptor,
 } from "@tomflow/proflow-module-contract";
 import { applyPlan } from "./apply/apply.ts";
+import { rebuildCurrentAssumptions } from "./apply/current.ts";
 import type { ResolvedModule } from "./contracts.ts";
-import { WorkspaceModuleCatalog } from "./discovery/catalog.ts";
-import { discoverModules } from "./discovery/discover.ts";
+import { AutoModuleCatalog, discoverModules } from "./discovery/discover.ts";
 import { doctorModules } from "./doctor/doctor.ts";
 import { PlatformError } from "./errors.ts";
 import { generateInstallDoc } from "./install/install.ts";
@@ -24,6 +24,8 @@ import { ensureLayout, workspacePaths } from "./paths.ts";
 import { loadPlan, savePlan } from "./persistence/plans.ts";
 import type { PlanInput } from "./planner/plan.ts";
 import { planDeployment } from "./planner/plan.ts";
+import { diagnoseRepair } from "./planner/repair.ts";
+import { resolveTargetCatalog } from "./planner/target-catalog.ts";
 import { runPreflight } from "./preflight/preflight.ts";
 import { verifyModules } from "./verification/verify.ts";
 
@@ -58,6 +60,7 @@ interface ParsedArgs {
 	workspace: string | undefined;
 	intent: string | undefined;
 	configFile: string | undefined;
+	targetWorkspace: string | undefined;
 	positional: string[];
 }
 
@@ -68,6 +71,7 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 		workspace: undefined,
 		intent: undefined,
 		configFile: undefined,
+		targetWorkspace: undefined,
 		positional,
 	};
 	for (let index = 1; index < argv.length; index += 1) {
@@ -81,6 +85,9 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 			index += 1;
 		} else if (token === "--config") {
 			parsed.configFile = argv[index + 1];
+			index += 1;
+		} else if (token === "--target-workspace") {
+			parsed.targetWorkspace = argv[index + 1];
 			index += 1;
 		} else if (token.startsWith("-")) {
 		} else {
@@ -197,7 +204,7 @@ interface CliContext {
 
 async function buildContext(workspace?: string): Promise<CliContext> {
 	const root = workspace ?? process.cwd();
-	const catalog = new WorkspaceModuleCatalog(root);
+	const catalog = new AutoModuleCatalog(root);
 	const paths = workspacePaths(root);
 	await ensureLayout(paths);
 	return { catalog, paths };
@@ -210,7 +217,7 @@ async function handlePreflight(
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
 	const config = await loadConfigFile(args.configFile);
-	const result = await runPreflight(selected, { config });
+	const result = await runPreflight(selected, { config, catalog: ctx.catalog });
 	return result.ok
 		? outcome("preflight", "SUCCEEDED", result)
 		: outcome("preflight", "BLOCKED", result);
@@ -235,16 +242,47 @@ async function handlePlan(
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
 	const config = await loadConfigFile(args.configFile);
-	const input: PlanInput =
-		intent === "upgrade"
-			? {
-					intent,
-					modules: selected,
-					currentDescriptors: await loadDescriptors(ctx.catalog, selected),
-					targetDescriptors: await loadDescriptors(ctx.catalog, selected),
-					config,
-				}
-			: { intent, modules: selected, config };
+	const preflight = await runPreflight(selected, {
+		config,
+		catalog: ctx.catalog,
+	});
+	if (
+		preflight.status === "NOT_READY" ||
+		preflight.status === "ACTION_REQUIRED"
+	) {
+		return outcome(
+			"plan",
+			preflight.status === "ACTION_REQUIRED" ? "ACTION_REQUIRED" : "BLOCKED",
+			preflight,
+		);
+	}
+	let input: PlanInput;
+	if (intent === "upgrade") {
+		if (args.targetWorkspace === undefined) {
+			throw new PlatformError(
+				"INVALID_REQUEST",
+				"upgrade requires --target-workspace <path>",
+			);
+		}
+		const target = await resolveTargetCatalog(args.targetWorkspace);
+		input = {
+			intent,
+			modules: selected,
+			currentDescriptors: await loadDescriptors(ctx.catalog, selected),
+			targetDescriptors: target.descriptors,
+			config,
+		};
+	} else if (intent === "repair") {
+		const diagnosis = diagnoseRepair(
+			await doctorModules(ctx.catalog, selected),
+		);
+		if (diagnosis.blocked.length > 0) {
+			return outcome("plan", "BLOCKED", diagnosis);
+		}
+		input = { intent, modules: selected, facts: diagnosis.facts, config };
+	} else {
+		input = { intent, modules: selected, config };
+	}
 	const plan = planDeployment(input);
 	await savePlan(ctx.paths, plan);
 	return outcome("plan", "SUCCEEDED", { planRef: plan.planRef, plan });
@@ -262,11 +300,7 @@ async function handleApply(
 	if (plan === undefined) {
 		throw new PlatformError("PLAN_NOT_FOUND", `plan ${planRef} not found`);
 	}
-	const current: PlanInput = {
-		intent: plan.intent,
-		modules: plan.resolvedModules,
-		targets: plan.moduleTargets,
-	};
+	const current = await rebuildCurrentAssumptions(ctx.catalog, plan);
 	const result = await applyPlan({
 		paths: ctx.paths,
 		planRef,

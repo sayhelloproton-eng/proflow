@@ -17,12 +17,30 @@ export interface DependencyGraph {
 	order: string[];
 }
 
+export interface GraphOptions {
+	config?: Record<string, Record<string, string>>;
+}
+
+export class ModuleRefUnresolvedError extends Error {
+	readonly code = "MODULE_REF_UNRESOLVED" as const;
+	readonly from: string;
+	readonly target: string;
+
+	constructor(from: string, target: string, message: string) {
+		super(message);
+		this.from = from;
+		this.target = target;
+		this.name = "ModuleRefUnresolvedError";
+	}
+}
+
 function compareRef(a: string, b: string): number {
 	return a < b ? -1 : a > b ? 1 : 0;
 }
 
 export function buildDependencyGraph(
 	modules: readonly ResolvedModule[],
+	options: GraphOptions = {},
 ): DependencyGraph {
 	const nodes = [...new Set(modules.map((module) => module.moduleRef))].sort(
 		compareRef,
@@ -64,9 +82,17 @@ export function buildDependencyGraph(
 	for (const module of sorted) {
 		for (const slot of module.configSlots) {
 			if (slot.type !== "moduleRef") continue;
-			if (typeof slot.default !== "string") continue;
-			if (!nodeSet.has(slot.default)) continue;
-			addEdge(module.moduleRef, slot.default, "moduleRef");
+			const effective =
+				options.config?.[module.moduleRef]?.[slot.key] ?? slot.default;
+			if (typeof effective !== "string") continue;
+			if (!nodeSet.has(effective)) {
+				throw new ModuleRefUnresolvedError(
+					module.moduleRef,
+					effective,
+					`moduleRef binding ${slot.key}=${effective} for ${module.moduleRef} does not resolve to a selected module`,
+				);
+			}
+			addEdge(module.moduleRef, effective, "moduleRef");
 		}
 
 		for (const requirement of module.requires) {

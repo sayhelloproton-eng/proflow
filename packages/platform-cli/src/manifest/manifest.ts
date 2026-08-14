@@ -8,9 +8,18 @@ import type {
 import { statusModules } from "../lifecycle/index.ts";
 import type { ModuleCatalog } from "../modules.ts";
 import type { WorkspacePaths } from "../paths.ts";
-import { loadConfig, loadVerificationHistory } from "../persistence/index.ts";
+import {
+	loadConfig,
+	loadDeploymentState,
+	loadVerificationHistory,
+} from "../persistence/index.ts";
+import { clearCompletedPendingActions } from "../persistence/state.ts";
 import { resolveModuleConfig } from "../preflight/index.ts";
-import { assessPlatformReady, type BlockingAction } from "../ready/index.ts";
+import {
+	assessPlatformReady,
+	type BlockingAction,
+	type ResourceReality,
+} from "../ready/index.ts";
 import { redactSecretValues } from "../security/index.ts";
 import { configFingerprint } from "../verification/index.ts";
 
@@ -113,6 +122,7 @@ export async function buildManifest(
 	const allRecords: VerificationRecord[] = [];
 	const pendingActions: ManifestPendingAction[] = [];
 	const blockingActions: BlockingAction[] = [];
+	const resources: ResourceReality[] = [];
 
 	for (const module of modules) {
 		// live runtime status — current reality, not persisted state
@@ -148,7 +158,20 @@ export async function buildManifest(
 		let resourceIdentity: string | undefined;
 		if (module.kind === "external-resource") {
 			const persisted = await loadConfig(deps.paths, module.moduleRef);
-			resourceIdentity = configFingerprint(persisted?.publicValues ?? {});
+			const secretRefs = module.configSlots
+				.filter((slot) => slot.type === "secretRef")
+				.map((slot) => slot.key);
+			resourceIdentity = configFingerprint(
+				persisted?.publicValues ?? {},
+				secretRefs,
+			);
+			resources.push({
+				moduleRef: module.moduleRef,
+				...(resourceIdentity !== undefined ? { resourceIdentity } : {}),
+				...(runtimeResourceVersion !== undefined
+					? { resourceVersion: runtimeResourceVersion }
+					: {}),
+			});
 		}
 
 		manifestModules.push({
@@ -194,12 +217,30 @@ export async function buildManifest(
 		});
 	}
 
+	// persisted pending ACTION_REQUIRED blocks readiness unless its plan is COMPLETE
+	const deploymentState = await loadDeploymentState(deps.paths);
+	if (deploymentState !== undefined) {
+		for (const pending of clearCompletedPendingActions(deploymentState)
+			.pendingActions) {
+			const action: BlockingAction = {
+				moduleRef: pending.moduleRef,
+				action: pending.action,
+				...(pending.description !== undefined
+					? { description: pending.description }
+					: {}),
+			};
+			blockingActions.push(action);
+			pendingActions.push(action);
+		}
+	}
+
 	const { state } = assessPlatformReady({
 		modules,
 		status: statusResults,
 		verification: allRecords,
 		...(deps.config !== undefined ? { config: deps.config } : {}),
 		blockingActions,
+		resources,
 	});
 
 	return {

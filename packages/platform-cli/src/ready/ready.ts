@@ -4,7 +4,10 @@ import type {
 	VerificationRecord,
 } from "../contracts.ts";
 import { PlatformError, type PlatformErrorCode } from "../errors.ts";
-import { buildDependencyGraph } from "../graph/index.ts";
+import {
+	buildDependencyGraph,
+	ModuleRefUnresolvedError,
+} from "../graph/index.ts";
 import type { LifecycleRunResult } from "../lifecycle/index.ts";
 import { checkConfigReadiness } from "../preflight/index.ts";
 
@@ -39,12 +42,19 @@ export interface BlockingAction {
 	description?: string;
 }
 
+export interface ResourceReality {
+	moduleRef: string;
+	resourceIdentity?: string;
+	resourceVersion?: string;
+}
+
 export interface PlatformReadyInput {
 	modules: readonly ResolvedModule[];
 	status: readonly LifecycleRunResult[];
 	verification: readonly VerificationRecord[];
 	config?: Record<string, Record<string, string>>;
 	blockingActions?: readonly BlockingAction[];
+	resources?: readonly ResourceReality[];
 }
 
 export interface PlatformReadyResult {
@@ -105,32 +115,27 @@ export function assessPlatformReady(
 	const modules = [...input.modules].sort((a, b) =>
 		compareRef(a.moduleRef, b.moduleRef),
 	);
-	const nodeSet = new Set(modules.map((module) => module.moduleRef));
 
-	// logical dependencies resolved + cross-module compatibility
+	// logical dependencies, cross-module compatibility, and moduleRef bindings
 	try {
-		buildDependencyGraph(modules);
+		buildDependencyGraph(
+			modules,
+			input.config === undefined ? {} : { config: input.config },
+		);
 	} catch (error) {
-		if (!(error instanceof PlatformError)) throw error;
-		const code = toDependencyCode(error.code);
-		if (code === undefined) throw error;
-		findings.push({ severity: "blocking", code, message: error.message });
-	}
-
-	// moduleRef bindings resolved
-	for (const module of modules) {
-		for (const slot of module.configSlots) {
-			if (slot.type !== "moduleRef" || typeof slot.default !== "string") {
-				continue;
-			}
-			if (!nodeSet.has(slot.default)) {
-				findings.push({
-					severity: "blocking",
-					code: "MODULE_REF_UNRESOLVED",
-					moduleRef: module.moduleRef,
-					message: `moduleRef binding ${slot.key}=${slot.default} for ${module.moduleRef} does not resolve to a selected module`,
-				});
-			}
+		if (error instanceof ModuleRefUnresolvedError) {
+			findings.push({
+				severity: "blocking",
+				code: "MODULE_REF_UNRESOLVED",
+				moduleRef: error.from,
+				message: error.message,
+			});
+		} else if (error instanceof PlatformError) {
+			const code = toDependencyCode(error.code);
+			if (code === undefined) throw error;
+			findings.push({ severity: "blocking", code, message: error.message });
+		} else {
+			throw error;
 		}
 	}
 
@@ -205,19 +210,39 @@ export function assessPlatformReady(
 		}
 	}
 
-	// current-version verification PASS
+	// current-version verification PASS against current resource reality
 	const recordsByRef = new Map<string, VerificationRecord[]>();
 	for (const record of input.verification) {
 		const list = recordsByRef.get(record.moduleRef) ?? [];
 		list.push(record);
 		recordsByRef.set(record.moduleRef, list);
 	}
+	const resourcesByRef = new Map(
+		(input.resources ?? []).map(
+			(resource) => [resource.moduleRef, resource] as const,
+		),
+	);
 	for (const module of modules) {
 		if (!module.lifecycle.includes("verify")) continue;
 		const records = recordsByRef.get(module.moduleRef) ?? [];
-		const current = records.filter(
-			(record) => record.moduleVersion === module.moduleVersion,
-		);
+		const reality = resourcesByRef.get(module.moduleRef);
+		const current = records.filter((record) => {
+			if (record.moduleVersion !== module.moduleVersion) return false;
+			if (reality === undefined) return true;
+			if (
+				reality.resourceIdentity !== undefined &&
+				record.resourceIdentity !== reality.resourceIdentity
+			) {
+				return false;
+			}
+			if (
+				reality.resourceVersion !== undefined &&
+				record.resourceVersion !== reality.resourceVersion
+			) {
+				return false;
+			}
+			return true;
+		});
 		const latestCurrent = current[current.length - 1];
 		if (latestCurrent === undefined) {
 			const code: ReadyFindingCode =

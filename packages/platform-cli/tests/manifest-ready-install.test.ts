@@ -430,7 +430,7 @@ test("NOT_READY when verification is missing", () => {
 
 // ---- Manifest dynamic composition ----
 
-test("buildManifest composes live status, verification summary, redacted config, and pending actions", async () => {
+test("buildManifest composes live status, verification summary, secretRef references, and pending actions", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
 		const svc = moduleFixture({
@@ -461,7 +461,9 @@ test("buildManifest composes live status, verification summary, redacted config,
 			catalog,
 			modules: [svc],
 			paths,
-			config: { svc: { token: "raw-secret-123", region: "us-east" } },
+			config: {
+				svc: { token: "secret://model-provider/default", region: "us-east" },
+			},
 		});
 
 		assert.equal(manifest.contract, "proflow.manifest.v1");
@@ -475,8 +477,7 @@ test("buildManifest composes live status, verification summary, redacted config,
 
 		const config = manifest.config[0];
 		assert.ok(config !== undefined);
-		assert.equal(config.values.token, SECRET_REDACTED);
-		assert.notEqual(config.values.token, "raw-secret-123");
+		assert.equal(config.values.token, "secret://model-provider/default");
 		assert.equal(config.values.region, "us-east");
 		assert.ok(config.secretRefs.includes("token"));
 		assert.deepEqual(config.missing, []);
@@ -581,7 +582,9 @@ test("renderInstallDoc includes module set, requirements, config slots, effects,
 
 	const doc = renderInstallDoc({
 		modules: [svc],
-		config: { svc: { token: "super-secret-token-123", region: "us-east" } },
+		config: {
+			svc: { token: "secret://model-provider/default", region: "us-east" },
+		},
 	});
 
 	assert.ok(doc.includes("svc"));
@@ -589,47 +592,35 @@ test("renderInstallDoc includes module set, requirements, config slots, effects,
 	assert.ok(doc.includes("token"));
 	assert.ok(doc.includes("region"));
 	assert.ok(doc.includes("node"));
-	assert.ok(doc.includes(SECRET_REDACTED));
-	assert.ok(!doc.includes("super-secret-token-123"));
+	assert.ok(doc.includes("secret://model-provider/default"));
 	assert.ok(doc.includes("us-east"));
 });
 
-test("renderInstallDoc redacts a raw secret even if it leaks into a non-secret slot", () => {
+test("renderInstallDoc redacts a non-secretRef sensitive raw value", () => {
 	const svc = moduleFixture({
 		moduleRef: "svc",
 		kind: "service",
 		configSlots: [
 			{
-				key: "token",
-				type: "secretRef",
+				key: "credential",
+				type: "string",
 				required: true,
 				sensitive: true,
-				description: "api token",
-			},
-			{
-				key: "endpoint",
-				type: "string",
-				required: false,
-				description: "endpoint",
+				description: "raw credential",
 			},
 		],
 	});
 
 	const doc = renderInstallDoc({
 		modules: [svc],
-		config: {
-			svc: {
-				token: "abc-SECRET-xyz",
-				endpoint: "https://host/?token=abc-SECRET-xyz",
-			},
-		},
+		config: { svc: { credential: "abc-SECRET-xyz" } },
 	});
 
 	assert.ok(!doc.includes("abc-SECRET-xyz"));
 	assert.ok(doc.includes(SECRET_REDACTED));
 });
 
-test("generateInstallDoc writes INSTALL.md and redacts raw secrets", async () => {
+test("generateInstallDoc writes INSTALL.md and redacts a non-secretRef sensitive raw value", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
 		const svc = moduleFixture({
@@ -637,11 +628,11 @@ test("generateInstallDoc writes INSTALL.md and redacts raw secrets", async () =>
 			kind: "service",
 			configSlots: [
 				{
-					key: "token",
-					type: "secretRef",
+					key: "credential",
+					type: "string",
 					required: true,
 					sensitive: true,
-					description: "api token",
+					description: "raw credential",
 				},
 			],
 		});
@@ -649,7 +640,7 @@ test("generateInstallDoc writes INSTALL.md and redacts raw secrets", async () =>
 		await generateInstallDoc({
 			paths,
 			modules: [svc],
-			config: { svc: { token: "super-secret-token-123" } },
+			config: { svc: { credential: "super-secret-token-123" } },
 		});
 
 		const content = await readFile(paths.installMd, "utf8");

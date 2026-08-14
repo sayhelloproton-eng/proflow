@@ -138,7 +138,11 @@ test("planDeployment covers config/package/human/external-resource/lifecycle kin
 			requirements: [{ kind: "human", action: "grant access" }],
 			lifecycle: ["describe", "verify", "doctor", "start"],
 		}),
-		moduleFixture({ moduleRef: "ext", kind: "external-resource" }),
+		moduleFixture({
+			moduleRef: "ext",
+			kind: "external-resource",
+			lifecycle: ["describe", "verify", "doctor", "start"],
+		}),
 	];
 	const plan = planDeployment({ intent: "install", modules });
 	const kinds = new Set(plan.steps.map((step) => step.kind));
@@ -227,8 +231,7 @@ test("checkPlanStale flags stable assumption change but not volatile reality cha
 	assert.equal(volatile.stale, false);
 });
 
-test("fingerprint redacts secretRef values and does not leak raw secrets", () => {
-	const secret = "super-secret-token-xyzzy";
+test("fingerprint includes secretRef references verbatim so A→B changes it", () => {
 	const modules = [
 		moduleFixture({
 			moduleRef: "a",
@@ -237,22 +240,20 @@ test("fingerprint redacts secretRef values and does not leak raw secrets", () =>
 			],
 		}),
 	];
-	const plan = planDeployment({
+	const planA = planDeployment({
 		intent: "install",
 		modules,
-		config: { a: { apiKey: secret } },
+		config: { a: { apiKey: "secret://model-provider/default" } },
 	});
-
-	assert.ok(!plan.fingerprint.includes(secret));
-	assert.ok(!plan.planRef.includes(secret));
-
-	// secretRef value change does NOT change fingerprint (identity-only, redacted)
 	const planB = planDeployment({
 		intent: "install",
 		modules,
-		config: { a: { apiKey: "a-different-secret-value" } },
+		config: { a: { apiKey: "credential-ref:local-platform" } },
 	});
-	assert.equal(planB.fingerprint, plan.fingerprint);
+
+	// secretRef values are opaque reference identities: a reference change
+	// (A→B) is a stable-assumption change and must change the fingerprint.
+	assert.notEqual(planB.fingerprint, planA.fingerprint);
 });
 
 // ---------------------------------------------------------------------------

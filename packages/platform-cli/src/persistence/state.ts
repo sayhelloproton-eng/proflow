@@ -1,4 +1,4 @@
-import type { DeploymentState } from "../contracts.ts";
+import type { DeploymentState, PendingActionRecord } from "../contracts.ts";
 import { readJson, type WorkspacePaths } from "../paths.ts";
 import { writeJsonAtomic } from "./atomic.ts";
 import { DEPLOYMENT_STATE_CONTRACT, isDeploymentState } from "./guards.ts";
@@ -12,6 +12,27 @@ export function emptyDeploymentState(): DeploymentState {
 		pendingActions: [],
 		updatedAt: new Date().toISOString(),
 	};
+}
+
+export function clearPendingActions(
+	state: DeploymentState,
+	isResolved: (action: PendingActionRecord) => boolean,
+): DeploymentState {
+	return {
+		...state,
+		pendingActions: state.pendingActions.filter(
+			(action) => !isResolved(action),
+		),
+	};
+}
+
+export function clearCompletedPendingActions(
+	state: DeploymentState,
+): DeploymentState {
+	const completed = new Set(
+		state.lastAppliedPlans.map((entry) => entry.planRef),
+	);
+	return clearPendingActions(state, (action) => completed.has(action.planRef));
 }
 
 // Loaded state is validated at the boundary; a missing or corrupt file resolves

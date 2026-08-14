@@ -16,7 +16,7 @@ import {
 import { acquireWorkspaceLock } from "../security/index.ts";
 import type { PackageManagerDriver } from "./driver.ts";
 import { workspaceResidentDriver } from "./driver.ts";
-import { executeStep } from "./execute.ts";
+import { type ExecuteStepOutcome, executeStep } from "./execute.ts";
 import type { RealityObserver } from "./reality.ts";
 import { createRealityObserver } from "./reality.ts";
 
@@ -41,9 +41,10 @@ function failureMessage(error: unknown): string {
 /**
  * Applies a frozen deployment plan deterministically. Every step is re-checked
  * against current reality before any action: satisfied steps SKIP, human steps
- * persist a pendingAction and STOP with ACTION_REQUIRED, a failed/unknown effect
- * STOPs with FAILED, and only a fully applied plan is recorded in
- * `lastAppliedPlans`. The exclusive workspace lock is released in all paths.
+ * and ACTION_REQUIRED mutations persist a structured pendingAction and STOP with
+ * ACTION_REQUIRED, a BLOCKED/FAILED mutation STOPs with the matching outcome,
+ * and only a fully applied plan is recorded in `lastAppliedPlans`. The exclusive
+ * workspace lock is released in all paths.
  */
 export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 	const driver = context.driver ?? workspaceResidentDriver();
@@ -87,6 +88,15 @@ export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 				await observer.observe(step, plan),
 			);
 			if (check.status === "SATISFIED") {
+				// A previously-pending action for this step can no longer block a
+				// resume: the step is satisfied in current reality, so clear it.
+				state.pendingActions = state.pendingActions.filter(
+					(pending) =>
+						!(
+							pending.planRef === plan.planRef &&
+							pending.stepRef === step.stepRef
+						),
+				);
 				stepResults.push({
 					stepRef: step.stepRef,
 					moduleRef: step.moduleRef,
@@ -100,6 +110,8 @@ export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 				const completedAt = nowIso();
 				state.pendingActions.push({
 					planRef: plan.planRef,
+					stepRef: step.stepRef,
+					moduleRef: step.moduleRef,
 					action: step.expectedEffect,
 					createdAt: completedAt,
 				});
@@ -119,8 +131,9 @@ export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 				};
 			}
 
+			let outcome: ExecuteStepOutcome;
 			try {
-				await executeStep(
+				outcome = await executeStep(
 					{ paths: context.paths, catalog: context.catalog, driver },
 					step,
 					plan,
@@ -142,36 +155,98 @@ export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 				};
 			}
 
-			// Postcondition re-check: an effect that cannot be confirmed after
-			// execution stops the apply rather than blindly repeating it.
-			const post = evaluateStepCheck(
-				step,
-				plan,
-				await observer.observe(step, plan),
-			);
-			if (post.status !== "SATISFIED") {
-				stepResults.push({
-					stepRef: step.stepRef,
-					moduleRef: step.moduleRef,
-					status: "FAILED",
-					message: `postcondition not satisfied after execution: ${post.reason}`,
-				});
-				state.updatedAt = nowIso();
-				await saveDeploymentState(context.paths, state);
-				return {
-					planRef: plan.planRef,
-					outcome: "FAILED",
-					stepResults,
-					completedAt: nowIso(),
-				};
+			switch (outcome.kind) {
+				case "SUCCEEDED": {
+					// Postcondition re-check: only a genuinely successful mutation is
+					// confirmed; an effect that cannot be confirmed stops the apply
+					// rather than blindly repeating it.
+					const post = evaluateStepCheck(
+						step,
+						plan,
+						await observer.observe(step, plan),
+					);
+					if (post.status !== "SATISFIED") {
+						stepResults.push({
+							stepRef: step.stepRef,
+							moduleRef: step.moduleRef,
+							status: "FAILED",
+							message: `postcondition not satisfied after execution: ${post.reason}`,
+						});
+						state.updatedAt = nowIso();
+						await saveDeploymentState(context.paths, state);
+						return {
+							planRef: plan.planRef,
+							outcome: "FAILED",
+							stepResults,
+							completedAt: nowIso(),
+						};
+					}
+					stepResults.push({
+						stepRef: step.stepRef,
+						moduleRef: step.moduleRef,
+						status: "EXECUTED",
+						message: post.reason,
+					});
+					break;
+				}
+				case "ACTION_REQUIRED": {
+					const completedAt = nowIso();
+					state.pendingActions.push({
+						planRef: plan.planRef,
+						stepRef: step.stepRef,
+						moduleRef: step.moduleRef,
+						action: outcome.actionRequired.action,
+						description: outcome.actionRequired.description,
+						createdAt: completedAt,
+					});
+					state.updatedAt = completedAt;
+					await saveDeploymentState(context.paths, state);
+					stepResults.push({
+						stepRef: step.stepRef,
+						moduleRef: step.moduleRef,
+						status: "ACTION_REQUIRED",
+						message: outcome.actionRequired.action,
+					});
+					return {
+						planRef: plan.planRef,
+						outcome: "ACTION_REQUIRED",
+						stepResults,
+						completedAt,
+					};
+				}
+				case "BLOCKED": {
+					stepResults.push({
+						stepRef: step.stepRef,
+						moduleRef: step.moduleRef,
+						status: "FAILED",
+						message: `blocked: ${outcome.reason}`,
+					});
+					state.updatedAt = nowIso();
+					await saveDeploymentState(context.paths, state);
+					return {
+						planRef: plan.planRef,
+						outcome: "BLOCKED",
+						stepResults,
+						completedAt: nowIso(),
+					};
+				}
+				case "FAILED": {
+					stepResults.push({
+						stepRef: step.stepRef,
+						moduleRef: step.moduleRef,
+						status: "FAILED",
+						message: outcome.reason,
+					});
+					state.updatedAt = nowIso();
+					await saveDeploymentState(context.paths, state);
+					return {
+						planRef: plan.planRef,
+						outcome: "FAILED",
+						stepResults,
+						completedAt: nowIso(),
+					};
+				}
 			}
-
-			stepResults.push({
-				stepRef: step.stepRef,
-				moduleRef: step.moduleRef,
-				status: "EXECUTED",
-				message: post.reason,
-			});
 		}
 
 		const completedAt = nowIso();

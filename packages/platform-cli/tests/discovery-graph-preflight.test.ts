@@ -16,7 +16,10 @@ import {
 import type { ResolvedModule } from "../src/contracts.ts";
 import { discoverModules, resolveModules } from "../src/discovery/index.ts";
 import { PlatformError, type PlatformErrorCode } from "../src/errors.ts";
-import { buildDependencyGraph } from "../src/graph/index.ts";
+import {
+	buildDependencyGraph,
+	ModuleRefUnresolvedError,
+} from "../src/graph/index.ts";
 import {
 	type ModuleCatalog,
 	type ModuleSource,
@@ -209,6 +212,143 @@ test("graph builds exact moduleRef edges from moduleRef config slots", () => {
 				edge.from === "consumer" &&
 				edge.to === "target",
 		),
+	);
+});
+
+test("graph binds the effective config moduleRef override over the slot default", () => {
+	const modules = [
+		moduleFixture({ moduleRef: "target" }),
+		moduleFixture({ moduleRef: "alternate-provider" }),
+		moduleFixture({
+			moduleRef: "consumer",
+			configSlots: [
+				{
+					key: "providerModuleRef",
+					type: "moduleRef",
+					required: false,
+					description: "provider module",
+					default: "target",
+				},
+			],
+		}),
+	];
+	const graph = buildDependencyGraph(modules, {
+		config: { consumer: { providerModuleRef: "alternate-provider" } },
+	});
+	assert.ok(
+		graph.edges.some(
+			(edge) =>
+				edge.kind === "moduleRef" &&
+				edge.from === "consumer" &&
+				edge.to === "alternate-provider",
+		),
+	);
+	assert.ok(
+		!graph.edges.some(
+			(edge) =>
+				edge.kind === "moduleRef" &&
+				edge.from === "consumer" &&
+				edge.to === "target",
+		),
+	);
+});
+
+test("graph throws MODULE_REF_UNRESOLVED for a default moduleRef with no target", () => {
+	const modules = [
+		moduleFixture({
+			moduleRef: "consumer",
+			configSlots: [
+				{
+					key: "providerModuleRef",
+					type: "moduleRef",
+					required: false,
+					description: "provider module",
+					default: "missing-provider",
+				},
+			],
+		}),
+	];
+	assert.throws(
+		() => buildDependencyGraph(modules),
+		(error: unknown) =>
+			error instanceof ModuleRefUnresolvedError &&
+			error.code === "MODULE_REF_UNRESOLVED",
+	);
+});
+
+test("graph throws MODULE_REF_UNRESOLVED for a config override with no target", () => {
+	const modules = [
+		moduleFixture({ moduleRef: "target" }),
+		moduleFixture({
+			moduleRef: "consumer",
+			configSlots: [
+				{
+					key: "providerModuleRef",
+					type: "moduleRef",
+					required: false,
+					description: "provider module",
+					default: "target",
+				},
+			],
+		}),
+	];
+	assert.throws(
+		() =>
+			buildDependencyGraph(modules, {
+				config: { consumer: { providerModuleRef: "does-not-exist" } },
+			}),
+		(error: unknown) =>
+			error instanceof ModuleRefUnresolvedError &&
+			error.code === "MODULE_REF_UNRESOLVED",
+	);
+});
+
+test("graph does not treat a URL config value as a module identity", () => {
+	const modules = [
+		moduleFixture({ moduleRef: "target" }),
+		moduleFixture({
+			moduleRef: "consumer",
+			configSlots: [
+				{
+					key: "providerModuleRef",
+					type: "moduleRef",
+					required: false,
+					description: "provider module",
+					default: "target",
+				},
+			],
+		}),
+	];
+	assert.throws(
+		() =>
+			buildDependencyGraph(modules, {
+				config: { consumer: { providerModuleRef: "http://localhost:8080" } },
+			}),
+		(error: unknown) =>
+			error instanceof ModuleRefUnresolvedError &&
+			error.code === "MODULE_REF_UNRESOLVED",
+	);
+});
+
+test("preflight reports MODULE_REF_UNRESOLVED as a blocking finding", async () => {
+	const modules = [
+		moduleFixture({
+			moduleRef: "consumer",
+			configSlots: [
+				{
+					key: "providerModuleRef",
+					type: "moduleRef",
+					required: false,
+					description: "provider module",
+					default: "missing-provider",
+				},
+			],
+		}),
+	];
+	const result = await runPreflight(modules);
+	assert.equal(result.status, "NOT_READY");
+	assert.ok(
+		result.findings.some((finding) => finding.code === "MODULE_REF_UNRESOLVED"),
 	);
 });
 

@@ -28,14 +28,18 @@ function sha256(value: string): string {
 	return createHash("sha256").update(value).digest("hex");
 }
 
-function sensitiveKeyMap(
+// Maps each moduleRef to the config keys that hold RAW secret values and must
+// be redacted from the fingerprint. secretRef slots are explicitly excluded:
+// their values are opaque reference identities (e.g. `secret://…`), which are
+// fingerprinted verbatim so a reference change (A→B) changes the fingerprint.
+function rawSecretKeyMap(
 	modules: readonly ResolvedModule[],
 ): Map<string, Set<string>> {
 	const map = new Map<string, Set<string>>();
 	for (const module of modules) {
 		const set = new Set<string>();
 		for (const slot of module.configSlots) {
-			if (slot.type === "secretRef" || slot.sensitive === true) {
+			if (slot.type !== "secretRef" && slot.sensitive === true) {
 				set.add(slot.key);
 			}
 		}
@@ -102,28 +106,28 @@ function canonicalModules(modules: readonly ResolvedModule[]): unknown {
 
 function redactConfig(
 	config: Record<string, string>,
-	sensitive: ReadonlySet<string>,
+	rawSecretKeys: ReadonlySet<string>,
 ): Record<string, string> {
 	const result: Record<string, string> = {};
 	for (const key of Object.keys(config).sort()) {
-		result[key] = sensitive.has(key) ? "<redacted>" : (config[key] ?? "");
+		result[key] = rawSecretKeys.has(key) ? "<redacted>" : (config[key] ?? "");
 	}
 	return result;
 }
 
 function redactedTargets(
 	targets: readonly ModuleTarget[],
-	sensitiveByRef: ReadonlyMap<string, ReadonlySet<string>>,
+	rawSecretByRef: ReadonlyMap<string, ReadonlySet<string>>,
 ): unknown {
 	return [...targets]
 		.sort((a, b) => compareRef(a.moduleRef, b.moduleRef))
 		.map((target) => {
-			const sensitive =
-				sensitiveByRef.get(target.moduleRef) ?? new Set<string>();
+			const rawSecretKeys =
+				rawSecretByRef.get(target.moduleRef) ?? new Set<string>();
 			const config =
 				target.config === undefined
 					? null
-					: redactConfig(target.config, sensitive);
+					: redactConfig(target.config, rawSecretKeys);
 			return {
 				moduleRef: target.moduleRef,
 				targetVersion: target.targetVersion ?? null,
@@ -158,11 +162,11 @@ export interface FingerprintSource {
 export function buildFingerprintSource(
 	plan: DeploymentPlan,
 ): FingerprintSource {
-	const sensitiveByRef = sensitiveKeyMap(plan.resolvedModules);
+	const rawSecretByRef = rawSecretKeyMap(plan.resolvedModules);
 	return {
 		intent: plan.intent,
 		targets: stableStringify(
-			redactedTargets(plan.moduleTargets, sensitiveByRef),
+			redactedTargets(plan.moduleTargets, rawSecretByRef),
 		),
 		modules: stableStringify(canonicalModules(plan.resolvedModules)),
 		steps: stableStringify(canonicalSteps(plan.steps)),

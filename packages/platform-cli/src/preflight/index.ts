@@ -2,6 +2,8 @@ export type { ResolvedModuleConfig } from "./config.ts";
 export { checkConfigReadiness, resolveModuleConfig } from "./config.ts";
 export type {
 	FindingSeverity,
+	ModulePreflightResult,
+	ModulePreflightStatus,
 	PreflightFinding,
 	PreflightFindingCode,
 	PreflightResult,
