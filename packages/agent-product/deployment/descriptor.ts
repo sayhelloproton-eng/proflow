@@ -19,7 +19,15 @@ export const descriptor = {
 		{ kind: "network", url: "https://chatgpt.com/" },
 		{ kind: "human", action: "Materialize and verify the Custom GPT carrier" },
 	],
-	configSlots: [],
+	configSlots: [
+		{
+			key: "carrierModuleRef",
+			type: "moduleRef",
+			required: false,
+			description: "External resource module governing the Custom GPT carrier",
+			default: "chatgpt-carrier",
+		},
+	],
 	lifecycle: {
 		supported: ["describe", "preflight", "status", "verify", "doctor"],
 	},

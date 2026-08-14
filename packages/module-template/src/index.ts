@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import {
 	type ModuleDescriptor,
 	type ModuleKind,
+	type ModuleOperationResult,
 	parseModuleDescriptor,
 } from "@tomflow/proflow-module-contract";
 
@@ -37,15 +38,7 @@ export interface GeneratedPackageMetadata {
 }
 
 export interface GeneratedBehaviorObservation {
-	result: {
-		contract: "deployment.result.v1";
-		ok: boolean;
-		status: "SUCCEEDED" | "BLOCKED" | "ACTION_REQUIRED" | "FAILED";
-		moduleRef: string;
-		moduleVersion: string;
-		checks?: Array<{ id: string; status: "PASS" | "FAIL"; message: string }>;
-		actionRequired?: { action: string; description: string };
-	};
+	result: ModuleOperationResult;
 	observedEffects: string[];
 	externalAvailabilityClaim?: "UNKNOWN" | "AVAILABLE" | "UNAVAILABLE";
 	externalAvailabilityEvidence?: "none" | "fake" | "real";
@@ -191,7 +184,7 @@ function packageJson(descriptor: ModuleDescriptor): string {
 				typecheck: "tsc --noEmit",
 				test: "node --test tests/**/*.test.ts",
 			},
-			devDependencies: { typescript: "7.0.2" },
+			devDependencies: { typescript: "7.0.2", "@types/node": "24.10.1" },
 		},
 		null,
 		2,
@@ -211,6 +204,9 @@ function operationSource(
 	}
 	if (descriptor.kind === "external-resource" && primitive === "status") {
 		return `() => ({ result: baseResult, observedEffects: [], externalAvailabilityClaim: "UNKNOWN", externalAvailabilityEvidence: "fake" })`;
+	}
+	if (descriptor.kind === "browser-extension" && primitive === "status") {
+		return `() => ({ result: { ...baseResult, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "load-browser-extension", description: "Load the built MV3 extension in a browser to observe its real status and availability" } }, observedEffects: [], externalAvailabilityClaim: "UNKNOWN", externalAvailabilityEvidence: "none" })`;
 	}
 	if (primitive === "verify") {
 		return `() => ({ result: { ...baseResult, ok: false, status: "FAILED", checks: [{ id: "owner-verification-required", status: "FAIL", message: "Owner-specific verification is not implemented" }], error: { code: "VERIFY_FAILED", message: "Owner-specific verification is not implemented", retryable: false } }, observedEffects: [] })`;
@@ -260,6 +256,7 @@ function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
 		case "service":
 			return {
 				"src/lifecycle.ts": `export type ServiceState = "STOPPED" | "RUNNING";\n\nlet state: ServiceState = "STOPPED";\n\nexport function status(): ServiceState {\n\treturn state;\n}\n\nexport function start(): ServiceState {\n\tstate = "RUNNING";\n\treturn state;\n}\n\nexport function stop(): ServiceState {\n\tstate = "STOPPED";\n\treturn state;\n}\n\nexport function restart(): ServiceState {\n\tstop();\n\treturn start();\n}\n`,
+				"tests/lifecycle.test.ts": `import assert from "node:assert/strict";\nimport { test } from "node:test";\n\nimport { restart, start, status, stop } from "../src/lifecycle.ts";\n\ntest("a service starts in STOPPED and start() moves it to RUNNING", () => {\n\tstop();\n\tassert.equal(status(), "STOPPED");\n\tassert.equal(start(), "RUNNING");\n\tassert.equal(status(), "RUNNING");\n});\n\ntest("stop() moves a running service back to STOPPED", () => {\n\tstart();\n\tassert.equal(status(), "RUNNING");\n\tassert.equal(stop(), "STOPPED");\n\tassert.equal(status(), "STOPPED");\n});\n\ntest("restart() stops then starts, ending in RUNNING", () => {\n\tstop();\n\tassert.equal(restart(), "RUNNING");\n\tassert.equal(status(), "RUNNING");\n});\n`,
 			};
 		case "cli":
 			return {
@@ -303,7 +300,7 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 					exactOptionalPropertyTypes: true,
 					skipLibCheck: true,
 				},
-				include: ["src/**/*.ts", "tests/**/*.ts", "deployment/**/*.ts"],
+				include: ["src/**/*.ts", "deployment/**/*.ts"],
 			},
 			null,
 			2,
@@ -379,10 +376,17 @@ export async function loadGeneratedBehaviorAdapter(
 		throw new TypeError("generated adapter module is invalid");
 	}
 	const adapter = Reflect.get(loaded, "behaviorAdapter");
-	if (typeof adapter !== "object" || adapter === null) {
+	if (!isGeneratedBehaviorAdapter(adapter)) {
 		throw new TypeError("generated package does not export behaviorAdapter");
 	}
-	return adapter as GeneratedBehaviorAdapter;
+	return adapter;
+}
+
+function isGeneratedBehaviorAdapter(
+	value: unknown,
+): value is GeneratedBehaviorAdapter {
+	if (typeof value !== "object" || value === null) return false;
+	return Object.values(value).every((entry) => typeof entry === "function");
 }
 
 export interface TemplateMigrationInput {

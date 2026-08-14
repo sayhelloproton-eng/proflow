@@ -13,7 +13,6 @@ export const descriptor = {
 	],
 	requirements: [
 		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
-		{ kind: "network", url: "https://provider.invalid/v1/" },
 	],
 	configSlots: [
 		{
@@ -46,6 +45,13 @@ export const descriptor = {
 			type: "string",
 			required: true,
 			description: "Provider model identifier for REASON",
+		},
+		{
+			key: "providerModuleRef",
+			type: "moduleRef",
+			required: false,
+			description: "External resource module governing the provider API",
+			default: "model-provider-api",
 		},
 	],
 	lifecycle: {

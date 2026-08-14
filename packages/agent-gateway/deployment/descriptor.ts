@@ -15,10 +15,6 @@ export const descriptor = {
 	],
 	requirements: [
 		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
-		{
-			kind: "human",
-			action: "Provide the registered dev-tunnel public HTTPS endpoint",
-		},
 	],
 	configSlots: [
 		{
@@ -26,6 +22,13 @@ export const descriptor = {
 			type: "url",
 			required: true,
 			description: "Public HTTPS URL supplied by the dev-tunnel resource",
+		},
+		{
+			key: "publicIngressModuleRef",
+			type: "moduleRef",
+			required: false,
+			description: "External resource module governing the public ingress",
+			default: "dev-tunnel",
 		},
 	],
 	lifecycle: {

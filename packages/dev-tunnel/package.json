@@ -1,0 +1,28 @@
+{
+	"name": "@tomflow/proflow-dev-tunnel",
+	"version": "0.1.0",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./dist/src/index.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js"
+	},
+	"files": [
+		"dist",
+		"conformance.json",
+		"README.md"
+	],
+	"scripts": {
+		"test": "node --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@tomflow/proflow-module-contract": "workspace:^"
+	},
+	"devDependencies": {
+		"@tomflow/proflow-deployment-conformance": "workspace:^"
+	}
+}

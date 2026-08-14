@@ -58,6 +58,16 @@
 			],
 			"@tomflow/proflow-task-store-sqlite/migrations": [
 				"./packages/task-store-sqlite/src/migrations.ts"
+			],
+			"@tomflow/proflow-chatgpt-carrier": [
+				"./packages/chatgpt-carrier/src/index.ts"
+			],
+			"@tomflow/proflow-chrome-runtime": [
+				"./packages/chrome-runtime/src/index.ts"
+			],
+			"@tomflow/proflow-dev-tunnel": ["./packages/dev-tunnel/src/index.ts"],
+			"@tomflow/proflow-model-provider-api": [
+				"./packages/model-provider-api/src/index.ts"
 			]
 		},
 		"types": ["node"],

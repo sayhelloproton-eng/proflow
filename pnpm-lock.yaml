@@ -101,6 +101,26 @@ importers:
         specifier: 2.9.0
         version: 2.9.0
 
+  packages/chatgpt-carrier:
+    dependencies:
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+
+  packages/chrome-runtime:
+    dependencies:
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
+
   packages/deployment-conformance:
     dependencies:
       '@tomflow/proflow-module-contract':
@@ -113,6 +133,16 @@ importers:
       '@tomflow/proflow-module-template':
         specifier: workspace:^
         version: link:../module-template
+
+  packages/dev-tunnel:
+    dependencies:
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
 
   packages/execution-browser-extension:
     dependencies:
@@ -160,6 +190,16 @@ importers:
       zod:
         specifier: 4.1.12
         version: 4.1.12
+
+  packages/model-provider-api:
+    dependencies:
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
+    devDependencies:
+      '@tomflow/proflow-deployment-conformance':
+        specifier: workspace:^
+        version: link:../deployment-conformance
 
   packages/model-runtime:
     dependencies:

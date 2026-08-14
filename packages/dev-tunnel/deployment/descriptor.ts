@@ -1,0 +1,82 @@
+export const descriptor = {
+	contract: "module",
+	contractVersion: "1.0.0",
+	moduleRef: "dev-tunnel",
+	packageName: "@tomflow/proflow-dev-tunnel",
+	moduleVersion: "0.1.0",
+	kind: "external-resource",
+	templateVersion: "1.0.0",
+	platformCompatibility: ">=1.0.0 <2.0.0",
+	provides: [],
+	requires: [],
+	requirements: [
+		{ kind: "executable", command: "devtunnel" },
+		{
+			kind: "human",
+			action: "Complete Microsoft Dev Tunnel login when required",
+		},
+	],
+	configSlots: [
+		{
+			key: "publicBaseUrl",
+			type: "url",
+			required: true,
+			description: "Public HTTPS URL supplied by the dev-tunnel resource",
+		},
+		{
+			key: "tunnelId",
+			type: "string",
+			required: false,
+			description:
+				"Persistent Microsoft Dev Tunnel identifier used when this adapter owns lifecycle start/stop",
+		},
+	],
+	lifecycle: {
+		supported: [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor",
+			"start",
+			"stop",
+			"restart",
+		],
+	},
+	verification: {
+		checks: [
+			{
+				id: "tunnel-status",
+				description:
+					"dev-tunnel process reports a real running or stopped state",
+				lifecycle: "status",
+			},
+			{
+				id: "tunnel-public-ingress",
+				description:
+					"public HTTPS ingress passes the frozen TLS/port/size/latency contract",
+				lifecycle: "verify",
+			},
+			{
+				id: "tunnel-file-relay",
+				description: "file relay behind the public ingress is reachable",
+				lifecycle: "verify",
+			},
+			{
+				id: "tunnel-diagnostics",
+				description: "dev-tunnel configuration has actionable diagnostics",
+				lifecycle: "doctor",
+			},
+		],
+	},
+	effects: [
+		{
+			kind: "process",
+			description: "Runs the dev-tunnel public ingress process",
+		},
+		{
+			kind: "external-resource",
+			description: "Exposes the local platform via a public HTTPS tunnel",
+		},
+	],
+} as const;

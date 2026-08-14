@@ -35,6 +35,20 @@ export const descriptor = {
 			sensitive: true,
 			description: "Extension-scoped local platform credential reference",
 		},
+		{
+			key: "chromeRuntimeModuleRef",
+			type: "moduleRef",
+			required: false,
+			description: "External resource module governing the Chrome runtime",
+			default: "chrome-runtime",
+		},
+		{
+			key: "carrierModuleRef",
+			type: "moduleRef",
+			required: false,
+			description: "External resource module governing the Custom GPT carrier",
+			default: "chatgpt-carrier",
+		},
 	],
 	lifecycle: {
 		supported: ["describe", "preflight", "status", "verify", "doctor"],

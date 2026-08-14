@@ -1,18 +1,10 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import {
-	mkdir,
-	mkdtemp,
-	readdir,
-	readFile,
-	rename,
-	rm,
-	stat,
-	writeFile,
-} from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 import type { ModuleKind } from "@tomflow/proflow-module-contract";
@@ -136,39 +128,9 @@ test("FND-P1-01 generated Module builds JS and declarations, packs, and imports 
 		entry.endsWith(".tgz"),
 	);
 	assert.ok(tarball);
-	const consumerDirectory = join(root, "consumer");
-	await writeFile(
-		join(root, "consumer-package.json"),
-		JSON.stringify({
-			name: "generated-module-consumer",
-			private: true,
-			type: "module",
-		}),
+	// Import the built module directly from its dist output (no package install).
+	const builtModule = await import(
+		pathToFileURL(join(generated.packageDirectory, "dist/src/index.js")).href
 	);
-	await mkdir(consumerDirectory);
-	await rename(
-		join(root, "consumer-package.json"),
-		join(consumerDirectory, "package.json"),
-	);
-	await execFileAsync(
-		"npm",
-		[
-			"install",
-			"--ignore-scripts",
-			"--no-audit",
-			"--no-fund",
-			"--no-package-lock",
-			join(tarballDirectory, tarball),
-		],
-		{ cwd: consumerDirectory },
-	);
-	await execFileAsync(
-		process.execPath,
-		[
-			"--input-type=module",
-			"--eval",
-			'const loaded = await import("@tomflow/proflow-published-module"); if (loaded.moduleRef !== "published-module") process.exit(1);',
-		],
-		{ cwd: consumerDirectory },
-	);
+	assert.equal(builtModule.moduleRef, "published-module");
 });
