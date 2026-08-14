@@ -231,7 +231,9 @@ function createOwnerHttpClient(
 					method = "GET";
 				} else if (operationId === "infer") path = "/infer";
 				else throw new Error("MODEL_OPERATION_NOT_ROUTED");
-			} else if (operationId === "executeCapability") path = "/executions";
+			} else if (operationId === "materializeExternalFiles")
+				path = "/external-files/materialize";
+			else if (operationId === "executeCapability") path = "/executions";
 			else if (operationId === "cancelExecution") path = "/executions/cancel";
 			else if (operationId === "readExecutionOutput")
 				path = "/executions/output";
@@ -398,6 +400,8 @@ async function constructGraph(
 			roleBindings: value.roleBindings,
 		};
 	};
+	const taskIsTerminal = (status: string) =>
+		status === "SUCCEEDED" || status === "TERMINATED";
 	let agent: Awaited<ReturnType<typeof createAgentRuntime>>;
 	try {
 		agent = await createAgentRuntime({
@@ -509,6 +513,7 @@ async function constructGraph(
 		operationId: string,
 		authenticatedRoleRef: string,
 		rawInput: unknown,
+		context?: { fileMaterializationInputs?: unknown },
 	) => {
 		const role = agent.getRegisteredRole(authenticatedRoleRef);
 		if (
@@ -554,8 +559,37 @@ async function constructGraph(
 					});
 				actorRef = workerRef;
 			}
+			let canonicalTaskInput = input;
+			if (context?.fileMaterializationInputs !== undefined) {
+				if (operationId !== "putTaskDocument")
+					throw Object.assign(
+						new Error("FILE_MATERIALIZATION_UNSUPPORTED_OPERATION"),
+						{ httpStatus: 400 },
+					);
+				const result = object(
+					await execution.invoke("materializeExternalFiles", {
+						contract: "execution.external-file-materialization",
+						contractVersion: "1.0.0",
+						callerRef: authenticatedRoleRef,
+						files: context.fileMaterializationInputs,
+					}),
+					"carrier file materialization result",
+				);
+				if (!Array.isArray(result.files) || result.files.length !== 1)
+					throw Object.assign(new Error("FILE_MATERIALIZATION_COUNT_INVALID"), {
+						httpStatus: 400,
+					});
+				const file = object(result.files[0], "materialized carrier file");
+				const content = string(
+					file.content,
+					"materialized carrier file content",
+				);
+				canonicalTaskInput = { ...input, content };
+			}
 			return taskOperation(
-				queryOperations.has(operationId) ? input : { ...input, actorRef },
+				queryOperations.has(operationId)
+					? canonicalTaskInput
+					: { ...canonicalTaskInput, actorRef },
 			);
 		}
 		if (operationId === "executeCapability") {
@@ -626,6 +660,9 @@ async function constructGraph(
 				});
 				if (message.status !== "PENDING")
 					throw new Error("COLLABORATION_MESSAGE_NOT_PENDING");
+				// A terminal Task must never re-enter the physical Browser delivery path.
+				if (taskIsTerminal(taskFacts(message.taskId).status))
+					throw new Error("TASK_TERMINAL");
 				return { ...message, status: "PENDING" as const };
 			},
 			async reportPhysicalDelivery(
@@ -678,6 +715,11 @@ async function constructGraph(
 				if (browserCapability && !request.taskId) return false;
 				if (request.taskId) {
 					const taskFact = taskFacts(request.taskId);
+					if (
+						request.capability === "collaboration.deliver" &&
+						taskIsTerminal(taskFact.status)
+					)
+						return false;
 					if (request.workerRef && !internalTaskDriver)
 						await agent.validateWorker({
 							authenticatedRoleRef: request.callerRef,
@@ -1024,6 +1066,12 @@ export function createPlatformHost(input: {
 									operationId,
 									authenticatedRoleRef,
 									body.input,
+									body.fileMaterializationInputs === undefined
+										? undefined
+										: {
+												fileMaterializationInputs:
+													body.fileMaterializationInputs,
+											},
 								);
 						respond(response, 200, result);
 					} catch (error) {

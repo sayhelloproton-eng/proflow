@@ -2,7 +2,13 @@ import { timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, isAbsolute, resolve } from "node:path";
-import { parseExecutionRef } from "@tomflow/proflow-execution-contracts";
+import {
+	EXECUTION_CONTRACT_VERSION,
+	materializeExternalFilesRequestSchema,
+	materializeExternalFilesResponseSchema,
+	parseExecutionRef,
+} from "@tomflow/proflow-execution-contracts";
+import { materializeExternalFiles } from "@tomflow/proflow-execution-local";
 import { createLocalExecutorPort } from "./executors/local-adapter.ts";
 import {
 	createExecutionRuntime,
@@ -189,6 +195,26 @@ export async function createExecutionRuntimeProcess(input: {
 						const body = chunks.length
 							? JSON.parse(Buffer.concat(chunks).toString("utf8"))
 							: undefined;
+						if (
+							request.method === "POST" &&
+							url.pathname === "/external-files/materialize"
+						) {
+							const materialization =
+								materializeExternalFilesRequestSchema.parse(body);
+							const files = await materializeExternalFiles({
+								artifactRoot: input.config.artifactRoot,
+								files: materialization.files,
+							});
+							return respond(
+								response,
+								200,
+								materializeExternalFilesResponseSchema.parse({
+									contract: "execution.external-file-materialization",
+									contractVersion: EXECUTION_CONTRACT_VERSION,
+									files,
+								}),
+							);
+						}
 						if (request.method === "POST" && url.pathname === "/executions")
 							return respond(
 								response,

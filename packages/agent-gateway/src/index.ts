@@ -7,13 +7,23 @@ const MAX_ACTION_CHARS = 100_000;
 const MAX_INPUT_FILES = 10;
 const MAX_FILE_BYTES = 10_000_000;
 const RELAY_TTL_MS = 300_000;
+export interface ExternalFileMaterializationInput {
+	name: string;
+	provenanceRef: string;
+	declaredMimeType: string;
+	sourceUrl: string;
+}
+
 export type GatewayOwnerPorts = {
 	authenticateBearer(credential: string): Promise<string>;
 	route(
 		operationId: string,
 		authenticatedRoleRef: string,
 		input: unknown,
-		context?: { signal: AbortSignal },
+		context?: {
+			signal: AbortSignal;
+			fileMaterializationInputs?: readonly ExternalFileMaterializationInput[];
+		},
 	): Promise<unknown>;
 	lookupResult?(
 		operationId: string,
@@ -338,7 +348,33 @@ export async function createAgentGateway(options: GatewayOptions) {
 				response.end(JSON.stringify({ error: "NOT_FOUND" }));
 				return;
 			}
-			const { roleRef: _untrustedRoleRef, ...canonicalBody } = action.body;
+			const {
+				roleRef: _untrustedRoleRef,
+				openaiFileIdRefs: rawFileInputs,
+				...canonicalBody
+			} = action.body;
+			const fileMaterializationInputs =
+				rawFileInputs === undefined
+					? undefined
+					: normalizeFileInputs(rawFileInputs).map((file) => ({
+							name: file.name,
+							provenanceRef: file.id,
+							declaredMimeType: file.mime_type,
+							sourceUrl: file.download_link,
+						}));
+			if (fileMaterializationInputs !== undefined) {
+				if (action.operationId !== "putTaskDocument")
+					throw new AgentGatewayError(
+						"OPENAI_FILE_INPUT_UNSUPPORTED_OPERATION",
+					);
+				if (fileMaterializationInputs.length !== 1)
+					throw new AgentGatewayError("OPENAI_FILE_COUNT_EXCEEDED");
+				if (
+					typeof canonicalBody.content === "string" &&
+					canonicalBody.content.length > 0
+				)
+					throw new AgentGatewayError("OPENAI_FILE_INPUT_CONFLICT");
+			}
 			const actionSignal = AbortSignal.timeout(
 				options.actionTimeoutMs ?? 45_000,
 			);
@@ -353,7 +389,12 @@ export async function createAgentGateway(options: GatewayOptions) {
 							action.operationId,
 							authenticatedRoleRef,
 							canonicalBody,
-							{ signal: actionSignal },
+							{
+								signal: actionSignal,
+								...(fileMaterializationInputs === undefined
+									? {}
+									: { fileMaterializationInputs }),
+							},
 						);
 			const output = await Promise.race([
 				operation,

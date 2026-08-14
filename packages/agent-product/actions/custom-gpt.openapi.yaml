@@ -135,14 +135,30 @@ components:
     PutTaskDocumentInput:
       type: object
       additionalProperties: false
-      required: [taskId, nodeId, documentType, content, expectedTaskVersion, idempotencyKey]
+      required: [taskId, nodeId, documentType, expectedTaskVersion, idempotencyKey]
       properties:
         taskId: {type: string}
         nodeId: {type: string}
         documentType: {type: string}
         content: {type: string}
+        openaiFileIdRefs:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, id, mime_type, download_link]
+            properties:
+              name: {type: string}
+              id: {type: string}
+              mime_type: {type: string}
+              download_link: {type: string, format: uri}
         expectedTaskVersion: {type: integer, minimum: 1}
         idempotencyKey: {type: string}
+      anyOf:
+        - required: [content]
+        - required: [openaiFileIdRefs]
     AskPeerInput:
       type: object
       additionalProperties: false

@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
+import { lookup } from "node:dns/promises";
 import {
 	access,
 	appendFile,
@@ -10,8 +11,10 @@ import {
 	readFile,
 	realpath,
 	stat,
+	unlink,
 	writeFile,
 } from "node:fs/promises";
+import { isIP } from "node:net";
 import {
 	basename,
 	dirname,
@@ -27,6 +30,8 @@ import type {
 	ExecutionCapabilityResult,
 	ExecutionErrorCode,
 	ExecutionEvidence,
+	ExternalFileMaterializationInput,
+	ExternalFileMaterializationResult,
 	LocalCapabilityId,
 } from "@tomflow/proflow-execution-contracts";
 
@@ -630,6 +635,324 @@ function isLanOrLocal(hostname: string): boolean {
 	return (
 		match?.[1] !== undefined && Number(match[1]) >= 16 && Number(match[1]) <= 31
 	);
+}
+
+export class ExternalFileMaterializationError extends Error {
+	readonly code: string;
+	constructor(code: string, message = code) {
+		super(`${code}: ${message}`);
+		this.name = "ExternalFileMaterializationError";
+		this.code = code;
+	}
+}
+
+const EXTERNAL_FILE_MAX_COUNT = 10;
+const EXTERNAL_FILE_MAX_BYTES = 10_000_000;
+const EXTERNAL_FILE_AGGREGATE_MAX_BYTES = 50_000_000;
+const EXTERNAL_FILE_FETCH_TIMEOUT_MS = 15_000;
+
+function safeExternalFilename(name: string): boolean {
+	return (
+		name.length > 0 &&
+		name !== "." &&
+		name !== ".." &&
+		!/[\\/]/.test(name) &&
+		!name.includes("..") &&
+		![...name].some((character) => {
+			const code = character.codePointAt(0) ?? 0;
+			return code < 32 || code === 127;
+		})
+	);
+}
+
+function publicIpv4(address: string): boolean {
+	const parts = address.split(".").map(Number);
+	if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part)))
+		return false;
+	const [a = -1, b = -1] = parts;
+	if (a <= 0 || a >= 224) return false;
+	if (a === 10 || a === 127) return false;
+	if (a === 100 && b >= 64 && b <= 127) return false;
+	if (a === 169 && b === 254) return false;
+	if (a === 172 && b >= 16 && b <= 31) return false;
+	if (a === 192 && b === 168) return false;
+	if (a === 198 && (b === 18 || b === 19)) return false;
+	return true;
+}
+
+function publicIpv6(address: string): boolean {
+	const normalized = address.toLowerCase();
+	if (normalized === "::" || normalized === "::1") return false;
+	if (
+		normalized.startsWith("fe8") ||
+		normalized.startsWith("fe9") ||
+		normalized.startsWith("fea") ||
+		normalized.startsWith("feb")
+	)
+		return false;
+	if (normalized.startsWith("fc") || normalized.startsWith("fd")) return false;
+	if (normalized.startsWith("ff")) return false;
+	const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(normalized);
+	if (mapped?.[1]) return publicIpv4(mapped[1]);
+	return true;
+}
+
+async function assertSafeExternalUrl(raw: string): Promise<URL> {
+	let url: URL;
+	try {
+		url = new URL(raw);
+	} catch {
+		throw new ExternalFileMaterializationError("EXTERNAL_FILE_INPUT_INVALID");
+	}
+	if (url.protocol !== "https:" || url.username || url.password)
+		throw new ExternalFileMaterializationError("EXTERNAL_FILE_INPUT_INVALID");
+	const hostname = url.hostname.toLowerCase();
+	if (hostname === "localhost" || hostname === "metadata.google.internal")
+		throw new ExternalFileMaterializationError("EXTERNAL_FILE_INPUT_INVALID");
+	let addresses: Array<{ address: string; family: number }>;
+	try {
+		addresses = await lookup(hostname, { all: true, verbatim: true });
+	} catch {
+		throw new ExternalFileMaterializationError("EXTERNAL_FILE_FETCH_FAILED");
+	}
+	if (addresses.length === 0)
+		throw new ExternalFileMaterializationError("EXTERNAL_FILE_FETCH_FAILED");
+	for (const candidate of addresses) {
+		const family = candidate.family || isIP(candidate.address);
+		const safe =
+			family === 4
+				? publicIpv4(candidate.address)
+				: family === 6
+					? publicIpv6(candidate.address)
+					: false;
+		if (!safe)
+			throw new ExternalFileMaterializationError("EXTERNAL_FILE_INPUT_INVALID");
+	}
+	return url;
+}
+
+export function detectedExternalMime(prefix: Buffer): string {
+	if (prefix.length >= 5 && prefix.subarray(0, 5).toString("ascii") === "%PDF-")
+		return "application/pdf";
+	if (
+		prefix.length >= 8 &&
+		prefix
+			.subarray(0, 8)
+			.equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+	)
+		return "image/png";
+	if (
+		prefix.length >= 3 &&
+		prefix[0] === 0xff &&
+		prefix[1] === 0xd8 &&
+		prefix[2] === 0xff
+	)
+		return "image/jpeg";
+	if (
+		prefix.length >= 6 &&
+		["GIF87a", "GIF89a"].includes(prefix.subarray(0, 6).toString("ascii"))
+	)
+		return "image/gif";
+	if (
+		prefix.length >= 4 &&
+		prefix[0] === 0x50 &&
+		prefix[1] === 0x4b &&
+		prefix[2] === 0x03 &&
+		prefix[3] === 0x04
+	)
+		return "application/zip";
+	if (!prefix.includes(0)) return "text/plain";
+	return "application/octet-stream";
+}
+
+function normalizedMime(value: string): string {
+	return value.split(";", 1)[0]?.trim().toLowerCase() ?? "";
+}
+
+export function externalMimeCompatible(
+	declared: string,
+	responseMime: string | null,
+	detected: string,
+): boolean {
+	const expected = normalizedMime(declared);
+	const response = responseMime ? normalizedMime(responseMime) : "";
+	const textExpected =
+		expected.startsWith("text/") ||
+		[
+			"application/json",
+			"application/xml",
+			"application/yaml",
+			"application/x-yaml",
+		].includes(expected);
+	if (detected === "text/plain") {
+		if (!textExpected) return false;
+		return (
+			response === "" ||
+			response === "application/octet-stream" ||
+			response.startsWith("text/") ||
+			response === expected
+		);
+	}
+	return (
+		expected === detected &&
+		(response === "" ||
+			response === expected ||
+			response === "application/octet-stream")
+	);
+}
+
+export async function materializeExternalFiles(options: {
+	artifactRoot: string;
+	files: readonly ExternalFileMaterializationInput[];
+	signal?: AbortSignal;
+}): Promise<ExternalFileMaterializationResult[]> {
+	if (
+		options.files.length === 0 ||
+		options.files.length > EXTERNAL_FILE_MAX_COUNT
+	)
+		throw new ExternalFileMaterializationError("EXTERNAL_FILE_COUNT_EXCEEDED");
+	const artifactRoot = resolve(options.artifactRoot);
+	await mkdir(artifactRoot, { recursive: true, mode: 0o700 });
+	let aggregate = 0;
+	const materialized: ExternalFileMaterializationResult[] = [];
+	for (const file of options.files) {
+		if (
+			!safeExternalFilename(file.name) ||
+			!file.provenanceRef ||
+			!file.declaredMimeType ||
+			!file.sourceUrl
+		)
+			throw new ExternalFileMaterializationError("EXTERNAL_FILE_INPUT_INVALID");
+		let currentUrl = await assertSafeExternalUrl(file.sourceUrl);
+		const controller = new AbortController();
+		const timeout = setTimeout(
+			() => controller.abort(),
+			EXTERNAL_FILE_FETCH_TIMEOUT_MS,
+		);
+		const forwardAbort = () => controller.abort();
+		options.signal?.addEventListener("abort", forwardAbort, { once: true });
+		let response: Response | undefined;
+		try {
+			for (let hop = 0; hop <= 5; hop += 1) {
+				response = await fetch(currentUrl, {
+					redirect: "manual",
+					signal: controller.signal,
+				});
+				const location = response.headers.get("location");
+				if (response.status < 300 || response.status >= 400 || !location) break;
+				if (hop === 5)
+					throw new ExternalFileMaterializationError(
+						"EXTERNAL_FILE_FETCH_FAILED",
+						"redirect hop limit exceeded",
+					);
+				currentUrl = await assertSafeExternalUrl(
+					new URL(location, currentUrl).href,
+				);
+			}
+			if (!response || response.status < 200 || response.status >= 300)
+				throw new ExternalFileMaterializationError(
+					"EXTERNAL_FILE_FETCH_FAILED",
+				);
+			const declaredLength = Number(response.headers.get("content-length"));
+			if (
+				Number.isFinite(declaredLength) &&
+				declaredLength > EXTERNAL_FILE_MAX_BYTES
+			)
+				throw new ExternalFileMaterializationError("EXTERNAL_FILE_TOO_LARGE");
+			if (
+				Number.isFinite(declaredLength) &&
+				aggregate + declaredLength > EXTERNAL_FILE_AGGREGATE_MAX_BYTES
+			)
+				throw new ExternalFileMaterializationError(
+					"EXTERNAL_FILE_AGGREGATE_TOO_LARGE",
+				);
+			const id = randomUUID();
+			const stagingPath = join(artifactRoot, `${id}.external-file`);
+			const handle = await open(stagingPath, "wx", 0o600);
+			const hash = createHash("sha256");
+			let bytes = 0;
+			let prefix = Buffer.alloc(0);
+			try {
+				if (response.body) {
+					const reader = response.body.getReader();
+					while (true) {
+						const { done, value } = await reader.read();
+						if (done) break;
+						const chunk = Buffer.from(value);
+						bytes += chunk.byteLength;
+						if (bytes > EXTERNAL_FILE_MAX_BYTES)
+							throw new ExternalFileMaterializationError(
+								"EXTERNAL_FILE_TOO_LARGE",
+							);
+						if (aggregate + bytes > EXTERNAL_FILE_AGGREGATE_MAX_BYTES)
+							throw new ExternalFileMaterializationError(
+								"EXTERNAL_FILE_AGGREGATE_TOO_LARGE",
+							);
+						if (prefix.length < 512)
+							prefix = Buffer.concat([
+								prefix,
+								chunk.subarray(0, 512 - prefix.length),
+							]);
+						hash.update(chunk);
+						await handle.write(chunk);
+					}
+				}
+			} catch (error) {
+				await handle.close();
+				await unlink(stagingPath).catch(() => undefined);
+				throw error;
+			}
+			await handle.close();
+			const detectedMimeType = detectedExternalMime(prefix);
+			if (
+				!externalMimeCompatible(
+					file.declaredMimeType,
+					response.headers.get("content-type"),
+					detectedMimeType,
+				)
+			) {
+				await unlink(stagingPath).catch(() => undefined);
+				throw new ExternalFileMaterializationError(
+					"EXTERNAL_FILE_MIME_MISMATCH",
+				);
+			}
+			aggregate += bytes;
+			let content: string | undefined;
+			if (detectedMimeType === "text/plain") {
+				try {
+					content = new TextDecoder("utf-8", { fatal: true }).decode(
+						await readFile(stagingPath),
+					);
+				} catch {
+					await unlink(stagingPath).catch(() => undefined);
+					throw new ExternalFileMaterializationError(
+						"EXTERNAL_FILE_MIME_MISMATCH",
+						"text input is not valid UTF-8",
+					);
+				}
+			}
+			materialized.push({
+				name: file.name,
+				provenanceRef: file.provenanceRef,
+				declaredMimeType: normalizedMime(file.declaredMimeType),
+				detectedMimeType,
+				bytes,
+				hash: `sha256:${hash.digest("hex")}`,
+				artifactRef: `artifact:${id}:external-file`,
+				...(content === undefined ? {} : { content }),
+			});
+		} catch (error) {
+			if (controller.signal.aborted)
+				throw new ExternalFileMaterializationError(
+					options.signal?.aborted ? "CANCELLED" : "EXTERNAL_FILE_FETCH_TIMEOUT",
+				);
+			throw error;
+		} finally {
+			clearTimeout(timeout);
+			options.signal?.removeEventListener("abort", forwardAbort);
+		}
+	}
+	return materialized;
 }
 
 export async function createLocalExecutor(options: LocalExecutorOptions) {

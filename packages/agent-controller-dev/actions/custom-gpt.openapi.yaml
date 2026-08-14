@@ -164,10 +164,26 @@ components:
       allOf:
         - {$ref: '#/components/schemas/NodeVersionInput'}
         - type: object
-          required: [documentType, content]
+          required: [documentType]
           properties:
             documentType: {type: string}
             content: {type: string}
+            openaiFileIdRefs:
+              type: array
+              minItems: 1
+              maxItems: 10
+              items:
+                type: object
+                additionalProperties: false
+                required: [name, id, mime_type, download_link]
+                properties:
+                  name: {type: string}
+                  id: {type: string}
+                  mime_type: {type: string}
+                  download_link: {type: string, format: uri}
+          anyOf:
+            - required: [content]
+            - required: [openaiFileIdRefs]
     AskPeerInput:
       type: object
       additionalProperties: false

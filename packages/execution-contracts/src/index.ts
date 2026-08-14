@@ -551,6 +551,57 @@ export const executionErrorSchema = z
 	.strict();
 export type ExecutionError = z.infer<typeof executionErrorSchema>;
 
+export const externalFileMaterializationInputSchema = z
+	.object({
+		name: z.string().min(1),
+		provenanceRef: identifier,
+		declaredMimeType: z.string().min(1),
+		sourceUrl: z.url(),
+	})
+	.strict();
+export type ExternalFileMaterializationInput = z.infer<
+	typeof externalFileMaterializationInputSchema
+>;
+
+export const materializeExternalFilesRequestSchema = z
+	.object({
+		contract: z.literal("execution.external-file-materialization"),
+		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		callerRef: identifier,
+		files: z.array(externalFileMaterializationInputSchema).min(1).max(10),
+	})
+	.strict();
+export type MaterializeExternalFilesRequest = z.infer<
+	typeof materializeExternalFilesRequestSchema
+>;
+
+export const externalFileMaterializationResultSchema = z
+	.object({
+		name: z.string().min(1),
+		provenanceRef: identifier,
+		declaredMimeType: z.string().min(1),
+		detectedMimeType: z.string().min(1),
+		bytes: z.number().int().nonnegative(),
+		hash: identifier,
+		artifactRef: identifier,
+		content: z.string().optional(),
+	})
+	.strict();
+export type ExternalFileMaterializationResult = z.infer<
+	typeof externalFileMaterializationResultSchema
+>;
+
+export const materializeExternalFilesResponseSchema = z
+	.object({
+		contract: z.literal("execution.external-file-materialization"),
+		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		files: z.array(externalFileMaterializationResultSchema),
+	})
+	.strict();
+export type MaterializeExternalFilesResponse = z.infer<
+	typeof materializeExternalFilesResponseSchema
+>;
+
 export const executionEvidenceSchema = z.discriminatedUnion("kind", [
 	z
 		.object({

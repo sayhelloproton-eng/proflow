@@ -454,3 +454,161 @@ test("B2-GW-03 invalid relay base URL blocks readiness", async () => {
 	assert.equal((await gateway.readiness()).checks.relay, false);
 	await gateway.stop();
 });
+
+test("B2-GW-01 putTaskDocument openaiFileIdRefs normalizes to owner-neutral File Bridge input without fetching", async () => {
+	const captures: Array<{
+		operationId: string;
+		roleRef: string;
+		input: unknown;
+		context: unknown;
+	}> = [];
+	const gateway = await createAgentGateway({
+		relayBaseUrl: "https://gateway.example/relay/",
+		owners: {
+			async authenticateBearer(credential) {
+				if (credential !== fixtureCredential)
+					throw new Error("AUTHENTICATION_FAILED");
+				return "g-authenticated";
+			},
+			async route(operationId, roleRef, input, context) {
+				captures.push({ operationId, roleRef, input, context });
+				return { ok: true, operationId };
+			},
+			async readiness() {
+				return {
+					credentialStore: true,
+					agent: true,
+					task: true,
+					execution: true,
+					relay: true,
+				};
+			},
+		},
+	});
+	const address = await gateway.start();
+	const baseUrl = `http://${address.host}:${address.port}`;
+	const put = (body: unknown) =>
+		fetch(`${baseUrl}/actions/putTaskDocument`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${fixtureCredential}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify(body),
+		});
+	try {
+		const response = await put({
+			openaiFileIdRefs: [
+				{
+					name: "spec.txt",
+					id: "file-abc",
+					mime_type: "text/plain",
+					download_link: "https://files.example/spec.txt",
+				},
+			],
+			taskId: "task:file-bridge",
+			nodeId: "node:1",
+			documentType: "input",
+			expectedTaskVersion: 2,
+			idempotencyKey: "bridge-put",
+		});
+		assert.equal(response.status, 200);
+		assert.equal(captures.length, 1);
+		// The OpenAI file DTO is stripped from the canonical Task body.
+		assert.equal(captures[0]?.operationId, "putTaskDocument");
+		assert.equal(captures[0]?.roleRef, "g-authenticated");
+		assert.deepEqual(captures[0]?.input, {
+			taskId: "task:file-bridge",
+			nodeId: "node:1",
+			documentType: "input",
+			expectedTaskVersion: 2,
+			idempotencyKey: "bridge-put",
+		});
+		// The owner-neutral File Bridge input carries only provenance/MIME/source;
+		// the OpenAI download_link never crosses the Gateway boundary.
+		const firstCapture = captures[0];
+		assert.ok(firstCapture, "expected one captured route");
+		const fileInputs = (
+			firstCapture.context as { fileMaterializationInputs?: unknown }
+		).fileMaterializationInputs;
+		assert.deepEqual(fileInputs, [
+			{
+				name: "spec.txt",
+				provenanceRef: "file-abc",
+				declaredMimeType: "text/plain",
+				sourceUrl: "https://files.example/spec.txt",
+			},
+		]);
+		// Inline content plus a file reference is an ambiguous request and fails closed.
+		assert.equal(
+			(
+				(await put({
+					openaiFileIdRefs: [
+						{
+							name: "a.txt",
+							id: "file-1",
+							mime_type: "text/plain",
+							download_link: "https://files.example/a",
+						},
+					],
+					content: "inline bytes",
+					taskId: "task:file-bridge",
+					nodeId: "node:1",
+				}).then((r) => r.json())) as { error: string }
+			).error,
+			"OPENAI_FILE_INPUT_CONFLICT",
+		);
+		// More than one file is rejected.
+		assert.equal(
+			(
+				(await put({
+					openaiFileIdRefs: [
+						{
+							name: "a.txt",
+							id: "file-1",
+							mime_type: "text/plain",
+							download_link: "https://files.example/a",
+						},
+						{
+							name: "b.txt",
+							id: "file-2",
+							mime_type: "text/plain",
+							download_link: "https://files.example/b",
+						},
+					],
+					taskId: "task:file-bridge",
+					nodeId: "node:1",
+				}).then((r) => r.json())) as { error: string }
+			).error,
+			"OPENAI_FILE_COUNT_EXCEEDED",
+		);
+		// File references are only valid on putTaskDocument.
+		const unsupported = await fetch(`${baseUrl}/actions/createTask`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${fixtureCredential}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({
+				openaiFileIdRefs: [
+					{
+						name: "a.txt",
+						id: "file-1",
+						mime_type: "text/plain",
+						download_link: "https://files.example/a",
+					},
+				],
+				taskId: "task:file-bridge",
+			}),
+		});
+		assert.equal(
+			((await unsupported.json()) as { error: string }).error,
+			"OPENAI_FILE_INPUT_UNSUPPORTED_OPERATION",
+		);
+		// The Gateway owns normalization only; it exposes no physical fetch surface.
+		assert.equal("fetchFileInputs" in gateway, false);
+		assert.equal("materializeExternalFiles" in gateway, false);
+	} finally {
+		await gateway.stop();
+	}
+});

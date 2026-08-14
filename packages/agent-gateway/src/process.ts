@@ -142,7 +142,15 @@ export async function createAgentGatewayProcess(input: {
 			route(operationId, authenticatedRoleRef, value, context) {
 				return downstream(
 					`/actions/${encodeURIComponent(operationId)}`,
-					{ authenticatedRoleRef, input: value },
+					{
+						authenticatedRoleRef,
+						input: value,
+						...(context?.fileMaterializationInputs === undefined
+							? {}
+							: {
+									fileMaterializationInputs: context.fileMaterializationInputs,
+								}),
+					},
 					context?.signal,
 				);
 			},

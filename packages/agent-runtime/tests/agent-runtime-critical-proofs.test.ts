@@ -629,13 +629,14 @@ test("B2-AGT-05 terminal task delivery report never mutates historical PENDING m
 	);
 	runtime.close();
 });
-test("B2-AGT-06 rotateCredential commits atomically on persistence failure", async (context) => {
+test("B2-AGT-06 rotateCredential publishes only durable current authority", async (context) => {
 	const { runtime, proflowRoot } = await fixture(context);
 	const oldCredential = (await runtime.showCredential("g-dev")).credential;
 	const credentialPath = join(
 		proflowRoot,
 		"agent/secrets/role-credentials.json",
 	);
+	const durableBefore = await readFile(credentialPath, "utf8");
 	await rm(credentialPath);
 	await mkdir(credentialPath);
 	await assert.rejects(() => runtime.rotateCredential("g-dev"));
@@ -643,6 +644,14 @@ test("B2-AGT-06 rotateCredential commits atomically on persistence failure", asy
 		(await runtime.showCredential("g-dev")).credential,
 		oldCredential,
 	);
+	// If the durable authority is unavailable, authentication fails closed instead
+	// of serving a stale in-memory credential snapshot.
+	await assert.rejects(
+		() => runtime.authenticateBearer(oldCredential),
+		/AUTHENTICATION_FAILED/,
+	);
+	await rm(credentialPath, { recursive: true });
+	await writeFile(credentialPath, durableBefore, { mode: 0o600 });
 	assert.equal(await runtime.authenticateBearer(oldCredential), "g-dev");
 	runtime.close();
 });

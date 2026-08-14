@@ -5,7 +5,7 @@ import {
 	timingSafeEqual,
 } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { mkdir, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
@@ -281,8 +281,9 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 				left.agentPackageRef.localeCompare(right.agentPackageRef),
 			),
 		);
-	const persistCredentials = () =>
-		atomicJson(credentialPath, Object.fromEntries(credentials), 0o600);
+	const persistCredentialSnapshot = (snapshot: ReadonlyMap<string, string>) =>
+		atomicJson(credentialPath, Object.fromEntries(snapshot), 0o600);
+	const persistCredentials = () => persistCredentialSnapshot(credentials);
 	const findRoleForPackage = (agentPackageRef: string) => {
 		const role = [...roles.values()].find(
 			(candidate) => candidate.agentPackageRef === agentPackageRef,
@@ -422,21 +423,37 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 		},
 		async rotateCredential(roleRef: string) {
 			if (!roles.has(roleRef)) throw new AgentRuntimeError("ROLE_NOT_FOUND");
-			const previous = credentials.get(roleRef);
 			const credential = credentialFactory();
+			// Durable credential truth is published first. The in-memory cache is
+			// updated only after the atomic file replacement succeeds, so a failed
+			// rotation never exposes a credential that is not durable.
+			const candidate = new Map(credentials);
+			candidate.set(roleRef, credential);
+			await persistCredentialSnapshot(candidate);
 			credentials.set(roleRef, credential);
-			try {
-				await persistCredentials();
-			} catch (error) {
-				if (previous === undefined) credentials.delete(roleRef);
-				else credentials.set(roleRef, previous);
-				throw error;
-			}
 			return { roleRef, credential };
 		},
 		async authenticateBearer(credential: string) {
+			// Authentication uses the same durable authority read by agent-gateway.
+			// This removes the cross-process split window during credential rotation.
+			let durable: Record<string, unknown>;
+			try {
+				const parsed: unknown = JSON.parse(
+					await readFile(credentialPath, "utf8"),
+				);
+				if (
+					typeof parsed !== "object" ||
+					parsed === null ||
+					Array.isArray(parsed)
+				)
+					throw new Error("invalid credential store");
+				durable = parsed as Record<string, unknown>;
+			} catch {
+				throw new AgentRuntimeError("AUTHENTICATION_FAILED");
+			}
 			const supplied = Buffer.from(credential);
-			for (const [roleRef, stored] of credentials) {
+			for (const [roleRef, stored] of Object.entries(durable)) {
+				if (typeof stored !== "string") continue;
 				const expected = Buffer.from(stored);
 				if (
 					supplied.length === expected.length &&
