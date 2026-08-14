@@ -470,6 +470,41 @@ async function constructGraph(
 		"listTaskEvents",
 		"getTaskDocument",
 	]);
+	const taskMutationOperations = new Set([
+		"startNode",
+		"completeNode",
+		"waitNode",
+		"failNode",
+		"reopenNode",
+		"putTaskDocument",
+	]);
+	// Unified external Task-scoped Action admission. TaskRoleBinding is a Task
+	// owner fact, so participant + canonical Worker identity are derived from the
+	// Task owner facts, never from an untrusted body roleRef/workerRef. Reads only
+	// gate participation (terminal Tasks stay readable); mutations and Execution
+	// additionally run the full Agent Worker validation (which rejects terminal
+	// Tasks) before acting.
+	const admitTaskParticipant = async (
+		taskId: string,
+		authenticatedRoleRef: string,
+		suppliedWorkerRef?: string,
+	): Promise<string> => {
+		const binding = taskFacts(taskId).roleBindings.find(
+			(candidate) => candidate.roleRef === authenticatedRoleRef,
+		);
+		if (!binding?.workerRef)
+			throw Object.assign(new Error("TASK_ROLE_BINDING_REQUIRED"), {
+				httpStatus: 403,
+			});
+		if (
+			suppliedWorkerRef !== undefined &&
+			suppliedWorkerRef !== binding.workerRef
+		)
+			throw Object.assign(new Error("TASK_WORKER_BINDING_MISMATCH"), {
+				httpStatus: 403,
+			});
+		return binding.workerRef;
+	};
 	const route = async (
 		operationId: string,
 		authenticatedRoleRef: string,
@@ -505,29 +540,18 @@ async function constructGraph(
 					? Reflect.get(ownBinding, "workerRef")
 					: undefined;
 				if (typeof workerRef === "string") actorRef = workerRef;
-			} else if (
-				typeof input.taskId === "string" &&
-				new Set([
-					"startNode",
-					"completeNode",
-					"waitNode",
-					"failNode",
-					"reopenNode",
-					"putTaskDocument",
-				]).has(operationId)
-			) {
-				const workerRef = taskFacts(input.taskId).roleBindings.find(
-					(binding) => binding.roleRef === authenticatedRoleRef,
-				)?.workerRef;
-				if (!workerRef)
-					throw Object.assign(new Error("TASK_ROLE_BINDING_REQUIRED"), {
-						httpStatus: 403,
-					});
-				await agent.validateWorker({
+			} else if (typeof input.taskId === "string") {
+				const workerRef = await admitTaskParticipant(
+					input.taskId,
 					authenticatedRoleRef,
-					taskId: input.taskId,
-					workerRef,
-				});
+					typeof input.workerRef === "string" ? input.workerRef : undefined,
+				);
+				if (taskMutationOperations.has(operationId))
+					await agent.validateWorker({
+						authenticatedRoleRef,
+						taskId: input.taskId,
+						workerRef,
+					});
 				actorRef = workerRef;
 			}
 			return taskOperation(
@@ -537,18 +561,26 @@ async function constructGraph(
 		if (operationId === "executeCapability") {
 			const taskId =
 				typeof input.taskId === "string" ? input.taskId : undefined;
-			const workerRef =
-				typeof input.workerRef === "string" ? input.workerRef : undefined;
-			if (taskId && workerRef)
+			let canonicalWorkerRef: string | undefined;
+			if (taskId) {
+				canonicalWorkerRef = await admitTaskParticipant(
+					taskId,
+					authenticatedRoleRef,
+					typeof input.workerRef === "string" ? input.workerRef : undefined,
+				);
 				await agent.validateWorker({
 					authenticatedRoleRef,
 					taskId,
-					workerRef,
+					workerRef: canonicalWorkerRef,
 				});
+			}
 			return execution.invoke(operationId, {
 				...input,
 				callerRef: authenticatedRoleRef,
 				roleRef: authenticatedRoleRef,
+				...(canonicalWorkerRef !== undefined
+					? { workerRef: canonicalWorkerRef }
+					: {}),
 			});
 		}
 		if (operationId === "getExecution" || operationId === "readExecutionOutput")

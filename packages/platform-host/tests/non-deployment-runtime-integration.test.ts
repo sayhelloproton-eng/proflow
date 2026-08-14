@@ -70,6 +70,7 @@ test("real local business runtime integrates Gateway, Task, Agent, Execution and
 		config: {
 			host: "127.0.0.1",
 			port: 0,
+			stateRoot,
 			providerBaseUrl: `http://127.0.0.1:${providerAddress.port}/v1/`,
 			models: { fast: "fast-model", reason: "reason-model" },
 			profiles: {

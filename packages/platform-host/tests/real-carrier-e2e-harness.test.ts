@@ -140,6 +140,7 @@ test("real Carrier harness starts the formal stack and exposes only authenticate
 	await writeFile(
 		modelConfigPath,
 		JSON.stringify({
+			stateRoot,
 			providerBaseUrl: `http://127.0.0.1:${providerAddress.port}/v1/`,
 			models: { fast: "fast-model", reason: "reason-model" },
 			profiles: {

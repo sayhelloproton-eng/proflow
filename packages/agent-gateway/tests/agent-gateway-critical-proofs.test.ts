@@ -42,7 +42,6 @@ async function fixture(
 				};
 			},
 		},
-		resolveHostname: async () => ["93.184.216.34"],
 		...options,
 	});
 	const address = await gateway.start();
@@ -164,7 +163,7 @@ test("CP-AGT-GW-03 request response budgets and real 429/5xx semantics", async (
 	);
 	await timed.gateway.stop();
 });
-test("CP-AGT-GW-04 file input count size aggregate and timeout are bounded", async () => {
+test("CP-AGT-GW-04 file input count is bounded and normalization maps to Execution descriptors without fetching", async () => {
 	const { gateway } = await fixture();
 	assert.throws(
 		() =>
@@ -178,22 +177,30 @@ test("CP-AGT-GW-04 file input count size aggregate and timeout are bounded", asy
 			),
 		/OPENAI_FILE_COUNT_EXCEEDED/,
 	);
-	const fetched = await gateway.fetchFileInputs(
-		[
-			{
-				name: "small.txt",
-				id: "1",
-				mime_type: "text/plain",
-				download_link: "https://files.example/small",
-			},
-		],
-		async () =>
-			new Response("safe", { headers: { "content-type": "text/plain" } }),
-	);
-	assert.equal(fetched[0]?.bytes, 4);
+	// Gateway no longer owns physical remote file fetch/materialization; the bytes are
+	// fetched by the Execution owner via its Public Contract, so the Gateway exposes
+	// no fetch surface of its own.
+	assert.equal("fetchFileInputs" in gateway, false);
+	assert.equal("verifyResolvedRemoteUrl" in gateway, false);
+	const normalized = gateway.normalizeFileInputs([
+		{
+			name: "small.txt",
+			id: "1",
+			mime_type: "text/plain",
+			download_link: "https://files.example/small",
+		},
+	]);
+	assert.deepEqual(normalized, [
+		{
+			name: "small.txt",
+			id: "1",
+			mime_type: "text/plain",
+			download_link: "https://files.example/small",
+		},
+	]);
 	await gateway.stop();
 });
-test("CP-AGT-GW-05 URL redirect SSRF filename path control and MIME mismatch fail closed", async () => {
+test("CP-AGT-GW-05 URL SSRF and filename path control fail closed at ingress normalization", async () => {
 	const { gateway } = await fixture();
 	for (const url of [
 		"http://example.com/a",
@@ -218,66 +225,11 @@ test("CP-AGT-GW-05 URL redirect SSRF filename path control and MIME mismatch fai
 			]),
 		/OPENAI_FILE_INPUT_INVALID/,
 	);
-	await assert.rejects(
-		() =>
-			gateway.fetchFileInputs(
-				[
-					{
-						name: "safe.txt",
-						id: "1",
-						mime_type: "text/plain",
-						download_link: "https://files.example/a",
-					},
-				],
-				async () => Response.redirect("https://127.0.0.1/private"),
-			),
-		/OPENAI_FILE_INPUT_INVALID/,
-	);
-	await assert.rejects(
-		() =>
-			gateway.fetchFileInputs(
-				[
-					{
-						name: "safe.txt",
-						id: "1",
-						mime_type: "text/plain",
-						download_link: "https://files.example/a",
-					},
-				],
-				async () =>
-					new Response("safe", {
-						headers: { "content-type": "application/json" },
-					}),
-			),
-		/OPENAI_FILE_MIME_MISMATCH/,
-	);
-	const dnsBlocked = await createAgentGateway({
-		relayBaseUrl: "https://gateway.example/relay/",
-		resolveHostname: async () => ["127.0.0.1"],
-		owners: {
-			async authenticateBearer() {
-				return "g";
-			},
-			async route() {
-				return {};
-			},
-			async readiness() {
-				return { ready: true };
-			},
-		},
-	});
-	await assert.rejects(
-		() =>
-			dnsBlocked.fetchFileInputs([
-				{
-					name: "safe.txt",
-					id: "1",
-					mime_type: "text/plain",
-					download_link: "https://public.example/a",
-				},
-			]),
-		/OPENAI_FILE_INPUT_INVALID/,
-	);
+	// Redirect/link-local/metadata DNS rebinding and MIME-vs-content checks are
+	// physical fetch/materialization safety owned by the Execution Public Contract
+	// (Batch 1 network hardening), not by the Gateway package.
+	assert.equal("fetchFileInputs" in gateway, false);
+	assert.equal("resolveHostname" in gateway, false);
 	await gateway.stop();
 });
 test("CP-AGT-GW-06 relay token is opaque GET-only scoped TTL and header safe", async () => {
@@ -446,9 +398,59 @@ test("CP-AGT-GW-09 HTTP health and readiness expose only service and dependency 
 				task: true,
 				execution: false,
 				relay: true,
+				ingress: true,
 			},
 		});
 	} finally {
 		await gateway.stop();
 	}
+});
+
+test("B2-GW-03 readiness reflects real lifecycle rather than a hardcoded ingress", async () => {
+	const gateway = await createAgentGateway({
+		relayBaseUrl: "https://gateway.example/relay/",
+		owners: {
+			async authenticateBearer() {
+				return "g";
+			},
+			async route() {
+				return {};
+			},
+			async readiness() {
+				return { credentialStore: true, downstream: true };
+			},
+		},
+	});
+	assert.equal((await gateway.readiness()).status, "NOT_READY");
+	assert.equal((await gateway.readiness()).checks.ingress, false);
+
+	await gateway.start();
+	assert.equal((await gateway.readiness()).status, "READY");
+	assert.equal((await gateway.readiness()).checks.ingress, true);
+	assert.equal((await gateway.readiness()).checks.relay, true);
+
+	await gateway.stop();
+	assert.equal((await gateway.readiness()).status, "NOT_READY");
+	assert.equal((await gateway.readiness()).checks.ingress, false);
+});
+
+test("B2-GW-03 invalid relay base URL blocks readiness", async () => {
+	const gateway = await createAgentGateway({
+		relayBaseUrl: "http://gateway.example/relay/",
+		owners: {
+			async authenticateBearer() {
+				return "g";
+			},
+			async route() {
+				return {};
+			},
+			async readiness() {
+				return { credentialStore: true, downstream: true };
+			},
+		},
+	});
+	await gateway.start();
+	assert.equal((await gateway.readiness()).status, "NOT_READY");
+	assert.equal((await gateway.readiness()).checks.relay, false);
+	await gateway.stop();
 });

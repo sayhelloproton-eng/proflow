@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { constants } from "node:fs";
 import {
 	access,
+	mkdir,
 	mkdtemp,
 	readFile,
 	rm,
@@ -10,6 +11,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { createAgentRuntime, type TaskFacts } from "../src/index.ts";
 
@@ -329,5 +331,318 @@ test("CP-AGT-RUNTIME-06 integration is through injected Public Contract ports on
 		/task-store-sqlite|task_role_bindings|DatabaseSync.*task/i,
 	);
 	assert.doesNotMatch(source, /\/src\//);
+	runtime.close();
+});
+test("B2-AGT-01 DELIVERED outcome requires non-empty executionRef and evidenceRef", async (context) => {
+	const { runtime } = await fixture(context);
+	const question = await runtime.askPeer({
+		authenticatedRoleRef: "g-dev",
+		taskId: "task:1",
+		fromWorkerRef: "c-dev",
+		targetAgentPackageRef: "@tomflow/proflow-agent-product",
+		content: "delivery proof",
+		idempotencyKey: "deliver:1",
+	});
+	await assert.rejects(
+		() =>
+			runtime.reportCollaborationDelivery({
+				messageId: question.message.messageId,
+				expectedMessageVersion: 1,
+				outcome: "DELIVERED",
+				observedRoleRef: "g-product",
+				observedWorkerRef: "c-product",
+			}),
+		/executionRef/,
+	);
+	await assert.rejects(
+		() =>
+			runtime.reportCollaborationDelivery({
+				messageId: question.message.messageId,
+				expectedMessageVersion: 1,
+				outcome: "DELIVERED",
+				observedRoleRef: "g-product",
+				observedWorkerRef: "c-product",
+				executionRef: "execution:q",
+			}),
+		/evidenceRef/,
+	);
+	assert.equal(
+		runtime.getCollaborationMessage({ messageId: question.message.messageId })
+			.status,
+		"PENDING",
+	);
+	await runtime.reportCollaborationDelivery({
+		messageId: question.message.messageId,
+		expectedMessageVersion: 1,
+		outcome: "DELIVERED",
+		observedRoleRef: "g-product",
+		observedWorkerRef: "c-product",
+		executionRef: "execution:q",
+		evidenceRef: "evidence:q",
+	});
+	assert.equal(
+		runtime.getCollaborationMessage({ messageId: question.message.messageId })
+			.status,
+		"DELIVERED",
+	);
+	runtime.close();
+});
+test("B2-AGT-02 reply DELIVERED thread transition is atomic and checks its own row", async (context) => {
+	const { runtime, proflowRoot } = await fixture(context);
+	const question = await runtime.askPeer({
+		authenticatedRoleRef: "g-dev",
+		taskId: "task:1",
+		fromWorkerRef: "c-dev",
+		targetAgentPackageRef: "@tomflow/proflow-agent-product",
+		content: "What is expected?",
+		idempotencyKey: "atomic:ask",
+	});
+	await runtime.reportCollaborationDelivery({
+		messageId: question.message.messageId,
+		expectedMessageVersion: 1,
+		outcome: "DELIVERED",
+		observedRoleRef: "g-product",
+		observedWorkerRef: "c-product",
+		executionRef: "execution:q",
+		evidenceRef: "evidence:q",
+	});
+	const reply = await runtime.replyPeer({
+		authenticatedRoleRef: "g-product",
+		threadId: question.thread.threadId,
+		fromWorkerRef: "c-product",
+		content: "answer",
+		idempotencyKey: "atomic:reply",
+	});
+	const db = new DatabaseSync(
+		join(proflowRoot, "agent/collaboration/collaboration.sqlite"),
+	);
+	db.prepare(
+		"UPDATE collaboration_threads SET state='OPEN_CAN_ASK' WHERE thread_id=?",
+	).run(reply.thread.threadId);
+	db.close();
+	await assert.rejects(
+		() =>
+			runtime.reportCollaborationDelivery({
+				messageId: reply.message.messageId,
+				expectedMessageVersion: 1,
+				outcome: "DELIVERED",
+				observedRoleRef: "g-dev",
+				observedWorkerRef: "c-dev",
+				executionRef: "execution:r",
+				evidenceRef: "evidence:r",
+			}),
+		/COLLABORATION_VERSION_CONFLICT/,
+	);
+	assert.equal(
+		runtime.getCollaborationMessage({ messageId: reply.message.messageId })
+			.status,
+		"PENDING",
+	);
+	runtime.close();
+});
+test("B2-AGT-03 FAILED/UNKNOWN delivery update refuses a silent stale no-op", async (context) => {
+	const proflowRoot = await mkdtemp(join(tmpdir(), "proflow-agent-runtime-"));
+	context.after(() => rm(proflowRoot, { recursive: true, force: true }));
+	let sequence = 0;
+	let mutate = false;
+	let questionId = "";
+	const runtime = await createAgentRuntime({
+		proflowRoot,
+		task: {
+			async getTask(taskId) {
+				if (mutate) {
+					mutate = false;
+					const db = new DatabaseSync(
+						join(proflowRoot, "agent/collaboration/collaboration.sqlite"),
+					);
+					db.prepare(
+						"UPDATE collaboration_messages SET status='DELIVERED', version=version+1 WHERE message_id=?",
+					).run(questionId);
+					db.close();
+				}
+				return {
+					taskId,
+					status: "ACTIVE",
+					roleBindings: [
+						{ roleRef: "g-product", workerRef: "c-product" },
+						{ roleRef: "g-dev", workerRef: "c-dev" },
+					],
+				};
+			},
+			async hasNonTerminalRoleUsage() {
+				return false;
+			},
+		},
+		idFactory: () => `id:${++sequence}`,
+		credentialFactory: () => `secret-${++sequence}`,
+		now: () => new Date("2026-08-13T08:00:00.000Z"),
+	});
+	await runtime.registerRole({
+		agentPackageRef: "@tomflow/proflow-agent-product",
+		registeredPackageVersion: "0.1.0",
+		roleRef: "g-product",
+		carrierUrl: "https://chatgpt.com/g/g-product",
+	});
+	await runtime.registerRole({
+		agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+		registeredPackageVersion: "0.1.0",
+		roleRef: "g-dev",
+		carrierUrl: "https://chatgpt.com/g/g-dev",
+	});
+	const question = await runtime.askPeer({
+		authenticatedRoleRef: "g-dev",
+		taskId: "task:1",
+		fromWorkerRef: "c-dev",
+		targetAgentPackageRef: "@tomflow/proflow-agent-product",
+		content: "stale row",
+		idempotencyKey: "stale:1",
+	});
+	questionId = question.message.messageId;
+	mutate = true;
+	await assert.rejects(
+		() =>
+			runtime.reportCollaborationDelivery({
+				messageId: question.message.messageId,
+				expectedMessageVersion: 1,
+				outcome: "FAILED",
+				observedRoleRef: "g-product",
+				observedWorkerRef: "c-product",
+				errorCode: "TRANSPORT_ERROR",
+			}),
+		/COLLABORATION_VERSION_CONFLICT/,
+	);
+	runtime.close();
+});
+test("B2-AGT-04 terminal PENDING history never starves later active pending messages", async (context) => {
+	const proflowRoot = await mkdtemp(join(tmpdir(), "proflow-agent-runtime-"));
+	context.after(() => rm(proflowRoot, { recursive: true, force: true }));
+	let sequence = 0;
+	const tasks = new Map<string, TaskFacts>([
+		[
+			"task:terminal",
+			{
+				taskId: "task:terminal",
+				status: "ACTIVE",
+				roleBindings: [
+					{ roleRef: "g-product", workerRef: "c-product" },
+					{ roleRef: "g-dev", workerRef: "c-dev" },
+				],
+			},
+		],
+		[
+			"task:active",
+			{
+				taskId: "task:active",
+				status: "ACTIVE",
+				roleBindings: [
+					{ roleRef: "g-product", workerRef: "c-product" },
+					{ roleRef: "g-dev", workerRef: "c-dev" },
+				],
+			},
+		],
+	]);
+	const runtime = await createAgentRuntime({
+		proflowRoot,
+		task: {
+			async getTask(taskId) {
+				return structuredClone(tasks.get(taskId) as TaskFacts);
+			},
+			async hasNonTerminalRoleUsage() {
+				return false;
+			},
+		},
+		idFactory: () => `id:${++sequence}`,
+		credentialFactory: () => `secret-${++sequence}`,
+		now: () => new Date("2026-08-13T08:00:00.000Z"),
+	});
+	await runtime.registerRole({
+		agentPackageRef: "@tomflow/proflow-agent-product",
+		registeredPackageVersion: "0.1.0",
+		roleRef: "g-product",
+		carrierUrl: "https://chatgpt.com/g/g-product",
+	});
+	await runtime.registerRole({
+		agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+		registeredPackageVersion: "0.1.0",
+		roleRef: "g-dev",
+		carrierUrl: "https://chatgpt.com/g/g-dev",
+	});
+	for (let index = 0; index < 3; index += 1)
+		await runtime.askPeer({
+			authenticatedRoleRef: "g-dev",
+			taskId: "task:terminal",
+			fromWorkerRef: "c-dev",
+			targetAgentPackageRef: "@tomflow/proflow-agent-product",
+			content: `terminal ${index}`,
+			idempotencyKey: `terminal:${index}`,
+		});
+	for (let index = 0; index < 2; index += 1)
+		await runtime.askPeer({
+			authenticatedRoleRef: "g-dev",
+			taskId: "task:active",
+			fromWorkerRef: "c-dev",
+			targetAgentPackageRef: "@tomflow/proflow-agent-product",
+			content: `active ${index}`,
+			idempotencyKey: `active:${index}`,
+		});
+	(tasks.get("task:terminal") as TaskFacts).status = "SUCCEEDED";
+	const pending = await runtime.listPendingCollaborationMessages({ limit: 2 });
+	assert.equal(pending.length, 2);
+	assert.ok(pending.every((message) => message.taskId === "task:active"));
+	runtime.close();
+});
+test("B2-AGT-05 terminal task delivery report never mutates historical PENDING messages", async (context) => {
+	const { runtime, setTask } = await fixture(context);
+	const question = await runtime.askPeer({
+		authenticatedRoleRef: "g-dev",
+		taskId: "task:1",
+		fromWorkerRef: "c-dev",
+		targetAgentPackageRef: "@tomflow/proflow-agent-product",
+		content: "history",
+		idempotencyKey: "hist:1",
+	});
+	setTask({
+		taskId: "task:1",
+		status: "TERMINATED",
+		roleBindings: [
+			{ roleRef: "g-dev", workerRef: "c-dev" },
+			{ roleRef: "g-product", workerRef: "c-product" },
+		],
+	});
+	await assert.rejects(
+		() =>
+			runtime.reportCollaborationDelivery({
+				messageId: question.message.messageId,
+				expectedMessageVersion: 1,
+				outcome: "DELIVERED",
+				observedRoleRef: "g-product",
+				observedWorkerRef: "c-product",
+				executionRef: "execution:q",
+				evidenceRef: "evidence:q",
+			}),
+		/TASK_TERMINAL/,
+	);
+	assert.equal(
+		runtime.getCollaborationMessage({ messageId: question.message.messageId })
+			.status,
+		"PENDING",
+	);
+	runtime.close();
+});
+test("B2-AGT-06 rotateCredential commits atomically on persistence failure", async (context) => {
+	const { runtime, proflowRoot } = await fixture(context);
+	const oldCredential = (await runtime.showCredential("g-dev")).credential;
+	const credentialPath = join(
+		proflowRoot,
+		"agent/secrets/role-credentials.json",
+	);
+	await rm(credentialPath);
+	await mkdir(credentialPath);
+	await assert.rejects(() => runtime.rotateCredential("g-dev"));
+	assert.equal(
+		(await runtime.showCredential("g-dev")).credential,
+		oldCredential,
+	);
+	assert.equal(await runtime.authenticateBearer(oldCredential), "g-dev");
 	runtime.close();
 });

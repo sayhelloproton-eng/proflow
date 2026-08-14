@@ -157,6 +157,55 @@ test("MOD-P1-01/07 admission rejects actual modality and profile limits before p
 	assert.equal(calls, 0);
 });
 
+test("B2-MOD-01 pre-aborted signal fails fast and never reaches provider, queue, or lane", async () => {
+	const control = spec();
+	let calls = 0;
+	const runtime = createModelRuntime({
+		specs: [control],
+		roles: roles(),
+		provider: fakeProvider(async () => {
+			calls += 1;
+			return '{"decision":"ALLOW"}';
+		}),
+	});
+
+	// Caller signal already aborted before infer: typed CANCELLED, zero calls.
+	const callerController = new AbortController();
+	callerController.abort();
+	const cancelled = await runtime.infer(request(control.specRef), {
+		signal: callerController.signal,
+	});
+	assert.equal(cancelled.status, "CANCELLED");
+	assert.equal(cancelled.error?.code, "CANCELLED");
+
+	// Pre-aborted restart signal keeps the RESTART vs caller-cancel distinction.
+	const restartController = new AbortController();
+	restartController.abort("RESTART");
+	const restarted = await runtime.infer(request(control.specRef), {
+		signal: restartController.signal,
+	});
+	assert.equal(restarted.status, "FAILED");
+	assert.equal(restarted.error?.code, "INFERENCE_FAILED");
+
+	// Abort exactly at the enqueue boundary: job is removed before the drain.
+	const boundaryController = new AbortController();
+	const boundary = runtime.infer(request(control.specRef), {
+		signal: boundaryController.signal,
+	});
+	boundaryController.abort();
+	assert.equal((await boundary).status, "CANCELLED");
+
+	// Provider was never invoked, lane/queue never occupied, no late success.
+	assert.equal(calls, 0);
+	assert.equal(runtime.getRuntimeStatus().businessQueueDepth, 0);
+	assert.equal(runtime.getRuntimeStatus().lane, "IDLE");
+
+	// A subsequent normal inference still succeeds: the lane is not poisoned.
+	const ok = await runtime.infer(request(control.specRef));
+	assert.equal(ok.status, "SUCCEEDED");
+	assert.equal(calls, 1);
+});
+
 test("MOD-P1-02/03 runtime rejects caller-forged READY and keeps auditable reasoning verification", () => {
 	assert.throws(
 		() =>

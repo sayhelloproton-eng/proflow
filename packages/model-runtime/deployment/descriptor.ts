@@ -17,6 +17,12 @@ export const descriptor = {
 	],
 	configSlots: [
 		{
+			key: "stateRoot",
+			type: "path",
+			required: true,
+			description: "Absolute .proflow owner state root",
+		},
+		{
 			key: "providerBaseUrl",
 			type: "url",
 			required: true,

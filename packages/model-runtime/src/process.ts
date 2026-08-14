@@ -7,6 +7,7 @@ import {
 } from "@tomflow/proflow-model-contracts";
 import { z } from "zod";
 import { createModelRuntime } from "./index.ts";
+import { createFileModelRuntimeLogger } from "./logging.ts";
 import {
 	createOpenAICompatibleProvider,
 	type ProviderCapabilityFact,
@@ -19,6 +20,7 @@ const configSchema = z
 	.object({
 		host: z.string().min(1).default("127.0.0.1"),
 		port: z.number().int().min(0).max(65_535).default(0),
+		stateRoot: z.string().min(1),
 		providerBaseUrl: z.url(),
 		providerCredentialEnv: z.string().min(1).optional(),
 		models: z
@@ -125,6 +127,9 @@ export async function createModelRuntimeProcess(input: {
 			roles = await verify();
 			return roles;
 		},
+		logger: createFileModelRuntimeLogger({
+			proflowRoot: input.config.stateRoot,
+		}),
 	});
 	const service = createModelRuntimeService({
 		runtime,

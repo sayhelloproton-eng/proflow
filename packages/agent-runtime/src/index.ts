@@ -126,7 +126,22 @@ const deliverySchema = z
 		evidenceRef: identifier.optional(),
 		errorCode: identifier.optional(),
 	})
-	.strict();
+	.strict()
+	.superRefine((delivery, context) => {
+		if (delivery.outcome !== "DELIVERED") return;
+		if (!delivery.executionRef)
+			context.addIssue({
+				code: "custom",
+				message: "DELIVERED requires a non-empty executionRef",
+				path: ["executionRef"],
+			});
+		if (!delivery.evidenceRef)
+			context.addIssue({
+				code: "custom",
+				message: "DELIVERED requires a non-empty evidenceRef",
+				path: ["evidenceRef"],
+			});
+	});
 function canonical(value: unknown): string {
 	if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
 	if (value && typeof value === "object")
@@ -407,9 +422,16 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 		},
 		async rotateCredential(roleRef: string) {
 			if (!roles.has(roleRef)) throw new AgentRuntimeError("ROLE_NOT_FOUND");
+			const previous = credentials.get(roleRef);
 			const credential = credentialFactory();
 			credentials.set(roleRef, credential);
-			await persistCredentials();
+			try {
+				await persistCredentials();
+			} catch (error) {
+				if (previous === undefined) credentials.delete(roleRef);
+				else credentials.set(roleRef, previous);
+				throw error;
+			}
 			return { roleRef, credential };
 		},
 		async authenticateBearer(credential: string) {
@@ -615,16 +637,40 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 				.object({ limit: z.number().int().positive().max(100) })
 				.strict()
 				.parse(raw);
-			const rows = database
-				.prepare(
-					"SELECT * FROM collaboration_messages WHERE status='PENDING' ORDER BY created_at, message_id LIMIT ?",
-				)
-				.all(input.limit) as MessageRow[];
 			const result: CollaborationMessage[] = [];
-			for (const row of rows) {
-				const message = messageFromRow(row);
-				if (!terminal(await options.task.getTask(message.taskId)))
-					result.push(message);
+			const pageSize = input.limit;
+			let cursor: { createdAt: string; messageId: string } | undefined;
+			while (result.length < input.limit) {
+				const rows =
+					cursor === undefined
+						? (database
+								.prepare(
+									"SELECT * FROM collaboration_messages WHERE status='PENDING' ORDER BY created_at, message_id LIMIT ?",
+								)
+								.all(pageSize) as MessageRow[])
+						: (database
+								.prepare(
+									"SELECT * FROM collaboration_messages WHERE status='PENDING' AND (created_at > ? OR (created_at = ? AND message_id > ?)) ORDER BY created_at, message_id LIMIT ?",
+								)
+								.all(
+									cursor.createdAt,
+									cursor.createdAt,
+									cursor.messageId,
+									pageSize,
+								) as MessageRow[]);
+				if (rows.length === 0) break;
+				for (const row of rows) {
+					const message = messageFromRow(row);
+					if (!terminal(await options.task.getTask(message.taskId)))
+						result.push(message);
+				}
+				const last = rows[rows.length - 1];
+				if (!last) break;
+				cursor = {
+					createdAt: String(last.created_at),
+					messageId: String(last.message_id),
+				};
+				if (rows.length < pageSize) break;
 			}
 			return result;
 		},
@@ -643,6 +689,8 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 			if (message.status === "DELIVERED") return message;
 			if (message.version !== input.expectedMessageVersion)
 				throw new AgentRuntimeError("COLLABORATION_VERSION_CONFLICT");
+			if (terminal(await options.task.getTask(message.taskId)))
+				throw new AgentRuntimeError("TASK_TERMINAL");
 			database.exec("BEGIN IMMEDIATE");
 			try {
 				const timestamp = now().toISOString();
@@ -661,14 +709,17 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 						);
 					if (changed.changes !== 1)
 						throw new AgentRuntimeError("COLLABORATION_VERSION_CONFLICT");
-					if (message.kind === "REPLY")
-						database
+					if (message.kind === "REPLY") {
+						const changed = database
 							.prepare(
 								"UPDATE collaboration_threads SET state='OPEN_CAN_ASK', version=version+1, updated_at=? WHERE thread_id=? AND state='OPEN_REPLY_PENDING_DELIVERY' AND last_reply_message_id=?",
 							)
 							.run(timestamp, message.threadId, message.messageId);
+						if (changed.changes !== 1)
+							throw new AgentRuntimeError("COLLABORATION_VERSION_CONFLICT");
+					}
 				} else {
-					database
+					const changed = database
 						.prepare(
 							"UPDATE collaboration_messages SET delivery_attempt_count=delivery_attempt_count+1, last_delivery_error_code=?, execution_ref=?, evidence_ref=?, updated_at=?, version=version+1 WHERE message_id=? AND version=? AND status='PENDING'",
 						)
@@ -680,6 +731,8 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 							message.messageId,
 							message.version,
 						);
+					if (changed.changes !== 1)
+						throw new AgentRuntimeError("COLLABORATION_VERSION_CONFLICT");
 				}
 				database.exec("COMMIT");
 				return getMessage(message.messageId);

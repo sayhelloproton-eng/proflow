@@ -690,6 +690,23 @@ export function createModelRuntime(options: RuntimeOptions) {
 				"payload exceeds Spec context limit",
 			);
 		}
+		// A signal that was already aborted before `infer()` was called never
+		// re-dispatches its "abort" event, so it must be checked explicitly.
+		// Fail fast here — before the job occupies the queue or the lane — and
+		// preserve the RESTART vs caller-cancel typed distinction.
+		if (optionsInput.signal?.aborted) {
+			const restarted = optionsInput.signal.reason === "RESTART";
+			return rejectBeforeQueue(
+				request,
+				spec,
+				inferenceRef,
+				enqueuedAt,
+				restarted ? "INFERENCE_FAILED" : "CANCELLED",
+				restarted
+					? "runtime restarted before inference"
+					: "inference cancelled",
+			);
+		}
 		return new Promise<InferenceResult>((resolve) => {
 			const job: Job = {
 				request,
@@ -740,6 +757,27 @@ export function createModelRuntime(options: RuntimeOptions) {
 					}
 				};
 				job.signal.addEventListener("abort", job.abortListener, { once: true });
+			}
+			// Close the check→subscribe race: a signal that aborted after the
+			// pre-enqueue check but before the listener was attached will not
+			// re-dispatch "abort", so settle it here without occupying the lane.
+			if (job.signal?.aborted) {
+				if (job.queueTimer) clearTimeout(job.queueTimer);
+				const restarted = job.signal.reason === "RESTART";
+				void settle(
+					job,
+					finishFailure(
+						errorResult(
+							job,
+							restarted ? "INFERENCE_FAILED" : "CANCELLED",
+							restarted
+								? "runtime restarted before inference"
+								: "inference cancelled",
+							now(),
+						),
+					),
+				);
+				return;
 			}
 			queues[request.priority].push(job);
 			queueMicrotask(drain);

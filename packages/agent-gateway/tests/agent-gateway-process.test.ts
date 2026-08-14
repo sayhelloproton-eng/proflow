@@ -84,3 +84,101 @@ test("formal agent-gateway process loads credentials, routes, reports readiness,
 		downstream.close();
 	}
 });
+
+test("B2-GW-02 running gateway consumes current credential authority and fails closed on malformed store", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-gateway-rotate-"));
+	const credentialFile = join(root, "credentials.json");
+	const oldKey = "old-credential-value-long";
+	const newKey = "new-credential-value-long";
+	await writeFile(credentialFile, JSON.stringify({ "role:product": oldKey }), {
+		mode: 0o600,
+	});
+	const downstream = createServer(async (request, response) => {
+		response.setHeader("content-type", "application/json");
+		if (request.url === "/ready") return response.end('{"status":"READY"}');
+		const chunks: Buffer[] = [];
+		for await (const chunk of request)
+			chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+		response.end(
+			JSON.stringify({
+				body: JSON.parse(Buffer.concat(chunks).toString("utf8")),
+			}),
+		);
+	});
+	await new Promise<void>((resolveListen) =>
+		downstream.listen(0, "127.0.0.1", resolveListen),
+	);
+	const address = downstream.address();
+	if (!address || typeof address === "string")
+		assert.fail("missing downstream");
+	const logs: Record<string, unknown>[] = [];
+	const gateway = await createAgentGatewayProcess({
+		config: {
+			host: "127.0.0.1",
+			port: 0,
+			publicBaseUrl: "https://gateway.example",
+			downstreamBaseUrl: `http://127.0.0.1:${address.port}`,
+			credentialFile,
+		},
+		log: (entry) => logs.push(entry),
+	});
+	const auth = (baseUrl: string, credential: string) =>
+		fetch(`${baseUrl}/actions/getTask`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${credential}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({ taskId: "task:1" }),
+		});
+	try {
+		const { host, port } = await gateway.start();
+		const baseUrl = `http://${host}:${port}`;
+		const roleOf = (response: Response) =>
+			response.json() as Promise<{
+				body: { authenticatedRoleRef: string };
+			}>;
+
+		assert.equal((await auth(baseUrl, oldKey)).status, 200);
+		assert.equal(
+			(await roleOf(await auth(baseUrl, oldKey))).body.authenticatedRoleRef,
+			"role:product",
+		);
+
+		await writeFile(
+			credentialFile,
+			JSON.stringify({ "role:product": newKey }),
+			{ mode: 0o600 },
+		);
+
+		assert.equal((await auth(baseUrl, newKey)).status, 200);
+		assert.equal(
+			(await roleOf(await auth(baseUrl, newKey))).body.authenticatedRoleRef,
+			"role:product",
+		);
+		assert.equal((await auth(baseUrl, oldKey)).status, 401);
+
+		await writeFile(credentialFile, "{ not-valid json", { mode: 0o600 });
+		assert.equal((await auth(baseUrl, newKey)).status, 401);
+		assert.equal((await auth(baseUrl, oldKey)).status, 401);
+
+		await writeFile(
+			credentialFile,
+			JSON.stringify({ "role:product": newKey }),
+			{ mode: 0o600 },
+		);
+		assert.equal((await auth(baseUrl, newKey)).status, 200);
+		assert.equal((await auth(baseUrl, oldKey)).status, 401);
+
+		assert.ok(
+			!logs.some(
+				(entry) =>
+					JSON.stringify(entry).includes(oldKey) ||
+					JSON.stringify(entry).includes(newKey),
+			),
+		);
+	} finally {
+		await gateway.stop();
+		downstream.close();
+	}
+});

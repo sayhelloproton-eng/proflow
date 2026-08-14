@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto";
-import { lookup } from "node:dns/promises";
 import { createServer, type Server } from "node:http";
 import { isIP } from "node:net";
 import { z } from "zod";
@@ -7,8 +6,6 @@ import { z } from "zod";
 const MAX_ACTION_CHARS = 100_000;
 const MAX_INPUT_FILES = 10;
 const MAX_FILE_BYTES = 10_000_000;
-const MAX_AGGREGATE_BYTES = 50_000_000;
-const FETCH_TIMEOUT_MS = 15_000;
 const RELAY_TTL_MS = 300_000;
 export type GatewayOwnerPorts = {
 	authenticateBearer(credential: string): Promise<string>;
@@ -30,10 +27,8 @@ export type GatewayOptions = {
 	relayBaseUrl: string;
 	host?: string;
 	port?: number;
-	fetch?: typeof globalThis.fetch;
 	now?: () => number;
 	actionTimeoutMs?: number;
-	resolveHostname?: (hostname: string) => Promise<string[]>;
 };
 export class AgentGatewayError extends Error {
 	readonly code: string;
@@ -94,25 +89,6 @@ function privateIpv4(host: string): boolean {
 		(parts[0] ?? 0) >= 224
 	);
 }
-function privateAddress(address: string): boolean {
-	if (isIP(address) === 4) return privateIpv4(address);
-	const normalized = address.toLowerCase().replace(/^\[|\]$/g, "");
-	return (
-		isIP(normalized) !== 6 ||
-		normalized === "::" ||
-		normalized === "::1" ||
-		normalized.startsWith("fe8") ||
-		normalized.startsWith("fe9") ||
-		normalized.startsWith("fea") ||
-		normalized.startsWith("feb") ||
-		normalized.startsWith("fc") ||
-		normalized.startsWith("fd") ||
-		normalized.startsWith("ff") ||
-		normalized.startsWith("::ffff:127.") ||
-		normalized.startsWith("::ffff:10.") ||
-		normalized.startsWith("::ffff:192.168.")
-	);
-}
 export async function createAgentGateway(options: GatewayOptions) {
 	const now = options.now ?? Date.now;
 	const host = options.host ?? "127.0.0.1";
@@ -121,10 +97,6 @@ export async function createAgentGateway(options: GatewayOptions) {
 	let lifecycle: "STOPPED" | "RUNNING" | "DRAINING" = "STOPPED";
 	let inFlight = 0;
 	const relays = new Map<string, RelayEntry>();
-	const resolveHostname =
-		options.resolveHostname ??
-		(async (hostname: string) =>
-			(await lookup(hostname, { all: true })).map((item) => item.address));
 	const assertSafeRemoteUrl = (raw: string): URL => {
 		let url: URL;
 		try {
@@ -147,21 +119,6 @@ export async function createAgentGateway(options: GatewayOptions) {
 			throw new AgentGatewayError("OPENAI_FILE_INPUT_INVALID");
 		return url;
 	};
-	const verifyResolvedRemoteUrl = async (url: URL) => {
-		if (isIP(url.hostname)) {
-			if (privateAddress(url.hostname))
-				throw new AgentGatewayError("OPENAI_FILE_INPUT_INVALID");
-			return;
-		}
-		let addresses: string[];
-		try {
-			addresses = await resolveHostname(url.hostname);
-		} catch {
-			throw new AgentGatewayError("OPENAI_FILE_FETCH_FAILED");
-		}
-		if (addresses.length === 0 || addresses.some(privateAddress))
-			throw new AgentGatewayError("OPENAI_FILE_INPUT_INVALID");
-	};
 	const normalizeFileInputs = (raw: unknown): FileInput[] => {
 		const list = z.array(fileInputSchema).parse(raw);
 		if (list.length > MAX_INPUT_FILES)
@@ -172,89 +129,6 @@ export async function createAgentGateway(options: GatewayOptions) {
 			assertSafeRemoteUrl(item.download_link);
 		}
 		return list;
-	};
-	const fetchFileInputs = async (
-		raw: unknown,
-		fetchImplementation = options.fetch ?? globalThis.fetch,
-	) => {
-		const inputs = normalizeFileInputs(raw);
-		const output: Array<{
-			name: string;
-			id: string;
-			mimeType: string;
-			bytes: number;
-			content: Buffer;
-		}> = [];
-		let aggregate = 0;
-		for (const input of inputs) {
-			let current = assertSafeRemoteUrl(input.download_link);
-			let response: Response | undefined;
-			for (let redirects = 0; redirects <= 5; redirects += 1) {
-				await verifyResolvedRemoteUrl(current);
-				try {
-					response = await fetchImplementation(current, {
-						redirect: "manual",
-						signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-					});
-				} catch (error) {
-					if (error instanceof Error && error.name === "TimeoutError")
-						throw new AgentGatewayError("OPENAI_FILE_FETCH_TIMEOUT");
-					throw new AgentGatewayError("OPENAI_FILE_FETCH_FAILED");
-				}
-				if (
-					response.status >= 300 &&
-					response.status < 400 &&
-					response.headers.get("location")
-				) {
-					current = assertSafeRemoteUrl(
-						new URL(response.headers.get("location") ?? "", current).href,
-					);
-					continue;
-				}
-				break;
-			}
-			if (!response?.ok)
-				throw new AgentGatewayError("OPENAI_FILE_FETCH_FAILED");
-			const actualMime = response.headers
-				.get("content-type")
-				?.split(";")[0]
-				?.trim();
-			if (!actualMime || actualMime !== input.mime_type)
-				throw new AgentGatewayError("OPENAI_FILE_MIME_MISMATCH");
-			const declaredLength = Number(response.headers.get("content-length"));
-			if (Number.isFinite(declaredLength) && declaredLength > MAX_FILE_BYTES)
-				throw new AgentGatewayError("OPENAI_FILE_TOO_LARGE");
-			const chunks: Buffer[] = [];
-			let fileBytes = 0;
-			const reader = response.body?.getReader();
-			if (reader) {
-				while (true) {
-					const chunk = await reader.read();
-					if (chunk.done) break;
-					const buffer = Buffer.from(chunk.value);
-					fileBytes += buffer.length;
-					aggregate += buffer.length;
-					if (fileBytes > MAX_FILE_BYTES) {
-						await reader.cancel();
-						throw new AgentGatewayError("OPENAI_FILE_TOO_LARGE");
-					}
-					if (aggregate > MAX_AGGREGATE_BYTES) {
-						await reader.cancel();
-						throw new AgentGatewayError("OPENAI_FILE_AGGREGATE_TOO_LARGE");
-					}
-					chunks.push(buffer);
-				}
-			}
-			const bytes = Buffer.concat(chunks);
-			output.push({
-				name: input.name,
-				id: input.id,
-				mimeType: actualMime,
-				bytes: bytes.length,
-				content: bytes,
-			});
-		}
-		return output;
 	};
 	const createRelay = (artifact: RelayArtifact) => {
 		if (!safeFilename(artifact.name))
@@ -339,11 +213,25 @@ export async function createAgentGateway(options: GatewayOptions) {
 	};
 	const readiness = async () => {
 		const checks = await options.owners.readiness();
+		// Intrinsic Gateway capabilities are verified here rather than trusting the
+		// owner to report them: ingress is the real accepting/bound socket state, and
+		// relay requires a valid HTTPS base URL that an external client can fetch.
+		let relayReady = false;
+		try {
+			relayReady = new URL(options.relayBaseUrl).protocol === "https:";
+		} catch {
+			relayReady = false;
+		}
+		const merged = {
+			...checks,
+			ingress: lifecycle === "RUNNING" && server !== undefined,
+			relay: relayReady && checks.relay !== false,
+		};
 		return {
-			status: Object.values(checks).every(Boolean)
+			status: Object.values(merged).every(Boolean)
 				? ("READY" as const)
 				: ("NOT_READY" as const),
-			checks,
+			checks: merged,
 		};
 	};
 	const handler = async (
@@ -559,7 +447,6 @@ export async function createAgentGateway(options: GatewayOptions) {
 		}),
 		assertSafeRemoteUrl,
 		normalizeFileInputs,
-		fetchFileInputs,
 		createRelay,
 		readRelay,
 		serializeFileResponse,
