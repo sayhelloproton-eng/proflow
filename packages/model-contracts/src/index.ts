@@ -35,6 +35,7 @@ export const inferenceRequestSchema = z
 				taskId: z.string().min(1).optional(),
 				nodeId: z.string().min(1).optional(),
 				executionRef: z.string().min(1).optional(),
+				assessmentRef: z.string().min(1).optional(),
 			})
 			.strict(),
 		payload: z.unknown(),
@@ -336,6 +337,7 @@ export const MODEL_CONTRACT_DESCRIPTOR = Object.freeze({
 		"trace.taskId?",
 		"trace.nodeId?",
 		"trace.executionRef?",
+		"trace.assessmentRef?",
 		"payload",
 		"images?",
 		"images.mimeType",
