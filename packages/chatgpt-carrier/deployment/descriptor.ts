@@ -86,4 +86,4 @@ export const descriptor = {
 			description: "Observes the ChatGPT Custom GPT carrier",
 		},
 	],
-} as const;
+};

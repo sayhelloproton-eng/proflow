@@ -151,6 +151,9 @@ export interface TaskView {
 		version: number;
 	}>;
 	pendingMessages: TaskMessage[];
+	readiness?: {
+		ready: boolean;
+	};
 }
 export interface NodeResult {
 	taskId: string;
@@ -489,6 +492,7 @@ export function createTaskServices(options: {
 		pendingMessages: tx.messages
 			.listPending()
 			.filter((message) => message.taskId === task.taskId),
+		readiness: { ready: task.status === "READY" },
 	});
 	const relativeDocumentPath = (taskId: string, type: DocumentType): string =>
 		`.proflow/tasks/${/^[A-Za-z0-9_-]+$/.test(taskId) ? taskId : `id-${createHash("sha256").update(taskId).digest("hex")}`}/documents/${type.toLowerCase().replaceAll("_", "-")}.md`;
@@ -880,8 +884,8 @@ export function createTaskServices(options: {
 				};
 				},
 			),
-		startTask: (raw: unknown): TaskResult<Task> =>
-			command<TaskControls, Task>("startTask", raw, (tx, input, timestamp) => {
+		startTask: (raw: unknown): TaskResult<TaskView> =>
+			command<TaskControls, TaskView>("startTask", raw, (tx, input, timestamp) => {
 				const task = requireTask(tx, input.taskId);
 				checkVersion(
 					task.version,
@@ -952,7 +956,7 @@ export function createTaskServices(options: {
 					updatedAt: timestamp,
 				};
 				tx.tasks.update(updated);
-				return updated;
+				return view(tx, updated);
 			}),
 		pauseTask: (raw: unknown): TaskResult<Task> =>
 			command<ReasonInput, Task>("pauseTask", raw, (tx, input, timestamp) => {
