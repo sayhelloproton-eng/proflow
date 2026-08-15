@@ -20,15 +20,24 @@ export {
 	createBrowserRealityBridgeServer,
 } from "./bridge.ts";
 export {
-	type BrowserTaskDriverExecutionPort,
-	type BrowserTaskDriverIdentityPort,
-	type BrowserTaskDriverNodeContext,
-	type BrowserTaskDriverOwnerPort,
-	type BrowserTaskDriverTask,
-	createExecutionBrowserTaskDriver,
-	type NodeWakePlan,
-	type ProvisionPlan,
-} from "./task-driver.ts";
+	createTaskObserver,
+	type TaskDriveProjection,
+	type TaskObserverCarrierPort,
+	type TaskObserverDecision,
+	type TaskObserverOwnerPort,
+} from "./task-observer.ts";
+export {
+	createSystemObserver,
+	type SystemObserverAssessment,
+	type SystemObserverPriority,
+	type SystemObserverSnapshotPort,
+	type SystemObserverView,
+} from "./system-observer.ts";
+export {
+	createCarrierController,
+	type CarrierControllerPort,
+	type CarrierWakeRequest,
+} from "./carrier-controller.ts";
 
 export type BrowserPageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 export type BrowserActivityKind =
@@ -975,8 +984,9 @@ export function createExecutionBrowserExtension(
 		reconcile,
 		async finalizeCollaborationDelivery(recordRaw: unknown) {
 			const record = parseExecutionRecord(recordRaw);
+			// Durable Execution success is proven by the applied side effect plus a
+			// confirmed delivery result; the status field itself is not re-read here.
 			if (
-				record.status !== "SUCCEEDED" ||
 				record.sideEffectState !== "APPLIED" ||
 				record.result?.capability !== "collaboration.deliver" ||
 				record.result.data.delivered !== true

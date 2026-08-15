@@ -700,12 +700,12 @@ async function constructGraph(
 					request.capability === "worker.restore" ||
 					request.capability === "worker.wake" ||
 					request.capability === "collaboration.deliver";
-				const internalTaskDriver =
-					request.callerRef === "execution-runtime:task-driver";
-				if (!internalTaskDriver) agent.getRegisteredRole(request.callerRef);
+				const internalTaskObserver =
+					request.callerRef === "platform-host:task-observer";
+				if (!internalTaskObserver) agent.getRegisteredRole(request.callerRef);
 				if (
 					request.roleRef &&
-					!internalTaskDriver &&
+					!internalTaskObserver &&
 					request.roleRef !== request.callerRef
 				)
 					return false;
@@ -716,7 +716,7 @@ async function constructGraph(
 					return false;
 				if ((request.nodeId || request.runNo) && !request.taskId) return false;
 				if (request.workerRef && !request.taskId) return false;
-				if (internalTaskDriver && (!browserCapability || !request.taskId))
+				if (internalTaskObserver && (!browserCapability || !request.taskId))
 					return false;
 				if (browserCapability && !request.taskId) return false;
 				if (request.taskId) {
@@ -726,7 +726,7 @@ async function constructGraph(
 						taskIsTerminal(taskFact.status)
 					)
 						return false;
-					if (request.workerRef && !internalTaskDriver)
+					if (request.workerRef && !internalTaskObserver)
 						await agent.validateWorker({
 							authenticatedRoleRef: request.callerRef,
 							taskId: request.taskId,
@@ -748,7 +748,7 @@ async function constructGraph(
 							(candidate) => candidate.roleRef === targetRoleRef,
 						);
 						if (!binding) return false;
-						if (!internalTaskDriver && targetRoleRef !== request.callerRef)
+						if (!internalTaskObserver && targetRoleRef !== request.callerRef)
 							return false;
 						if (request.capability !== "worker.create") {
 							const targetWorkerRef = string(
@@ -800,7 +800,7 @@ async function constructGraph(
 		return unwrap(
 			task.commands.startTask({
 				...input,
-				actorRef: "execution-runtime:task-driver",
+				actorRef: "platform-host:task-observer",
 			}),
 		);
 	},
@@ -808,7 +808,7 @@ async function constructGraph(
 		return unwrap(
 			task.commands.startNode({
 				...input,
-				actorRef: "execution-runtime:task-driver",
+				actorRef: "platform-host:task-observer",
 			}),
 		);
 	},
