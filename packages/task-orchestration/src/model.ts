@@ -1,3 +1,9 @@
+export const requiredTaskAgentPackageRefs = [
+	"@tomflow/proflow-agent-product",
+	"@tomflow/proflow-agent-controller-dev",
+	"@tomflow/proflow-agent-test-ops",
+] as const;
+
 export type TaskGroupStatus = "READY" | "ACTIVE" | "SUCCEEDED";
 export type TaskStatus =
 	| "PENDING"

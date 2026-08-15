@@ -73,7 +73,9 @@ function createTaskInput() {
 				},
 			],
 		},
-		initialDocuments: [{ documentType: "REQUIREMENT", content: "# Requirement\n" }],
+		initialDocuments: [
+			{ documentType: "REQUIREMENT", content: "# Requirement\n" },
+		],
 		roleBindings,
 		actorRef: "extension:new-task",
 		idempotencyKey: "idem:create",
@@ -88,7 +90,10 @@ test("the service surface implements every current public operation exactly once
 		store: { read: unavailable, transaction: unavailable },
 		workspaceRoot: "/unused",
 	});
-	assert.deepEqual([...publicOperationNames].sort(), [...CURRENT_PUBLIC_OPERATIONS].sort());
+	assert.deepEqual(
+		[...publicOperationNames].sort(),
+		[...CURRENT_PUBLIC_OPERATIONS].sort(),
+	);
 	assert.deepEqual(
 		[
 			...Object.keys(services.commands),
@@ -99,7 +104,10 @@ test("the service surface implements every current public operation exactly once
 		].sort(),
 		[...CURRENT_PUBLIC_OPERATIONS].sort(),
 	);
-	assert.equal((publicOperationNames as readonly string[]).includes("authorizeTask"), false);
+	assert.equal(
+		(publicOperationNames as readonly string[]).includes("authorizeTask"),
+		false,
+	);
 });
 
 test("CP-TASK-ORCH-01 frozen Task, TaskGroup, and Node transitions reject illegal changes", () => {
@@ -137,9 +145,17 @@ test("CP-TASK-ORCH-01 frozen Task, TaskGroup, and Node transitions reject illega
 
 test("CP-TASK-ORCH-02 public runtime exposes exactly 23 operations and no alternate scheduler", () => {
 	assert.deepEqual(publicOperationNames, CURRENT_PUBLIC_OPERATIONS);
-	for (const forbidden of ["WorkItem", "Claim", "Lease", "createEdge", "assignWorker"])
+	for (const forbidden of [
+		"WorkItem",
+		"Claim",
+		"Lease",
+		"createEdge",
+		"assignWorker",
+	])
 		assert.equal(
-			(publicOperationNames as readonly string[]).some((name) => name.includes(forbidden)),
+			(publicOperationNames as readonly string[]).some((name) =>
+				name.includes(forbidden),
+			),
 			false,
 		);
 });
@@ -155,6 +171,17 @@ test("CP-TASK-ORCH-04 runtime validation requires command controls and forbids c
 			expectedNodeVersion: 1,
 			actorRef: "worker:c-dev",
 			idempotencyKey: "idem:start",
+		}),
+	);
+	assert.doesNotThrow(() =>
+		validatePublicInput("putTaskDocument", {
+			taskId: "task-1",
+			nodeId: null,
+			documentType: "REQUIREMENT",
+			content: "# Requirement\n",
+			expectedTaskVersion: 1,
+			actorRef: "worker:product",
+			idempotencyKey: "idem:task-scoped-doc",
 		}),
 	);
 	assert.deepEqual(
@@ -196,15 +223,34 @@ test("remediation T01 createTask enforces agent-package identity and exactly the
 			},
 		}),
 	);
-	assert.throws(() => validatePublicInput("createTask", { ...base, roleBindings: [] }));
+	assert.throws(() =>
+		validatePublicInput("createTask", {
+			...base,
+			plan: {
+				nodes: [
+					{
+						...base.plan.nodes[0],
+						requiredAgentPackageRef: "@tomflow/proflow-agent-unknown",
+					},
+				],
+			},
+		}),
+	);
+	assert.throws(() =>
+		validatePublicInput("createTask", { ...base, roleBindings: [] }),
+	);
 	assert.throws(() =>
 		validatePublicInput("createTask", {
 			...base,
 			roleBindings: roleBindings.slice(0, 2),
 		}),
 	);
-	assert.throws(() => validatePublicInput("createTask", { ...base, taskGroupId: "group-1" }));
-	assert.throws(() => validatePublicInput("createTask", { ...base, sequenceNo: 1 }));
+	assert.throws(() =>
+		validatePublicInput("createTask", { ...base, taskGroupId: "group-1" }),
+	);
+	assert.throws(() =>
+		validatePublicInput("createTask", { ...base, sequenceNo: 1 }),
+	);
 	assert.doesNotThrow(() =>
 		validatePublicInput("createTask", {
 			...base,
@@ -215,8 +261,14 @@ test("remediation T01 createTask enforces agent-package identity and exactly the
 });
 
 test("CP-TASK-ORCH-09/10 create starts PENDING and start confirmation is startTask, not authorization", () => {
-	const parsed = validatePublicInput("createTask", createTaskInput()) as Record<string, unknown>;
+	const parsed = validatePublicInput("createTask", createTaskInput()) as Record<
+		string,
+		unknown
+	>;
 	assert.equal(JSON.stringify(parsed).includes("requiredRoleRef"), false);
 	assert.equal(JSON.stringify(parsed).includes("authorizedByRef"), false);
-	assert.equal((publicOperationNames as readonly string[]).includes("authorizeTask"), false);
+	assert.equal(
+		(publicOperationNames as readonly string[]).includes("authorizeTask"),
+		false,
+	);
 });

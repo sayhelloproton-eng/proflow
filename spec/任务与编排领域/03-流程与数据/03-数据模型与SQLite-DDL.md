@@ -321,9 +321,17 @@ CREATE TABLE idempotency_records (
 CREATE TABLE schema_migrations (
   version        INTEGER PRIMARY KEY,
   name           TEXT NOT NULL,
+  checksum       TEXT,
   applied_at     TEXT NOT NULL
 );
 ```
+
+规则：
+
+- 新执行 migration 必须记录由 `version + name + stable migration identity` 计算的 checksum，后续同 version/name 但 checksum 漂移必须失败；
+- pre-checksum 历史安装的既有行允许 `checksum IS NULL`，**不得用当前 SQL checksum 伪造回填历史事实**；
+- 历史行只有在后续 compatibility migration 通过真实 schema introspection/upgrade 后，整体 migration verify 才允许 PASS；
+- 无法从旧 role identity 安全确定 `agentPackageRef` 时必须要求显式 legacy mapping，不得猜测。
 
 ---
 

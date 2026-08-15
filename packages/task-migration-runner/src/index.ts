@@ -1,15 +1,18 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import {
 	type TaskMigration,
+	type TaskMigrationContext,
 	taskMigrations,
 } from "@tomflow/proflow-task-store-sqlite/migrations";
 
 export interface MigrationInput {
 	databasePath: string;
 	migrations: readonly TaskMigration[];
+	context?: TaskMigrationContext;
 }
 
 export interface MigrationResult {
@@ -34,6 +37,12 @@ export interface MigrationStatus {
 		expectedName: string;
 		actualName: string;
 	}>;
+	checksumDrift: Array<{
+		version: number;
+		expectedChecksum: string;
+		actualChecksum: string;
+	}>;
+	legacyMetadataVersions: number[];
 	missingTables: string[];
 }
 
@@ -51,9 +60,47 @@ export function discoverMigrations(
 			throw new TypeError("migration name must be stable snake_case");
 		if (versions.has(migration.version))
 			throw new TypeError(`duplicate migration version ${migration.version}`);
+		if (migration.apply !== undefined && !migration.identity)
+			throw new TypeError(
+				`custom migration ${migration.version} requires a stable identity`,
+			);
+		if (migration.coversLegacyVersions !== undefined) {
+			if (migration.apply === undefined)
+				throw new TypeError(
+					`migration ${migration.version} cannot cover legacy versions without an owner compatibility apply`,
+				);
+			if (
+				migration.coversLegacyVersions.some(
+					(version) =>
+						!Number.isInteger(version) ||
+						version < 1 ||
+						version >= migration.version,
+				)
+			)
+				throw new TypeError(
+					`migration ${migration.version} has an invalid legacy coverage declaration`,
+				);
+		}
 		versions.add(migration.version);
 	}
 	return sorted;
+}
+
+function migrationChecksum(migration: TaskMigration): string {
+	const semanticIdentity = `${migration.identity ?? "sql"}\0${migration.sql}`;
+	return `sha256:${createHash("sha256")
+		.update(`${migration.version}\0${migration.name}\0${semanticIdentity}`)
+		.digest("hex")}`;
+}
+
+function migrationMetadataColumns(database: DatabaseSync): Set<string> {
+	return new Set(
+		(
+			database.prepare("PRAGMA table_info(schema_migrations)").all() as Array<{
+				name: string;
+			}>
+		).map((row) => row.name),
+	);
 }
 
 function openDatabase(databasePath: string): DatabaseSync {
@@ -64,8 +111,11 @@ function openDatabase(databasePath: string): DatabaseSync {
 		"PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 2500;",
 	);
 	database.exec(
-		"CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL);",
+		"CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, checksum TEXT, applied_at TEXT NOT NULL);",
 	);
+	const columns = migrationMetadataColumns(database);
+	if (!columns.has("checksum"))
+		database.exec("ALTER TABLE schema_migrations ADD COLUMN checksum TEXT");
 	return database;
 }
 
@@ -100,10 +150,21 @@ function inspectionStatus(
 			"SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='schema_migrations'",
 		)
 		.get() as { present?: number } | undefined;
+	const metadataColumns = migrationTable
+		? migrationMetadataColumns(database)
+		: new Set<string>();
 	const appliedRows = migrationTable
 		? (database
-				.prepare("SELECT version, name FROM schema_migrations ORDER BY version")
-				.all() as Array<{ version: number; name: string }>)
+				.prepare(
+					metadataColumns.has("checksum")
+						? "SELECT version, name, checksum FROM schema_migrations ORDER BY version"
+						: "SELECT version, name, NULL AS checksum FROM schema_migrations ORDER BY version",
+				)
+				.all() as Array<{
+				version: number;
+				name: string;
+				checksum: string | null;
+			}>)
 		: [];
 	const appliedSet = new Set(appliedRows.map((row) => row.version));
 	const expectedTables = expectedTableNames(migrations);
@@ -135,6 +196,26 @@ function inspectionStatus(
 					]
 				: [];
 		}),
+		checksumDrift: migrations.flatMap((migration) => {
+			const actual = appliedRows.find(
+				(row) => row.version === migration.version,
+			);
+			const expectedChecksum = migrationChecksum(migration);
+			return actual?.checksum !== null &&
+				actual?.checksum !== undefined &&
+				actual.checksum !== expectedChecksum
+				? [
+						{
+							version: migration.version,
+							expectedChecksum,
+							actualChecksum: actual.checksum,
+						},
+					]
+				: [];
+		}),
+		legacyMetadataVersions: appliedRows
+			.filter((row) => row.checksum === null)
+			.map((row) => row.version),
 		missingTables: expectedTables.filter((table) => !actualTables.has(table)),
 	};
 }
@@ -148,6 +229,8 @@ export function getMigrationStatus(input: MigrationInput): MigrationStatus {
 			appliedVersions: [],
 			pendingVersions: migrations.map((migration) => migration.version),
 			metadataDrift: [],
+			checksumDrift: [],
+			legacyMetadataVersions: [],
 			missingTables: expectedTableNames(migrations),
 		};
 	}
@@ -168,9 +251,13 @@ export function applyMigrations(input: MigrationInput): MigrationResult {
 		for (const migration of migrations) {
 			if (alreadyApplied.has(migration.version)) {
 				const row = database
-					.prepare("SELECT name FROM schema_migrations WHERE version = ?")
-					.get(migration.version) as { name: string } | undefined;
-				if (row?.name !== migration.name)
+					.prepare(
+						"SELECT name, checksum FROM schema_migrations WHERE version = ?",
+					)
+					.get(migration.version) as
+					| { name: string; checksum: string | null }
+					| undefined;
+				if (!row || row.name !== migration.name)
 					return {
 						contract: "task-migration",
 						contractVersion: "1.0.0",
@@ -184,16 +271,57 @@ export function applyMigrations(input: MigrationInput): MigrationResult {
 							message: `migration ${migration.version} name drift: expected ${migration.name}, found ${row?.name ?? "missing"}`,
 						},
 					};
+				if (row.checksum === null && migration.apply !== undefined)
+					return {
+						contract: "task-migration",
+						contractVersion: "1.0.0",
+						ok: false,
+						applied: appliedNow,
+						pending: migrations
+							.filter((item) => !alreadyApplied.has(item.version))
+							.map((item) => item.version),
+						error: {
+							code: "MIGRATION_FAILED",
+							message: `compatibility migration ${migration.version} is missing checksum identity`,
+						},
+					};
+				if (
+					row.checksum !== null &&
+					row.checksum !== migrationChecksum(migration)
+				)
+					return {
+						contract: "task-migration",
+						contractVersion: "1.0.0",
+						ok: false,
+						applied: appliedNow,
+						pending: migrations
+							.filter((item) => !alreadyApplied.has(item.version))
+							.map((item) => item.version),
+						error: {
+							code: "MIGRATION_FAILED",
+							message: `migration ${migration.version} checksum drift`,
+						},
+					};
+				// Rows created by a pre-checksum runner remain explicitly legacy. They are
+				// not backfilled with the current SQL checksum because the historical SQL
+				// cannot be proven. A later compatibility migration validates/upgrades the
+				// real schema instead.
 				continue;
 			}
 			database.exec("BEGIN IMMEDIATE");
 			try {
-				database.exec(migration.sql);
+				if (migration.sql.trim().length > 0) database.exec(migration.sql);
+				migration.apply?.(database, input.context ?? {});
 				database
 					.prepare(
-						"INSERT INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)",
+						"INSERT INTO schema_migrations(version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
 					)
-					.run(migration.version, migration.name, new Date().toISOString());
+					.run(
+						migration.version,
+						migration.name,
+						migrationChecksum(migration),
+						new Date().toISOString(),
+					);
 				database.exec("COMMIT");
 				appliedNow.push(migration.version);
 				alreadyApplied.add(migration.version);
@@ -247,9 +375,23 @@ export function verifyMigrations(input: MigrationInput): MigrationResult {
 		const integrity = database.prepare("PRAGMA integrity_check").get() as
 			| { integrity_check?: string }
 			| undefined;
+		const appliedSet = new Set(status.appliedVersions);
+		const legacyMetadataCoveredByCompatibilityBarrier =
+			status.legacyMetadataVersions.length === 0 ||
+			status.legacyMetadataVersions.every((legacyVersion) =>
+				input.migrations.some(
+					(migration) =>
+						migration.version > legacyVersion &&
+						appliedSet.has(migration.version) &&
+						migration.apply !== undefined &&
+						migration.coversLegacyVersions?.includes(legacyVersion) === true,
+				),
+			);
 		const ok =
 			status.pendingVersions.length === 0 &&
 			status.metadataDrift.length === 0 &&
+			status.checksumDrift.length === 0 &&
+			legacyMetadataCoveredByCompatibilityBarrier &&
 			status.missingTables.length === 0 &&
 			integrity?.integrity_check === "ok";
 		return {
@@ -279,12 +421,23 @@ export async function runCli(args: string[]): Promise<string> {
 	const databaseIndex = args.indexOf("--database");
 	const databasePath =
 		databaseIndex >= 0 ? (args[databaseIndex + 1] ?? ":memory:") : ":memory:";
+	const legacyRoleMapIndex = args.indexOf("--legacy-role-map");
+	let migrationContext: TaskMigrationContext | undefined;
+	if (legacyRoleMapIndex >= 0) {
+		const mapPath = args[legacyRoleMapIndex + 1];
+		if (!mapPath) throw new TypeError("--legacy-role-map requires a JSON file");
+		const parsed = JSON.parse(readFileSync(mapPath, "utf8")) as unknown;
+		if (parsed === null || Array.isArray(parsed) || typeof parsed !== "object")
+			throw new TypeError("legacy role map must be a JSON object");
+		migrationContext = { legacyRoleMap: parsed as Record<string, string> };
+	}
 	let success = true;
 	let message = "migration status is readable";
 	if (command === "apply") {
 		const result = applyMigrations({
 			databasePath,
 			migrations: taskMigrations,
+			...(migrationContext ? { context: migrationContext } : {}),
 		});
 		success = result.ok;
 		message = result.ok

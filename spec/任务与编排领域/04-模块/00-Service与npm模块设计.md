@@ -194,7 +194,7 @@ Task migrations SQL
 
 为什么带 `task-` 前缀：当前只有 Task Domain 一个真实消费者，不提前创建平台公共抽象。
 
-职责：discover migrations、parse version / name、read schema_migrations、sort pending migrations、execute migration transaction、record applied migration。
+职责：discover migrations、parse version / name / stable checksum identity、read schema_migrations、区分 pre-checksum legacy metadata、sort pending migrations、execute migration transaction / owner-provided compatibility apply、record applied migration。Runner 不把当前 SQL checksum 回填到无法证明的历史 migration；历史 schema 兼容逻辑仍由 schema Owner `task-store-sqlite` 提供。
 
 它不拥有具体 Task SQL。
 

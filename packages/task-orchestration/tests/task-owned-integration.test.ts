@@ -11,7 +11,12 @@ import {
 	SqliteTaskStore,
 	taskMigrations,
 } from "@tomflow/proflow-task-store-sqlite";
-import { createTaskServices, type TaskResult } from "../src/index.ts";
+import {
+	createTaskServices,
+	type TaskRepositories,
+	type TaskResult,
+	type TaskStore,
+} from "../src/index.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -187,6 +192,21 @@ test("CP-TASK-ORCH-03 TaskRoleBinding is stable/idempotent and startNode resolve
 				taskId: created.taskId,
 				agentPackageRef: PACKAGES.dev,
 				roleRef: ROLES.dev,
+				workerRef: "c-dev",
+				conversationLocator: "https://chatgpt.com/g/g-dev/c/different",
+				expectedTaskVersion: first.version,
+				actorRef: "platform-host:worker-provisioning",
+				idempotencyKey: "idem:bind:dev:locator-conflict",
+			}),
+		),
+		"TASK_ROLE_BINDING_CONFLICT",
+	);
+	assert.equal(
+		errorCode(
+			services.commands.bindTaskWorker({
+				taskId: created.taskId,
+				agentPackageRef: PACKAGES.dev,
+				roleRef: ROLES.dev,
 				workerRef: "c-dev-other",
 				conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev-other",
 				expectedTaskVersion: first.version,
@@ -270,7 +290,10 @@ test("CP-TASK-ORCH-04 stale, duplicate and same-key-different-fingerprint paths 
 		),
 		"TASK_VERSION_CONFLICT",
 	);
-	assert.equal(ok(services.queries.getTask({ taskId: created.taskId })).version, created.version);
+	assert.equal(
+		ok(services.queries.getTask({ taskId: created.taskId })).version,
+		created.version,
+	);
 });
 
 test("CP-TASK-ORCH-05 reopen preserves binding/conversation/history and increments runNo", async (context) => {
@@ -286,8 +309,8 @@ test("CP-TASK-ORCH-05 reopen preserves binding/conversation/history and incremen
 			idempotencyKey: "reopen:start",
 		}),
 	);
-	let versions = nodeVersion(services, task.taskId, `${task.taskId}-dev`);
-	let node = ok(
+	const versions = nodeVersion(services, task.taskId, `${task.taskId}-dev`);
+	const node = ok(
 		services.commands.startNode({
 			taskId: task.taskId,
 			nodeId: `${task.taskId}-dev`,
@@ -320,7 +343,9 @@ test("CP-TASK-ORCH-05 reopen preserves binding/conversation/history and incremen
 		}),
 	);
 	const before = ok(services.queries.getTask({ taskId: task.taskId }));
-	const bindingBefore = before.roleBindings.find((binding) => binding.agentPackageRef === PACKAGES.dev);
+	const bindingBefore = before.roleBindings.find(
+		(binding) => binding.agentPackageRef === PACKAGES.dev,
+	);
 	assert.ok(bindingBefore);
 	const reopened = ok(
 		services.commands.reopenNode({
@@ -334,13 +359,161 @@ test("CP-TASK-ORCH-05 reopen preserves binding/conversation/history and incremen
 	);
 	assert.equal(reopened.currentNodeId, node.nodeId);
 	const after = ok(services.queries.getTask({ taskId: task.taskId }));
-	const bindingAfter = after.roleBindings.find((binding) => binding.agentPackageRef === PACKAGES.dev);
+	const bindingAfter = after.roleBindings.find(
+		(binding) => binding.agentPackageRef === PACKAGES.dev,
+	);
 	assert.deepEqual(bindingAfter, bindingBefore);
 	const reopenedNode = after.nodes.find((item) => item.nodeId === node.nodeId);
 	assert.ok(reopenedNode);
 	assert.equal(reopenedNode.runNo, node.runNo + 1);
 	assert.equal(reopenedNode.status, "READY");
-	assert.equal(ok(services.queries.getTaskDocument({ taskId: task.taskId, documentType: "TECHNICAL_DESIGN" })).contentHash, doc.contentHash);
+	assert.equal(reopenedNode.workerRef, null);
+	assert.equal(
+		ok(
+			services.queries.getTaskDocument({
+				taskId: task.taskId,
+				documentType: "TECHNICAL_DESIGN",
+			}),
+		).contentHash,
+		doc.contentHash,
+	);
+	const rerunVersions = nodeVersion(services, task.taskId, node.nodeId);
+	const restarted = ok(
+		services.commands.startNode({
+			taskId: task.taskId,
+			nodeId: node.nodeId,
+			expectedTaskVersion: rerunVersions.taskVersion,
+			expectedNodeVersion: rerunVersions.nodeVersion,
+			actorRef: "worker:c-dev",
+			idempotencyKey: "reopen:start-node:rerun",
+		}),
+	);
+	assert.equal(restarted.workerRef, "c-dev");
+});
+
+test("CP-TASK-ORCH-06 Task-scoped nodeId:null documents are owner-validated and durable", async (context) => {
+	const { services } = await fixture(context);
+	const created = ok(
+		services.commands.createTask(taskInput("task-scoped-doc")),
+	);
+	const written = ok(
+		services.documents.putTaskDocument({
+			taskId: created.taskId,
+			nodeId: null,
+			documentType: "PRD",
+			content: "# Product requirement\n",
+			expectedTaskVersion: created.version,
+			actorRef: "worker:product",
+			idempotencyKey: "task-scoped:prd",
+		}),
+	);
+	assert.equal(written.nodeId, null);
+	const read = ok(
+		services.queries.getTaskDocument({
+			taskId: created.taskId,
+			documentType: "PRD",
+		}),
+	);
+	assert.equal(read.nodeId, null);
+	assert.equal(read.content, "# Product requirement\n");
+});
+
+test("RF-TASK-ORCH-04 stale or rolled-back TaskDocument writes never leave canonical Markdown diverged from SQLite", async (context) => {
+	const { services, store, root } = await fixture(context);
+	const created = ok(
+		services.commands.createTask(taskInput("task-doc-recovery")),
+	);
+	await bindAll(services, created.taskId, created.version);
+	let task = ok(services.queries.getTask({ taskId: created.taskId }));
+	task = ok(
+		services.commands.startTask({
+			taskId: task.taskId,
+			expectedTaskVersion: task.version,
+			actorRef: "human:operator",
+			idempotencyKey: "doc-recovery:start",
+		}),
+	);
+	const versions = nodeVersion(services, task.taskId, `${task.taskId}-dev`);
+	const node = ok(
+		services.commands.startNode({
+			taskId: task.taskId,
+			nodeId: `${task.taskId}-dev`,
+			expectedTaskVersion: versions.taskVersion,
+			expectedNodeVersion: versions.nodeVersion,
+			actorRef: "worker:c-dev",
+			idempotencyKey: "doc-recovery:start-node",
+		}),
+	);
+	const baseline = ok(
+		services.documents.putTaskDocument({
+			taskId: task.taskId,
+			nodeId: node.nodeId,
+			documentType: "TECHNICAL_DESIGN",
+			content: "# Stable design\n",
+			expectedTaskVersion: node.taskVersion,
+			actorRef: "worker:c-dev",
+			idempotencyKey: "doc-recovery:baseline",
+		}),
+	);
+	assert.equal(
+		errorCode(
+			services.documents.putTaskDocument({
+				taskId: task.taskId,
+				nodeId: node.nodeId,
+				documentType: "TECHNICAL_DESIGN",
+				content: "# Stale overwrite\n",
+				expectedTaskVersion: baseline.taskVersion - 1,
+				actorRef: "worker:c-dev",
+				idempotencyKey: "doc-recovery:stale",
+			}),
+		),
+		"TASK_VERSION_CONFLICT",
+	);
+	assert.equal(
+		await readFile(join(root, baseline.path), "utf8"),
+		"# Stable design\n",
+	);
+
+	const rollbackStore: TaskStore = {
+		read: <T>(work: (repositories: TaskRepositories) => T): T =>
+			store.read(work),
+		transaction: <T>(work: (repositories: TaskRepositories) => T): T =>
+			store.transaction((repositories) => {
+				work(repositories);
+				throw new Error("injected after work before commit");
+			}),
+	};
+	const faulting = createTaskServices({
+		store: rollbackStore,
+		workspaceRoot: root,
+	});
+	const current = ok(services.queries.getTask({ taskId: task.taskId }));
+	assert.equal(
+		errorCode(
+			faulting.documents.putTaskDocument({
+				taskId: task.taskId,
+				nodeId: node.nodeId,
+				documentType: "TECHNICAL_DESIGN",
+				content: "# Must roll back\n",
+				expectedTaskVersion: current.version,
+				actorRef: "worker:c-dev",
+				idempotencyKey: "doc-recovery:rollback",
+			}),
+		),
+		"DOCUMENT_WRITE_FAILED",
+	);
+	const after = ok(
+		services.queries.getTaskDocument({
+			taskId: task.taskId,
+			documentType: "TECHNICAL_DESIGN",
+		}),
+	);
+	assert.equal(after.contentHash, baseline.contentHash);
+	assert.equal(after.content, "# Stable design\n");
+	assert.equal(
+		await readFile(join(root, baseline.path), "utf8"),
+		"# Stable design\n",
+	);
 });
 
 test("CP-TASK-ORCH-06 + CP-TASK-ORCH-08 TaskDocument remains canonical, safe, output-gated and hash-backed", async (context) => {
@@ -395,10 +568,7 @@ test("CP-TASK-ORCH-06 + CP-TASK-ORCH-08 TaskDocument remains canonical, safe, ou
 	assert.match(written.path, /^\.proflow\/tasks\//);
 	assert.equal((await stat(join(root, written.path))).isFile(), true);
 	assert.match(written.contentHash, /^sha256:/);
-	assert.equal(
-		(await readFile(join(root, written.path), "utf8")),
-		"# Design\n",
-	);
+	assert.equal(await readFile(join(root, written.path), "utf8"), "# Design\n");
 	assert.equal(
 		errorCode(
 			services.documents.putTaskDocument({
@@ -428,7 +598,10 @@ test("CP-TASK-ORCH-07 TaskGroup remains serial and predecessor success gates the
 			idempotencyKey: "group:create",
 		}),
 	);
-	for (const [sequenceNo, taskId] of [[1, "tg-task-1"], [2, "tg-task-2"]] as const) {
+	for (const [sequenceNo, taskId] of [
+		[1, "tg-task-1"],
+		[2, "tg-task-2"],
+	] as const) {
 		const created = ok(
 			services.commands.createTask({
 				...taskInput(taskId),
@@ -439,6 +612,11 @@ test("CP-TASK-ORCH-07 TaskGroup remains serial and predecessor success gates the
 		);
 		await bindAll(services, created.taskId, created.version);
 	}
+	const beforeStart = ok(
+		services.queries.listTasks({ taskGroupId: group.taskGroupId }),
+	);
+	assert.ok(beforeStart.tasks.every((item) => item.status === "PENDING"));
+	assert.equal(beforeStart.tasks[0]?.blockedReason, "TASK_GROUP_NOT_ACTIVE");
 	const activeGroup = ok(
 		services.commands.startTaskGroup({
 			taskGroupId: group.taskGroupId,
@@ -448,7 +626,13 @@ test("CP-TASK-ORCH-07 TaskGroup remains serial and predecessor success gates the
 		}),
 	);
 	assert.equal(activeGroup.status, "ACTIVE");
-	const list = ok(services.queries.listTasks({ taskGroupId: group.taskGroupId }));
+	const list = ok(
+		services.queries.listTasks({ taskGroupId: group.taskGroupId }),
+	);
+	const first = list.tasks.find((item) => item.taskId === "tg-task-1");
+	assert.ok(first);
+	assert.equal(first.status, "READY");
+	assert.equal(first.canStart, true);
 	const second = list.tasks.find((item) => item.taskId === "tg-task-2");
 	assert.ok(second);
 	assert.equal(second.canStart, false);
@@ -481,7 +665,10 @@ test("Task-owned happy path remains durable after SQLite store close and reopen"
 	context.after(() => rm(root, { recursive: true, force: true }));
 	await execFileAsync("git", ["init", "-q"], { cwd: root });
 	const databasePath = join(root, ".proflow", "state", "task.sqlite");
-	assert.equal(applyMigrations({ databasePath, migrations: taskMigrations }).ok, true);
+	assert.equal(
+		applyMigrations({ databasePath, migrations: taskMigrations }).ok,
+		true,
+	);
 	let store = new SqliteTaskStore({ databasePath });
 	let services = createTaskServices({ store, workspaceRoot: root });
 	const created = ok(services.commands.createTask(taskInput("task-happy")));
@@ -503,7 +690,9 @@ test("Task-owned happy path remains durable after SQLite store close and reopen"
 	assert.equal(task.status, "ACTIVE");
 	assert.equal(task.roleBindings.length, 3);
 	assert.ok(task.roleBindings.every((binding) => binding.workerRef !== null));
-	const projection = ok(services.queries.getTaskDriveProjection({ taskId: task.taskId }));
+	const projection = ok(
+		services.queries.getTaskDriveProjection({ taskId: task.taskId }),
+	);
 	assert.equal(projection.taskId, task.taskId);
 	assert.equal(projection.terminal, false);
 });

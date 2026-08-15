@@ -22,6 +22,14 @@ contractRefs:
 
 负责 schema migration discovery/order/version/re-entry/verification；不承担 Task runtime。
 
+## Runtime / Historical Upgrade Rule
+
+- 新 migration 记录 stable checksum identity；同 version/name 的非空 checksum 漂移必须失败。
+- pre-checksum 安装中既有 `schema_migrations.checksum IS NULL` 是历史未知事实，不做伪造 backfill。
+- 旧 v1/v2 只有在后续 owner-provided compatibility migration 对真实 SQLite schema introspection 并完成必要升级后，verify 才能接受 legacy metadata。
+- legacy `requiredRoleRef/roleRef → agentPackageRef` 无法机械确定时必须由调用方提供显式 mapping；Runner/Store 均不得猜测。
+- migration SQL/compatibility algorithm 的业务语义仍归 `task-store-sqlite`；Runner 只提供确定性执行、事务、metadata identity 与验证机制。
+
 ## Existing detailed sources
 
 - [00-Service与npm模块设计.md](../00-Service与npm模块设计.md)

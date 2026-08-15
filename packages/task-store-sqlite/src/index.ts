@@ -14,7 +14,11 @@ import type {
 	TaskStore,
 } from "@tomflow/proflow-task-orchestration";
 
-export { type TaskMigration, taskMigrations } from "./migrations.ts";
+export {
+	type TaskMigration,
+	type TaskMigrationContext,
+	taskMigrations,
+} from "./migrations.ts";
 
 type Row = Record<string, unknown>;
 const json = (value: unknown): string => JSON.stringify(value);
@@ -235,44 +239,44 @@ export class SqliteTaskStore implements TaskStore {
 					const row = get("SELECT * FROM tasks WHERE task_id = ?", id);
 					return row ? task(row) : undefined;
 				},
-			insert: (v) => {
-				db.prepare(
-					"INSERT INTO tasks(task_id,task_group_id,sequence_no,title,objective,status,version,plan_version,current_node_id,created_by_ref,created_at,started_at,completed_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-				).run(
-					v.taskId,
-					v.taskGroupId,
-					v.sequenceNo,
-					v.title,
-					v.objective,
-					v.status,
-					v.version,
-					v.planVersion,
-					v.currentNodeId,
-					v.createdByRef,
-					v.createdAt,
-					v.startedAt,
-					v.completedAt,
-					v.updatedAt,
-				);
-			},
-			update: (v) => {
-				const result = db
-					.prepare(
-						"UPDATE tasks SET status=?, version=?, current_node_id=?, started_at=?, completed_at=?, updated_at=? WHERE task_id=? AND version=?",
-					)
-					.run(
+				insert: (v) => {
+					db.prepare(
+						"INSERT INTO tasks(task_id,task_group_id,sequence_no,title,objective,status,version,plan_version,current_node_id,created_by_ref,created_at,started_at,completed_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+					).run(
+						v.taskId,
+						v.taskGroupId,
+						v.sequenceNo,
+						v.title,
+						v.objective,
 						v.status,
 						v.version,
+						v.planVersion,
 						v.currentNodeId,
+						v.createdByRef,
+						v.createdAt,
 						v.startedAt,
 						v.completedAt,
 						v.updatedAt,
-						v.taskId,
-						v.version - 1,
 					);
-				if (Number(result.changes) !== 1)
-					throw new Error("TASK_VERSION_CONFLICT");
-			},
+				},
+				update: (v) => {
+					const result = db
+						.prepare(
+							"UPDATE tasks SET status=?, version=?, current_node_id=?, started_at=?, completed_at=?, updated_at=? WHERE task_id=? AND version=?",
+						)
+						.run(
+							v.status,
+							v.version,
+							v.currentNodeId,
+							v.startedAt,
+							v.completedAt,
+							v.updatedAt,
+							v.taskId,
+							v.version - 1,
+						);
+					if (Number(result.changes) !== 1)
+						throw new Error("TASK_VERSION_CONFLICT");
+				},
 				list: (groupId) =>
 					(groupId === undefined
 						? all(
@@ -289,20 +293,20 @@ export class SqliteTaskStore implements TaskStore {
 					const row = get("SELECT * FROM nodes WHERE node_id = ?", id);
 					return row ? node(row) : undefined;
 				},
-			insert: (v) => {
-				db.prepare(
-					"INSERT INTO nodes(node_id,task_id,sequence_no,title,objective,status,version,run_no,required_agent_package_ref,worker_ref,input_documents_json,output_documents_json,result_summary,error_code,error_message,error_retryable,started_at,completed_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-				).run(
-					v.nodeId,
-					v.taskId,
-					v.sequenceNo,
-					v.title,
-					v.objective,
-					v.status,
-					v.version,
-					v.runNo,
-					v.requiredAgentPackageRef,
-					v.workerRef,
+				insert: (v) => {
+					db.prepare(
+						"INSERT INTO nodes(node_id,task_id,sequence_no,title,objective,status,version,run_no,required_agent_package_ref,worker_ref,input_documents_json,output_documents_json,result_summary,error_code,error_message,error_retryable,started_at,completed_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+					).run(
+						v.nodeId,
+						v.taskId,
+						v.sequenceNo,
+						v.title,
+						v.objective,
+						v.status,
+						v.version,
+						v.runNo,
+						v.requiredAgentPackageRef,
+						v.workerRef,
 						json(v.inputDocuments),
 						json(v.outputDocuments),
 						v.resultSummary,
@@ -343,35 +347,35 @@ export class SqliteTaskStore implements TaskStore {
 						taskId,
 					).map(node),
 			},
-		roleBindings: {
-			get: (taskId, agentPackageRef) => {
-				const row = get(
-					"SELECT * FROM task_role_bindings WHERE task_id=? AND agent_package_ref=?",
-					taskId,
-					agentPackageRef,
-				);
-				return row ? binding(row) : undefined;
+			roleBindings: {
+				get: (taskId, agentPackageRef) => {
+					const row = get(
+						"SELECT * FROM task_role_bindings WHERE task_id=? AND agent_package_ref=?",
+						taskId,
+						agentPackageRef,
+					);
+					return row ? binding(row) : undefined;
+				},
+				upsert: (v) => {
+					db.prepare(
+						"INSERT INTO task_role_bindings(task_id,agent_package_ref,role_ref,worker_ref,conversation_locator,version,created_at,updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(task_id, agent_package_ref) DO UPDATE SET role_ref=excluded.role_ref, worker_ref=excluded.worker_ref, conversation_locator=excluded.conversation_locator, version=excluded.version, updated_at=excluded.updated_at",
+					).run(
+						v.taskId,
+						v.agentPackageRef,
+						v.roleRef,
+						v.workerRef,
+						v.conversationLocator,
+						v.version,
+						v.createdAt,
+						v.updatedAt,
+					);
+				},
+				listByTask: (taskId) =>
+					all(
+						"SELECT * FROM task_role_bindings WHERE task_id=? ORDER BY agent_package_ref",
+						taskId,
+					).map(binding),
 			},
-			upsert: (v) => {
-				db.prepare(
-					"INSERT INTO task_role_bindings VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(task_id, agent_package_ref) DO UPDATE SET role_ref=excluded.role_ref, worker_ref=excluded.worker_ref, conversation_locator=excluded.conversation_locator, version=excluded.version, updated_at=excluded.updated_at",
-				).run(
-					v.taskId,
-					v.agentPackageRef,
-					v.roleRef,
-					v.workerRef,
-					v.conversationLocator,
-					v.version,
-					v.createdAt,
-					v.updatedAt,
-				);
-			},
-			listByTask: (taskId) =>
-				all(
-					"SELECT * FROM task_role_bindings WHERE task_id=? ORDER BY agent_package_ref",
-					taskId,
-				).map(binding),
-		},
 			executionHistory: {
 				insert: (v) => {
 					db.prepare(

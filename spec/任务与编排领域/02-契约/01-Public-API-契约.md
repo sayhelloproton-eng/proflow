@@ -604,14 +604,15 @@ System Observer finding
 same taskId
 same nodeId
 same TaskRoleBinding
-same workerRef
+same TaskRoleBinding.workerRef
 same Conversation
+Node run-level workerRef → null
 runNo + 1
 目标 Node → READY
-后续 Node 按 Frozen 规则重置 PENDING
+后续 Node 按 Frozen 规则重置 PENDING（run-level workerRef 同样清空）
 ```
 
-**reopen 不把 workerRef 清空，也不创建新 Worker/Conversation。**
+**reopen 只清空 Node run-level `workerRef`，不得清除或改写 `TaskRoleBinding`。下一次 `startNode` 必须重新按 `requiredAgentPackageRef → TaskRoleBinding.workerRef` 解析同一 Worker，因此不创建新 Worker/Conversation。**
 
 ---
 

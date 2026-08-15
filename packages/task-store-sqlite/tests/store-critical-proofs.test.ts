@@ -50,6 +50,12 @@ test("CP-TASK-STORE-01 fresh real SQLite has the frozen tables, constraints, and
 	);
 	assert.equal(schema.indexes.includes("idx_nodes_task_sequence"), true);
 	assert.equal(schema.indexes.includes("idx_events_task"), true);
+	assert.deepEqual(schema.columns.schema_migrations, [
+		"version",
+		"name",
+		"checksum",
+		"applied_at",
+	]);
 	assert.deepEqual(schema.columns.task_documents, [
 		"task_id",
 		"document_type",

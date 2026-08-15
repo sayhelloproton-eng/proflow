@@ -77,7 +77,7 @@ Migration 若顺序/版本/回滚不确定，会让 Task Store 无法稳定升�
 
 - [ ] **CP-TASK-MIG-01** — migration discovery/order/version metadata 确定且可重复。
 - [ ] **CP-TASK-MIG-02** — duplicate apply prevention、失败 rollback/STOP、current version verify 语义稳定。
-- [ ] **CP-TASK-MIG-03** — fresh DB、sequential upgrade、interrupted migration 恢复均能证明 schema_migrations 与真实 schema 一致。
+- [ ] **CP-TASK-MIG-03** — fresh DB、sequential upgrade、interrupted migration 与 pre-checksum historical install 均能收敛；新 migration 记录 stable checksum identity，legacy v1/v2 metadata 不伪造回填，并由 compatibility migration 通过 schema introspection/显式 legacy role mapping 证明真实 schema 可升级。
 - [ ] **CP-TASK-MIG-04** — 公开 migration primitive 可由 Deployment 调用，但 Runner 不拥有 Task schema 业务语义。
 
 ## 6. Frozen TODO Coverage
@@ -89,7 +89,7 @@ Migration 若顺序/版本/回滚不确定，会让 Task Store 无法稳定升�
 | `TASK-MIG-001` | 定义 migration discovery/order/version metadata | `TASK-ORCHESTRATION-TODO-TASK-MIGRATION-RUNNER` § `TASK-MIG-001` | `TASK-ORCHESTRATION-TECH-TASK-MIGRATION-RUNNER`<br>`TASK-DOC-05-02` | `CP-TASK-MIG-01` | migration discovery/order/version metadata | migration discovery/order/version metadata 确定且可重复。 |
 | `TASK-MIG-002` | 实现幂等 apply/status/verify 和失败停止语义 | `TASK-ORCHESTRATION-TODO-TASK-MIGRATION-RUNNER` § `TASK-MIG-002` | `TASK-ORCHESTRATION-TECH-TASK-MIGRATION-RUNNER`<br>`TASK-DOC-05-02` | `CP-TASK-MIG-02` | 幂等 apply/status/verify 和失败停止语义 | duplicate apply prevention、失败 rollback/STOP、current version verify 语义稳定。 |
 | `TASK-MIG-003` | 提供 Deployment 可调用的公开 migration primitive | `TASK-ORCHESTRATION-TODO-TASK-MIGRATION-RUNNER` § `TASK-MIG-003` | `TASK-ORCHESTRATION-TECH-TASK-MIGRATION-RUNNER`<br>`TASK-DOC-05-02` | `CP-TASK-MIG-04` | Deployment 可调用的公开 migration primitive | 公开 migration primitive 可由 Deployment 调用，但 Runner 不拥有 Task schema 业务语义。 |
-| `TASK-MIG-004` | 完成 fresh DB / sequential upgrade / interrupted migration tests | `TASK-ORCHESTRATION-TODO-TASK-MIGRATION-RUNNER` § `TASK-MIG-004` | `TASK-ORCHESTRATION-TECH-TASK-MIGRATION-RUNNER`<br>`TASK-DOC-05-02` | `CP-TASK-MIG-01`<br>`CP-TASK-MIG-02`<br>`CP-TASK-MIG-03` | fresh DB / sequential upgrade / interrupted migration tests | migration discovery/order/version metadata 确定且可重复。；duplicate apply prevention、失败 rollback/STOP、current version verify 语义稳定。；fresh DB、sequential upgrade、interrupted migration 恢复均能证明 schema_migrations 与真实 schema 一致。 |
+| `TASK-MIG-004` | 完成 fresh DB / sequential upgrade / interrupted migration tests | `TASK-ORCHESTRATION-TODO-TASK-MIGRATION-RUNNER` § `TASK-MIG-004` | `TASK-ORCHESTRATION-TECH-TASK-MIGRATION-RUNNER`<br>`TASK-DOC-05-02` | `CP-TASK-MIG-01`<br>`CP-TASK-MIG-02`<br>`CP-TASK-MIG-03` | fresh DB / sequential upgrade / interrupted migration tests | migration discovery/order/version metadata 确定且可重复。；duplicate apply prevention、失败 rollback/STOP、current version verify 语义稳定。；fresh DB、sequential upgrade、interrupted migration 与 pre-checksum historical install 均能通过 checksum identity + owner compatibility migration 证明 schema_migrations 与真实 schema 一致。 |
 
 ## 7. Required Failure / Boundary Families
 
@@ -97,7 +97,7 @@ Migration 若顺序/版本/回滚不确定，会让 Task Store 无法稳定升�
 
 - [ ] **RF-TASK-MIG-01** — migration discovery/order/version metadata 不确定或不可重复
 - [ ] **RF-TASK-MIG-02** — duplicate apply 未阻止、失败未 rollback/STOP、version verify 不稳定
-- [ ] **RF-TASK-MIG-03** — fresh/sequential/interrupted migration 后 schema_migrations 与真实 schema 不一致
+- [ ] **RF-TASK-MIG-03** — fresh/sequential/interrupted/historical upgrade 后 schema_migrations 与真实 schema 不一致，旧 migration 被原位伪造为当前 checksum，或 legacy role 无法安全映射时仍猜测升级
 - [ ] **RF-TASK-MIG-04** — 公开 migration primitive 越权拥有 Task schema 业务语义
 
 

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { requiredTaskAgentPackageRefs } from "./model.ts";
+
 export const publicOperationNames = [
 	"createTaskGroup",
 	"getTaskGroup",
@@ -86,22 +88,47 @@ const schemas: Record<PublicOperationName, z.ZodType> = {
 			...actor,
 		})
 		.strict()
-	.superRefine((input, context) => {
-		if (input.taskGroupId !== undefined && input.sequenceNo === undefined) {
-			context.addIssue({
-				code: "custom",
-				message: "sequenceNo is required for a grouped Task",
-				path: ["sequenceNo"],
+		.superRefine((input, context) => {
+			if (input.taskGroupId !== undefined && input.sequenceNo === undefined) {
+				context.addIssue({
+					code: "custom",
+					message: "sequenceNo is required for a grouped Task",
+					path: ["sequenceNo"],
+				});
+			}
+			if (input.taskGroupId === undefined && input.sequenceNo !== undefined) {
+				context.addIssue({
+					code: "custom",
+					message: "sequenceNo is only valid for a grouped Task",
+					path: ["sequenceNo"],
+				});
+			}
+			const declaredAgentPackageRefs = new Set(
+				input.roleBindings.map((binding) => binding.agentPackageRef),
+			);
+			if (
+				declaredAgentPackageRefs.size !== requiredTaskAgentPackageRefs.length ||
+				requiredTaskAgentPackageRefs.some(
+					(agentPackageRef) => !declaredAgentPackageRefs.has(agentPackageRef),
+				)
+			) {
+				context.addIssue({
+					code: "custom",
+					message:
+						"roleBindings must contain exactly Product, Controller/Dev, and Test/Ops",
+					path: ["roleBindings"],
+				});
+			}
+			input.plan.nodes.forEach((node, index) => {
+				if (!declaredAgentPackageRefs.has(node.requiredAgentPackageRef))
+					context.addIssue({
+						code: "custom",
+						message:
+							"plan node requiredAgentPackageRef must resolve to a declared fixed TaskRoleBinding",
+						path: ["plan", "nodes", index, "requiredAgentPackageRef"],
+					});
 			});
-		}
-		if (input.taskGroupId === undefined && input.sequenceNo !== undefined) {
-			context.addIssue({
-				code: "custom",
-				message: "sequenceNo is only valid for a grouped Task",
-				path: ["sequenceNo"],
-			});
-		}
-	}),
+		}),
 	getTaskDriveProjection: z.object({ taskId: id }).strict(),
 	bindTaskWorker: z
 		.object({
@@ -159,7 +186,7 @@ const schemas: Record<PublicOperationName, z.ZodType> = {
 	putTaskDocument: z
 		.object({
 			taskId: id,
-			nodeId: id,
+			nodeId: id.nullable(),
 			documentType: id,
 			content: z.string(),
 			targetPath: z.never().optional(),
