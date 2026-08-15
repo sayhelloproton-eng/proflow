@@ -105,7 +105,7 @@ Agent Runtime 若复制 Task binding、身份校验宽松或 Collaboration 顺�
 - [ ] **RF-AGT-RUNTIME-01** — Role Registry one-package-one-current-role 或 ROLE_IN_USE delete 发生错误 mutation
 - [ ] **RF-AGT-RUNTIME-02** — credential rotation 改变 roleRef 或 secret 泄漏
 - [ ] **RF-AGT-RUNTIME-03** — worker-context validation 复制/缓存 TaskRoleBinding 或信任非 Owner 身份事实
-- [ ] **RF-AGT-RUNTIME-04** — askPeer/replyPeer idempotency/one-unanswered/DELIVERED 顺序失效
+- [ ] **RF-AGT-RUNTIME-04** — askPeer/replyPeer idempotency/one-unanswered/DELIVERED 顺序失效，或既有 pair Thread 被重新定向到第三个 Task participant
 - [ ] **RF-AGT-RUNTIME-05** — terminal Task、missing participant、duplicate message 未 fail-safe
 - [ ] **RF-AGT-RUNTIME-06** — Task/Execution integration 绕过 Public Contract 直接 DB/deep import
 
@@ -178,3 +178,14 @@ Agent Runtime 若复制 Task binding、身份校验宽松或 Collaboration 顺�
 - [ ] **CP-AGT-RUNTIME-08** — credential只认证roleRef；Task binding由Task owner持有，Browser不接触credential。
 - [ ] **CP-AGT-RUNTIME-09** — askPeer/replyPeer durable facts不创建/修改Task Node/WAIT/transition；taskId/nodeId/runNo仅correlation。
 - [ ] **CP-AGT-RUNTIME-10** — Agent Runtime无tab/frame/Task Observer/System Observer/Carrier scheduler持久化。
+
+## 2026-08-15 Pre-Smoke Batch 2｜Role Management Closure Addendum
+
+- [ ] **CP-AGT-RUNTIME-11** — Local Role management 保持 Agent Owner：`role register/show/list/validate/delete` 与 `role key show/rotate` 必须通过 Agent Runtime 正式管理面；`role validate` 还需校验 package version、local OpenAPI、Gateway health 与 role-scoped key auth probe，并把 GPT Web 配置保留为人工 checklist；`role delete` 必须调用 Task Public usage port，`ROLE_IN_USE` 零 mutation；Role Package/CLI 禁止直读 Task SQLite。
+- [ ] **RF-AGT-RUNTIME-07** — Role Package/管理面绕过 Agent Owner、直接查询 Task DB、管理凭据缺失仍允许 key show/rotate/delete、或未知 Agent Package 被注册。
+
+**Executable proof**：`packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts` 的 `CP-HOST-08` + `packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts` 的 `CP-AGT-RUNTIME-01/02` + `packages/agent-runtime/tests/role-management-client.test.ts` 的 `CP-AGT-RUNTIME-11`。
+- [ ] **CP-AGT-RUNTIME-12** — Collaboration `FAILED/UNKNOWN` delivery report 只更新 Agent durable message fact；`UNKNOWN` 保持 `PENDING` 并保留 Execution/Evidence refs 供 Browser/Execution reality reconciliation，Agent Runtime 不拥有物理投递 scheduler，也不合成第二次 delivery intent。
+- [ ] **RF-AGT-RUNTIME-08** — Agent Runtime 因 `PENDING/UNKNOWN` 自行定时重放 Browser delivery、创建第二个 physical intent，或在 Execution 未确认 APPLIED 前写 logical `DELIVERED`。
+
+**Executable proof**：`packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts` 的 `CP-AGT-RUNTIME-04`、`B2-AGT-01..05` 与 `B2-AGT-07`；物理 `pending → Task binding → exact Conversation → Execution Browser Carrier → reportCollaborationDelivery` production lifecycle 属于 `execution-browser-extension`，按既定 Pre-Smoke Batch 3 收口。

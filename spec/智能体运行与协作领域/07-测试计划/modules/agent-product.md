@@ -79,3 +79,10 @@ real GPT auth/File Bridge/permission observation
 
 GO：所有Critical Proof可由现有Frozen Contract表达。  
 STOP：为通过测试需要恢复Product createTask主链、dynamic Role类型、或Browser业务判定。
+
+## 2026-08-15 Pre-Smoke Batch 2｜Local Role CLI Addendum
+
+- [ ] **CP-AGT-PROD-07** — Product Role Package CLI 暴露 `role register/show/list/validate/delete` 与 `role key show/rotate`，通过 Agent owner composition 工作，不读取 Task SQLite/credential implementation files 作为第二事实源。
+- [ ] **RF-AGT-PROD-07** — Role CLI surface 缺命令、直接写 Task DB、或绕过受认证的 local management boundary。
+
+**Executable proof**：`packages/agent-product/tests/current-spec-alignment.test.ts` 的 `PRESMOKE-B2 role package CLI...`。

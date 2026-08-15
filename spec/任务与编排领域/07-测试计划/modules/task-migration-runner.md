@@ -77,7 +77,7 @@ Migration 若顺序/版本/回滚不确定，会让 Task Store 无法稳定升�
 
 - [ ] **CP-TASK-MIG-01** — migration discovery/order/version metadata 确定且可重复。
 - [ ] **CP-TASK-MIG-02** — duplicate apply prevention、失败 rollback/STOP、current version verify 语义稳定。
-- [ ] **CP-TASK-MIG-03** — fresh DB、sequential upgrade、interrupted migration 与 pre-checksum historical install 均能收敛；新 migration 记录 stable checksum identity，legacy v1/v2 metadata 不伪造回填，并由 compatibility migration 通过 schema introspection/显式 legacy role mapping 证明真实 schema 可升级。
+- [ ] **CP-TASK-MIG-03** — fresh DB、sequential upgrade、interrupted migration 与 pre-checksum historical install 均能收敛；historical proof 必须使用已归档的 2026-08-10 真实 8-table DDL（`nodes.required_role_ref`、无 `task_role_bindings`、无 checksum），不得用当前 schema 手工改坏冒充历史；新 migration 记录 stable checksum identity，legacy v1/v2 metadata 不伪造回填，并由 compatibility migration 通过显式 legacy identity mapping + shadow-table canonical rebuild 把数据收敛到当前 v1/v2 物理约束/索引/FK，再由 schema verifier 证明。
 - [ ] **CP-TASK-MIG-04** — 公开 migration primitive 可由 Deployment 调用，但 Runner 不拥有 Task schema 业务语义。
 
 ## 6. Frozen TODO Coverage
@@ -97,7 +97,7 @@ Migration 若顺序/版本/回滚不确定，会让 Task Store 无法稳定升�
 
 - [ ] **RF-TASK-MIG-01** — migration discovery/order/version metadata 不确定或不可重复
 - [ ] **RF-TASK-MIG-02** — duplicate apply 未阻止、失败未 rollback/STOP、version verify 不稳定
-- [ ] **RF-TASK-MIG-03** — fresh/sequential/interrupted/historical upgrade 后 schema_migrations 与真实 schema 不一致，旧 migration 被原位伪造为当前 checksum，或 legacy role 无法安全映射时仍猜测升级
+- [ ] **RF-TASK-MIG-03** — fresh/sequential/interrupted/historical upgrade 后 schema_migrations 与真实 schema 不一致；历史 fixture 不是归档真实 DDL；升级后仍残留 legacy physical constraints/index/FK；旧 migration 被原位伪造为当前 checksum；或 legacy role 无法安全映射时仍猜测升级
 - [ ] **RF-TASK-MIG-04** — 公开 migration primitive 越权拥有 Task schema 业务语义
 
 

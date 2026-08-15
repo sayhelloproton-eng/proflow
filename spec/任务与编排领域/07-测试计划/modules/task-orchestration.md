@@ -85,7 +85,7 @@ Task 是长期工作事实与状态推进 Owner；错误 transition、binding、
 - [ ] **CP-TASK-ORCH-03** — TaskRoleBinding(`agentPackageRef/roleRef/workerRef/conversationLocator`) one-time + idempotent：同值重放安全，不同值覆盖冲突；`startNode` 只能按 `requiredAgentPackageRef` 自动解析 binding.workerRef。
 - [ ] **CP-TASK-ORCH-04** — actorRef/idempotencyKey/expectedVersion 共同约束 Command；stale version、duplicate、same-key-different-fingerprint 均有明确结果。
 - [ ] **CP-TASK-ORCH-05** — `reopenNode` 保留旧 execution history 与稳定 TaskRoleBinding/Conversation、runNo 递增、目标及后续 Node 的 run-level `workerRef` 清空；下一次 `startNode` 从同一 TaskRoleBinding 重新解析原 Worker，Task currentNodeId 回到目标 Node。
-- [ ] **CP-TASK-ORCH-06** — TaskDocument 支持 Task-scoped `nodeId:null` 与 Node-scoped 文档；只返回 Node 声明 input；缺 required output 不允许 complete；正文 Git 真源与 SQLite metadata/hash 通过 staged/recovery journal 可 deterministic reconciliation。
+- [ ] **CP-TASK-ORCH-06** — TaskDocument 支持 Task-scoped `nodeId:null` 与 Node-scoped 文档；只返回 Node 声明 input；缺 required output 不允许 complete；正文 Git 真源与 SQLite metadata/hash 通过 staged/recovery journal 可 deterministic reconciliation；进程在 canonical promote→DB commit 边界中断后，新 owner service 的第一次 document/context read 必须先恢复再返回一致结果。
 - [ ] **CP-TASK-ORCH-07** — TaskGroup `maxActiveTasks=1` 与 WAITING/FAILED/PAUSED blocking 规则可执行。
 - [ ] **CP-TASK-ORCH-08** — TaskDocument API 只接受 canonical documentType+content；任意 absolute/`../` target path 被拒绝，实际路径由 owner 映射为 workspace 内安全相对路径并采用安全文件写。
 
@@ -110,7 +110,7 @@ Task 是长期工作事实与状态推进 Owner；错误 transition、binding、
 - [ ] **RF-TASK-ORCH-01** — 非法 Task/TaskGroup/Node transition 产生副作用
 - [ ] **RF-TASK-ORCH-02** — TaskRoleBinding 同值/异值重放与 startNode worker 解析错误
 - [ ] **RF-TASK-ORCH-03** — stale expectedVersion、duplicate idempotencyKey、same-key-different-fingerprint 处理错误
-- [ ] **RF-TASK-ORCH-04** — Task-scoped `nodeId:null` 被拒绝、TaskDocument required input/output 错误，或 stale/conflict/crash 使 Git Markdown 与 SQLite metadata/hash 产生不可恢复分叉
+- [ ] **RF-TASK-ORCH-04** — Task-scoped `nodeId:null` 被拒绝、TaskDocument required input/output 错误，或 stale/conflict/crash 使 Git Markdown 与 SQLite metadata/hash 产生不可恢复分叉；restart 后 first owner read 未先消费 recovery journal
 - [ ] **RF-TASK-ORCH-05** — reopen 覆盖旧 history/TaskRoleBinding，Node run-level workerRef 未按规则清空/重解析，或 runNo/currentNodeId/后续 Node 重置错误
 - [ ] **RF-TASK-ORCH-06** — TaskGroup maxActiveTasks/WAITING/FAILED/PAUSED blocking 失效
 - [ ] **RF-TASK-ORCH-07** — Node 唯一调度单元被 WorkItem/Claim/Lease/parallel Node 等替代路径绕过

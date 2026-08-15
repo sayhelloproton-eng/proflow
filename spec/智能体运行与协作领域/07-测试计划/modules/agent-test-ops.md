@@ -170,3 +170,11 @@ implementationWave: Wave 4
 - [ ] **CP-AGT-TEST-08** — one Worker Turn 0..N Actions，无Browser per-action scheduler。
 - [ ] **CP-AGT-TEST-09** — File Bridge/Code Interpreter可分析artifact/report，但测试PASS/FAIL与Evidence必须经Owner contracts，Browser/GPT文本不是业务真源。
 - [ ] **CP-AGT-TEST-10** — fail→reopen复用same workerRef/Conversation、runNo+1；不重建Worker。
+
+## 2026-08-15 Pre-Smoke Batch 2｜Local Role CLI / Action ACL Addendum
+
+- [ ] **CP-AGT-TEST-11** — Test/Ops Role Package CLI 暴露 `role register/show/list/validate/delete` 与 `role key show/rotate`，通过 Agent owner composition 工作，不读取 Task SQLite。
+- [ ] **CP-AGT-TEST-12** — Test/Ops canonical OpenAPI `startNode` 与 platform-host ACL/owner routing 一致；Node READY 后 Test/Ops Worker 可以通过正式 owner route 调用 `startNode`，不存在 OpenAPI allow / Host deny drift。
+- [ ] **RF-AGT-TEST-11** — Role CLI 绕过 owner boundary，或 Test/Ops OpenAPI/Host ACL 再次漂移。
+
+**Executable proof**：`packages/agent-test-ops/tests/current-spec-alignment.test.ts` + `packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts` 的 `CP-HOST-10`。

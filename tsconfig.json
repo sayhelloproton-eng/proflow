@@ -26,6 +26,9 @@
 			"@tomflow/proflow-agent-runtime": [
 				"./packages/agent-runtime/src/index.ts"
 			],
+			"@tomflow/proflow-agent-runtime/role-management-client": [
+				"./packages/agent-runtime/src/role-management-client.ts"
+			],
 			"@tomflow/proflow-agent-test-ops": [
 				"./packages/agent-test-ops/src/index.ts"
 			],

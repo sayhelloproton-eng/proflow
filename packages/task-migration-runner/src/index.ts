@@ -44,6 +44,7 @@ export interface MigrationStatus {
 	}>;
 	legacyMetadataVersions: number[];
 	missingTables: string[];
+	schemaDrift: string[];
 }
 
 export function discoverMigrations(
@@ -103,6 +104,14 @@ function migrationMetadataColumns(database: DatabaseSync): Set<string> {
 	);
 }
 
+function schemaMigrationColumnOrder(database: DatabaseSync): string[] {
+	return (
+		database.prepare("PRAGMA table_info(schema_migrations)").all() as Array<{
+			name: string;
+		}>
+	).map((row) => row.name);
+}
+
 function openDatabase(databasePath: string): DatabaseSync {
 	if (databasePath !== ":memory:")
 		mkdirSync(dirname(databasePath), { recursive: true });
@@ -116,6 +125,27 @@ function openDatabase(databasePath: string): DatabaseSync {
 	const columns = migrationMetadataColumns(database);
 	if (!columns.has("checksum"))
 		database.exec("ALTER TABLE schema_migrations ADD COLUMN checksum TEXT");
+	// A pre-checksum legacy installation stores (version, name, applied_at); the
+	// ALTER above appends checksum after applied_at. Rebuild to the canonical
+	// (version, name, checksum, applied_at) order so a legacy-upgraded metadata
+	// table is physically identical to a fresh install.
+	const canonicalOrder = ["version", "name", "checksum", "applied_at"];
+	const currentOrder = schemaMigrationColumnOrder(database);
+	if (
+		currentOrder.length !== canonicalOrder.length ||
+		currentOrder.some((name, index) => name !== canonicalOrder[index])
+	) {
+		database.exec(
+			"ALTER TABLE schema_migrations RENAME TO schema_migrations_legacy",
+		);
+		database.exec(
+			"CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, checksum TEXT, applied_at TEXT NOT NULL);",
+		);
+		database.exec(
+			"INSERT INTO schema_migrations(version, name, checksum, applied_at) SELECT version, name, checksum, applied_at FROM schema_migrations_legacy",
+		);
+		database.exec("DROP TABLE schema_migrations_legacy");
+	}
 	return database;
 }
 
@@ -186,7 +216,18 @@ function inspectionStatus(
 			const actual = appliedRows.find(
 				(row) => row.version === migration.version,
 			);
-			return actual !== undefined && actual.name !== migration.name
+			const coveredLegacyIdentity =
+				actual?.checksum === null &&
+				migrations.some(
+					(barrier) =>
+						barrier.version > migration.version &&
+						appliedSet.has(barrier.version) &&
+						barrier.apply !== undefined &&
+						barrier.coversLegacyVersions?.includes(migration.version) === true,
+				);
+			return actual !== undefined &&
+				!coveredLegacyIdentity &&
+				actual.name !== migration.name
 				? [
 						{
 							version: migration.version,
@@ -217,6 +258,13 @@ function inspectionStatus(
 			.filter((row) => row.checksum === null)
 			.map((row) => row.version),
 		missingTables: expectedTables.filter((table) => !actualTables.has(table)),
+		schemaDrift: migrations.flatMap((migration) =>
+			appliedSet.has(migration.version) && migration.verify
+				? [...migration.verify(database)].map(
+						(issue) => `v${migration.version}:${issue}`,
+					)
+				: [],
+		),
 	};
 }
 
@@ -232,6 +280,7 @@ export function getMigrationStatus(input: MigrationInput): MigrationStatus {
 			checksumDrift: [],
 			legacyMetadataVersions: [],
 			missingTables: expectedTableNames(migrations),
+			schemaDrift: [],
 		};
 	}
 	const database = new DatabaseSync(input.databasePath, { readOnly: true });
@@ -257,7 +306,19 @@ export function applyMigrations(input: MigrationInput): MigrationResult {
 					.get(migration.version) as
 					| { name: string; checksum: string | null }
 					| undefined;
-				if (!row || row.name !== migration.name)
+				const legacyIdentityCoveredByCompatibility =
+					row?.checksum === null &&
+					migrations.some(
+						(barrier) =>
+							barrier.version > migration.version &&
+							barrier.apply !== undefined &&
+							barrier.coversLegacyVersions?.includes(migration.version) ===
+								true,
+					);
+				if (
+					!row ||
+					(!legacyIdentityCoveredByCompatibility && row.name !== migration.name)
+				)
 					return {
 						contract: "task-migration",
 						contractVersion: "1.0.0",
@@ -393,6 +454,7 @@ export function verifyMigrations(input: MigrationInput): MigrationResult {
 			status.checksumDrift.length === 0 &&
 			legacyMetadataCoveredByCompatibilityBarrier &&
 			status.missingTables.length === 0 &&
+			status.schemaDrift.length === 0 &&
 			integrity?.integrity_check === "ok";
 		return {
 			contract: "task-migration",
@@ -429,7 +491,24 @@ export async function runCli(args: string[]): Promise<string> {
 		const parsed = JSON.parse(readFileSync(mapPath, "utf8")) as unknown;
 		if (parsed === null || Array.isArray(parsed) || typeof parsed !== "object")
 			throw new TypeError("legacy role map must be a JSON object");
-		migrationContext = { legacyRoleMap: parsed as Record<string, string> };
+		const record = parsed as Record<string, unknown>;
+		const structured = "roleMap" in record || "roleBindings" in record;
+		migrationContext = structured
+			? {
+					...(record.roleMap && typeof record.roleMap === "object"
+						? {
+								legacyRoleMap: record.roleMap as Record<string, string>,
+							}
+						: {}),
+					...(record.roleBindings && typeof record.roleBindings === "object"
+						? {
+								legacyRoleBindings: record.roleBindings as NonNullable<
+									TaskMigrationContext["legacyRoleBindings"]
+								>,
+							}
+						: {}),
+				}
+			: { legacyRoleMap: record as Record<string, string> };
 	}
 	let success = true;
 	let message = "migration status is readable";

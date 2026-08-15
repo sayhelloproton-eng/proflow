@@ -83,16 +83,29 @@ export class AgentRuntimeError extends Error {
 	}
 }
 const identifier = z.string().min(1).max(512);
+const fixedAgentPackageRefs = [
+	"@tomflow/proflow-agent-product",
+	"@tomflow/proflow-agent-controller-dev",
+	"@tomflow/proflow-agent-test-ops",
+] as const;
 const roleRegistrationSchema = z
 	.object({
-		agentPackageRef: identifier,
+		agentPackageRef: z.enum(fixedAgentPackageRefs),
 		registeredPackageVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
 		roleRef: z.string().regex(/^g-[A-Za-z0-9_-]+$/),
 		carrierUrl: z
 			.url()
 			.refine((value) => value.startsWith("https://chatgpt.com/g/")),
 	})
-	.strict();
+	.strict()
+	.superRefine((value, context) => {
+		if (value.carrierUrl !== `https://chatgpt.com/g/${value.roleRef}`)
+			context.addIssue({
+				code: "custom",
+				path: ["carrierUrl"],
+				message: "carrierUrl must exactly bind roleRef",
+			});
+	});
 const workerValidationSchema = z
 	.object({
 		authenticatedRoleRef: identifier,
@@ -227,7 +240,7 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 	if (existsSync(registryPath)) {
 		const parsed = z
 			.array(
-				roleRegistrationSchema.extend({
+				roleRegistrationSchema.safeExtend({
 					carrierType: z.literal("custom-gpt"),
 					registeredAt: z.iso.datetime(),
 				}),
@@ -497,9 +510,33 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 				const timestamp = now().toISOString();
 				const threadId = input.threadId ?? idFactory();
 				if (input.threadId) {
-					const current = getThread(threadId).value;
+					const existingThread = getThread(threadId);
+					const current = existingThread.value;
 					if (current.taskId !== input.taskId)
 						throw new AgentRuntimeError("THREAD_TASK_MISMATCH");
+					const participants = [
+						{
+							roleRef: String(existingThread.row.participant_a_role_ref),
+							workerRef: String(existingThread.row.participant_a_worker_ref),
+						},
+						{
+							roleRef: String(existingThread.row.participant_b_role_ref),
+							workerRef: String(existingThread.row.participant_b_worker_ref),
+						},
+					] as const;
+					const senderIndex = participants.findIndex(
+						(participant) =>
+							participant.roleRef === input.authenticatedRoleRef &&
+							participant.workerRef === input.fromWorkerRef,
+					);
+					if (senderIndex < 0)
+						throw new AgentRuntimeError("THREAD_PARTICIPANT_MISMATCH");
+					const expectedTarget = participants[senderIndex === 0 ? 1 : 0];
+					if (
+						targetRole.roleRef !== expectedTarget.roleRef ||
+						target.workerRef !== expectedTarget.workerRef
+					)
+						throw new AgentRuntimeError("THREAD_TARGET_MISMATCH");
 					if (current.state === "OPEN_REPLY_PENDING_DELIVERY")
 						throw new AgentRuntimeError("THREAD_REPLY_NOT_DELIVERED");
 					if (current.state !== "OPEN_CAN_ASK")

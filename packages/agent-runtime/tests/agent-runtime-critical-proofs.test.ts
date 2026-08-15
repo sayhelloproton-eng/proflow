@@ -24,9 +24,24 @@ async function fixture(context: {
 		taskId: "task:1",
 		status: "ACTIVE",
 		roleBindings: [
-			{ agentPackageRef: "@tomflow/proflow-agent-product", roleRef: "g-product", workerRef: "c-product", conversationLocator: "https://chatgpt.com/g/g-product/c/c-product" },
-			{ agentPackageRef: "@tomflow/proflow-agent-controller-dev", roleRef: "g-dev", workerRef: "c-dev", conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev" },
-			{ agentPackageRef: "@tomflow/proflow-agent-test-ops", roleRef: "g-test", workerRef: "c-test", conversationLocator: "https://chatgpt.com/g/g-test/c/c-test" },
+			{
+				agentPackageRef: "@tomflow/proflow-agent-product",
+				roleRef: "g-product",
+				workerRef: "c-product",
+				conversationLocator: "https://chatgpt.com/g/g-product/c/c-product",
+			},
+			{
+				agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+				roleRef: "g-dev",
+				workerRef: "c-dev",
+				conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+			},
+			{
+				agentPackageRef: "@tomflow/proflow-agent-test-ops",
+				roleRef: "g-test",
+				workerRef: "c-test",
+				conversationLocator: "https://chatgpt.com/g/g-test/c/c-test",
+			},
 		],
 	};
 	let sequence = 0;
@@ -88,6 +103,22 @@ test("CP-AGT-RUNTIME-01 registry is one-package-one-current-role and ROLE_IN_USE
 				carrierUrl: "https://chatgpt.com/g/g-dev-2",
 			}),
 		/ROLE_ALREADY_REGISTERED/,
+	);
+	await assert.rejects(() =>
+		runtime.registerRole({
+			agentPackageRef: "@tomflow/proflow-agent-product",
+			registeredPackageVersion: "0.1.0",
+			roleRef: "g-product-mismatch",
+			carrierUrl: "https://chatgpt.com/g/g-other",
+		}),
+	);
+	await assert.rejects(() =>
+		runtime.registerRole({
+			agentPackageRef: "@tomflow/proflow-agent-unknown",
+			registeredPackageVersion: "0.1.0",
+			roleRef: "g-unknown",
+			carrierUrl: "https://chatgpt.com/g/g-unknown",
+		}),
 	);
 	const before = runtime.listRegisteredRoles();
 	await assert.rejects(() => runtime.deleteRole("g-dev"), /ROLE_IN_USE/);
@@ -236,8 +267,19 @@ test("CP-AGT-RUNTIME-04 ask/reply is idempotent and next question waits for phys
 					taskId: "task:1",
 					status: "ACTIVE",
 					roleBindings: [
-						{ agentPackageRef: "@tomflow/proflow-agent-product", roleRef: "g-product", workerRef: "c-product", conversationLocator: "https://chatgpt.com/g/g-product/c/c-product" },
-						{ agentPackageRef: "@tomflow/proflow-agent-controller-dev", roleRef: "g-dev", workerRef: "c-dev", conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev" },
+						{
+							agentPackageRef: "@tomflow/proflow-agent-product",
+							roleRef: "g-product",
+							workerRef: "c-product",
+							conversationLocator:
+								"https://chatgpt.com/g/g-product/c/c-product",
+						},
+						{
+							agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+							roleRef: "g-dev",
+							workerRef: "c-dev",
+							conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+						},
 					],
 				};
 			},
@@ -274,14 +316,74 @@ test("CP-AGT-RUNTIME-04 ask/reply is idempotent and next question waits for phys
 	assert.equal(next.thread.state, "OPEN_AWAITING_REPLY");
 	reopened.close();
 });
+test("RF-AGT-RUNTIME-04 an existing pair thread cannot be retargeted to a third Task participant", async (context) => {
+	const { runtime } = await fixture(context);
+	const question = await runtime.askPeer({
+		authenticatedRoleRef: "g-dev",
+		taskId: "task:1",
+		fromWorkerRef: "c-dev",
+		targetAgentPackageRef: "@tomflow/proflow-agent-product",
+		content: "Pair-bound question",
+		idempotencyKey: "pair:ask:1",
+	});
+	await runtime.reportCollaborationDelivery({
+		messageId: question.message.messageId,
+		expectedMessageVersion: question.message.version,
+		outcome: "DELIVERED",
+		observedRoleRef: "g-product",
+		observedWorkerRef: "c-product",
+		executionRef: "execution:pair:q",
+		evidenceRef: "evidence:pair:q",
+	});
+	const reply = await runtime.replyPeer({
+		authenticatedRoleRef: "g-product",
+		threadId: question.thread.threadId,
+		fromWorkerRef: "c-product",
+		content: "Pair-bound reply",
+		idempotencyKey: "pair:reply:1",
+	});
+	await runtime.reportCollaborationDelivery({
+		messageId: reply.message.messageId,
+		expectedMessageVersion: reply.message.version,
+		outcome: "DELIVERED",
+		observedRoleRef: "g-dev",
+		observedWorkerRef: "c-dev",
+		executionRef: "execution:pair:r",
+		evidenceRef: "evidence:pair:r",
+	});
+	await assert.rejects(
+		() =>
+			runtime.askPeer({
+				authenticatedRoleRef: "g-dev",
+				taskId: "task:1",
+				threadId: question.thread.threadId,
+				fromWorkerRef: "c-dev",
+				targetAgentPackageRef: "@tomflow/proflow-agent-test-ops",
+				content: "Illegal third-participant retarget",
+				idempotencyKey: "pair:ask:retarget",
+			}),
+		/THREAD_TARGET_MISMATCH/,
+	);
+});
+
 test("CP-AGT-RUNTIME-05 terminal, missing participant, duplicate and concurrency paths fail safe", async (context) => {
 	const { runtime, setTask } = await fixture(context);
 	setTask({
 		taskId: "task:1",
 		status: "TERMINATED",
 		roleBindings: [
-			{ agentPackageRef: "@tomflow/proflow-agent-controller-dev", roleRef: "g-dev", workerRef: "c-dev", conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev" },
-			{ agentPackageRef: "@tomflow/proflow-agent-product", roleRef: "g-product", workerRef: "c-product", conversationLocator: "https://chatgpt.com/g/g-product/c/c-product" },
+			{
+				agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+				roleRef: "g-dev",
+				workerRef: "c-dev",
+				conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+			},
+			{
+				agentPackageRef: "@tomflow/proflow-agent-product",
+				roleRef: "g-product",
+				workerRef: "c-product",
+				conversationLocator: "https://chatgpt.com/g/g-product/c/c-product",
+			},
 		],
 	});
 	await assert.rejects(
@@ -299,7 +401,14 @@ test("CP-AGT-RUNTIME-05 terminal, missing participant, duplicate and concurrency
 	setTask({
 		taskId: "task:1",
 		status: "ACTIVE",
-		roleBindings: [{ agentPackageRef: "@tomflow/proflow-agent-controller-dev", roleRef: "g-dev", workerRef: "c-dev", conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev" }],
+		roleBindings: [
+			{
+				agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+				roleRef: "g-dev",
+				workerRef: "c-dev",
+				conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+			},
+		],
 	});
 	await assert.rejects(
 		() =>
@@ -464,8 +573,19 @@ test("B2-AGT-03 FAILED/UNKNOWN delivery update refuses a silent stale no-op", as
 					taskId,
 					status: "ACTIVE",
 					roleBindings: [
-						{ agentPackageRef: "@tomflow/proflow-agent-product", roleRef: "g-product", workerRef: "c-product", conversationLocator: "https://chatgpt.com/g/g-product/c/c-product" },
-						{ agentPackageRef: "@tomflow/proflow-agent-controller-dev", roleRef: "g-dev", workerRef: "c-dev", conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev" },
+						{
+							agentPackageRef: "@tomflow/proflow-agent-product",
+							roleRef: "g-product",
+							workerRef: "c-product",
+							conversationLocator:
+								"https://chatgpt.com/g/g-product/c/c-product",
+						},
+						{
+							agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+							roleRef: "g-dev",
+							workerRef: "c-dev",
+							conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+						},
 					],
 				};
 			},
@@ -513,6 +633,46 @@ test("B2-AGT-03 FAILED/UNKNOWN delivery update refuses a silent stale no-op", as
 	);
 	runtime.close();
 });
+test("B2-AGT-07 UNKNOWN delivery stays durable PENDING for external reconciliation without Agent-side replay", async (context) => {
+	const { runtime } = await fixture(context);
+	const question = await runtime.askPeer({
+		authenticatedRoleRef: "g-dev",
+		taskId: "task:1",
+		fromWorkerRef: "c-dev",
+		targetAgentPackageRef: "@tomflow/proflow-agent-product",
+		content: "uncertain physical delivery",
+		idempotencyKey: "unknown:ask",
+	});
+	const uncertain = await runtime.reportCollaborationDelivery({
+		messageId: question.message.messageId,
+		expectedMessageVersion: question.message.version,
+		outcome: "UNKNOWN",
+		observedRoleRef: "g-product",
+		observedWorkerRef: "c-product",
+		executionRef: "execution:unknown",
+		evidenceRef: "evidence:unknown",
+		errorCode: "UNKNOWN_SIDE_EFFECT",
+	});
+	assert.equal(uncertain.status, "PENDING");
+	assert.equal(uncertain.deliveryAttemptCount, 1);
+	assert.equal(uncertain.lastDeliveryErrorCode, "UNKNOWN_SIDE_EFFECT");
+	assert.equal(uncertain.executionRef, "execution:unknown");
+	assert.equal(uncertain.evidenceRef, "evidence:unknown");
+	assert.equal(uncertain.version, question.message.version + 1);
+	const pending = await runtime.listPendingCollaborationMessages({ limit: 10 });
+	assert.equal(pending.length, 1);
+	assert.equal(pending[0]?.messageId, question.message.messageId);
+	assert.equal(pending[0]?.deliveryAttemptCount, 1);
+	assert.equal(
+		runtime.getCollaborationMessage({ messageId: question.message.messageId })
+			.version,
+		uncertain.version,
+	);
+	// Agent owns the durable logical fact only. It does not schedule or synthesize
+	// a second physical delivery attempt; Browser/Execution must reconcile reality.
+	runtime.close();
+});
+
 test("B2-AGT-04 terminal PENDING history never starves later active pending messages", async (context) => {
 	const proflowRoot = await mkdtemp(join(tmpdir(), "proflow-agent-runtime-"));
 	context.after(() => rm(proflowRoot, { recursive: true, force: true }));
@@ -524,8 +684,18 @@ test("B2-AGT-04 terminal PENDING history never starves later active pending mess
 				taskId: "task:terminal",
 				status: "ACTIVE",
 				roleBindings: [
-					{ agentPackageRef: "@tomflow/proflow-agent-product", roleRef: "g-product", workerRef: "c-product", conversationLocator: "https://chatgpt.com/g/g-product/c/c-product" },
-					{ agentPackageRef: "@tomflow/proflow-agent-controller-dev", roleRef: "g-dev", workerRef: "c-dev", conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev" },
+					{
+						agentPackageRef: "@tomflow/proflow-agent-product",
+						roleRef: "g-product",
+						workerRef: "c-product",
+						conversationLocator: "https://chatgpt.com/g/g-product/c/c-product",
+					},
+					{
+						agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+						roleRef: "g-dev",
+						workerRef: "c-dev",
+						conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+					},
 				],
 			},
 		],
@@ -535,8 +705,18 @@ test("B2-AGT-04 terminal PENDING history never starves later active pending mess
 				taskId: "task:active",
 				status: "ACTIVE",
 				roleBindings: [
-					{ agentPackageRef: "@tomflow/proflow-agent-product", roleRef: "g-product", workerRef: "c-product", conversationLocator: "https://chatgpt.com/g/g-product/c/c-product" },
-					{ agentPackageRef: "@tomflow/proflow-agent-controller-dev", roleRef: "g-dev", workerRef: "c-dev", conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev" },
+					{
+						agentPackageRef: "@tomflow/proflow-agent-product",
+						roleRef: "g-product",
+						workerRef: "c-product",
+						conversationLocator: "https://chatgpt.com/g/g-product/c/c-product",
+					},
+					{
+						agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+						roleRef: "g-dev",
+						workerRef: "c-dev",
+						conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+					},
 				],
 			},
 		],
@@ -605,8 +785,18 @@ test("B2-AGT-05 terminal task delivery report never mutates historical PENDING m
 		taskId: "task:1",
 		status: "TERMINATED",
 		roleBindings: [
-			{ agentPackageRef: "@tomflow/proflow-agent-controller-dev", roleRef: "g-dev", workerRef: "c-dev", conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev" },
-			{ agentPackageRef: "@tomflow/proflow-agent-product", roleRef: "g-product", workerRef: "c-product", conversationLocator: "https://chatgpt.com/g/g-product/c/c-product" },
+			{
+				agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+				roleRef: "g-dev",
+				workerRef: "c-dev",
+				conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+			},
+			{
+				agentPackageRef: "@tomflow/proflow-agent-product",
+				roleRef: "g-product",
+				workerRef: "c-product",
+				conversationLocator: "https://chatgpt.com/g/g-product/c/c-product",
+			},
 		],
 	});
 	await assert.rejects(

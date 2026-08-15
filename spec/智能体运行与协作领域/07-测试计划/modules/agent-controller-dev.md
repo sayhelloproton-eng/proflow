@@ -171,3 +171,10 @@ implementationWave: Wave 4
 - [ ] **CP-AGT-DEV-09** — File Bridge→bounded Context Pack→Code Interpreter→Patch/Report为正式分析主路径；Patch不等于repo已apply，Execution Evidence才证明真实Effect。
 - [ ] **CP-AGT-DEV-10** — long Execution/peer result后恢复same workerRef/Conversation；UNKNOWN/已成功Effect no blind replay。
 - [ ] **CP-AGT-DEV-11** — public research走GPT Web Search；local/private/credentialed/exact engineering network仍走Execution。
+
+## 2026-08-15 Pre-Smoke Batch 2｜Local Role CLI Addendum
+
+- [ ] **CP-AGT-DEV-12** — Controller/Dev Role Package CLI 暴露 `role register/show/list/validate/delete` 与 `role key show/rotate`，通过 Agent owner composition 工作，不读取 Task SQLite/credential implementation files 作为第二事实源。
+- [ ] **RF-AGT-DEV-12** — Role CLI surface 缺命令、直接写 Task DB、或绕过受认证的 local management boundary。
+
+**Executable proof**：`packages/agent-controller-dev/tests/current-spec-alignment.test.ts` 的 `PRESMOKE-B2 role package CLI...`。

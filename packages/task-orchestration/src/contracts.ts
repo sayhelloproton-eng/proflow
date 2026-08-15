@@ -84,7 +84,7 @@ const schemas: Record<PublicOperationName, z.ZodType> = {
 				.array(z.object({ documentType: id, content: z.string() }).strict())
 				.optional()
 				.default([]),
-			roleBindings: z.array(roleBinding).min(3),
+			roleBindings: z.array(roleBinding).length(3),
 			...actor,
 		})
 		.strict()

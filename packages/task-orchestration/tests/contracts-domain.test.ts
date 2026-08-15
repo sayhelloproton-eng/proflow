@@ -246,6 +246,20 @@ test("remediation T01 createTask enforces agent-package identity and exactly the
 		}),
 	);
 	assert.throws(() =>
+		validatePublicInput("createTask", {
+			...base,
+			roleBindings: [
+				...roleBindings,
+				{
+					agentPackageRef: "@tomflow/proflow-agent-test-ops",
+					roleRef: "g-test",
+					workerRef: null,
+					conversationLocator: null,
+				},
+			],
+		}),
+	);
+	assert.throws(() =>
 		validatePublicInput("createTask", { ...base, taskGroupId: "group-1" }),
 	);
 	assert.throws(() =>

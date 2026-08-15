@@ -19,6 +19,10 @@ importers:
         version: 7.0.2
 
   packages/agent-controller-dev:
+    dependencies:
+      '@tomflow/proflow-agent-runtime':
+        specifier: workspace:^
+        version: link:../agent-runtime
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
@@ -65,6 +69,10 @@ importers:
         version: link:../task-store-sqlite
 
   packages/agent-product:
+    dependencies:
+      '@tomflow/proflow-agent-runtime':
+        specifier: workspace:^
+        version: link:../agent-runtime
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
@@ -78,6 +86,9 @@ importers:
 
   packages/agent-runtime:
     dependencies:
+      yaml:
+        specifier: 2.9.0
+        version: 2.9.0
       zod:
         specifier: 4.1.12
         version: 4.1.12
@@ -90,6 +101,10 @@ importers:
         version: link:../module-contract
 
   packages/agent-test-ops:
+    dependencies:
+      '@tomflow/proflow-agent-runtime':
+        specifier: workspace:^
+        version: link:../agent-runtime
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^

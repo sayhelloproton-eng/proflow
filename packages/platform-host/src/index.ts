@@ -1,4 +1,6 @@
-import { readFile } from "node:fs/promises";
+import { randomBytes, timingSafeEqual } from "node:crypto";
+import { existsSync } from "node:fs";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { basename, isAbsolute, join, resolve } from "node:path";
 
@@ -12,7 +14,7 @@ import { SqliteTaskStore } from "@tomflow/proflow-task-store-sqlite";
 import { taskMigrations } from "@tomflow/proflow-task-store-sqlite/migrations";
 import { z } from "zod";
 
-const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1"]);
+const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 const rolePackageRefs = [
 	"@tomflow/proflow-agent-product",
 	"@tomflow/proflow-agent-controller-dev",
@@ -47,6 +49,7 @@ const roleOperations: Record<RolePackageRef, ReadonlySet<string>> = {
 	"@tomflow/proflow-agent-test-ops": new Set([
 		"getTask",
 		"getNodeContext",
+		"startNode",
 		"completeNode",
 		"waitNode",
 		"failNode",
@@ -389,6 +392,10 @@ export type PlatformHostAgentIdentityPorts = {
 	getRegisteredRole(roleRef: string): Promise<{ roleRef: string }>;
 };
 
+export type PlatformHostRoleManagement = {
+	invoke(operation: string, input: unknown): Promise<unknown>;
+};
+
 async function constructGraph(
 	config: PlatformHostConfig,
 	executionCredential?: string,
@@ -629,35 +636,34 @@ async function constructGraph(
 					)?.workerRef ?? null
 				);
 			},
-		async bindWorker(binding: {
-			taskId: string;
-			roleRef: string;
-			workerRef: string;
-			conversationLocator: string;
-		}) {
-			const current = unwrap(
-				task.queries.getTask({ taskId: binding.taskId }),
-			);
-			const declared = current.roleBindings.find(
-				(item) => item.roleRef === binding.roleRef,
-			);
-			if (!declared)
-				throw new Error("AGENT_PACKAGE_NOT_ELIGIBLE");
-			if (declared.workerRef === binding.workerRef) return;
-			if (declared.workerRef) throw new Error("TASK_ROLE_BINDING_CONFLICT");
-			unwrap(
-				task.commands.bindTaskWorker({
-					taskId: binding.taskId,
-					agentPackageRef: declared.agentPackageRef,
-					roleRef: binding.roleRef,
-					workerRef: binding.workerRef,
-					conversationLocator: binding.conversationLocator,
-					expectedTaskVersion: current.version,
-					actorRef: "platform-host:worker-provisioning",
-					idempotencyKey: `browser-bind:${binding.taskId}:${binding.roleRef}:${binding.workerRef}`,
-				}),
-			);
-		},
+			async bindWorker(binding: {
+				taskId: string;
+				roleRef: string;
+				workerRef: string;
+				conversationLocator: string;
+			}) {
+				const current = unwrap(
+					task.queries.getTask({ taskId: binding.taskId }),
+				);
+				const declared = current.roleBindings.find(
+					(item) => item.roleRef === binding.roleRef,
+				);
+				if (!declared) throw new Error("AGENT_PACKAGE_NOT_ELIGIBLE");
+				if (declared.workerRef === binding.workerRef) return;
+				if (declared.workerRef) throw new Error("TASK_ROLE_BINDING_CONFLICT");
+				unwrap(
+					task.commands.bindTaskWorker({
+						taskId: binding.taskId,
+						agentPackageRef: declared.agentPackageRef,
+						roleRef: binding.roleRef,
+						workerRef: binding.workerRef,
+						conversationLocator: binding.conversationLocator,
+						expectedTaskVersion: current.version,
+						actorRef: "platform-host:worker-provisioning",
+						idempotencyKey: `browser-bind:${binding.taskId}:${binding.roleRef}:${binding.workerRef}`,
+					}),
+				);
+			},
 		}),
 		agent: Object.freeze({
 			async getPendingMessage(messageRef: string) {
@@ -783,40 +789,102 @@ async function constructGraph(
 					status: current.task.status,
 					version: current.task.version,
 				},
-			node: {
-				nodeId: current.node.nodeId,
-				status: current.node.status,
-				version: current.node.version,
-				runNo: current.node.runNo,
-				requiredAgentPackageRef: current.node.requiredAgentPackageRef,
-				workerRef: current.node.workerRef,
-			},
-		};
-	},
-	async getTaskDriveProjection(taskId: string) {
-		return unwrap(task.queries.getTaskDriveProjection({ taskId }));
-	},
-	async startTask(input) {
-		return unwrap(
-			task.commands.startTask({
-				...input,
-				actorRef: "platform-host:task-observer",
-			}),
-		);
-	},
-	async startNode(input) {
-		return unwrap(
-			task.commands.startNode({
-				...input,
-				actorRef: "platform-host:task-observer",
-			}),
-		);
-	},
-});
+				node: {
+					nodeId: current.node.nodeId,
+					status: current.node.status,
+					version: current.node.version,
+					runNo: current.node.runNo,
+					requiredAgentPackageRef: current.node.requiredAgentPackageRef,
+					workerRef: current.node.workerRef,
+				},
+			};
+		},
+		async getTaskDriveProjection(taskId: string) {
+			return unwrap(task.queries.getTaskDriveProjection({ taskId }));
+		},
+		async startTask(input) {
+			return unwrap(
+				task.commands.startTask({
+					...input,
+					actorRef: "platform-host:task-observer",
+				}),
+			);
+		},
+		async startNode(input) {
+			return unwrap(
+				task.commands.startNode({
+					...input,
+					actorRef: "platform-host:task-observer",
+				}),
+			);
+		},
+	});
 	const agentIdentityPorts: PlatformHostAgentIdentityPorts = Object.freeze({
 		async getRegisteredRole(roleRef) {
 			const role = agent.getRegisteredRole(roleRef);
 			return { roleRef: role.roleRef };
+		},
+	});
+	const roleForPackage = (agentPackageRef: string) => {
+		const role = agent
+			.listRegisteredRoles()
+			.find((candidate) => candidate.agentPackageRef === agentPackageRef);
+		if (!role) throw new Error("ROLE_NOT_FOUND");
+		return role;
+	};
+	const roleManagement: PlatformHostRoleManagement = Object.freeze({
+		async invoke(operation, rawInput) {
+			const value = object(rawInput, "role management input");
+			if (operation === "role.register") {
+				const result = await agent.registerRole(value);
+				return { role: result.role, credential: result.credential };
+			}
+			if (operation === "role.list") return agent.listRegisteredRoles();
+			const agentPackageRef = string(value.agentPackageRef, "agentPackageRef");
+			const role = roleForPackage(agentPackageRef);
+			if (operation === "role.show") return role;
+			if (operation === "role.validate") {
+				const doctor = agent.doctorRoleStore();
+				const issuePrefix = `${role.roleRef}`;
+				const issues = doctor.issues.filter((issue) =>
+					issue.includes(issuePrefix),
+				);
+				if (role.carrierUrl !== `https://chatgpt.com/g/${role.roleRef}`)
+					issues.push(`ROLE_CARRIER_URL_MISMATCH:${role.roleRef}`);
+				const expectedPackageVersion = Reflect.get(
+					value,
+					"expectedPackageVersion",
+				);
+				if (
+					expectedPackageVersion !== undefined &&
+					(typeof expectedPackageVersion !== "string" ||
+						expectedPackageVersion.length === 0)
+				)
+					throw new TypeError(
+						"expectedPackageVersion must be a non-empty string",
+					);
+				if (
+					typeof expectedPackageVersion === "string" &&
+					role.registeredPackageVersion !== expectedPackageVersion
+				)
+					issues.push(
+						`ROLE_PACKAGE_VERSION_DRIFT:${role.roleRef}:${role.registeredPackageVersion}:${expectedPackageVersion}`,
+					);
+				return {
+					status: issues.length === 0 ? "PASS" : "FAIL",
+					role,
+					issues,
+				};
+			}
+			if (operation === "role.delete") {
+				await agent.deleteRole(role.roleRef);
+				return { deleted: true, roleRef: role.roleRef };
+			}
+			if (operation === "role.key.show")
+				return agent.showCredential(role.roleRef);
+			if (operation === "role.key.rotate")
+				return agent.rotateCredential(role.roleRef);
+			throw new Error("UNSUPPORTED_ROLE_MANAGEMENT_OPERATION");
 		},
 	});
 	return Object.freeze({
@@ -825,6 +893,7 @@ async function constructGraph(
 		authorizeExecution,
 		taskDriverPorts,
 		agentIdentityPorts,
+		roleManagement,
 		async lookup(
 			operationId: string,
 			authenticatedRoleRef: string,
@@ -868,6 +937,38 @@ async function constructGraph(
 	});
 }
 
+async function ensureRoleManagementCredential(stateRoot: string) {
+	const path = join(stateRoot, "agent", "secrets", "role-management.token");
+	await mkdir(join(stateRoot, "agent", "secrets"), {
+		recursive: true,
+		mode: 0o700,
+	});
+	if (!existsSync(path)) {
+		const generated = randomBytes(32).toString("base64url");
+		try {
+			await writeFile(path, `${generated}\n`, { mode: 0o600, flag: "wx" });
+		} catch (error) {
+			if (!existsSync(path)) throw error;
+		}
+	}
+	await chmod(join(stateRoot, "agent", "secrets"), 0o700);
+	await chmod(path, 0o600);
+	const credential = (await readFile(path, "utf8")).trim();
+	if (credential.length < 32)
+		throw new Error("ROLE_MANAGEMENT_CREDENTIAL_INVALID");
+	return credential;
+}
+
+function managementCredentialMatches(
+	header: string | undefined,
+	expected: string,
+) {
+	if (!header?.startsWith("Bearer ")) return false;
+	const supplied = Buffer.from(header.slice("Bearer ".length));
+	const target = Buffer.from(expected);
+	return supplied.length === target.length && timingSafeEqual(supplied, target);
+}
+
 export function createPlatformHost(input: {
 	config: PlatformHostConfig;
 	log?: (entry: Record<string, unknown>) => void;
@@ -881,6 +982,7 @@ export function createPlatformHost(input: {
 	let accepting = false;
 	let graph: Graph | undefined;
 	let server: Server | undefined;
+	let roleManagementCredential: string | undefined;
 	const active = new Set<Promise<void>>();
 	const log = (event: string, detail: Record<string, unknown> = {}) =>
 		input.log?.({
@@ -923,15 +1025,15 @@ export function createPlatformHost(input: {
 				if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
 				return graph.browserOwnerPorts.task.getWorkerBinding(taskId, roleRef);
 			},
-		async bindWorker(binding: {
-			taskId: string;
-			roleRef: string;
-			workerRef: string;
-			conversationLocator: string;
-		}) {
-			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
-			return graph.browserOwnerPorts.task.bindWorker(binding);
-		},
+			async bindWorker(binding: {
+				taskId: string;
+				roleRef: string;
+				workerRef: string;
+				conversationLocator: string;
+			}) {
+				if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
+				return graph.browserOwnerPorts.task.bindWorker(binding);
+			},
 		}),
 		agent: Object.freeze({
 			async getPendingMessage(messageRef: string) {
@@ -1002,6 +1104,9 @@ export function createPlatformHost(input: {
 			throw new Error("platform-host is not stopped");
 		lifecycle = "STARTING";
 		try {
+			roleManagementCredential = await ensureRoleManagementCredential(
+				input.config.stateRoot,
+			);
 			log("DEPENDENCY_INITIALIZATION_STARTED", {
 				order: ["task", "agent", "execution-client", "model-client"],
 			});
@@ -1025,6 +1130,57 @@ export function createPlatformHost(input: {
 					if (!accepting || !graph)
 						return respond(response, 503, { error: "SERVICE_DRAINING" });
 					try {
+						if (
+							request.method === "POST" &&
+							url.pathname === "/management/agent"
+						) {
+							if (
+								!roleManagementCredential ||
+								!managementCredentialMatches(
+									request.headers.authorization,
+									roleManagementCredential,
+								)
+							)
+								return respond(response, 401, {
+									error: "MANAGEMENT_AUTH_FAILED",
+								});
+							const chunks: Buffer[] = [];
+							let bytes = 0;
+							for await (const chunk of request) {
+								const buffer = Buffer.isBuffer(chunk)
+									? chunk
+									: Buffer.from(chunk);
+								bytes += buffer.byteLength;
+								if (bytes > 65_536)
+									throw new TypeError("REQUEST_BODY_TOO_LARGE");
+								chunks.push(buffer);
+							}
+							const body = object(
+								JSON.parse(Buffer.concat(chunks).toString("utf8")),
+								"management request",
+							);
+							const operation = string(body.operation, "operation");
+							try {
+								const result = await graph.roleManagement.invoke(
+									operation,
+									body.input ?? {},
+								);
+								return respond(response, 200, result);
+							} catch (error) {
+								const code =
+									typeof error === "object" && error !== null
+										? Reflect.get(error, "code")
+										: undefined;
+								return respond(response, 400, {
+									error:
+										typeof code === "string"
+											? code
+											: error instanceof Error
+												? error.message
+												: "INVALID_REQUEST",
+								});
+							}
+						}
 						if (
 							request.method !== "POST" ||
 							!url.pathname.startsWith("/actions/")
@@ -1107,6 +1263,7 @@ export function createPlatformHost(input: {
 			server = undefined;
 			graph?.close();
 			graph = undefined;
+			roleManagementCredential = undefined;
 			lifecycle = "STOPPED";
 			throw error;
 		}
@@ -1124,6 +1281,7 @@ export function createPlatformHost(input: {
 		await Promise.allSettled([...active]);
 		graph?.close();
 		graph = undefined;
+		roleManagementCredential = undefined;
 		lifecycle = "STOPPED";
 		log("SERVICE_STOPPED");
 	};

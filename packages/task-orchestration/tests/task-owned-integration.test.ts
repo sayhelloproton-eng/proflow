@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -419,7 +427,7 @@ test("CP-TASK-ORCH-06 Task-scoped nodeId:null documents are owner-validated and 
 });
 
 test("RF-TASK-ORCH-04 stale or rolled-back TaskDocument writes never leave canonical Markdown diverged from SQLite", async (context) => {
-	const { services, store, root } = await fixture(context);
+	const { services, store, root, databasePath } = await fixture(context);
 	const created = ok(
 		services.commands.createTask(taskInput("task-doc-recovery")),
 	);
@@ -514,6 +522,54 @@ test("RF-TASK-ORCH-04 stale or rolled-back TaskDocument writes never leave canon
 		await readFile(join(root, baseline.path), "utf8"),
 		"# Stable design\n",
 	);
+
+	// Simulate a process dying after canonical Markdown promotion but before the
+	// SQLite transaction commits and before the in-process cleanup path can run.
+	// A newly constructed owner service must recover before its first document read.
+	const crashKey = "doc-recovery:process-crash";
+	const recoveryAttempt = join(
+		root,
+		".proflow",
+		"recovery",
+		"task-document",
+		task.taskId,
+		"technical-design",
+		createHash("sha256").update(crashKey).digest("hex"),
+	);
+	await mkdir(recoveryAttempt, { recursive: true });
+	await writeFile(join(recoveryAttempt, "previous.md"), "# Stable design\n");
+	await writeFile(join(recoveryAttempt, "next.md"), "# Crashed promotion\n");
+	await writeFile(
+		join(recoveryAttempt, "state.json"),
+		JSON.stringify({
+			previousHash: baseline.contentHash,
+			requestHash: "synthetic-process-interruption",
+		}),
+	);
+	await writeFile(join(root, baseline.path), "# Crashed promotion\n");
+
+	const restartedStore = new SqliteTaskStore({
+		databasePath,
+		busyTimeoutMs: 2_500,
+	});
+	context.after(() => restartedStore.close());
+	const restarted = createTaskServices({
+		store: restartedStore,
+		workspaceRoot: root,
+	});
+	const firstReadAfterRestart = ok(
+		restarted.queries.getTaskDocument({
+			taskId: task.taskId,
+			documentType: "TECHNICAL_DESIGN",
+		}),
+	);
+	assert.equal(firstReadAfterRestart.contentHash, baseline.contentHash);
+	assert.equal(firstReadAfterRestart.content, "# Stable design\n");
+	assert.equal(
+		await readFile(join(root, baseline.path), "utf8"),
+		"# Stable design\n",
+	);
+	await assert.rejects(() => stat(recoveryAttempt));
 });
 
 test("CP-TASK-ORCH-06 + CP-TASK-ORCH-08 TaskDocument remains canonical, safe, output-gated and hash-backed", async (context) => {

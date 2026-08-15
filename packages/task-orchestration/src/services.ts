@@ -685,6 +685,24 @@ export function createTaskServices(options: {
 		if (readdirSync(recoveryRootAbsolute).length === 0)
 			rmSync(recoveryRootAbsolute, { recursive: true, force: true });
 	};
+	const recoverTaskDocuments = (taskId: string): void => {
+		for (const type of allowedDocumentTypes)
+			recoverPendingDocumentUpdates(taskId, type);
+	};
+	const queryWithDocumentRecovery = <I extends { taskId: string }, O>(
+		operation: PublicOperationName,
+		raw: unknown,
+		work: (tx: TaskRepositories, input: I) => O,
+	): TaskResult<O> => {
+		try {
+			const input = validatePublicInput(operation, raw) as I;
+			recoverTaskDocuments(input.taskId);
+			return success(store.read((tx) => work(tx, input)));
+		} catch (error) {
+			return failure(error);
+		}
+	};
+
 	const cleanupCreateStage = (taskId: string): void => {
 		rmSync(
 			join(
@@ -1767,7 +1785,7 @@ export function createTaskServices(options: {
 				sizeBytes: number;
 			}>;
 		}> =>
-			query<
+			queryWithDocumentRecovery<
 				{ taskId: string; nodeId: string },
 				{
 					task: Pick<
@@ -1856,35 +1874,34 @@ export function createTaskServices(options: {
 					.slice(0, input.limit ?? 100),
 			})),
 		getTaskDocument: (raw: unknown): TaskResult<DocumentResult> =>
-			query<{ taskId: string; documentType: string }, DocumentResult>(
-				"getTaskDocument",
-				raw,
-				(tx, input) => {
-					const type = ensureType(input.documentType);
-					const document = tx.documents.get(input.taskId, type);
-					if (!document)
-						throw new DomainError(
-							"DOCUMENT_NOT_FOUND",
-							"Document was not found.",
-						);
-					const content = readFileSync(
-						join(workspaceRoot, document.filePath),
-						"utf8",
+			queryWithDocumentRecovery<
+				{ taskId: string; documentType: string },
+				DocumentResult
+			>("getTaskDocument", raw, (tx, input) => {
+				const type = ensureType(input.documentType);
+				const document = tx.documents.get(input.taskId, type);
+				if (!document)
+					throw new DomainError(
+						"DOCUMENT_NOT_FOUND",
+						"Document was not found.",
 					);
-					const task = requireTask(tx, input.taskId);
-					return {
-						taskId: input.taskId,
-						nodeId: document.sourceNodeId,
-						documentType: type,
-						path: document.filePath,
-						contentHash: document.contentHash,
-						sizeBytes: statSync(join(workspaceRoot, document.filePath)).size,
-						taskVersion: task.version,
-						updatedAt: document.updatedAt,
-						content,
-					};
-				},
-			),
+				const content = readFileSync(
+					join(workspaceRoot, document.filePath),
+					"utf8",
+				);
+				const task = requireTask(tx, input.taskId);
+				return {
+					taskId: input.taskId,
+					nodeId: document.sourceNodeId,
+					documentType: type,
+					path: document.filePath,
+					contentHash: document.contentHash,
+					sizeBytes: statSync(join(workspaceRoot, document.filePath)).size,
+					taskVersion: task.version,
+					updatedAt: document.updatedAt,
+					content,
+				};
+			}),
 	};
 
 	const documents = {
