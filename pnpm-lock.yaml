@@ -164,13 +164,13 @@ importers:
       '@tomflow/proflow-execution-contracts':
         specifier: workspace:^
         version: link:../execution-contracts
-      '@tomflow/proflow-execution-runtime':
-        specifier: workspace:^
-        version: link:../execution-runtime
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
+      '@tomflow/proflow-execution-runtime':
+        specifier: workspace:^
+        version: link:../execution-runtime
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract
@@ -189,6 +189,9 @@ importers:
 
   packages/execution-runtime:
     dependencies:
+      '@tomflow/proflow-execution-browser-extension':
+        specifier: workspace:^
+        version: link:../execution-browser-extension
       '@tomflow/proflow-execution-contracts':
         specifier: workspace:^
         version: link:../execution-contracts

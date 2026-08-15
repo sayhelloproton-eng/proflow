@@ -6,6 +6,7 @@ import { basename, isAbsolute, join, resolve } from "node:path";
 
 import { createAgentRuntime } from "@tomflow/proflow-agent-runtime";
 import type { SystemObserverView } from "@tomflow/proflow-execution-browser-extension";
+import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
 import { applyMigrations } from "@tomflow/proflow-task-migration-runner";
 import {
 	createTaskServices,
@@ -265,6 +266,8 @@ function createOwnerHttpClient(
 		async invoke(operationId, input) {
 			let path: string;
 			let method = "POST";
+			let callerContext: string | undefined;
+			let requestBody: unknown = input;
 			if (owner === "model") {
 				if (operationId === "getRuntimeStatus") {
 					path = "/status";
@@ -274,11 +277,35 @@ function createOwnerHttpClient(
 			} else if (operationId === "materializeExternalFiles")
 				path = "/external-files/materialize";
 			else if (operationId === "executeCapability") path = "/executions";
+			else if (operationId === "lookupExecutionIntent")
+				path = "/executions/lookup";
+			else if (operationId === "listExecutionObserverSignals")
+				path = "/observer-signals/list";
+			else if (operationId === "acknowledgeExecutionObserverSignal")
+				path = "/observer-signals/ack";
 			else if (operationId === "cancelExecution") path = "/executions/cancel";
-			else if (operationId === "readExecutionOutput")
+			else if (operationId === "readExecutionOutput") {
+				const value = object(input, "readExecutionOutput input");
+				callerContext = string(value.callerRef, "callerRef");
+				requestBody = Object.fromEntries(
+					Object.entries(value).filter(([key]) => key !== "callerRef"),
+				);
 				path = "/executions/output";
-			else if (operationId === "getExecution") {
+			} else if (operationId === "requestExecutionApproval")
+				path = "/approvals/request";
+			else if (operationId === "decideExecutionApproval")
+				path = "/approvals/decide";
+			else if (operationId === "revokeExecutionApproval")
+				path = "/approvals/revoke";
+			else if (operationId === "listExecutionApprovals")
+				path = "/approvals/list";
+			else if (operationId === "getExecutionApproval") {
+				const value = object(input, "getExecutionApproval input");
+				path = `/approvals/${encodeURIComponent(string(value.approvalRef, "approvalRef"))}`;
+				method = "GET";
+			} else if (operationId === "getExecution") {
 				const value = object(input, "getExecution input");
+				callerContext = string(value.callerRef, "callerRef");
 				path = `/executions/${encodeURIComponent(string(value.executionRef, "executionRef"))}`;
 				method = "GET";
 			} else throw new Error("EXECUTION_OPERATION_NOT_ROUTED");
@@ -287,13 +314,14 @@ function createOwnerHttpClient(
 					method,
 					headers: {
 						...(credential ? { authorization: `Bearer ${credential}` } : {}),
+						...(callerContext ? { "x-proflow-caller-ref": callerContext } : {}),
 						...(method === "POST"
 							? { "content-type": "application/json" }
 							: {}),
 					},
 					...(method === "POST"
 						? {
-								body: JSON.stringify(input),
+								body: JSON.stringify(requestBody),
 							}
 						: {}),
 					signal: AbortSignal.timeout(45_000),
@@ -692,6 +720,33 @@ async function constructGraph(
 			});
 		return binding.workerRef;
 	};
+	const admitExecutionRead = async (
+		authenticatedRoleRef: string,
+		rawRecord: unknown,
+	): Promise<unknown> => {
+		const record = object(rawRecord, "execution read record");
+		if (record.callerRef !== authenticatedRoleRef)
+			throw Object.assign(new Error("EXECUTION_CALLER_MISMATCH"), {
+				httpStatus: 403,
+			});
+		if (typeof record.taskId === "string") {
+			if (record.roleRef !== authenticatedRoleRef)
+				throw Object.assign(new Error("EXECUTION_ROLE_SCOPE_MISMATCH"), {
+					httpStatus: 403,
+				});
+			if (typeof record.workerRef !== "string")
+				throw Object.assign(new Error("EXECUTION_WORKER_SCOPE_REQUIRED"), {
+					httpStatus: 403,
+				});
+			await admitTaskParticipant(
+				record.taskId,
+				authenticatedRoleRef,
+				record.workerRef,
+			);
+		}
+		return rawRecord;
+	};
+
 	const route = async (
 		operationId: string,
 		authenticatedRoleRef: string,
@@ -734,11 +789,24 @@ async function constructGraph(
 						new Error("FILE_MATERIALIZATION_UNSUPPORTED_OPERATION"),
 						{ httpStatus: 400 },
 					);
+				const taskMutationIdempotencyKey = string(
+					input.idempotencyKey,
+					"idempotencyKey",
+				);
 				const result = object(
 					await execution.invoke("materializeExternalFiles", {
 						contract: "execution.external-file-materialization",
 						contractVersion: "1.0.0",
 						callerRef: authenticatedRoleRef,
+						idempotencyKey: `${taskMutationIdempotencyKey}:carrier-file-materialization`,
+						correlationId: taskMutationIdempotencyKey,
+						...(typeof input.taskId === "string"
+							? { taskId: input.taskId }
+							: {}),
+						roleRef: authenticatedRoleRef,
+						...(typeof input.taskId === "string"
+							? { workerRef: actorRef }
+							: {}),
 						files: context.fileMaterializationInputs,
 					}),
 					"carrier file materialization result",
@@ -790,8 +858,26 @@ async function constructGraph(
 			// Only a future explicit async-completion signal may emit EXECUTION_RESULT_READY.
 			return result;
 		}
-		if (operationId === "getExecution" || operationId === "readExecutionOutput")
-			return execution.invoke(operationId, input);
+		if (operationId === "getExecution") {
+			const record = await execution.invoke(operationId, {
+				...input,
+				callerRef: authenticatedRoleRef,
+			});
+			return admitExecutionRead(authenticatedRoleRef, record);
+		}
+		if (operationId === "readExecutionOutput") {
+			const record = await execution.invoke("getExecution", {
+				contract: "execution",
+				contractVersion: "1.0.0",
+				executionRef: string(input.executionRef, "executionRef"),
+				callerRef: authenticatedRoleRef,
+			});
+			await admitExecutionRead(authenticatedRoleRef, record);
+			return execution.invoke(operationId, {
+				...input,
+				callerRef: authenticatedRoleRef,
+			});
+		}
 		throw new Error("OPERATION_NOT_ROUTED");
 	};
 	const browserOwnerPorts: PlatformHostBrowserOwnerPorts = Object.freeze({
@@ -1182,6 +1268,42 @@ async function constructGraph(
 			throw new Error("UNSUPPORTED_TASK_APPLICATION_OPERATION");
 		},
 	});
+	const approvalApplication = Object.freeze({
+		async invoke(operation: string, rawInput: unknown) {
+			const value = object(rawInput, "approval application input");
+			if (operation === "approval.list")
+				return execution.invoke("listExecutionApprovals", value);
+			if (operation === "approval.get")
+				return execution.invoke("getExecutionApproval", {
+					approvalRef: string(value.approvalRef, "approvalRef"),
+				});
+			if (operation === "approval.request")
+				return execution.invoke("requestExecutionApproval", {
+					...value,
+					actorRef: "extension:human",
+				});
+			if (operation === "approval.allow" || operation === "approval.deny")
+				return execution.invoke("decideExecutionApproval", {
+					contract: "execution.approval",
+					contractVersion: "1.0.0",
+					approvalRef: string(value.approvalRef, "approvalRef"),
+					actorRef: "extension:human",
+					expectedVersion: Number(value.expectedVersion),
+					decision: operation === "approval.allow" ? "ALLOW" : "DENY",
+					...(typeof value.reason === "string" ? { reason: value.reason } : {}),
+				});
+			if (operation === "approval.revoke")
+				return execution.invoke("revokeExecutionApproval", {
+					contract: "execution.approval",
+					contractVersion: "1.0.0",
+					approvalRef: string(value.approvalRef, "approvalRef"),
+					actorRef: "extension:human",
+					expectedVersion: Number(value.expectedVersion),
+					reason: string(value.reason, "reason"),
+				});
+			throw new Error("UNSUPPORTED_APPROVAL_APPLICATION_OPERATION");
+		},
+	});
 	const observerApplication = Object.freeze({
 		async invoke(operation: string, rawInput: unknown) {
 			const value = object(rawInput, "observer application input");
@@ -1255,6 +1377,14 @@ async function constructGraph(
 				});
 				return { reported: true };
 			}
+			if (operation === "execution.listSignals")
+				return execution.invoke("listExecutionObserverSignals", {
+					limit: Number(value.limit ?? 50),
+				});
+			if (operation === "execution.ackSignal")
+				return execution.invoke("acknowledgeExecutionObserverSignal", {
+					signalRef: string(value.signalRef, "signalRef"),
+				});
 			if (operation === "task.wake") {
 				const taskId = string(value.taskId, "taskId");
 				const nodeId = string(value.nodeId, "nodeId");
@@ -1359,6 +1489,7 @@ async function constructGraph(
 		agentIdentityPorts,
 		roleManagement,
 		taskApplication,
+		approvalApplication,
 		observerApplication,
 
 		async lookup(
@@ -1367,8 +1498,31 @@ async function constructGraph(
 			input: unknown,
 		) {
 			const value = object(input, "lookup input");
-			if (operationId === "executeCapability" && value.executionRef)
-				return execution.invoke("getExecution", value);
+			if (operationId === "executeCapability") {
+				if (value.executionRef) {
+					const record = await execution.invoke("getExecution", {
+						...value,
+						callerRef: authenticatedRoleRef,
+					});
+					return admitExecutionRead(authenticatedRoleRef, record);
+				}
+				const taskId =
+					typeof value.taskId === "string" ? value.taskId : undefined;
+				let canonicalWorkerRef: string | undefined;
+				if (taskId)
+					canonicalWorkerRef = await admitTaskParticipant(
+						taskId,
+						authenticatedRoleRef,
+						typeof value.workerRef === "string" ? value.workerRef : undefined,
+					);
+				const record = await execution.invoke("lookupExecutionIntent", {
+					...value,
+					callerRef: authenticatedRoleRef,
+					roleRef: authenticatedRoleRef,
+					...(canonicalWorkerRef ? { workerRef: canonicalWorkerRef } : {}),
+				});
+				return admitExecutionRead(authenticatedRoleRef, record);
+			}
 			return route(operationId, authenticatedRoleRef, value);
 		},
 		async readiness() {
@@ -1426,6 +1580,46 @@ async function ensureRoleManagementCredential(stateRoot: string) {
 	return credential;
 }
 
+async function ensureExecutionIdentityCredential(stateRoot: string) {
+	const directory = join(stateRoot, "execution", "secrets");
+	const path = join(directory, "execution-identity.token");
+	await mkdir(directory, { recursive: true, mode: 0o700 });
+	if (!existsSync(path)) {
+		const generated = randomBytes(32).toString("base64url");
+		try {
+			await writeFile(path, `${generated}\n`, { mode: 0o600, flag: "wx" });
+		} catch (error) {
+			if (!existsSync(path)) throw error;
+		}
+	}
+	await chmod(directory, 0o700);
+	await chmod(path, 0o600);
+	const credential = (await readFile(path, "utf8")).trim();
+	if (credential.length < 32)
+		throw new Error("EXECUTION_IDENTITY_CREDENTIAL_INVALID");
+	return credential;
+}
+
+async function ensureApprovalApplicationCredential(stateRoot: string) {
+	const directory = join(stateRoot, "browser", "secrets");
+	const path = join(directory, "approval-application.token");
+	await mkdir(directory, { recursive: true, mode: 0o700 });
+	if (!existsSync(path)) {
+		const generated = randomBytes(32).toString("base64url");
+		try {
+			await writeFile(path, `${generated}\n`, { mode: 0o600, flag: "wx" });
+		} catch (error) {
+			if (!existsSync(path)) throw error;
+		}
+	}
+	await chmod(directory, 0o700);
+	await chmod(path, 0o600);
+	const credential = (await readFile(path, "utf8")).trim();
+	if (credential.length < 32)
+		throw new Error("APPROVAL_APPLICATION_CREDENTIAL_INVALID");
+	return credential;
+}
+
 async function ensureTaskApplicationCredential(stateRoot: string) {
 	const directory = join(stateRoot, "browser", "secrets");
 	const path = join(directory, "task-application.token");
@@ -1471,6 +1665,8 @@ export function createPlatformHost(input: {
 	let server: Server | undefined;
 	let roleManagementCredential: string | undefined;
 	let taskApplicationCredential: string | undefined;
+	let approvalApplicationCredential: string | undefined;
+	let executionIdentityCredential: string | undefined;
 	const active = new Set<Promise<void>>();
 	const log = (event: string, detail: Record<string, unknown> = {}) =>
 		input.log?.({
@@ -1600,6 +1796,12 @@ export function createPlatformHost(input: {
 			taskApplicationCredential = await ensureTaskApplicationCredential(
 				input.config.stateRoot,
 			);
+			approvalApplicationCredential = await ensureApprovalApplicationCredential(
+				input.config.stateRoot,
+			);
+			executionIdentityCredential = await ensureExecutionIdentityCredential(
+				input.config.stateRoot,
+			);
 			log("DEPENDENCY_INITIALIZATION_STARTED", {
 				order: ["task", "agent", "execution-client", "model-client"],
 			});
@@ -1623,6 +1825,90 @@ export function createPlatformHost(input: {
 					if (!accepting || !graph)
 						return respond(response, 503, { error: "SERVICE_DRAINING" });
 					try {
+						if (url.pathname === "/internal/execution/identity/ready") {
+							if (
+								!executionIdentityCredential ||
+								!managementCredentialMatches(
+									request.headers.authorization,
+									executionIdentityCredential,
+								)
+							)
+								return respond(response, 401, {
+									error: "EXECUTION_IDENTITY_AUTH_FAILED",
+								});
+							return respond(response, 200, { ready: true });
+						}
+						if (
+							request.method === "POST" &&
+							url.pathname === "/internal/execution/authorize"
+						) {
+							if (
+								!executionIdentityCredential ||
+								!managementCredentialMatches(
+									request.headers.authorization,
+									executionIdentityCredential,
+								)
+							)
+								return respond(response, 401, {
+									error: "EXECUTION_IDENTITY_AUTH_FAILED",
+								});
+							const chunks: Buffer[] = [];
+							for await (const chunk of request)
+								chunks.push(
+									Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+								);
+							const body = object(
+								JSON.parse(Buffer.concat(chunks).toString("utf8")),
+								"execution identity request",
+							);
+							return respond(response, 200, {
+								authorized: await graph.authorizeExecution(
+									body as unknown as ExecuteCapabilityRequest,
+								),
+							});
+						}
+						if (
+							request.method === "POST" &&
+							url.pathname === "/application/approval"
+						) {
+							if (
+								!approvalApplicationCredential ||
+								!managementCredentialMatches(
+									request.headers.authorization,
+									approvalApplicationCredential,
+								)
+							)
+								return respond(response, 401, {
+									error: "APPROVAL_APPLICATION_AUTH_FAILED",
+								});
+							const chunks: Buffer[] = [];
+							let bytes = 0;
+							for await (const chunk of request) {
+								const buffer = Buffer.isBuffer(chunk)
+									? chunk
+									: Buffer.from(chunk);
+								bytes += buffer.byteLength;
+								if (bytes > 262_144)
+									throw new TypeError("REQUEST_BODY_TOO_LARGE");
+								chunks.push(buffer);
+							}
+							const body = object(
+								JSON.parse(Buffer.concat(chunks).toString("utf8")),
+								"approval application request",
+							);
+							try {
+								const result = await graph.approvalApplication.invoke(
+									string(body.operation, "operation"),
+									body.input ?? {},
+								);
+								return respond(response, 200, result);
+							} catch (error) {
+								return respond(response, 400, {
+									error:
+										error instanceof Error ? error.message : "INVALID_REQUEST",
+								});
+							}
+						}
 						if (
 							request.method === "POST" &&
 							url.pathname === "/application/observer"
@@ -1842,6 +2128,8 @@ export function createPlatformHost(input: {
 			graph = undefined;
 			roleManagementCredential = undefined;
 			taskApplicationCredential = undefined;
+			approvalApplicationCredential = undefined;
+			executionIdentityCredential = undefined;
 			lifecycle = "STOPPED";
 			throw error;
 		}
@@ -1861,6 +2149,8 @@ export function createPlatformHost(input: {
 		graph = undefined;
 		roleManagementCredential = undefined;
 		taskApplicationCredential = undefined;
+		approvalApplicationCredential = undefined;
+		executionIdentityCredential = undefined;
 		lifecycle = "STOPPED";
 		log("SERVICE_STOPPED");
 	};

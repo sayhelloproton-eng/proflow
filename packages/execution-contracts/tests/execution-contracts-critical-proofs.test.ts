@@ -17,6 +17,36 @@ test("CP-EXE-CON-01 public API types and runtime schemas stay aligned", () => {
 		typeof Reflect.get(contracts, "parseReadExecutionOutputRequest"),
 		"function",
 	);
+	assert.equal(Reflect.get(contracts, "parseGetExecutionRequest"), undefined);
+	assert.equal(
+		contracts.EXECUTION_CONTRACT_DESCRIPTOR.publicTypes.includes(
+			"GetExecutionRequest",
+		),
+		false,
+	);
+	assert.deepEqual(
+		contracts.parseReadExecutionOutputRequest({
+			contract: "execution",
+			contractVersion: "1.0.0",
+			executionRef: "execution:contract-read",
+			stream: "stdout",
+		}),
+		{
+			contract: "execution",
+			contractVersion: "1.0.0",
+			executionRef: "execution:contract-read",
+			stream: "stdout",
+		},
+	);
+	assert.throws(() =>
+		contracts.parseReadExecutionOutputRequest({
+			contract: "execution",
+			contractVersion: "1.0.0",
+			executionRef: "execution:contract-read",
+			callerRef: "role:must-not-be-public-dto",
+			stream: "stdout",
+		}),
+	);
 	assert.equal(
 		typeof Reflect.get(contracts, "parseCancelExecutionRequest"),
 		"function",

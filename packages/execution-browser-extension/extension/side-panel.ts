@@ -13,6 +13,22 @@ type TaskSummary = {
 	canStart?: boolean;
 	blockedReason?: string | null;
 };
+type ApprovalView = {
+	approvalRef: string;
+	executionRef: string;
+	capability: string;
+	callerRef: string;
+	taskId?: string;
+	status:
+		| "PENDING"
+		| "APPROVED"
+		| "DENIED"
+		| "REVOKED"
+		| "CONSUMED"
+		| "EXPIRED";
+	version: number;
+	expiresAt: string;
+};
 type TaskView = TaskSummary & {
 	roleBindings: Array<{
 		agentPackageRef: string;
@@ -45,6 +61,7 @@ const resultTarget = element<HTMLElement>("#result");
 const startButton = element<HTMLButtonElement>("#start-task");
 const ensureWorkersButton = element<HTMLButtonElement>("#ensure-workers");
 const newTaskForm = element<HTMLFormElement>("#new-task-form");
+const approvalsTarget = element<HTMLElement>("#approvals");
 
 let selected: TaskView | null = null;
 
@@ -75,6 +92,73 @@ async function taskApplication(
 				: "TASK_APPLICATION_FAILED",
 		);
 	return response.value;
+}
+
+async function approvalApplication(
+	operation: string,
+	input: Record<string, unknown>,
+): Promise<unknown> {
+	const raw = await chrome.runtime.sendMessage({
+		type: "PROFLOW_APPROVAL_APPLICATION",
+		operation,
+		input,
+	});
+	const response = record(raw);
+	if (response.ok !== true)
+		throw new Error(
+			typeof response.error === "string"
+				? response.error
+				: "APPROVAL_APPLICATION_FAILED",
+		);
+	return response.value;
+}
+
+async function refreshApprovals() {
+	const value = record(
+		await approvalApplication("approval.list", { status: "PENDING" }),
+	);
+	const approvals = Array.isArray(value.approvals)
+		? (value.approvals as ApprovalView[])
+		: [];
+	approvalsTarget.replaceChildren();
+	for (const approval of approvals) {
+		const row = document.createElement("div");
+		row.className = "task";
+		const label = document.createElement("span");
+		label.textContent = `${approval.capability} · ${approval.executionRef} · expires ${approval.expiresAt}`;
+		row.append(label);
+		const allow = document.createElement("button");
+		allow.type = "button";
+		allow.textContent = "Allow";
+		allow.addEventListener(
+			"click",
+			() =>
+				void run(async () => {
+					await approvalApplication("approval.allow", {
+						approvalRef: approval.approvalRef,
+						expectedVersion: approval.version,
+					});
+					await refreshApprovals();
+				}),
+		);
+		const deny = document.createElement("button");
+		deny.type = "button";
+		deny.textContent = "Deny";
+		deny.addEventListener(
+			"click",
+			() =>
+				void run(async () => {
+					await approvalApplication("approval.deny", {
+						approvalRef: approval.approvalRef,
+						expectedVersion: approval.version,
+						reason: "Denied from Extension Side Panel",
+					});
+					await refreshApprovals();
+				}),
+		);
+		row.append(allow, deny);
+		approvalsTarget.append(row);
+	}
 }
 
 function setBusy(button: HTMLButtonElement, busy: boolean) {
@@ -147,11 +231,13 @@ async function refreshBrowserStatus() {
 		await chrome.runtime.sendMessage({ type: "PROFLOW_SIDE_PANEL_SNAPSHOT" }),
 	);
 	connection.textContent =
-		snapshot.taskApplicationConfigured === true
-			? "Task application connected"
-			: "Task application not configured — open Extension Options";
+		snapshot.taskApplicationConfigured === true &&
+		snapshot.approvalApplicationConfigured === true
+			? "Task + Approval applications connected"
+			: "Local application credential missing — open Extension Options";
 	browserStatus.textContent = JSON.stringify(snapshot, null, 2);
 	if (snapshot.taskApplicationConfigured === true) await refreshTasks();
+	if (snapshot.approvalApplicationConfigured === true) await refreshApprovals();
 }
 
 async function run(action: () => Promise<void>) {
@@ -196,6 +282,11 @@ newTaskForm.addEventListener("submit", (event) => {
 element<HTMLButtonElement>("#refresh-tasks").addEventListener(
 	"click",
 	() => void run(refreshTasks),
+);
+
+element<HTMLButtonElement>("#refresh-approvals").addEventListener(
+	"click",
+	() => void run(refreshApprovals),
 );
 
 startButton.addEventListener("click", () => {

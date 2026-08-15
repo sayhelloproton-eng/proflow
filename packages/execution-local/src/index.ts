@@ -35,9 +35,21 @@ import type {
 	LocalCapabilityId,
 } from "@tomflow/proflow-execution-contracts";
 
+export interface LocalResolvedPatchArtifact {
+	artifactRef: string;
+	kind: "patch-proposal";
+	path: string;
+	hash: string;
+	baseHash: string;
+	baseRef: string;
+}
+
 export interface LocalExecutorOptions {
 	projectRoot: string;
 	artifactRoot: string;
+	resolvePatchArtifact?: (
+		artifactRef: string,
+	) => Promise<LocalResolvedPatchArtifact | undefined>;
 	exactNetworkTargets?: readonly string[];
 	baseEnv?: Readonly<Record<string, string>>;
 	now?: () => Date;
@@ -57,6 +69,15 @@ export type LocalPrecondition =
 			path: string;
 			beforeHash?: string;
 			expectedAfterHash: string;
+	  }
+	| {
+			kind: "patch.apply";
+			capability: "patch.apply";
+			artifactRef: string;
+			patchHash: string;
+			baseHash: string;
+			baseRef: string;
+			paths: string[];
 	  }
 	| {
 			kind: "git.commit";
@@ -103,6 +124,10 @@ export interface LocalArtifact {
 	path: string;
 	bytes: number;
 	stream: "stdout" | "stderr" | "report";
+	kind?: "output" | "external-file" | "context-pack" | "patch-proposal";
+	hash?: string;
+	mime?: string;
+	metadata?: Record<string, unknown>;
 }
 
 export interface LocalExecutionResult {
@@ -163,6 +188,10 @@ const localCapabilities = new Set<string>([
 	"file.read",
 	"file.write",
 	"file.searchText",
+	"artifact.external-file.materialize",
+	"artifact.context-pack.materialize",
+	"artifact.patch-proposal.materialize",
+	"patch.apply",
 	"git.status",
 	"git.diff",
 	"git.commit",
@@ -1038,13 +1067,25 @@ export async function materializeContextPack(options: {
 	const id = randomUUID();
 	const artifactRef = `artifact:${id}:context-pack`;
 	const hash = `sha256:${createHash("sha256")
-		.update(JSON.stringify({ taskId: options.taskId, nodeId: options.nodeId, manifest }))
+		.update(
+			JSON.stringify({
+				taskId: options.taskId,
+				nodeId: options.nodeId,
+				manifest,
+				entries,
+			}),
+		)
 		.digest("hex")}`;
 	const artifactRoot = resolve(options.artifactRoot);
 	await mkdir(artifactRoot, { recursive: true, mode: 0o700 });
 	await writeFile(
 		join(artifactRoot, `${id}.context-pack.json`),
-		JSON.stringify({ taskId: options.taskId, nodeId: options.nodeId, manifest, entries }),
+		JSON.stringify({
+			taskId: options.taskId,
+			nodeId: options.nodeId,
+			manifest,
+			entries,
+		}),
 		{ encoding: "utf8", mode: 0o600 },
 	);
 	return {
@@ -1098,10 +1139,14 @@ export async function materializePatchProposal(options: {
 		.digest("hex")}`;
 	const artifactRoot = resolve(options.artifactRoot);
 	await mkdir(artifactRoot, { recursive: true, mode: 0o700 });
-	await writeFile(join(artifactRoot, `${id}.patch-proposal.diff`), options.proposal.diff, {
-		encoding: "utf8",
-		mode: 0o600,
-	});
+	await writeFile(
+		join(artifactRoot, `${id}.patch-proposal.diff`),
+		options.proposal.diff,
+		{
+			encoding: "utf8",
+			mode: 0o600,
+		},
+	);
 	// A proposal is never auto-applied. Applying it is a separate Effect that
 	// re-validates this precondition against the live snapshot (stale detection)
 	// and produces its own Result/Evidence, never reusing this proposal as truth.
@@ -1125,6 +1170,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 	const exactNetworkTargets = new Set(options.exactNetworkTargets ?? []);
 	const now = options.now ?? (() => new Date());
 	const idFactory = options.idFactory ?? randomUUID;
+	let resolvePatchArtifact = options.resolvePatchArtifact;
 	const assertScopedCommand = (
 		command: string,
 		args: readonly string[],
@@ -1490,8 +1536,9 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 		envInput?: Readonly<Record<string, string>>,
 		timeoutMs = 30_000,
 		maxOutputBytes = 16_384,
+		effectful = true,
 	): Promise<LocalExecutionResult> {
-		await markEffect(invocation, precondition);
+		if (effectful) await markEffect(invocation, precondition);
 		const environment = safeEnvironment(options.baseEnv ?? {}, envInput);
 		const id = idFactory();
 		const captured = await captureCommand({
@@ -1539,8 +1586,8 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 			result: { capability, data: output },
 			evidence,
 			artifacts: [captured.stdout, captured.stderr],
-			precondition,
-			effectApplied: true,
+			...(effectful ? { precondition } : {}),
+			effectApplied: effectful,
 			successful: captured.exitCode === 0,
 		} as LocalExecutionResult;
 	}
@@ -1688,6 +1735,238 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						evidence: [],
 						artifacts: [],
 						effectApplied: false,
+						successful: true,
+					};
+				}
+				case "artifact.external-file.materialize": {
+					const files = await materializeExternalFiles({
+						artifactRoot,
+						files: request.input.files,
+						...(invocation.signal ? { signal: invocation.signal } : {}),
+					});
+					const artifacts: LocalArtifact[] = files.map((file) => {
+						const id = file.artifactRef.split(":")[1];
+						return {
+							ref: file.artifactRef,
+							path: join(artifactRoot, `${id}.external-file`),
+							bytes: file.bytes,
+							stream: "report",
+							kind: "external-file",
+							hash: file.hash,
+							mime: file.detectedMimeType,
+							metadata: {
+								name: file.name,
+								provenanceRef: file.provenanceRef,
+								declaredMimeType: file.declaredMimeType,
+							},
+						};
+					});
+					return {
+						result: { capability: request.capability, data: { files } },
+						evidence: [],
+						artifacts,
+						effectApplied: false,
+						successful: true,
+					};
+				}
+				case "artifact.context-pack.materialize": {
+					if (!request.taskId || !request.nodeId)
+						throw new LocalExecutionError(
+							"INVALID_REQUEST",
+							"context-pack materialization requires taskId and nodeId",
+						);
+					const pack = await materializeContextPack({
+						artifactRoot,
+						taskId: request.taskId,
+						nodeId: request.nodeId,
+						entries: request.input.entries,
+						...(request.input.secrets
+							? { secrets: request.input.secrets }
+							: {}),
+					});
+					const id = pack.artifactRef.split(":")[1];
+					return {
+						result: { capability: request.capability, data: pack },
+						evidence: [],
+						artifacts: [
+							{
+								ref: pack.artifactRef,
+								path: join(artifactRoot, `${id}.context-pack.json`),
+								bytes: pack.bytes,
+								stream: "report",
+								kind: "context-pack",
+								hash: pack.hash,
+								mime: "application/json",
+								metadata: {
+									entries: pack.entries,
+									binaryFiltered: pack.binaryFiltered,
+									redacted: pack.redacted,
+									manifest: pack.manifest,
+								},
+							},
+						],
+						effectApplied: false,
+						successful: true,
+					};
+				}
+				case "artifact.patch-proposal.materialize": {
+					if (!request.taskId || !request.nodeId)
+						throw new LocalExecutionError(
+							"INVALID_REQUEST",
+							"patch-proposal materialization requires taskId and nodeId",
+						);
+					const patch = await materializePatchProposal({
+						artifactRoot,
+						taskId: request.taskId,
+						nodeId: request.nodeId,
+						proposal: request.input.proposal,
+					});
+					const id = patch.artifactRef.split(":")[1];
+					return {
+						result: {
+							capability: request.capability,
+							data: {
+								artifactRef: patch.artifactRef,
+								hash: patch.hash,
+								bytes: patch.bytes,
+								baseHash: patch.baseHash,
+								baseRef: patch.precondition.baseRef,
+								stale: patch.stale,
+							},
+						},
+						evidence: [],
+						artifacts: [
+							{
+								ref: patch.artifactRef,
+								path: join(artifactRoot, `${id}.patch-proposal.diff`),
+								bytes: patch.bytes,
+								stream: "report",
+								kind: "patch-proposal",
+								hash: patch.hash,
+								mime: "text/x-diff",
+								metadata: {
+									baseHash: patch.baseHash,
+									baseRef: patch.precondition.baseRef,
+									stale: patch.stale,
+								},
+							},
+						],
+						effectApplied: false,
+						successful: true,
+					};
+				}
+				case "patch.apply": {
+					if (!resolvePatchArtifact)
+						throw new LocalExecutionError(
+							"EXECUTOR_UNAVAILABLE",
+							"patch artifact resolver is not configured",
+						);
+					const artifact = await resolvePatchArtifact(
+						request.input.artifactRef,
+					);
+					if (artifact?.kind !== "patch-proposal")
+						throw new LocalExecutionError(
+							"PRECONDITION_FAILED",
+							"patch proposal artifact was not found",
+						);
+					const patchPath = resolve(artifact.path);
+					if (!within(artifactRoot, patchPath))
+						throw new LocalExecutionError(
+							"SCOPE_DENIED",
+							"patch artifact escaped the Execution artifact root",
+						);
+					const patchBytes = await readFile(patchPath);
+					if (sha256(patchBytes) !== artifact.hash)
+						throw new LocalExecutionError(
+							"PRECONDITION_FAILED",
+							"patch proposal bytes no longer match the durable Artifact hash",
+						);
+					const numstat = await simpleCommand(
+						"git",
+						["apply", "--numstat", "-z", patchPath],
+						projectRoot,
+					);
+					if (numstat.code !== 0)
+						throw new LocalExecutionError(
+							"PRECONDITION_FAILED",
+							"patch proposal could not be parsed against the repository",
+						);
+					const paths = numstat.stdout
+						.split("\0")
+						.map((record) => record.split("\t").at(-1) ?? "")
+						.filter((path) => path.length > 0);
+					if (paths.length === 0)
+						throw new LocalExecutionError(
+							"PRECONDITION_FAILED",
+							"patch proposal does not target any repository file",
+						);
+					for (const path of paths) await safePath(path, true);
+					const check = await simpleCommand(
+						"git",
+						["apply", "--check", patchPath],
+						projectRoot,
+					);
+					if (check.code !== 0)
+						throw new LocalExecutionError(
+							"PRECONDITION_FAILED",
+							"patch proposal is stale or conflicts with the live repository",
+						);
+					const precondition: LocalPrecondition = {
+						kind: "patch.apply",
+						capability: "patch.apply",
+						artifactRef: artifact.artifactRef,
+						patchHash: artifact.hash,
+						baseHash: artifact.baseHash,
+						baseRef: artifact.baseRef,
+						paths,
+					};
+					await markEffect(invocation, precondition);
+					const applied = await simpleCommand(
+						"git",
+						["apply", patchPath],
+						projectRoot,
+					);
+					if (applied.code !== 0)
+						throw new LocalExecutionError(
+							"EXECUTION_FAILED",
+							"patch apply failed after the effect boundary",
+						);
+					const reverseCheck = await simpleCommand(
+						"git",
+						["apply", "--reverse", "--check", patchPath],
+						projectRoot,
+					);
+					if (reverseCheck.code !== 0)
+						throw new LocalExecutionError(
+							"UNKNOWN_SIDE_EFFECT",
+							"patch effect could not be reality-verified after apply",
+						);
+					const evidence: ExecutionEvidence[] = [];
+					for (const path of paths) {
+						const absolute = await safePath(path, true);
+						if (!(await fileExists(absolute))) continue;
+						const content = await readFile(absolute);
+						evidence.push({
+							kind: "file",
+							evidenceRef: `evidence:${idFactory()}:patch-file`,
+							path,
+							afterHash: sha256(content),
+							bytes: content.byteLength,
+						});
+					}
+					return {
+						result: {
+							capability: "patch.apply",
+							data: {
+								artifactRef: artifact.artifactRef,
+								patchHash: artifact.hash,
+								appliedPaths: paths,
+							},
+						},
+						evidence,
+						artifacts: [],
+						precondition,
+						effectApplied: true,
 						successful: true,
 					};
 				}
@@ -2037,6 +2316,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						undefined,
 						request.input.timeoutMs,
 						request.input.maxOutputBytes,
+						false,
 					);
 				}
 				case "process.start": {
@@ -2612,6 +2892,44 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 			return { state: "UNKNOWN", evidence: [evidence] };
 		}
 		if (
+			precondition.kind === "patch.apply" &&
+			request.capability === "patch.apply"
+		) {
+			if (!resolvePatchArtifact) return { state: "UNKNOWN", evidence: [] };
+			const artifact = await resolvePatchArtifact(precondition.artifactRef);
+			if (!artifact || artifact.hash !== precondition.patchHash)
+				return { state: "UNKNOWN", evidence: [] };
+			const patchPath = resolve(artifact.path);
+			if (!within(artifactRoot, patchPath))
+				return { state: "UNKNOWN", evidence: [] };
+			const reverseCheck = await simpleCommand(
+				"git",
+				["apply", "--reverse", "--check", patchPath],
+				projectRoot,
+			);
+			if (reverseCheck.code === 0)
+				return {
+					state: "APPLIED",
+					evidence: [],
+					result: {
+						capability: "patch.apply",
+						data: {
+							artifactRef: precondition.artifactRef,
+							patchHash: precondition.patchHash,
+							appliedPaths: precondition.paths,
+						},
+					},
+				};
+			const forwardCheck = await simpleCommand(
+				"git",
+				["apply", "--check", patchPath],
+				projectRoot,
+			);
+			return forwardCheck.code === 0
+				? { state: "NOT_APPLIED", evidence: [] }
+				: { state: "UNKNOWN", evidence: [] };
+		}
+		if (
 			precondition.kind === "git.commit" &&
 			request.capability === "git.commit"
 		) {
@@ -2888,6 +3206,11 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 	return Object.freeze({
 		projectRoot,
 		artifactRoot,
+		bindPatchArtifactResolver(
+			resolver: NonNullable<LocalExecutorOptions["resolvePatchArtifact"]>,
+		) {
+			resolvePatchArtifact = resolver;
+		},
 		execute,
 		reconcile,
 		readArtifact,

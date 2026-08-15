@@ -12,7 +12,10 @@ type ChromeOptions = {
 declare const chrome: ChromeOptions;
 
 type LocalConfigForm = {
-	storageKey: "proflowRuntimeBridge" | "proflowTaskApplication";
+	storageKey:
+		| "proflowRuntimeBridge"
+		| "proflowTaskApplication"
+		| "proflowApprovalApplication";
 	formId: string;
 	endpointId: string;
 	tokenId: string;
@@ -84,4 +87,12 @@ wireConfigForm({
 	endpointId: "task-application-endpoint",
 	tokenId: "task-application-token",
 	statusId: "task-application-status",
+});
+
+wireConfigForm({
+	storageKey: "proflowApprovalApplication",
+	formId: "approval-application-form",
+	endpointId: "approval-application-endpoint",
+	tokenId: "approval-application-token",
+	statusId: "approval-application-status",
 });

@@ -71,7 +71,7 @@ test("CP-EXE-BR-05 one Worker Turn has no per-Action Browser continue/wake sched
 test("CP-EXE-BR-06 routine Action permission recovery remains separate from Execution effect approval", async () => {
 	const text = await sourceCorpus();
 	assert.match(text, /permission/i);
-	assert.doesNotMatch(text, /permission.*approvalRef|approvalRef.*permission/is);
+	assert.doesNotMatch(text, /permission.*approvalRef|approvalRef.*permission/i);
 	assert.doesNotMatch(text, /isConsequential.*(?:policyAllow|effectApproved|approvalRef)/is);
 });
 

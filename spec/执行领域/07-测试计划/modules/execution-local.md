@@ -180,3 +180,18 @@ Local executor 直接接触真实文件/Git/process/network；路径、secret、
 - [ ] **CP-EXE-LOCAL-09** — expired locator/fetch failure does not get interpreted as owner business mutation failure; retry only occurs when transport/effect reality is safe to retry.
 - [ ] **CP-EXE-LOCAL-10** — Context Pack construction is node-scoped/bounded, excludes secrets and irrelevant binaries, and does not create a new ContextPack Store/Service.
 - [ ] **CP-EXE-LOCAL-11** — Patch materialization and Patch apply are distinct: candidate bytes can exist without implying repo effect success; apply/test Evidence remains Execution-owned.
+
+
+### Batch 4 Pre-Smoke Patch Effect Closure
+
+- [ ] **CP-EXE-LOCAL-12** — `patch.apply` is a separate Execution capability/effect from `patch-proposal` materialization. It must resolve the durable proposal Artifact, re-hash the bytes, scope-check every target, run live `git apply --check`, cross the Execution effect boundary only after those checks, and reality-verify with reverse-check. Reconciliation must classify `APPLIED / NOT_APPLIED / UNKNOWN`; proposal existence alone is never Effect Evidence.
+- [ ] **RF-EXE-LOCAL-12** — same manifest shape with different redacted Context Pack content must produce a different content hash; a stale/conflicting/tampered Patch proposal must fail before mutation, while an ambiguous post-effect state must remain `UNKNOWN` and must not blind replay.
+
+## Batch 4 Pre-Smoke Executable Proof Binding
+
+> 本节绑定本批 Patch/Context Pack 新增行为；实际 PASS 留给本机 targeted verification。
+
+| Proof | Executable asset | Required behavior |
+|---|---|---|
+| `CP-EXE-LOCAL-12` / `RF-EXE-LOCAL-12` | `packages/execution-local/tests/artifact-context-pack-patch-alignment.test.ts` | Context Pack hash binds redacted content; Patch proposal and apply are separate; live `git apply --check`; post-effect reverse-check resolves APPLIED/NOT_APPLIED/UNKNOWN without blind replay |
+| verification separation | `packages/execution-runtime/tests/execution-artifact-pipeline.test.ts` | Patch apply may remain `SUCCEEDED+APPLIED` while later `quality.test` independently becomes `FAILED+NOT_APPLIED`; verification failure cannot rewrite historical effect truth |

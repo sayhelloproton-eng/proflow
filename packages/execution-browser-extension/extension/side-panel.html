@@ -54,9 +54,9 @@
 
 		<section>
 			<h2>Execution Approval</h2>
-			<p class="meta">Approval is an Execution-owner fact. Controls remain disabled until the Batch 4 Approval lifecycle is wired.</p>
-			<button type="button" disabled>Allow</button>
-			<button type="button" disabled>Deny</button>
+			<p class="meta">Approval is an Execution-owned durable fact. This panel only sends authenticated human decisions to the Execution Owner.</p>
+			<button id="refresh-approvals" type="button">Refresh approvals</button>
+			<div id="approvals"></div>
 		</section>
 
 		<section>

@@ -67,6 +67,7 @@ test("formal execution-runtime process starts, routes, drains, reopens and stops
 	const second = await service.restart();
 	const reopened = (await fetch(
 		`http://${second.host}:${second.port}/executions/${encodeURIComponent(created.executionRef)}`,
+		{ headers: { "x-proflow-caller-ref": "caller:service" } },
 	).then((response) => response.json())) as { status: string };
 	assert.equal(reopened.status, "SUCCEEDED");
 	await service.stop();
@@ -79,5 +80,141 @@ test("formal execution-runtime process starts, routes, drains, reopens and stops
 			"SERVICE_STARTED",
 			"SERVICE_STOPPED",
 		],
+	);
+});
+
+test("PRESMOKE-B4-RUNTIME-01 configured identity and transport dependencies participate in readiness", async () => {
+	const { config } = await fixture();
+	const required = {
+		...config,
+		transportCredentialFile: "/tmp/execution-transport.token",
+		identity: {
+			endpoint: "http://127.0.0.1:47830",
+			tokenFile: "/tmp/execution-identity.token",
+		},
+	};
+	const service = await createExecutionRuntimeProcess({ config: required });
+	try {
+		await service.start();
+		assert.equal(service.status().readiness, "NOT_READY");
+		assert.equal(service.status().identity, "UNAVAILABLE");
+		assert.equal(service.status().transportAuth, "UNAVAILABLE");
+	} finally {
+		await service.stop();
+	}
+});
+
+test("PRESMOKE-B4-ART-08 specialised Context Pack/Patch APIs return durable executionRef and reuse idempotent Execution truth", async () => {
+	const { config } = await fixture();
+	const service = await createExecutionRuntimeProcess({ config });
+	const address = await service.start();
+	try {
+		const base = `http://${address.host}:${address.port}`;
+		const contextBody = {
+			contract: "execution.context-pack-materialization",
+			contractVersion: "1.0.0",
+			callerRef: "caller:artifact",
+			idempotencyKey: "context:1",
+			taskId: "task:1",
+			nodeId: "node:1",
+			entries: [
+				{ path: "value.txt", mimeType: "text/plain", content: "alpha" },
+			],
+		};
+		const first = (await fetch(`${base}/artifacts/context-pack`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(contextBody),
+		}).then((response) => response.json())) as {
+			executionRef: string;
+			artifact: { artifactRef: string; kind: string };
+		};
+		const second = (await fetch(`${base}/artifacts/context-pack`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(contextBody),
+		}).then((response) => response.json())) as {
+			executionRef: string;
+			artifact: { artifactRef: string; kind: string };
+		};
+		assert.equal(first.executionRef, second.executionRef);
+		assert.equal(first.artifact.artifactRef, second.artifact.artifactRef);
+		assert.equal(first.artifact.kind, "context-pack");
+
+		const patch = (await fetch(`${base}/artifacts/patch-proposal`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				contract: "execution.patch-proposal-materialization",
+				contractVersion: "1.0.0",
+				callerRef: "caller:artifact",
+				idempotencyKey: "patch-proposal:1",
+				taskId: "task:1",
+				nodeId: "node:1",
+				proposal: {
+					diff: "--- a/value.txt\n+++ b/value.txt\n@@ -1 +1 @@\n-real-service\n+changed\n",
+					baseHash: "sha256:base",
+					baseRef: "snapshot:1",
+				},
+			}),
+		}).then((response) => response.json())) as {
+			executionRef: string;
+			artifact: { kind: string; metadata?: Record<string, unknown> };
+		};
+		assert.ok(patch.executionRef);
+		assert.equal(patch.artifact.kind, "patch-proposal");
+		assert.equal(patch.artifact.metadata?.baseRef, "snapshot:1");
+	} finally {
+		await service.stop();
+	}
+});
+
+test("PRESMOKE-B4-RUNTIME-02 formal readiness can require the Model Decision port without faking Batch 5 wiring", async () => {
+	const { config } = await fixture();
+	const missing = await createExecutionRuntimeProcess({
+		config,
+		requireModelDecision: true,
+	});
+	await missing.start();
+	assert.equal(missing.status().modelDecision, "UNAVAILABLE");
+	assert.equal(missing.status().readiness, "NOT_READY");
+	await missing.stop();
+
+	const wired = await createExecutionRuntimeProcess({
+		config,
+		requireModelDecision: true,
+		modelDecision: {
+			async decide() {
+				return { decision: "ALLOW", decisionPath: "fast" };
+			},
+		},
+	});
+	await wired.start();
+	assert.equal(wired.status().modelDecision, "READY");
+	assert.equal(wired.status().readiness, "READY");
+	await wired.stop();
+});
+
+test("PRESMOKE-B4-RUNTIME-03 shipped execution-runtime binary refuses a production config that omits Browser composition", async () => {
+	const { root, config } = await fixture();
+	const configPath = join(root, "execution-runtime-missing-browser.json");
+	await writeFile(
+		configPath,
+		JSON.stringify({
+			...config,
+			transportCredentialFile: "/tmp/proflow-test-execution-transport.token",
+			identity: {
+				endpoint: "http://127.0.0.1:47830",
+				tokenFile: "/tmp/proflow-test-execution-identity.token",
+			},
+		}),
+	);
+	await assert.rejects(
+		exec(process.execPath, [
+			join(process.cwd(), "dist", "src", "cli.js"),
+			"start",
+			configPath,
+		]),
+		/formal execution-runtime requires browserExecutorConfigPath/,
 	);
 });

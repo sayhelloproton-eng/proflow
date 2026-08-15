@@ -3,12 +3,14 @@ import { readFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, isAbsolute, resolve } from "node:path";
 import {
+	artifactMaterializationResponseSchema,
 	EXECUTION_CONTRACT_VERSION,
+	materializeContextPackRequestSchema,
 	materializeExternalFilesRequestSchema,
 	materializeExternalFilesResponseSchema,
+	materializePatchProposalRequestSchema,
 	parseExecutionRef,
 } from "@tomflow/proflow-execution-contracts";
-import { materializeExternalFiles } from "@tomflow/proflow-execution-local";
 import { createLocalExecutorPort } from "./executors/local-adapter.ts";
 import {
 	createExecutionRuntime,
@@ -22,6 +24,9 @@ export type ExecutionRuntimeProcessConfig = {
 	host: string;
 	port: number;
 	exactNetworkTargets: string[];
+	browserExecutorConfigPath?: string;
+	transportCredentialFile?: string;
+	identity?: { endpoint: string; tokenFile: string };
 };
 
 export type ExecutionRuntimeProcessStatus = {
@@ -33,6 +38,9 @@ export type ExecutionRuntimeProcessStatus = {
 	databasePath: string;
 	localExecutor: "READY" | "UNAVAILABLE";
 	browserExecutor: "READY" | "UNAVAILABLE";
+	identity: "READY" | "UNAVAILABLE";
+	transportAuth: "READY" | "UNAVAILABLE";
+	modelDecision: "READY" | "UNAVAILABLE";
 };
 
 function object(value: unknown, name: string): Record<string, unknown> {
@@ -60,6 +68,43 @@ export function parseExecutionRuntimeProcessConfig(
 	if (!Number.isInteger(port) || port < 0 || port > 65_535)
 		throw new TypeError("port must be an integer from 0 through 65535");
 	const exactNetworkTargets = input.exactNetworkTargets ?? [];
+	const browserExecutorConfigPath =
+		input.browserExecutorConfigPath === undefined
+			? undefined
+			: string(input.browserExecutorConfigPath, "browserExecutorConfigPath");
+	if (
+		browserExecutorConfigPath !== undefined &&
+		!isAbsolute(browserExecutorConfigPath)
+	)
+		throw new TypeError("browserExecutorConfigPath must be absolute");
+	const transportCredentialFile =
+		input.transportCredentialFile === undefined
+			? undefined
+			: string(input.transportCredentialFile, "transportCredentialFile");
+	if (
+		transportCredentialFile !== undefined &&
+		!isAbsolute(transportCredentialFile)
+	)
+		throw new TypeError("transportCredentialFile must be absolute");
+	let identity: ExecutionRuntimeProcessConfig["identity"];
+	if (input.identity !== undefined) {
+		const value = object(input.identity, "identity");
+		const endpoint = new URL(string(value.endpoint, "identity.endpoint"));
+		if (
+			endpoint.protocol !== "http:" ||
+			!new Set(["127.0.0.1", "localhost", "::1", "[::1]"]).has(
+				endpoint.hostname,
+			) ||
+			endpoint.pathname !== "/" ||
+			endpoint.search ||
+			endpoint.hash
+		)
+			throw new TypeError("identity.endpoint must be loopback HTTP root");
+		const tokenFile = string(value.tokenFile, "identity.tokenFile");
+		if (!isAbsolute(tokenFile))
+			throw new TypeError("identity.tokenFile must be absolute");
+		identity = { endpoint: endpoint.origin, tokenFile };
+	}
 	if (
 		!Array.isArray(exactNetworkTargets) ||
 		exactNetworkTargets.some((item) => typeof item !== "string")
@@ -72,6 +117,9 @@ export function parseExecutionRuntimeProcessConfig(
 		host: input.host === undefined ? "127.0.0.1" : string(input.host, "host"),
 		port,
 		exactNetworkTargets: [...exactNetworkTargets] as string[],
+		...(browserExecutorConfigPath ? { browserExecutorConfigPath } : {}),
+		...(transportCredentialFile ? { transportCredentialFile } : {}),
+		...(identity ? { identity } : {}),
 	};
 }
 
@@ -86,12 +134,15 @@ type Runtime = Awaited<ReturnType<typeof createExecutionRuntime>>;
 export async function createExecutionRuntimeProcess(input: {
 	config: ExecutionRuntimeProcessConfig;
 	browserExecutor?: ExecutionRuntimeOptions["browserExecutor"];
+	browserReadiness?: () => boolean;
+	identityReadiness?: () => boolean;
 	identity?: ExecutionRuntimeOptions["identity"];
 	policy?: ExecutionRuntimeOptions["policy"];
 	modelDecision?: ExecutionRuntimeOptions["modelDecision"];
 	approval?: ExecutionRuntimeOptions["approval"];
 	log?: (entry: Record<string, unknown>) => void;
 	transportCredential?: string;
+	requireModelDecision?: boolean;
 }) {
 	if (input.transportCredential && input.transportCredential.length < 32)
 		throw new TypeError(
@@ -109,16 +160,51 @@ export async function createExecutionRuntimeProcess(input: {
 			event,
 			...fields,
 		});
-	const status = (): ExecutionRuntimeProcessStatus => ({
-		process: state,
-		liveness: state === "STOPPED" ? "DOWN" : "UP",
-		readiness: state === "RUNNING" && accepting ? "READY" : "NOT_READY",
-		accepting,
-		inFlight: active.size,
-		databasePath: input.config.databasePath,
-		localExecutor: runtime ? "READY" : "UNAVAILABLE",
-		browserExecutor: input.browserExecutor ? "READY" : "UNAVAILABLE",
-	});
+	const status = (): ExecutionRuntimeProcessStatus => {
+		const browserExecutor = input.browserExecutor
+			? input.browserReadiness?.() === false
+				? "UNAVAILABLE"
+				: "READY"
+			: "UNAVAILABLE";
+		const browserRequirementSatisfied =
+			input.config.browserExecutorConfigPath === undefined ||
+			browserExecutor === "READY";
+		const identity =
+			input.identity && input.identityReadiness?.() !== false
+				? "READY"
+				: "UNAVAILABLE";
+		const identityRequirementSatisfied =
+			input.config.identity === undefined || identity === "READY";
+		const transportAuth = input.transportCredential ? "READY" : "UNAVAILABLE";
+		const transportRequirementSatisfied =
+			input.config.transportCredentialFile === undefined ||
+			transportAuth === "READY";
+		const modelDecision = input.modelDecision ? "READY" : "UNAVAILABLE";
+		const modelRequirementSatisfied =
+			input.requireModelDecision !== true || modelDecision === "READY";
+		return {
+			process: state,
+			liveness: state === "STOPPED" ? "DOWN" : "UP",
+			readiness:
+				state === "RUNNING" &&
+				accepting &&
+				runtime &&
+				browserRequirementSatisfied &&
+				identityRequirementSatisfied &&
+				transportRequirementSatisfied &&
+				modelRequirementSatisfied
+					? "READY"
+					: "NOT_READY",
+			accepting,
+			inFlight: active.size,
+			databasePath: input.config.databasePath,
+			localExecutor: runtime ? "READY" : "UNAVAILABLE",
+			browserExecutor,
+			identity,
+			transportAuth,
+			modelDecision,
+		};
+	};
 	const respond = (
 		response: import("node:http").ServerResponse,
 		code: number,
@@ -197,30 +283,252 @@ export async function createExecutionRuntimeProcess(input: {
 							: undefined;
 						if (
 							request.method === "POST" &&
+							url.pathname === "/artifacts/context-pack"
+						) {
+							const materialization =
+								materializeContextPackRequestSchema.parse(body);
+							const execution = await runtime.executeCapability({
+								contract: "execution",
+								contractVersion: EXECUTION_CONTRACT_VERSION,
+								callerRef: materialization.callerRef,
+								idempotencyKey: materialization.idempotencyKey,
+								...(materialization.correlationId
+									? { correlationId: materialization.correlationId }
+									: {}),
+								taskId: materialization.taskId,
+								nodeId: materialization.nodeId,
+								...(materialization.roleRef
+									? { roleRef: materialization.roleRef }
+									: {}),
+								...(materialization.workerRef
+									? { workerRef: materialization.workerRef }
+									: {}),
+								projectRoot: input.config.projectRoot,
+								capability: "artifact.context-pack.materialize",
+								input: {
+									entries: materialization.entries,
+									...(materialization.secrets
+										? { secrets: materialization.secrets }
+										: {}),
+								},
+							});
+							if (
+								execution.status !== "SUCCEEDED" ||
+								execution.result?.capability !==
+									"artifact.context-pack.materialize"
+							)
+								return respond(response, 409, execution);
+							const artifact = runtime.getArtifactRecord({
+								artifactRef: execution.result.data.artifactRef,
+								callerRef: materialization.callerRef,
+								taskId: materialization.taskId,
+								nodeId: materialization.nodeId,
+								...(materialization.roleRef
+									? { roleRef: materialization.roleRef }
+									: {}),
+								...(materialization.workerRef
+									? { workerRef: materialization.workerRef }
+									: {}),
+							});
+							return respond(
+								response,
+								200,
+								artifactMaterializationResponseSchema.parse({
+									contract: "execution.artifact-materialization",
+									contractVersion: EXECUTION_CONTRACT_VERSION,
+									executionRef: execution.executionRef,
+									artifact,
+								}),
+							);
+						}
+						if (
+							request.method === "POST" &&
+							url.pathname === "/artifacts/patch-proposal"
+						) {
+							const materialization =
+								materializePatchProposalRequestSchema.parse(body);
+							const execution = await runtime.executeCapability({
+								contract: "execution",
+								contractVersion: EXECUTION_CONTRACT_VERSION,
+								callerRef: materialization.callerRef,
+								idempotencyKey: materialization.idempotencyKey,
+								...(materialization.correlationId
+									? { correlationId: materialization.correlationId }
+									: {}),
+								taskId: materialization.taskId,
+								nodeId: materialization.nodeId,
+								...(materialization.roleRef
+									? { roleRef: materialization.roleRef }
+									: {}),
+								...(materialization.workerRef
+									? { workerRef: materialization.workerRef }
+									: {}),
+								projectRoot: input.config.projectRoot,
+								capability: "artifact.patch-proposal.materialize",
+								input: { proposal: materialization.proposal },
+							});
+							if (
+								execution.status !== "SUCCEEDED" ||
+								execution.result?.capability !==
+									"artifact.patch-proposal.materialize"
+							)
+								return respond(response, 409, execution);
+							const artifact = runtime.getArtifactRecord({
+								artifactRef: execution.result.data.artifactRef,
+								callerRef: materialization.callerRef,
+								taskId: materialization.taskId,
+								nodeId: materialization.nodeId,
+								...(materialization.roleRef
+									? { roleRef: materialization.roleRef }
+									: {}),
+								...(materialization.workerRef
+									? { workerRef: materialization.workerRef }
+									: {}),
+							});
+							return respond(
+								response,
+								200,
+								artifactMaterializationResponseSchema.parse({
+									contract: "execution.artifact-materialization",
+									contractVersion: EXECUTION_CONTRACT_VERSION,
+									executionRef: execution.executionRef,
+									artifact,
+								}),
+							);
+						}
+						if (
+							request.method === "POST" &&
 							url.pathname === "/external-files/materialize"
 						) {
 							const materialization =
 								materializeExternalFilesRequestSchema.parse(body);
-							const files = await materializeExternalFiles({
-								artifactRoot: input.config.artifactRoot,
-								files: materialization.files,
+							const execution = await runtime.executeCapability({
+								contract: "execution",
+								contractVersion: EXECUTION_CONTRACT_VERSION,
+								callerRef: materialization.callerRef,
+								idempotencyKey: materialization.idempotencyKey,
+								...(materialization.correlationId
+									? { correlationId: materialization.correlationId }
+									: {}),
+								...(materialization.taskId
+									? { taskId: materialization.taskId }
+									: {}),
+								...(materialization.nodeId
+									? { nodeId: materialization.nodeId }
+									: {}),
+								...(materialization.roleRef
+									? { roleRef: materialization.roleRef }
+									: {}),
+								...(materialization.workerRef
+									? { workerRef: materialization.workerRef }
+									: {}),
+								projectRoot: input.config.projectRoot,
+								capability: "artifact.external-file.materialize",
+								input: { files: materialization.files },
 							});
+							if (
+								execution.status !== "SUCCEEDED" ||
+								execution.result?.capability !==
+									"artifact.external-file.materialize"
+							)
+								return respond(response, 409, execution);
 							return respond(
 								response,
 								200,
 								materializeExternalFilesResponseSchema.parse({
 									contract: "execution.external-file-materialization",
 									contractVersion: EXECUTION_CONTRACT_VERSION,
-									files,
+									executionRef: execution.executionRef,
+									files: execution.result.data.files,
 								}),
 							);
 						}
+						if (
+							request.method === "POST" &&
+							url.pathname === "/approvals/request"
+						)
+							return respond(
+								response,
+								200,
+								runtime.requestExecutionApproval(body),
+							);
+						if (
+							request.method === "POST" &&
+							url.pathname === "/approvals/decide"
+						)
+							return respond(
+								response,
+								200,
+								runtime.decideExecutionApproval(body),
+							);
+						if (
+							request.method === "POST" &&
+							url.pathname === "/approvals/revoke"
+						)
+							return respond(
+								response,
+								200,
+								runtime.revokeExecutionApproval(body),
+							);
+						if (request.method === "POST" && url.pathname === "/approvals/list")
+							return respond(response, 200, {
+								approvals: runtime.listExecutionApprovals(
+									object(body ?? {}, "approval list input") as {
+										executionRef?: string;
+										status?: string;
+									},
+								),
+							});
+						if (
+							request.method === "GET" &&
+							url.pathname.startsWith("/approvals/")
+						)
+							return respond(
+								response,
+								200,
+								runtime.getExecutionApproval(
+									decodeURIComponent(url.pathname.slice(11)),
+								),
+							);
 						if (request.method === "POST" && url.pathname === "/executions")
 							return respond(
 								response,
 								200,
 								await runtime.executeCapability(body),
 							);
+						if (
+							request.method === "POST" &&
+							url.pathname === "/executions/lookup"
+						)
+							return respond(
+								response,
+								200,
+								runtime.lookupExecutionIntent(body),
+							);
+						if (
+							request.method === "POST" &&
+							url.pathname === "/observer-signals/list"
+						) {
+							const value = object(body ?? {}, "observer signal list input");
+							return respond(response, 200, {
+								signals: runtime.listExecutionObserverSignals(
+									typeof value.limit === "number" ? value.limit : 50,
+								),
+							});
+						}
+						if (
+							request.method === "POST" &&
+							url.pathname === "/observer-signals/ack"
+						) {
+							const value = object(body, "observer signal ack input");
+							return respond(
+								response,
+								200,
+								runtime.acknowledgeExecutionObserverSignal(
+									string(value.signalRef, "signalRef"),
+								),
+							);
+						}
 						if (
 							request.method === "POST" &&
 							url.pathname === "/executions/cancel"
@@ -233,23 +541,34 @@ export async function createExecutionRuntimeProcess(input: {
 						if (
 							request.method === "POST" &&
 							url.pathname === "/executions/output"
-						)
+						) {
+							const callerRef = request.headers["x-proflow-caller-ref"];
+							if (typeof callerRef !== "string" || callerRef.length === 0)
+								throw new Error("EXECUTION_CALLER_REQUIRED");
 							return respond(
 								response,
 								200,
-								await runtime.readExecutionOutput(body),
+								await runtime.readExecutionOutputForCaller(body, callerRef),
 							);
+						}
 						if (
 							request.method === "GET" &&
 							url.pathname.startsWith("/executions/")
-						)
+						) {
+							const callerRef = request.headers["x-proflow-caller-ref"];
+							if (typeof callerRef !== "string" || callerRef.length === 0)
+								throw new Error("EXECUTION_CALLER_REQUIRED");
 							return respond(
 								response,
 								200,
-								runtime.getExecution(
-									parseExecutionRef(decodeURIComponent(url.pathname.slice(12))),
-								),
+								runtime.getExecutionForCaller({
+									executionRef: parseExecutionRef(
+										decodeURIComponent(url.pathname.slice(12)),
+									),
+									callerRef,
+								}),
 							);
+						}
 						respond(response, 404, { error: "NOT_FOUND" });
 					} catch (error) {
 						respond(response, 400, {

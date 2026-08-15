@@ -258,3 +258,136 @@ test("PRESMOKE-B3-APP-01 Extension Task application surface is loopback-authenti
 		await dependency.close();
 	}
 });
+
+test("PRESMOKE-B4-APPROVAL-03 human Approval application has a dedicated token and cannot self-report actor/decision authority", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-approval-"));
+	const stateRoot = join(root, ".proflow");
+	const dependency = await dependencyServer();
+	const host = createPlatformHost({
+		config: config(stateRoot, join(root, "project"), dependency.baseUrl),
+	});
+	try {
+		const started = await host.start();
+		const baseUrl = `http://${started.host}:${started.port}`;
+		assert.equal(
+			(
+				await fetch(`${baseUrl}/application/approval`, {
+					method: "POST",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({ operation: "approval.list", input: {} }),
+				})
+			).status,
+			401,
+		);
+		const approvalToken = (
+			await readFile(
+				join(stateRoot, "browser", "secrets", "approval-application.token"),
+				"utf8",
+			)
+		).trim();
+		const taskToken = (
+			await readFile(
+				join(stateRoot, "browser", "secrets", "task-application.token"),
+				"utf8",
+			)
+		).trim();
+		assert.notEqual(approvalToken, taskToken);
+		assert.ok(approvalToken.length >= 32);
+		const response = await fetch(`${baseUrl}/application/approval`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${approvalToken}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({ operation: "approval.list", input: {} }),
+		});
+		assert.equal(response.status, 200);
+	} finally {
+		await host.stop();
+		await dependency.close();
+	}
+});
+
+test("PRESMOKE-B4-IDENTITY-01 execution-runtime identity admission uses a dedicated loopback credential and platform-host owner facts", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-identity-"));
+	const stateRoot = join(root, ".proflow");
+	const dependency = await dependencyServer();
+	const host = createPlatformHost({
+		config: config(stateRoot, join(root, "project"), dependency.baseUrl),
+	});
+	try {
+		const started = await host.start();
+		const baseUrl = `http://${started.host}:${started.port}`;
+		assert.equal(
+			(await fetch(`${baseUrl}/internal/execution/identity/ready`)).status,
+			401,
+		);
+		const token = (
+			await readFile(
+				join(stateRoot, "execution", "secrets", "execution-identity.token"),
+				"utf8",
+			)
+		).trim();
+		const ready = await fetch(`${baseUrl}/internal/execution/identity/ready`, {
+			headers: { authorization: `Bearer ${token}` },
+		});
+		assert.equal(ready.status, 200);
+		const denied = await fetch(`${baseUrl}/internal/execution/authorize`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${token}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({
+				callerRef: "unknown-role",
+				idempotencyKey: "identity",
+				capability: "file.read",
+				input: { path: "x" },
+			}),
+		});
+		assert.equal(denied.status, 200);
+		assert.equal(
+			((await denied.json()) as { authorized: boolean }).authorized,
+			false,
+		);
+	} finally {
+		await host.stop();
+		await dependency.close();
+	}
+});
+
+test("PRESMOKE-B4-HOST-READ execution reads re-admit durable Task/Role/Worker scope", async () => {
+	const source = await readFile(
+		new URL("../src/index.ts", import.meta.url),
+		"utf8",
+	);
+	assert.match(source, /const admitExecutionRead = async/);
+	assert.match(source, /EXECUTION_CALLER_MISMATCH/);
+	assert.match(source, /EXECUTION_ROLE_SCOPE_MISMATCH/);
+	assert.match(source, /EXECUTION_WORKER_SCOPE_REQUIRED/);
+	assert.match(
+		source,
+		/await admitTaskParticipant\([\s\S]*?record\.taskId[\s\S]*?record\.workerRef/,
+	);
+	assert.match(
+		source,
+		/operationId === "readExecutionOutput"[\s\S]*?execution\.invoke\("getExecution"[\s\S]*?admitExecutionRead/,
+	);
+});
+
+test("PRESMOKE-B4-HOST-FILE-01 Carrier File Bridge materialization carries stable Execution idempotency and canonical role/worker scope", async () => {
+	const source = await readFile(
+		new URL("../src/index.ts", import.meta.url),
+		"utf8",
+	);
+	const start = source.indexOf(
+		'await execution.invoke("materializeExternalFiles"',
+	);
+	assert.notEqual(start, -1);
+	const section = source.slice(Math.max(0, start - 400), start + 900);
+	assert.match(section, /input\.idempotencyKey/);
+	assert.match(section, /carrier-file-materialization/);
+	assert.match(section, /correlationId: taskMutationIdempotencyKey/);
+	assert.match(section, /roleRef: authenticatedRoleRef/);
+	assert.match(section, /workerRef: actorRef/);
+});

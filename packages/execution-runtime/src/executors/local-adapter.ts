@@ -24,6 +24,7 @@ function toLocalPrecondition(
 ): LocalPrecondition {
 	switch (precondition.kind) {
 		case "file.write":
+		case "patch.apply":
 		case "git.commit":
 		case "install-dependency":
 		case "process.start":
@@ -50,6 +51,9 @@ export function adaptLocalExecutor(
 	executor: Awaited<ReturnType<typeof createLocalExecutor>>,
 ): ExecutionExecutorPort {
 	return {
+		bindPatchArtifactResolver(resolver) {
+			executor.bindPatchArtifactResolver(resolver);
+		},
 		async execute(invocation) {
 			const { onEffectStarted, ...rest } = invocation;
 			return executor.execute({

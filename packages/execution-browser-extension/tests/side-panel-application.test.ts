@@ -30,9 +30,15 @@ test("PRESMOKE-B3-UI-01 Side Panel exposes real Task application controls withou
 		"node.reopen",
 	])
 		assert.match(source, new RegExp(operation.replace(".", "\\.")));
-	assert.match(html, /Approval is an Execution-owner fact/);
-	assert.match(html, /Batch 4 Approval lifecycle/);
-	assert.match(html, /<button type="button" disabled>Allow<\/button>/);
+	assert.match(html, /Approval is an Execution-owned durable fact/);
+	assert.match(source, /PROFLOW_APPROVAL_APPLICATION/);
+	assert.match(source, /approval\.list/);
+	assert.match(source, /approval\.allow/);
+	assert.match(source, /approval\.deny/);
+	assert.doesNotMatch(
+		source,
+		/approvalState\s*=|localApproval|approved\s*=\s*true/,
+	);
 	assert.doesNotMatch(source, /authorizeTask|TaskApproval|approvalState\s*=/);
 	assert.match(source, /PROFLOW_TASK_APPLICATION/);
 });

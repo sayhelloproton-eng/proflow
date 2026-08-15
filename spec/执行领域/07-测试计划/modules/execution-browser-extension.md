@@ -133,3 +133,22 @@ Batch 3 不通过越权补实现来强行关闭以下跨批依赖：
 3. **Browser Executor → 唯一 execution-runtime binary**：Browser adapter 已完成，唯一 runtime 注入与 dependency-aware readiness 仍是 Batch 4 / `P1-15`。
 
 因此 Batch 3 的最终报告必须区分“Browser/Observer 侧能力已实现”和“依赖 Batch 4 Execution Owner lifecycle 的最终 production signal/approval/runtime wiring”，不得把后者写成已关闭。
+
+### 2026-08-16 Batch 4 recovery-signal closure
+
+- The Batch 3 carry-forward for Execution recovery/UNKNOWN sourcing is now wired as an Execution-owned durable signal stream consumed by Extension Background during bounded startup/page-idle recovery. `RECOVERY_RESUME` drives the same durable TaskRoleBinding/Worker; `UNKNOWN_REALITY` enters advisory Task Diagnostic.
+- Human Approval ALLOW/DENY/revoke is also a real Turn boundary: the durable Approval result resumes the bound Worker with `RECOVERY_RESUME` keyed by `approvalRef`. UI state itself is never the source of truth.
+- Ordinary synchronous Action completion still does **not** create `EXECUTION_RESULT_READY`; no duplicate Worker Turn is manufactured.
+- Signals are acknowledged only after Task Observer can action or terminally dispose of them; transient binding/target/diagnostic unavailability leaves the signal pending.
+
+## Batch 4 Pre-Smoke Executable Proof Binding
+
+> 本节只记录 Batch 3→4 carry-forward 的可执行证明；真实 Chrome / Custom GPT 仍属于最终人工 E2E。
+
+| Carry-forward | Executable asset | Required behavior |
+|---|---|---|
+| Execution recovery/UNKNOWN signal source | `tests/background-observer-application.test.ts`<br>`../execution-runtime/tests/execution-runtime-critical-proofs.test.ts` | durable Runtime signal → Extension bounded recovery → Task Observer; transient unconsumable signal remains unacked |
+| Human Approval Turn boundary | `tests/background-observer-application.test.ts` | owner-backed ALLOW/DENY/REVOKE response resumes the same durable Worker via `RECOVERY_RESUME`; UI stores no Approval truth |
+| single formal runtime Browser injection | `../execution-runtime/tests/execution-runtime-service.test.ts` | shipped execution-runtime requires Browser composition; Browser package does not create a second Execution runtime |
+
+普通同步 `executeCapability()` completion 仍不得制造额外 Browser Worker Turn。

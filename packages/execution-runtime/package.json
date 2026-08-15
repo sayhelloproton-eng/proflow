@@ -25,7 +25,8 @@
 	},
 	"dependencies": {
 		"@tomflow/proflow-execution-contracts": "workspace:^",
-		"@tomflow/proflow-execution-local": "workspace:^"
+		"@tomflow/proflow-execution-local": "workspace:^",
+		"@tomflow/proflow-execution-browser-extension": "workspace:^"
 	},
 	"devDependencies": {
 		"@tomflow/proflow-deployment-conformance": "workspace:^"

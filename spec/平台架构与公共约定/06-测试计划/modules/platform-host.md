@@ -124,3 +124,39 @@ STOP：必须新增host-owned state/scheduler/Observer authority/Browser runtime
 - `CP-HOST-11` → `packages/platform-host/tests/task-application-entry.test.ts`：真实 application HTTP 路径证明 `Task.create(PENDING) → 3×worker.create → TaskRoleBinding → READY → startTask`，并证明中途 Worker 创建失败后 `task.ensureWorkers` 只补缺失 binding、不重建已成功 Worker。
 - Collaboration Browser physical lifecycle 的 Owner/Carrier proof 归 `execution-browser-extension`；Host 只做 `collaboration.*` transport/composition，不以此 Test Plan 宣称 physical Browser E2E。
 - Browser Executor 注入唯一 `execution-runtime` binary/readiness 属 **Batch 4 / P1-15**，Host/Browser 本批不得建立 alternate Execution Runtime。
+
+
+### CP-HOST-12 / RF-HOST-12 — Execution read scope admission
+
+- GPT-facing `getExecution/readExecutionOutput` 必须由 platform-host 注入 `authenticatedRoleRef`，请求体不得自报 caller identity。
+- Execution Runtime 首先校验 durable `ExecutionRecord.callerRef`；Task-scoped record 还必须重新核对 `roleRef` 与 Task Owner 当前 `TaskRoleBinding.workerRef`。
+- `readExecutionOutput` 必须先通过同一 Execution read admission，再读取 Artifact bytes；知道 `executionRef` 不得绕过 Task/Role/Worker scope。
+- Artifact output identity 使用 `artifactRef`；不得把 output ArtifactRef 塞进 `evidenceRef`。
+
+
+### CP-HOST-13 / RF-HOST-13 — Uncertain Execution lookup without replay
+
+- Gateway timeout/reconciliation 对 `executeCapability` 不要求事先知道 server-generated `executionRef`；platform-host 可使用 authenticated role + canonical Task worker + `capability/idempotencyKey/critical input` 调 Execution Owner 的 intent lookup。
+- lookup 必须验证 durable input fingerprint；同 idempotency key 不同关键输入必须 `IDEMPOTENCY_CONFLICT`。
+- lookup 只读 existing Execution record，不调用 executor，不创建第二 physical intent；返回前仍复用 `admitExecutionRead` 的 caller + Task/Role/Worker scope admission。
+
+### CP-HOST-14 / RF-HOST-14 — Carrier File Bridge → durable Execution materialization
+
+- ChatGPT/Carrier file ingress used by `putTaskDocument` must call the Execution-owned external-file materialization surface with a stable idempotency identity derived from the Task mutation intent.
+- The materialization request carries the authenticated Role and canonical Task Worker scope; transport File refs/locators never bypass Execution ownership.
+- Repeating the same Task mutation must converge on the same materialization Execution/Artifact truth instead of creating duplicate downloads/materializations.
+
+**RF-HOST-14:** Host sends the pre-Batch-4 materialization DTO without idempotency/scope, or directly materializes Carrier bytes outside Execution.
+
+## Batch 4 Pre-Smoke Executable Proof Binding
+
+> 本节绑定 Batch 4 新增 Host transport/admission proof；实际 PASS 留给本机 targeted verification。
+
+| Proof | Executable asset | Required behavior |
+|---|---|---|
+| `CP-HOST-12` | `packages/platform-host/tests/platform-host-critical-proofs.test.ts` | authenticated role → Execution caller ownership → current TaskRoleBinding role/worker read admission |
+| `CP-HOST-13` | `packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts` + Host lookup path | uncertain timeout uses Owner intent lookup; same intent does not replay executor; lookup result still passes read admission |
+| `CP-HOST-14` | `packages/platform-host/tests/platform-host-critical-proofs.test.ts` | Carrier File Bridge supplies stable materialization idempotency + authenticated role/canonical worker scope before durable Execution materialization |
+| Approval application | `packages/platform-host/tests/platform-host-critical-proofs.test.ts` | dedicated loopback credential, fixed human actor/decision semantics, Host owns no Approval business state |
+
+Host remains transport/composition only: it must not become Approval owner, Artifact store, Observer scheduler, or a second Execution runtime.

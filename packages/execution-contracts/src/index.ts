@@ -6,6 +6,10 @@ export const localCapabilityIds = [
 	"file.read",
 	"file.write",
 	"file.searchText",
+	"artifact.external-file.materialize",
+	"artifact.context-pack.materialize",
+	"artifact.patch-proposal.materialize",
+	"patch.apply",
 	"git.status",
 	"git.diff",
 	"git.commit",
@@ -138,6 +142,52 @@ const capabilityInputSchemas = {
 			maxMatches: z.number().int().positive().max(10_000).optional(),
 		})
 		.strict(),
+	"artifact.external-file.materialize": z
+		.object({
+			files: z
+				.array(
+					z
+						.object({
+							name: z.string().min(1),
+							provenanceRef: identifier,
+							declaredMimeType: z.string().min(1),
+							sourceUrl: z.url(),
+						})
+						.strict(),
+				)
+				.min(1)
+				.max(10),
+		})
+		.strict(),
+	"artifact.context-pack.materialize": z
+		.object({
+			entries: z
+				.array(
+					z
+						.object({
+							path: z.string().min(1),
+							mimeType: z.string().min(1),
+							content: z.string(),
+						})
+						.strict(),
+				)
+				.min(1)
+				.max(200),
+			secrets: z.array(z.string().min(1)).max(100).optional(),
+		})
+		.strict(),
+	"artifact.patch-proposal.materialize": z
+		.object({
+			proposal: z
+				.object({
+					diff: z.string().min(1),
+					baseHash: identifier,
+					baseRef: identifier,
+				})
+				.strict(),
+		})
+		.strict(),
+	"patch.apply": z.object({ artifactRef: identifier }).strict(),
 	"git.status": emptyInput,
 	"git.diff": z
 		.object({ staged: z.boolean().optional(), path: relativePath.optional() })
@@ -379,6 +429,60 @@ const capabilityResultSchemas = {
 			truncated: z.boolean(),
 		})
 		.strict(),
+	"artifact.external-file.materialize": z
+		.object({
+			files: z.array(
+				z
+					.object({
+						name: z.string().min(1),
+						provenanceRef: identifier,
+						declaredMimeType: z.string().min(1),
+						detectedMimeType: z.string().min(1),
+						bytes: z.number().int().nonnegative(),
+						hash: identifier,
+						artifactRef: identifier,
+						content: z.string().optional(),
+					})
+					.strict(),
+			),
+		})
+		.strict(),
+	"artifact.context-pack.materialize": z
+		.object({
+			artifactRef: identifier,
+			hash: identifier,
+			bytes: z.number().int().nonnegative(),
+			entries: z.number().int().nonnegative(),
+			binaryFiltered: z.number().int().nonnegative(),
+			redacted: z.boolean(),
+			manifest: z.array(
+				z
+					.object({
+						path: z.string(),
+						mimeType: z.string(),
+						bytes: z.number().int().nonnegative(),
+					})
+					.strict(),
+			),
+		})
+		.strict(),
+	"artifact.patch-proposal.materialize": z
+		.object({
+			artifactRef: identifier,
+			hash: identifier,
+			bytes: z.number().int().nonnegative(),
+			baseHash: identifier,
+			baseRef: identifier,
+			stale: z.boolean(),
+		})
+		.strict(),
+	"patch.apply": z
+		.object({
+			artifactRef: identifier,
+			patchHash: identifier,
+			appliedPaths: z.array(z.string()),
+		})
+		.strict(),
 	"git.status": z
 		.object({ branch: z.string(), clean: z.boolean(), summary: z.string() })
 		.strict(),
@@ -569,6 +673,12 @@ export const materializeExternalFilesRequestSchema = z
 		contract: z.literal("execution.external-file-materialization"),
 		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
 		callerRef: identifier,
+		idempotencyKey: identifier,
+		correlationId: identifier.optional(),
+		taskId: identifier.optional(),
+		nodeId: identifier.optional(),
+		roleRef: identifier.optional(),
+		workerRef: identifier.optional(),
 		files: z.array(externalFileMaterializationInputSchema).min(1).max(10),
 	})
 	.strict();
@@ -596,11 +706,108 @@ export const materializeExternalFilesResponseSchema = z
 	.object({
 		contract: z.literal("execution.external-file-materialization"),
 		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		executionRef: identifier,
 		files: z.array(externalFileMaterializationResultSchema),
 	})
 	.strict();
 export type MaterializeExternalFilesResponse = z.infer<
 	typeof materializeExternalFilesResponseSchema
+>;
+
+export const executionArtifactKinds = [
+	"output",
+	"external-file",
+	"context-pack",
+	"patch-proposal",
+] as const;
+export type ExecutionArtifactKind = (typeof executionArtifactKinds)[number];
+
+export const executionArtifactRecordSchema = z
+	.object({
+		contract: z.literal("execution.artifact"),
+		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		artifactRef: identifier,
+		kind: z.enum(executionArtifactKinds),
+		ownerCallerRef: identifier,
+		taskId: identifier.optional(),
+		nodeId: identifier.optional(),
+		roleRef: identifier.optional(),
+		workerRef: identifier.optional(),
+		hash: identifier.optional(),
+		mime: z.string().min(1).optional(),
+		bytes: z.number().int().nonnegative(),
+		metadata: z.record(z.string(), z.unknown()).optional(),
+		createdAt: z.iso.datetime(),
+	})
+	.strict();
+export type ExecutionArtifactRecord = z.infer<
+	typeof executionArtifactRecordSchema
+>;
+
+export const materializeContextPackRequestSchema = z
+	.object({
+		contract: z.literal("execution.context-pack-materialization"),
+		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		callerRef: identifier,
+		idempotencyKey: identifier,
+		correlationId: identifier.optional(),
+		taskId: identifier,
+		nodeId: identifier,
+		roleRef: identifier.optional(),
+		workerRef: identifier.optional(),
+		entries: z
+			.array(
+				z
+					.object({
+						path: z.string().min(1),
+						mimeType: z.string().min(1),
+						content: z.string(),
+					})
+					.strict(),
+			)
+			.min(1)
+			.max(200),
+		secrets: z.array(z.string().min(1)).max(100).optional(),
+	})
+	.strict();
+export type MaterializeContextPackRequest = z.infer<
+	typeof materializeContextPackRequestSchema
+>;
+
+export const materializePatchProposalRequestSchema = z
+	.object({
+		contract: z.literal("execution.patch-proposal-materialization"),
+		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		callerRef: identifier,
+		idempotencyKey: identifier,
+		correlationId: identifier.optional(),
+		taskId: identifier,
+		nodeId: identifier,
+		roleRef: identifier.optional(),
+		workerRef: identifier.optional(),
+		proposal: z
+			.object({
+				diff: z.string().min(1),
+				baseHash: identifier,
+				baseRef: identifier,
+			})
+			.strict(),
+	})
+	.strict();
+export type MaterializePatchProposalRequest = z.infer<
+	typeof materializePatchProposalRequestSchema
+>;
+
+export const artifactMaterializationResponseSchema = z
+	.object({
+		contract: z.literal("execution.artifact-materialization"),
+		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		executionRef: identifier,
+		artifact: executionArtifactRecordSchema,
+	})
+	.strict();
+export type ArtifactMaterializationResponse = z.infer<
+	typeof artifactMaterializationResponseSchema
 >;
 
 export const executionEvidenceSchema = z.discriminatedUnion("kind", [
@@ -764,6 +971,7 @@ export const executionRecordSchema = z
 	});
 export type ExecutionRecord = z.infer<typeof executionRecordSchema>;
 export type ExecuteCapabilityResponse = ExecutionRecord;
+
 export type GetExecutionResponse = ExecutionRecord;
 
 export const readExecutionOutputRequestSchema = z
@@ -790,7 +998,7 @@ export const readExecutionOutputResponseSchema = z
 		offset: z.number().int().nonnegative(),
 		nextOffset: z.number().int().nonnegative(),
 		eof: z.boolean(),
-		evidenceRef: identifier,
+		artifactRef: identifier,
 	})
 	.strict();
 export type ReadExecutionOutputResponse = z.infer<
@@ -811,6 +1019,92 @@ export type CancelExecutionRequest = z.infer<
 	typeof cancelExecutionRequestSchema
 >;
 export type CancelExecutionResponse = ExecutionRecord;
+
+export const executionApprovalStatuses = [
+	"PENDING",
+	"APPROVED",
+	"DENIED",
+	"REVOKED",
+	"CONSUMED",
+	"EXPIRED",
+] as const;
+export type ExecutionApprovalStatus =
+	(typeof executionApprovalStatuses)[number];
+
+export const executionApprovalRecordSchema = z
+	.object({
+		contract: z.literal("execution.approval"),
+		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		approvalRef: identifier,
+		executionRef: identifier,
+		callerRef: identifier,
+		taskId: identifier.optional(),
+		nodeId: identifier.optional(),
+		roleRef: identifier.optional(),
+		workerRef: identifier.optional(),
+		capability: z.enum(executionCapabilityIds),
+		inputFingerprint: identifier,
+		effectFingerprint: identifier,
+		scopeFingerprint: identifier,
+		preconditionFingerprint: identifier.optional(),
+		status: z.enum(executionApprovalStatuses),
+		requestedByActorRef: identifier,
+		decidedByActorRef: identifier.optional(),
+		reason: z.string().min(1).optional(),
+		requestedAt: z.iso.datetime(),
+		expiresAt: z.iso.datetime(),
+		decidedAt: z.iso.datetime().optional(),
+		revokedAt: z.iso.datetime().optional(),
+		consumedAt: z.iso.datetime().optional(),
+		version: z.number().int().positive(),
+	})
+	.strict();
+export type ExecutionApprovalRecord = z.infer<
+	typeof executionApprovalRecordSchema
+>;
+
+export const requestExecutionApprovalSchema = z
+	.object({
+		contract: z.literal("execution.approval"),
+		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		executionRef: identifier,
+		actorRef: identifier,
+		expiresAt: z.iso.datetime(),
+		preconditionFingerprint: identifier.optional(),
+	})
+	.strict();
+export type RequestExecutionApproval = z.infer<
+	typeof requestExecutionApprovalSchema
+>;
+
+export const decideExecutionApprovalSchema = z
+	.object({
+		contract: z.literal("execution.approval"),
+		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		approvalRef: identifier,
+		actorRef: identifier,
+		expectedVersion: z.number().int().positive(),
+		decision: z.enum(["ALLOW", "DENY"]),
+		reason: z.string().min(1).optional(),
+	})
+	.strict();
+export type DecideExecutionApproval = z.infer<
+	typeof decideExecutionApprovalSchema
+>;
+
+export const revokeExecutionApprovalSchema = z
+	.object({
+		contract: z.literal("execution.approval"),
+		contractVersion: z.literal(EXECUTION_CONTRACT_VERSION),
+		approvalRef: identifier,
+		actorRef: identifier,
+		expectedVersion: z.number().int().positive(),
+		reason: z.string().min(1),
+	})
+	.strict();
+export type RevokeExecutionApproval = z.infer<
+	typeof revokeExecutionApprovalSchema
+>;
 
 export interface ExecutionService {
 	executeCapability(
@@ -851,6 +1145,41 @@ export function parseCancelExecutionRequest(
 ): CancelExecutionRequest {
 	return cancelExecutionRequestSchema.parse(input);
 }
+export function parseExecutionApprovalRecord(
+	input: unknown,
+): ExecutionApprovalRecord {
+	return executionApprovalRecordSchema.parse(input);
+}
+export function parseRequestExecutionApproval(
+	input: unknown,
+): RequestExecutionApproval {
+	return requestExecutionApprovalSchema.parse(input);
+}
+export function parseDecideExecutionApproval(
+	input: unknown,
+): DecideExecutionApproval {
+	return decideExecutionApprovalSchema.parse(input);
+}
+export function parseRevokeExecutionApproval(
+	input: unknown,
+): RevokeExecutionApproval {
+	return revokeExecutionApprovalSchema.parse(input);
+}
+export function parseExecutionArtifactRecord(
+	input: unknown,
+): ExecutionArtifactRecord {
+	return executionArtifactRecordSchema.parse(input);
+}
+export function parseMaterializeContextPackRequest(
+	input: unknown,
+): MaterializeContextPackRequest {
+	return materializeContextPackRequestSchema.parse(input);
+}
+export function parseMaterializePatchProposalRequest(
+	input: unknown,
+): MaterializePatchProposalRequest {
+	return materializePatchProposalRequestSchema.parse(input);
+}
 export function parseCapabilityResult(
 	input: unknown,
 ): ExecutionCapabilityResult {
@@ -864,6 +1193,10 @@ export const EXECUTION_CONTRACT_DESCRIPTOR = Object.freeze({
 		"getExecution",
 		"readExecutionOutput",
 		"cancelExecution",
+		"requestExecutionApproval",
+		"decideExecutionApproval",
+		"revokeExecutionApproval",
+		"getExecutionApproval",
 	],
 	publicTypes: [
 		"ExecuteCapabilityRequest",
@@ -876,6 +1209,10 @@ export const EXECUTION_CONTRACT_DESCRIPTOR = Object.freeze({
 		"ReadExecutionOutputRequest",
 		"ReadExecutionOutputResponse",
 		"CancelExecutionRequest",
+		"ExecutionApprovalRecord",
+		"RequestExecutionApproval",
+		"DecideExecutionApproval",
+		"RevokeExecutionApproval",
 	],
 	request: [
 		"contract",
@@ -950,3 +1287,16 @@ export function checkExecutionContractCompatibility(
 		missing.push(`contractVersion:${consumer.contractVersion}`);
 	return { status: missing.length === 0 ? "PASS" : "FAIL", missing };
 }
+
+export type {
+	ExecutionExecutorPort,
+	ExecutorAdmission,
+	ExecutorApprovalState,
+	ExecutorArtifact,
+	ExecutorArtifactRead,
+	ExecutorDecisionPath,
+	ExecutorInvocation,
+	ExecutorPrecondition,
+	ExecutorReconciliation,
+	ExecutorResult,
+} from "./executor-port.ts";

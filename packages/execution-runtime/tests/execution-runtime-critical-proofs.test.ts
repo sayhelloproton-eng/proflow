@@ -317,6 +317,9 @@ test("carry-forward PENDING restart remains safely resumable under the same exec
 	const database = new DatabaseSync(databasePath);
 	const request = input("file.read", { path: "resume" }, "pending-restart", {
 		executionRef: "execution:pending-restart",
+		taskId: "task:resume",
+		nodeId: "node:resume",
+		workerRef: "worker:resume",
 	});
 	const createdAt = new Date().toISOString();
 	const pending = parseExecutionRecord({
@@ -327,6 +330,9 @@ test("carry-forward PENDING restart remains safely resumable under the same exec
 		callerRef: "caller:test",
 		idempotencyKey: "pending-restart",
 		inputFingerprint: "placeholder",
+		taskId: "task:resume",
+		nodeId: "node:resume",
+		workerRef: "worker:resume",
 		status: "PENDING",
 		sideEffectState: "NOT_STARTED",
 		retryable: false,
@@ -357,12 +363,34 @@ test("carry-forward PENDING restart remains safely resumable under the same exec
 		databasePath,
 		localExecutor: fakeExecutor(async () => readResult("resumed")),
 	});
-	const recovered = restarted.getExecution(
-		"execution:pending-restart" as never,
-	);
+	const recovered = restarted.getExecution("execution:pending-restart");
 	assert.equal(recovered.status, "PENDING");
 	assert.equal(recovered.sideEffectState, "NOT_STARTED");
+	const signals = restarted.listExecutionObserverSignals();
+	assert.equal(signals.length, 1);
+	assert.equal(signals[0]?.kind, "RECOVERY_RESUME");
+	assert.equal(signals[0]?.executionRef, "execution:pending-restart");
+	assert.equal(signals[0]?.taskId, pending.taskId);
+	assert.equal(signals[0]?.workerRef, pending.workerRef);
+	assert.equal(
+		restarted.acknowledgeExecutionObserverSignal(
+			signals[0]?.signalRef ?? "missing",
+		).acknowledged,
+		true,
+	);
+	assert.deepEqual(restarted.listExecutionObserverSignals(), []);
 	restarted.close();
+
+	const reopenedAgain = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => readResult("resumed")),
+	});
+	assert.deepEqual(
+		reopenedAgain.listExecutionObserverSignals(),
+		[],
+		"acknowledged deterministic recovery signal must not reappear after another restart",
+	);
+	reopenedAgain.close();
 });
 
 test("CP-EXE-RT-03 persist STARTED then reconcile a real lost response without replay", async () => {
@@ -451,10 +479,7 @@ test("CP-EXE-RT-04 persisted UNKNOWN later converges through its reality verifie
 	};
 	verifierState = "APPLIED";
 	await runtime.recoverIncomplete();
-	assert.equal(
-		runtime.getExecution(unknown.executionRef as never).status,
-		"SUCCEEDED",
-	);
+	assert.equal(runtime.getExecution(unknown.executionRef).status, "SUCCEEDED");
 	runtime.close();
 });
 
@@ -502,17 +527,44 @@ test("CP-EXE-RT-05 output evidence pagination and persisted secret redaction", a
 	);
 	assert.equal(record.status, "SUCCEEDED");
 	assert.ok(record.evidenceRefs && record.evidenceRefs.length > 0);
-	const page = await runtime.readExecutionOutput({
-		contract: "execution",
-		contractVersion: "1.0.0",
-		executionRef: record.executionRef,
-		stream: "stdout",
-		offset: 0,
-		limit: 5,
-	});
+	await assert.rejects(
+		runtime.readExecutionOutputForCaller(
+			{
+				contract: "execution",
+				contractVersion: "1.0.0",
+				executionRef: record.executionRef,
+				stream: "stdout",
+				offset: 0,
+				limit: 5,
+			},
+			"role:other",
+		),
+		/only the bound caller may read execution/,
+	);
+	assert.throws(
+		() =>
+			runtime.getExecutionForCaller({
+				executionRef: record.executionRef,
+				callerRef: "role:other",
+			}),
+		/only the bound caller may read execution/,
+	);
+	const page = await runtime.readExecutionOutputForCaller(
+		{
+			contract: "execution",
+			contractVersion: "1.0.0",
+			executionRef: record.executionRef,
+			stream: "stdout",
+			offset: 0,
+			limit: 5,
+		},
+		"caller:test",
+	);
 	assert.equal(page.chunk.length, 5);
 	assert.equal(page.nextOffset, 5);
 	assert.equal(page.eof, false);
+	assert.ok(page.artifactRef.startsWith("output:"));
+	assert.equal("evidenceRef" in page, false);
 	assert.equal(page.chunk.includes("do-not-persist"), false);
 	const databaseBytes = await readFile(databasePath);
 	assert.equal(databaseBytes.includes(Buffer.from("do-not-persist")), false);
@@ -781,7 +833,7 @@ test("CP-EXE-RT-06 injected browser executor uses the same durable admission and
 	assert.equal(record.result?.capability, "browser.observe");
 	assert.equal(browserCalls, 1);
 	assert.equal(
-		runtime.getExecution(record.executionRef as never).executionRef,
+		runtime.getExecution(record.executionRef).executionRef,
 		record.executionRef,
 	);
 	runtime.close();
@@ -963,4 +1015,32 @@ test("Execution Wave 3 modules each pass Foundation C1/C2/C3", async () => {
 			JSON.stringify({ name, results }),
 		);
 	}
+});
+
+test("PRESMOKE-B4-LOOKUP-01 uncertain lookup resolves durable intent without replay or executionRef", async () => {
+	const { root, databasePath } = await fixture();
+	let calls = 0;
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => {
+			calls += 1;
+			return readResult("lookup-once");
+		}),
+	});
+	const request = input("file.read", { path: "package.json" }, "lookup", {
+		projectRoot: root,
+	});
+	const created = await runtime.executeCapability(request);
+	const recovered = runtime.lookupExecutionIntent(request);
+	assert.equal(recovered.executionRef, created.executionRef);
+	assert.equal(calls, 1);
+	assert.throws(
+		() =>
+			runtime.lookupExecutionIntent({
+				...request,
+				input: { path: "other.json" },
+			}),
+		/lookup input does not match durable input/,
+	);
+	runtime.close();
 });

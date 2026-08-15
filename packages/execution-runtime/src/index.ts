@@ -7,17 +7,20 @@ import {
 	browserCapabilityIds,
 	EXECUTION_CONTRACT_VERSION,
 	type ExecuteCapabilityRequest,
+	type ExecutionArtifactRecord,
 	type ExecutionErrorCode,
 	type ExecutionRecord,
 	type ExecutionRef,
 	executionErrorCodes,
 	parseCancelExecutionRequest,
 	parseExecuteCapabilityRequest,
+	parseExecutionArtifactRecord,
 	parseExecutionRecord,
 	parseExecutionRef,
 	parseReadExecutionOutputRequest,
 	type ReadExecutionOutputResponse,
 } from "@tomflow/proflow-execution-contracts";
+import { createExecutionApprovalOwner } from "./approval-owner.ts";
 import type {
 	ExecutionExecutorPort,
 	ExecutorArtifact,
@@ -82,6 +85,7 @@ export interface ExecutionRuntimeOptions {
 	policy?: ExecutionPolicyPort;
 	modelDecision?: ExecutionModelDecisionPort;
 	approval?: ExecutionApprovalPort;
+	approvalDraftTtlMs?: number;
 	identity?: ExecutionIdentityPort;
 	maxConcurrent?: number;
 	maxQueued?: number;
@@ -245,6 +249,9 @@ const defaultPolicy: ExecutionPolicyPort = {
 		const readOnly =
 			request.capability === "file.read" ||
 			request.capability === "file.searchText" ||
+			request.capability === "artifact.external-file.materialize" ||
+			request.capability === "artifact.context-pack.materialize" ||
+			request.capability === "artifact.patch-proposal.materialize" ||
 			request.capability === "git.status" ||
 			request.capability === "git.diff" ||
 			request.capability === "project.info" ||
@@ -317,9 +324,30 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			execution_ref TEXT NOT NULL, artifact_ref TEXT NOT NULL, stream TEXT NOT NULL, path TEXT NOT NULL,
 			PRIMARY KEY(execution_ref, artifact_ref), FOREIGN KEY(execution_ref) REFERENCES executions(execution_ref)
 		);
+		CREATE TABLE IF NOT EXISTS artifact_registry (
+			artifact_ref TEXT PRIMARY KEY, kind TEXT NOT NULL, owner_caller_ref TEXT NOT NULL,
+			task_id TEXT, node_id TEXT, role_ref TEXT, worker_ref TEXT, path TEXT NOT NULL,
+			record_json TEXT NOT NULL, created_at TEXT NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS artifact_registry_scope_idx ON artifact_registry(task_id, owner_caller_ref, created_at);
+		CREATE TABLE IF NOT EXISTS execution_observer_signals (
+			signal_ref TEXT PRIMARY KEY, execution_ref TEXT NOT NULL, kind TEXT NOT NULL,
+			record_json TEXT NOT NULL, created_at TEXT NOT NULL, acknowledged_at TEXT,
+			FOREIGN KEY(execution_ref) REFERENCES executions(execution_ref)
+		);
+		CREATE INDEX IF NOT EXISTS execution_observer_signals_pending_idx
+			ON execution_observer_signals(acknowledged_at, created_at);
 	`);
 	const now = options.now ?? (() => new Date());
 	const idFactory = options.idFactory ?? randomUUID;
+	const approvalOwner = createExecutionApprovalOwner({
+		databasePath: options.databasePath,
+		...(options.now ? { now: options.now } : {}),
+		...(options.idFactory ? { idFactory: options.idFactory } : {}),
+	});
+	const approvalDraftTtlMs = options.approvalDraftTtlMs ?? 15 * 60_000;
+	if (!Number.isInteger(approvalDraftTtlMs) || approvalDraftTtlMs < 60_000)
+		throw new TypeError("approvalDraftTtlMs must be an integer >= 60000");
 	const semaphore = new Semaphore(
 		Math.max(1, options.maxConcurrent ?? 4),
 		Math.max(0, options.maxQueued ?? 100),
@@ -343,6 +371,86 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			`${JSON.stringify({ timestamp: now().toISOString(), component: "execution-runtime", executionRef: record.executionRef, correlationId: record.correlationId, taskId: record.taskId, nodeId: record.nodeId, runNo: record.runNo, roleRef: record.roleRef, workerRef: record.workerRef, capability: record.capability, phase: record.status, event, ...(errorCode ? { errorCode } : {}) })}\n`,
 			{ mode: 0o600 },
 		);
+	};
+
+	type ExecutionObserverSignal = {
+		signalRef: string;
+		kind: "RECOVERY_RESUME" | "UNKNOWN_REALITY";
+		executionRef: string;
+		taskId: string;
+		nodeId: string;
+		runNo?: number;
+		roleRef?: string;
+		workerRef: string;
+		status: ExecutionRecord["status"];
+		sideEffectState: ExecutionRecord["sideEffectState"];
+		errorCode?: string;
+		createdAt: string;
+	};
+	const emitObserverSignal = (
+		record: ExecutionRecord,
+		kind: ExecutionObserverSignal["kind"],
+	) => {
+		if (!record.taskId || !record.nodeId || !record.workerRef) return;
+		const signalRef = `execution-signal:${createHash("sha256")
+			.update(
+				JSON.stringify({
+					executionRef: record.executionRef,
+					kind,
+					status: record.status,
+					sideEffectState: record.sideEffectState,
+				}),
+			)
+			.digest("hex")}`;
+		const signal: ExecutionObserverSignal = {
+			signalRef,
+			kind,
+			executionRef: record.executionRef,
+			taskId: record.taskId,
+			nodeId: record.nodeId,
+			...(record.runNo === undefined ? {} : { runNo: record.runNo }),
+			...(record.roleRef === undefined ? {} : { roleRef: record.roleRef }),
+			workerRef: record.workerRef,
+			status: record.status,
+			sideEffectState: record.sideEffectState,
+			...(record.error?.code === undefined
+				? {}
+				: { errorCode: record.error.code }),
+			createdAt: now().toISOString(),
+		};
+		database
+			.prepare(
+				"INSERT OR IGNORE INTO execution_observer_signals(signal_ref, execution_ref, kind, record_json, created_at, acknowledged_at) VALUES (?, ?, ?, ?, ?, NULL)",
+			)
+			.run(
+				signalRef,
+				record.executionRef,
+				kind,
+				JSON.stringify(signal),
+				signal.createdAt,
+			);
+	};
+	const listExecutionObserverSignals = (
+		limit = 50,
+	): ExecutionObserverSignal[] => {
+		const bounded = Math.max(1, Math.min(100, Math.trunc(limit)));
+		return (
+			database
+				.prepare(
+					"SELECT record_json FROM execution_observer_signals WHERE acknowledged_at IS NULL ORDER BY created_at, signal_ref LIMIT ?",
+				)
+				.all(bounded) as Row[]
+		).map(
+			(row) => JSON.parse(String(row.record_json)) as ExecutionObserverSignal,
+		);
+	};
+	const acknowledgeExecutionObserverSignal = (signalRef: string) => {
+		const result = database
+			.prepare(
+				"UPDATE execution_observer_signals SET acknowledged_at=? WHERE signal_ref=? AND acknowledged_at IS NULL",
+			)
+			.run(now().toISOString(), signalRef);
+		return { acknowledged: result.changes === 1 };
 	};
 
 	const getRow = (executionRef: string): Row | undefined =>
@@ -416,7 +524,8 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			const model = options.modelDecision;
 			const modelDecision = await model.decide(request);
 			decisionPath = modelDecision.decisionPath;
-			approvalRequired = approvalRequired || modelDecision.approvalRequired === true;
+			approvalRequired =
+				approvalRequired || modelDecision.approvalRequired === true;
 			if (approvalRequired) decisionPath = "human";
 			if (modelDecision.decision === "DENY")
 				throw new ExecutionRuntimeError(
@@ -431,9 +540,9 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					"APPROVAL_REQUIRED",
 					"bound approval is required",
 				);
+			const approval = options.approval ?? approvalOwner;
 			if (
-				!options.approval ||
-				!(await options.approval.validate({
+				!(await approval.validate({
 					approvalRef: request.approvalRef,
 					executionRef,
 					callerRef: request.callerRef,
@@ -493,6 +602,179 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 		});
 	}
 
+	function registerArtifact(input: {
+		record: unknown;
+		path: string;
+	}): ExecutionArtifactRecord {
+		const record = parseExecutionArtifactRecord(input.record);
+		const existing = database
+			.prepare(
+				"SELECT record_json, path FROM artifact_registry WHERE artifact_ref=?",
+			)
+			.get(record.artifactRef) as Row | undefined;
+		if (existing) {
+			const existingRecord = parseExecutionArtifactRecord(
+				JSON.parse(String(existing.record_json)),
+			);
+			if (
+				JSON.stringify(existingRecord) !== JSON.stringify(record) ||
+				String(existing.path) !== input.path
+			)
+				throw new ExecutionRuntimeError(
+					"IDEMPOTENCY_CONFLICT",
+					"artifactRef is immutable and was already registered with different content",
+				);
+			return existingRecord;
+		}
+		database
+			.prepare(`INSERT INTO artifact_registry
+			(artifact_ref, kind, owner_caller_ref, task_id, node_id, role_ref, worker_ref, path, record_json, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+			.run(
+				record.artifactRef,
+				record.kind,
+				record.ownerCallerRef,
+				record.taskId ?? null,
+				record.nodeId ?? null,
+				record.roleRef ?? null,
+				record.workerRef ?? null,
+				input.path,
+				JSON.stringify(record),
+				record.createdAt,
+			);
+		return record;
+	}
+
+	function getArtifactStorage(artifactRef: string): {
+		record: ExecutionArtifactRecord;
+		path: string;
+	} {
+		const row = database
+			.prepare(
+				"SELECT record_json, path FROM artifact_registry WHERE artifact_ref=?",
+			)
+			.get(artifactRef) as Row | undefined;
+		if (!row)
+			throw new ExecutionRuntimeError(
+				"INVALID_REQUEST",
+				"artifact was not found",
+			);
+		return {
+			record: parseExecutionArtifactRecord(JSON.parse(String(row.record_json))),
+			path: String(row.path),
+		};
+	}
+
+	function getArtifactRecordInternal(
+		artifactRef: string,
+	): ExecutionArtifactRecord {
+		return getArtifactStorage(artifactRef).record;
+	}
+
+	function getArtifactRecord(input: {
+		artifactRef: string;
+		callerRef: string;
+		taskId?: string;
+		nodeId?: string;
+		roleRef?: string;
+		workerRef?: string;
+	}): ExecutionArtifactRecord {
+		const artifact = getArtifactRecordInternal(input.artifactRef);
+		if (artifact.ownerCallerRef !== input.callerRef)
+			throw new ExecutionRuntimeError(
+				"IDENTITY_INVALID",
+				"caller does not own the Artifact",
+			);
+		for (const [label, expected, actual] of [
+			["task", artifact.taskId, input.taskId],
+			["node", artifact.nodeId, input.nodeId],
+			["role", artifact.roleRef, input.roleRef],
+			["worker", artifact.workerRef, input.workerRef],
+		] as const) {
+			if (expected !== undefined && expected !== actual)
+				throw new ExecutionRuntimeError(
+					"SCOPE_DENIED",
+					`Artifact ${label} scope does not match the read request`,
+				);
+		}
+		return artifact;
+	}
+
+	function assertPatchArtifactScope(request: ExecuteCapabilityRequest): void {
+		if (request.capability !== "patch.apply") return;
+		const artifact = getArtifactRecordInternal(request.input.artifactRef);
+		if (artifact.kind !== "patch-proposal")
+			throw new ExecutionRuntimeError(
+				"PRECONDITION_FAILED",
+				"patch.apply requires a durable patch-proposal Artifact",
+			);
+		if (artifact.ownerCallerRef !== request.callerRef)
+			throw new ExecutionRuntimeError(
+				"IDENTITY_INVALID",
+				"caller does not own the patch proposal Artifact",
+			);
+		for (const [label, expected, actual] of [
+			["task", artifact.taskId, request.taskId],
+			["node", artifact.nodeId, request.nodeId],
+			["role", artifact.roleRef, request.roleRef],
+			["worker", artifact.workerRef, request.workerRef],
+		] as const) {
+			if (expected !== undefined && expected !== actual)
+				throw new ExecutionRuntimeError(
+					"SCOPE_DENIED",
+					`patch proposal ${label} scope does not match the Execution Request`,
+				);
+		}
+	}
+
+	options.localExecutor.bindPatchArtifactResolver?.(async (artifactRef) => {
+		try {
+			const { record, path } = getArtifactStorage(artifactRef);
+			if (record.kind !== "patch-proposal") return undefined;
+			const baseHash = record.metadata?.baseHash;
+			const baseRef = record.metadata?.baseRef;
+			const hash = record.hash;
+			if (
+				typeof baseHash !== "string" ||
+				typeof baseRef !== "string" ||
+				typeof hash !== "string"
+			)
+				return undefined;
+			return {
+				artifactRef: record.artifactRef,
+				kind: "patch-proposal",
+				path,
+				hash,
+				baseHash,
+				baseRef,
+			};
+		} catch {
+			return undefined;
+		}
+	});
+
+	function lookupExecutionIntent(input: unknown): ExecutionRecord {
+		const request = parseExecuteCapabilityRequest(input);
+		const row = database
+			.prepare(
+				"SELECT * FROM executions WHERE caller_ref=? AND capability=? AND idempotency_key=?",
+			)
+			.get(request.callerRef, request.capability, request.idempotencyKey) as
+			| Row
+			| undefined;
+		if (!row)
+			throw new ExecutionRuntimeError(
+				"INVALID_REQUEST",
+				"execution intent was not found",
+			);
+		if (String(row.input_fingerprint) !== executionInputFingerprint(request))
+			throw new ExecutionRuntimeError(
+				"IDEMPOTENCY_CONFLICT",
+				"execution intent lookup input does not match durable input",
+			);
+		return fromRow(row);
+	}
+
 	async function executeCapability(input: unknown): Promise<ExecutionRecord> {
 		if (closed)
 			throw new ExecutionRuntimeError(
@@ -500,6 +782,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				"execution runtime is closed",
 			);
 		const request = parseExecuteCapabilityRequest(input);
+		assertPatchArtifactScope(request);
 		const inputFingerprint = executionInputFingerprint(request);
 		const existing = database
 			.prepare(
@@ -586,7 +869,26 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 		try {
 			admission = await admit(request, inputFingerprint, record.executionRef);
 		} catch (error) {
-			record = failRecord(record, runtimeError(error));
+			const admissionError = runtimeError(error);
+			if (
+				admissionError.code === "APPROVAL_REQUIRED" &&
+				!request.approvalRef &&
+				!options.approval
+			) {
+				const approval = approvalOwner.ensurePendingApproval({
+					executionRef: record.executionRef,
+					actorRef: "execution-runtime:policy",
+					expiresAt: new Date(
+						now().getTime() + approvalDraftTtlMs,
+					).toISOString(),
+				});
+				record = parseExecutionRecord({
+					...record,
+					approvalRef: approval.approvalRef,
+					updatedAt: now().toISOString(),
+				});
+			}
+			record = failRecord(record, admissionError);
 			save(record);
 			await log(record, "ADMISSION_REJECTED", record.error?.code);
 			return record;
@@ -661,7 +963,6 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				admission,
 				signal: controller.signal,
 				async onEffectStarted(value) {
-					await admission.validateApproval(value);
 					if (controller.signal.aborted)
 						throw new ExecutionRuntimeError(
 							timedOut ? "TIMEOUT" : "CANCELLED",
@@ -669,6 +970,14 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 								? "execution runtime timeout elapsed before effect"
 								: "execution was cancelled before effect",
 						);
+					await admission.validateApproval(value);
+					if (controller.signal.aborted)
+						throw new ExecutionRuntimeError(
+							timedOut ? "TIMEOUT" : "CANCELLED",
+							"execution was cancelled while revalidating approval before effect",
+						);
+					if (request.approvalRef && !options.approval)
+						approvalOwner.consume(request.approvalRef);
 					precondition = value;
 					record = parseExecutionRecord({
 						...record,
@@ -688,22 +997,97 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 						? "execution runtime timeout elapsed"
 						: "execution was cancelled",
 				);
-			if (!result.successful)
+			if (!result.successful && result.effectApplied)
 				throw new ExecutionRuntimeError(
 					"EXECUTION_FAILED",
-					"executor reported an unsuccessful result",
+					"effectful executor reported an unsuccessful result",
 				);
-			for (const artifact of result.artifacts)
-				database
-					.prepare(
-						"INSERT OR REPLACE INTO execution_artifacts VALUES (?, ?, ?, ?)",
-					)
-					.run(
-						record.executionRef,
-						artifact.ref,
-						artifact.stream,
-						artifact.path,
-					);
+			database.exec("BEGIN IMMEDIATE");
+			try {
+				for (const artifact of result.artifacts) {
+					registerArtifact({
+						path: artifact.path,
+						record: {
+							contract: "execution.artifact",
+							contractVersion: EXECUTION_CONTRACT_VERSION,
+							artifactRef: artifact.ref,
+							kind: artifact.kind ?? "output",
+							ownerCallerRef: request.callerRef,
+							...(request.taskId ? { taskId: request.taskId } : {}),
+							...(request.nodeId ? { nodeId: request.nodeId } : {}),
+							...(request.roleRef ? { roleRef: request.roleRef } : {}),
+							...(request.workerRef ? { workerRef: request.workerRef } : {}),
+							...(artifact.hash ? { hash: artifact.hash } : {}),
+							...(artifact.mime ? { mime: artifact.mime } : {}),
+							bytes: artifact.bytes,
+							metadata: {
+								stream: artifact.stream,
+								executionRef: record.executionRef,
+								...(artifact.metadata ?? {}),
+							},
+							createdAt: now().toISOString(),
+						},
+					});
+					const existingRelation = database
+						.prepare(
+							"SELECT stream, path FROM execution_artifacts WHERE execution_ref=? AND artifact_ref=?",
+						)
+						.get(record.executionRef, artifact.ref) as Row | undefined;
+					if (existingRelation) {
+						if (
+							String(existingRelation.stream) !== artifact.stream ||
+							String(existingRelation.path) !== artifact.path
+						)
+							throw new ExecutionRuntimeError(
+								"IDEMPOTENCY_CONFLICT",
+								"Execution Artifact relation is immutable",
+							);
+					} else
+						database
+							.prepare("INSERT INTO execution_artifacts VALUES (?, ?, ?, ?)")
+							.run(
+								record.executionRef,
+								artifact.ref,
+								artifact.stream,
+								artifact.path,
+							);
+				}
+				database.exec("COMMIT");
+			} catch (error) {
+				database.exec("ROLLBACK");
+				throw error;
+			}
+			if (!result.successful) {
+				const resultData = result.result.data as Record<string, unknown>;
+				const exitCode =
+					typeof resultData.exitCode === "number"
+						? resultData.exitCode
+						: undefined;
+				record = parseExecutionRecord({
+					...record,
+					status: "FAILED",
+					sideEffectState: "NOT_APPLIED",
+					retryable: false,
+					evidence: result.evidence,
+					evidenceRefs: result.evidence.map((item) => item.evidenceRef),
+					artifactRefs: materializeArtifactRefs(result.artifacts).map(
+						(item) => item.ref,
+					),
+					error: {
+						code: "EXECUTION_FAILED",
+						message:
+							exitCode !== undefined
+								? `verification command exited with code ${exitCode}`
+								: "verification command returned a known non-zero result",
+						retryable: false,
+					},
+					finishedAt: now().toISOString(),
+					updatedAt: now().toISOString(),
+				});
+				save(record);
+				await log(record, "EXECUTION_FAILED", "EXECUTION_FAILED");
+				return record;
+			}
 			record = parseExecutionRecord({
 				...record,
 				status: "SUCCEEDED",
@@ -799,8 +1183,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 		}
 	}
 
-	function getExecution(input: unknown): ExecutionRecord {
-		const executionRef = parseExecutionRef(input);
+	function getExecutionRecord(executionRef: ExecutionRef): ExecutionRecord {
 		const row = getRow(executionRef);
 		if (!row)
 			throw new ExecutionRuntimeError(
@@ -810,10 +1193,33 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 		return fromRow(row);
 	}
 
-	async function readExecutionOutput(
+	function getExecution(input: unknown): ExecutionRecord {
+		return getExecutionRecord(parseExecutionRef(input));
+	}
+
+	function getExecutionForCaller(input: {
+		executionRef: unknown;
+		callerRef: string;
+	}): ExecutionRecord {
+		const record = getExecutionRecord(parseExecutionRef(input.executionRef));
+		if (record.callerRef !== input.callerRef)
+			throw new ExecutionRuntimeError(
+				"IDENTITY_INVALID",
+				"only the bound caller may read execution",
+			);
+		return record;
+	}
+
+	async function readExecutionOutputRecord(
 		input: unknown,
+		record: ExecutionRecord,
 	): Promise<ReadExecutionOutputResponse> {
 		const request = parseReadExecutionOutputRequest(input);
+		if (record.executionRef !== request.executionRef)
+			throw new ExecutionRuntimeError(
+				"INVALID_REQUEST",
+				"execution output scope mismatch",
+			);
 		const row = database
 			.prepare(
 				"SELECT artifact_ref FROM execution_artifacts WHERE execution_ref=? AND stream=? ORDER BY artifact_ref LIMIT 1",
@@ -824,7 +1230,6 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				"INVALID_REQUEST",
 				"execution output stream was not found",
 			);
-		const record = getExecution(request.executionRef as ExecutionRef);
 		const executor = browserIds.has(record.capability)
 			? options.browserExecutor
 			: options.localExecutor;
@@ -848,13 +1253,34 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			offset,
 			nextOffset: output.nextOffset,
 			eof: output.eof,
-			evidenceRef: String(row.artifact_ref),
+			artifactRef: String(row.artifact_ref),
 		};
+	}
+
+	async function readExecutionOutput(
+		input: unknown,
+	): Promise<ReadExecutionOutputResponse> {
+		const request = parseReadExecutionOutputRequest(input);
+		return readExecutionOutputRecord(
+			request,
+			getExecutionRecord(request.executionRef as ExecutionRef),
+		);
+	}
+
+	async function readExecutionOutputForCaller(
+		input: unknown,
+		callerRef: string,
+	): Promise<ReadExecutionOutputResponse> {
+		const request = parseReadExecutionOutputRequest(input);
+		return readExecutionOutputRecord(
+			request,
+			getExecutionForCaller({ executionRef: request.executionRef, callerRef }),
+		);
 	}
 
 	async function cancelExecution(input: unknown): Promise<ExecutionRecord> {
 		const request = parseCancelExecutionRequest(input);
-		let record = getExecution(request.executionRef as ExecutionRef);
+		let record = getExecutionRecord(request.executionRef as ExecutionRef);
 		if (record.callerRef !== request.callerRef)
 			throw new ExecutionRuntimeError(
 				"IDENTITY_INVALID",
@@ -887,6 +1313,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				record.sideEffectState === "NOT_STARTED"
 			) {
 				await log(record, "RECOVERY_PENDING_REQUIRES_REDECISION");
+				emitObserverSignal(record, "RECOVERY_RESUME");
 				continue;
 			}
 			if (record.status !== "UNKNOWN" && record.sideEffectState !== "STARTED") {
@@ -899,6 +1326,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				);
 				save(record);
 				await log(record, "RECOVERY_RECONCILED", record.error?.code);
+				emitObserverSignal(record, "RECOVERY_RESUME");
 				continue;
 			}
 			const request = parseExecuteCapabilityRequest(
@@ -918,6 +1346,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				);
 				save(record);
 				await log(record, "RECOVERY_RECONCILED", record.error?.code);
+				emitObserverSignal(record, "UNKNOWN_REALITY");
 				continue;
 			}
 			try {
@@ -967,22 +1396,44 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			}
 			save(record);
 			await log(record, "RECOVERY_RECONCILED", record.error?.code);
+			emitObserverSignal(
+				record,
+				record.status === "UNKNOWN" ? "UNKNOWN_REALITY" : "RECOVERY_RESUME",
+			);
 		}
 	}
 
 	await recoverIncomplete();
 	return Object.freeze({
 		executeCapability,
+		lookupExecutionIntent,
+		listExecutionObserverSignals,
+		acknowledgeExecutionObserverSignal,
 		getExecution,
+		getExecutionForCaller,
 		readExecutionOutput,
+		readExecutionOutputForCaller,
 		cancelExecution,
+		requestExecutionApproval: approvalOwner.requestApproval,
+		decideExecutionApproval: approvalOwner.decideApproval,
+		revokeExecutionApproval: approvalOwner.revokeApproval,
+		getExecutionApproval: approvalOwner.getApproval,
+		listExecutionApprovals: approvalOwner.listApprovals,
+		registerArtifact,
+		getArtifactRecord,
 		recoverIncomplete,
 		databasePath: options.databasePath,
 		logPath,
 		close() {
 			closed = true;
 			for (const controller of controllers.values()) controller.abort();
+			approvalOwner.close();
 			database.close();
 		},
 	});
 }
+
+export {
+	createExecutionApprovalOwner,
+	ExecutionApprovalOwnerError,
+} from "./approval-owner.ts";

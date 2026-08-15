@@ -59,3 +59,27 @@ test("PRESMOKE-B3-OBS-EXT-03 concurrent recovery triggers share one in-flight re
 	);
 	assert.match(source, /observerRecoveryInFlight = null/);
 });
+
+test("PRESMOKE-B4-OBS-EXT-04 human Approval decision resumes the bound Worker through Task Observer rather than UI-owned state", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	assert.match(source, /message\.operation === "approval\.allow"/);
+	assert.match(source, /message\.operation === "approval\.deny"/);
+	assert.match(source, /message\.operation === "approval\.revoke"/);
+	assert.match(source, /trigger: "RECOVERY_RESUME"/);
+	assert.match(source, /ref: value\.approvalRef/);
+	assert.match(source, /targetWorkerRef: value\.workerRef/);
+	assert.doesNotMatch(source, /approvalState\s*=|approved\s*=\s*true/);
+});
+
+test("PRESMOKE-B4-OBS-EXT-05 durable Execution recovery signals are acknowledged only after an actionable/terminal Observer decision", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	assert.match(source, /execution\.listSignals/);
+	assert.match(source, /execution\.ackSignal/);
+	assert.match(source, /decision\.reason === "BINDING_NOT_READY"/);
+	assert.match(
+		source,
+		/decision\.reason === "RESUME_TARGET_NOT_CURRENT_WORKER"/,
+	);
+	assert.match(source, /decision\.reason === "DIAGNOSTIC_UNAVAILABLE"/);
+	assert.match(source, /continue;[\s\S]*execution\.ackSignal/);
+});

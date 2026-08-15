@@ -38,6 +38,17 @@
 			<p id="task-application-status" role="status"></p>
 		</section>
 
+		<section>
+			<h2>Execution Approval Application</h2>
+			<p>Dedicated human Approval credential. It is separate from Task, Role and Browser bridge credentials.</p>
+			<form id="approval-application-form">
+				<label>Platform-host endpoint <input id="approval-application-endpoint" required placeholder="http://127.0.0.1:47830" /></label>
+				<label>Approval application token <input id="approval-application-token" type="password" required autocomplete="off" /></label>
+				<button type="submit">Save Approval application</button>
+			</form>
+			<p id="approval-application-status" role="status"></p>
+		</section>
+
 		<script type="module" src="../dist/extension/options.js"></script>
 	</body>
 </html>

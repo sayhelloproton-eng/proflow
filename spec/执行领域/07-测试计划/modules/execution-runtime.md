@@ -92,6 +92,7 @@ Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 
 - [ ] **CP-EXE-RT-05** — 大 output/evidence 落盘并通过摘要+ref 返回，Evidence 可下钻且 secret redacted。
 - [ ] **CP-EXE-RT-06** — execution-local 与 browser executor 由一个 backend service 统一路由，不产生第二 Execution truth。
 - [ ] **CP-EXE-RT-07** — queue/concurrency/timeouts/cancel/restart 有 typed semantics；disconnect/lost response/duplicate/unknown side effect fault injection 不产生 duplicate Effect。
+- [ ] **CP-EXE-RT-08** — Effect Approval 是 Execution-owned durable fact：Policy 判定需要 Human 时由 Execution Owner 自动形成单一 durable PENDING draft；request/ALLOW/DENY/revoke/expiry/version/consume 全部持久化，并绑定 execution/caller/capability/input fingerprint/scope；stale、expired、denied、revoked、consumed Approval 均不得授权 Effect。
 
 ## 6. Frozen TODO Coverage
 
@@ -118,6 +119,7 @@ Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 
 - [ ] **RF-EXE-RT-05** — 大 output/evidence 丢失、不可下钻或泄漏 secret
 - [ ] **RF-EXE-RT-06** — local/browser executor 形成第二 Execution truth
 - [ ] **RF-EXE-RT-07** — queue/timeout/cancel/restart/duplicate fault 导致 duplicate Effect
+- [ ] **RF-EXE-RT-08** — Approval 仅靠可注入 validate mock、APPROVAL_REQUIRED 没有 durable draft source、重复 decision 生成多个 pending draft、Approval 状态未持久化、版本/expiry/scope/fingerprint 不匹配仍可执行、已消费 Approval 被重复复用
 
 
 
@@ -189,6 +191,79 @@ Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 
 - [ ] **CP-EXE-RT-08** — Browser/Carrier writes and local writes converge to the same durable Execution truth; Observer/Extension cannot create a second effect/state runtime.
 - [ ] **CP-EXE-RT-09** — Gateway-normalized File Bridge inbound refs are bounded-materialized with scope/timeout/hash/MIME/size facts before becoming reusable artifacts; locator timeout/expiry is transport failure, not proof that an owner Action did or did not mutate business truth.
 - [ ] **CP-EXE-RT-10** — Context Pack/Patch are artifact subtypes, not new Store/Service/Domain; patch application remains a separate policy-controlled Execution effect with Result/Evidence.
+- [ ] **CP-EXE-RT-12** — File Bridge materialization成功后必须先写入 Execution-owned durable Artifact registry（caller/task/node/role/worker scope + hash/MIME/bytes/provenance），restart 后仍可读取；transient locator 或 materializer return object 不能直接冒充 durable Artifact truth。
+- [ ] **CP-EXE-RT-13** — Context Pack/Patch Proposal materialization必须写入同一 Execution Artifact registry；Context Pack仅持久化bounded/redacted manifest/hash，Patch Proposal仅持久化proposal/base precondition metadata，二者都不能创建独立 Store/Service，也不能因 Artifact 存在推导 patch 已 applied。
 - [ ] **CP-EXE-RT-11** — model confidence/Task Diagnostic/System Assessment cannot bypass hard DENY/REQUIRE_APPROVAL/scope/identity/version/idempotency or directly write Execution state.
 
 Failure gates include Browser-owned durable truth, blind replay after uncertain delivery/materialization, raw secret/file body leakage into default diagnostics, or treating an artifact's existence as Execution success evidence.
+
+
+- [ ] **CP-EXE-RT-14** — specialised `/external-files/materialize`, `/artifacts/context-pack`, and `/artifacts/patch-proposal` surfaces must delegate into `executeCapability()` with explicit caller/idempotency scope. Responses carry the durable `executionRef`; repeated same intent reuses one Execution/Artifact truth. Direct service-to-`execution-local` materialization is forbidden because it loses policy/recovery/idempotency/audit ownership.
+
+
+### CP-EXE-RT-15 / RF-EXE-RT-15 — Artifact read ownership and scope
+
+- Runtime 对 `artifact_registry` 的对外 metadata read 必须校验 `ownerCallerRef`，并对已有 `taskId/nodeId/roleRef/workerRef` scope 做 exact match。
+- `getArtifactRecord` 不得继续接受裸 `artifactRef`；知道 opaque ref 不等于拥有读取权限。
+- Runtime 内部 Patch resolver 可以使用 owner-internal storage lookup，但不得暴露为跨包无鉴权下载面。
+- Execution Output page 返回 `artifactRef`；Evidence 仍由 `evidenceRefs` 表达，二者不得合并。
+
+
+### CP-EXE-RT-16 / RF-EXE-RT-16 — Immutable Artifact identity and Patch Approval binding
+
+- `artifactRef` 注册后必须 immutable；相同 ref 只能幂等返回完全相同 record/path，任何内容/hash/path/scope 替换必须 `IDEMPOTENCY_CONFLICT`。
+- `patch.apply` Approval `effectFingerprint` 除 request input fingerprint 外，还必须绑定 durable patch Artifact 的 `hash/baseHash/baseRef` 与 owner/scope metadata。
+- Approval 后 Artifact bytes 若与 durable hash 不一致，executor 必须在 effect boundary 前 `PRECONDITION_FAILED`；不得执行已批准 ref 下的替换内容。
+
+
+### CP-EXE-RT-17 / RF-EXE-RT-17 — Artifact registry/relation atomicity
+
+- Executor 返回 Artifact 后，`artifact_registry` durable identity 与 `execution_artifacts` producer relation 必须在同一 SQLite transaction 内提交。
+- 必须先通过 immutable Artifact registry 校验，再建立 Execution relation；registry conflict 时 relation 不得留下半写事实。
+- `execution_artifacts` 禁止 `INSERT OR REPLACE` 覆盖既有 stream/path；同一 `(executionRef, artifactRef)` relation 一旦建立即 immutable。
+
+### CP-EXE-RT-18 / RF-EXE-RT-18 — Frozen read DTO + trusted caller transport context
+
+- `ExecutionService.getExecution(executionRef)` and `ReadExecutionOutputRequest` must retain the Frozen Public Contract; `callerRef` must not be added to GPT/Public read DTOs.
+- Gateway-authenticated caller identity is injected only as trusted internal transport/admission context and is revalidated against the durable Execution caller plus current Task/Role/Worker binding before returning data.
+- The formal `proflow-execution-runtime` binary requires both Identity configuration and an Execution transport credential; an unauthenticated production binary must fail closed instead of trusting a caller-context header.
+- `artifactRef` identifies output bytes; it must never be relabeled as `evidenceRef`.
+
+**RF-EXE-RT-18:** public DTO drift, caller self-assertion, or a formal binary that starts without identity/transport auth is a release blocker.
+
+### CP-EXE-RT-19 / RF-EXE-RT-19 — Durable recovery/UNKNOWN Observer signals
+
+- Runtime restart/reconciliation that requires the bound Worker to resume must emit a durable `RECOVERY_RESUME` signal from the Execution Owner; unresolved reality emits durable `UNKNOWN_REALITY`.
+- Ordinary synchronous terminal `executeCapability()` completion must not emit a new Browser Worker Turn.
+- Signals use deterministic identity, survive process restart, and remain pending until the Extension-side Task Observer has an actionable or terminal decision; transient `BINDING_NOT_READY`, target mismatch, or diagnostic unavailability must not acknowledge/drop the signal.
+- Acknowledged deterministic signals must not reappear on a later Runtime restart.
+
+**RF-EXE-RT-19:** in-memory-only recovery notification, blind duplicate wake, or acknowledgement before Observer can consume the fact is a release blocker.
+
+### Batch 5 readiness carry-forward
+
+The formal `proflow-execution-runtime` binary now marks `modelDecision=UNAVAILABLE` and global readiness `NOT_READY` while the production Model Decision port is absent. The real `execution.command-risk.v1` business caller/composition remains **Batch 5**; Batch 4 must not fabricate that port merely to report READY.
+
+### CP-EXE-RT-20 / RF-EXE-RT-20 — Formal Browser dependency is mandatory
+
+- The shipped `proflow-execution-runtime` binary must require `browserExecutorConfigPath`; omitting the Browser composition is not a supported way to make production readiness green.
+- The sole Runtime composes the Browser Executor/Reality Bridge and reports `NOT_READY` whenever that configured bridge is offline. No alternate Browser-owned Execution Runtime process is allowed.
+- Embedded/test `createExecutionRuntimeProcess()` may omit Browser wiring for isolated lower-layer tests, but that flexibility is not the formal deployment contract.
+
+**RF-EXE-RT-20:** formal CLI starts without Browser composition, Browser bridge outage is hidden behind READY, or a second runtime process is introduced.
+
+## Batch 4 Pre-Smoke Executable Proof Binding
+
+> 本节只绑定本批新增 proof 到现有/新增 executable test asset；实际 PASS 只能由本机 Node 24.19.0 / pnpm 11.21.0 / TypeScript 7.0.2 验证产生，本文不预先宣称绿色。
+
+| Batch 4 proof | Executable asset | Required behavior |
+|---|---|---|
+| `CP-EXE-RT-08` | `tests/execution-runtime-critical-proofs.test.ts` | local/browser effects remain one durable Execution truth; no second runtime owner |
+| `CP-EXE-RT-12` / `13` / `14` | `tests/execution-artifact-pipeline.test.ts`<br>`tests/execution-runtime-service.test.ts` | materialization enters durable Execution + unified immutable Artifact registry; specialised HTTP surface reuses one execution/artifact intent |
+| `CP-EXE-RT-15` / `16` / `17` | `tests/execution-artifact-pipeline.test.ts`<br>`tests/execution-approval-lifecycle.test.ts` | Artifact caller/scope admission; immutable artifact identity; Patch Approval binds content/base/scope; registry+producer relation are atomic |
+| `CP-EXE-RT-18` | `tests/execution-contracts-critical-proofs.test.ts`<br>`tests/execution-runtime-critical-proofs.test.ts` | Frozen public read DTO is unchanged; caller identity is trusted transport context; ArtifactRef is not EvidenceRef |
+| `CP-EXE-RT-19` | `tests/execution-runtime-critical-proofs.test.ts`<br>`../execution-browser-extension/tests/background-observer-application.test.ts` | restart/reconciliation emits durable bounded observer signals; unconsumable signal is not acked; no sync-action double wake |
+| `CP-EXE-RT-20` | `tests/execution-runtime-service.test.ts` | shipped `proflow-execution-runtime` fails closed without mandatory Browser composition and reports dependency-aware readiness |
+| `CP/RF-EXE-RT-08` Approval closure | `tests/execution-approval-lifecycle.test.ts` | Execution-owned PENDING draft, decision/version/expiry/revoke/consume, effect-boundary revalidation, abort-before-consume |
+
+**Batch 5 carry-forward（不得在 Batch 4 伪造 PASS）**：正式 `execution.command-risk.v1` Model Decision business caller/composition 尚未接入；shipped runtime 必须在该 port 缺失时保持 `modelDecision=UNAVAILABLE` / global `NOT_READY`。Batch 4 的测试只能证明该 fail-closed readiness，不能用 injected fake Model port 证明 production caller 已完成。

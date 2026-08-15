@@ -31,7 +31,8 @@ type RuntimeMessage = {
 	type:
 		| "PROFLOW_CONTENT_OBSERVATION"
 		| "PROFLOW_SIDE_PANEL_SNAPSHOT"
-		| "PROFLOW_TASK_APPLICATION";
+		| "PROFLOW_TASK_APPLICATION"
+		| "PROFLOW_APPROVAL_APPLICATION";
 	observation?: Omit<ContentObservation, "tabId" | "windowId">;
 	operation?: string;
 	input?: Record<string, unknown>;
@@ -158,6 +159,36 @@ async function bridgeConfig(): Promise<BridgeConfig | null> {
 async function taskApplicationConfig(): Promise<BridgeConfig | null> {
 	const stored = await chrome.storage.local.get("proflowTaskApplication");
 	return parseConfig(stored.proflowTaskApplication);
+}
+
+async function approvalApplicationConfig(): Promise<BridgeConfig | null> {
+	const stored = await chrome.storage.local.get("proflowApprovalApplication");
+	return parseConfig(stored.proflowApprovalApplication);
+}
+
+async function invokeApprovalApplication(
+	operation: string,
+	input: Record<string, unknown>,
+): Promise<unknown> {
+	const config = await approvalApplicationConfig();
+	if (!config) throw new Error("APPROVAL_APPLICATION_NOT_CONFIGURED");
+	const response = await fetch(`${config.endpoint}/application/approval`, {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${config.token}`,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({ operation, input }),
+	});
+	const body = (await response.json()) as unknown;
+	if (!response.ok) {
+		const detail =
+			isRecord(body) && typeof body.error === "string"
+				? body.error
+				: "APPROVAL_APPLICATION_REQUEST_FAILED";
+		throw new Error(detail);
+	}
+	return body;
 }
 
 async function invokeTaskApplication(
@@ -372,6 +403,54 @@ function runObserverRecovery() {
 	if (observerRecoveryInFlight) return observerRecoveryInFlight;
 	observerRecoveryInFlight = (async () => {
 		await collaborationCarrier.recoverPending(50).catch(() => undefined);
+		const signalBatch = await invokeObserverApplication(
+			"execution.listSignals",
+			{ limit: 50 },
+		).catch(() => null);
+		if (isRecord(signalBatch) && Array.isArray(signalBatch.signals)) {
+			for (const candidate of signalBatch.signals) {
+				if (
+					!isRecord(candidate) ||
+					typeof candidate.signalRef !== "string" ||
+					typeof candidate.executionRef !== "string" ||
+					typeof candidate.taskId !== "string" ||
+					typeof candidate.workerRef !== "string"
+				)
+					continue;
+				try {
+					const decision =
+						candidate.kind === "RECOVERY_RESUME"
+							? await taskObserver.drive(candidate.taskId, {
+									trigger: "RECOVERY_RESUME",
+									ref: candidate.executionRef,
+									targetWorkerRef: candidate.workerRef,
+								})
+							: candidate.kind === "UNKNOWN_REALITY"
+								? await taskObserver.drive(candidate.taskId, undefined, {
+										kind: "UNKNOWN_REALITY",
+										ref: candidate.executionRef,
+										facts: {
+											executionRef: candidate.executionRef,
+											summary: `Execution ${candidate.executionRef} recovery remains UNKNOWN`,
+										},
+									})
+								: null;
+					if (!decision) continue;
+					if (
+						decision.kind === "NOOP" &&
+						(decision.reason === "BINDING_NOT_READY" ||
+							decision.reason === "RESUME_TARGET_NOT_CURRENT_WORKER" ||
+							decision.reason === "DIAGNOSTIC_UNAVAILABLE")
+					)
+						continue;
+					await invokeObserverApplication("execution.ackSignal", {
+						signalRef: candidate.signalRef,
+					});
+				} catch {
+					// Leave the durable signal unacknowledged for the next bounded recovery pass.
+				}
+			}
+		}
 		const listed = await invokeTaskApplication("task.list", {});
 		if (isRecord(listed) && Array.isArray(listed.tasks)) {
 			for (const candidate of listed.tasks.slice(0, 100)) {
@@ -662,13 +741,56 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 		return;
 	}
 	if (message.type === "PROFLOW_SIDE_PANEL_SNAPSHOT") {
-		void taskApplicationConfig().then((application) =>
+		void Promise.all([
+			taskApplicationConfig(),
+			approvalApplicationConfig(),
+		]).then(([application, approval]) =>
 			sendResponse({
 				extensionInstanceId,
 				observedAt: new Date().toISOString(),
 				sessions: [...sessions.values()],
 				taskApplicationConfigured: application !== null,
+				approvalApplicationConfigured: approval !== null,
 			}),
+		);
+		return true;
+	}
+	if (message.type === "PROFLOW_APPROVAL_APPLICATION") {
+		if (typeof message.operation !== "string" || !message.input) {
+			sendResponse({
+				ok: false,
+				error: "APPROVAL_APPLICATION_MESSAGE_INVALID",
+			});
+			return;
+		}
+		void invokeApprovalApplication(message.operation, message.input).then(
+			(value) => {
+				if (
+					(message.operation === "approval.allow" ||
+						message.operation === "approval.deny" ||
+						message.operation === "approval.revoke") &&
+					isRecord(value) &&
+					typeof value.approvalRef === "string" &&
+					typeof value.taskId === "string" &&
+					typeof value.workerRef === "string"
+				)
+					void taskObserver
+						.drive(value.taskId, {
+							trigger: "RECOVERY_RESUME",
+							ref: value.approvalRef,
+							targetWorkerRef: value.workerRef,
+						})
+						.catch(() => undefined);
+				sendResponse({ ok: true, value });
+			},
+			(error: unknown) =>
+				sendResponse({
+					ok: false,
+					error:
+						error instanceof Error
+							? error.message
+							: "APPROVAL_APPLICATION_FAILED",
+				}),
 		);
 		return true;
 	}
