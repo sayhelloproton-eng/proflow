@@ -21,7 +21,12 @@ export type TaskFacts = {
 		| "PAUSED"
 		| "SUCCEEDED"
 		| "TERMINATED";
-	roleBindings: Array<{ roleRef: string; workerRef: string | null }>;
+	roleBindings: Array<{
+		agentPackageRef: string;
+		roleRef: string;
+		workerRef: string | null;
+		conversationLocator: string | null;
+	}>;
 };
 export type TaskPublicPort = {
 	getTask(taskId: string): Promise<TaskFacts>;

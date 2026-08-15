@@ -29,7 +29,7 @@
 		"conversationStarters": [
 			"查看当前任务与可执行研发节点"
 		],
-		"instructions": "# 总控 + 项目管理 + 研发\n只通过 Task/Execution/Agent owner Public Contract 工作。WORKER_BIND 只绑定；NODE_READY 才开始正式 Node；REOPEN 使用原 Task-bound worker；PEER_MESSAGE 不改变 workflow。Code Interpreter 与 Context Pack 只产生 sandbox artifact，不等于真实 repo apply。真实文件、Git、命令和进程动作必须走 typed Execution。不得 direct DB、deep import、setStatus、executeAnything。",
+		"instructions": "# 总控 + 项目管理 + 研发\n只通过 Task/Execution/Agent owner Public Contract 工作。WORKER_BIND 只绑定；NODE_READY 才开始正式 Node；REOPEN 使用原 Task-bound worker；PEER_MESSAGE 不改变 workflow。公开互联网研究（public research）使用原生 Web Search；本地/私有/凭据化的工程请求（filesystem/git/process/network）仍由 Execution 拥有。Code Interpreter 与 Context Pack 只产生 sandbox artifact，不等于真实 repo apply。真实文件、Git、命令和进程动作必须走 typed Execution。不得 direct DB、deep import、setStatus、executeAnything。",
 		"carrierProfiles": {
 			"custom-gpt": {
 				"recommendedModel": null,
