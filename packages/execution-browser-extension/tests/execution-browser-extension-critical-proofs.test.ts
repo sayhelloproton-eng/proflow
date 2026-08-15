@@ -92,7 +92,10 @@ function request(
 
 async function fixture() {
 	const browser = new BrowserHarness();
-	const bindings = new Map<string, string>();
+	const bindings = new Map<
+		string,
+		{ workerRef: string; conversationLocator: string | null }
+	>();
 	const deliveryReports: string[] = [];
 	let sequence = 0;
 	const extension = createExecutionBrowserExtension({
@@ -105,8 +108,12 @@ async function fixture() {
 				taskId: string;
 				roleRef: string;
 				workerRef: string;
+				conversationLocator: string;
 			}) {
-				bindings.set(`${input.taskId}:${input.roleRef}`, input.workerRef);
+				bindings.set(`${input.taskId}:${input.roleRef}`, {
+					workerRef: input.workerRef,
+					conversationLocator: input.conversationLocator,
+				});
 			},
 		},
 		agent: {
@@ -181,7 +188,7 @@ test("REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins,
 		onEffectStarted() {},
 	});
 	assert.equal(created.result.capability, "worker.create");
-	assert.equal(bindings.get("task:1:g-dev"), "c-created");
+	assert.equal(bindings.get("task:1:g-dev")?.workerRef, "c-created");
 	assert.equal(browser.submitCount, 1);
 	const restored = await extension.execute({
 		request: request("worker.restore", {
@@ -215,14 +222,64 @@ test("REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins,
 	);
 });
 
+test("PRESMOKE-B3-BINDING-01 RESTORE uses durable TaskRoleBinding conversationLocator instead of reconstructing a URL", async () => {
+	const { extension, browser, bindings } = await fixture();
+	const durableLocator =
+		"https://chatgpt.com/g/g-dev/c/c-dev?proflowLocator=durable-owner-fact";
+	bindings.set("task:1:g-dev", {
+		workerRef: "c-dev",
+		conversationLocator: durableLocator,
+	});
+	// Same role/worker identity on a stale locator must not override the
+	// Task-owned durable conversationLocator recovery truth.
+	await browser.open("https://chatgpt.com/g/g-dev/c/c-dev?staleLocator=1");
+	const restored = await extension.execute({
+		request: request("worker.restore", {
+			roleRef: "g-dev",
+			workerRef: "c-dev",
+			conversationUrl: durableLocator,
+		}),
+		admission: {
+			policy: "ALLOW",
+			decisionPath: "deterministic",
+			approval: "NOT_REQUIRED",
+		},
+	});
+	assert.equal(restored.result.capability, "worker.restore");
+	assert.equal(browser.tabs.size, 2);
+	assert.equal(
+		[...browser.tabs.values()].some((tab) => tab.url === durableLocator),
+		true,
+	);
+	await assert.rejects(
+		() =>
+			extension.execute({
+				request: request("worker.restore", {
+					roleRef: "g-dev",
+					workerRef: "c-dev",
+					conversationUrl: "https://chatgpt.com/g/g-dev/c/c-dev",
+				}),
+				admission: {
+					policy: "ALLOW",
+					decisionPath: "deterministic",
+					approval: "NOT_REQUIRED",
+				},
+			}),
+		/CONVERSATION_LOCATOR_MISMATCH/,
+	);
+});
+
 test("REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Node or Effect completion", async () => {
 	const { extension, browser, bindings } = await fixture();
-	bindings.set("task:1:g-dev", "c-dev");
+	bindings.set("task:1:g-dev", {
+		workerRef: "c-dev",
+		conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+	});
 	const result = await extension.execute({
 		request: request("worker.wake", {
 			roleRef: "g-dev",
 			workerRef: "c-dev",
-			trigger: "NODE_READY task:1 node:2 run:1",
+			trigger: "NODE_READY",
 			fingerprint: "wake:1",
 		}),
 		admission: {
@@ -243,10 +300,42 @@ test("REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims No
 	});
 	assert.equal(browser.submitCount, 1);
 	assert.match(browser.submittedTexts[0] ?? "", /"fingerprint":"wake:1"/);
+	assert.match(
+		browser.submittedTexts[0] ?? "",
+		/"protocol":"proflow\.agent\.browser-trigger\.v1"/,
+	);
+	assert.match(browser.submittedTexts[0] ?? "", /"triggerType":"NODE_READY"/);
 	assert.doesNotMatch(
 		JSON.stringify(result),
 		/taskDocuments|nodeCompleted|effectSucceeded/,
 	);
+});
+
+test("PRESMOKE-B3-WAKE-01 worker.wake rejects untyped/arbitrary wake reasons before Browser effect", async () => {
+	const { extension, browser, bindings } = await fixture();
+	bindings.set("task:1:g-dev", {
+		workerRef: "c-dev",
+		conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+	});
+	await assert.rejects(
+		() =>
+			extension.execute({
+				request: request("worker.wake", {
+					roleRef: "g-dev",
+					workerRef: "c-dev",
+					trigger: "NODE_READY task:1 node:2 run:1",
+					fingerprint: "wake:invalid",
+				}),
+				admission: {
+					policy: "ALLOW",
+					decisionPath: "deterministic",
+					approval: "NOT_REQUIRED",
+				},
+				onEffectStarted() {},
+			}),
+		/WAKE_TRIGGER_TYPE_INVALID/,
+	);
+	assert.equal(browser.submitCount, 0);
 });
 
 test("REG-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministic observations", async () => {
@@ -308,13 +397,16 @@ test("REG-EXE-BR-05 permission fallback captures evidence and Side Panel remains
 
 test("REG-EXE-BR-06 writes are globally serial and logical delivery follows physical verification", async () => {
 	const { extension, browser, bindings, deliveryReports } = await fixture();
-	bindings.set("task:1:g-dev", "c-dev");
+	bindings.set("task:1:g-dev", {
+		workerRef: "c-dev",
+		conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+	});
 	await Promise.all([
 		extension.execute({
 			request: request("worker.wake", {
 				roleRef: "g-dev",
 				workerRef: "c-dev",
-				trigger: "one",
+				trigger: "NODE_READY",
 				fingerprint: "wake:one",
 			}),
 			admission: {
@@ -342,7 +434,8 @@ test("REG-EXE-BR-06 writes are globally serial and logical delivery follows phys
 	assert.equal(browser.maxActiveWrites, 1);
 	assert.deepEqual(deliveryReports, []);
 	assert.match(
-		browser.submittedTexts.find((text) => text.includes("PEER_MESSAGE")) ?? "",
+		browser.submittedTexts.find((text) => text.includes("PEER_REPLY_READY")) ??
+			"",
 		/owner-backed reply content/,
 	);
 });
@@ -350,7 +443,10 @@ test("REG-EXE-BR-06 writes are globally serial and logical delivery follows phys
 test("REG-EXE-BR-06 logical delivery finalizes only after durable Execution success", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "proflow-delivery-order-"));
 	const { extension, browser, bindings, deliveryReports } = await fixture();
-	bindings.set("task:1:g-dev", "c-dev");
+	bindings.set("task:1:g-dev", {
+		workerRef: "c-dev",
+		conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+	});
 	await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
 	const runtime = await createExecutionRuntime({
 		databasePath: join(directory, "execution.sqlite"),
@@ -412,7 +508,10 @@ test("REG-EXE-BR-06 logical delivery finalizes only after durable Execution succ
 
 test("REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay", async () => {
 	const { extension, browser, bindings } = await fixture();
-	bindings.set("task:1:g-dev", "c-dev");
+	bindings.set("task:1:g-dev", {
+		workerRef: "c-dev",
+		conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+	});
 	const tab = await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
 	browser.messages.get(tab.tabId)?.add("wake:already");
 	const unfinished = request("worker.wake", {

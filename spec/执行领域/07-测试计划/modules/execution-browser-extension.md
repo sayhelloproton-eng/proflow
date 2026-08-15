@@ -43,14 +43,14 @@ implementationWave: Wave 5
 
 - [ ] **CP-EXE-BR-01** — `agentPackageRef/roleRef/workerRef/conversationLocator`稳定；tab/content transient；无frame/persistent-tab business identity。
 - [ ] **CP-EXE-BR-02** — Extension New Task：Task(PENDING)后CREATE/observe/bind三Worker，Product可先工作，partial failure只补missing Worker。
-- [ ] **CP-EXE-BR-03** — RESTORE/WAKE正确Conversation；minimal wake；WAKE success仅physical delivery。
-- [ ] **CP-EXE-BR-04** — Node READY→Task Observer wake→Worker formal `startNode`；Observer不写Task。
+- [ ] **CP-EXE-BR-03** — RESTORE/WAKE正确Conversation；`conversationLocator` 必须来自 TaskRoleBinding durable owner fact，禁止用 `roleRef + workerRef` 重构 URL；minimal wake；WAKE success仅physical delivery。
+- [ ] **CP-EXE-BR-04** — Node READY→Task Observer wake→Worker formal `startNode`；Observer不写Task；production composition 由 Task mutation event 触发并在 process startup 做一次 bounded nonterminal recovery scan，不引入 platform-host timer/universal scheduler；同一 task/node/run/trigger 使用稳定 Execution idempotency identity。
 - [ ] **CP-EXE-BR-05** — one Worker Turn支持0..N Actions；Browser无per-action “continue”或natural-language business parsing。
 - [ ] **CP-EXE-BR-06** — routine Action Always Allow主链；unexpected permission prompt可恢复；Execution Approval独立。
 - [ ] **CP-EXE-BR-07** — DOM-first page operation，异常结构才screenshot→Vision；Vision不直接成为Task/Execution success。
-- [ ] **CP-EXE-BR-08** — Collaboration physical delivery durable/idempotent；message/reply owner仍Agent。
+- [ ] **CP-EXE-BR-08** — Collaboration physical delivery durable/idempotent；`messageRef` 由 Agent pending owner surface 发现，ask/reply 事件触发 + process-start bounded recovery，不引入 platform-host timer/business queue；每个 message 使用稳定 Execution idempotency identity，只有 `SUCCEEDED + APPLIED + delivered=true` 才写 Agent logical DELIVERED；message/reply owner仍Agent。
 - [ ] **CP-EXE-BR-09** — submit/WAKE effect uncertainty按DELIVERED/ABSENT/UNKNOWN reality reconciliation，无blind replay。
-- [ ] **CP-EXE-BR-10** — Task Observer deterministic；异常REASON only diagnostic/no authority；terminal stop-driving。
+- [ ] **CP-EXE-BR-10** — Task Observer deterministic；first-run READY 与 reopened run 分别输出 `NODE_READY` / `REOPEN` typed trigger，并复用同一 durable TaskRoleBinding；异常REASON only diagnostic/no authority；terminal stop-driving。
 - [ ] **CP-EXE-BR-11** — System Observer 8 bounded views + batching/carry-forward/drill-down/global synthesis，lowest priority/no owner mutation。
 - [ ] **CP-EXE-BR-12** — ordinary file transport不经Browser DOM；File Bridge/Execution materialization主链可用，image→Vision fallback保留。
 
@@ -96,3 +96,40 @@ UNKNOWN reconciliation record
 
 GO：上述Proof都能在Owner boundary下实现。  
 STOP：必须靠frame/persistent tab/business store/Browser natural-language Task inference/Observer direct write才能通过。
+
+
+## 2026-08-15 Pre-Smoke Batch 3｜Application / Observer / Carrier Closure Addendum
+
+- [ ] **CP-EXE-BR-13** — Browser Reality Bridge 与 Browser Executor 形成正式 adapter composition，并通过 Task/Agent Owner transport 获取 durable binding/message facts；Browser package 不启动第二套 Execution Runtime。
+- [ ] **RF-EXE-BR-13** — Browser package 自建第二个 Execution Runtime truth/process、绕过 Task/Agent owner transport、或把 Browser bridge readiness 冒充整个 Execution Runtime readiness。
+
+**Batch boundary**：`execution-browser-extension` 在本批只交付 `Browser Reality Bridge ↔ Browser Executor` adapter/composition。**唯一正式 `execution-runtime` binary 注入 `browserExecutor`、并将该依赖纳入 runtime readiness，继续由既定 Batch 4 / P1-15 收口。** 这不是 Batch 3 缺失的新批次，也不得通过新增 alternate runtime binary 规避。
+
+**Executable proof**：`packages/execution-browser-extension/tests/runtime-composition.test.ts`。
+
+
+### Batch 3 executable proof mapping
+
+| Frozen proof | Batch 3 executable/source proof | Current boundary |
+|---|---|---|
+| `CP-EXE-BR-02` New Task + 3 Worker | `packages/platform-host/tests/task-application-entry.test.ts` (`PRESMOKE-B3-APP-03`), `packages/execution-browser-extension/tests/side-panel-application.test.ts` | 真实 Chrome CREATE 仍属 Manual E2E；自动 proof 只证明 application orchestration/Owner boundary。 |
+| `CP-EXE-BR-03` durable restore/wake | `packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts` | `conversationLocator` 为 Task Owner 真源；stale tab URL 不覆盖。 |
+| `CP-EXE-BR-04` Task Observer lifecycle | `packages/execution-browser-extension/tests/task-observer-runtime.test.ts`, `packages/execution-browser-extension/tests/background-observer-application.test.ts` | Extension Background 拥有 lifecycle；Host 仅 transport/composition。 |
+| `CP-EXE-BR-08` Collaboration Carrier | `packages/execution-browser-extension/tests/collaboration-carrier-application.test.ts`, `packages/execution-browser-extension/tests/background-observer-application.test.ts` | pending discovery 来自 Agent Owner；UNKNOWN durable hold；FAILED bounded retry。 |
+| `CP-EXE-BR-09` no blind replay | `packages/execution-browser-extension/tests/collaboration-carrier-application.test.ts`, `packages/execution-browser-extension/tests/task-observer-runtime.test.ts` | deterministic wake intent + Execution idempotency；UNKNOWN 不自动重投。 |
+| `CP-EXE-BR-10` Task Observer deterministic/diagnostic | `packages/execution-browser-extension/tests/task-observer-runtime.test.ts`, `packages/model-runtime/tests/observer-task-diagnostic-alignment.test.ts` | 正常路径零模型；异常只 diagnostic/no effect authority。 |
+| `CP-EXE-BR-11` System Observer | `packages/execution-browser-extension/tests/system-observer-runtime.test.ts`, `packages/execution-browser-extension/tests/background-observer-application.test.ts`, `packages/model-runtime/tests/observer-system-assessment-alignment.test.ts` | 8-view batching/carry-forward/drill-down/global synthesis；service-worker restart 持久化 previous state。 |
+| `CP-EXE-BR-13` Browser adapter composition | `packages/execution-browser-extension/tests/runtime-composition.test.ts` | Browser adapter 完成；**唯一 Execution Runtime binary 注入/readiness = Batch 4 / P1-15 carry-forward**。 |
+
+**不得过度宣称**：上述自动 proof 不等于真实 Chrome / Custom GPT / physical Conversation E2E；真实页面 CREATE/RESTORE/WAKE/DOM submit/permission/extension reload 继续保留 `MANUAL_E2E_REQUIRED`。
+
+
+### Batch 3 → Batch 4 explicit carry-forward
+
+Batch 3 不通过越权补实现来强行关闭以下跨批依赖：
+
+1. **Execution Approval controls**：Side Panel 已保留可见但 disabled 的 Approval 区域；Allow/Deny 只有在 Batch 4 / `P1-14` 建立 authoritative Approval Owner fact/store/lifecycle 后才能启用。Browser/UI 本批不得自建 approval state。
+2. **Async Execution completion / UNKNOWN source → Task Observer**：Task Observer 已具备 typed `EXECUTION_RESULT_READY / RECOVERY_RESUME` 与 anomaly diagnostic contract，但正式 async Execution completion/recovery event source 属 Batch 4 `execution-runtime` composition/recovery；本批不得用同步 `executeCapability` completion 人工制造新 Worker Turn。
+3. **Browser Executor → 唯一 execution-runtime binary**：Browser adapter 已完成，唯一 runtime 注入与 dependency-aware readiness 仍是 Batch 4 / `P1-15`。
+
+因此 Batch 3 的最终报告必须区分“Browser/Observer 侧能力已实现”和“依赖 Batch 4 Execution Owner lifecycle 的最终 production signal/approval/runtime wiring”，不得把后者写成已关闭。

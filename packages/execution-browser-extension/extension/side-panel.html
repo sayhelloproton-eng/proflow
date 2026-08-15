@@ -1,5 +1,71 @@
 <!doctype html>
 <html lang="en">
-  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>ProFlow Browser Status</title></head>
-  <body><main><h1>ProFlow Browser Status</h1><pre id="status">Connecting…</pre></main><script type="module" src="../dist/extension/side-panel.js"></script></body>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<title>ProFlow</title>
+		<style>
+			body { font: 13px system-ui; margin: 12px; }
+			section { border-top: 1px solid #ddd; margin-top: 14px; padding-top: 10px; }
+			label { display: block; margin: 8px 0; }
+			input, textarea { box-sizing: border-box; display: block; margin-top: 4px; width: 100%; }
+			textarea { min-height: 72px; }
+			button { margin: 4px 4px 4px 0; padding: 5px 9px; }
+			button[disabled] { opacity: .55; }
+			.task { border: 1px solid #ddd; margin: 6px 0; padding: 7px; }
+			.meta { color: #555; font-size: 12px; }
+			#error { color: #a00; white-space: pre-wrap; }
+			#result { white-space: pre-wrap; }
+			#browser-status { max-height: 180px; overflow: auto; }
+		</style>
+	</head>
+	<body>
+		<header>
+			<h1>ProFlow</h1>
+			<div id="connection" class="meta">Connecting…</div>
+		</header>
+
+		<section>
+			<h2>New Task</h2>
+			<form id="new-task-form">
+				<label>Title <input id="task-title" required /></label>
+				<label>Objective <textarea id="task-objective" required></textarea></label>
+				<label>Requirement <textarea id="task-requirement" placeholder="Optional initial REQUIREMENT document"></textarea></label>
+				<label>Ordered plan (JSON array)
+					<textarea id="task-plan" required>[{"nodeId":"dev","title":"Implement","objective":"Implement the requirement","requiredAgentPackageRef":"@tomflow/proflow-agent-controller-dev","inputDocuments":["REQUIREMENT"],"outputDocuments":[]},{"nodeId":"test","title":"Verify","objective":"Verify the implementation","requiredAgentPackageRef":"@tomflow/proflow-agent-test-ops","inputDocuments":["REQUIREMENT"],"outputDocuments":[]}]</textarea>
+				</label>
+				<button id="new-task" type="submit">New Task + 3 Workers</button>
+			</form>
+		</section>
+
+		<section>
+			<h2>Tasks</h2>
+			<button id="refresh-tasks" type="button">Refresh</button>
+			<div id="tasks"></div>
+		</section>
+
+		<section>
+			<h2>Selected Task</h2>
+			<div id="selected-task" class="meta">None selected.</div>
+			<button id="start-task" type="button" disabled>Confirm / Start</button>
+			<button id="ensure-workers" type="button" disabled>Recover missing Workers</button>
+			<div id="nodes"></div>
+		</section>
+
+		<section>
+			<h2>Execution Approval</h2>
+			<p class="meta">Approval is an Execution-owner fact. Controls remain disabled until the Batch 4 Approval lifecycle is wired.</p>
+			<button type="button" disabled>Allow</button>
+			<button type="button" disabled>Deny</button>
+		</section>
+
+		<section>
+			<h2>Browser Carrier</h2>
+			<pre id="browser-status">Connecting…</pre>
+		</section>
+
+		<p id="error" role="alert"></p>
+		<pre id="result" role="status"></pre>
+		<script type="module" src="../dist/extension/side-panel.js"></script>
+	</body>
 </html>

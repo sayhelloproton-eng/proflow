@@ -20,24 +20,38 @@ export {
 	createBrowserRealityBridgeServer,
 } from "./bridge.ts";
 export {
-	createTaskObserver,
-	type TaskDriveProjection,
-	type TaskObserverCarrierPort,
-	type TaskObserverDecision,
-	type TaskObserverOwnerPort,
-} from "./task-observer.ts";
+	type CarrierControllerPort,
+	type CarrierWakeRequest,
+	createCarrierController,
+} from "./carrier-controller.ts";
+export {
+	type CollaborationCarrierAgentPort,
+	type CollaborationCarrierExecutionPort,
+	type CollaborationCarrierOutcome,
+	type CollaborationCarrierTaskPort,
+	createCollaborationCarrierApplication,
+	type PendingCollaborationCarrierMessage,
+} from "./collaboration-carrier.ts";
 export {
 	createSystemObserver,
 	type SystemObserverAssessment,
 	type SystemObserverPriority,
+	type SystemObserverReasonRequest,
+	type SystemObserverReasonResult,
 	type SystemObserverSnapshotPort,
 	type SystemObserverView,
 } from "./system-observer.ts";
 export {
-	createCarrierController,
-	type CarrierControllerPort,
-	type CarrierWakeRequest,
-} from "./carrier-controller.ts";
+	createTaskObserver,
+	type TaskDriveProjection,
+	type TaskObserverAnomalySignal,
+	type TaskObserverCarrierPort,
+	type TaskObserverDecision,
+	type TaskObserverDiagnosticAssessment,
+	type TaskObserverDiagnosticPort,
+	type TaskObserverOwnerPort,
+	type TaskObserverResumeSignal,
+} from "./task-observer.ts";
 
 export type BrowserPageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 export type BrowserActivityKind =
@@ -77,7 +91,10 @@ export interface BrowserRealityPort {
 }
 
 export interface TaskBrowserPort {
-	getWorkerBinding(taskId: string, roleRef: string): Promise<string | null>;
+	getWorkerBinding(
+		taskId: string,
+		roleRef: string,
+	): Promise<{ workerRef: string; conversationLocator: string | null } | null>;
 	bindWorker(input: {
 		taskId: string;
 		roleRef: string;
@@ -134,6 +151,13 @@ export class ExecutionBrowserError extends Error {
 }
 
 const browserCapabilities = new Set<string>(browserCapabilityIds);
+const workerWakeTriggerTypes = new Set([
+	"NODE_READY",
+	"REOPEN",
+	"EXECUTION_RESULT_READY",
+	"PEER_REPLY_READY",
+	"RECOVERY_RESUME",
+]);
 
 function parseCarrierIdentity(raw: string): {
 	roleRef: string;
@@ -260,24 +284,41 @@ export function createExecutionBrowserExtension(
 		taskId: string,
 		roleRef: string,
 		workerRef: string,
+		expectedConversationLocator?: string,
 	) => {
 		const bound = await options.task.getWorkerBinding(taskId, roleRef);
-		if (bound !== workerRef)
+		if (!bound || bound.workerRef !== workerRef)
 			throw new ExecutionBrowserError(
 				"PRECONDITION_FAILED",
 				"WORKER_BINDING_MISMATCH",
 			);
+		if (!bound.conversationLocator)
+			throw new ExecutionBrowserError(
+				"PRECONDITION_FAILED",
+				"CONVERSATION_LOCATOR_REQUIRED",
+			);
+		if (
+			expectedConversationLocator !== undefined &&
+			expectedConversationLocator !== bound.conversationLocator
+		)
+			throw new ExecutionBrowserError(
+				"PRECONDITION_FAILED",
+				"CONVERSATION_LOCATOR_MISMATCH",
+			);
 		const existing = await matchingTab(roleRef, workerRef);
-		if (existing) return existing;
-		const opened = await options.browser.open(
-			`https://chatgpt.com/g/${roleRef}/c/${workerRef}`,
-		);
+		if (existing?.url === bound.conversationLocator) return existing;
+		const opened = await options.browser.open(bound.conversationLocator);
 		const observed = await options.browser.observe(opened.tabId);
 		const identity = parseCarrierIdentity(observed.url);
 		if (identity.roleRef !== roleRef || identity.workerRef !== workerRef)
 			throw new ExecutionBrowserError(
 				"PRECONDITION_FAILED",
 				"RESTORE_IDENTITY_MISMATCH",
+			);
+		if (observed.url !== bound.conversationLocator)
+			throw new ExecutionBrowserError(
+				"PRECONDITION_FAILED",
+				"RESTORE_LOCATOR_MISMATCH",
 			);
 		registerContentSession(observed);
 		return observed;
@@ -424,13 +465,13 @@ export function createExecutionBrowserExtension(
 						"UNKNOWN_SIDE_EFFECT",
 						"CREATE_REALITY_UNCONFIRMED",
 					);
-			await options.task.bindWorker({
-				taskId,
-				roleRef: identity.roleRef,
-				workerRef: identity.workerRef,
-				conversationLocator: observed.url,
-			});
-			registerContentSession(observed);
+				await options.task.bindWorker({
+					taskId,
+					roleRef: identity.roleRef,
+					workerRef: identity.workerRef,
+					conversationLocator: observed.url,
+				});
+				registerContentSession(observed);
 				return result(
 					{
 						capability: "worker.create",
@@ -452,6 +493,7 @@ export function createExecutionBrowserExtension(
 				taskId,
 				request.input.roleRef,
 				request.input.workerRef,
+				request.input.conversationUrl,
 			);
 			return result(
 				{
@@ -469,10 +511,10 @@ export function createExecutionBrowserExtension(
 
 		if (request.capability === "worker.wake")
 			return serializeWrite(async () => {
-				if (request.input.trigger.length > 4_096)
+				if (!workerWakeTriggerTypes.has(request.input.trigger))
 					throw new ExecutionBrowserError(
 						"PRECONDITION_FAILED",
-						"WAKE_TRIGGER_TOO_LARGE",
+						"WAKE_TRIGGER_TYPE_INVALID",
 					);
 				const observed = await ensureRestored(
 					taskId,
@@ -486,9 +528,9 @@ export function createExecutionBrowserExtension(
 					);
 				const precondition = await effectStarted(raw);
 				const trigger = JSON.stringify({
-					protocol: "aap.agent.browser-trigger.v1",
-					triggerId: request.input.fingerprint,
-					triggerType: "NODE_READY",
+					protocol: "proflow.agent.browser-trigger.v1",
+					triggerRef: request.input.fingerprint,
+					triggerType: request.input.trigger,
 					taskId,
 					roleRef: request.input.roleRef,
 					workerRef: request.input.workerRef,
@@ -551,9 +593,10 @@ export function createExecutionBrowserExtension(
 				);
 				const precondition = await effectStarted(raw);
 				const trigger = JSON.stringify({
-					protocol: "aap.agent.browser-trigger.v1",
-					triggerId: message.messageId,
-					triggerType: "PEER_MESSAGE",
+					protocol: "proflow.agent.browser-trigger.v1",
+					triggerRef: message.messageId,
+					triggerType:
+						message.kind === "REPLY" ? "PEER_REPLY_READY" : "PEER_MESSAGE",
 					taskId,
 					roleRef: message.targetRoleRef,
 					workerRef: message.targetWorkerRef,
@@ -737,7 +780,7 @@ export function createExecutionBrowserExtension(
 
 			const boundWorker = await options.task.getWorkerBinding(taskId, roleRef);
 			if (boundWorker) {
-				const observed = await matchingTab(roleRef, boundWorker);
+				const observed = await matchingTab(roleRef, boundWorker.workerRef);
 				if (!observed) return { state: "UNKNOWN", evidence: [] };
 				if (
 					!(await options.browser.hasMessage(
@@ -754,7 +797,7 @@ export function createExecutionBrowserExtension(
 						capability: "worker.create",
 						data: {
 							roleRef,
-							workerRef: boundWorker,
+							workerRef: boundWorker.workerRef,
 							conversationUrl: observed.url,
 							verified: true,
 						},
@@ -784,21 +827,21 @@ export function createExecutionBrowserExtension(
 			if (!observed) return { state: "UNKNOWN", evidence: [] };
 			const identity = parseCarrierIdentity(observed.url);
 			if (!identity.workerRef) return { state: "UNKNOWN", evidence: [] };
-		await options.task.bindWorker({
-			taskId,
-			roleRef,
-			workerRef: identity.workerRef,
-			conversationLocator: observed.url,
-		});
-		const evidence = browserEvidence(idFactory, observed, true);
-		return {
-			state: "APPLIED",
-			evidence: [evidence],
-			result: {
-				capability: "worker.create",
-				data: {
-					roleRef,
-					workerRef: identity.workerRef,
+			await options.task.bindWorker({
+				taskId,
+				roleRef,
+				workerRef: identity.workerRef,
+				conversationLocator: observed.url,
+			});
+			const evidence = browserEvidence(idFactory, observed, true);
+			return {
+				state: "APPLIED",
+				evidence: [evidence],
+				result: {
+					capability: "worker.create",
+					data: {
+						roleRef,
+						workerRef: identity.workerRef,
 						conversationUrl: observed.url,
 						verified: true,
 					},

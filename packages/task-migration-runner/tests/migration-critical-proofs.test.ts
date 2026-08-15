@@ -21,6 +21,18 @@ async function fixture(context: { after: (fn: () => unknown) => void }) {
 	return join(root, "task.sqlite");
 }
 
+function normalizeSchemaForSemanticComparison(
+	schema: ReturnType<SqliteTaskStore["inspectSchema"]>,
+) {
+	return {
+		...schema,
+		columns: {
+			...schema.columns,
+			schema_migrations: [...(schema.columns.schema_migrations ?? [])].sort(),
+		},
+	};
+}
+
 test("CP-TASK-MIG-01 discovery ordering and version metadata are deterministic", () => {
 	const firstMigration = taskMigrations[0];
 	assert.ok(firstMigration);
@@ -510,9 +522,12 @@ test("CP-TASK-MIG-03 authentic 2026-08-10 pre-checksum schema upgrades only with
 	);
 	upgradedDatabase.close();
 
-	// A legacy-upgraded database must converge to the same owner-visible physical
-	// schema as a fresh current installation, not merely report migration v3 as
-	// applied. The v3 verifier separately proves NOT NULL / PK / CHECK details.
+	// A legacy-upgraded database must converge to the same owner-visible schema
+	// as a fresh current installation, not merely report migration v3 as applied.
+	// `schema_migrations` physical column ordinal is intentionally excluded: a
+	// pre-checksum database appends the nullable checksum column in place so the
+	// authoritative migration history is never rewritten just to normalize order.
+	// The v3 verifier separately proves NOT NULL / PK / CHECK details.
 	const freshCanonicalPath = await fixture(context);
 	assert.equal(
 		applyMigrations({
@@ -527,8 +542,8 @@ test("CP-TASK-MIG-03 authentic 2026-08-10 pre-checksum schema upgrades only with
 	});
 	try {
 		assert.deepEqual(
-			upgradedStore.inspectSchema(),
-			freshCanonicalStore.inspectSchema(),
+			normalizeSchemaForSemanticComparison(upgradedStore.inspectSchema()),
+			normalizeSchemaForSemanticComparison(freshCanonicalStore.inspectSchema()),
 		);
 	} finally {
 		upgradedStore.close();

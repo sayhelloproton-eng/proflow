@@ -30,6 +30,36 @@ export type TaskDriveProjection = {
 	blockedReason: string | null;
 };
 
+export type TaskObserverResumeSignal = {
+	trigger: "EXECUTION_RESULT_READY" | "PEER_REPLY_READY" | "RECOVERY_RESUME";
+	ref: string;
+	targetWorkerRef: string;
+};
+
+export type TaskObserverAnomalySignal = {
+	kind: "FACT_CONFLICT" | "UNKNOWN_REALITY" | "STALLED" | "RECOVERY_FAILED";
+	ref: string;
+	facts: Record<string, string | number | boolean | null>;
+};
+
+export type TaskObserverDiagnosticAssessment = {
+	finding: string;
+	probableCause: string;
+	confidence: number;
+	recommendedNextObservation: string;
+	recommendedRecoveryAction: string;
+	needsHumanAttention: boolean;
+};
+
+export interface TaskObserverDiagnosticPort {
+	assess(input: {
+		taskId: string;
+		nodeId: string;
+		runNo: number;
+		anomaly: TaskObserverAnomalySignal;
+	}): Promise<TaskObserverDiagnosticAssessment>;
+}
+
 export interface TaskObserverOwnerPort {
 	getTaskDriveProjection(taskId: string): Promise<TaskDriveProjection>;
 }
@@ -39,9 +69,11 @@ export interface TaskObserverCarrierPort {
 		taskId: string;
 		nodeId: string;
 		runNo: number;
+		roleRef: string;
 		workerRef: string;
 		trigger: string;
 		conversationLocator: string | null;
+		underlyingRef?: string;
 	}): Promise<unknown>;
 }
 
@@ -51,6 +83,7 @@ export type TaskObserverDecision =
 			taskId: string;
 			nodeId: string;
 			runNo: number;
+			roleRef: string;
 			workerRef: string;
 			trigger: string;
 			conversationLocator: string | null;
@@ -60,53 +93,122 @@ export type TaskObserverDecision =
 			taskId: string;
 			nodeId: string;
 			runNo: number;
+			roleRef: string;
 			workerRef: string;
 			trigger: string;
+			conversationLocator: string;
+			underlyingRef: string;
+	  }
+	| {
+			kind: "DIAGNOSTIC";
+			taskId: string;
+			nodeId: string;
+			runNo: number;
+			anomalyRef: string;
+			assessment: TaskObserverDiagnosticAssessment;
 	  }
 	| { kind: "STOP_DRIVING"; taskId: string; reason: "TERMINAL" }
 	| { kind: "NOOP"; taskId: string; reason: string };
 
 const NODE_READY_TRIGGER = "NODE_READY";
+const REOPEN_TRIGGER = "REOPEN";
 
 export function createTaskObserver(options: {
 	owner: TaskObserverOwnerPort;
 	carrier: TaskObserverCarrierPort;
+	diagnostic?: TaskObserverDiagnosticPort;
 }) {
-	const advance = async (taskId: string): Promise<TaskObserverDecision> => {
+	const advance = async (
+		taskId: string,
+		resumeSignal?: TaskObserverResumeSignal,
+		anomalySignal?: TaskObserverAnomalySignal,
+	): Promise<TaskObserverDecision> => {
 		const projection = await options.owner.getTaskDriveProjection(taskId);
 		// Terminal Tasks stop driving; history and bindings are retained.
 		if (projection.terminal || projection.currentNode === null)
 			return { kind: "STOP_DRIVING", taskId, reason: "TERMINAL" };
 		const node = projection.currentNode;
+		if (anomalySignal) {
+			if (!options.diagnostic)
+				return { kind: "NOOP", taskId, reason: "DIAGNOSTIC_UNAVAILABLE" };
+			const assessment = await options.diagnostic.assess({
+				taskId,
+				nodeId: node.nodeId,
+				runNo: node.runNo,
+				anomaly: anomalySignal,
+			});
+			return {
+				kind: "DIAGNOSTIC",
+				taskId,
+				nodeId: node.nodeId,
+				runNo: node.runNo,
+				anomalyRef: anomalySignal.ref,
+				assessment,
+			};
+		}
 		const binding = projection.roleBinding;
-		if (!projection.canDrive || !binding?.workerRef || !binding.conversationLocator)
+		if (
+			!projection.canDrive ||
+			!binding?.workerRef ||
+			!binding.conversationLocator
+		)
 			return { kind: "NOOP", taskId, reason: "BINDING_NOT_READY" };
 		if (node.status === "READY") {
 			// WAKE the correct Worker with a minimal trigger; the Worker then
-			// performs formal work acceptance through the Task owner.
+			// performs formal work acceptance through the Task owner. A reopened
+			// run reuses the same TaskRoleBinding/Conversation but keeps the reason
+			// distinct from a first-run NODE_READY wake.
 			return {
 				kind: "WAKE",
 				taskId,
 				nodeId: node.nodeId,
 				runNo: node.runNo,
+				roleRef: binding.roleRef,
 				workerRef: binding.workerRef,
-				trigger: NODE_READY_TRIGGER,
+				trigger: node.runNo > 1 ? REOPEN_TRIGGER : NODE_READY_TRIGGER,
 				conversationLocator: binding.conversationLocator,
+			};
+		}
+		if (resumeSignal) {
+			if (resumeSignal.targetWorkerRef !== binding.workerRef)
+				return {
+					kind: "NOOP",
+					taskId,
+					reason: "RESUME_TARGET_NOT_CURRENT_WORKER",
+				};
+			return {
+				kind: "RESUME",
+				taskId,
+				nodeId: node.nodeId,
+				runNo: node.runNo,
+				roleRef: binding.roleRef,
+				workerRef: binding.workerRef,
+				trigger: resumeSignal.trigger,
+				conversationLocator: binding.conversationLocator,
+				underlyingRef: resumeSignal.ref,
 			};
 		}
 		return { kind: "NOOP", taskId, reason: "NO_NEXT_STEP" };
 	};
 
-	const drive = async (taskId: string): Promise<TaskObserverDecision> => {
-		const decision = await advance(taskId);
-		if (decision.kind === "WAKE")
+	const drive = async (
+		taskId: string,
+		resumeSignal?: TaskObserverResumeSignal,
+		anomalySignal?: TaskObserverAnomalySignal,
+	): Promise<TaskObserverDecision> => {
+		const decision = await advance(taskId, resumeSignal, anomalySignal);
+		if (decision.kind === "WAKE" || decision.kind === "RESUME")
 			await options.carrier.requestWake({
 				taskId: decision.taskId,
 				nodeId: decision.nodeId,
 				runNo: decision.runNo,
+				roleRef: decision.roleRef,
 				workerRef: decision.workerRef,
 				trigger: decision.trigger,
 				conversationLocator: decision.conversationLocator,
+				...(decision.kind === "RESUME"
+					? { underlyingRef: decision.underlyingRef }
+					: {}),
 			});
 		return decision;
 	};

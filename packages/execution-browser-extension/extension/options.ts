@@ -11,45 +11,77 @@ type ChromeOptions = {
 };
 declare const chrome: ChromeOptions;
 
-const endpoint = document.querySelector<HTMLInputElement>("#endpoint");
-const token = document.querySelector<HTMLInputElement>("#token");
-const status = document.querySelector<HTMLElement>("#status");
-const form = document.querySelector<HTMLFormElement>("#bridge-form");
-if (!endpoint || !token || !status || !form)
-	throw new Error("OPTIONS_DOM_INVALID");
+type LocalConfigForm = {
+	storageKey: "proflowRuntimeBridge" | "proflowTaskApplication";
+	formId: string;
+	endpointId: string;
+	tokenId: string;
+	statusId: string;
+};
+
+function parseEndpoint(raw: string): string {
+	const parsed = new URL(raw);
+	if (
+		parsed.protocol !== "http:" ||
+		parsed.hostname !== "127.0.0.1" ||
+		parsed.pathname !== "/" ||
+		parsed.search !== "" ||
+		parsed.hash !== ""
+	)
+		throw new Error("Endpoint must be a loopback HTTP origin");
+	return raw.replace(/\/$/, "");
+}
+
+function wireConfigForm(config: LocalConfigForm) {
+	const endpoint = document.querySelector<HTMLInputElement>(
+		`#${config.endpointId}`,
+	);
+	const token = document.querySelector<HTMLInputElement>(`#${config.tokenId}`);
+	const status = document.querySelector<HTMLElement>(`#${config.statusId}`);
+	const form = document.querySelector<HTMLFormElement>(`#${config.formId}`);
+	if (!endpoint || !token || !status || !form)
+		throw new Error("OPTIONS_DOM_INVALID");
+
+	void chrome.storage.local.get(config.storageKey).then((stored) => {
+		const value = stored[config.storageKey];
+		if (typeof value !== "object" || value === null) return;
+		const record = value as Record<string, unknown>;
+		if (typeof record.endpoint === "string") endpoint.value = record.endpoint;
+	});
+
+	form.addEventListener("submit", (event) => {
+		event.preventDefault();
+		void (async () => {
+			const normalizedEndpoint = parseEndpoint(endpoint.value);
+			if (token.value.length < 32) throw new Error("Token is too short");
+			await chrome.storage.local.set({
+				[config.storageKey]: {
+					endpoint: normalizedEndpoint,
+					token: token.value,
+				},
+			});
+			token.value = "";
+			status.textContent = "Saved.";
+		})().catch((error: unknown) => {
+			status.textContent =
+				error instanceof Error ? error.message : "Save failed";
+		});
+	});
+}
 
 document.querySelector<HTMLElement>("#extension-id")?.append(chrome.runtime.id);
 
-void chrome.storage.local.get("proflowRuntimeBridge").then((stored) => {
-	const config = stored.proflowRuntimeBridge;
-	if (typeof config !== "object" || config === null) return;
-	const record = config as Record<string, unknown>;
-	if (typeof record.endpoint === "string") endpoint.value = record.endpoint;
+wireConfigForm({
+	storageKey: "proflowRuntimeBridge",
+	formId: "bridge-form",
+	endpointId: "bridge-endpoint",
+	tokenId: "bridge-token",
+	statusId: "bridge-status",
 });
-
-form.addEventListener("submit", (event) => {
-	event.preventDefault();
-	void (async () => {
-		const parsed = new URL(endpoint.value);
-		if (
-			parsed.protocol !== "http:" ||
-			parsed.hostname !== "127.0.0.1" ||
-			parsed.pathname !== "/" ||
-			parsed.search !== "" ||
-			parsed.hash !== ""
-		)
-			throw new Error("Endpoint must be a loopback HTTP origin");
-		if (token.value.length < 32) throw new Error("Token is too short");
-		await chrome.storage.local.set({
-			proflowRuntimeBridge: {
-				endpoint: endpoint.value.replace(/\/$/, ""),
-				token: token.value,
-			},
-		});
-		token.value = "";
-		status.textContent =
-			"Saved. Reload the extension to start a fresh session.";
-	})().catch((error: unknown) => {
-		status.textContent = error instanceof Error ? error.message : "Save failed";
-	});
+wireConfigForm({
+	storageKey: "proflowTaskApplication",
+	formId: "task-application-form",
+	endpointId: "task-application-endpoint",
+	tokenId: "task-application-token",
+	statusId: "task-application-status",
 });

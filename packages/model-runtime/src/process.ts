@@ -15,6 +15,7 @@ import {
 } from "./provider.ts";
 import { createModelRuntimeService } from "./service.ts";
 import { systemHealthAssessmentSpec } from "./specs/system-health-assessment.ts";
+import { taskDiagnosticSpec } from "./specs/task-diagnostic.ts";
 
 const configSchema = z
 	.object({
@@ -120,7 +121,7 @@ export async function createModelRuntimeProcess(input: {
 		});
 	let roles = await verify();
 	const runtime = createModelRuntime({
-		specs: [systemHealthAssessmentSpec],
+		specs: [systemHealthAssessmentSpec, taskDiagnosticSpec],
 		roles,
 		provider,
 		refreshRoles: async () => {

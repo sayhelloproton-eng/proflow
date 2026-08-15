@@ -171,7 +171,10 @@ test("REG-EXE-BR-08 durable Execution Runtime reaches browser reality through th
 		browser: bridge.browser,
 		task: {
 			async getWorkerBinding() {
-				return "c-real";
+				return {
+					workerRef: "c-real",
+					conversationLocator: "https://chatgpt.com/g/g-dev/c/c-real",
+				};
 			},
 			async bindWorker() {},
 		},

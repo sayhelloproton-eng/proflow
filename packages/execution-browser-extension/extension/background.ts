@@ -1,4 +1,13 @@
-export {};
+import {
+	createCollaborationCarrierApplication,
+	createSystemObserver,
+	createTaskObserver,
+	type SystemObserverReasonRequest,
+	type SystemObserverReasonResult,
+	type SystemObserverView,
+	type TaskDriveProjection,
+	type TaskObserverDiagnosticAssessment,
+} from "../src/index.js";
 
 type PageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 type ActivityKind =
@@ -19,8 +28,13 @@ type ContentObservation = {
 	observedAt: string;
 };
 type RuntimeMessage = {
-	type: "PROFLOW_CONTENT_OBSERVATION" | "PROFLOW_SIDE_PANEL_SNAPSHOT";
+	type:
+		| "PROFLOW_CONTENT_OBSERVATION"
+		| "PROFLOW_SIDE_PANEL_SNAPSHOT"
+		| "PROFLOW_TASK_APPLICATION";
 	observation?: Omit<ContentObservation, "tabId" | "windowId">;
+	operation?: string;
+	input?: Record<string, unknown>;
 };
 type BridgeConfig = { endpoint: string; token: string };
 type BridgeCommand = {
@@ -66,7 +80,10 @@ type ChromeRuntime = {
 	};
 	storage: {
 		session: { set(value: Record<string, unknown>): Promise<void> };
-		local: { get(key: string): Promise<Record<string, unknown>> };
+		local: {
+			get(key: string): Promise<Record<string, unknown>>;
+			set(value: Record<string, unknown>): Promise<void>;
+		};
 	};
 	sidePanel: {
 		setPanelBehavior(options: {
@@ -136,6 +153,254 @@ function parseConfig(value: unknown): BridgeConfig | null {
 async function bridgeConfig(): Promise<BridgeConfig | null> {
 	const stored = await chrome.storage.local.get("proflowRuntimeBridge");
 	return parseConfig(stored.proflowRuntimeBridge);
+}
+
+async function taskApplicationConfig(): Promise<BridgeConfig | null> {
+	const stored = await chrome.storage.local.get("proflowTaskApplication");
+	return parseConfig(stored.proflowTaskApplication);
+}
+
+async function invokeTaskApplication(
+	operation: string,
+	input: Record<string, unknown>,
+): Promise<unknown> {
+	const config = await taskApplicationConfig();
+	if (!config) throw new Error("TASK_APPLICATION_NOT_CONFIGURED");
+	const response = await fetch(`${config.endpoint}/application/task`, {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${config.token}`,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({ operation, input }),
+	});
+	const body = (await response.json()) as unknown;
+	if (!response.ok) {
+		const detail =
+			isRecord(body) && typeof body.error === "string"
+				? body.error
+				: "TASK_APPLICATION_REQUEST_FAILED";
+		throw new Error(detail);
+	}
+	return body;
+}
+
+async function invokeObserverApplication(
+	operation: string,
+	input: Record<string, unknown>,
+): Promise<unknown> {
+	const config = await taskApplicationConfig();
+	if (!config) throw new Error("OBSERVER_APPLICATION_NOT_CONFIGURED");
+	const response = await fetch(`${config.endpoint}/application/observer`, {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${config.token}`,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({ operation, input }),
+	});
+	const body = (await response.json()) as unknown;
+	if (!response.ok) {
+		const detail =
+			isRecord(body) && typeof body.error === "string"
+				? body.error
+				: "OBSERVER_APPLICATION_REQUEST_FAILED";
+		throw new Error(detail);
+	}
+	return body;
+}
+
+const taskObserver = createTaskObserver({
+	owner: {
+		async getTaskDriveProjection(taskId) {
+			return (await invokeObserverApplication("task.projection", {
+				taskId,
+			})) as TaskDriveProjection;
+		},
+	},
+	diagnostic: {
+		async assess(input) {
+			return (await invokeObserverApplication("task.diagnostic", {
+				taskId: input.taskId,
+				nodeId: input.nodeId,
+				correlationId: input.anomaly.ref,
+				payload: input,
+			})) as TaskObserverDiagnosticAssessment;
+		},
+	},
+	carrier: {
+		async requestWake(input) {
+			return invokeObserverApplication("task.wake", input);
+		},
+	},
+});
+
+const collaborationCarrier = createCollaborationCarrierApplication({
+	task: {
+		async getWorkerBinding(taskId, roleRef) {
+			return (await invokeObserverApplication("collaboration.binding", {
+				taskId,
+				roleRef,
+			})) as { workerRef: string; conversationLocator: string | null } | null;
+		},
+	},
+	agent: {
+		async listPendingMessages(limit) {
+			return (await invokeObserverApplication("collaboration.listPending", {
+				limit,
+			})) as Awaited<
+				ReturnType<
+					Parameters<
+						typeof createCollaborationCarrierApplication
+					>[0]["agent"]["listPendingMessages"]
+				>
+			>;
+		},
+		async getPendingMessage(messageRef) {
+			return (await invokeObserverApplication("collaboration.getPending", {
+				messageRef,
+			})) as Awaited<
+				ReturnType<
+					Parameters<
+						typeof createCollaborationCarrierApplication
+					>[0]["agent"]["getPendingMessage"]
+				>
+			>;
+		},
+		async reportDeliveryOutcome(input) {
+			await invokeObserverApplication("collaboration.reportDelivery", input);
+		},
+	},
+	execution: {
+		async execute(request) {
+			return invokeObserverApplication("collaboration.execute", { request });
+		},
+	},
+	callerRef: "extension:collaboration-carrier",
+});
+
+const systemObserver = createSystemObserver({
+	snapshots: {
+		async readView(view: SystemObserverView) {
+			return invokeObserverApplication("system.view", { view });
+		},
+		async readDrilldown({ topic }) {
+			return invokeObserverApplication("system.drilldown", { topic });
+		},
+	},
+	async reason(request: SystemObserverReasonRequest) {
+		return (await invokeObserverApplication("system.reason", {
+			assessmentRef: request.assessmentRef,
+			payload: request,
+		})) as SystemObserverReasonResult;
+	},
+});
+
+const SYSTEM_OBSERVER_STATE_KEY = "proflowSystemObserverState";
+type PersistedSystemObserverState = {
+	assessmentRef: string;
+	observedAt: string;
+	unresolved: string[];
+	carryForward: Array<{
+		hypothesis: string;
+		risk?: string;
+		evidenceRef?: string;
+		confidence: number;
+	}>;
+};
+
+async function loadSystemObserverState(): Promise<PersistedSystemObserverState | null> {
+	const stored = await chrome.storage.local.get(SYSTEM_OBSERVER_STATE_KEY);
+	const value = stored[SYSTEM_OBSERVER_STATE_KEY];
+	if (!isRecord(value)) return null;
+	if (
+		typeof value.assessmentRef !== "string" ||
+		typeof value.observedAt !== "string"
+	) {
+		return null;
+	}
+	const unresolved = Array.isArray(value.unresolved)
+		? value.unresolved
+				.filter((item): item is string => typeof item === "string")
+				.slice(0, 50)
+		: [];
+	const carryForward = Array.isArray(value.carryForward)
+		? value.carryForward.slice(0, 50).flatMap((item) => {
+				if (
+					!isRecord(item) ||
+					typeof item.hypothesis !== "string" ||
+					typeof item.confidence !== "number"
+				) {
+					return [];
+				}
+				return [
+					{
+						hypothesis: item.hypothesis,
+						...(typeof item.risk === "string" ? { risk: item.risk } : {}),
+						...(typeof item.evidenceRef === "string"
+							? { evidenceRef: item.evidenceRef }
+							: {}),
+						confidence: item.confidence,
+					},
+				];
+			})
+		: [];
+	return {
+		assessmentRef: value.assessmentRef,
+		observedAt: value.observedAt,
+		unresolved,
+		carryForward,
+	};
+}
+
+async function persistSystemObserverState(
+	result: Awaited<ReturnType<typeof systemObserver.synthesize>>,
+) {
+	if (result.status !== "ASSESSED" || !result.global) return;
+	await chrome.storage.local.set({
+		[SYSTEM_OBSERVER_STATE_KEY]: {
+			assessmentRef: result.assessmentRef,
+			observedAt: result.observedAt,
+			unresolved: [...result.global.unresolved],
+			carryForward: result.global.carryForward.map((item) => ({ ...item })),
+		} satisfies PersistedSystemObserverState,
+	});
+}
+
+let observerRecoveryInFlight: Promise<void> | null = null;
+function runObserverRecovery() {
+	if (observerRecoveryInFlight) return observerRecoveryInFlight;
+	observerRecoveryInFlight = (async () => {
+		await collaborationCarrier.recoverPending(50).catch(() => undefined);
+		const listed = await invokeTaskApplication("task.list", {});
+		if (isRecord(listed) && Array.isArray(listed.tasks)) {
+			for (const candidate of listed.tasks.slice(0, 100)) {
+				if (!isRecord(candidate) || typeof candidate.taskId !== "string")
+					continue;
+				if (
+					candidate.status === "SUCCEEDED" ||
+					candidate.status === "TERMINATED"
+				)
+					continue;
+				await taskObserver.drive(candidate.taskId).catch(() => undefined);
+			}
+		}
+		const previousSystemState = await loadSystemObserverState().catch(
+			() => null,
+		);
+		const systemAssessment = await systemObserver
+			.synthesize({
+				previousUnresolved: previousSystemState?.unresolved ?? [],
+				previousCarryForward: previousSystemState?.carryForward ?? [],
+			})
+			.catch(() => null);
+		if (systemAssessment) {
+			await persistSystemObserverState(systemAssessment).catch(() => undefined);
+		}
+	})().finally(() => {
+		observerRecoveryInFlight = null;
+	});
+	return observerRecoveryInFlight;
 }
 
 function observationFor(tabId: number): ContentObservation {
@@ -392,26 +657,53 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 		};
 		sessions.set(sender.tab.id, observed);
 		void persistSnapshot();
+		if (observed.pageState === "IDLE") void runObserverRecovery();
 		sendResponse({ accepted: true, extensionInstanceId });
 		return;
 	}
 	if (message.type === "PROFLOW_SIDE_PANEL_SNAPSHOT") {
-		sendResponse({
-			extensionInstanceId,
-			observedAt: new Date().toISOString(),
-			sessions: [...sessions.values()],
-		});
+		void taskApplicationConfig().then((application) =>
+			sendResponse({
+				extensionInstanceId,
+				observedAt: new Date().toISOString(),
+				sessions: [...sessions.values()],
+				taskApplicationConfigured: application !== null,
+			}),
+		);
+		return true;
+	}
+	if (message.type === "PROFLOW_TASK_APPLICATION") {
+		if (typeof message.operation !== "string" || !message.input) {
+			sendResponse({ ok: false, error: "TASK_APPLICATION_MESSAGE_INVALID" });
+			return;
+		}
+		void invokeTaskApplication(message.operation, message.input).then(
+			(value) => {
+				void runObserverRecovery();
+				sendResponse({ ok: true, value });
+			},
+			(error: unknown) =>
+				sendResponse({
+					ok: false,
+					error:
+						error instanceof Error ? error.message : "TASK_APPLICATION_FAILED",
+				}),
+		);
+		return true;
 	}
 });
 
 chrome.runtime.onInstalled.addListener(() => {
 	void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 	void runBridgeLoop();
+	void runObserverRecovery();
 });
 chrome.runtime.onStartup.addListener(() => {
 	sessions.clear();
 	void persistSnapshot();
 	void runBridgeLoop();
+	void runObserverRecovery();
 });
 void persistSnapshot();
 void runBridgeLoop();
+void runObserverRecovery();

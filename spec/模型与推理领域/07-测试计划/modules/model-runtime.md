@@ -217,3 +217,12 @@ implementationWave: Wave 2
 ### TODO Binding
 
 `MODEL-RT-008` 至少绑定 `CP-MODEL-RT-09..13`。实现不能通过在 `model-runtime` 内增加 System Observer Store/Engine/Scheduler 来满足这些 Proof；batch/carry-forward orchestration 属于 caller/application，Model Runtime 只提供 typed inference。
+
+
+### 2026-08-15 Batch 3 executable mapping
+
+- `CP-MODEL-RT-09` → `packages/execution-browser-extension/tests/task-observer-runtime.test.ts` + `packages/model-runtime/tests/observer-task-diagnostic-alignment.test.ts`。
+- `CP-MODEL-RT-10..12` → `packages/execution-browser-extension/tests/system-observer-runtime.test.ts` + `packages/execution-browser-extension/tests/background-observer-application.test.ts` + `packages/model-runtime/tests/observer-system-assessment-alignment.test.ts`。
+- `CP-MODEL-RT-13` 仍为 **REAL_EXTERNAL / 手机 REASON gate**，本 Batch 不得用 fake/provider mock 宣称关闭。
+
+Batch 3 只补正式 caller/application wiring 与 bounded schema proof；真实 MLXHub REASON/Vision/latency/load 仍在 Smoke/Real E2E 阶段验证。

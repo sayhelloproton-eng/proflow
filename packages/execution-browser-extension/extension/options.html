@@ -3,24 +3,41 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width,initial-scale=1" />
-		<title>ProFlow Runtime Bridge</title>
+		<title>ProFlow Local Connections</title>
 		<style>
 			body { font: 14px system-ui; margin: 24px; max-width: 680px; }
+			section { border-top: 1px solid #ddd; margin-top: 24px; padding-top: 12px; }
 			label { display: block; margin: 16px 0; }
 			input { box-sizing: border-box; display: block; margin-top: 6px; padding: 8px; width: 100%; }
 			button { padding: 8px 14px; }
-			#status { margin-top: 12px; }
+			[role="status"] { margin-top: 12px; }
 		</style>
 	</head>
 	<body>
-		<h1>Runtime bridge</h1>
+		<h1>ProFlow local connections</h1>
 		<p>Extension ID: <code id="extension-id"></code></p>
-		<form id="bridge-form">
-			<label>Loopback endpoint <input id="endpoint" required placeholder="http://127.0.0.1:47831" /></label>
-			<label>Ephemeral bridge token <input id="token" type="password" required autocomplete="off" /></label>
-			<button type="submit">Save bridge configuration</button>
-		</form>
-		<p id="status" role="status"></p>
+
+		<section>
+			<h2>Browser Reality Bridge</h2>
+			<form id="bridge-form">
+				<label>Loopback endpoint <input id="bridge-endpoint" required placeholder="http://127.0.0.1:47831" /></label>
+				<label>Ephemeral bridge token <input id="bridge-token" type="password" required autocomplete="off" /></label>
+				<button type="submit">Save bridge</button>
+			</form>
+			<p id="bridge-status" role="status"></p>
+		</section>
+
+		<section>
+			<h2>Task Application</h2>
+			<p>Connects the Side Panel to the loopback platform-host application surface. This credential is separate from Role and Browser-bridge credentials.</p>
+			<form id="task-application-form">
+				<label>Platform-host endpoint <input id="task-application-endpoint" required placeholder="http://127.0.0.1:47830" /></label>
+				<label>Task application token <input id="task-application-token" type="password" required autocomplete="off" /></label>
+				<button type="submit">Save Task application</button>
+			</form>
+			<p id="task-application-status" role="status"></p>
+		</section>
+
 		<script type="module" src="../dist/extension/options.js"></script>
 	</body>
 </html>

@@ -108,3 +108,19 @@ STOP：必须新增host-owned state/scheduler/Observer authority/Browser runtime
 - [ ] **RF-HOST-10** — Role OpenAPI 与 Host ACL 漂移。
 
 **Executable proof**：`packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts`。
+
+
+## 2026-08-15 Pre-Smoke Batch 3｜Browser Application / Observer / Carrier Addendum
+
+- [ ] **CP-HOST-11** — Extension Task Application 通过 authenticated loopback composition 实际完成 `Task.create(PENDING) → 固定三 Role Worker 经 Execution 创建并回写 TaskRoleBinding → Task READY → Task.start(ACTIVE)`；UI/host 均不复制 Task readiness/state-machine truth。
+- [ ] **RF-HOST-11** — Worker 创建绕过 Execution、UI/host 直接写 Task binding/readiness、缺失 binding 被假定成功、或通过第二套 Task Store 完成 J1。
+
+**Executable proof**：`packages/platform-host/tests/task-application-entry.test.ts` 中 `PRESMOKE-B3-APP-03`。
+
+
+### Batch 3 host boundary proof mapping
+
+- `CP-HOST-06/07` → `packages/platform-host/tests/journey-observer-composition-boundary.test.ts`：Host 只暴露 authenticated Task/System Observer owner/model transport，且无 Observer/Carrier timer、business scheduler、assessment truth。
+- `CP-HOST-11` → `packages/platform-host/tests/task-application-entry.test.ts`：真实 application HTTP 路径证明 `Task.create(PENDING) → 3×worker.create → TaskRoleBinding → READY → startTask`，并证明中途 Worker 创建失败后 `task.ensureWorkers` 只补缺失 binding、不重建已成功 Worker。
+- Collaboration Browser physical lifecycle 的 Owner/Carrier proof 归 `execution-browser-extension`；Host 只做 `collaboration.*` transport/composition，不以此 Test Plan 宣称 physical Browser E2E。
+- Browser Executor 注入唯一 `execution-runtime` binary/readiness 属 **Batch 4 / P1-15**，Host/Browser 本批不得建立 alternate Execution Runtime。

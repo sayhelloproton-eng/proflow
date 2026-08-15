@@ -272,6 +272,9 @@ importers:
       '@tomflow/proflow-agent-runtime':
         specifier: workspace:^
         version: link:../agent-runtime
+      '@tomflow/proflow-execution-browser-extension':
+        specifier: workspace:^
+        version: link:../execution-browser-extension
       '@tomflow/proflow-task-migration-runner':
         specifier: workspace:^
         version: link:../task-migration-runner
@@ -291,9 +294,6 @@ importers:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
-      '@tomflow/proflow-execution-browser-extension':
-        specifier: workspace:^
-        version: link:../execution-browser-extension
       '@tomflow/proflow-execution-runtime':
         specifier: workspace:^
         version: link:../execution-runtime

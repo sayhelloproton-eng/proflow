@@ -104,14 +104,6 @@ function migrationMetadataColumns(database: DatabaseSync): Set<string> {
 	);
 }
 
-function schemaMigrationColumnOrder(database: DatabaseSync): string[] {
-	return (
-		database.prepare("PRAGMA table_info(schema_migrations)").all() as Array<{
-			name: string;
-		}>
-	).map((row) => row.name);
-}
-
 function openDatabase(databasePath: string): DatabaseSync {
 	if (databasePath !== ":memory:")
 		mkdirSync(dirname(databasePath), { recursive: true });
@@ -123,28 +115,13 @@ function openDatabase(databasePath: string): DatabaseSync {
 		"CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, checksum TEXT, applied_at TEXT NOT NULL);",
 	);
 	const columns = migrationMetadataColumns(database);
-	if (!columns.has("checksum"))
+	if (!columns.has("checksum")) {
+		// Preserve historical migration metadata in place. SQLite appends the
+		// nullable checksum column to pre-checksum installations; physical column
+		// ordinal is not part of the migration contract and must not be normalized
+		// with a non-transactional rename/create/copy/drop sequence. This keeps a
+		// crash from stranding authoritative migration history in a side table.
 		database.exec("ALTER TABLE schema_migrations ADD COLUMN checksum TEXT");
-	// A pre-checksum legacy installation stores (version, name, applied_at); the
-	// ALTER above appends checksum after applied_at. Rebuild to the canonical
-	// (version, name, checksum, applied_at) order so a legacy-upgraded metadata
-	// table is physically identical to a fresh install.
-	const canonicalOrder = ["version", "name", "checksum", "applied_at"];
-	const currentOrder = schemaMigrationColumnOrder(database);
-	if (
-		currentOrder.length !== canonicalOrder.length ||
-		currentOrder.some((name, index) => name !== canonicalOrder[index])
-	) {
-		database.exec(
-			"ALTER TABLE schema_migrations RENAME TO schema_migrations_legacy",
-		);
-		database.exec(
-			"CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, checksum TEXT, applied_at TEXT NOT NULL);",
-		);
-		database.exec(
-			"INSERT INTO schema_migrations(version, name, checksum, applied_at) SELECT version, name, checksum, applied_at FROM schema_migrations_legacy",
-		);
-		database.exec("DROP TABLE schema_migrations_legacy");
 	}
 	return database;
 }

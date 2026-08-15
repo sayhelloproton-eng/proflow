@@ -17,7 +17,10 @@ import { z } from "zod";
 const boundedViewSchema = z
 	.object({
 		summary: z.string().min(1).max(2_000),
-		health: z.enum(["HEALTHY", "DEGRADED", "ACTION_REQUIRED", "UNKNOWN"]),
+		health: z.enum(["HEALTHY", "DEGRADED", "CRITICAL", "UNKNOWN"]),
+		projectionStatus: z
+			.enum(["AVAILABLE", "LIMITED", "UNAVAILABLE"])
+			.optional(),
 		findings: z.array(z.string().min(1).max(500)).max(64).optional(),
 		evidenceRefs: z.array(z.string().min(1)).max(64).optional(),
 	})
@@ -39,6 +42,24 @@ const carryForwardItemSchema = z
 	})
 	.strict();
 
+const derivedAssessmentSchema = z
+	.object({
+		scope: z.string().min(1).max(240),
+		observedAt: z.iso.datetime(),
+		health: z.enum(["HEALTHY", "DEGRADED", "CRITICAL", "UNKNOWN"]),
+		findings: z.array(z.string().min(1).max(500)).max(128),
+		risks: z.array(z.string().min(1).max(500)).max(128),
+		anomalies: z.array(z.string().min(1).max(500)).max(128),
+		hypotheses: z.array(z.string().min(1).max(500)).max(128),
+		unresolved: z.array(z.string().min(1).max(500)).max(128),
+		needsDrilldown: z.array(z.string().min(1).max(500)).max(128),
+		evidenceRefs: z.array(z.string().min(1)).max(128),
+		confidence: z.number().min(0).max(1),
+		carryForward: z.array(carryForwardItemSchema).max(64),
+		rationale: z.string().min(1).max(240),
+	})
+	.strict();
+
 export const systemHealthAssessmentSpec = createReasoningSpec({
 	id: "system.health-assessment",
 	version: "1.0.0",
@@ -53,24 +74,46 @@ export const systemHealthAssessmentSpec = createReasoningSpec({
 			checks: z.array(probeCheckSchema).min(1).optional(),
 			// Bounded System Assessment input (MODEL-DOC-03-08 §3).
 			observedAt: z.iso.datetime().optional(),
+			assessmentKind: z
+				.enum(["CONCERN_BATCH", "DRILLDOWN", "GLOBAL_SYNTHESIS"])
+				.optional(),
+			scope: z.string().min(1).max(240).optional(),
 			views: z
-				.object({
-					task: boundedViewSchema,
-					worker: boundedViewSchema,
-					collaboration: boundedViewSchema,
-					execution: boundedViewSchema,
-					carrier: boundedViewSchema,
-					model: boundedViewSchema,
-					deployment: boundedViewSchema,
-					artifact: boundedViewSchema,
-				})
-				.strict()
+				.partialRecord(
+					z.enum([
+						"task",
+						"worker",
+						"collaboration",
+						"execution",
+						"carrier",
+						"model",
+						"deployment",
+						"artifact",
+					]),
+					boundedViewSchema,
+				)
+				.refine(
+					(value) => Object.keys(value).length > 0,
+					"at least one bounded view is required",
+				)
 				.optional(),
 			previousUnresolved: z
 				.array(z.string().min(1).max(500))
 				.max(64)
 				.optional(),
 			previousCarryForward: z.array(carryForwardItemSchema).max(64).optional(),
+			batchAssessments: z.array(derivedAssessmentSchema).max(16).optional(),
+			drilldown: z
+				.array(
+					z
+						.object({
+							topic: z.string().min(1).max(240),
+							data: boundedViewSchema,
+						})
+						.strict(),
+				)
+				.max(32)
+				.optional(),
 		})
 		.strict()
 		.superRefine((value, context) => {
@@ -99,9 +142,7 @@ export const systemHealthAssessmentSpec = createReasoningSpec({
 				.optional(),
 			// Bounded System Assessment verdict (MODEL-DOC-03-08 §5).
 			scope: z.string().min(1).max(240).optional(),
-			health: z
-				.enum(["HEALTHY", "DEGRADED", "ACTION_REQUIRED", "UNKNOWN"])
-				.optional(),
+			health: z.enum(["HEALTHY", "DEGRADED", "CRITICAL", "UNKNOWN"]).optional(),
 			findings: z.array(z.string().min(1).max(500)).max(128).optional(),
 			risks: z.array(z.string().min(1).max(500)).max(128).optional(),
 			anomalies: z.array(z.string().min(1).max(500)).max(128).optional(),
@@ -119,7 +160,8 @@ export const systemHealthAssessmentSpec = createReasoningSpec({
 		"Inputs are read-only, caller-projected snapshots across eight concern families: task, worker, collaboration, execution, carrier, model, deployment, and artifact.",
 		"Never request or infer raw secrets, entire repository contents, complete source listings, or complete log payloads; only bounded summaries, findings, risks, and evidence references are admissible.",
 		"When a deterministic capability probe (service/checks) is supplied, return decision, reasonCode, confidence, and rationale.",
-		"When System Assessment views are supplied, return scope, health, findings, risks, anomalies, hypotheses, unresolved, needsDrilldown, evidenceRefs, carryForward, confidence, and rationale.",
+		"When System Assessment views are supplied, assess only the supplied bounded concern views; assessmentKind/scope identify concern-batch, drill-down, or global-synthesis caller orchestration.",
+		"Return scope, health, findings, risks, anomalies, hypotheses, unresolved, needsDrilldown, evidenceRefs, carryForward, confidence, and rationale.",
 		"Return exactly one JSON object matching the required output schema.",
 	].join(" "),
 	maxContextBytes: 16_384,

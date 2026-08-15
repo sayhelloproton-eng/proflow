@@ -45,8 +45,8 @@ test("CP-EXE-BR-03 WAKE targets the existing Conversation with a minimal trigger
 	for (const required of ["taskId", "workerRef", "runNo", "trigger"]) {
 		assert.match(text, new RegExp(`\\b${required}\\b`));
 	}
-	assert.doesNotMatch(text, /Requirement|PRD|fullLog|sourceCode.*trigger/i);
-	assert.doesNotMatch(text, /wake.*(?:completeNode|SUCCEEDED.*Task|Task.*SUCCEEDED)/is);
+	assert.doesNotMatch(text, /Requirement.*trigger|PRD|fullLog|sourceCode.*trigger/i);
+	assert.doesNotMatch(text, /wake.*(?:completeNode|SUCCEEDED.*Task|Task.*SUCCEEDED)/i);
 });
 
 test("CP-EXE-BR-04 Task Observer requests WAKE before the Worker formally startNode; Browser does not mutate Node state", async () => {
