@@ -1,10 +1,26 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import {
 	createAgentGatewayProcess,
 	loadAgentGatewayProcessConfig,
 } from "./process.ts";
 
+function installSelf(): never {
+	const executable = process.platform === "win32" ? "npx.cmd" : "npx";
+	const result = spawnSync(
+		executable,
+		["--yes", "@tomflow/proflow-platform-cli", "install", "@tomflow/proflow-agent-gateway"],
+		{ cwd: process.cwd(), env: process.env, stdio: "inherit" },
+	);
+	if (result.error) throw result.error;
+	process.exit(result.status ?? 1);
+}
+
 const [command, configPath] = process.argv.slice(2);
+if (command === "install") {
+	if (configPath) throw new Error("Usage: proflow-agent-gateway install");
+	installSelf();
+}
 if (command !== "start" || !configPath)
 	throw new Error("Usage: proflow-agent-gateway start /absolute/config.json");
 const config = await loadAgentGatewayProcessConfig(configPath);

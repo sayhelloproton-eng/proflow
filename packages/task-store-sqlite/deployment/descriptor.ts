@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "task-orchestration",
+		summary: "Provides the node:sqlite store and repository adapters for Task-owned structured facts.",
+	},
 	provides: [],
 	requires: [
 		{ contractRef: "task-orchestration", versionRange: ">=1.0.0 <2.0.0" },
@@ -36,6 +41,10 @@ export const descriptor = {
 		{
 			kind: "filesystem",
 			description: "Persists Task-owned structured facts in SQLite",
+			retention: "preserve",
 		},
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
 	],
 } as const;

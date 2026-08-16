@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "service",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "model-reasoning",
+		summary: "Provides the ProFlow Model Runtime service with FAST/REASON routing, provider capability checks and inference observability.",
+	},
 	provides: [{ contractRef: "model-runtime", version: "1.0.0" }],
 	requires: [
 		{ contractRef: "model-inference", versionRange: ">=1.0.0 <2.0.0" },
@@ -79,6 +84,7 @@ export const descriptor = {
 			"start",
 			"stop",
 			"restart",
+			"uninstall",
 		],
 	},
 	verification: {
@@ -104,7 +110,11 @@ export const descriptor = {
 		{
 			kind: "process",
 			description: "Runs the Model Runtime HTTP service process",
+			retention: "remove",
 		},
-		{ kind: "network", description: "Calls the configured model provider API" },
+		{ kind: "network", description: "Calls the configured model provider API", retention: "preserve" },
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Model Runtime package overview" },
 	],
 } as const;

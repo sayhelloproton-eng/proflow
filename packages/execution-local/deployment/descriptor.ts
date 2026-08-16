@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "execution",
+		summary: "In-process real local executor for typed ProFlow Execution capabilities.",
+	},
 	provides: [{ contractRef: "execution-local", version: "1.0.0" }],
 	requires: [{ contractRef: "execution", versionRange: ">=1.0.0 <2.0.0" }],
 	requirements: [
@@ -38,4 +43,7 @@ export const descriptor = {
 		],
 	},
 	effects: [],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
+	],
 } as const;

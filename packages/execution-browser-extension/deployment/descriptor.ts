@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "browser-extension",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "execution",
+		summary: "Execution-owned MV3 Browser executor, evidence provider and browser application surface.",
+	},
 	provides: [{ contractRef: "execution-browser-executor", version: "1.0.0" }],
 	requires: [
 		{ contractRef: "execution", versionRange: ">=1.0.0 <2.0.0" },
@@ -94,5 +99,8 @@ export const descriptor = {
 			description:
 				"Package an MV3 extension that performs Execution-authorized Browser effects",
 		},
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
 	],
 } as const;

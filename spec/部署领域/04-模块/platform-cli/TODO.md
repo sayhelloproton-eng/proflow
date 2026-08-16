@@ -225,3 +225,17 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+## 2026-08-16 Real-1 Fresh Workspace Closure
+
+当前人工 Real-1 前置验证确认：既有 CLI 只能从源码 Workspace/已安装 dependencies 发现 Module，且默认 package driver 不产生真实安装事实，因此 Fresh Workspace 首次安装链未闭环。当前整改按既有 Deployment Domain 边界补齐：
+
+- Registry Discovery：动态查询 `@tomflow/proflow-*`，不内置固定 package catalog；
+- Installer environment preflight：Fresh Workspace 无 Module 时也可执行；
+- Workspace Discovery：`package.json` + 本地 resolution 是 Managed Module reality；
+- 真实 package install/remove/upgrade：必须更新 Workspace package manifest/lockfile/node_modules；
+- 高级 `install/uninstall/upgrade` 必须复用 Planner/Apply；
+- package-owned `npx <package> install` 统一委托 Platform CLI，不复制安装器；
+- AI 自描述由 `platform docs` 从当前安装包 Descriptor、npm `bin/exports` 与 package-owned docs 机械聚合；
+- npm 发布准备必须保证 Descriptor/README/bin/self-install 等声明发布表面进入 tarball；
+- 正式测试用例与 evidence 暂不在本轮更新，待人工真实安装链通过后补齐。

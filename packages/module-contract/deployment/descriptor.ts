@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "deployment-governance",
+		summary: "Defines the canonical governance contract for ProFlow modules.",
+	},
 	provides: [],
 	requires: [],
 	requirements: [
@@ -24,4 +29,11 @@ export const descriptor = {
 		],
 	},
 	effects: [],
+	documentation: [
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Module contract package overview",
+		},
+	],
 } as const;

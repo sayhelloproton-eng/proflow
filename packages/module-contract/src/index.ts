@@ -21,6 +21,33 @@ export const moduleKindSchema = z.enum([
 ]);
 export type ModuleKind = z.infer<typeof moduleKindSchema>;
 
+export const moduleInstallClassSchema = z.enum(["core", "optional"]);
+export type ModuleInstallClass = z.infer<typeof moduleInstallClassSchema>;
+
+export const proflowPackageMetadataSchema = z.strictObject({
+	module: z.literal(true),
+	installClass: moduleInstallClassSchema,
+	descriptor: z.string().min(1),
+});
+export type ProFlowPackageMetadata = z.infer<
+	typeof proflowPackageMetadataSchema
+>;
+
+export const moduleIdentitySchema = z.strictObject({
+	domain: identifier,
+	summary: z.string().min(1),
+});
+export type ModuleIdentity = z.infer<typeof moduleIdentitySchema>;
+
+export const moduleDocumentationEntrySchema = z.strictObject({
+	id: identifier,
+	path: z.string().min(1),
+	description: z.string().min(1).optional(),
+});
+export type ModuleDocumentationEntry = z.infer<
+	typeof moduleDocumentationEntrySchema
+>;
+
 export const moduleProvideSchema = z.strictObject({
 	contractRef: identifier,
 	version: semver,
@@ -156,6 +183,7 @@ export const lifecyclePrimitiveSchema = z.enum([
 	"stop",
 	"restart",
 	"migrate",
+	"uninstall",
 ]);
 export type LifecyclePrimitive = z.infer<typeof lifecyclePrimitiveSchema>;
 
@@ -184,9 +212,18 @@ export const verificationContractSchema = z.strictObject({
 });
 export type VerificationContract = z.infer<typeof verificationContractSchema>;
 
+export const effectRetentionSchema = z.enum([
+	"remove",
+	"preserve",
+	"explicit-purge",
+]);
+export type EffectRetention = z.infer<typeof effectRetentionSchema>;
+
 export const deploymentEffectSchema = z.strictObject({
 	kind: z.enum(["filesystem", "process", "network", "external-resource"]),
 	description: z.string().min(1),
+	path: z.string().min(1).optional(),
+	retention: effectRetentionSchema,
 });
 export type DeploymentEffect = z.infer<typeof deploymentEffectSchema>;
 
@@ -200,6 +237,8 @@ export const moduleDescriptorSchema = z
 		kind: moduleKindSchema,
 		templateVersion: semver,
 		platformCompatibility: versionRange,
+		installClass: moduleInstallClassSchema,
+		identity: moduleIdentitySchema,
 		provides: z.array(moduleProvideSchema),
 		requires: z.array(moduleRequireSchema),
 		requirements: z.array(moduleRequirementSchema),
@@ -207,6 +246,7 @@ export const moduleDescriptorSchema = z
 		lifecycle: lifecycleSupportSchema,
 		verification: verificationContractSchema,
 		effects: z.array(deploymentEffectSchema),
+		documentation: z.array(moduleDocumentationEntrySchema),
 	})
 	.superRefine((descriptor, context) => {
 		const supported = descriptor.lifecycle.supported;
@@ -249,6 +289,7 @@ export const deploymentErrorCodeSchema = z.enum([
 	"REQUIREMENT_UNMET",
 	"CONFIG_REQUIRED",
 	"LIFECYCLE_UNSUPPORTED",
+	"CORE_PACKAGE_REQUIRED",
 	"EXTERNAL_RESOURCE_UNAVAILABLE",
 	"PLAN_INVALID",
 	"PLAN_STALE",
@@ -256,6 +297,7 @@ export const deploymentErrorCodeSchema = z.enum([
 	"VERIFY_FAILED",
 	"DOCTOR_FAILED",
 	"UPGRADE_FAILED",
+	"UNINSTALL_FAILED",
 	"COMMAND_FAILED",
 ]);
 export const deploymentErrorSchema = z.strictObject({
@@ -430,6 +472,15 @@ export function assessModuleCompatibility(
 	) {
 		breakingChanges.push("module identity or kind changed");
 	}
+	if (current.installClass !== target.installClass) {
+		breakingChanges.push("module install class changed");
+	}
+	if (
+		current.identity.domain !== target.identity.domain ||
+		current.identity.summary !== target.identity.summary
+	) {
+		breakingChanges.push("module identity metadata changed");
+	}
 	if (major(current.contractVersion) !== major(target.contractVersion)) {
 		breakingChanges.push("module contract major version changed");
 	}
@@ -511,6 +562,12 @@ export function assessModuleCompatibility(
 	}
 	if (JSON.stringify(current.effects) !== JSON.stringify(target.effects)) {
 		breakingChanges.push("deployment effects changed");
+	}
+	if (
+		JSON.stringify(current.documentation) !==
+		JSON.stringify(target.documentation)
+	) {
+		breakingChanges.push("module documentation entries changed");
 	}
 	if (
 		rangeIsTighter(current.platformCompatibility, target.platformCompatibility)

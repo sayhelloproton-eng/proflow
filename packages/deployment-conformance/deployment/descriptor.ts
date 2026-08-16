@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "cli",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "deployment-governance",
+		summary: "Validates ProFlow module contract, package and behavior conformance.",
+	},
 	provides: [],
 	requires: [],
 	requirements: [
@@ -24,4 +29,11 @@ export const descriptor = {
 		],
 	},
 	effects: [],
+	documentation: [
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Deployment conformance package overview",
+		},
+	],
 } as const;

@@ -7,6 +7,7 @@ import {
 	parseModuleDescriptor,
 } from "@tomflow/proflow-module-contract";
 import { applyPlan } from "./apply/apply.ts";
+import { createWorkspacePackageManagerDriver } from "./apply/driver.ts";
 import { rebuildCurrentAssumptions } from "./apply/current.ts";
 import {
 	buildProductionBindings,
@@ -14,10 +15,18 @@ import {
 } from "./binding/production-bindings.ts";
 import type { ResolvedModule } from "./contracts.ts";
 import { AutoModuleCatalog, discoverModules } from "./discovery/discover.ts";
+import { describeModule, readModuleDocument } from "./docs/docs.ts";
 import { doctorModules } from "./doctor/doctor.ts";
 import { PlatformError } from "./errors.ts";
+import { buildDependencyGraph } from "./graph/graph.ts";
 import { generateInstallDoc } from "./install/install.ts";
+import { preflightInstallerEnvironment } from "./install/environment.ts";
 import {
+	selectBootstrapModules,
+	selectUpgradeBootstrapModules,
+} from "./install/bootstrap.ts";
+import {
+	restartModules,
 	startModules,
 	statusModules,
 	stopModules,
@@ -25,25 +34,32 @@ import {
 import { buildManifest } from "./manifest/manifest.ts";
 import type { ModuleCatalog, ModuleSource } from "./modules.ts";
 import { writeDeploymentObserverSummary } from "./observer/deployment-summary.ts";
-import { ensureLayout, workspacePaths } from "./paths.ts";
+import { workspacePaths } from "./paths.ts";
 import { loadConfig } from "./persistence/config.ts";
 import { loadPlan, savePlan } from "./persistence/plans.ts";
 import type { PlanInput } from "./planner/plan.ts";
 import { planDeployment } from "./planner/plan.ts";
 import { diagnoseRepair } from "./planner/repair.ts";
-import { resolveTargetCatalog } from "./planner/target-catalog.ts";
 import { runPreflight } from "./preflight/preflight.ts";
+import { discoverRegistryModules } from "./registry/index.ts";
 import { verifyModules } from "./verification/verify.ts";
 
 const MODULE_REF = "platform-cli";
 const MODULE_VERSION = "0.1.0";
 
 const COMMANDS = [
+	"search",
+	"modules",
+	"docs",
+	"install",
+	"uninstall",
+	"upgrade",
 	"preflight",
 	"plan",
 	"apply",
 	"start",
 	"stop",
+	"restart",
 	"status",
 	"verify",
 	"doctor",
@@ -66,7 +82,6 @@ interface ParsedArgs {
 	workspace: string | undefined;
 	intent: string | undefined;
 	configFile: string | undefined;
-	targetWorkspace: string | undefined;
 	positional: string[];
 }
 
@@ -77,7 +92,6 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 		workspace: undefined,
 		intent: undefined,
 		configFile: undefined,
-		targetWorkspace: undefined,
 		positional,
 	};
 	for (let index = 1; index < argv.length; index += 1) {
@@ -91,9 +105,6 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 			index += 1;
 		} else if (token === "--config") {
 			parsed.configFile = argv[index + 1];
-			index += 1;
-		} else if (token === "--target-workspace") {
-			parsed.targetWorkspace = argv[index + 1];
 			index += 1;
 		} else if (token.startsWith("-")) {
 		} else {
@@ -145,14 +156,25 @@ function selectModules(
 	filter?: string,
 ): readonly ResolvedModule[] {
 	if (filter === undefined) return modules;
-	const selected = modules.filter((module) => module.moduleRef === filter);
+	const selected = modules.filter(
+		(module) => module.moduleRef === filter || module.packageName === filter,
+	);
 	if (selected.length === 0) {
-		throw new PlatformError("INVALID_REQUEST", `module "${filter}" not found`);
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			`module or package "${filter}" not found`,
+		);
 	}
 	return selected;
 }
 
 function moduleSourceOf(module: ResolvedModule): ModuleSource {
+	if (module.source.type === "registry") {
+		throw new PlatformError(
+			"DESCRIPTOR_INVALID",
+			`registry bootstrap target ${module.packageName} has no local descriptor`,
+		);
+	}
 	const source: ModuleSource = {
 		type: module.source.type,
 		packageName: module.packageName,
@@ -222,7 +244,6 @@ interface CliContext {
 async function buildContext(workspace?: string): Promise<CliContext> {
 	const root = workspace ?? process.cwd();
 	const paths = workspacePaths(root);
-	await ensureLayout(paths);
 	const catalog = await buildCatalogWithProductionBindings(root, paths);
 	return { catalog, paths };
 }
@@ -259,6 +280,129 @@ async function buildCatalogWithProductionBindings(
 	return new AutoModuleCatalog(root, bindings);
 }
 
+async function handleSearch(
+	root: string,
+	args: ParsedArgs,
+): Promise<CliOutcome> {
+	const result = await discoverRegistryModules({
+		workspaceRoot: root,
+		...(args.positional[0] === undefined
+			? {}
+			: { packageName: args.positional[0] }),
+	});
+	if (args.positional[0] !== undefined && result.candidates.length === 0) {
+		return outcome("search", "BLOCKED", result);
+	}
+	return outcome("search", "SUCCEEDED", result);
+}
+
+async function handleModules(
+	ctx: CliContext,
+	args: ParsedArgs,
+): Promise<CliOutcome> {
+	const modules = await discoverModules({ catalog: ctx.catalog });
+	const selected = selectModules(modules, args.positional[0]);
+	const descriptors = await loadDescriptors(ctx.catalog, selected);
+	return outcome(
+		"modules",
+		"SUCCEEDED",
+		descriptors.map((descriptor) => ({
+			moduleRef: descriptor.moduleRef,
+			packageName: descriptor.packageName,
+			moduleVersion: descriptor.moduleVersion,
+			kind: descriptor.kind,
+			installClass: descriptor.installClass,
+			identity: descriptor.identity,
+			lifecycle: descriptor.lifecycle.supported,
+			documentation: descriptor.documentation,
+		})),
+	);
+}
+
+async function handleDocs(
+	ctx: CliContext,
+	args: ParsedArgs,
+): Promise<CliOutcome> {
+	if (args.positional.length > 2) {
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			"docs accepts at most <moduleRef|packageName> [documentId]",
+		);
+	}
+	const modules = await discoverModules({ catalog: ctx.catalog });
+	const moduleFilter = args.positional[0];
+	const documentId = args.positional[1];
+	if (documentId !== undefined && moduleFilter === undefined) {
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			"docs document read requires a module",
+		);
+	}
+	const selected = selectModules(modules, moduleFilter);
+	const descriptors = await loadDescriptors(ctx.catalog, selected);
+	if (documentId !== undefined) {
+		const module = selected[0];
+		const descriptor = descriptors[0];
+		if (module === undefined || descriptor === undefined) {
+			throw new PlatformError("MODULE_NOT_FOUND", "docs module not found");
+		}
+		return outcome(
+			"docs",
+			"SUCCEEDED",
+			await readModuleDocument({
+				workspaceRoot: ctx.paths.root,
+				source: moduleSourceOf(module),
+				descriptor,
+				documentId,
+			}),
+		);
+	}
+
+	const views = await Promise.all(
+		selected.map((module, index) =>
+			describeModule({
+				workspaceRoot: ctx.paths.root,
+				source: moduleSourceOf(module),
+				descriptor: descriptors[index]!,
+			}),
+		),
+	);
+	if (moduleFilter !== undefined) {
+		return outcome("docs", "SUCCEEDED", views[0]);
+	}
+	return outcome(
+		"docs",
+		"SUCCEEDED",
+		views.map((view) => ({
+			moduleRef: view.moduleRef,
+			packageName: view.packageName,
+			moduleVersion: view.moduleVersion,
+			kind: view.kind,
+			installClass: view.installClass,
+			identity: view.identity,
+			commands: view.commands,
+			publicApiEntries: view.publicApiEntries,
+			provides: view.provides,
+			requires: view.requires,
+			lifecycle: view.lifecycle,
+			documentation: view.documentation,
+		})),
+	);
+}
+
+async function handleInstallerPreflight(
+	root: string,
+): Promise<CliOutcome> {
+	const result = await preflightInstallerEnvironment({ workspaceRoot: root });
+	const status: CliStatus =
+		result.status === "READY"
+			? "SUCCEEDED"
+			: result.status === "ACTION_REQUIRED"
+				? "ACTION_REQUIRED"
+				: "BLOCKED";
+	return outcome("preflight", status, result);
+}
+
 async function handlePreflight(
 	ctx: CliContext,
 	args: ParsedArgs,
@@ -281,16 +425,94 @@ async function handlePlan(
 		intent !== "install" &&
 		intent !== "configure" &&
 		intent !== "upgrade" &&
+		intent !== "uninstall" &&
 		intent !== "repair"
 	) {
 		throw new PlatformError(
 			"INVALID_REQUEST",
-			"plan requires --intent install|configure|upgrade|repair",
+			"plan requires --intent install|configure|upgrade|uninstall|repair",
 		);
 	}
+	if (intent === "install") {
+		const installer = await preflightInstallerEnvironment({
+			workspaceRoot: ctx.paths.root,
+		});
+		if (installer.status !== "READY") {
+			return outcome(
+				"plan",
+				installer.status === "ACTION_REQUIRED" ? "ACTION_REQUIRED" : "BLOCKED",
+				installer,
+			);
+		}
+		const registry = await discoverRegistryModules({
+			workspaceRoot: ctx.paths.root,
+			...(args.positional[0] === undefined
+				? {}
+				: { packageName: args.positional[0] }),
+		});
+		const bootstrapModules = selectBootstrapModules(
+			registry.candidates,
+			args.positional[0],
+		);
+		const plan = planDeployment({ intent: "install", modules: bootstrapModules });
+		await savePlan(ctx.paths, plan);
+		return outcome("plan", "SUCCEEDED", {
+			planRef: plan.planRef,
+			registry: registry.registry,
+			plan,
+		});
+	}
+
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
 	const config = await loadConfigFile(args.configFile);
+	if (intent === "uninstall") {
+		if (args.positional[0] === undefined) {
+			throw new PlatformError(
+				"INVALID_REQUEST",
+				"uninstall plan requires <moduleRef|packageName>",
+			);
+		}
+		if (selected.every((module) => module.installClass !== "core")) {
+			const removing = new Set(selected.map((module) => module.moduleRef));
+			const remaining = modules.filter(
+				(module) => !removing.has(module.moduleRef),
+			);
+			// Rebuilding the remaining graph is the uninstall dependency gate: if a
+			// required contract or moduleRef binding would disappear, graph
+			// construction fails closed before any removal plan is persisted.
+			buildDependencyGraph(remaining);
+		}
+		const plan = planDeployment({ intent, modules: selected, config });
+		await savePlan(ctx.paths, plan);
+		return outcome("plan", "SUCCEEDED", { planRef: plan.planRef, plan });
+	}
+	if (intent === "upgrade") {
+		const installer = await preflightInstallerEnvironment({
+			workspaceRoot: ctx.paths.root,
+		});
+		if (installer.status !== "READY") {
+			return outcome(
+				"plan",
+				installer.status === "ACTION_REQUIRED" ? "ACTION_REQUIRED" : "BLOCKED",
+				installer,
+			);
+		}
+		const registry = await discoverRegistryModules({
+			workspaceRoot: ctx.paths.root,
+		});
+		const targets = selectUpgradeBootstrapModules(
+			selected,
+			registry.candidates,
+		);
+		const plan = planDeployment({ intent, modules: targets });
+		await savePlan(ctx.paths, plan);
+		return outcome("plan", "SUCCEEDED", {
+			planRef: plan.planRef,
+			registry: registry.registry,
+			plan,
+		});
+	}
 	const preflight = await runPreflight(selected, {
 		config,
 		catalog: ctx.catalog,
@@ -306,22 +528,7 @@ async function handlePlan(
 		);
 	}
 	let input: PlanInput;
-	if (intent === "upgrade") {
-		if (args.targetWorkspace === undefined) {
-			throw new PlatformError(
-				"INVALID_REQUEST",
-				"upgrade requires --target-workspace <path>",
-			);
-		}
-		const target = await resolveTargetCatalog(args.targetWorkspace);
-		input = {
-			intent,
-			modules: selected,
-			currentDescriptors: await loadDescriptors(ctx.catalog, selected),
-			targetDescriptors: target.descriptors,
-			config,
-		};
-	} else if (intent === "repair") {
+	if (intent === "repair") {
 		const diagnosis = diagnoseRepair(
 			await doctorModules(ctx.catalog, selected),
 		);
@@ -355,6 +562,9 @@ async function handleApply(
 		planRef,
 		catalog: ctx.catalog,
 		current,
+		driver: createWorkspacePackageManagerDriver({
+			workspaceRoot: ctx.paths.root,
+		}),
 	});
 	const status: CliStatus =
 		result.outcome === "COMPLETE"
@@ -367,10 +577,66 @@ async function handleApply(
 	return outcome("apply", status, result);
 }
 
+
+function planRefFromOutcome(result: CliOutcome): string {
+	if (
+		typeof result.data !== "object" ||
+		result.data === null ||
+		Array.isArray(result.data)
+	) {
+		throw new PlatformError("PLAN_INVALID", "planned mutation returned no plan data");
+	}
+	const planRef = Reflect.get(result.data, "planRef");
+	if (typeof planRef !== "string" || planRef === "") {
+		throw new PlatformError("PLAN_INVALID", "planned mutation returned no planRef");
+	}
+	return planRef;
+}
+
+async function handleManagedMutation(
+	ctx: CliContext,
+	args: ParsedArgs,
+	intent: "install" | "uninstall" | "upgrade",
+): Promise<CliOutcome> {
+	const planned = await handlePlan(ctx, { ...args, command: "plan", intent });
+	if (planned.status !== "SUCCEEDED") {
+		return { ...planned, command: intent };
+	}
+	const planRef = planRefFromOutcome(planned);
+	const applied = await handleApply(ctx, {
+		...args,
+		command: "apply",
+		intent: undefined,
+		positional: [planRef],
+	});
+	if (applied.status !== "SUCCEEDED") {
+		return outcome(intent, applied.status, {
+			plan: planned.data,
+			apply: applied.data,
+		});
+	}
+
+	// Package mutations change Workspace package reality. Rebuild the catalog
+	// before reporting the managed set so the result can never be sourced from
+	// the pre-mutation catalog.
+	const refreshed = await buildContext(args.workspace);
+	const managed = await handleModules(refreshed, {
+		...args,
+		command: "modules",
+		intent: undefined,
+		positional: [],
+	});
+	return outcome(intent, "SUCCEEDED", {
+		plan: planned.data,
+		apply: applied.data,
+		managedModules: managed.data,
+	});
+}
+
 async function handleLifecycle(
 	ctx: CliContext,
 	args: ParsedArgs,
-	primitive: "start" | "stop" | "status",
+	primitive: "start" | "stop" | "restart" | "status",
 ): Promise<CliOutcome> {
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
@@ -379,7 +645,9 @@ async function handleLifecycle(
 			? await startModules(ctx.catalog, selected)
 			: primitive === "stop"
 				? await stopModules(ctx.catalog, selected)
-				: await statusModules(ctx.catalog, selected);
+				: primitive === "restart"
+					? await restartModules(ctx.catalog, selected)
+					: await statusModules(ctx.catalog, selected);
 	const statuses = result.flatMap((item) =>
 		item.result ? [item.result.status] : [],
 	);
@@ -485,8 +753,27 @@ async function dispatchCommand(argv: readonly string[]): Promise<CliOutcome> {
 		};
 	}
 	try {
+		const root = args.workspace ?? process.cwd();
+		if (args.command === "search") return await handleSearch(root, args);
+		if (args.command === "preflight" && args.intent === "install") {
+			return await handleInstallerPreflight(root);
+		}
 		const ctx = await buildContext(args.workspace);
 		switch (args.command as Command) {
+			case "search":
+				return await handleSearch(root, args);
+			case "modules":
+				return await handleModules(ctx, args);
+			case "docs":
+				return await handleDocs(ctx, args);
+			case "install":
+			case "uninstall":
+			case "upgrade":
+				return await handleManagedMutation(
+					ctx,
+					args,
+					args.command as "install" | "uninstall" | "upgrade",
+				);
 			case "preflight":
 				return await handlePreflight(ctx, args);
 			case "plan":
@@ -495,11 +782,12 @@ async function dispatchCommand(argv: readonly string[]): Promise<CliOutcome> {
 				return await handleApply(ctx, args);
 			case "start":
 			case "stop":
+			case "restart":
 			case "status":
 				return await handleLifecycle(
 					ctx,
 					args,
-					args.command as "start" | "stop" | "status",
+					args.command as "start" | "stop" | "restart" | "status",
 				);
 			case "verify":
 				return await handleVerify(ctx, args);

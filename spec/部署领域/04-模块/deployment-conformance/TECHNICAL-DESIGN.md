@@ -20,25 +20,37 @@ contractRefs:
 
 Conformance 回答：
 
-> “这个 Module 是否可以被平台以统一、稳定、可升级的方式管理？”
+> “这个 Module 是否具备统一发现、安装、管理、诊断、升级/卸载和 AI 自描述所需的真实形式？”
 
-它不替代领域业务测试。
+它不替代领域业务测试，也不替代真实外部环境 E2E。
 
 ## 2. Gate C1：Static Contract
 
 检查：
 
-- ModuleDescriptor schema；
+- `ModuleDescriptor` runtime schema；
 - moduleRef/packageName/moduleVersion；
 - Module Kind；
+- `installClass: core | optional`；
+- `identity.domain / identity.summary`；
 - templateVersion/platformCompatibility；
 - Provides/Requires version 格式与冲突；
 - Requirements 零副作用描述；
 - Config Slot schema；
 - Lifecycle 与 Kind 自洽；
 - Verification Contract；
-- Effects 描述；
+- Effects + cleanup retention；
+- package-owned Documentation entries；
 - External Resource version 语义。
+
+额外不变量：
+
+- documentation id 不重复；
+- documentation path 必须是 package-relative path，不允许 URL/绝对路径；
+- 任一 effect 声明 `retention=remove` 时，Module 必须声明 package-owned `uninstall` lifecycle；
+- library 继续禁止 process lifecycle/process effect；
+- service 必须有 process effect，并声明真实 status/start/stop/restart/verify；
+- Conformance 不因为统一接口强迫无副作用 library 伪造 uninstall。
 
 ## 3. Gate C2：Package
 
@@ -48,11 +60,21 @@ Conformance 回答：
 - TypeScript 类型；
 - runtime schema 可用；
 - 标准 CLI/adapter entry；
-- `--json` 或等价机器接口；
 - stable result/error；
 - secret 不泄漏；
 - template compatibility；
-- npm package version 与 descriptor 输出一致。
+- npm package version 与 Descriptor 一致；
+- `package.json.proflow.module === true`；
+- `package.json.proflow.installClass` 与 Descriptor 完全一致；
+- `package.json.proflow.descriptor` 存在且指向 package-owned descriptor build artifact；
+- package name 必须满足正式 `@tomflow/proflow-*` 规则；
+- Descriptor documentation entries 指向 package 内真实文件；
+- package 发布内容必须包含 Descriptor/README/Conformance 所需入口。
+- 每个正式 Module 必须提供稳定的 package-owned `npx <package> install` 入口；若 package 已有同名业务 CLI，则复用该 CLI 的 `install` 分支，不覆盖原业务命令；否则使用 Template 生成的 `self-install.mjs`；
+- `self-install.mjs` 必须随 npm package 发布，并只委托 Platform CLI 的 `install <self-package>`，不得复制第二套 Registry/Package Manager 安装逻辑；
+- `platform-cli` 自身使用既有 `platform` executable 作为安装入口，不生成递归 self-install delegator。
+
+`package.json.proflow` 只作为 Registry/Workspace Discovery 的轻量索引，完整能力事实仍以 Descriptor 为准；两者冲突必须 FAIL，不能由 CLI 猜哪一份是真的。
 
 ## 4. Gate C3：Behavior
 
@@ -64,7 +86,10 @@ Conformance 回答：
 - `verify` 返回真实 PASS/FAIL；
 - `doctor` 默认无修复副作用；
 - 声明 start/stop/restart/migrate 时验证基本行为和错误语义；
+- 声明 uninstall 时验证 package-owned cleanup operation 使用 structured result，且不得越过 Descriptor 声明的 effect ownership/retention；
 - ACTION_REQUIRED 可恢复语义。
+
+C3 不负责 npm package manager remove；该动作由 Platform CLI 统一执行。
 
 ## 5. 不验证什么
 
@@ -73,9 +98,11 @@ Conformance 回答：
 - Model REASON 是否真的足够聪明；
 - Browser CREATE/WAKE 的全部业务 E2E；
 - Task 状态机是否业务正确；
-- Agent askPeer/replyPeer 是否完整。
+- Agent askPeer/replyPeer 是否完整；
+- npm Registry 当前是否真的有某个发布版本；
+- 用户真实 Workspace 是否已经安装成功。
 
-这些由对应领域 Gate 负责。
+这些分别由对应领域 Gate、Package Release Gate 或 Real Deployment 验证。
 
 ## 6. 执行位置
 
@@ -93,39 +120,28 @@ Template Migration 后复验
 
 Conformance 可以用 fake resource 验证 Adapter contract；真实资源可用性属于 deployment `verify`，不能让 CI 强依赖用户外部账号。
 
-## 8. Custom GPT / Actions Conformance Profile
+External resource/browser/agent carrier 的真实远端/用户状态默认不得被 Template 或 Conformance 假定可 destructive cleanup。
 
-当 Module/Agent Package 声明 `custom-gpt` Carrier 时，Static/Behavior Gate 追加：
+## 8. AI-readable Module Self-description
 
-### Static
+Conformance 必须确保 Platform CLI 可以机械聚合当前安装 Module 的自描述：
 
-- every Action operation has explicit `x-openai-isConsequential`；
-- no unsupported custom request headers；
-- `operationId` unique and role-scoped；
-- endpoint summary/description 与 parameter description 满足 OpenAI 当前长度约束；
-- `openaiFileIdRefs` 只出现在需要 Conversation file ingress 的 operation；
-- response schema 允许规范化 `openaiFileResponse`；
-- Actions 与 Apps 不同时作为该 GPT 的 P0 capability。
+- identity/domain/summary；
+- Provides/Requires；
+- lifecycle；
+- documentation entries；
+- effects/retention。
 
-### Gateway/File Bridge behavior
+Conformance 只检查索引完整性和文件存在性，不替代领域文档内容审计。
 
-- runtime validates `openaiFileIdRefs` object shape；
-- `agentGateway.fileBridge.maxInputFiles=10`、`maxInputFileBytes=10_000_000`、`maxAggregateInputBytes=50_000_000`；
-- `agentGateway.fileBridge.inputFetchTimeoutMs=15_000`、`relayTtlMs=300_000`；
-- transient `download_link` 不持久化；filename/MIME/URL 按 external-untrusted 验证；Carrier fetch 阻断 localhost/private/link-local/metadata SSRF；
-- `openaiFileResponse` <= 10 files、<=10MB/file；
-- image/video response file rejected；
-- URL relay has `Content-Type` + `Content-Disposition`，token 必须 opaque、GET-only、single-purpose、artifact/outputRef scoped、bounded TTL；
-- GPT-facing request/response 的**最终序列化字符数**必须 `<100,000`；inline base64 使 response `>=100,000` 时 serializer 必须在发送前切 URL relay，仍超限则返回 typed error；
-- File Bridge typed errors 至少覆盖 invalid/count/size/aggregate/expired/fetch-timeout/fetch-failed/MIME-mismatch/unsupported-media/request-budget/response-budget/relay-expired/relay-scope-invalid；
-- long operation does not rely on >45s blocking request；
-- overload/server errors keep real 429/5xx semantics。
+## 9. Custom GPT / Actions Conformance Profile
 
-Conformance 只验证合同和 adapter 行为；Always Allow、Multi-Action Turn、Conversation file search、Code Interpreter Context Pack 的真实 ChatGPT 行为仍由 Carrier E2E Gate 判定。
+当 Module/Agent Package 声明 `custom-gpt` Carrier 时，继续执行现有 Custom GPT / File Bridge 静态与行为门。该 profile 与本轮 Module package discovery/cleanup 自描述增强并列，不互相替代。
 
+## 10. Carrier Reuse First conformance alignment
 
-## 9. Carrier Reuse First conformance alignment
+继续验证 Product GPT mainline、Controller/Test Execution request-intent、Agent Package native capability requirement 等既有 frozen alignment；真实 ChatGPT Web 行为仍由 Carrier E2E 证明。
 
-静态/Behavior Gate 还应验证：Product GPT OpenAPI 不再包含 New Task/Role-discovery mainline operations；Controller/Test 的 Execution request-intent operation 可标 consequential=false而不改变 Execution Effect Policy；Agent Package requirements显式声明 native Web Search/Code Interpreter/File Bridge。
+## 11. 当前测试纪律
 
-Conformance 不证明 Always Allow/Multi-action/Conversation c-id observation 的真实 Web 行为；这些仍在 final Carrier E2E证明，但 fallback不得重新设计为 per-action Browser scheduler。
+本轮先更新规范与实现，不修改正式测试用例/测试计划/evidence。人工 Real-1 验证通过后再补自动化回归，避免把尚未验证的实现提前固化为测试真源。

@@ -66,6 +66,13 @@ export function createBehaviorAdapter(service?: PlatformHostService) {
 			result: service ? { ...base, data: await service.restart() } : unbound,
 			observedEffects: service ? ["Manage the platform-host process"] : [],
 		}),
+		uninstall: async () => {
+			if (service) await service.stop();
+			return {
+				result: service ? base : unbound,
+				observedEffects: service ? ["Manage the platform-host process"] : [],
+			};
+		},
 	};
 }
 

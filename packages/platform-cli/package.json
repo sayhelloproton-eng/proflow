@@ -1,33 +1,44 @@
 {
-	"name": "@tomflow/proflow-platform-cli",
-	"version": "0.1.0",
-	"type": "module",
-	"publishConfig": {
-		"access": "public"
-	},
-	"exports": {
-		".": "./dist/src/index.js",
-		"./cli": "./dist/src/cli.js",
-		"./deployment/adapter": "./dist/deployment/adapter.js",
-		"./deployment/descriptor": "./dist/deployment/descriptor.js"
-	},
-	"bin": {
-		"platform": "./dist/src/cli.js"
-	},
-	"files": [
-		"dist",
-		"conformance.json",
-		"README.md"
-	],
-	"scripts": {
-		"test": "node --test tests/**/*.test.ts",
-		"typecheck": "tsc --noEmit"
-	},
-	"dependencies": {
-		"@tomflow/proflow-module-contract": "workspace:^"
-	},
-	"devDependencies": {
-		"@tomflow/proflow-deployment-conformance": "workspace:^",
-		"@tomflow/proflow-module-template": "workspace:^"
-	}
+  "name": "@tomflow/proflow-platform-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./cli": "./dist/src/cli.js",
+    "./deployment/adapter": "./dist/deployment/adapter.js",
+    "./deployment/descriptor": "./dist/deployment/descriptor.js"
+  },
+  "bin": {
+    "platform": "./dist/src/cli.js"
+  },
+  "files": [
+    "dist",
+    "conformance.json",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tomflow/proflow-module-contract": "workspace:^"
+  },
+  "devDependencies": {
+    "@tomflow/proflow-deployment-conformance": "workspace:^",
+    "@tomflow/proflow-module-template": "workspace:^"
+  },
+  "description": "Deterministic platform-level deployment discovery, planning, lifecycle and verification CLI.",
+  "keywords": [
+    "proflow",
+    "proflow-module",
+    "deployment-governance"
+  ],
+  "proflow": {
+    "module": true,
+    "installClass": "core",
+    "descriptor": "./dist/deployment/descriptor.js"
+  }
 }

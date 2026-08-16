@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "task-orchestration",
+		summary: "Owns the Task & Orchestration public contract, domain rules and application services.",
+	},
 	provides: [{ contractRef: "task-orchestration", version: "1.0.0" }],
 	requires: [],
 	requirements: [
@@ -28,6 +33,10 @@ export const descriptor = {
 			kind: "filesystem",
 			description:
 				"Owns TaskDocument Markdown writes inside the configured workspace",
+			retention: "preserve",
 		},
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
 	],
 } as const;

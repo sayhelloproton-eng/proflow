@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +21,7 @@ const binary = material.packageName.split("/").at(-1);
 
 function help() {
 	process.stdout.write(`Usage:
+	  ${binary} install
 	  ${binary} custom-gpt setup --gateway-url https://public.example
 	  ${binary} custom-gpt show-name
 	  ${binary} custom-gpt show-description
@@ -34,6 +36,18 @@ function help() {
 	  ${binary} role key show --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow
 	  ${binary} role key rotate --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow
 `);
+}
+
+function installSelf() {
+	if (args.length !== 1) throw new Error("Usage: install");
+	const executable = process.platform === "win32" ? "npx.cmd" : "npx";
+	const result = spawnSync(
+		executable,
+		["--yes", "@tomflow/proflow-platform-cli", "install", material.packageName],
+		{ cwd: process.cwd(), env: process.env, stdio: "inherit" },
+	);
+	if (result.error) throw result.error;
+	process.exit(result.status ?? 1);
 }
 
 function option(name: string) {
@@ -132,6 +146,8 @@ async function runRoleCommand() {
 
 if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 	help();
+} else if (args[0] === "install") {
+	installSelf();
 } else if (args[0] === "role") {
 	await runRoleCommand();
 } else if (args[0] === "custom-gpt") {

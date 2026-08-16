@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "agent-runtime-collaboration",
+		summary: "Agent-owned Role Registry, credential binding and Collaboration durable runtime.",
+	},
 	provides: [{ contractRef: "agent-runtime", version: "1.0.0" }],
 	requires: [
 		{ contractRef: "task-orchestration", versionRange: ">=1.0.0 <2.0.0" },
@@ -27,4 +32,7 @@ export const descriptor = {
 		],
 	},
 	effects: [],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
+	],
 } as const;

@@ -9,6 +9,11 @@ export const descriptor = parseModuleDescriptor({
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "deployment-governance",
+		summary: "Guides AI through standard ProFlow module creation and maintenance.",
+	},
 	provides: [],
 	requires: [],
 	requirements: [
@@ -26,4 +31,16 @@ export const descriptor = parseModuleDescriptor({
 		],
 	},
 	effects: [],
+	documentation: [
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Module skill package overview",
+		},
+		{
+			id: "skill",
+			path: "./SKILL.md",
+			description: "AI module creation and maintenance workflow",
+		},
+	],
 });

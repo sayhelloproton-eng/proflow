@@ -15,7 +15,6 @@ import {
 } from "../planner/index.ts";
 import { acquireWorkspaceLock } from "../security/index.ts";
 import type { PackageManagerDriver } from "./driver.ts";
-import { workspaceResidentDriver } from "./driver.ts";
 import { type ExecuteStepOutcome, executeStep } from "./execute.ts";
 import type { RealityObserver } from "./reality.ts";
 import { createRealityObserver } from "./reality.ts";
@@ -26,7 +25,7 @@ export interface ApplyContext {
 	catalog: ModuleCatalog;
 	/** Current stable assumptions the plan must still match (staleness gate). */
 	current: PlanInput;
-	driver?: PackageManagerDriver;
+	driver: PackageManagerDriver;
 	observer?: RealityObserver;
 }
 
@@ -47,7 +46,7 @@ function failureMessage(error: unknown): string {
  * workspace lock is released in all paths.
  */
 export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
-	const driver = context.driver ?? workspaceResidentDriver();
+	const driver = context.driver;
 	const observer =
 		context.observer ??
 		createRealityObserver({
@@ -278,10 +277,35 @@ export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 		}
 
 		const completedAt = nowIso();
-		state.selectedModules = plan.resolvedModules.map((module) => ({
-			moduleRef: module.moduleRef,
-			moduleVersion: module.moduleVersion,
-		}));
+		if (plan.intent === "uninstall") {
+			const removed = new Set(
+				plan.resolvedModules.map((module) => module.moduleRef),
+			);
+			state.selectedModules = state.selectedModules.filter(
+				(module) => !removed.has(module.moduleRef),
+			);
+		} else if (
+			(plan.intent === "install" || plan.intent === "upgrade") &&
+			plan.resolvedModules.every((module) => module.source.type === "registry")
+		) {
+			const byRef = new Map(
+				state.selectedModules.map((module) => [module.moduleRef, module]),
+			);
+			for (const module of plan.resolvedModules) {
+				byRef.set(module.moduleRef, {
+					moduleRef: module.moduleRef,
+					moduleVersion: module.moduleVersion,
+				});
+			}
+			state.selectedModules = [...byRef.values()].sort((left, right) =>
+				left.moduleRef.localeCompare(right.moduleRef),
+			);
+		} else {
+			state.selectedModules = plan.resolvedModules.map((module) => ({
+				moduleRef: module.moduleRef,
+				moduleVersion: module.moduleVersion,
+			}));
+		}
 		state.lastAppliedPlans.push({
 			planRef: plan.planRef,
 			intent: plan.intent,

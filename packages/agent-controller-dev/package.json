@@ -1,68 +1,78 @@
 {
-	"name": "@tomflow/proflow-agent-controller-dev",
-	"version": "0.1.0",
-	"description": "ProFlow controller, project management, and development Custom GPT role package",
-	"type": "module",
-	"publishConfig": {
-		"access": "public"
-	},
-	"bin": {
-		"proflow-agent-controller-dev": "./dist/src/cli.js"
-	},
-	"exports": {
-		".": "./dist/src/index.js",
-		"./deployment/adapter": "./dist/deployment/adapter.js",
-		"./deployment/descriptor": "./dist/deployment/descriptor.js"
-	},
-	"files": [
-		"dist",
-		"actions",
-		"context",
-		"memory",
-		"knowledge",
-		"conformance.json",
-		"README.md"
-	],
-	"proflowAgent": {
-		"kind": "agent-package",
-		"displayName": "总控 + 项目管理 + 研发",
-		"conversationStarters": [
-			"查看当前任务与可执行研发节点"
-		],
-		"instructions": "# 总控 + 项目管理 + 研发\n只通过 Task/Execution/Agent owner Public Contract 工作。WORKER_BIND 只绑定；NODE_READY 才开始正式 Node；REOPEN 使用原 Task-bound worker；PEER_MESSAGE 不改变 workflow。公开互联网研究（public research）使用原生 Web Search；本地/私有/凭据化的工程请求（filesystem/git/process/network）仍由 Execution 拥有。Code Interpreter 与 Context Pack 只产生 sandbox artifact，不等于真实 repo apply。真实文件、Git、命令和进程动作必须走 typed Execution。不得 direct DB、deep import、setStatus、executeAnything。",
-		"carrierProfiles": {
-			"custom-gpt": {
-				"recommendedModel": null,
-				"capabilities": {
-					"webSearch": true,
-					"imageGeneration": false,
-					"codeInterpreter": true
-				},
-				"requirements": {
-					"actions": "required",
-					"fileBridge": "required",
-					"codeInterpreter": "required",
-					"webSearch": "required",
-					"apps": "disabled"
-				},
-				"knowledgeFiles": [
-					"context/fixed-context.md",
-					"memory/memory.md"
-				],
-				"actionSchema": "actions/custom-gpt.openapi.yaml"
-			}
-		}
-	},
-	"scripts": {
-		"test": "node --test tests/**/*.test.ts",
-		"typecheck": "tsc --noEmit"
-	},
-	"devDependencies": {
-		"@tomflow/proflow-deployment-conformance": "workspace:^",
-		"@tomflow/proflow-module-contract": "workspace:^",
-		"yaml": "2.9.0"
-	},
-	"dependencies": {
-		"@tomflow/proflow-agent-runtime": "workspace:^"
-	}
+  "name": "@tomflow/proflow-agent-controller-dev",
+  "version": "0.1.0",
+  "description": "Versioned Controller/Development Custom GPT materialization package for the fixed Controller-Dev role.",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "proflow-agent-controller-dev": "./dist/src/cli.js"
+  },
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./deployment/adapter": "./dist/deployment/adapter.js",
+    "./deployment/descriptor": "./dist/deployment/descriptor.js"
+  },
+  "files": [
+    "dist",
+    "actions",
+    "context",
+    "memory",
+    "knowledge",
+    "conformance.json",
+    "README.md"
+  ],
+  "proflowAgent": {
+    "kind": "agent-package",
+    "displayName": "总控 + 项目管理 + 研发",
+    "conversationStarters": [
+      "查看当前任务与可执行研发节点"
+    ],
+    "instructions": "# 总控 + 项目管理 + 研发\n只通过 Task/Execution/Agent owner Public Contract 工作。WORKER_BIND 只绑定；NODE_READY 才开始正式 Node；REOPEN 使用原 Task-bound worker；PEER_MESSAGE 不改变 workflow。公开互联网研究（public research）使用原生 Web Search；本地/私有/凭据化的工程请求（filesystem/git/process/network）仍由 Execution 拥有。Code Interpreter 与 Context Pack 只产生 sandbox artifact，不等于真实 repo apply。真实文件、Git、命令和进程动作必须走 typed Execution。不得 direct DB、deep import、setStatus、executeAnything。",
+    "carrierProfiles": {
+      "custom-gpt": {
+        "recommendedModel": null,
+        "capabilities": {
+          "webSearch": true,
+          "imageGeneration": false,
+          "codeInterpreter": true
+        },
+        "requirements": {
+          "actions": "required",
+          "fileBridge": "required",
+          "codeInterpreter": "required",
+          "webSearch": "required",
+          "apps": "disabled"
+        },
+        "knowledgeFiles": [
+          "context/fixed-context.md",
+          "memory/memory.md"
+        ],
+        "actionSchema": "actions/custom-gpt.openapi.yaml"
+      }
+    }
+  },
+  "scripts": {
+    "test": "node --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@tomflow/proflow-deployment-conformance": "workspace:^",
+    "@tomflow/proflow-module-contract": "workspace:^",
+    "yaml": "2.9.0"
+  },
+  "dependencies": {
+    "@tomflow/proflow-agent-runtime": "workspace:^"
+  },
+  "keywords": [
+    "proflow",
+    "proflow-module",
+    "agent-runtime-collaboration"
+  ],
+  "proflow": {
+    "module": true,
+    "installClass": "core",
+    "descriptor": "./dist/deployment/descriptor.js"
+  }
 }

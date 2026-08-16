@@ -210,7 +210,7 @@ export function createBehaviorAdapter(input?: {
 				const observation = await input.runtime.start();
 				return {
 					result: success(observation),
-					observedEffects: ["Runs the dev-tunnel public ingress process"],
+					observedEffects: ["Manage the dev-tunnel public ingress process"],
 				};
 			} catch (error) {
 				return {
@@ -238,13 +238,38 @@ export function createBehaviorAdapter(input?: {
 			if (stopped.state === "STOPPED") {
 				return {
 					result: success(),
-					observedEffects: ["Stops the dev-tunnel public ingress process"],
+					observedEffects: ["Manage the dev-tunnel public ingress process"],
 				};
 			}
 			return {
 				result: actionRequired(
 					"complete-tunnel-stop",
 					"dev-tunnel stop state is UNKNOWN; cannot confirm the tunnel stopped",
+				),
+				observedEffects: [],
+			};
+		},
+		uninstall: async () => {
+			if (!input) {
+				return {
+					result: actionRequired(
+						"configure-tunnel",
+						"No bound dev-tunnel resource to stop before package removal",
+					),
+					observedEffects: [],
+				};
+			}
+			const stopped = await input.runtime.stop();
+			if (stopped.state === "STOPPED") {
+				return {
+					result: success(),
+					observedEffects: ["Manage the dev-tunnel public ingress process"],
+				};
+			}
+			return {
+				result: actionRequired(
+					"complete-tunnel-stop",
+					"dev-tunnel stop state is UNKNOWN; package removal cannot continue",
 				),
 				observedEffects: [],
 			};
@@ -282,7 +307,7 @@ export function createBehaviorAdapter(input?: {
 				const observation = await input.runtime.start();
 				return {
 					result: success(observation),
-					observedEffects: ["Restarts the dev-tunnel public ingress process"],
+					observedEffects: ["Manage the dev-tunnel public ingress process"],
 				};
 			} catch (error) {
 				return {

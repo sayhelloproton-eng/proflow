@@ -64,6 +64,17 @@ export function createBehaviorAdapter(service?: ProcessService) {
 					: [],
 			};
 		},
+		uninstall: async () => {
+			if (service) await service.stop();
+			return {
+				result: service ? base : unbound,
+				observedEffects: service
+					? descriptor.effects
+							.filter((item) => item.retention === "remove")
+							.map((item) => item.description)
+					: [],
+			};
+		},
 		restart: async () => ({
 			result: service ? { ...base, data: await service.restart() } : unbound,
 			observedEffects: service

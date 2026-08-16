@@ -11,6 +11,9 @@ import type { PlanInput } from "../planner/plan.ts";
 import { diagnoseRepair } from "../planner/repair.ts";
 
 function moduleSourceOf(module: ResolvedModule): ModuleSource {
+	if (module.source.type === "registry") {
+		throw new Error(`registry bootstrap target ${module.packageName} has no local descriptor`);
+	}
 	const source: ModuleSource = {
 		type: module.source.type,
 		packageName: module.packageName,
@@ -40,6 +43,16 @@ export async function rebuildCurrentAssumptions(
 	catalog: ModuleCatalog,
 	plan: DeploymentPlan,
 ): Promise<PlanInput> {
+	if (
+		(plan.intent === "install" || plan.intent === "upgrade") &&
+		plan.resolvedModules.every((module) => module.source.type === "registry")
+	) {
+		return {
+			intent: plan.intent,
+			modules: plan.resolvedModules,
+			targets: plan.moduleTargets,
+		};
+	}
 	const discovered = await discoverModules({ catalog });
 	const byRef = new Map(discovered.map((module) => [module.moduleRef, module]));
 	const modules: ResolvedModule[] = [];

@@ -167,6 +167,20 @@ export function createBehaviorAdapter(input?: {
 					: [],
 			};
 		},
+		uninstall: async () => {
+			if (input) await input.service.stop();
+			return {
+				result: input
+					? success()
+					: actionRequired(
+							"configure-provider",
+							"No bound runtime to stop before package removal",
+						),
+				observedEffects: input
+					? ["Runs the Model Runtime HTTP service process"]
+					: [],
+			};
+		},
 		restart: async () => {
 			if (!input)
 				return {

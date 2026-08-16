@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "external-resource",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "deployment-governance",
+		summary: "Observes the real Chrome runtime and MV3 extension load prerequisite.",
+	},
 	provides: [],
 	requires: [],
 	requirements: [
@@ -57,6 +62,10 @@ export const descriptor = {
 		{
 			kind: "external-resource",
 			description: "Observes the Chrome runtime and MV3 extension prerequisite",
+			retention: "preserve",
 		},
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
 	],
 } as const;

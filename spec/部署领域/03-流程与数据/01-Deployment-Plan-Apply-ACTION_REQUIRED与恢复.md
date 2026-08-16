@@ -23,7 +23,7 @@ contractRefs: []
 ```ts
 interface DeploymentPlan {
   planRef: string;
-  intent: "install" | "configure" | "upgrade" | "repair";
+  intent: "install" | "configure" | "upgrade" | "uninstall" | "repair";
   moduleTargets: ModuleTarget[];
   resolvedModules: ResolvedModule[];
   steps: DeploymentStep[];
@@ -106,11 +106,27 @@ AI 向用户汇总：
 
 无需 Workflow Engine。
 
-## 7. Fail/Unknown
+## 7. Package bootstrap 与 uninstall recovery
+
+Fresh install 的 package step 只冻结 Registry 已确认的精确 package/version。Apply 前后都通过 package manager/local resolution 观察安装 reality；中断后再次 apply 时，已真实安装的 package step 必须 SKIP。
+
+Uninstall 的顺序固定为：
+
+```text
+core/dependency guard
+→ package-owned uninstall lifecycle（若支持）
+→ cleanup owner removable effects
+→ package manager remove
+→ observe package absent
+```
+
+若 cleanup reality 或 package removal reality 无法确认，STOP；不得盲重放 destructive cleanup。普通 uninstall 不删除 `preserve`/`explicit-purge` 数据。
+
+## 8. Fail/Unknown
 
 Deployment 的 package/install/config 操作通常可通过现场重检确定状态。若 effect reality 无法确认，Step 必须停止并由 doctor/repair plan 处理；不能盲目重复副作用动作。
 
-## 8. 并发
+## 9. 并发
 
 v1 同 workspace 同时只允许一个 apply。使用简单 file lock；不设计 distributed lock。
 
@@ -120,7 +136,7 @@ v1 同 workspace 同时只允许一个 apply。使用简单 file lock；不设�
 
 同一 planRef 重新 apply 时先观察现实，已满足 step 跳过；ACTION_REQUIRED 是正式 resumable boundary，但不演化为 job/lease/worker engine。Upgrade failure = STOP + verify/doctor；rollback 通过新的目标版本 Plan，不做自动事务式 rollback。
 
-## 9. Custom GPT Web-only 配置
+## 10. Custom GPT Web-only 配置
 
 Custom GPT create/update 当前仍是 Web 操作。Deployment 不新增第二套状态；继续返回标准：
 

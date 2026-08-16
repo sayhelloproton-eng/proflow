@@ -25,31 +25,48 @@ Bounded Context: deployment-governance
 moduleRef: module-template
 package: @tomflow/proflow-module-template
 kind: library
+installClass: core
 service: none
-process/deployment: none / determined by Deployment kind
+process/deployment: none
 ```
 
 ## Purpose
 
-本 README 是该 Module 的导航入口；正式业务与工程事实由本 Module 技术设计及所属领域 Contract/Flow 共同定义，不维护第二套重复事实。
+`module-template` 是新 ProFlow Module 的统一工程生成器。它不拥有业务领域知识，而是把 `module-contract` 的治理形式机械落成六种 profile 的 package 骨架。
+
+新包通过 Template 创建后应天然具备：
+
+- npm package 基线与 `package.json.proflow` discovery metadata；
+- Module Descriptor / Adapter / Requirements / Verification；
+- `core | optional` install class；
+- domain/summary/docs 自描述入口；
+- effects/cleanup retention 骨架；
+- conformance 配置；
+- package-owned README；
+- 对应 Kind 的最小真实 lifecycle shape。
+
+## Stable create entry
+
+Template 同时提供 library API `materializeModule()` 与唯一稳定 CLI/bin；两者必须使用同一实现：
+
+```text
+npx @tomflow/proflow-module-template create ...
+```
+
+AI 应由 `module-skill` 读取领域 frozen facts 后调用该入口，不应手工复制模板目录。
 
 ## Canonical technical docs
 
 - [TECHNICAL-DESIGN.md](TECHNICAL-DESIGN.md)
 - [00-五包架构与Module治理模型.md](../00-五包架构与Module治理模型.md)
 
-## Public Contract / Dependencies
+## Boundary
 
-- 使用本领域 `02-契约/` 的 Public Contract。
-- 跨域只通过 Public Contract / logical Provides-Requires。
-- 禁止读取其他领域 DB、Repository、内部 Adapter 或 deep import。
-
-## Runtime / Lifecycle
-
-- `library` 的真实 lifecycle 由 Module 自身声明并由 Deployment Domain 治理。
-- Library 不伪造 start/stop。
-- Service/Process 的启动、关闭、health、recovery 以对应 TECHNICAL-DESIGN 与 Deployment requirements 为准。
+- Template 只生成形式，不猜 `domain/installClass/Provides/Requires/API/permission`。
+- Library 不伪造服务生命周期。
+- External resource / Browser / Agent carrier 的远端或用户状态不做默认 destructive cleanup。
+- 领域具体实现完成后必须进入 Deployment Conformance。
 
 ## Testing
 
-见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+当前 Real-1 blocker 整改阶段不改正式测试用例；人工真实创建/安装验证通过后再补自动化测试与 evidence。

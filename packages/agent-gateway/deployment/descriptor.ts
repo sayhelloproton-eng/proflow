@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "service",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "agent-runtime-collaboration",
+		summary: "The sole Custom GPT Actions HTTP ingress and OpenAI transport anti-corruption layer.",
+	},
 	provides: [{ contractRef: "custom-gpt-actions-gateway", version: "1.0.0" }],
 	requires: [
 		{ contractRef: "agent-runtime", versionRange: ">=1.0.0 <2.0.0" },
@@ -56,6 +61,7 @@ export const descriptor = {
 			"start",
 			"stop",
 			"restart",
+			"uninstall",
 		],
 	},
 	verification: {
@@ -68,6 +74,9 @@ export const descriptor = {
 		],
 	},
 	effects: [
-		{ kind: "process", description: "Manage the declared service process" },
+		{ kind: "process", description: "Manage the declared service process", retention: "remove" },
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Agent Gateway package overview" },
 	],
 } as const;

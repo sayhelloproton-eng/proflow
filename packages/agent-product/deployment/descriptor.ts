@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "agent-package",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "agent-runtime-collaboration",
+		summary: "Versioned Product Custom GPT materialization package for the fixed Product role.",
+	},
 	provides: [],
 	requires: [
 		{
@@ -44,6 +49,10 @@ export const descriptor = {
 		{
 			kind: "external-resource",
 			description: "Register an agent package through an explicit action",
+			retention: "preserve",
 		},
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
 	],
 } as const;

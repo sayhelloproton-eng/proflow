@@ -16,6 +16,9 @@ export interface MaterializeModuleInput {
 	moduleRef: string;
 	packageName: string;
 	kind: ModuleKind;
+	installClass: ModuleDescriptor["installClass"];
+	domain: string;
+	summary: string;
 	moduleVersion?: string;
 	platformCompatibility?: string;
 }
@@ -33,8 +36,16 @@ export interface GeneratedPackageMetadata {
 	version: string;
 	type: "module";
 	private?: boolean;
+	description: string;
+	keywords: string[];
 	publishConfig: { access: "public" };
 	exports: Record<string, string>;
+	bin: Record<string, string>;
+	proflow: {
+		module: true;
+		installClass: ModuleDescriptor["installClass"];
+		descriptor: "./dist/deployment/descriptor.js";
+	};
 }
 
 export interface GeneratedBehaviorObservation {
@@ -65,6 +76,7 @@ const lifecycleByKind: Record<
 		"start",
 		"stop",
 		"restart",
+		"uninstall",
 	],
 	cli: ["describe", "preflight", "verify", "doctor"],
 	"browser-extension": ["describe", "preflight", "status", "verify", "doctor"],
@@ -76,13 +88,18 @@ function effectsFor(kind: ModuleKind): ModuleDescriptor["effects"] {
 	switch (kind) {
 		case "service":
 			return [
-				{ kind: "process", description: "Manage the declared service process" },
+				{
+					kind: "process",
+					description: "Manage the declared service process",
+					retention: "remove",
+				},
 			];
 		case "browser-extension":
 			return [
 				{
 					kind: "external-resource",
 					description: "Package a browser extension deployment unit",
+					retention: "preserve",
 				},
 			];
 		case "agent-package":
@@ -90,6 +107,7 @@ function effectsFor(kind: ModuleKind): ModuleDescriptor["effects"] {
 				{
 					kind: "external-resource",
 					description: "Register an agent package through an explicit action",
+					retention: "preserve",
 				},
 			];
 		case "external-resource":
@@ -97,6 +115,7 @@ function effectsFor(kind: ModuleKind): ModuleDescriptor["effects"] {
 				{
 					kind: "external-resource",
 					description: "Observe the configured external resource",
+					retention: "preserve",
 				},
 			];
 		default:
@@ -126,6 +145,11 @@ function descriptorFor(input: MaterializeModuleInput): ModuleDescriptor {
 		kind: input.kind,
 		templateVersion: CURRENT_TEMPLATE_VERSION,
 		platformCompatibility: input.platformCompatibility ?? ">=1.0.0 <2.0.0",
+		installClass: input.installClass,
+		identity: {
+			domain: input.domain,
+			summary: input.summary,
+		},
 		provides: [],
 		requires: [],
 		requirements: requirementsFor(input.kind),
@@ -152,6 +176,13 @@ function descriptorFor(input: MaterializeModuleInput): ModuleDescriptor {
 			],
 		},
 		effects: effectsFor(input.kind),
+		documentation: [
+			{
+				id: "overview",
+				path: "./README.md",
+				description: "Package-owned module overview",
+			},
+		],
 	});
 }
 
@@ -164,12 +195,21 @@ function packageMetadata(
 		"./deployment/descriptor": "./dist/deployment/descriptor.js",
 	};
 	if (descriptor.kind === "cli") exports["./cli"] = "./dist/src/cli.js";
+	const unscopedName = descriptor.packageName.slice("@tomflow/".length);
 	return {
 		name: descriptor.packageName,
 		version: descriptor.moduleVersion,
 		type: "module",
+		description: descriptor.identity.summary,
+		keywords: ["proflow", "proflow-module", descriptor.identity.domain],
 		publishConfig: { access: "public" },
 		exports,
+		bin: { [unscopedName]: "./self-install.mjs" },
+		proflow: {
+			module: true,
+			installClass: descriptor.installClass,
+			descriptor: "./dist/deployment/descriptor.js",
+		},
 	};
 }
 
@@ -177,7 +217,7 @@ function packageJson(descriptor: ModuleDescriptor): string {
 	return `${JSON.stringify(
 		{
 			...packageMetadata(descriptor),
-			files: ["dist", "conformance.json", "README.md"],
+			files: ["dist", "conformance.json", "README.md", "self-install.mjs"],
 			engines: { node: "24.19.0" },
 			scripts: {
 				build: "tsc -p tsconfig.build.json",
@@ -222,6 +262,9 @@ function operationSource(
 	}
 	if (descriptor.kind === "service" && primitive === "restart") {
 		return `() => ({ result: { ...baseResult, data: { state: serviceRestart() } }, observedEffects: ["Manage the declared service process"] })`;
+	}
+	if (descriptor.kind === "service" && primitive === "uninstall") {
+		return `() => ({ result: { ...baseResult, data: { state: serviceStop() } }, observedEffects: ["Manage the declared service process"] })`;
 	}
 	return `() => ({ result: baseResult, observedEffects: [] })`;
 }
@@ -281,10 +324,35 @@ function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
 	}
 }
 
+function selfInstallSource(descriptor: ModuleDescriptor): string {
+	return `#!/usr/bin/env node
+import { spawnSync } from "node:child_process";
+
+const [command, ...rest] = process.argv.slice(2);
+const usage = "Usage: npx ${descriptor.packageName} install\n";
+if (command === "--help" || command === "-h") {
+	process.stdout.write(usage);
+	process.exit(0);
+}
+if (command !== "install" || rest.length > 0) {
+	process.stderr.write(usage);
+	process.exit(2);
+}
+const executable = process.platform === "win32" ? "npx.cmd" : "npx";
+const result = spawnSync(
+	executable,
+	["--yes", "@tomflow/proflow-platform-cli", "install", ${JSON.stringify(descriptor.packageName)}],
+	{ cwd: process.cwd(), env: process.env, stdio: "inherit" },
+);
+if (result.error) throw result.error;
+process.exit(result.status ?? 1);
+`;
+}
+
 function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 	return {
 		"package.json": packageJson(descriptor),
-		"README.md": `# ${descriptor.packageName}\n\nModule: \`${descriptor.moduleRef}\`  \nKind: \`${descriptor.kind}\`  \nTemplate: \`${descriptor.templateVersion}\`\n`,
+		"README.md": `# ${descriptor.packageName}\n\nModule: \`${descriptor.moduleRef}\`  \nDomain: \`${descriptor.identity.domain}\`  \nKind: \`${descriptor.kind}\`  \nInstall class: \`${descriptor.installClass}\`  \nTemplate: \`${descriptor.templateVersion}\`\n\n${descriptor.identity.summary}\n`,
 		"tsconfig.json": `${JSON.stringify(
 			{
 				compilerOptions: {
@@ -326,6 +394,7 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 		"deployment/requirements.ts": `import { descriptor } from "./descriptor.ts";\n\nexport const requirements = descriptor.requirements;\n`,
 		"deployment/verification.ts": `import { descriptor } from "./descriptor.ts";\n\nexport const verification = descriptor.verification;\n`,
 		"deployment/adapter.ts": adapterSource(descriptor),
+		"self-install.mjs": selfInstallSource(descriptor),
 		"conformance.json": `${JSON.stringify(
 			{
 				contract: "proflow.conformance.v1",

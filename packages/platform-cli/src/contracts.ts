@@ -6,7 +6,12 @@ import type {
 	ModuleRequirement,
 } from "@tomflow/proflow-module-contract";
 
-export type DeploymentIntent = "install" | "configure" | "upgrade" | "repair";
+export type DeploymentIntent =
+	| "install"
+	| "configure"
+	| "upgrade"
+	| "uninstall"
+	| "repair";
 
 export interface ModuleTarget {
 	moduleRef: string;
@@ -18,7 +23,10 @@ export interface ResolvedModule {
 	moduleRef: string;
 	packageName: string;
 	moduleVersion: string;
-	kind: ModuleDescriptor["kind"];
+	kind: ModuleDescriptor["kind"] | "registry-package";
+	installClass: ModuleDescriptor["installClass"];
+	identity?: ModuleDescriptor["identity"];
+	documentation: ModuleDescriptor["documentation"];
 	provides: ModuleDescriptor["provides"];
 	requires: ModuleDescriptor["requires"];
 	requirements: ModuleRequirement[];
@@ -26,7 +34,7 @@ export interface ResolvedModule {
 	lifecycle: string[];
 	verification: ModuleDescriptor["verification"];
 	effects: DeploymentEffect[];
-	source: { type: "workspace" | "installed"; path?: string };
+	source: { type: "workspace" | "installed" | "registry"; path?: string };
 }
 
 export interface DeploymentStep {

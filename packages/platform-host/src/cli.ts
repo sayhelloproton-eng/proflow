@@ -1,7 +1,28 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import { createPlatformHost, loadPlatformHostConfig } from "./index.ts";
 
+function installSelf(): never {
+	const executable = process.platform === "win32" ? "npx.cmd" : "npx";
+	const result = spawnSync(
+		executable,
+		[
+			"--yes",
+			"@tomflow/proflow-platform-cli",
+			"install",
+			"@tomflow/proflow-platform-host",
+		],
+		{ cwd: process.cwd(), env: process.env, stdio: "inherit" },
+	);
+	if (result.error) throw result.error;
+	process.exit(result.status ?? 1);
+}
+
 const [command, configPath] = process.argv.slice(2);
+if (command === "install") {
+	if (configPath) throw new Error("Usage: proflow-platform-host install");
+	installSelf();
+}
 if (command !== "start" || !configPath)
 	throw new Error("Usage: proflow-platform-host start /absolute/config.json");
 const config = await loadPlatformHostConfig(configPath);

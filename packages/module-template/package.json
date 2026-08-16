@@ -1,25 +1,40 @@
 {
-	"name": "@tomflow/proflow-module-template",
-	"version": "0.1.0",
-	"type": "module",
-	"publishConfig": {
-		"access": "public"
-	},
-	"exports": {
-		".": "./dist/src/index.js",
-		"./deployment/adapter": "./dist/deployment/adapter.js",
-		"./deployment/descriptor": "./dist/deployment/descriptor.js"
-	},
-	"files": [
-		"dist",
-		"conformance.json",
-		"README.md"
-	],
-	"scripts": {
-		"test": "node --test tests/**/*.test.ts",
-		"typecheck": "tsc --noEmit"
-	},
-	"dependencies": {
-		"@tomflow/proflow-module-contract": "workspace:^"
-	}
+  "name": "@tomflow/proflow-module-template",
+  "version": "0.1.0",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./deployment/adapter": "./dist/deployment/adapter.js",
+    "./deployment/descriptor": "./dist/deployment/descriptor.js",
+    "./cli": "./dist/src/cli.js"
+  },
+  "files": [
+    "dist",
+    "conformance.json",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tomflow/proflow-module-contract": "workspace:^"
+  },
+  "bin": {
+    "proflow-module-template": "./dist/src/cli.js"
+  },
+  "description": "Materializes standard ProFlow module package profiles.",
+  "keywords": [
+    "proflow",
+    "proflow-module",
+    "deployment-governance"
+  ],
+  "proflow": {
+    "module": true,
+    "installClass": "core",
+    "descriptor": "./dist/deployment/descriptor.js"
+  }
 }

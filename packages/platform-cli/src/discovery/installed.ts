@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
+
+import { proflowPackageMetadataSchema } from "@tomflow/proflow-module-contract";
 
 import { PlatformError } from "../errors.ts";
 import type { ModuleCatalog, ModuleSource } from "../modules.ts";
@@ -54,7 +56,7 @@ export class InstalledModuleCatalog implements ModuleCatalog {
 		}
 		const sources: ModuleSource[] = [];
 		for (const name of [...names].sort()) {
-			if (!this.isGovernedModule(name)) continue;
+			if (!(await this.isGovernedModule(name))) continue;
 			sources.push({ type: "installed", packageName: name });
 		}
 		return sources;
@@ -76,11 +78,23 @@ export class InstalledModuleCatalog implements ModuleCatalog {
 		return this.loadModule(source, "adapter");
 	}
 
-	private isGovernedModule(packageName: string): boolean {
-		return (
-			this.canResolve(`${packageName}/deployment/descriptor`) &&
-			this.canResolve(`${packageName}/deployment/adapter`)
+	private async isGovernedModule(packageName: string): Promise<boolean> {
+		if (!packageName.startsWith("@tomflow/proflow-")) return false;
+		if (
+			!this.canResolve(`${packageName}/deployment/descriptor`) ||
+			!this.canResolve(`${packageName}/deployment/adapter`)
+		) {
+			return false;
+		}
+		const descriptorPath = this.require.resolve(
+			`${packageName}/deployment/descriptor`,
 		);
+		const packageJson = await readInstalledPackageJson(
+			descriptorPath,
+			packageName,
+		);
+		if (packageJson === undefined) return false;
+		return proflowPackageMetadataSchema.safeParse(packageJson.proflow).success;
 	}
 
 	private canResolve(specifier: string): boolean {
@@ -112,4 +126,37 @@ export class InstalledModuleCatalog implements ModuleCatalog {
 
 function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
+}
+
+interface InstalledPackageJson {
+	name?: unknown;
+	proflow?: unknown;
+}
+
+async function readInstalledPackageJson(
+	resolvedArtifact: string,
+	packageName: string,
+): Promise<InstalledPackageJson | undefined> {
+	let current = dirname(resolvedArtifact);
+	for (;;) {
+		try {
+			const raw = await readFile(join(current, "package.json"), "utf8");
+			const parsed: unknown = JSON.parse(raw);
+			if (
+				typeof parsed === "object" &&
+				parsed !== null &&
+				!Array.isArray(parsed) &&
+				Reflect.get(parsed, "name") === packageName
+			) {
+				return parsed as InstalledPackageJson;
+			}
+		} catch {
+			// Keep walking towards the package root. Export maps commonly hide
+			// package.json, so resolving the descriptor and walking upward is the
+			// stable local-install boundary.
+		}
+		const parent = dirname(current);
+		if (parent === current) return undefined;
+		current = parent;
+	}
 }

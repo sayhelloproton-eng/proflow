@@ -1,30 +1,45 @@
 {
-	"name": "@tomflow/proflow-task-store-sqlite",
-	"version": "0.1.0",
-	"type": "module",
-	"publishConfig": {
-		"access": "public"
-	},
-	"exports": {
-		".": "./dist/src/index.js",
-		"./migrations": "./dist/src/migrations.js",
-		"./deployment/adapter": "./dist/deployment/adapter.js",
-		"./deployment/descriptor": "./dist/deployment/descriptor.js"
-	},
-	"files": [
-		"dist",
-		"conformance.json",
-		"README.md"
-	],
-	"scripts": {
-		"test": "node --test tests/**/*.test.ts",
-		"typecheck": "tsc --noEmit"
-	},
-	"dependencies": {
-		"@tomflow/proflow-module-contract": "workspace:^",
-		"@tomflow/proflow-task-orchestration": "workspace:^"
-	},
-	"devDependencies": {
-		"@tomflow/proflow-task-migration-runner": "workspace:^"
-	}
+  "name": "@tomflow/proflow-task-store-sqlite",
+  "version": "0.1.0",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./migrations": "./dist/src/migrations.js",
+    "./deployment/adapter": "./dist/deployment/adapter.js",
+    "./deployment/descriptor": "./dist/deployment/descriptor.js"
+  },
+  "files": [
+    "dist",
+    "conformance.json",
+    "README.md",
+    "self-install.mjs"
+  ],
+  "scripts": {
+    "test": "node --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tomflow/proflow-module-contract": "workspace:^",
+    "@tomflow/proflow-task-orchestration": "workspace:^"
+  },
+  "devDependencies": {
+    "@tomflow/proflow-task-migration-runner": "workspace:^"
+  },
+  "description": "Provides the node:sqlite store and repository adapters for Task-owned structured facts.",
+  "keywords": [
+    "proflow",
+    "proflow-module",
+    "task-orchestration"
+  ],
+  "proflow": {
+    "module": true,
+    "installClass": "core",
+    "descriptor": "./dist/deployment/descriptor.js"
+  },
+  "bin": {
+    "proflow-task-store-sqlite": "./self-install.mjs"
+  }
 }

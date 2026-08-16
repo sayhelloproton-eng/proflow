@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "service",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "execution",
+		summary: "Durable, policy-controlled Execution Core orchestration over SQLite and controlled executor ports.",
+	},
 	provides: [{ contractRef: "execution", version: "1.0.0" }],
 	requires: [
 		{ contractRef: "execution-local", versionRange: ">=1.0.0 <2.0.0" },
@@ -88,6 +93,7 @@ export const descriptor = {
 			"start",
 			"stop",
 			"restart",
+			"uninstall",
 		],
 	},
 	verification: {
@@ -103,11 +109,16 @@ export const descriptor = {
 		{
 			kind: "process",
 			description: "Runs the single backend Execution Runtime service",
+			retention: "remove",
 		},
 		{
 			kind: "filesystem",
 			description:
 				"Persists execution state, output references and evidence in WAL SQLite",
+			retention: "preserve",
 		},
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Execution Runtime package overview" },
 	],
 } as const;

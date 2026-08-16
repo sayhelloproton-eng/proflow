@@ -200,6 +200,24 @@ export async function stopModules(
 	return runInOrder(catalog, modules, order, "stop");
 }
 
+
+/**
+ * Restarts a module set in forward dependency topological order, dispatching
+ * `restart` only to modules that explicitly declare it. Dependencies are
+ * settled before the modules that consume them.
+ */
+export async function restartModules(
+	catalog: ModuleCatalog,
+	modules: readonly ResolvedModule[],
+): Promise<LifecycleRunResult[]> {
+	return runInOrder(
+		catalog,
+		modules,
+		buildDependencyGraph(modules).order,
+		"restart",
+	);
+}
+
 /**
  * Queries current reality by dispatching the `status` primitive to every
  * module that declares it. Status is always read live from the adapter; no

@@ -24,32 +24,39 @@ Domain: deployment-governance
 Bounded Context: deployment-governance
 moduleRef: deployment-conformance
 package: @tomflow/proflow-deployment-conformance
-kind: library/cli
+kind: cli
+installClass: core
 service: none
-process/deployment: none / determined by Deployment kind
 ```
 
 ## Purpose
 
-本 README 是该 Module 的导航入口；正式业务与工程事实由本 Module 技术设计及所属领域 Contract/Flow 共同定义，不维护第二套重复事实。
+Deployment Conformance 是 Module Governance 强制门。它验证一个 package 是否具备被 Registry/Workspace Discovery、Platform CLI lifecycle 和 AI docs aggregation 稳定消费的真实形式；不替代业务领域测试。
+
+## Gates
+
+### C1 Static Contract
+
+验证 Descriptor：identity/installClass/Provides/Requires/requirements/config/lifecycle/verification/effects cleanup/documentation。
+
+### C2 Package
+
+验证 package identity/exports、`package.json.proflow`、Descriptor 一致性、package-owned docs、build/public entry 与 secret/publishability 基础。
+
+### C3 Behavior
+
+验证声明的 lifecycle/Adapter 使用 structured result，且不伪造 unsupported lifecycle 或超出 effect ownership 的 cleanup。
 
 ## Canonical technical docs
 
 - [TECHNICAL-DESIGN.md](TECHNICAL-DESIGN.md)
-- [02-测试门禁与真实验收.md](../../05-质量与部署/02-测试门禁与真实验收.md)
+- [module-contract/TECHNICAL-DESIGN.md](../module-contract/TECHNICAL-DESIGN.md)
+- [module-template/TECHNICAL-DESIGN.md](../module-template/TECHNICAL-DESIGN.md)
 
-## Public Contract / Dependencies
+## Boundary
 
-- 使用本领域 `02-契约/` 的 Public Contract。
-- 跨域只通过 Public Contract / logical Provides-Requires。
-- 禁止读取其他领域 DB、Repository、内部 Adapter 或 deep import。
-
-## Runtime / Lifecycle
-
-- `library/cli` 的真实 lifecycle 由 Module 自身声明并由 Deployment Domain 治理。
-- Library 不伪造 start/stop。
-- Service/Process 的启动、关闭、health、recovery 以对应 TECHNICAL-DESIGN 与 Deployment requirements 为准。
+Conformance 不查询 Registry 可安装集合、不执行 package manager install/remove、不拥有业务文档内容。它只证明 package 形式与声明行为符合统一 Contract。
 
 ## Testing
 
-见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+当前 Real-1 blocker 整改先更新实现和人工真实验证；正式自动化测试用例/evidence 在人工验证通过后再更新。

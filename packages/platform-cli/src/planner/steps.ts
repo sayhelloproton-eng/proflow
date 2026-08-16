@@ -5,6 +5,7 @@ import type { DependencyGraph } from "../graph/graph.ts";
 
 export const CheckStrategy = {
 	packageInstalled: "package:installed",
+	packageAbsent: "package:absent",
 	configMaterialized: "config:materialized",
 	lifecycleRunning: "lifecycle:running",
 	lifecycleStopped: "lifecycle:stopped",
@@ -17,10 +18,12 @@ export const CheckStrategy = {
 export const ExecuteStrategy = {
 	packageInstall: "package:install",
 	packageUpgrade: "package:upgrade",
+	packageRemove: "package:remove",
 	configWrite: "config:write",
 	lifecycleStart: "lifecycle:start",
 	lifecycleStop: "lifecycle:stop",
 	lifecycleRestart: "lifecycle:restart",
+	lifecycleUninstall: "lifecycle:uninstall",
 	lifecycleMigrate: "lifecycle:migrate",
 	externalResourceConfigure: "external-resource:configure",
 } as const;
@@ -59,25 +62,35 @@ export function upstreamDependencies(
 export function packageStep(
 	seq: StepSequencer,
 	module: ResolvedModule,
-	verb: "install" | "upgrade",
+	verb: "install" | "upgrade" | "remove",
 	dependencies: readonly string[],
 ): DeploymentStep {
+	const removing = verb === "remove";
 	return {
 		stepRef: seq.next("package", module.moduleRef),
 		moduleRef: module.moduleRef,
 		kind: "package",
-		preconditions: dependencies.map(
-			(dependency) => `dependency ${dependency} installed and verified`,
-		),
-		expectedEffect: `module package ${module.packageName}@${module.moduleVersion} ${
-			verb === "install" ? "installed" : "upgraded"
-		}`,
-		checkStrategy: CheckStrategy.packageInstalled,
-		executeStrategy:
-			verb === "install"
+		preconditions: removing
+			? []
+			: dependencies.map(
+					(dependency) => `dependency ${dependency} installed and verified`,
+				),
+		expectedEffect: removing
+			? `module package ${module.packageName}@${module.moduleVersion} removed`
+			: `module package ${module.packageName}@${module.moduleVersion} ${
+					verb === "install" ? "installed" : "upgraded"
+				}`,
+		checkStrategy: removing
+			? CheckStrategy.packageAbsent
+			: CheckStrategy.packageInstalled,
+		executeStrategy: removing
+			? ExecuteStrategy.packageRemove
+			: verb === "install"
 				? ExecuteStrategy.packageInstall
 				: ExecuteStrategy.packageUpgrade,
-		postcondition: `installed version ${module.moduleVersion} satisfies ${module.moduleRef}`,
+		postcondition: removing
+			? `package ${module.packageName} is absent from the Workspace installation`
+			: `installed version ${module.moduleVersion} satisfies ${module.moduleRef}`,
 	};
 }
 
@@ -142,7 +155,7 @@ export function humanStep(
 export function lifecycleStep(
 	seq: StepSequencer,
 	module: ResolvedModule,
-	action: "start" | "stop" | "restart" | "migrate",
+	action: "start" | "stop" | "restart" | "migrate" | "uninstall",
 ): DeploymentStep {
 	const executeStrategy =
 		action === "start"
@@ -151,17 +164,19 @@ export function lifecycleStep(
 				? ExecuteStrategy.lifecycleStop
 				: action === "restart"
 					? ExecuteStrategy.lifecycleRestart
-					: ExecuteStrategy.lifecycleMigrate;
+					: action === "uninstall"
+						? ExecuteStrategy.lifecycleUninstall
+						: ExecuteStrategy.lifecycleMigrate;
 	const checkStrategy =
 		action === "migrate"
 			? CheckStrategy.migrateComplete
-			: action === "stop"
+			: action === "stop" || action === "uninstall"
 				? CheckStrategy.lifecycleStopped
 				: CheckStrategy.lifecycleRunning;
 	const settled =
 		action === "start" || action === "restart"
 			? "running"
-			: action === "stop"
+			: action === "stop" || action === "uninstall"
 				? "stopped"
 				: "migrated";
 	return {

@@ -1,5 +1,5 @@
 export type { PackageManagerDriver } from "./apply/driver.ts";
-export { applyPlan, workspaceResidentDriver } from "./apply/index.ts";
+export { applyPlan, createWorkspacePackageManagerDriver } from "./apply/index.ts";
 export type { CliOutcome, CliStatus } from "./cli.ts";
 export { runCli } from "./cli.ts";
 export type {
@@ -15,11 +15,23 @@ export type {
 } from "./contracts.ts";
 export { AutoModuleCatalog, discoverModules } from "./discovery/discover.ts";
 export { doctorModule, doctorModules } from "./doctor/index.ts";
+export type {
+	ModuleDocumentContent,
+	ModuleDocsView,
+	PublicApiEntry,
+	PublishedCommand,
+} from "./docs/index.ts";
+export { describeModule, readModuleDocument } from "./docs/index.ts";
 export type { PlatformErrorCode } from "./errors.ts";
 export { PlatformError } from "./errors.ts";
-export { generateInstallDoc, renderInstallDoc } from "./install/index.ts";
+export {
+	generateInstallDoc,
+	preflightInstallerEnvironment,
+	renderInstallDoc,
+} from "./install/index.ts";
 export {
 	dispatchLifecycle,
+	restartModules,
 	startModules,
 	statusModules,
 	stopModules,
@@ -58,6 +70,12 @@ export {
 export type { PlanInput } from "./planner/plan.ts";
 export type { PreflightResult } from "./preflight/findings.ts";
 export { runPreflight } from "./preflight/preflight.ts";
+export type {
+	RegistryDiscoveryResult,
+	RegistryModuleCandidate,
+	RegistryRejectedPackage,
+} from "./registry/index.ts";
+export { discoverRegistryModules } from "./registry/index.ts";
 export { assessPlatformReady } from "./ready/index.ts";
 export {
 	acquireWorkspaceLock,

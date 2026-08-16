@@ -154,3 +154,22 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+## Current Real-1 remediation delta (2026-08-16)
+
+```yaml
+remediationRef: REAL1-MODULE-CONFORMANCE-DISCOVERY-CLEANUP
+status: IMPLEMENTATION_IN_PROGRESS
+scope:
+  - validate package.json.proflow discovery metadata
+  - enforce package metadata vs Descriptor installClass consistency
+  - validate package-owned documentation entries
+  - validate effect retention and uninstall lifecycle relationship
+  - keep C1/C2/C3 as the single governance gate
+outOfScope:
+  - npm Registry availability verification
+  - product Workspace installation E2E
+  - business-domain behavior testing
+testPolicy:
+  automatedTestCaseChanges: DEFERRED_UNTIL_MANUAL_REAL_VALIDATION
+```

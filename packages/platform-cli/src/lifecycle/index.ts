@@ -5,6 +5,7 @@ export type {
 } from "./dispatch.ts";
 export {
 	dispatchLifecycle,
+	restartModules,
 	startModules,
 	statusModules,
 	stopModules,

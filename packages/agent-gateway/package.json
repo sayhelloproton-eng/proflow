@@ -1,41 +1,52 @@
 {
-	"name": "@tomflow/proflow-agent-gateway",
-	"version": "0.1.0",
-	"type": "module",
-	"publishConfig": {
-		"access": "public"
-	},
-	"exports": {
-		".": "./dist/src/index.js",
-		"./process": "./dist/src/process.js",
-		"./deployment/adapter": "./dist/deployment/adapter.js",
-		"./deployment/descriptor": "./dist/deployment/descriptor.js"
-	},
-	"bin": {
-		"proflow-agent-gateway": "./dist/src/cli.js"
-	},
-	"files": [
-		"dist",
-		"conformance.json",
-		"README.md"
-	],
-	"scripts": {
-		"test": "node --test tests/**/*.test.ts",
-		"typecheck": "tsc --noEmit"
-	},
-	"dependencies": {
-		"zod": "4.1.12"
-	},
-	"devDependencies": {
-		"@tomflow/proflow-agent-runtime": "workspace:^",
-		"@tomflow/proflow-deployment-conformance": "workspace:^",
-		"@tomflow/proflow-execution-browser-extension": "workspace:^",
-		"@tomflow/proflow-execution-local": "workspace:^",
-		"@tomflow/proflow-execution-runtime": "workspace:^",
-		"@tomflow/proflow-module-contract": "workspace:^",
-		"@tomflow/proflow-platform-host": "workspace:^",
-		"@tomflow/proflow-task-migration-runner": "workspace:^",
-		"@tomflow/proflow-task-orchestration": "workspace:^",
-		"@tomflow/proflow-task-store-sqlite": "workspace:^"
-	}
+  "name": "@tomflow/proflow-agent-gateway",
+  "version": "0.1.0",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./process": "./dist/src/process.js",
+    "./deployment/adapter": "./dist/deployment/adapter.js",
+    "./deployment/descriptor": "./dist/deployment/descriptor.js"
+  },
+  "bin": {
+    "proflow-agent-gateway": "./dist/src/cli.js"
+  },
+  "files": [
+    "dist",
+    "conformance.json",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@tomflow/proflow-agent-runtime": "workspace:^",
+    "@tomflow/proflow-deployment-conformance": "workspace:^",
+    "@tomflow/proflow-execution-browser-extension": "workspace:^",
+    "@tomflow/proflow-execution-local": "workspace:^",
+    "@tomflow/proflow-execution-runtime": "workspace:^",
+    "@tomflow/proflow-module-contract": "workspace:^",
+    "@tomflow/proflow-platform-host": "workspace:^",
+    "@tomflow/proflow-task-migration-runner": "workspace:^",
+    "@tomflow/proflow-task-orchestration": "workspace:^",
+    "@tomflow/proflow-task-store-sqlite": "workspace:^"
+  },
+  "description": "The sole Custom GPT Actions HTTP ingress and OpenAI transport anti-corruption layer.",
+  "keywords": [
+    "proflow",
+    "proflow-module",
+    "agent-runtime-collaboration"
+  ],
+  "proflow": {
+    "module": true,
+    "installClass": "core",
+    "descriptor": "./dist/deployment/descriptor.js"
+  }
 }

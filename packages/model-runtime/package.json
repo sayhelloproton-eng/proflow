@@ -1,36 +1,47 @@
 {
-	"name": "@tomflow/proflow-model-runtime",
-	"version": "0.1.0",
-	"type": "module",
-	"publishConfig": {
-		"access": "public"
-	},
-	"exports": {
-		".": "./dist/src/index.js",
-		"./provider": "./dist/src/provider.js",
-		"./service": "./dist/src/service.js",
-		"./process": "./dist/src/process.js",
-		"./specs/system-health-assessment": "./dist/src/specs/system-health-assessment.js",
-		"./deployment/adapter": "./dist/deployment/adapter.js",
-		"./deployment/descriptor": "./dist/deployment/descriptor.js"
-	},
-	"bin": {
-		"proflow-model-runtime": "./dist/src/cli.js"
-	},
-	"files": [
-		"dist",
-		"conformance.json",
-		"README.md"
-	],
-	"scripts": {
-		"test": "node --test tests/**/*.test.ts",
-		"typecheck": "tsc --noEmit"
-	},
-	"dependencies": {
-		"@tomflow/proflow-model-contracts": "workspace:^",
-		"zod": "4.1.12"
-	},
-	"devDependencies": {
-		"@tomflow/proflow-deployment-conformance": "workspace:^"
-	}
+  "name": "@tomflow/proflow-model-runtime",
+  "version": "0.1.0",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./provider": "./dist/src/provider.js",
+    "./service": "./dist/src/service.js",
+    "./process": "./dist/src/process.js",
+    "./specs/system-health-assessment": "./dist/src/specs/system-health-assessment.js",
+    "./deployment/adapter": "./dist/deployment/adapter.js",
+    "./deployment/descriptor": "./dist/deployment/descriptor.js"
+  },
+  "bin": {
+    "proflow-model-runtime": "./dist/src/cli.js"
+  },
+  "files": [
+    "dist",
+    "conformance.json",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tomflow/proflow-model-contracts": "workspace:^",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@tomflow/proflow-deployment-conformance": "workspace:^"
+  },
+  "description": "Provides the ProFlow Model Runtime service with FAST/REASON routing, provider capability checks and inference observability.",
+  "keywords": [
+    "proflow",
+    "proflow-module",
+    "model-reasoning"
+  ],
+  "proflow": {
+    "module": true,
+    "installClass": "core",
+    "descriptor": "./dist/deployment/descriptor.js"
+  }
 }

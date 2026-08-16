@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "cli",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "task-orchestration",
+		summary: "Deterministically discovers, applies and verifies Task Store SQLite schema migrations.",
+	},
 	provides: [],
 	requires: [],
 	requirements: [
@@ -43,6 +48,10 @@ export const descriptor = {
 		{
 			kind: "filesystem",
 			description: "Applies Task Store migration SQL to SQLite",
+			retention: "preserve",
 		},
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
 	],
 } as const;

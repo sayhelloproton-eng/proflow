@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "external-resource",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "deployment-governance",
+		summary: "Governs the Microsoft Dev Tunnel public HTTPS ingress resource and its managed local host process.",
+	},
 	provides: [],
 	requires: [],
 	requirements: [
@@ -41,6 +46,7 @@ export const descriptor = {
 			"start",
 			"stop",
 			"restart",
+			"uninstall",
 		],
 	},
 	verification: {
@@ -72,11 +78,21 @@ export const descriptor = {
 	effects: [
 		{
 			kind: "process",
-			description: "Runs the dev-tunnel public ingress process",
+			description: "Manage the dev-tunnel public ingress process",
+			retention: "remove",
+		},
+		{
+			kind: "network",
+			description: "Probes the dev-tunnel public HTTPS ingress",
+			retention: "preserve",
 		},
 		{
 			kind: "external-resource",
 			description: "Exposes the local platform via a public HTTPS tunnel",
+			retention: "preserve",
 		},
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Dev Tunnel module overview" },
 	],
 } as const;

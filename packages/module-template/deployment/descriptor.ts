@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "deployment-governance",
+		summary: "Materializes standard ProFlow module package profiles.",
+	},
 	provides: [],
 	requires: [],
 	requirements: [
@@ -27,6 +32,14 @@ export const descriptor = {
 		{
 			kind: "filesystem",
 			description: "Materialize a Module in the requested target directory",
+			retention: "preserve",
+		},
+	],
+	documentation: [
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Module template package overview",
 		},
 	],
 } as const;

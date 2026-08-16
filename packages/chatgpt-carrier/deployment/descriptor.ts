@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "external-resource",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "deployment-governance",
+		summary: "Governs and verifies the real-world ChatGPT Custom GPT carrier without faking readiness.",
+	},
 	provides: [],
 	requires: [],
 	requirements: [
@@ -84,6 +89,10 @@ export const descriptor = {
 		{
 			kind: "external-resource",
 			description: "Observes the ChatGPT Custom GPT carrier",
+			retention: "preserve",
 		},
+	],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
 	],
 };

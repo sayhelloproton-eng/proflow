@@ -1,5 +1,5 @@
 import { readdir, readFile, stat } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
@@ -7,6 +7,7 @@ import {
 	type ModuleDescriptor,
 	moduleDescriptorSchema,
 	moduleOperationResultSchema,
+	proflowPackageMetadataSchema,
 } from "@tomflow/proflow-module-contract";
 
 export type GateStatus = "PASS" | "FAIL";
@@ -27,6 +28,15 @@ function gate(
 	issues: ConformanceIssue[],
 ): ConformanceGateResult {
 	return { gate: name, status: issues.length === 0 ? "PASS" : "FAIL", issues };
+}
+
+function isPackageRelativePath(value: string): boolean {
+	return (
+		value.startsWith("./") &&
+		!isAbsolute(value) &&
+		!value.split(/[\\/]/).includes("..") &&
+		!value.includes("://")
+	);
 }
 
 export function runStaticConformance(input: unknown): ConformanceGateResult {
@@ -134,6 +144,32 @@ export function runStaticConformance(input: unknown): ConformanceGateResult {
 			message: "verification check ids must be unique",
 		});
 	}
+	if (
+		new Set(descriptor.documentation.map((entry) => entry.id)).size !==
+		descriptor.documentation.length
+	) {
+		issues.push({
+			code: "DOCUMENTATION_DUPLICATE",
+			message: "documentation entry ids must be unique",
+		});
+	}
+	for (const entry of descriptor.documentation) {
+		if (!isPackageRelativePath(entry.path)) {
+			issues.push({
+				code: "DOCUMENTATION_PATH_INVALID",
+				message: `documentation ${entry.id} must use a package-relative path`,
+			});
+		}
+	}
+	if (
+		descriptor.effects.some((effect) => effect.retention === "remove") &&
+		!lifecycle.has("uninstall")
+	) {
+		issues.push({
+			code: "UNINSTALL_LIFECYCLE_REQUIRED",
+			message: "effects with remove retention require package-owned uninstall lifecycle",
+		});
+	}
 	return gate("C1", issues);
 }
 
@@ -146,6 +182,7 @@ interface PackageMetadata {
 	private?: unknown;
 	publishConfig?: unknown;
 	files?: unknown;
+	proflow?: unknown;
 }
 
 function containsPlaintextSecret(input: unknown, key = ""): boolean {
@@ -215,6 +252,24 @@ function exportedEntry(metadata: PackageMetadata): string | undefined {
 	return exportEntry(metadata, ".");
 }
 
+function packageExecutableName(packageName: string): string {
+	return packageName.includes("/") ? packageName.split("/").at(-1)! : packageName;
+}
+
+function packageBinEntry(
+	metadata: PackageMetadata,
+	packageName: string,
+): string | undefined {
+	if (typeof metadata.bin === "string") return metadata.bin;
+	if (typeof metadata.bin !== "object" || metadata.bin === null) return undefined;
+	const value = Reflect.get(metadata.bin, packageExecutableName(packageName));
+	return typeof value === "string" ? value : undefined;
+}
+
+function stringArrayIncludes(input: unknown, value: string): boolean {
+	return Array.isArray(input) && input.some((item) => item === value || item === `./${value}`);
+}
+
 export async function runPackageConformance(
 	packageDirectory: string,
 	descriptor: ModuleDescriptor,
@@ -245,6 +300,18 @@ export async function runPackageConformance(
 			message: "package version differs from descriptor",
 		});
 	}
+	const parsedProflow = proflowPackageMetadataSchema.safeParse(metadata.proflow);
+	if (!parsedProflow.success) {
+		issues.push({
+			code: "PROFLOW_PACKAGE_METADATA_INVALID",
+			message: "package.json.proflow must declare module/installClass/descriptor",
+		});
+	} else if (parsedProflow.data.installClass !== descriptor.installClass) {
+		issues.push({
+			code: "INSTALL_CLASS_MISMATCH",
+			message: "package.json.proflow.installClass differs from descriptor",
+		});
+	}
 	if (metadata.type !== "module") {
 		issues.push({
 			code: "PACKAGE_NOT_ESM",
@@ -256,6 +323,39 @@ export async function runPackageConformance(
 			code: "FORMAL_MODULE_PRIVATE",
 			message: "formal Module packages must be publishable",
 		});
+	}
+	if (descriptor.moduleRef === "platform-cli") {
+		const platformBin =
+			typeof metadata.bin === "object" && metadata.bin !== null
+				? Reflect.get(metadata.bin, "platform")
+				: undefined;
+		if (typeof platformBin !== "string") {
+			issues.push({
+				code: "PLATFORM_INSTALL_BIN_MISSING",
+				message: "platform-cli must expose the platform executable",
+			});
+		}
+	} else {
+		const selfInstallBin = packageBinEntry(metadata, descriptor.packageName);
+		if (selfInstallBin === undefined) {
+			issues.push({
+				code: "SELF_INSTALL_BIN_MISSING",
+				message: `package must expose ${packageExecutableName(descriptor.packageName)} so npx <package> install has a stable entry`,
+			});
+		} else if (selfInstallBin === "./self-install.mjs") {
+			if (!(await pathExists(join(packageDirectory, "self-install.mjs")))) {
+				issues.push({
+					code: "SELF_INSTALL_ENTRY_MISSING",
+					message: "self-install.mjs bin target is missing",
+				});
+			}
+			if (!stringArrayIncludes(metadata.files, "self-install.mjs")) {
+				issues.push({
+					code: "SELF_INSTALL_NOT_PUBLISHED",
+					message: "self-install.mjs must be included in the npm files allowlist",
+				});
+			}
+		}
 	}
 	if (
 		typeof metadata.publishConfig !== "object" ||
@@ -355,6 +455,27 @@ export async function runPackageConformance(
 			code: "DESCRIPTOR_EXPORT_INVALID",
 			message: "public descriptor export is missing",
 		});
+	}
+	if (
+		parsedProflow.success &&
+		descriptorEntry !== undefined &&
+		parsedProflow.data.descriptor !== descriptorEntry
+	) {
+		issues.push({
+			code: "DESCRIPTOR_METADATA_MISMATCH",
+			message: "package.json.proflow.descriptor must match the public descriptor export",
+		});
+	}
+	for (const entry of descriptor.documentation) {
+		if (
+			isPackageRelativePath(entry.path) &&
+			!(await pathExists(resolve(packageDirectory, entry.path)))
+		) {
+			issues.push({
+				code: "DOCUMENTATION_ENTRY_MISSING",
+				message: `documentation ${entry.id} does not resolve to a package file`,
+			});
+		}
 	}
 	const cliEntry = exportEntry(metadata, "./cli");
 	if (

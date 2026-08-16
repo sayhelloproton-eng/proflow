@@ -1,6 +1,8 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { proflowPackageMetadataSchema } from "@tomflow/proflow-module-contract";
+
 import { PlatformError } from "../errors.ts";
 import type { ModuleCatalog, ModuleSource } from "../modules.ts";
 import {
@@ -26,6 +28,8 @@ export class WorkspaceModuleCatalog implements ModuleCatalog {
 			if (!hasDeploymentArtifacts(directory)) continue;
 			const packageJson = await readPackageJson(directory);
 			if (packageJson.name === undefined) continue;
+			if (!packageJson.name.startsWith("@tomflow/proflow-")) continue;
+			if (!proflowPackageMetadataSchema.safeParse(packageJson.proflow).success) continue;
 			sources.push({
 				type: "workspace",
 				packageName: packageJson.name,

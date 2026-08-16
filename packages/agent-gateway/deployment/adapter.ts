@@ -74,6 +74,13 @@ export function createBehaviorAdapter(service?: GatewayProcess) {
 				observedEffects: service ? ["Manage the declared service process"] : [],
 			};
 		},
+		uninstall: async () => {
+			if (service) await service.stop();
+			return {
+				result: service ? base : unbound,
+				observedEffects: service ? ["Manage the declared service process"] : [],
+			};
+		},
 		restart: async () => ({
 			result: {
 				...base,

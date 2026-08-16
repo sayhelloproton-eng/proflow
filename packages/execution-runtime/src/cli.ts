@@ -1,8 +1,24 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import { createFormalExecutionRuntimeLifecycle } from "./formal-process.ts";
 import { loadExecutionRuntimeProcessConfig } from "./service.ts";
 
+function installSelf(): never {
+	const executable = process.platform === "win32" ? "npx.cmd" : "npx";
+	const result = spawnSync(
+		executable,
+		["--yes", "@tomflow/proflow-platform-cli", "install", "@tomflow/proflow-execution-runtime"],
+		{ cwd: process.cwd(), env: process.env, stdio: "inherit" },
+	);
+	if (result.error) throw result.error;
+	process.exit(result.status ?? 1);
+}
+
 const [command, configPath] = process.argv.slice(2);
+if (command === "install") {
+	if (configPath) throw new Error("Usage: proflow-execution-runtime install");
+	installSelf();
+}
 if (command !== "start" || !configPath)
 	throw new Error(
 		"Usage: proflow-execution-runtime start /absolute/config.json",

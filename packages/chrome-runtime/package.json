@@ -1,28 +1,43 @@
 {
-	"name": "@tomflow/proflow-chrome-runtime",
-	"version": "0.1.0",
-	"type": "module",
-	"publishConfig": {
-		"access": "public"
-	},
-	"exports": {
-		".": "./dist/src/index.js",
-		"./deployment/adapter": "./dist/deployment/adapter.js",
-		"./deployment/descriptor": "./dist/deployment/descriptor.js"
-	},
-	"files": [
-		"dist",
-		"conformance.json",
-		"README.md"
-	],
-	"scripts": {
-		"test": "node --test tests/**/*.test.ts",
-		"typecheck": "tsc --noEmit"
-	},
-	"dependencies": {
-		"@tomflow/proflow-module-contract": "workspace:^"
-	},
-	"devDependencies": {
-		"@tomflow/proflow-deployment-conformance": "workspace:^"
-	}
+  "name": "@tomflow/proflow-chrome-runtime",
+  "version": "0.1.0",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./deployment/adapter": "./dist/deployment/adapter.js",
+    "./deployment/descriptor": "./dist/deployment/descriptor.js"
+  },
+  "files": [
+    "dist",
+    "conformance.json",
+    "README.md",
+    "self-install.mjs"
+  ],
+  "scripts": {
+    "test": "node --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tomflow/proflow-module-contract": "workspace:^"
+  },
+  "devDependencies": {
+    "@tomflow/proflow-deployment-conformance": "workspace:^"
+  },
+  "description": "Observes the real Chrome runtime and MV3 extension load prerequisite.",
+  "keywords": [
+    "proflow",
+    "proflow-module",
+    "deployment-governance"
+  ],
+  "proflow": {
+    "module": true,
+    "installClass": "core",
+    "descriptor": "./dist/deployment/descriptor.js"
+  },
+  "bin": {
+    "proflow-chrome-runtime": "./self-install.mjs"
+  }
 }

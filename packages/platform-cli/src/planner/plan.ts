@@ -38,13 +38,45 @@ export interface PlanInput {
 export function planDeployment(input: PlanInput): DeploymentPlan {
 	switch (input.intent) {
 		case "upgrade":
-			return planUpgrade(input);
+			return input.modules?.every((module) => module.source.type === "registry")
+				? planRegistryPackageUpgrade(input)
+				: planUpgrade(input);
 		case "repair":
 			return planRepair(input);
+		case "uninstall":
+			return planUninstall(input);
 		case "install":
 		case "configure":
 			return planInstallOrConfigure(input);
 	}
+}
+
+function planRegistryPackageUpgrade(input: PlanInput): DeploymentPlan {
+	const modules = input.modules;
+	if (modules === undefined) {
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			"registry-backed upgrade requires modules",
+		);
+	}
+	const graph = buildDependencyGraph(modules);
+	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
+	const seq = createSequencer();
+	const steps: DeploymentStep[] = [];
+	for (const ref of graph.order) {
+		const module = byRef.get(ref);
+		if (module === undefined) continue;
+		steps.push(packageStep(seq, module, "upgrade", []));
+	}
+	return assemblePlan({
+		intent: "upgrade",
+		modules,
+		targets: input.targets ?? [],
+		config: undefined,
+		steps,
+		humanActions: [],
+		now: input.now ?? new Date(),
+	});
 }
 
 function planInstallOrConfigure(input: PlanInput): DeploymentPlan {
@@ -131,4 +163,39 @@ function configureSteps(
 		}
 	}
 	return steps;
+}
+
+function planUninstall(input: PlanInput): DeploymentPlan {
+	const modules = input.modules;
+	if (modules === undefined || modules.length === 0) {
+		throw new PlatformError("INVALID_REQUEST", "uninstall requires modules");
+	}
+	const core = modules.find((module) => module.installClass === "core");
+	if (core !== undefined) {
+		throw new PlatformError(
+			"CORE_PACKAGE_REQUIRED",
+			`core module ${core.moduleRef} cannot be individually uninstalled`,
+		);
+	}
+	const graph = buildDependencyGraph(modules);
+	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
+	const seq = createSequencer();
+	const steps: DeploymentStep[] = [];
+	for (const ref of [...graph.order].reverse()) {
+		const module = byRef.get(ref);
+		if (module === undefined) continue;
+		if (module.lifecycle.includes("uninstall")) {
+			steps.push(lifecycleStep(seq, module, "uninstall"));
+		}
+		steps.push(packageStep(seq, module, "remove", []));
+	}
+	return assemblePlan({
+		intent: "uninstall",
+		modules,
+		targets: input.targets ?? [],
+		config: undefined,
+		steps,
+		humanActions: [],
+		now: input.now ?? new Date(),
+	});
 }

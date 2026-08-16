@@ -154,6 +154,7 @@ export function hasDeploymentArtifacts(dir: string): boolean {
 export interface PackageJson {
 	name?: string;
 	version?: string;
+	proflow?: unknown;
 }
 
 export async function readPackageJson(dir: string): Promise<PackageJson> {

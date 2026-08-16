@@ -1,25 +1,40 @@
 {
-	"name": "@tomflow/proflow-execution-contracts",
-	"version": "0.1.0",
-	"type": "module",
-	"publishConfig": {
-		"access": "public"
-	},
-	"exports": {
-		".": "./dist/src/index.js",
-		"./deployment/adapter": "./dist/deployment/adapter.js",
-		"./deployment/descriptor": "./dist/deployment/descriptor.js"
-	},
-	"files": [
-		"dist",
-		"conformance.json",
-		"README.md"
-	],
-	"scripts": {
-		"test": "node --test tests/**/*.test.ts",
-		"typecheck": "tsc --noEmit"
-	},
-	"dependencies": {
-		"zod": "4.1.12"
-	}
+  "name": "@tomflow/proflow-execution-contracts",
+  "version": "0.1.0",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./deployment/adapter": "./dist/deployment/adapter.js",
+    "./deployment/descriptor": "./dist/deployment/descriptor.js"
+  },
+  "files": [
+    "dist",
+    "conformance.json",
+    "README.md",
+    "self-install.mjs"
+  ],
+  "scripts": {
+    "test": "node --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.1.12"
+  },
+  "description": "Typed public Execution contracts and runtime validation for the ProFlow real-world effect plane.",
+  "keywords": [
+    "proflow",
+    "proflow-module",
+    "execution"
+  ],
+  "proflow": {
+    "module": true,
+    "installClass": "core",
+    "descriptor": "./dist/deployment/descriptor.js"
+  },
+  "bin": {
+    "proflow-execution-contracts": "./self-install.mjs"
+  }
 }

@@ -15,6 +15,7 @@ import type { ModuleCatalog } from "../modules.ts";
 import type { WorkspacePaths } from "../paths.ts";
 import { type ModuleConfig, materializeConfig } from "../persistence/index.ts";
 import { ExecuteStrategy } from "../planner/index.ts";
+import { cleanupRemovableFilesystemEffects } from "./cleanup.ts";
 import type { PackageManagerDriver } from "./driver.ts";
 
 export interface ExecuteDeps {
@@ -72,6 +73,8 @@ function lifecyclePrimitive(step: DeploymentStep): LifecyclePrimitive {
 			return "stop";
 		case ExecuteStrategy.lifecycleRestart:
 			return "restart";
+		case ExecuteStrategy.lifecycleUninstall:
+			return "uninstall";
 		case ExecuteStrategy.lifecycleMigrate:
 			return "migrate";
 		default:
@@ -146,7 +149,9 @@ export async function executeStep(
 
 	switch (step.kind) {
 		case "package": {
-			if (step.executeStrategy === ExecuteStrategy.packageUpgrade) {
+			if (step.executeStrategy === ExecuteStrategy.packageRemove) {
+				await deps.driver.remove(module);
+			} else if (step.executeStrategy === ExecuteStrategy.packageUpgrade) {
 				await deps.driver.upgrade(module);
 			} else {
 				await deps.driver.install(module);
@@ -171,7 +176,14 @@ export async function executeStep(
 				module,
 				primitive,
 			);
-			return operationOutcome(dispatched.result);
+			const operation = operationOutcome(dispatched.result);
+			if (primitive === "uninstall" && operation.kind === "SUCCEEDED") {
+				await cleanupRemovableFilesystemEffects({
+					workspaceRoot: deps.paths.root,
+					effects: module.effects,
+				});
+			}
+			return operation;
 		}
 		case "external-resource": {
 			const primitive = externalResourcePrimitive(step);

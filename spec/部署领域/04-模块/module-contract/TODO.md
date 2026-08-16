@@ -122,3 +122,28 @@ evidence: []
 - 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
 - `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
 - 发现正式文档内部冲突时停止实现，先修 Contract/Design。
+
+## Current Real-1 remediation delta (2026-08-16)
+
+本节记录当前 Fresh Workspace / Platform Install blocker 暴露出的 `module-contract` 形式补齐，不改写上方历史 backlog 状态字段。
+
+```yaml
+remediationRef: REAL1-FRESH-WORKSPACE-MODULE-CONTRACT
+status: IMPLEMENTATION_IN_PROGRESS
+scope:
+  - npm package discovery metadata schema
+  - installClass: core | optional
+  - Module identity/domain/summary self-description
+  - package-owned documentation entry
+  - lifecycle uninstall capability
+  - effect cleanup retention: remove | preserve | explicit-purge
+  - CORE_PACKAGE_REQUIRED / UNINSTALL_FAILED error semantics
+outOfScope:
+  - core implementation replacement
+  - generic npm marketplace/plugin registry
+  - business-domain implementation changes
+testPolicy:
+  automatedTestCaseChanges: DEFERRED_UNTIL_MANUAL_REAL_VALIDATION
+```
+
+当前代码与规范先完成闭环；人工 Real-1 验证通过后，再更新正式测试用例与 evidence。

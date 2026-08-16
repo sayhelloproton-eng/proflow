@@ -56,6 +56,15 @@ function canonicalModules(modules: readonly ResolvedModule[]): unknown {
 			packageName: module.packageName,
 			moduleVersion: module.moduleVersion,
 			kind: module.kind,
+			installClass: module.installClass,
+			identity: module.identity,
+			documentation: [...module.documentation]
+				.sort((a, b) => compareRef(a.id, b.id))
+				.map((entry) => ({
+					id: entry.id,
+					path: entry.path,
+					description: entry.description ?? null,
+				})),
 			provides: [...module.provides]
 				.sort((a, b) => compareRef(a.contractRef, b.contractRef))
 				.map((provide) => ({
@@ -100,6 +109,8 @@ function canonicalModules(modules: readonly ResolvedModule[]): unknown {
 				.map((effect) => ({
 					kind: effect.kind,
 					description: effect.description,
+					path: effect.path ?? null,
+					retention: effect.retention,
 				})),
 		}));
 }
@@ -181,6 +192,8 @@ export function buildFingerprintSource(
 				.map((effect) => ({
 					kind: effect.kind,
 					description: effect.description,
+					path: effect.path ?? null,
+					retention: effect.retention,
 				})),
 		),
 		humanActions: stableStringify(

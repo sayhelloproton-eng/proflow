@@ -7,6 +7,11 @@ export const descriptor = {
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
+	installClass: "core",
+	identity: {
+		domain: "model-reasoning",
+		summary: "Typed public Model & Reasoning contracts and runtime validation for ProFlow inference.",
+	},
 	provides: [{ contractRef: "model-inference", version: "1.0.0" }],
 	requires: [],
 	requirements: [
@@ -25,4 +30,7 @@ export const descriptor = {
 		],
 	},
 	effects: [],
+	documentation: [
+		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
+	],
 } as const;
