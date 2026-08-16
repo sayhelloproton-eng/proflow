@@ -2,10 +2,6 @@ import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 
 const ROOT = process.cwd();
-const EXPECTED_SOURCE_BASELINE = "proflow-source-da55f875-20260816-085708.zip";
-const EXPECTED_SOURCE_SHA256 =
-	"d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e";
-const RECONCILED_THROUGH = "PHASE3_BATCH6_NON_E2E_CLOSURE_20260816";
 const mode = process.argv.includes("--write") ? "write" : "check";
 
 async function walk(dir) {
@@ -159,7 +155,7 @@ async function main() {
 	const planFiles = [];
 	for (const file of specFiles.filter((item) => item.endsWith(".md"))) {
 		const text = await readFile(file, "utf8");
-		if (frontmatterValue(text, "sourceBaseline"))
+		if (frontmatterValue(text, "testPlanStatus"))
 			planFiles.push({ file, text });
 	}
 
@@ -178,31 +174,11 @@ async function main() {
 			continue;
 		}
 		plansByDocId.set(docId, plan);
-		const sourceBaseline = frontmatterValue(plan.text, "sourceBaseline");
-		const sourceSha = frontmatterValue(plan.text, "sourceBaselineSha256");
-		const reconciledThrough = frontmatterValue(
-			plan.text,
-			"sourceReconciledThrough",
-		);
-		if (sourceBaseline !== EXPECTED_SOURCE_BASELINE)
-			errors.push(`${docId}: stale sourceBaseline=${sourceBaseline}`);
-		if (sourceSha !== EXPECTED_SOURCE_SHA256)
-			errors.push(`${docId}: stale sourceBaselineSha256=${sourceSha}`);
-		if (reconciledThrough !== RECONCILED_THROUGH)
-			errors.push(
-				`${docId}: missing sourceReconciledThrough=${RECONCILED_THROUGH}`,
-			);
 	}
 	for (const document of index.documents) {
 		if (!plansByDocId.has(document.docId))
 			errors.push(`index docId has no matching Test Plan: ${document.docId}`);
 	}
-	if (index.sourceBaseline !== EXPECTED_SOURCE_BASELINE)
-		errors.push("TEST-PLAN-INDEX sourceBaseline is stale");
-	if (index.sourceBaselineSha256 !== EXPECTED_SOURCE_SHA256)
-		errors.push("TEST-PLAN-INDEX sourceBaselineSha256 is stale");
-	if (index.sourceReconciledThrough !== RECONCILED_THROUGH)
-		errors.push("TEST-PLAN-INDEX sourceReconciledThrough is stale");
 
 	const packageFiles = await walk(resolve(ROOT, "packages"));
 	const testFiles = packageFiles.filter((file) =>
@@ -223,9 +199,6 @@ async function main() {
 
 	const currentInventory = {
 		contract: "proflow.executable-test-inventory.v2",
-		generatedFor: RECONCILED_THROUGH,
-		sourceBaseline: EXPECTED_SOURCE_BASELINE,
-		sourceBaselineSha256: EXPECTED_SOURCE_SHA256,
 		semantics:
 			"Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
 		summary: { files: testFiles.length, testCalls: tests.length },
@@ -352,10 +325,7 @@ async function main() {
 
 	const crossDomain = JSON.parse(await readFile(crossDomainPath, "utf8"));
 	const reconciliation = {
-		contract: "proflow.batch6-test-governance-reconciliation.v1",
-		generatedFor: RECONCILED_THROUGH,
-		sourceBaseline: EXPECTED_SOURCE_BASELINE,
-		sourceBaselineSha256: EXPECTED_SOURCE_SHA256,
+		contract: "proflow.test-governance-reconciliation.v1",
 		historicalClaims: {
 			formalIdentities261: "HISTORICAL_TRACE_BASELINE_ONLY",
 			executableCalls541: "HISTORICAL_SOURCE_INVENTORY_ONLY_NOT_PASS",

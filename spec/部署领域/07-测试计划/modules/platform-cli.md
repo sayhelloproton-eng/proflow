@@ -14,9 +14,6 @@ requires: []
 contractRefs: []
 testPlanPhase: PRE_IMPLEMENTATION
 testPlanStatus: FINAL_FROZEN
-sourceBaseline: proflow-source-da55f875-20260816-085708.zip
-sourceBaselineSha256: d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e
-sourceReconciledThrough: PHASE3_BATCH6_NON_E2E_CLOSURE_20260816
 sourceRefs:
 - DEPLOYMENT-PLATFORM-CLI-TECH-DESIGN
 - DEPLOYMENT-DOC-05-02
@@ -89,6 +86,7 @@ CLI 是唯一全局 Deployment Planner/Executor；错误 graph、stale state 或
 - [ ] **CP-DPL-CLI-05** — status/verify/doctor 读取 current reality；persisted history 不能制造 fake READY。
 - [ ] **CP-DPL-CLI-06** — upgrade fail 保留 verification history，STOP + doctor；rollback 通过新 Plan，不做事务式自动 rollback。
 - [ ] **CP-DPL-CLI-07** — same workspace 只允许一个 apply：exclusive workspace lock 生效；repo-local plan/state/config 采用安全原子写，concurrent apply 不破坏 deployment state。
+- [ ] **CP-DPL-CLI-22** — Platform CLI 不发明 Task worker/conversation/browser identity；worker/c-id 只由 Owner/Execution 产生，Deployment 只连接 lifecycle/status/verify primitive。
 
 ## 6. Frozen TODO Coverage
 
@@ -146,6 +144,7 @@ CLI 是唯一全局 Deployment Planner/Executor；错误 graph、stale state 或
 | `CP-DPL-CLI-05` | `Persistence`<br>`Real Local Integration`<br>`Real External E2E`<br>`Failure / Recovery` | `RF-DPL-CLI-05` | `EV-DPL-CLI-04`<br>`EV-DPL-CLI-06` |
 | `CP-DPL-CLI-06` | `Persistence`<br>`Real External E2E`<br>`Failure / Recovery` | `RF-DPL-CLI-07` | `EV-DPL-CLI-06`<br>`EV-DPL-CLI-07` |
 | `CP-DPL-CLI-07` | `Persistence`<br>`Real Local Integration`<br>`Security / Boundary`<br>`Concurrency / Idempotency` | `RF-DPL-CLI-06`<br>`RF-DPL-CLI-08` | `EV-DPL-CLI-05`<br>`EV-DPL-CLI-06`<br>`EV-DPL-CLI-08` |
+| `CP-DPL-CLI-22` | `Module Integration` | — | — |
 
 ## 8.2 Codex TDD Handoff
 

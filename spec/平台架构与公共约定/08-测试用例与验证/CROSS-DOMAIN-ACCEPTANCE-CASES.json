@@ -283,8 +283,7 @@
       "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
       "requirement": "WAKE submit disconnect is reconciled by re-observing the same Conversation; uncertain delivery becomes UNKNOWN and is never blindly replayed.",
       "boundCpIds": [
-        "CP-EXE-BR-09",
-        "CP-EXE-RT-09"
+        "CP-EXE-BR-09"
       ],
       "automationLevel": "NON_E2E",
       "preconditions": [
@@ -308,12 +307,6 @@
           "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
           "line": 93,
           "title": "CP-EXE-BR-09 uncertain submit/WAKE reconciles DELIVERED/ABSENT/UNKNOWN and contains no blind replay loop",
-          "disposition": "ADD"
-        },
-        {
-          "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
-          "line": 24,
-          "title": "CP-EXE-RT-09 File Bridge locator materialization produces Artifact truth before reuse",
           "disposition": "ADD"
         }
       ],
@@ -385,8 +378,6 @@
       "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
       "requirement": "File Bridge/Code Interpreter use bounded Context Pack and Patch artifacts; real apply/test/evidence remains in Execution.",
       "boundCpIds": [
-        "CP-AGT-DEV-08",
-        "CP-AGT-TEST-08",
         "CP-EXE-LOCAL-08",
         "CP-EXE-LOCAL-10",
         "CP-EXE-LOCAL-11"
@@ -409,18 +400,6 @@
         "Model/Observer/Browser bypass of Owner or Policy"
       ],
       "executableRefs": [
-        {
-          "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
-          "line": 24,
-          "title": "CP-AGT-DEV-08 one Worker Turn uses 0..N routine Actions and has no Browser per-action scheduler protocol",
-          "disposition": "ADD"
-        },
-        {
-          "path": "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
-          "line": 24,
-          "title": "CP-AGT-TEST-08 one Worker Turn permits 0..N routine Actions without Browser per-action scheduling",
-          "disposition": "ADD"
-        },
         {
           "path": "packages/execution-local/tests/artifact-context-pack-patch-alignment.test.ts",
           "line": 11,
@@ -450,8 +429,7 @@
       "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
       "requirement": "Public research uses GPT Web Search while deterministic/local/private/credentialed network effects remain Execution-owned.",
       "boundCpIds": [
-        "CP-AGT-DEV-11",
-        "CP-AGT-TEST-08"
+        "CP-AGT-DEV-11"
       ],
       "automationLevel": "NON_E2E",
       "preconditions": [
@@ -476,12 +454,6 @@
           "line": 44,
           "title": "CP-AGT-DEV-11 public research uses native Web Search while local/private/credentialed engineering requests remain Execution-owned",
           "disposition": "ADD"
-        },
-        {
-          "path": "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
-          "line": 24,
-          "title": "CP-AGT-TEST-08 one Worker Turn permits 0..N routine Actions without Browser per-action scheduling",
-          "disposition": "ADD"
         }
       ],
       "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
@@ -495,7 +467,6 @@
       "requirement": "Task-relevant Execution result readiness requests resume/wake without automatically mapping async pending to Task WAITING.",
       "boundCpIds": [
         "CP-TASK-ORCH-12",
-        "CP-EXE-RT-10",
         "CP-EXE-BR-10"
       ],
       "automationLevel": "NON_E2E",
@@ -520,12 +491,6 @@
           "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
           "line": 110,
           "title": "CP-TASK-ORCH-12 async Execution/Collaboration/Carrier pending is not a hidden Task WAIT command",
-          "disposition": "ADD"
-        },
-        {
-          "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
-          "line": 35,
-          "title": "CP-EXE-RT-10 Context Pack/Patch remain Artifact subtypes and patch apply is a separate effect",
           "disposition": "ADD"
         },
         {
@@ -591,8 +556,7 @@
       "boundCpIds": [
         "CP-TASK-ORCH-05",
         "CP-TASK-ORCH-13",
-        "CP-AGT-DEV-10",
-        "CP-AGT-TEST-06"
+        "CP-AGT-DEV-10"
       ],
       "automationLevel": "NON_E2E",
       "preconditions": [

@@ -1,6 +1,5 @@
 {
-  "contract": "proflow.batch6-ui-interaction-reconciliation.v1",
-  "generatedFor": "PHASE3_BATCH6_NON_E2E_CLOSURE_20260816",
+  "contract": "proflow.ui-interaction-reconciliation.v1",
   "semantics": "Mechanical shipped UI inventory. Controls prove an implemented interaction surface only; real Chrome/Custom GPT behavior remains REAL_EXTERNAL where applicable.",
   "sidePanel": {
     "forms": [

@@ -3,7 +3,6 @@ import { relative, resolve } from "node:path";
 
 const ROOT = process.cwd();
 const mode = process.argv.includes("--write") ? "write" : "check";
-const RECONCILED_THROUGH = "PHASE3_BATCH6_NON_E2E_CLOSURE_20260816";
 
 async function exists(path) {
 	try {
@@ -236,8 +235,7 @@ async function main() {
 			errors.push(`UI dynamic control missing operation: ${item.operation}`);
 
 	const publicArtifact = {
-		contract: "proflow.batch6-public-surface-reconciliation.v1",
-		generatedFor: RECONCILED_THROUGH,
+		contract: "proflow.public-surface-reconciliation.v1",
 		semantics:
 			"Mechanical inventory of shipped public package exports/binaries, Role OpenAPI operations, Host runtime ACL, Extension message types and application operations. Inventory presence is not execution PASS evidence.",
 		packages,
@@ -253,8 +251,7 @@ async function main() {
 		},
 	};
 	const uiArtifact = {
-		contract: "proflow.batch6-ui-interaction-reconciliation.v1",
-		generatedFor: RECONCILED_THROUGH,
+		contract: "proflow.ui-interaction-reconciliation.v1",
 		semantics:
 			"Mechanical shipped UI inventory. Controls prove an implemented interaction surface only; real Chrome/Custom GPT behavior remains REAL_EXTERNAL where applicable.",
 		sidePanel: {

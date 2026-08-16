@@ -14,9 +14,6 @@ requires: []
 contractRefs: []
 testPlanPhase: PRE_IMPLEMENTATION
 testPlanStatus: FINAL_FROZEN
-sourceBaseline: proflow-source-da55f875-20260816-085708.zip
-sourceBaselineSha256: d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e
-sourceReconciledThrough: PHASE3_BATCH6_NON_E2E_CLOSURE_20260816
 sourceRefs:
 - EXECUTION-EXECUTION-LOCAL-TECH-DESIGN
 - EXECUTION-DOC-02-01

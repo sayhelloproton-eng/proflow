@@ -29,7 +29,7 @@ test("CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) an
 	assert.doesNotMatch(text, /ACTION_REQUIRED[^\n]{0,100}(?:SUCCEEDED|READY)/i);
 });
 
-test("CP-DPL-CLI-04 platform CLI never invents Task worker/conversation/browser identity", async () => {
+test("CP-DPL-CLI-22 platform CLI never invents Task worker/conversation/browser identity", async () => {
 	const text = await sources();
 	for (const forbidden of ["workerRef", "conversationLocator", "tabId", "frameId"])
 		assert.equal(text.includes(forbidden), false, `${forbidden} must not be deployment truth`);

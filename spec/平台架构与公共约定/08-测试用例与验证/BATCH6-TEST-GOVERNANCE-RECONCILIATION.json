@@ -1,8 +1,5 @@
 {
-  "contract": "proflow.batch6-test-governance-reconciliation.v1",
-  "generatedFor": "PHASE3_BATCH6_NON_E2E_CLOSURE_20260816",
-  "sourceBaseline": "proflow-source-da55f875-20260816-085708.zip",
-  "sourceBaselineSha256": "d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e",
+  "contract": "proflow.test-governance-reconciliation.v1",
   "historicalClaims": {
     "formalIdentities261": "HISTORICAL_TRACE_BASELINE_ONLY",
     "executableCalls541": "HISTORICAL_SOURCE_INVENTORY_ONLY_NOT_PASS",
@@ -10,11 +7,11 @@
   },
   "currentMechanicalInventory": {
     "testPlans": 37,
-    "formalCaseIdentities": 312,
-    "criticalProofs": 188,
+    "formalCaseIdentities": 314,
+    "criticalProofs": 190,
     "requiredFailureBoundaries": 124,
     "executableTestFiles": 122,
-    "executableTestCalls": 634,
+    "executableTestCalls": 651,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -1473,18 +1470,22 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/platform-cli/tests/carrier-readiness-alignment.test.ts"
+        "packages/platform-cli/tests/lifecycle.test.ts"
       ],
       "ownerPackages": [
         "platform-cli"
       ],
       "implementationRefs": [
-        "packages/platform-cli/src/index.ts"
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/modules.ts"
       ],
       "proofStrengths": [
-        "STATIC_OR_SOURCE_ALIGNMENT"
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
       ],
-      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -1549,9 +1550,9 @@
         "packages/platform-cli/src/verification/index.ts"
       ],
       "proofStrengths": [
-        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
-      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -1582,6 +1583,31 @@
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
       ],
       "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DPL-CLI-22",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/carrier-readiness-alignment.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/index.ts"
+      ],
+      "proofStrengths": [
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -2353,6 +2379,7 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-browser-extension/src/collaboration-carrier.ts",
         "packages/execution-browser-extension/src/runtime-composition.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
@@ -3062,7 +3089,7 @@
           "path": "spec/执行领域/07-测试计划/modules/execution-runtime.md"
         }
       ],
-      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "proofClass": "HISTORICAL_TRACE_REVALIDATED",
       "executableRefs": [
         "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts"
       ],
@@ -3250,7 +3277,8 @@
         "packages/execution-runtime/tests/execution-approval-lifecycle.test.ts",
         "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
         "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
-        "packages/execution-runtime/tests/execution-runtime-service.test.ts"
+        "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension",
@@ -3259,6 +3287,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -3268,7 +3297,8 @@
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
@@ -3291,6 +3321,7 @@
       ],
       "implementationRefs": [
         "packages/execution-runtime/src/approval-owner.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
         "packages/execution-runtime/src/index.ts"
       ],
       "proofStrengths": [
@@ -3340,7 +3371,8 @@
         "packages/execution-runtime/tests/execution-approval-lifecycle.test.ts",
         "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
         "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
-        "packages/execution-runtime/tests/execution-runtime-service.test.ts"
+        "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension",
@@ -3349,6 +3381,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -3358,7 +3391,8 @@
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
@@ -3379,6 +3413,7 @@
         "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
         "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
         "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
         "packages/execution-runtime/tests/model-decision-client.test.ts"
       ],
       "ownerPackages": [
@@ -3388,6 +3423,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -3398,7 +3434,8 @@
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
@@ -3453,6 +3490,32 @@
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-RT-22",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-RUNTIME",
+          "path": "spec/执行领域/07-测试计划/modules/execution-runtime.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-runtime"
+      ],
+      "implementationRefs": [
+        "packages/execution-contracts/src/index.ts",
+        "packages/execution-runtime/src/index.ts"
+      ],
+      "proofStrengths": [
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -5915,6 +5978,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts",
@@ -5993,9 +6057,9 @@
         "packages/platform-cli/src/verification/index.ts"
       ],
       "proofStrengths": [
-        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
-      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -7003,6 +7067,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -7033,7 +7098,8 @@
         "packages/execution-runtime/tests/execution-approval-lifecycle.test.ts",
         "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
         "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
-        "packages/execution-runtime/tests/execution-runtime-service.test.ts"
+        "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension",
@@ -7042,6 +7108,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -7051,7 +7118,8 @@
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
@@ -7074,6 +7142,7 @@
       ],
       "implementationRefs": [
         "packages/execution-runtime/src/approval-owner.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
         "packages/execution-runtime/src/index.ts"
       ],
       "proofStrengths": [
@@ -7123,7 +7192,8 @@
         "packages/execution-runtime/tests/execution-approval-lifecycle.test.ts",
         "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
         "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
-        "packages/execution-runtime/tests/execution-runtime-service.test.ts"
+        "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension",
@@ -7132,6 +7202,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -7141,7 +7212,8 @@
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
@@ -7162,6 +7234,7 @@
         "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
         "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
         "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
         "packages/execution-runtime/tests/model-decision-client.test.ts"
       ],
       "ownerPackages": [
@@ -7171,6 +7244,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -7181,7 +7255,8 @@
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
@@ -7202,6 +7277,7 @@
         "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
         "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
         "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
         "packages/execution-runtime/tests/model-decision-client.test.ts"
       ],
       "ownerPackages": [
@@ -7211,6 +7287,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -7221,7 +7298,8 @@
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
@@ -7837,6 +7915,7 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
         "packages/execution-browser-extension/src/task-observer.ts",
         "packages/model-runtime/src/index.ts",
@@ -7877,6 +7956,7 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
         "packages/execution-browser-extension/src/task-observer.ts",
         "packages/model-runtime/src/index.ts",
@@ -7971,6 +8051,7 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
         "packages/execution-browser-extension/src/task-observer.ts",
         "packages/model-runtime/src/index.ts",

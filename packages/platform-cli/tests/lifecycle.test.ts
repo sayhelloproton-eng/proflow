@@ -164,7 +164,7 @@ test("dispatchLifecycle invokes a declared primitive and returns its validated r
 	assert.deepEqual(calls, [{ moduleRef: "svc", primitive: "start" }]);
 });
 
-test("dispatchLifecycle rejects an undeclared primitive with LIFECYCLE_UNSUPPORTED and never invokes the adapter", async () => {
+test("CP-DPL-CLI-04 dispatchLifecycle rejects an undeclared primitive with LIFECYCLE_UNSUPPORTED and never invokes the adapter", async () => {
 	const library = moduleFixture({
 		moduleRef: "lib",
 		kind: "library",

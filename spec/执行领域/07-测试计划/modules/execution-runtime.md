@@ -14,9 +14,6 @@ requires: []
 contractRefs: []
 testPlanPhase: PRE_IMPLEMENTATION
 testPlanStatus: FINAL_FROZEN
-sourceBaseline: proflow-source-da55f875-20260816-085708.zip
-sourceBaselineSha256: d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e
-sourceReconciledThrough: PHASE3_BATCH6_NON_E2E_CLOSURE_20260816
 sourceRefs:
 - EXECUTION-EXECUTION-RUNTIME-TECH-DESIGN
 - EXECUTION-DOC-03-01
@@ -189,7 +186,7 @@ Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 
 
 ## 11. 2026-08-14 Journey / Artifact Critical Proof Addendum
 
-- [ ] **CP-EXE-RT-08** — Browser/Carrier writes and local writes converge to the same durable Execution truth; Observer/Extension cannot create a second effect/state runtime.
+- [ ] **CP-EXE-RT-22** — Browser/Carrier writes and local writes converge to the same durable Execution truth; Observer/Extension cannot create a second effect/state runtime.
 - [ ] **CP-EXE-RT-09** — Gateway-normalized File Bridge inbound refs are bounded-materialized with scope/timeout/hash/MIME/size facts before becoming reusable artifacts; locator timeout/expiry is transport failure, not proof that an owner Action did or did not mutate business truth.
 - [ ] **CP-EXE-RT-10** — Context Pack/Patch are artifact subtypes, not new Store/Service/Domain; patch application remains a separate policy-controlled Execution effect with Result/Evidence.
 - [ ] **CP-EXE-RT-12** — File Bridge materialization成功后必须先写入 Execution-owned durable Artifact registry（caller/task/node/role/worker scope + hash/MIME/bytes/provenance），restart 后仍可读取；transient locator 或 materializer return object 不能直接冒充 durable Artifact truth。
@@ -260,7 +257,7 @@ The formal `proflow-execution-runtime` binary now marks `modelDecision=UNAVAILAB
 
 | Batch 4 proof | Executable asset | Required behavior |
 |---|---|---|
-| `CP-EXE-RT-08` | `tests/execution-runtime-critical-proofs.test.ts` | local/browser effects remain one durable Execution truth; no second runtime owner |
+| `CP-EXE-RT-22` | `tests/journey-authority-artifact-alignment.test.ts` | local/browser effects remain one durable Execution truth; no second runtime owner |
 | `CP-EXE-RT-12` / `13` / `14` | `tests/execution-artifact-pipeline.test.ts`<br>`tests/execution-runtime-service.test.ts` | materialization enters durable Execution + unified immutable Artifact registry; specialised HTTP surface reuses one execution/artifact intent |
 | `CP-EXE-RT-15` / `16` / `17` | `tests/execution-artifact-pipeline.test.ts`<br>`tests/execution-approval-lifecycle.test.ts` | Artifact caller/scope admission; immutable artifact identity; Patch Approval binds content/base/scope; registry+producer relation are atomic |
 | `CP-EXE-RT-18` | `tests/execution-contracts-critical-proofs.test.ts`<br>`tests/execution-runtime-critical-proofs.test.ts` | Frozen public read DTO is unchanged; caller identity is trusted transport context; ArtifactRef is not EvidenceRef |

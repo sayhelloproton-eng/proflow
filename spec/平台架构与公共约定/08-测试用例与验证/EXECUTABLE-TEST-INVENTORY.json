@@ -1,12 +1,9 @@
 {
   "contract": "proflow.executable-test-inventory.v2",
-  "generatedFor": "PHASE3_BATCH6_NON_E2E_CLOSURE_20260816",
-  "sourceBaseline": "proflow-source-da55f875-20260816-085708.zip",
-  "sourceBaselineSha256": "d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 122,
-    "testCalls": 634
+    "testCalls": 651
   },
   "tests": [
     {
@@ -394,6 +391,17 @@
     },
     {
       "package": "agent-gateway",
+      "path": "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+      "line": 613,
+      "title": "PRESMOKE-B6-GW-01 declared fileArtifacts serialize through the real Action response path (inline + relay)",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-gateway",
       "path": "packages/agent-gateway/tests/agent-gateway-process.test.ts",
       "line": 10,
       "title": "CP-AGT-GW-14/RF-AGT-GW-14 formal agent-gateway process authenticates downstream transport, routes, reports readiness, drains and restarts",
@@ -549,7 +557,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 90,
+      "line": 91,
       "title": "CP-AGT-RUNTIME-01 registry is one-package-one-current-role and ROLE_IN_USE is zero mutation",
       "ids": [
         "CP-AGT-RUNTIME-01"
@@ -562,7 +570,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 127,
+      "line": 128,
       "title": "CP-AGT-RUNTIME-02 one credential rotates without role identity or secret leakage",
       "ids": [
         "CP-AGT-RUNTIME-02"
@@ -575,7 +583,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 174,
+      "line": 175,
       "title": "CP-AGT-RUNTIME-03 worker validation uses authenticated role plus Task owner facts without a binding copy",
       "ids": [
         "CP-AGT-RUNTIME-03"
@@ -588,7 +596,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 199,
+      "line": 200,
       "title": "CP-AGT-RUNTIME-04 ask/reply is idempotent and next question waits for physical reply delivery",
       "ids": [
         "CP-AGT-RUNTIME-04"
@@ -601,7 +609,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 319,
+      "line": 320,
       "title": "RF-AGT-RUNTIME-04 an existing pair thread cannot be retargeted to a third Task participant",
       "ids": [
         "RF-AGT-RUNTIME-04"
@@ -614,7 +622,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 369,
+      "line": 370,
       "title": "CP-AGT-RUNTIME-05 terminal, missing participant, duplicate and concurrency paths fail safe",
       "ids": [
         "CP-AGT-RUNTIME-05"
@@ -627,7 +635,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 426,
+      "line": 427,
       "title": "CP-AGT-RUNTIME-06 integration is through injected Public Contract ports only",
       "ids": [
         "CP-AGT-RUNTIME-06"
@@ -640,7 +648,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 445,
+      "line": 446,
       "title": "B2-AGT-01 DELIVERED outcome requires non-empty executionRef and evidenceRef",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -651,7 +659,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 499,
+      "line": 500,
       "title": "B2-AGT-02 reply DELIVERED thread transition is atomic and checks its own row",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -662,7 +670,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 552,
+      "line": 553,
       "title": "B2-AGT-03 FAILED/UNKNOWN delivery update refuses a silent stale no-op",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -673,7 +681,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 636,
+      "line": 637,
       "title": "B2-AGT-07 UNKNOWN delivery stays durable PENDING for external reconciliation without Agent-side replay",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -684,7 +692,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 676,
+      "line": 677,
       "title": "B2-AGT-04 terminal PENDING history never starves later active pending messages",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -695,7 +703,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 774,
+      "line": 775,
       "title": "B2-AGT-05 terminal task delivery report never mutates historical PENDING messages",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -706,8 +714,19 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 822,
+      "line": 823,
       "title": "B2-AGT-06 rotateCredential publishes only durable current authority",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-runtime",
+      "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+      "line": 850,
+      "title": "PRESMOKE-B6-AGT-01 register/delete cross-file failure converges or surfaces half-state in-process",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1622,7 +1641,8 @@
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/execution-browser-extension/extension/background.ts"
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts"
       ]
     },
     {
@@ -1633,7 +1653,8 @@
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/execution-browser-extension/extension/background.ts"
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts"
       ]
     },
     {
@@ -1644,7 +1665,8 @@
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/execution-browser-extension/extension/background.ts"
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts"
       ]
     },
     {
@@ -1655,7 +1677,8 @@
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/execution-browser-extension/extension/background.ts"
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts"
       ]
     },
     {
@@ -1666,7 +1689,8 @@
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/execution-browser-extension/extension/background.ts"
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts"
       ]
     },
     {
@@ -1677,7 +1701,20 @@
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/execution-browser-extension/extension/background.ts"
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+      "line": 107,
+      "title": "PRESMOKE-B6-OBS-EXT-06 Side Panel snapshot carries a bounded read-only System Observer summary",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts"
       ]
     },
     {
@@ -1813,7 +1850,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 85,
+      "line": 86,
       "title": "CP-EXE-BR-08 Collaboration delivery stays a physical Execution concern and logical message truth remains Agent-owned",
       "ids": [
         "CP-EXE-BR-08"
@@ -1826,7 +1863,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 94,
+      "line": 95,
       "title": "CP-EXE-BR-09 uncertain submit/WAKE reconciles DELIVERED/ABSENT/UNKNOWN and contains no blind replay loop",
       "ids": [
         "CP-EXE-BR-09"
@@ -1839,7 +1876,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 102,
+      "line": 103,
       "title": "CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON is diagnostic-only, and terminal stops driving",
       "ids": [
         "CP-EXE-BR-10"
@@ -1852,7 +1889,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 110,
+      "line": 111,
       "title": "CP-EXE-BR-11 System Observer covers eight bounded concern families, defers as lowest priority, and never owns mutation",
       "ids": [
         "CP-EXE-BR-11"
@@ -1865,7 +1902,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 127,
+      "line": 128,
       "title": "CP-EXE-BR-12 ordinary file transport is not Browser DOM work; screenshot/image remains a separate Vision fallback",
       "ids": [
         "CP-EXE-BR-12"
@@ -1937,7 +1974,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 140,
+      "line": 146,
       "title": "REG-EXE-BR-01 stable role/worker identity rejects stale transient content instances",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1949,7 +1986,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 171,
+      "line": 177,
       "title": "REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, duplicate CREATE is zero",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1961,7 +1998,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 221,
+      "line": 227,
       "title": "PRESMOKE-B3-BINDING-01 RESTORE uses durable TaskRoleBinding conversationLocator instead of reconstructing a URL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1973,7 +2010,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 268,
+      "line": 274,
       "title": "REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Node or Effect completion",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1985,7 +2022,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 310,
+      "line": 322,
       "title": "PRESMOKE-B3-WAKE-01 worker.wake rejects untyped/arbitrary wake reasons before Browser effect",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1997,7 +2034,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 337,
+      "line": 352,
       "title": "REG-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministic observations",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2009,7 +2046,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 368,
+      "line": 383,
       "title": "REG-EXE-BR-05 permission fallback captures evidence and Side Panel remains read-only",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2021,7 +2058,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 394,
+      "line": 409,
       "title": "REG-EXE-BR-06 writes are globally serial and logical delivery follows physical verification",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2033,7 +2070,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 439,
+      "line": 457,
       "title": "REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2045,7 +2082,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 464,
+      "line": 485,
       "title": "REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remains ACTION_REQUIRED locally",
       "ids": [],
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
@@ -2065,6 +2102,22 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/deployment/adapter.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/options.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/module-conformance.test.ts",
+      "line": 44,
+      "title": "PRESMOKE-B6-DESC-01 extension descriptor config surface matches the consumed Bridge/Task/Approval connections",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/deployment-conformance/src/index.ts",
+        "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/options.ts",
         "packages/module-contract/src/index.ts"
       ]
     },
@@ -2117,6 +2170,17 @@
       "path": "packages/execution-browser-extension/tests/side-panel-application.test.ts",
       "line": 5,
       "title": "PRESMOKE-B3-UI-01 Side Panel exposes real Task application controls without owning Task or Approval state",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/side-panel.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/side-panel-application.test.ts",
+      "line": 46,
+      "title": "PRESMOKE-B6-UI-01 Extension New Task does not seed the formal REQUIREMENT document",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -2681,10 +2745,10 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
-      "line": 35,
+      "line": 36,
       "title": "B2-GW-01 detectedExternalMime distinguishes binary magic bytes from plain text",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-local/src/index.ts"
       ]
@@ -2692,10 +2756,10 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
-      "line": 72,
+      "line": 73,
       "title": "B2-GW-01 externalMimeCompatible fails closed on declared/detected/response mismatch",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-local/src/index.ts"
       ]
@@ -2703,10 +2767,65 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
-      "line": 133,
+      "line": 134,
       "title": "B2-GW-01 materializeExternalFiles fails closed on unsafe URL, filename, and count",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-local/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-local",
+      "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
+      "line": 260,
+      "title": "PRESMOKE-B6-FILE-01 remote materialization streams, hashes, detects MIME and inlines only small text",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-local/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-local",
+      "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
+      "line": 286,
+      "title": "PRESMOKE-B6-FILE-02 large text is not retained in memory (inline budget)",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-local/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-local",
+      "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
+      "line": 308,
+      "title": "PRESMOKE-B6-FILE-03 redirect hop follows, unsafe hop rejects, hop limit fails",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-local/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-local",
+      "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
+      "line": 370,
+      "title": "PRESMOKE-B6-FILE-04 fetch timeout and HTTP failure classify distinctly",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-local/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-local",
+      "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
+      "line": 405,
+      "title": "PRESMOKE-B6-FILE-05 declared size overflow and MIME mismatch fail closed",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-local/src/index.ts"
       ]
@@ -2725,55 +2844,59 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-approval-lifecycle.test.ts",
-      "line": 84,
+      "line": 87,
       "title": "PRESMOKE-B4-APPROVAL-01 durable approval lifecycle binds execution/scope/fingerprint and consumes at effect boundary",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-runtime/src/approval-owner.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
         "packages/execution-runtime/src/index.ts"
       ]
     },
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-approval-lifecycle.test.ts",
-      "line": 117,
+      "line": 120,
       "title": "PRESMOKE-B4-APPROVAL-02 deny/revoke/version/expiry are authoritative and stale approval cannot execute",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-runtime/src/approval-owner.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
         "packages/execution-runtime/src/index.ts"
       ]
     },
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-approval-lifecycle.test.ts",
-      "line": 204,
+      "line": 207,
       "title": "PRESMOKE-B4-APPROVAL-03 repeated approval-required decision reuses one durable PENDING draft",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-runtime/src/approval-owner.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
         "packages/execution-runtime/src/index.ts"
       ]
     },
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-approval-lifecycle.test.ts",
-      "line": 221,
+      "line": 224,
       "title": "PRESMOKE-B4-APPROVAL-04 aborted effect boundary cannot consume approval first",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-runtime/src/approval-owner.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
         "packages/execution-runtime/src/index.ts"
       ]
     },
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-approval-lifecycle.test.ts",
-      "line": 237,
+      "line": 240,
       "title": "CP-EXE-RT-16/RF-EXE-RT-16 patch approval fingerprint binds durable Artifact hash/base metadata",
       "ids": [
         "CP-EXE-RT-16",
@@ -2782,6 +2905,20 @@
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-runtime/src/approval-owner.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
+        "packages/execution-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-runtime",
+      "path": "packages/execution-runtime/tests/execution-approval-lifecycle.test.ts",
+      "line": 251,
+      "title": "PRESMOKE-B6-APPROVAL-01 automatic approval binds the concrete effect precondition and rejects stale reality",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-runtime/src/approval-owner.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
         "packages/execution-runtime/src/index.ts"
       ]
     },
@@ -3162,7 +3299,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 38,
+      "line": 39,
       "title": "formal execution-runtime process starts, routes, drains, reopens and stops",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3174,7 +3311,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 90,
+      "line": 91,
       "title": "PRESMOKE-B4-RUNTIME-01 configured identity and transport dependencies participate in readiness",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3186,7 +3323,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 111,
+      "line": 112,
       "title": "CP-EXE-RT-14 specialised Context Pack/Patch APIs return durable executionRef and reuse idempotent Execution truth",
       "ids": [
         "CP-EXE-RT-14"
@@ -3200,7 +3337,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 176,
+      "line": 177,
       "title": "PRESMOKE-B4-RUNTIME-02 formal readiness can require the Model Decision port without faking Batch 5 wiring",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3212,7 +3349,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 202,
+      "line": 203,
       "title": "CP-EXE-RT-20 shipped execution-runtime descriptor and binary require the formal Browser/security/model composition",
       "ids": [
         "CP-EXE-RT-20"
@@ -3226,7 +3363,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 260,
+      "line": 261,
       "title": "PRESMOKE-B5-RUNTIME-04 modelDecision readiness reflects the consumer-specific dependency probe",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3238,7 +3375,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 282,
+      "line": 283,
       "title": "PRESMOKE-B5-RUNTIME-05 modelDecision config is loopback-only",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3251,9 +3388,9 @@
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
       "line": 16,
-      "title": "CP-EXE-RT-08 Browser/local effects converge to one durable Execution truth",
+      "title": "CP-EXE-RT-22 Browser/local effects converge to one durable Execution truth",
       "ids": [
-        "CP-EXE-RT-08"
+        "CP-EXE-RT-22"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -4807,9 +4944,9 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
       "line": 32,
-      "title": "CP-DPL-CLI-04 platform CLI never invents Task worker/conversation/browser identity",
+      "title": "CP-DPL-CLI-22 platform CLI never invents Task worker/conversation/browser identity",
       "ids": [
-        "CP-DPL-CLI-04"
+        "CP-DPL-CLI-22"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -4943,7 +5080,7 @@
       "line": 268,
       "title": "D1 Contract Gate — parseModuleDescriptor enforces the frozen module contract",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -4971,7 +5108,7 @@
       "line": 292,
       "title": "D2 Template + Conformance — module-template passes C1/C2/C3 and materialized descriptors conform",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -4999,7 +5136,7 @@
       "line": 323,
       "title": "D3 Platform CLI Offline — a fake module closes the loop with no network I/O",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5027,7 +5164,7 @@
       "line": 378,
       "title": "D4 External Resource Governance — real adapters report honest ACTION_REQUIRED, never fake READY",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5055,7 +5192,7 @@
       "line": 404,
       "title": "D5 Cross-domain Deployment — a library + service + external-resource graph plans together",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5083,7 +5220,7 @@
       "line": 435,
       "title": "D6 Failure Injection — an injected FAILED stop never fakes success",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5111,7 +5248,7 @@
       "line": 507,
       "title": "Track A — deterministic full-chain closes preflight→apply→lifecycle→verify→manifest READY",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5139,7 +5276,7 @@
       "line": 677,
       "title": "Track B — discovery loads every real package descriptor + the 4 external adapters + platform-host",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5167,7 +5304,7 @@
       "line": 694,
       "title": "Track B — a coherent platform-host subgraph resolves with correct order",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5195,7 +5332,7 @@
       "line": 717,
       "title": "Track B — moduleRef bindings resolve against the real model-provider module",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5223,7 +5360,7 @@
       "line": 742,
       "title": "Track B — unsupported lifecycle is rejected, never faked",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5251,7 +5388,7 @@
       "line": 764,
       "title": "Track B — unverified external resources yield a Manifest that is not fake READY",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5281,7 +5418,7 @@
       "ids": [
         "CP-DPL-CLI-06"
       ],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5309,7 +5446,7 @@
       "line": 842,
       "title": "upgrade — migration is emitted only when the target declares migrate",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5339,7 +5476,7 @@
       "ids": [
         "CP-DPL-CLI-06"
       ],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5367,7 +5504,7 @@
       "line": 901,
       "title": "repair — doctor FAILED flows into a repair plan and applies the declared capability",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5395,7 +5532,7 @@
       "line": 968,
       "title": "repair — an unmappable fact (verify-failed / target-behind) never invents a mutation",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5423,7 +5560,7 @@
       "line": 1004,
       "title": "secret — secretRef identity survives the full chain verbatim, raw sentinel appears zero times",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5451,7 +5588,7 @@
       "line": 1079,
       "title": "secret — generated INSTALL deep-redacts a raw secret sentinel",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5479,7 +5616,35 @@
       "line": 1109,
       "title": "secret — generated INSTALL preserves a secretRef identity verbatim (frozen design: identity, not raw secret)",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts",
+        "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/discovery/catalog.ts",
+        "packages/platform-cli/src/discovery/discover.ts",
+        "packages/platform-cli/src/doctor/index.ts",
+        "packages/platform-cli/src/graph/index.ts",
+        "packages/platform-cli/src/install/index.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/manifest/index.ts",
+        "packages/platform-cli/src/modules.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/index.ts",
+        "packages/platform-cli/src/planner/index.ts",
+        "packages/platform-cli/src/preflight/preflight.ts",
+        "packages/platform-cli/src/verification/index.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
+      "line": 1129,
+      "title": "PRESMOKE-B6-BINDER-01 shipped AutoModuleCatalog binds a real local service adapter over the unbound default",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
@@ -5817,7 +5982,7 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
       "line": 508,
-      "title": "config: missing required config produces CONFIG_MISSING; secretRef is never echoed",
+      "title": "config: missing required config produces CONFIG_MISSING; secretRef holds a reference identity and rejects raw secrets",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5833,7 +5998,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 548,
+      "line": 565,
       "title": "preflight blocks with findings for an unresolved dependency",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5850,7 +6015,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 563,
+      "line": 580,
       "title": "preflight blocks with findings for a cyclic dependency",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5867,7 +6032,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 583,
+      "line": 600,
       "title": "preflight blocks with findings for missing config",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6079,8 +6244,10 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
       "line": 167,
-      "title": "dispatchLifecycle rejects an undeclared primitive with LIFECYCLE_UNSUPPORTED and never invokes the adapter",
-      "ids": [],
+      "title": "CP-DPL-CLI-04 dispatchLifecycle rejects an undeclared primitive with LIFECYCLE_UNSUPPORTED and never invokes the adapter",
+      "ids": [
+        "CP-DPL-CLI-04"
+      ],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
@@ -6198,7 +6365,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 224,
+      "line": 225,
       "title": "assessPlatformReady returns READY when all required reality is satisfied",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6210,6 +6377,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6218,7 +6386,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 235,
+      "line": 236,
       "title": "READY requires a current-version verification record — a stale version is NOT_READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6230,6 +6398,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6238,7 +6407,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 250,
+      "line": 251,
       "title": "last verify PASS + current status unavailable cannot be READY (RF-DPL-CLI-05)",
       "ids": [
         "RF-DPL-CLI-05"
@@ -6252,6 +6421,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6260,7 +6430,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 263,
+      "line": 264,
       "title": "an operation reporting SUCCEEDED while its checks FAIL cannot be READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6272,6 +6442,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6280,7 +6451,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 274,
+      "line": 275,
       "title": "an operation reporting SUCCEEDED while its checks WARN is DEGRADED, not READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6292,6 +6463,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6300,7 +6472,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 285,
+      "line": 286,
       "title": "a structured result that is not SUCCEEDED is not READY (BLOCKED)",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6312,6 +6484,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6320,7 +6493,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 296,
+      "line": 297,
       "title": "NOT_READY when a required runtime is FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6332,6 +6505,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6340,7 +6514,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 307,
+      "line": 308,
       "title": "DEGRADED never masks a required failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6352,6 +6526,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6360,7 +6535,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 319,
+      "line": 320,
       "title": "blocking human action yields ACTION_REQUIRED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6372,6 +6547,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6380,7 +6556,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 337,
+      "line": 338,
       "title": "runtime status ACTION_REQUIRED yields ACTION_REQUIRED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6392,6 +6568,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6400,7 +6577,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 348,
+      "line": 349,
       "title": "NOT_READY on unresolvable required dependency",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6412,6 +6589,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6420,7 +6598,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 363,
+      "line": 364,
       "title": "NOT_READY on missing required config",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6432,6 +6610,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6440,7 +6619,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 386,
+      "line": 387,
       "title": "NOT_READY on unresolvable moduleRef binding",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6452,6 +6631,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6460,7 +6640,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 409,
+      "line": 410,
       "title": "NOT_READY when current-version verification is FAIL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6472,6 +6652,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6480,7 +6661,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 420,
+      "line": 421,
       "title": "NOT_READY when verification is missing",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6492,6 +6673,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6500,7 +6682,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 433,
+      "line": 434,
       "title": "buildManifest composes live status, verification summary, secretRef references, and pending actions",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6512,6 +6694,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6520,7 +6703,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 495,
+      "line": 498,
       "title": "manifest status reflects live reality, not persisted PASS history",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6532,6 +6715,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6540,7 +6724,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 524,
+      "line": 527,
       "title": "a doctor SUCCEEDED with FAIL checks cannot rescue a verify FAIL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6552,6 +6736,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6560,7 +6745,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 558,
+      "line": 561,
       "title": "renderInstallDoc includes module set, requirements, config slots, effects, verification plan, and never leaks raw secrets",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6572,6 +6757,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6580,7 +6766,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 599,
+      "line": 602,
       "title": "renderInstallDoc redacts a non-secretRef sensitive raw value",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6592,6 +6778,7 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -6600,7 +6787,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 623,
+      "line": 626,
       "title": "generateInstallDoc writes INSTALL.md and redacts a non-secretRef sensitive raw value",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6612,6 +6799,28 @@
         "packages/platform-cli/src/manifest/index.ts",
         "packages/platform-cli/src/modules.ts",
         "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/index.ts",
+        "packages/platform-cli/src/ready/index.ts",
+        "packages/platform-cli/src/security/index.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
+      "line": 658,
+      "title": "PRESMOKE-B6-MANIFEST-01 config readiness requires materialized config, not caller-supplied intent",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/install/index.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/manifest/index.ts",
+        "packages/platform-cli/src/modules.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/ready/index.ts",
         "packages/platform-cli/src/security/index.ts"
@@ -8351,7 +8560,7 @@
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
       "line": 87,
-      "title": "PRESMOKE-B3-SYSOBS-OWNER-01 unavailable owner projections stay UNKNOWN instead of borrowing another owner's readiness",
+      "title": "PRESMOKE-B3-SYSOBS-OWNER-01 all eight owner views are bounded projections without borrowing another owner's readiness",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -8361,7 +8570,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 103,
+      "line": 114,
       "title": "PRESMOKE-B3-OBS-TRANSPORT-01 host exposes authenticated Observer owner/model transport without making it a scheduler",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8372,7 +8581,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 115,
+      "line": 126,
       "title": "PRESMOKE-B3-CARRIER-TRANSPORT-01 Collaboration Carrier transport cannot proxy arbitrary Execution capabilities or caller identity",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8383,7 +8592,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/model-business-callers.test.ts",
-      "line": 84,
+      "line": 97,
       "title": "PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the single Model infer contract with caller-owned mode/priority/trace",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8394,7 +8603,18 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/model-business-callers.test.ts",
-      "line": 190,
+      "line": 210,
+      "title": "PRESMOKE-B6-HOST-MODEL-READY-01 Model /ready requires the configured Bearer and Host aggregate readiness reflects it",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/platform-host/src/index.ts"
+      ]
+    },
+    {
+      "package": "platform-host",
+      "path": "packages/platform-host/tests/model-business-callers.test.ts",
+      "line": 287,
       "title": "RF-MODEL-RT-14 platform-host rejects group/world-readable Model transport credential",
       "ids": [
         "RF-MODEL-RT-14"
@@ -8556,6 +8776,17 @@
       "ids": [
         "RF-AGT-GW-14"
       ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/platform-host/src/index.ts"
+      ]
+    },
+    {
+      "package": "platform-host",
+      "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
+      "line": 599,
+      "title": "PRESMOKE-B6-HOST-EXEC-01 Host→Execution transport credential is wired from config and business routes carry the Bearer",
+      "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/platform-host/src/index.ts"
@@ -9075,6 +9306,32 @@
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
       "line": 719,
       "title": "Task-owned happy path remains durable after SQLite store close and reopen",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ]
+    },
+    {
+      "package": "task-orchestration",
+      "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+      "line": 756,
+      "title": "PRESMOKE-B6-TASK-01 createTask initial-document crash is recovered on first owner read before readiness",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ]
+    },
+    {
+      "package": "task-orchestration",
+      "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
+      "line": 805,
+      "title": "PRESMOKE-B6-TASK-02 a TERMINATED Task is rejected by reopenNode with zero mutation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [

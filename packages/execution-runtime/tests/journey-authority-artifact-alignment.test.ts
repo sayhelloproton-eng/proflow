@@ -13,7 +13,7 @@ async function contractSource(): Promise<string> {
 	);
 }
 
-test("CP-EXE-RT-08 Browser/local effects converge to one durable Execution truth", async () => {
+test("CP-EXE-RT-22 Browser/local effects converge to one durable Execution truth", async () => {
 	const text = await runtimeSource();
 	assert.match(text, /CREATE TABLE IF NOT EXISTS executions/);
 	assert.match(text, /execution_artifacts/);

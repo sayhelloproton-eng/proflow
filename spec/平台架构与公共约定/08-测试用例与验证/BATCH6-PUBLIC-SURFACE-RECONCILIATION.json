@@ -1,6 +1,5 @@
 {
-  "contract": "proflow.batch6-public-surface-reconciliation.v1",
-  "generatedFor": "PHASE3_BATCH6_NON_E2E_CLOSURE_20260816",
+  "contract": "proflow.public-surface-reconciliation.v1",
   "semantics": "Mechanical inventory of shipped public package exports/binaries, Role OpenAPI operations, Host runtime ACL, Extension message types and application operations. Inventory presence is not execution PASS evidence.",
   "packages": [
     {
@@ -957,6 +956,7 @@
         }
       ],
       "publicIndexSymbols": [
+        "AutoModuleCatalog",
         "CheckStrategy",
         "ExecuteStrategy",
         "MANIFEST_CONTRACT",
