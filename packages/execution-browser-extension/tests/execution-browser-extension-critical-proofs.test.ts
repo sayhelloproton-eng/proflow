@@ -63,7 +63,13 @@ class BrowserHarness implements BrowserRealityPort {
 	}
 	async screenshot(tabId: number) {
 		await this.observe(tabId);
-		return { evidenceRef: `screenshot:${tabId}` };
+		return {
+			evidenceRef: `screenshot:${tabId}`,
+			dataUrl: `data:image/png;base64,${Buffer.from(`screenshot-${tabId}`).toString("base64")}`,
+			mimeType: "image/png",
+			sizeBytes: 11 + String(tabId).length,
+			hash: `sha256:${tabId}`,
+		};
 	}
 }
 
@@ -275,6 +281,9 @@ test("REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims No
 		request: request("worker.wake", {
 			roleRef: "g-dev",
 			workerRef: "c-dev",
+			taskId: "task:1",
+			nodeId: "node:1",
+			runNo: 1,
 			trigger: "NODE_READY",
 			fingerprint: "wake:1",
 		}),
@@ -301,6 +310,9 @@ test("REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims No
 		/"protocol":"proflow\.agent\.browser-trigger\.v1"/,
 	);
 	assert.match(browser.submittedTexts[0] ?? "", /"triggerType":"NODE_READY"/);
+	assert.match(browser.submittedTexts[0] ?? "", /"nodeId":"node:1"/);
+	assert.match(browser.submittedTexts[0] ?? "", /"runNo":1/);
+	assert.match(browser.submittedTexts[0] ?? "", /"taskId":"task:1"/);
 	assert.doesNotMatch(
 		JSON.stringify(result),
 		/taskDocuments|nodeCompleted|effectSucceeded/,
@@ -319,6 +331,9 @@ test("PRESMOKE-B3-WAKE-01 worker.wake rejects untyped/arbitrary wake reasons bef
 				request: request("worker.wake", {
 					roleRef: "g-dev",
 					workerRef: "c-dev",
+					taskId: "task:1",
+					nodeId: "node:1",
+					runNo: 1,
 					trigger: "NODE_READY task:1 node:2 run:1",
 					fingerprint: "wake:invalid",
 				}),
@@ -402,6 +417,9 @@ test("REG-EXE-BR-06 writes are globally serial and logical delivery follows phys
 			request: request("worker.wake", {
 				roleRef: "g-dev",
 				workerRef: "c-dev",
+				taskId: "task:1",
+				nodeId: "node:1",
+				runNo: 1,
 				trigger: "NODE_READY",
 				fingerprint: "wake:one",
 			}),
@@ -447,6 +465,9 @@ test("REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality withou
 	const unfinished = request("worker.wake", {
 		roleRef: "g-dev",
 		workerRef: "c-dev",
+		taskId: "task:1",
+		nodeId: "node:1",
+		runNo: 1,
 		trigger: "already",
 		fingerprint: "wake:already",
 	});

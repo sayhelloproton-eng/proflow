@@ -78,7 +78,13 @@ export interface BrowserRealityPort {
 		fingerprint: string,
 	): Promise<BrowserPageObservation>;
 	hasMessage(tabId: number, fingerprint: string): Promise<boolean>;
-	screenshot(tabId: number): Promise<{ evidenceRef: string }>;
+	screenshot(tabId: number): Promise<{
+		evidenceRef: string;
+		dataUrl: string;
+		mimeType: string;
+		sizeBytes: number;
+		hash: string;
+	}>;
 	perform?(
 		request: ExecuteCapabilityRequest,
 		tabId: number,
@@ -527,6 +533,8 @@ export function createExecutionBrowserExtension(
 					triggerRef: request.input.fingerprint,
 					triggerType: request.input.trigger,
 					taskId,
+					nodeId: request.input.nodeId,
+					runNo: request.input.runNo,
 					roleRef: request.input.roleRef,
 					workerRef: request.input.workerRef,
 					occurredAt: now().toISOString(),
@@ -676,6 +684,10 @@ export function createExecutionBrowserExtension(
 							targetRef: target,
 							verified: true,
 							observationRef: shot.evidenceRef,
+							mimeType: shot.mimeType,
+							sizeBytes: shot.sizeBytes,
+							hash: shot.hash,
+							visionFallback: "REAL_EXTERNAL_PENDING",
 						},
 					},
 					observed,
@@ -688,6 +700,21 @@ export function createExecutionBrowserExtension(
 						targetRef: target,
 						observationRef: shot.evidenceRef,
 						verified: true,
+					},
+				],
+				artifacts: [
+					{
+						ref: shot.evidenceRef,
+						path: "",
+						bytes: shot.sizeBytes,
+						stream: "report",
+						kind: "output",
+						hash: shot.hash,
+						mime: shot.mimeType,
+						metadata: {
+							source: "browser.screenshot",
+							visionFallback: "REAL_EXTERNAL_PENDING",
+						},
 					},
 				],
 			};

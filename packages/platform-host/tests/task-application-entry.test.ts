@@ -53,7 +53,7 @@ test("PRESMOKE-B3-APP-02 New Task application owns no Task truth and provisions 
 	assert.match(source, /new-task-worker:\$\{taskId\}:\$\{role\.roleRef\}/);
 	assert.match(
 		source,
-		/if \(binding\.workerRef && binding\.conversationLocator\) continue/,
+		/if \(binding\.workerRef && binding\.conversationLocator\) return/,
 	);
 	assert.match(source, /WORKER_CREATE_BINDING_NOT_PERSISTED/);
 	assert.doesNotMatch(source, /TaskApplicationRepository|ApplicationTaskStore/);

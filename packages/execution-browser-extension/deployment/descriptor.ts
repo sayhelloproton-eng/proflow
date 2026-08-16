@@ -23,17 +23,43 @@ export const descriptor = {
 	],
 	configSlots: [
 		{
-			key: "executionRuntimeUrl",
+			key: "bridge.endpoint",
 			type: "url",
 			required: true,
-			description: "Local Execution Runtime public-contract endpoint",
+			description: "Loopback Browser Reality Bridge endpoint",
 		},
 		{
-			key: "localPlatformCredential",
+			key: "bridge.token",
 			type: "secretRef",
 			required: true,
 			sensitive: true,
-			description: "Extension-scoped local platform credential reference",
+			description: "Browser Reality Bridge extension token reference",
+		},
+		{
+			key: "taskApplication.endpoint",
+			type: "url",
+			required: true,
+			description: "Loopback Platform Host Task application endpoint",
+		},
+		{
+			key: "taskApplication.token",
+			type: "secretRef",
+			required: true,
+			sensitive: true,
+			description: "Platform Host Task application token reference",
+		},
+		{
+			key: "approvalApplication.endpoint",
+			type: "url",
+			required: true,
+			description: "Loopback Platform Host Approval application endpoint",
+		},
+		{
+			key: "approvalApplication.token",
+			type: "secretRef",
+			required: true,
+			sensitive: true,
+			description: "Platform Host Approval application token reference",
 		},
 		{
 			key: "chromeRuntimeModuleRef",

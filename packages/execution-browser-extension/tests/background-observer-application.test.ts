@@ -103,3 +103,25 @@ test("PRESMOKE-B6-C1 Browser Carrier and Observers emit bounded structured logs 
 	assert.doesNotMatch(source, /result\.error\.slice\(0, 160\)/);
 	assert.doesNotMatch(source, /emitStructuredLog\([^)]*(?:authorization|token|cookie|password)/is);
 });
+
+test("PRESMOKE-B6-OBS-EXT-06 Side Panel snapshot carries a bounded read-only System Observer summary", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	assert.match(source, /loadSystemObserverState\(\)\.catch/);
+	assert.match(source, /systemObserver:/);
+	assert.match(source, /assessmentRef: observerState\.assessmentRef/);
+	assert.match(source, /needsHumanAttention:/);
+	assert.match(source, /unresolved: observerState\.unresolved/);
+	const sidePanel = await readFile(
+		new URL("../extension/side-panel.ts", import.meta.url),
+		"utf8",
+	);
+	const sidePanelHtml = await readFile(
+		new URL("../extension/side-panel.html", import.meta.url),
+		"utf8",
+	);
+	assert.match(sidePanel, /#system-assessment/);
+	assert.match(sidePanel, /needsHumanAttention/);
+	assert.match(sidePanelHtml, /System Assessment/);
+	assert.match(sidePanelHtml, /never mutates Task\/Approval owner facts/);
+	assert.doesNotMatch(sidePanel, /systemAssessmentTarget\.[\s\S]{0,120}(?:complete|approve|reopen)/);
+});

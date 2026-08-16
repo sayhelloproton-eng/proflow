@@ -30,7 +30,7 @@
 			<form id="new-task-form">
 				<label>Title <input id="task-title" required /></label>
 				<label>Objective <textarea id="task-objective" required></textarea></label>
-				<label>Requirement <textarea id="task-requirement" placeholder="Optional initial REQUIREMENT document"></textarea></label>
+				<label>Requirement <em>clarified by the Product Worker after binding; not seeded here</em></label>
 				<label>Ordered plan (JSON array)
 					<textarea id="task-plan" required>[{"nodeId":"dev","title":"Implement","objective":"Implement the requirement","requiredAgentPackageRef":"@tomflow/proflow-agent-controller-dev","inputDocuments":["REQUIREMENT"],"outputDocuments":[]},{"nodeId":"test","title":"Verify","objective":"Verify the implementation","requiredAgentPackageRef":"@tomflow/proflow-agent-test-ops","inputDocuments":["REQUIREMENT"],"outputDocuments":[]}]</textarea>
 				</label>
@@ -57,6 +57,12 @@
 			<p class="meta">Approval is an Execution-owned durable fact. This panel only sends authenticated human decisions to the Execution Owner.</p>
 			<button id="refresh-approvals" type="button">Refresh approvals</button>
 			<div id="approvals"></div>
+		</section>
+
+		<section>
+			<h2>System Assessment</h2>
+			<p class="meta">Read-only derived assessment. It never mutates Task/Approval owner facts.</p>
+			<div id="system-assessment" class="meta">No assessment yet.</div>
 		</section>
 
 		<section>

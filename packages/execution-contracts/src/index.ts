@@ -313,6 +313,9 @@ const capabilityInputSchemas = {
 		.object({
 			roleRef: identifier,
 			workerRef: identifier,
+			taskId: identifier,
+			nodeId: identifier,
+			runNo: z.number().int().positive(),
 			trigger: z.string().min(1),
 			fingerprint: identifier,
 		})
@@ -394,6 +397,10 @@ const browserResultSchema = z
 		targetRef: identifier,
 		verified: z.boolean(),
 		observationRef: identifier.optional(),
+		mimeType: z.string().min(1).optional(),
+		sizeBytes: z.number().int().nonnegative().optional(),
+		hash: identifier.optional(),
+		visionFallback: z.literal("REAL_EXTERNAL_PENDING").optional(),
 	})
 	.strict();
 

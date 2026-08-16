@@ -639,16 +639,74 @@ async function constructGraph(
 		}
 		if (view === "execution") {
 			const readiness = await execution.readiness();
+			const signalResult = object(
+				await execution.invoke("listExecutionObserverSignals", { limit: 50 }),
+				"execution observer signals",
+			);
+			const signals = Array.isArray(signalResult.signals)
+				? signalResult.signals
+				: [];
 			return {
-				summary: `execution owner readiness=${readiness.status}; liveness=${readiness.liveness}`,
+				summary: `execution owner readiness=${readiness.status}; liveness=${readiness.liveness}; pendingObserverSignals=${signals.length}`,
 				health:
 					readiness.status === "READY"
 						? ("HEALTHY" as const)
-						: ("UNKNOWN" as const),
-				projectionStatus: "LIMITED" as const,
-				findings: [
-					"execution aggregate bounded projection is limited to current Execution owner readiness until a richer read-only projection is exposed",
-				],
+						: ("DEGRADED" as const),
+			};
+		}
+		if (view === "carrier") {
+			const signalResult = object(
+				await execution.invoke("listExecutionObserverSignals", { limit: 50 }),
+				"carrier observer signals",
+			);
+			const signals = Array.isArray(signalResult.signals)
+				? signalResult.signals
+				: [];
+			const recovery = signals.filter(
+				(signal) =>
+					typeof signal === "object" &&
+					signal !== null &&
+					Reflect.get(signal, "kind") === "RECOVERY_RESUME",
+			).length;
+			return {
+				summary: `pendingCarrierRecoverySignals=${recovery}`,
+				health: recovery === 0 ? ("HEALTHY" as const) : ("DEGRADED" as const),
+			};
+		}
+		if (view === "deployment") {
+			const diagnostics = taskStore.diagnostics();
+			const agentDoctor = agent.doctorRoleStore();
+			const [executionStatus, modelStatus] = await Promise.all([
+				execution.readiness(),
+				model.readiness(),
+			]);
+			const allReady =
+				executionStatus.status === "READY" &&
+				modelStatus.status === "READY" &&
+				agentDoctor.status === "PASS" &&
+				diagnostics.integrity === "ok";
+			return {
+				summary: `execution=${executionStatus.status}; model=${modelStatus.status}; agent=${agentDoctor.status}; taskIntegrity=${diagnostics.integrity}`,
+				health: allReady ? ("HEALTHY" as const) : ("DEGRADED" as const),
+			};
+		}
+		if (view === "artifact") {
+			const signalResult = object(
+				await execution.invoke("listExecutionObserverSignals", { limit: 50 }),
+				"artifact observer signals",
+			);
+			const signals = Array.isArray(signalResult.signals)
+				? signalResult.signals
+				: [];
+			const unknown = signals.filter(
+				(signal) =>
+					typeof signal === "object" &&
+					signal !== null &&
+					Reflect.get(signal, "kind") === "UNKNOWN_REALITY",
+			).length;
+			return {
+				summary: `pendingUnknownRealitySignals=${unknown}`,
+				health: unknown === 0 ? ("HEALTHY" as const) : ("DEGRADED" as const),
 			};
 		}
 		return {
@@ -1176,13 +1234,13 @@ async function constructGraph(
 		},
 	});
 	const ensureTaskWorkers = async (taskId: string) => {
-		for (const agentPackageRef of rolePackageRefs) {
+		const provision = async (agentPackageRef: string) => {
 			let current = unwrap(task.queries.getTask({ taskId }));
 			const binding = current.roleBindings.find(
 				(candidate) => candidate.agentPackageRef === agentPackageRef,
 			);
 			if (!binding) throw new Error("TASK_ROLE_BINDING_REQUIRED");
-			if (binding.workerRef && binding.conversationLocator) continue;
+			if (binding.workerRef && binding.conversationLocator) return;
 			const role = roleForPackage(agentPackageRef);
 			const executionRecord = object(
 				await execution.invoke("executeCapability", {
@@ -1212,7 +1270,17 @@ async function constructGraph(
 			);
 			if (!persisted?.workerRef || !persisted.conversationLocator)
 				throw new Error("WORKER_CREATE_BINDING_NOT_PERSISTED");
-		}
+		};
+		// Provision the three fixed Workers concurrently: a slow or failing
+		// Dev/Test worker creation must not serialize or block Product binding.
+		const results = await Promise.allSettled(
+			rolePackageRefs.map((agentPackageRef) => provision(agentPackageRef)),
+		);
+		const failure = results.find(
+			(result): result is PromiseRejectedResult =>
+				result.status === "rejected",
+		);
+		if (failure) throw failure.reason;
 		return unwrap(task.queries.getTask({ taskId }));
 	};
 	const taskApplication = Object.freeze({
@@ -1426,6 +1494,9 @@ async function constructGraph(
 					input: {
 						roleRef,
 						workerRef,
+						taskId,
+						nodeId,
+						runNo,
 						trigger,
 						fingerprint: `wake:${taskId}:${nodeId}:${runNo}:${trigger}:${underlyingRef}`,
 					},

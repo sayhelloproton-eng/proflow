@@ -62,6 +62,7 @@ const startButton = element<HTMLButtonElement>("#start-task");
 const ensureWorkersButton = element<HTMLButtonElement>("#ensure-workers");
 const newTaskForm = element<HTMLFormElement>("#new-task-form");
 const approvalsTarget = element<HTMLElement>("#approvals");
+const systemAssessmentTarget = element<HTMLElement>("#system-assessment");
 
 let selected: TaskView | null = null;
 
@@ -236,6 +237,28 @@ async function refreshBrowserStatus() {
 			? "Task + Approval applications connected"
 			: "Local application credential missing — open Extension Options";
 	browserStatus.textContent = JSON.stringify(snapshot, null, 2);
+	const observer =
+		typeof snapshot.systemObserver === "object" &&
+		snapshot.systemObserver !== null &&
+		!Array.isArray(snapshot.systemObserver)
+			? (snapshot.systemObserver as Record<string, unknown>)
+			: null;
+	if (observer === null) {
+		systemAssessmentTarget.textContent = "No assessment yet.";
+	} else {
+		const unresolved = Array.isArray(observer.unresolved)
+			? observer.unresolved.filter((item): item is string => typeof item === "string")
+			: [];
+		const carry = Array.isArray(observer.carryForward)
+			? observer.carryForward
+			: [];
+		systemAssessmentTarget.textContent = [
+			`assessmentRef: ${String(observer.assessmentRef ?? "?")}`,
+			`needsHumanAttention: ${observer.needsHumanAttention === true}`,
+			`unresolved: ${unresolved.join(" | ")}`,
+			`carryForward: ${carry.length}`,
+		].join("\n");
+	}
 	if (snapshot.taskApplicationConfigured === true) await refreshTasks();
 	if (snapshot.approvalApplicationConfigured === true) await refreshApprovals();
 }
@@ -250,34 +273,30 @@ async function run(action: () => Promise<void>) {
 	}
 }
 
-newTaskForm.addEventListener("submit", (event) => {
-	event.preventDefault();
-	void run(async () => {
-		const title = element<HTMLInputElement>("#task-title").value.trim();
-		const objective =
-			element<HTMLTextAreaElement>("#task-objective").value.trim();
-		const requirement = element<HTMLTextAreaElement>("#task-requirement").value;
-		const nodes = JSON.parse(
-			element<HTMLTextAreaElement>("#task-plan").value,
-		) as unknown;
-		if (!Array.isArray(nodes) || nodes.length === 0)
-			throw new Error("Task plan must be a non-empty JSON array");
-		const value = await taskApplication("task.create", {
-			title,
-			objective,
-			plan: { nodes },
-			initialDocuments:
-				requirement.length > 0
-					? [{ documentType: "REQUIREMENT", content: requirement }]
-					: [],
-			idempotencyKey: requestId("extension-new-task"),
+	newTaskForm.addEventListener("submit", (event) => {
+		event.preventDefault();
+		void run(async () => {
+			const title = element<HTMLInputElement>("#task-title").value.trim();
+			const objective =
+				element<HTMLTextAreaElement>("#task-objective").value.trim();
+			const nodes = JSON.parse(
+				element<HTMLTextAreaElement>("#task-plan").value,
+			) as unknown;
+			if (!Array.isArray(nodes) || nodes.length === 0)
+				throw new Error("Task plan must be a non-empty JSON array");
+			const value = await taskApplication("task.create", {
+				title,
+				objective,
+				plan: { nodes },
+				initialDocuments: [],
+				idempotencyKey: requestId("extension-new-task"),
+			});
+			const created = record(value);
+			resultTarget.textContent = `Created ${String(created.taskId ?? "Task")}.`;
+			if (typeof created.taskId === "string") await loadTask(created.taskId);
+			await refreshTasks();
 		});
-		const created = record(value);
-		resultTarget.textContent = `Created ${String(created.taskId ?? "Task")}.`;
-		if (typeof created.taskId === "string") await loadTask(created.taskId);
-		await refreshTasks();
 	});
-});
 
 element<HTMLButtonElement>("#refresh-tasks").addEventListener(
 	"click",

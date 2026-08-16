@@ -84,19 +84,30 @@ test("PRESMOKE-B3-OBS-ASYNC-01 synchronous executeCapability completion does not
 	);
 });
 
-test("PRESMOKE-B3-SYSOBS-OWNER-01 unavailable owner projections stay UNKNOWN instead of borrowing another owner's readiness", async () => {
+test("PRESMOKE-B3-SYSOBS-OWNER-01 all eight owner views are bounded projections without borrowing another owner's readiness", async () => {
 	const text = await source();
 	assert.match(text, /owner aggregate projection unavailable/);
 	assert.match(text, /no substitute owner readiness is inferred/);
-	assert.match(text, /view === "execution"/);
-	assert.match(text, /projectionStatus: "LIMITED"/);
-	assert.match(
+	for (const view of [
+		'"task"',
+		'"worker"',
+		'"collaboration"',
+		'"execution"',
+		'"carrier"',
+		'"model"',
+		'"deployment"',
+		'"artifact"',
+	])
+		assert.match(text, new RegExp(`view === ${view}`));
+	assert.match(text, /listExecutionObserverSignals/);
+	assert.match(text, /unknown drilldown topic is not defaulted to execution or another owner/);
+	assert.doesNotMatch(
 		text,
-		/unknown drilldown topic is not defaulted to execution or another owner/,
+		/view === "carrier"[\s\S]{0,160}model\.readiness\(\)/,
 	);
 	assert.doesNotMatch(
 		text,
-		/view === "execution" \|\| view === "carrier"[\s\S]{0,120}model\.readiness\(\)/,
+		/view === "artifact"[\s\S]{0,160}model\.readiness\(\)/,
 	);
 });
 

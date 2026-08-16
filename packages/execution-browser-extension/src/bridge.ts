@@ -85,6 +85,16 @@ function stringField(value: Record<string, unknown>, key: string): string {
 	return item;
 }
 
+function numberField(value: Record<string, unknown>, key: string): number {
+	const item = value[key];
+	if (typeof item !== "number" || !Number.isFinite(item))
+		throw new BrowserRealityBridgeError(
+			"BRIDGE_INPUT_INVALID",
+			`${key} must be a finite number`,
+		);
+	return item;
+}
+
 function parseObservation(value: unknown): BrowserPageObservation {
 	if (!isRecord(value))
 		throw new BrowserRealityBridgeError(
@@ -408,7 +418,13 @@ export async function createBrowserRealityBridgeServer(
 					"BRIDGE_INPUT_INVALID",
 					"SCREENSHOT result is invalid",
 				);
-			return { evidenceRef: stringField(value, "evidenceRef") };
+			return {
+				evidenceRef: stringField(value, "evidenceRef"),
+				dataUrl: stringField(value, "dataUrl"),
+				mimeType: stringField(value, "mimeType"),
+				sizeBytes: numberField(value, "sizeBytes"),
+				hash: stringField(value, "hash"),
+			};
 		},
 		async perform(request, tabId) {
 			return parseObservation(

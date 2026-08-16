@@ -42,3 +42,21 @@ test("PRESMOKE-B3-UI-01 Side Panel exposes real Task application controls withou
 	assert.doesNotMatch(source, /authorizeTask|TaskApproval|approvalState\s*=/);
 	assert.match(source, /PROFLOW_TASK_APPLICATION/);
 });
+
+test("PRESMOKE-B6-UI-01 Extension New Task does not seed the formal REQUIREMENT document", async () => {
+	const html = await readFile(
+		new URL("../extension/side-panel.html", import.meta.url),
+		"utf8",
+	);
+	const source = await readFile(
+		new URL("../extension/side-panel.ts", import.meta.url),
+		"utf8",
+	);
+	assert.doesNotMatch(source, /documentType:\s*"REQUIREMENT"/);
+	assert.doesNotMatch(html, /id="task-requirement"/);
+	assert.match(source, /initialDocuments:\s*\[\]/);
+	assert.match(
+		html,
+		/Requirement.*clarified by the Product Worker after binding/,
+	);
+});

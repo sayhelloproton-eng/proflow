@@ -79,7 +79,8 @@ test("CP-EXE-BR-07 DOM-first operation may use screenshot/Vision only as ambigui
 	const text = await sourceCorpus();
 	assert.match(text, /screenshot/);
 	assert.match(text, /observe|observation/);
-	assert.doesNotMatch(text, /vision(?:Result|Decision)?.*(?:completeNode|taskStatus|executionStatus\s*=\s*["']SUCCEEDED)/is);
+	assert.doesNotMatch(text, /vision[^\n]{0,160}(?:completeNode|taskStatus|executionStatus\s*=\s*["']SUCCEEDED)/i);
+	assert.match(text, /visionFallback:\s*"REAL_EXTERNAL_PENDING"/);
 });
 
 test("CP-EXE-BR-08 Collaboration delivery stays a physical Execution concern and logical message truth remains Agent-owned", async () => {

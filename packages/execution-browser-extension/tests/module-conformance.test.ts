@@ -40,3 +40,30 @@ test("Execution Browser module contract C1/C2/C3", async () => {
 	])
 		await access(new URL(`../${artifact}`, import.meta.url));
 });
+
+test("PRESMOKE-B6-DESC-01 extension descriptor config surface matches the consumed Bridge/Task/Approval connections", async () => {
+	const optionsSource = await readFile(
+		new URL("../extension/options.ts", import.meta.url),
+		"utf8",
+	);
+	const slotKeys = (descriptor as unknown as ModuleDescriptor).configSlots.map(
+		(slot) => slot.key,
+	);
+	for (const key of [
+		"bridge.endpoint",
+		"bridge.token",
+		"taskApplication.endpoint",
+		"taskApplication.token",
+		"approvalApplication.endpoint",
+		"approvalApplication.token",
+	])
+		assert.ok(slotKeys.includes(key), `${key} must be a declared config slot`);
+	assert.ok(!slotKeys.includes("executionRuntimeUrl"));
+	assert.ok(!slotKeys.includes("localPlatformCredential"));
+	for (const storageKey of [
+		"proflowRuntimeBridge",
+		"proflowTaskApplication",
+		"proflowApprovalApplication",
+	])
+		assert.match(optionsSource, new RegExp(storageKey));
+});

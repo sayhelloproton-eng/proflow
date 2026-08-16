@@ -688,14 +688,18 @@ async function executeCommand(command: BridgeCommand): Promise<unknown> {
 		const dataUrl = await chrome.tabs.captureVisibleTab(observed.windowId, {
 			format: "png",
 		});
-		const digest = await crypto.subtle.digest(
-			"SHA-256",
-			new TextEncoder().encode(dataUrl),
-		);
+		const bytes = new TextEncoder().encode(dataUrl);
+		const digest = await crypto.subtle.digest("SHA-256", bytes);
 		const hex = [...new Uint8Array(digest)]
 			.map((value) => value.toString(16).padStart(2, "0"))
 			.join("");
-		return { evidenceRef: `screenshot:sha256:${hex}` };
+		return {
+			evidenceRef: `screenshot:sha256:${hex}`,
+			dataUrl,
+			mimeType: "image/png",
+			sizeBytes: bytes.byteLength,
+			hash: `sha256:${hex}`,
+		};
 	}
 	const request = command.request;
 	if (!isRecord(request) || !isRecord(request.input))
@@ -871,13 +875,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 		void Promise.all([
 			taskApplicationConfig(),
 			approvalApplicationConfig(),
-		]).then(([application, approval]) =>
+			loadSystemObserverState().catch(() => null),
+		]).then(([application, approval, observerState]) =>
 			sendResponse({
 				extensionInstanceId,
 				observedAt: new Date().toISOString(),
 				sessions: [...sessions.values()],
 				taskApplicationConfigured: application !== null,
 				approvalApplicationConfigured: approval !== null,
+				systemObserver: observerState
+					? {
+							assessmentRef: observerState.assessmentRef,
+							observedAt: observerState.observedAt,
+							unresolved: observerState.unresolved,
+							carryForward: observerState.carryForward,
+							needsHumanAttention:
+								observerState.unresolved.length > 0 ||
+								observerState.carryForward.length > 0,
+						}
+					: null,
 			}),
 		);
 		return true;
