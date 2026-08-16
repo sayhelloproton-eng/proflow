@@ -881,12 +881,27 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				!request.approvalRef &&
 				!options.approval
 			) {
+				const executorForObserve = browserIds.has(request.capability)
+					? options.browserExecutor
+					: options.localExecutor;
+				let precondition: ExecutorPrecondition | undefined;
+				try {
+					precondition = executorForObserve?.observePrecondition
+						? await executorForObserve.observePrecondition(request)
+						: undefined;
+				} catch (error) {
+					record = failRecord(record, runtimeError(error));
+					save(record);
+					await log(record, "ADMISSION_REJECTED", record.error?.code);
+					return record;
+				}
 				const approval = approvalOwner.ensurePendingApproval({
 					executionRef: record.executionRef,
 					actorRef: "execution-runtime:policy",
 					expiresAt: new Date(
 						now().getTime() + approvalDraftTtlMs,
 					).toISOString(),
+					...(precondition ? { precondition } : {}),
 				});
 				record = parseExecutionRecord({
 					...record,

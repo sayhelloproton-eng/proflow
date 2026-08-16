@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { promisify } from "node:util";
+import { createLocalExecutorPort } from "../src/executors/local-adapter.ts";
 import {
 	createExecutionRuntime,
 	type ExecutionExecutorPort,
@@ -243,4 +246,124 @@ test("CP-EXE-RT-16/RF-EXE-RT-16 patch approval fingerprint binds durable Artifac
 	assert.match(source, /hash: artifact\.hash/);
 	assert.match(source, /baseHash: artifact\.metadata\?\.baseHash/);
 	assert.match(source, /patchArtifact: patchArtifactBinding\(request\)/);
+});
+
+test("PRESMOKE-B6-APPROVAL-01 automatic approval binds the concrete effect precondition and rejects stale reality", async () => {
+	const exec = promisify(execFile);
+	const root = await mkdtemp(join(tmpdir(), "proflow-approval-precondition-"));
+	await writeFile(join(root, "package.json"), "{}");
+	await exec("git", ["init", "-q"], { cwd: root });
+	const local = await createLocalExecutorPort({
+		projectRoot: root,
+		artifactRoot: join(root, ".artifacts"),
+	});
+	const runtime = await createExecutionRuntime({
+		databasePath: join(root, ".proflow", "execution.db"),
+		localExecutor: local,
+		policy: {
+			decide: () => ({
+				decision: "REVIEW",
+				decisionPath: "reason",
+				approvalRequired: true,
+			}),
+		},
+		modelDecision: {
+			decide: async () => ({
+				decision: "ALLOW",
+				decisionPath: "reason",
+				approvalRequired: true,
+			}),
+		},
+	});
+	const write = (approvalRef?: string, content = "B") => ({
+		contract: "execution",
+		contractVersion: "1.0.0",
+		callerRef: "worker:controller",
+		taskId: "task:precondition",
+		roleRef: "role:controller",
+		workerRef: "worker:controller",
+		idempotencyKey: `precondition-${content}`,
+		capability: "file.write",
+		input: { path: "danger.txt", content },
+		...(approvalRef ? { approvalRef } : {}),
+	});
+
+	await writeFile(join(root, "danger.txt"), "A");
+	const pending = await runtime.executeCapability(write());
+	assert.equal(pending.error?.code, "APPROVAL_REQUIRED");
+	assert.ok(pending.approvalRef);
+	const draft = runtime.getExecutionApproval(pending.approvalRef);
+	assert.match(draft.preconditionFingerprint ?? "", /^sha256:/);
+	assert.notEqual(draft.preconditionFingerprint, undefined);
+
+	await writeFile(join(root, "danger.txt"), "C");
+	runtime.decideExecutionApproval({
+		contract: "execution.approval",
+		contractVersion: "1.0.0",
+		approvalRef: pending.approvalRef,
+		actorRef: "human:owner",
+		expectedVersion: draft.version,
+		decision: "ALLOW",
+	});
+	const stale = await runtime.executeCapability(write(pending.approvalRef));
+	assert.equal(stale.error?.code, "APPROVAL_INVALID");
+	runtime.close();
+
+	const root2 = await mkdtemp(join(tmpdir(), "proflow-approval-precondition-"));
+	await writeFile(join(root2, "package.json"), "{}");
+	await exec("git", ["init", "-q"], { cwd: root2 });
+	const local2 = await createLocalExecutorPort({
+		projectRoot: root2,
+		artifactRoot: join(root2, ".artifacts"),
+	});
+	const runtime2 = await createExecutionRuntime({
+		databasePath: join(root2, ".proflow", "execution.db"),
+		localExecutor: local2,
+		policy: {
+			decide: () => ({
+				decision: "REVIEW",
+				decisionPath: "reason",
+				approvalRequired: true,
+			}),
+		},
+		modelDecision: {
+			decide: async () => ({
+				decision: "ALLOW",
+				decisionPath: "reason",
+				approvalRequired: true,
+			}),
+		},
+	});
+	const write2 = (approvalRef?: string) => ({
+		contract: "execution",
+		contractVersion: "1.0.0",
+		callerRef: "worker:controller",
+		taskId: "task:precondition",
+		roleRef: "role:controller",
+		workerRef: "worker:controller",
+		idempotencyKey: "precondition-unchanged",
+		capability: "file.write",
+		input: { path: "danger.txt", content: "B" },
+		...(approvalRef ? { approvalRef } : {}),
+	});
+	await writeFile(join(root2, "danger.txt"), "A");
+	const pending2 = await runtime2.executeCapability(write2());
+	assert.equal(pending2.error?.code, "APPROVAL_REQUIRED");
+	assert.ok(pending2.approvalRef);
+	const draft2 = runtime2.getExecutionApproval(pending2.approvalRef);
+	runtime2.decideExecutionApproval({
+		contract: "execution.approval",
+		contractVersion: "1.0.0",
+		approvalRef: pending2.approvalRef,
+		actorRef: "human:owner",
+		expectedVersion: draft2.version,
+		decision: "ALLOW",
+	});
+	const completed = await runtime2.executeCapability(write2(pending2.approvalRef));
+	assert.equal(completed.status, "SUCCEEDED");
+	assert.equal(
+		runtime2.getExecutionApproval(pending2.approvalRef).status,
+		"CONSUMED",
+	);
+	runtime2.close();
 });

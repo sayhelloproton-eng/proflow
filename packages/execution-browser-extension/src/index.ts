@@ -1019,6 +1019,9 @@ export function createExecutionBrowserExtension(
 			return Object.freeze(snapshot);
 		},
 		execute,
+		observePrecondition: async (
+			request: ExecuteCapabilityRequest,
+		): Promise<ExecutorPrecondition | undefined> => browserPrecondition(request),
 		reconcile,
 		async readArtifact() {
 			throw new ExecutionBrowserError(

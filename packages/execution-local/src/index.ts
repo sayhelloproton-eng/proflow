@@ -30,6 +30,7 @@ import type {
 	ExecutionCapabilityResult,
 	ExecutionErrorCode,
 	ExecutionEvidence,
+	ExecutorPrecondition,
 	ExternalFileMaterializationInput,
 	ExternalFileMaterializationResult,
 	LocalCapabilityId,
@@ -3203,6 +3204,151 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 		};
 	}
 
+	async function observePrecondition(
+		request: ExecuteCapabilityRequest,
+	): Promise<ExecutorPrecondition | undefined> {
+		switch (request.capability) {
+			case "file.write": {
+				const path = await safePath(request.input.path, true);
+				const before = (await fileExists(path))
+					? await readFile(path, "utf8")
+					: undefined;
+				const beforeHash =
+					before === undefined ? undefined : sha256(before);
+				return {
+					kind: "file.write",
+					capability: "file.write",
+					path: relative(projectRoot, path),
+					...(beforeHash ? { beforeHash } : {}),
+					expectedAfterHash: sha256(request.input.content),
+				};
+			}
+			case "patch.apply": {
+				if (!resolvePatchArtifact)
+					throw new LocalExecutionError(
+						"EXECUTOR_UNAVAILABLE",
+						"patch artifact resolver is not configured",
+					);
+				const artifact = await resolvePatchArtifact(
+					request.input.artifactRef,
+				);
+				if (artifact?.kind !== "patch-proposal")
+					throw new LocalExecutionError(
+						"PRECONDITION_FAILED",
+						"patch proposal artifact was not found",
+					);
+				const patchPath = resolve(artifact.path);
+				if (!within(artifactRoot, patchPath))
+					throw new LocalExecutionError(
+						"SCOPE_DENIED",
+						"patch artifact escaped the Execution artifact root",
+					);
+				const patchBytes = await readFile(patchPath);
+				if (sha256(patchBytes) !== artifact.hash)
+					throw new LocalExecutionError(
+						"PRECONDITION_FAILED",
+						"patch proposal bytes no longer match the durable Artifact hash",
+					);
+				const numstat = await simpleCommand(
+					"git",
+					["apply", "--numstat", "-z", patchPath],
+					projectRoot,
+				);
+				if (numstat.code !== 0)
+					throw new LocalExecutionError(
+						"PRECONDITION_FAILED",
+						"patch proposal could not be parsed against the repository",
+					);
+				const paths = numstat.stdout
+					.split("\0")
+					.map((record) => record.split("\t").at(-1) ?? "")
+					.filter((path) => path.length > 0);
+				if (paths.length === 0)
+					throw new LocalExecutionError(
+						"PRECONDITION_FAILED",
+						"patch proposal does not target any repository file",
+					);
+				for (const path of paths) await safePath(path, true);
+				const check = await simpleCommand(
+					"git",
+					["apply", "--check", patchPath],
+					projectRoot,
+				);
+				if (check.code !== 0)
+					throw new LocalExecutionError(
+						"PRECONDITION_FAILED",
+						"patch proposal is stale or conflicts with the live repository",
+					);
+				return {
+					kind: "patch.apply",
+					capability: "patch.apply",
+					artifactRef: artifact.artifactRef,
+					patchHash: artifact.hash,
+					baseHash: artifact.baseHash,
+					baseRef: artifact.baseRef,
+					paths,
+				};
+			}
+			case "git.commit": {
+				const head = await simpleCommand(
+					"git",
+					["rev-parse", "HEAD"],
+					projectRoot,
+				);
+				if (head.code !== 0)
+					throw new LocalExecutionError(
+						"PRECONDITION_FAILED",
+						head.stderr,
+					);
+				return {
+					kind: "git.commit",
+					capability: "git.commit",
+					beforeHead: head.stdout.trim(),
+					beforeIndexHash: sha256(
+						(
+							await simpleCommand(
+								"git",
+								["diff", "--cached", "--binary"],
+								projectRoot,
+							)
+						).stdout,
+					),
+					message: request.input.message,
+					...(request.input.paths ? { paths: request.input.paths } : {}),
+				};
+			}
+			case "process.stop": {
+				const record = managed.get(request.input.processRef);
+				if (!record)
+					throw new LocalExecutionError(
+						"SCOPE_DENIED",
+						"processRef is not owned by this local executor",
+					);
+				if (!(await ownsManagedProcess(record)))
+					throw new LocalExecutionError(
+						"SCOPE_DENIED",
+						"process identity no longer matches the owned process",
+					);
+				return {
+					kind: "process.stop",
+					capability: "process.stop",
+					processRef: record.processRef,
+					pid: record.pid,
+					birthIdentity: record.processIdentity,
+				};
+			}
+			case "git.push":
+			case "quality.test":
+			case "quality.build":
+			case "quality.lint":
+			case "quality.typecheck":
+			case "shell.run":
+				return { kind: "opaque", capability: request.capability };
+			default:
+				return undefined;
+		}
+	}
+
 	return Object.freeze({
 		projectRoot,
 		artifactRoot,
@@ -3212,6 +3358,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 			resolvePatchArtifact = resolver;
 		},
 		execute,
+		observePrecondition,
 		reconcile,
 		readArtifact,
 		logPath,

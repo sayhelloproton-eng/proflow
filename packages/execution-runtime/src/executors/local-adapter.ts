@@ -69,6 +69,7 @@ export function adaptLocalExecutor(
 		async reconcile(request, precondition) {
 			return executor.reconcile(request, toLocalPrecondition(precondition));
 		},
+		observePrecondition: executor.observePrecondition,
 		readArtifact: executor.readArtifact,
 	};
 }

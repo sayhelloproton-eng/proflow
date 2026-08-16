@@ -163,6 +163,16 @@ export interface ExecutionExecutorPort {
 		) => Promise<ExecutorPatchArtifact | undefined>,
 	): void;
 	execute(invocation: ExecutorInvocation): Promise<ExecutorResult>;
+	/**
+	 * Observe the concrete effect-boundary precondition for a request without
+	 * performing the effect. Used to bind an Approval draft to current reality
+	 * before a human decision, so a stale approval cannot survive changed
+	 * reality. Returns `undefined` when the capability has no side-effect-free
+	 * precondition to observe.
+	 */
+	observePrecondition?(
+		request: ExecuteCapabilityRequest,
+	): Promise<ExecutorPrecondition | undefined>;
 	reconcile(
 		request: ExecuteCapabilityRequest,
 		precondition: ExecutorPrecondition,

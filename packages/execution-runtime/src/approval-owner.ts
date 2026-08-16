@@ -160,6 +160,7 @@ export function createExecutionApprovalOwner(input: {
 		executionRef: string;
 		actorRef: string;
 		expiresAt: string;
+		precondition?: ExecutorPrecondition;
 	}): ExecutionApprovalRecord => {
 		const executionRow = getExecutionRow(value.executionRef);
 		if (!executionRow)
@@ -189,6 +190,9 @@ export function createExecutionApprovalOwner(input: {
 			executionRef: value.executionRef,
 			actorRef: value.actorRef,
 			expiresAt: value.expiresAt,
+			...(value.precondition
+				? { preconditionFingerprint: sha(value.precondition) }
+				: {}),
 		});
 	};
 	const requestApproval = (value: unknown): ExecutionApprovalRecord => {
@@ -346,11 +350,8 @@ export function createExecutionApprovalOwner(input: {
 			projectRoot: value.request.projectRoot,
 		});
 		if (record.scopeFingerprint !== scopeFingerprint) return false;
-		if (record.preconditionFingerprint) {
-			if (
-				!value.precondition ||
-				record.preconditionFingerprint !== sha(value.precondition)
-			)
+		if (value.precondition && record.preconditionFingerprint) {
+			if (record.preconditionFingerprint !== sha(value.precondition))
 				return false;
 		}
 		return Date.parse(record.expiresAt) > Date.parse(value.now);
