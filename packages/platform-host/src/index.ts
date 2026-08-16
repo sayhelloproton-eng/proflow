@@ -1272,7 +1272,10 @@ async function constructGraph(
 			throw new Error("UNSUPPORTED_ROLE_MANAGEMENT_OPERATION");
 		},
 	});
-	const ensureTaskWorkers = async (taskId: string) => {
+	const ensureTaskWorkers = async (
+		taskId: string,
+		options?: { waitFor?: readonly string[] },
+	) => {
 		const provision = async (agentPackageRef: string) => {
 			let current = unwrap(task.queries.getTask({ taskId }));
 			const binding = current.roleBindings.find(
@@ -1310,10 +1313,34 @@ async function constructGraph(
 			if (!persisted?.workerRef || !persisted.conversationLocator)
 				throw new Error("WORKER_CREATE_BINDING_NOT_PERSISTED");
 		};
-		// Provision the three fixed Workers concurrently: a slow or failing
-		// Dev/Test worker creation must not serialize or block Product binding.
+		// Dispatch all three fixed Workers concurrently. When `waitFor` names a
+		// subset of roleRefs (the J1 Product path), only those results gate the
+		// return; the remaining Worker creation is a durable, idempotent Execution
+		// effect whose completion the ensureWorkers recovery reconciles from the
+		// durable Task binding facts — never a bare in-memory promise.
+		const waitFor = new Set(options?.waitFor ?? []);
+		const shouldWait = (agentPackageRef: string) =>
+			waitFor.size === 0 ||
+			waitFor.has(roleForPackage(agentPackageRef).roleRef);
+		const pending = rolePackageRefs.map((agentPackageRef) => ({
+			agentPackageRef,
+			promise: provision(agentPackageRef),
+		}));
+		const awaited = pending.filter((entry) =>
+			shouldWait(entry.agentPackageRef),
+		);
+		const deferred = pending.filter(
+			(entry) => !shouldWait(entry.agentPackageRef),
+		);
+		for (const entry of deferred) {
+			entry.promise.catch(() => {
+				// Deferred Worker creation failure is recoverable: the durable
+				// binding stays unset, so a later ensureWorkers pass re-provisions
+				// only the missing role.
+			});
+		}
 		const results = await Promise.allSettled(
-			rolePackageRefs.map((agentPackageRef) => provision(agentPackageRef)),
+			awaited.map((entry) => entry.promise),
 		);
 		const failure = results.find(
 			(result): result is PromiseRejectedResult => result.status === "rejected",
@@ -1350,7 +1377,12 @@ async function constructGraph(
 						idempotencyKey,
 					}),
 				);
-				return ensureTaskWorkers(created.taskId);
+				// J1: return once the Product Worker is durably bound; Dev/Test
+				// continue as recoverable durable effects without blocking Product
+				// requirement discussion.
+				return ensureTaskWorkers(created.taskId, {
+					waitFor: [roleForPackage("@tomflow/proflow-agent-product").roleRef],
+				});
 			}
 			if (operation === "task.ensureWorkers")
 				return ensureTaskWorkers(string(value.taskId, "taskId"));
