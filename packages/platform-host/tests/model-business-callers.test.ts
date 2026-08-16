@@ -7,12 +7,24 @@ import { test } from "node:test";
 
 import { createPlatformHost, parsePlatformHostConfig } from "../src/index.ts";
 
-async function modelDependency() {
+async function modelDependency(expectedCredential?: string) {
 	const requests: Array<Record<string, unknown>> = [];
 	const inferAuthorizations: Array<string | undefined> = [];
+	const readyAuthorizations: Array<string | undefined> = [];
 	const server = createServer(async (request, response) => {
 		response.setHeader("content-type", "application/json");
 		if (request.url === "/ready") {
+			readyAuthorizations.push(request.headers.authorization);
+			if (
+				expectedCredential &&
+				request.headers.authorization !== `Bearer ${expectedCredential}`
+			) {
+				response.statusCode = 401;
+				response.end(
+					JSON.stringify({ error: "MODEL_TRANSPORT_AUTH_FAILED" }),
+				);
+				return;
+			}
 			response.end(JSON.stringify({ status: "READY" }));
 			return;
 		}
@@ -77,16 +89,17 @@ async function modelDependency() {
 		baseUrl: `http://127.0.0.1:${address.port}`,
 		requests,
 		inferAuthorizations,
+		readyAuthorizations,
 		close: () => new Promise<void>((resolve) => server.close(() => resolve())),
 	};
 }
 
 test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the single Model infer contract with caller-owned mode/priority/trace", async () => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-host-model-callers-"));
-	const dependency = await modelDependency();
+	const modelTransportCredential = "model-runtime-transport-credential-value";
+	const dependency = await modelDependency(modelTransportCredential);
 	const stateRoot = join(root, ".proflow");
 	const modelTransportCredentialFile = join(root, "model-runtime.token");
-	const modelTransportCredential = "model-runtime-transport-credential-value";
 	await writeFile(
 		modelTransportCredentialFile,
 		`${modelTransportCredential}\n`,
@@ -155,6 +168,13 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 			`Bearer ${modelTransportCredential}`,
 			`Bearer ${modelTransportCredential}`,
 		]);
+		assert.equal(
+			dependency.readyAuthorizations.includes(
+				`Bearer ${modelTransportCredential}`,
+			),
+			true,
+			"Model /ready must be probed with the configured transport Bearer",
+		);
 		const task = dependency.requests[0] as {
 			specRef: string;
 			mode: string;
@@ -186,6 +206,83 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 	}
 });
 
+
+test("PRESMOKE-B6-HOST-MODEL-READY-01 Model /ready requires the configured Bearer and Host aggregate readiness reflects it", async () => {
+	const modelCredential = "model-runtime-transport-credential-value";
+	const model = await modelDependency(modelCredential);
+	const executionStub = await modelDependency();
+	async function build(modelTransportCredentialFile?: string) {
+		return createPlatformHost({
+			config: parsePlatformHostConfig({
+				stateRoot: join(
+					await mkdtemp(join(tmpdir(), "proflow-host-model-ready-")),
+					".proflow",
+				),
+				workspaceRoot: join(
+					await mkdtemp(join(tmpdir(), "proflow-host-model-ready-ws-")),
+				),
+				host: "127.0.0.1",
+				port: 0,
+				executionBaseUrl: executionStub.baseUrl,
+				modelBaseUrl: model.baseUrl,
+				...(modelTransportCredentialFile
+					? { modelTransportCredentialFile }
+					: {}),
+				roles: [],
+			}),
+		});
+	}
+	const root = await mkdtemp(join(tmpdir(), "proflow-host-model-ready-root-"));
+	const correctFile = join(root, "model-correct.token");
+	const wrongFile = join(root, "model-wrong.token");
+	await writeFile(correctFile, `${modelCredential}\n`, { mode: 0o600 });
+	await writeFile(wrongFile, "wrong-model-runtime-transport-credential\n", {
+		mode: 0o600,
+	});
+
+	const correct = await build(correctFile);
+	try {
+		await correct.start();
+		const status = await correct.status();
+		assert.equal(status.dependencies.model.status, "READY");
+		assert.equal(status.dependencies.model.liveness, "UP");
+	} finally {
+		await correct.stop();
+	}
+
+	const wrong = await build(wrongFile);
+	try {
+		await wrong.start();
+		const status = await wrong.status();
+		assert.equal(status.dependencies.model.status, "NOT_READY");
+	} finally {
+		await wrong.stop();
+	}
+
+	const missing = await build(undefined);
+	try {
+		await missing.start();
+		const status = await missing.status();
+		assert.equal(status.dependencies.model.status, "NOT_READY");
+	} finally {
+		await missing.stop();
+	}
+
+	assert.ok(
+		model.readyAuthorizations.includes(`Bearer ${modelCredential}`),
+		"correct Bearer must be observed on Model /ready",
+	);
+	assert.ok(
+		model.readyAuthorizations.includes(`Bearer wrong-model-runtime-transport-credential`),
+		"wrong Bearer must be observed (and rejected) on Model /ready",
+	);
+	assert.ok(
+		model.readyAuthorizations.includes(undefined),
+		"missing Authorization must be observed (and rejected) on Model /ready",
+	);
+	await model.close();
+	await executionStub.close();
+});
 
 test("RF-MODEL-RT-14 platform-host rejects group/world-readable Model transport credential", async (t) => {
 	if (process.platform === "win32") return t.skip("POSIX mode proof");

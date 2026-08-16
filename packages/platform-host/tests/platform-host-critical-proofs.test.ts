@@ -541,3 +541,157 @@ test("RF-AGT-GW-14 platform-host rejects group/world-readable Gateway transport 
 		await dependency.close();
 	}
 });
+
+async function securedExecutionServer(credential: string) {
+	const authorizations: Array<string | undefined> = [];
+	const server = createServer(async (request, response) => {
+		response.setHeader("content-type", "application/json");
+		if (request.url === "/ready") {
+			authorizations.push(request.headers.authorization);
+			if (request.headers.authorization !== `Bearer ${credential}`) {
+				response.statusCode = 401;
+				response.end(
+					JSON.stringify({ error: "EXECUTION_TRANSPORT_AUTH_FAILED" }),
+				);
+				return;
+			}
+			response.end(JSON.stringify({ status: "READY" }));
+			return;
+		}
+		if (request.url === "/executions" && request.method === "POST") {
+			authorizations.push(request.headers.authorization);
+			if (request.headers.authorization !== `Bearer ${credential}`) {
+				response.statusCode = 401;
+				response.end(
+					JSON.stringify({ error: "EXECUTION_TRANSPORT_AUTH_FAILED" }),
+				);
+				return;
+			}
+			response.end(
+				JSON.stringify({
+					executionRef: "execution:secured",
+					status: "SUCCEEDED",
+				}),
+			);
+			return;
+		}
+		authorizations.push(request.headers.authorization);
+		if (request.headers.authorization !== `Bearer ${credential}`) {
+			response.statusCode = 401;
+			response.end(
+				JSON.stringify({ error: "EXECUTION_TRANSPORT_AUTH_FAILED" }),
+			);
+			return;
+		}
+		response.end(JSON.stringify({ status: "READY" }));
+	});
+	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+	const address = server.address();
+	if (!address || typeof address === "string")
+		assert.fail("missing execution port");
+	return {
+		baseUrl: `http://127.0.0.1:${address.port}`,
+		authorizations,
+		close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+	};
+}
+
+test("PRESMOKE-B6-HOST-EXEC-01 Host→Execution transport credential is wired from config and business routes carry the Bearer", async () => {
+	const executionCredential = "execution-runtime-transport-credential-value";
+	const execution = await securedExecutionServer(executionCredential);
+	const model = await dependencyServer();
+	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-exec-auth-"));
+	const correctFile = join(root, "execution-correct.token");
+	const wrongFile = join(root, "execution-wrong.token");
+	await writeFile(correctFile, `${executionCredential}\n`, { mode: 0o600 });
+	await writeFile(wrongFile, "wrong-execution-runtime-transport-credential\n", {
+		mode: 0o600,
+	});
+
+	async function build(executionTransportCredentialFile?: string) {
+		const stateRoot = join(
+			await mkdtemp(join(tmpdir(), "proflow-platform-host-exec-auth-state-")),
+			".proflow",
+		);
+		return createPlatformHost({
+			config: parsePlatformHostConfig({
+				...config(
+					stateRoot,
+					join(await mkdtemp(join(tmpdir(), "proflow-platform-host-exec-auth-ws-"))),
+					execution.baseUrl,
+				),
+				modelBaseUrl: model.baseUrl,
+				...(executionTransportCredentialFile
+					? { executionTransportCredentialFile }
+					: {}),
+			}),
+		});
+	}
+
+	const correct = await build(correctFile);
+	try {
+		const started = await correct.start();
+		const status = await correct.status();
+		assert.equal(status.dependencies.execution.status, "READY");
+		assert.equal(status.dependencies.execution.liveness, "UP");
+
+		const action = await fetch(
+			`http://${started.host}:${started.port}/actions/executeCapability`,
+			{
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({
+					authenticatedRoleRef: "g-controller",
+					input: {
+						capability: "project.inspect",
+						input: {},
+						idempotencyKey: "host-exec-auth",
+					},
+				}),
+			},
+		);
+		assert.equal(action.status, 200);
+		const body = (await action.json()) as {
+			executionRef?: string;
+			status?: string;
+		};
+		assert.equal(body.status, "SUCCEEDED");
+		assert.ok(
+			execution.authorizations.includes(`Bearer ${executionCredential}`),
+			"business route must carry the Execution transport Bearer",
+		);
+	} finally {
+		await correct.stop();
+	}
+
+	const wrong = await build(wrongFile);
+	try {
+		await wrong.start();
+		const status = await wrong.status();
+		assert.equal(status.dependencies.execution.status, "NOT_READY");
+	} finally {
+		await wrong.stop();
+	}
+
+	const missing = await build(undefined);
+	try {
+		await missing.start();
+		const status = await missing.status();
+		assert.equal(status.dependencies.execution.status, "NOT_READY");
+	} finally {
+		await missing.stop();
+	}
+
+	assert.ok(
+		execution.authorizations.includes(
+			`Bearer wrong-execution-runtime-transport-credential`,
+		),
+		"wrong Bearer must be observed (and rejected) on Execution /ready",
+	);
+	assert.ok(
+		execution.authorizations.includes(undefined),
+		"missing Authorization must be observed (and rejected) on Execution /ready",
+	);
+	await execution.close();
+	await model.close();
+});

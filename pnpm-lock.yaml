@@ -281,6 +281,9 @@ importers:
       '@tomflow/proflow-execution-browser-extension':
         specifier: workspace:^
         version: link:../execution-browser-extension
+      '@tomflow/proflow-execution-contracts':
+        specifier: workspace:^
+        version: link:../execution-contracts
       '@tomflow/proflow-task-migration-runner':
         specifier: workspace:^
         version: link:../task-migration-runner

@@ -13,6 +13,10 @@ if (!config.modelTransportCredentialFile)
 	throw new Error(
 		"platform-host requires modelTransportCredentialFile for authenticated Model Runtime transport",
 	);
+if (!config.executionTransportCredentialFile)
+	throw new Error(
+		"platform-host requires executionTransportCredentialFile for authenticated Execution Runtime transport",
+	);
 const host = createPlatformHost({
 	config,
 	log: (entry) => process.stderr.write(`${JSON.stringify(entry)}\n`),

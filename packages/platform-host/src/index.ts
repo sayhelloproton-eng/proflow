@@ -105,6 +105,7 @@ const configSchema = z
 		host: z.string().min(1).default("127.0.0.1"),
 		port: z.number().int().min(0).max(65_535).default(0),
 		executionBaseUrl: loopbackUrl,
+		executionTransportCredentialFile: z.string().min(1).optional(),
 		modelBaseUrl: loopbackUrl,
 		modelTransportCredentialFile: z.string().min(1).optional(),
 		gatewayTransportCredentialFile: z.string().min(1).optional(),
@@ -181,6 +182,13 @@ const configSchema = z
 					),
 				}
 			: {}),
+		...(value.executionTransportCredentialFile
+			? {
+					executionTransportCredentialFile: resolve(
+						value.executionTransportCredentialFile,
+					),
+				}
+			: {}),
 		...(value.gatewayTransportCredentialFile
 			? {
 					gatewayTransportCredentialFile: resolve(
@@ -245,6 +253,7 @@ function createOwnerHttpClient(
 		async readiness() {
 			try {
 				const response = await fetch(`${baseUrl}/ready`, {
+					headers: credential ? { authorization: `Bearer ${credential}` } : {},
 					signal: AbortSignal.timeout(2_000),
 				});
 				const text = await response.text();
@@ -1679,7 +1688,10 @@ async function ensureTaskApplicationCredential(stateRoot: string) {
 	return credential;
 }
 
-async function readPrivateTransportCredential(file: string, name: "GATEWAY" | "MODEL") {
+async function readPrivateTransportCredential(
+	file: string,
+	name: "GATEWAY" | "MODEL" | "EXECUTION",
+) {
 	const info = await stat(file);
 	if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
 		throw new Error(`${name}_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID`);
@@ -1693,6 +1705,9 @@ async function readGatewayTransportCredential(file: string) {
 }
 async function readModelTransportCredential(file: string) {
 	return readPrivateTransportCredential(file, "MODEL");
+}
+async function readExecutionTransportCredential(file: string) {
+	return readPrivateTransportCredential(file, "EXECUTION");
 }
 
 function managementCredentialMatches(
@@ -1724,6 +1739,7 @@ export function createPlatformHost(input: {
 	let executionIdentityCredential: string | undefined;
 	let gatewayTransportCredential: string | undefined;
 	let modelTransportCredential: string | undefined;
+	let executionTransportCredential: string | undefined;
 	const active = new Set<Promise<void>>();
 	const log = (event: string, detail: Record<string, unknown> = {}) =>
 		input.log?.({
@@ -1869,12 +1885,18 @@ export function createPlatformHost(input: {
 						input.config.modelTransportCredentialFile,
 					)
 				: undefined;
+			executionTransportCredential =
+				input.config.executionTransportCredentialFile
+					? await readExecutionTransportCredential(
+							input.config.executionTransportCredentialFile,
+						)
+					: input.executionCredential;
 			log("DEPENDENCY_INITIALIZATION_STARTED", {
 				order: ["task", "agent", "execution-client", "model-client"],
 			});
 			graph = await constructGraph(
 				input.config,
-				input.executionCredential,
+				executionTransportCredential,
 				modelTransportCredential,
 			);
 			await graph.readiness();

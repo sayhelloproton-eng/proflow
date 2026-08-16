@@ -45,6 +45,14 @@ export const descriptor = {
 			description: "Loopback Execution Runtime public transport",
 		},
 		{
+			key: "executionTransportCredentialFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description:
+				"File containing the credential used for Platform Host calls to Execution Runtime",
+		},
+		{
 			key: "modelTransportCredentialFile",
 			type: "path",
 			required: true,
