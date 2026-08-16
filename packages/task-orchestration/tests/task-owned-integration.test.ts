@@ -752,3 +752,135 @@ test("Task-owned happy path remains durable after SQLite store close and reopen"
 	assert.equal(projection.taskId, task.taskId);
 	assert.equal(projection.terminal, false);
 });
+
+test("PRESMOKE-B6-TASK-01 createTask initial-document crash is recovered on first owner read before readiness", async (context) => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-task-create-crash-"));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	await execFileAsync("git", ["init", "-q"], { cwd: root });
+	const databasePath = join(root, ".proflow", "state", "task.sqlite");
+	assert.equal(
+		applyMigrations({ databasePath, migrations: taskMigrations }).ok,
+		true,
+	);
+	const store = new SqliteTaskStore({ databasePath });
+	context.after(() => store.close());
+	const crashing = createTaskServices({
+		store,
+		workspaceRoot: root,
+		promoteDocument: () => {
+			throw new Error("simulated promote crash");
+		},
+	});
+	const created = crashing.commands.createTask(taskInput("task-crash"));
+	assert.equal(created.ok, false);
+	assert.equal(errorCode(created), "DOCUMENT_WRITE_FAILED");
+
+	const recovered = createTaskServices({ store, workspaceRoot: root });
+	const document = ok(
+		recovered.queries.getTaskDocument({
+			taskId: "task-crash",
+			documentType: "REQUIREMENT",
+		}),
+	);
+	assert.equal(document.content, "# Requirement\n");
+	assert.equal(
+		document.contentHash,
+		`sha256:${createHash("sha256").update("# Requirement\n").digest("hex")}`,
+	);
+	const canonical = join(
+		root,
+		".proflow",
+		"tasks",
+		"task-crash",
+		"documents",
+		"requirement.md",
+	);
+	assert.equal((await readFile(canonical, "utf8")), "# Requirement\n");
+
+	await bindAll(recovered, "task-crash", document.taskVersion);
+	const task = ok(recovered.queries.getTask({ taskId: "task-crash" }));
+	assert.equal(task.status, "READY");
+});
+
+test("PRESMOKE-B6-TASK-02 a TERMINATED Task is rejected by reopenNode with zero mutation", async (context) => {
+	const { services } = await fixture(context);
+	const created = ok(services.commands.createTask(taskInput("task-terminated")));
+	const boundVersion = await bindAll(services, created.taskId, created.version);
+	const started = ok(
+		services.commands.startTask({
+			taskId: created.taskId,
+			expectedTaskVersion: boundVersion,
+			actorRef: "human:operator",
+			idempotencyKey: "terminated:start",
+		}),
+	);
+	const devNodeId = `${created.taskId}-dev`;
+	const versions = nodeVersion(services, created.taskId, devNodeId);
+	const node = ok(
+		services.commands.startNode({
+			taskId: created.taskId,
+			nodeId: devNodeId,
+			expectedTaskVersion: versions.taskVersion,
+			expectedNodeVersion: versions.nodeVersion,
+			actorRef: "worker:c-dev",
+			idempotencyKey: "terminated:start-node",
+		}),
+	);
+	const doc = ok(
+		services.documents.putTaskDocument({
+			taskId: created.taskId,
+			nodeId: devNodeId,
+			documentType: "TECHNICAL_DESIGN",
+			content: "# Design\n",
+			expectedTaskVersion: node.taskVersion,
+			actorRef: "worker:c-dev",
+			idempotencyKey: "terminated:doc",
+		}),
+	);
+	const completed = ok(
+		services.commands.completeNode({
+			taskId: created.taskId,
+			nodeId: devNodeId,
+			resultSummary: "done",
+			expectedTaskVersion: doc.taskVersion,
+			expectedNodeVersion: node.nodeVersion,
+			actorRef: "worker:c-dev",
+			idempotencyKey: "terminated:complete",
+		}),
+	);
+	const terminated = ok(
+		services.commands.terminateTask({
+			taskId: created.taskId,
+			expectedTaskVersion: completed.taskVersion,
+			reason: "stop",
+			actorRef: "human:operator",
+			idempotencyKey: "terminated:command",
+		}),
+	);
+	assert.equal(terminated.status, "TERMINATED");
+	const before = ok(services.queries.getTask({ taskId: created.taskId }));
+	const beforeDev = before.nodes.find((item) => item.nodeId === devNodeId);
+	assert.ok(beforeDev);
+	assert.equal(beforeDev.status, "SUCCEEDED");
+
+	const reopen = services.commands.reopenNode({
+		taskId: created.taskId,
+		nodeId: devNodeId,
+		reason: "resurrect attempt",
+		expectedTaskVersion: terminated.version,
+		actorRef: "controller:c-dev",
+		idempotencyKey: "terminated:reopen",
+	});
+	assert.equal(reopen.ok, false);
+	assert.equal(reopen.ok ? "" : reopen.error.code, "TASK_INVALID_STATE");
+
+	const after = ok(services.queries.getTask({ taskId: created.taskId }));
+	assert.equal(after.status, "TERMINATED");
+	assert.equal(after.version, terminated.version);
+	assert.equal(after.currentNodeId, before.currentNodeId);
+	const afterDev = after.nodes.find((item) => item.nodeId === devNodeId);
+	assert.ok(afterDev);
+	assert.equal(afterDev.status, "SUCCEEDED");
+	assert.equal(afterDev.version, beforeDev.version);
+	assert.equal(afterDev.runNo, beforeDev.runNo);
+});

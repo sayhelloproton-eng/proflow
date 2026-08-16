@@ -357,9 +357,17 @@ function nodeResult(task: Task, node: TaskNode): NodeResult {
 function readinessBlockedReason(
 	tx: TaskRepositories,
 	task: Task,
+	workspaceRoot: string,
 ): string | null {
-	if (!tx.documents.get(task.taskId, "REQUIREMENT"))
-		return "TASK_REQUIREMENT_REQUIRED";
+	const requirement = tx.documents.get(task.taskId, "REQUIREMENT");
+	if (!requirement) return "TASK_REQUIREMENT_REQUIRED";
+	const requirementAbsolute = join(workspaceRoot, requirement.filePath);
+	if (!existsSync(requirementAbsolute)) return "TASK_REQUIREMENT_REQUIRED";
+	if (
+		contentHash(readFileSync(requirementAbsolute, "utf8")) !==
+		requirement.contentHash
+	)
+		return "TASK_DOCUMENT_INDEX_MISMATCH";
 
 	const bindings = tx.roleBindings.listByTask(task.taskId);
 	if (bindings.length !== requiredTaskAgentPackageRefs.length)
@@ -415,9 +423,10 @@ function recomputeReadiness(
 	tx: TaskRepositories,
 	task: Task,
 	timestamp: string,
+	workspaceRoot: string,
 ): Task {
 	if (task.status !== "PENDING") return task;
-	if (readinessBlockedReason(tx, task) !== null) return task;
+	if (readinessBlockedReason(tx, task, workspaceRoot) !== null) return task;
 	return {
 		...task,
 		status: "READY" as const,
@@ -550,7 +559,8 @@ export function createTaskServices(options: {
 			.filter((message) => message.taskId === task.taskId),
 		readiness: {
 			ready:
-				task.status === "READY" && readinessBlockedReason(tx, task) === null,
+				task.status === "READY" &&
+				readinessBlockedReason(tx, task, workspaceRoot) === null,
 		},
 	});
 	const relativeDocumentPath = (taskId: string, type: DocumentType): string =>
@@ -685,9 +695,40 @@ export function createTaskServices(options: {
 		if (readdirSync(recoveryRootAbsolute).length === 0)
 			rmSync(recoveryRootAbsolute, { recursive: true, force: true });
 	};
+	const cleanupCreateStage = (taskId: string): void => {
+		rmSync(
+			join(
+				workspaceRoot,
+				`.proflow/recovery/task-create/${safeTaskId(taskId)}`,
+			),
+			{ recursive: true, force: true },
+		);
+	};
+	// A createTask crash window exists between the SQLite COMMIT of
+	// Task/task_documents metadata and the promotion of staged initial documents
+	// to their canonical Markdown paths. Mirroring the putTaskDocument recovery
+	// protocol, a first owner read consumes the pending task-create stage so the
+	// canonical Markdown converges with durable metadata instead of remaining
+	// missing.
+	const recoverTaskCreateStage = (taskId: string): void => {
+		if (!store.read((tx) => tx.tasks.get(taskId) !== undefined)) {
+			cleanupCreateStage(taskId);
+			return;
+		}
+		for (const type of allowedDocumentTypes) {
+			const staged = stageDocumentPath(taskId, type);
+			const stagedAbsolute = join(workspaceRoot, staged);
+			if (!existsSync(stagedAbsolute)) continue;
+			const canonical = relativeDocumentPath(taskId, type);
+			if (existsSync(join(workspaceRoot, canonical))) continue;
+			promoteDocument(staged, canonical);
+		}
+		cleanupCreateStage(taskId);
+	};
 	const recoverTaskDocuments = (taskId: string): void => {
 		for (const type of allowedDocumentTypes)
 			recoverPendingDocumentUpdates(taskId, type);
+		recoverTaskCreateStage(taskId);
 	};
 	const queryWithDocumentRecovery = <I extends { taskId: string }, O>(
 		operation: PublicOperationName,
@@ -701,16 +742,6 @@ export function createTaskServices(options: {
 		} catch (error) {
 			return failure(error);
 		}
-	};
-
-	const cleanupCreateStage = (taskId: string): void => {
-		rmSync(
-			join(
-				workspaceRoot,
-				`.proflow/recovery/task-create/${safeTaskId(taskId)}`,
-			),
-			{ recursive: true, force: true },
-		);
 	};
 
 	const commands = {
@@ -776,7 +807,7 @@ export function createTaskServices(options: {
 					(left, right) => (left.sequenceNo ?? 0) - (right.sequenceNo ?? 0),
 				);
 				for (const member of members) {
-					const readied = recomputeReadiness(tx, member, timestamp);
+					const readied = recomputeReadiness(tx, member, timestamp, workspaceRoot);
 					if (readied.status !== member.status) tx.tasks.update(readied);
 					if (firstEligibleTaskId === null && readied.status === "READY")
 						firstEligibleTaskId = readied.taskId;
@@ -1054,7 +1085,7 @@ export function createTaskServices(options: {
 						updatedAt: timestamp,
 					};
 					tx.tasks.update(updated);
-					const readied = recomputeReadiness(tx, updated, timestamp);
+					const readied = recomputeReadiness(tx, updated, timestamp, workspaceRoot);
 					if (readied.status !== updated.status) tx.tasks.update(readied);
 					return {
 						taskId: readied.taskId,
@@ -1081,7 +1112,7 @@ export function createTaskServices(options: {
 					);
 					if (task.status !== "READY")
 						throw new DomainError("TASK_INVALID_STATE", "Task is not READY.");
-					const blockedReason = readinessBlockedReason(tx, task);
+					const blockedReason = readinessBlockedReason(tx, task, workspaceRoot);
 					if (blockedReason !== null)
 						throw new DomainError(
 							"TASK_BLOCKED",
@@ -1365,7 +1396,7 @@ export function createTaskServices(options: {
 									item.status === "PENDING",
 							);
 							if (nextTask) {
-								const readied = recomputeReadiness(tx, nextTask, timestamp);
+								const readied = recomputeReadiness(tx, nextTask, timestamp, workspaceRoot);
 								if (readied.status !== nextTask.status)
 									tx.tasks.update(readied);
 							}
@@ -1506,6 +1537,11 @@ export function createTaskServices(options: {
 						input.expectedTaskVersion,
 						"TASK_VERSION_CONFLICT",
 					);
+					if (["SUCCEEDED", "TERMINATED"].includes(task.status))
+						throw new DomainError(
+							"TASK_INVALID_STATE",
+							"A terminal Task cannot reopen.",
+						);
 					if (!["SUCCEEDED", "FAILED"].includes(target.status))
 						throw new DomainError(
 							"NODE_INVALID_STATE",
@@ -1655,7 +1691,7 @@ export function createTaskServices(options: {
 					);
 				return {
 					tasks: tasks.map((item) => {
-						let blockedReason = readinessBlockedReason(tx, item);
+						let blockedReason = readinessBlockedReason(tx, item, workspaceRoot);
 						if (item.status !== "READY" && blockedReason === null)
 							blockedReason = "TASK_NOT_READY";
 						return {
@@ -2007,7 +2043,7 @@ export function createTaskServices(options: {
 						updatedByRef: validated.actorRef,
 						updatedAt: timestamp,
 					});
-					const readied = recomputeReadiness(tx, updated, timestamp);
+					const readied = recomputeReadiness(tx, updated, timestamp, workspaceRoot);
 					if (readied.status !== updated.status) tx.tasks.update(readied);
 					event(
 						tx,

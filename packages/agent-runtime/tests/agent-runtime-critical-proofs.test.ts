@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { constants } from "node:fs";
 import {
 	access,
+	chmod,
 	mkdir,
 	mkdtemp,
 	readFile,
@@ -844,4 +845,68 @@ test("B2-AGT-06 rotateCredential publishes only durable current authority", asyn
 	await writeFile(credentialPath, durableBefore, { mode: 0o600 });
 	assert.equal(await runtime.authenticateBearer(oldCredential), "g-dev");
 	runtime.close();
+});
+
+test("PRESMOKE-B6-AGT-01 register/delete cross-file failure converges or surfaces half-state in-process", async (context) => {
+	if (process.platform === "win32") return context.skip("POSIX mode proof");
+	const proflowRoot = await mkdtemp(join(tmpdir(), "proflow-agent-half-state-"));
+	context.after(() => rm(proflowRoot, { recursive: true, force: true }));
+	const runtime = await createAgentRuntime({
+		proflowRoot,
+		task: {
+			async getTask() {
+				return { taskId: "task:1", status: "ACTIVE", roleBindings: [] };
+			},
+			async hasNonTerminalRoleUsage() {
+				return false;
+			},
+		},
+	});
+	context.after(() => runtime.close());
+	await runtime.registerRole({
+		agentPackageRef: "@tomflow/proflow-agent-product",
+		registeredPackageVersion: "0.1.0",
+		roleRef: "g-product",
+		carrierUrl: "https://chatgpt.com/g/g-product",
+	});
+	const agentDir = join(proflowRoot, "agent");
+	const secretsDir = join(agentDir, "secrets");
+	const credentialPath = join(secretsDir, "role-credentials.json");
+
+	await chmod(agentDir, 0o500);
+	try {
+		await assert.rejects(
+			() =>
+				runtime.registerRole({
+					agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+					registeredPackageVersion: "0.1.0",
+					roleRef: "g-dev",
+					carrierUrl: "https://chatgpt.com/g/g-dev",
+				}),
+			/EACCES|EPERM/,
+		);
+	} finally {
+		await chmod(agentDir, 0o700);
+		await chmod(secretsDir, 0o700);
+	}
+	assert.deepEqual(runtime.doctorRoleStore(), { status: "PASS", issues: [] });
+	const durableCredentials = JSON.parse(
+		await readFile(credentialPath, "utf8"),
+	) as Record<string, string>;
+	assert.equal("g-dev" in durableCredentials, false);
+	assert.equal("g-product" in durableCredentials, true);
+
+	await chmod(agentDir, 0o500);
+	try {
+		await assert.rejects(
+			() => runtime.deleteRole("g-product"),
+			/ROLE_STORE_HALF_STATE/,
+		);
+	} finally {
+		await chmod(agentDir, 0o700);
+		await chmod(secretsDir, 0o700);
+	}
+	const doctor = runtime.doctorRoleStore();
+	assert.equal(doctor.status, "FAIL");
+	assert.ok(doctor.issues.includes("ROLE_WITHOUT_CREDENTIAL:g-product"));
 });

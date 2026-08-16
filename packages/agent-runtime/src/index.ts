@@ -373,13 +373,48 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 				now().toISOString(),
 			);
 	};
+	const readDurableRoleRefs = (): {
+		roles: Set<string>;
+		credentials: Set<string>;
+	} => {
+		const durableRoles = new Set<string>();
+		if (existsSync(registryPath)) {
+			const parsed = z
+				.array(
+					roleRegistrationSchema.safeExtend({
+						carrierType: z.literal("custom-gpt"),
+						registeredAt: z.iso.datetime(),
+					}),
+				)
+				.parse(JSON.parse(readFileSync(registryPath, "utf8")));
+			for (const role of parsed) durableRoles.add(role.roleRef);
+		}
+		const durableCredentials = new Set<string>();
+		if (existsSync(credentialPath)) {
+			const parsed = z
+				.record(identifier, identifier)
+				.parse(JSON.parse(readFileSync(credentialPath, "utf8")));
+			for (const roleRef of Object.keys(parsed))
+				durableCredentials.add(roleRef);
+		}
+		return { roles: durableRoles, credentials: durableCredentials };
+	};
 	const doctorRoleStore = () => {
 		const issues: string[] = [];
-		for (const roleRef of roles.keys())
-			if (!credentials.has(roleRef))
+		let durableRoles = new Set<string>();
+		let durableCredentials = new Set<string>();
+		try {
+			const durable = readDurableRoleRefs();
+			durableRoles = durable.roles;
+			durableCredentials = durable.credentials;
+		} catch {
+			issues.push("ROLE_STORE_UNREADABLE");
+		}
+		for (const roleRef of durableRoles)
+			if (!durableCredentials.has(roleRef))
 				issues.push(`ROLE_WITHOUT_CREDENTIAL:${roleRef}`);
-		for (const roleRef of credentials.keys())
-			if (!roles.has(roleRef))
+		for (const roleRef of durableCredentials)
+			if (!durableRoles.has(roleRef))
 				issues.push(`CREDENTIAL_WITHOUT_ROLE:${roleRef}`);
 		issues.sort();
 		return {
@@ -415,12 +450,27 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 			};
 			roles.set(role.roleRef, role);
 			credentials.set(role.roleRef, credential);
+			let credentialPersisted = false;
 			try {
 				await persistCredentials();
+				credentialPersisted = true;
 				await persistRoles();
 			} catch (error) {
 				roles.delete(role.roleRef);
 				credentials.delete(role.roleRef);
+				if (credentialPersisted) {
+					// The durable credential file may already carry an orphan
+					// entry; re-persist the rolled-back in-memory snapshot so the
+					// two durable stores converge instead of silently diverging.
+					try {
+						await persistCredentials();
+					} catch {
+						throw new AgentRuntimeError(
+							"ROLE_STORE_HALF_STATE",
+							"Durable role/credential stores diverged after a failed registration.",
+						);
+					}
+				}
 				throw error;
 			}
 			return { role, credential };
@@ -431,8 +481,23 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 				throw new AgentRuntimeError("ROLE_IN_USE");
 			roles.delete(roleRef);
 			credentials.delete(roleRef);
-			await persistCredentials();
-			await persistRoles();
+			try {
+				await persistCredentials();
+				await persistRoles();
+			} catch (error) {
+				// In-memory maps have already dropped the role; compensate both
+				// durable files so the durable stores converge with memory.
+				try {
+					await persistCredentials();
+					await persistRoles();
+				} catch {
+					throw new AgentRuntimeError(
+						"ROLE_STORE_HALF_STATE",
+						"Durable role/credential stores diverged after a failed deletion.",
+					);
+				}
+				throw error;
+			}
 		},
 		async showCredential(roleRef: string) {
 			const credential = credentials.get(roleRef);
