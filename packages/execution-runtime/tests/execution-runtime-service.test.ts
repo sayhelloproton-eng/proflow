@@ -4,6 +4,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { descriptor as executionRuntimeDescriptor } from "../deployment/descriptor.ts";
 import { promisify } from "node:util";
 
@@ -249,7 +250,7 @@ test("CP-EXE-RT-20 shipped execution-runtime descriptor and binary require the f
 	);
 	await assert.rejects(
 		exec(process.execPath, [
-			join(process.cwd(), "dist", "src", "cli.js"),
+			fileURLToPath(new URL("../dist/src/cli.js", import.meta.url)),
 			"start",
 			configPath,
 		]),
