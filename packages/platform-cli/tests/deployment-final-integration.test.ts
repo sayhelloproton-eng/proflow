@@ -1234,7 +1234,9 @@ export const behaviorAdapter = createBehaviorAdapter();
 			"adapter.ts",
 		);
 		const adapterNs = (await import(adapterUrl)) as {
-			createBehaviorAdapter: (input?: { service: typeof service }) => unknown;
+			createBehaviorAdapter: (input?: {
+				service: typeof service;
+			}) => Record<string, unknown>;
 		};
 		const bound = {
 			behaviorAdapter: adapterNs.createBehaviorAdapter({ service }),

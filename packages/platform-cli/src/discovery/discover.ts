@@ -2,7 +2,7 @@ import {
 	type ModuleDescriptor,
 	parseModuleDescriptor,
 } from "@tomflow/proflow-module-contract";
-
+import type { DeploymentAdapterBinding } from "../binding/production-bindings.ts";
 import type { ResolvedModule } from "../contracts.ts";
 import { PlatformError } from "../errors.ts";
 import type { ModuleCatalog, ModuleSource } from "../modules.ts";
@@ -20,9 +20,12 @@ export interface DiscoverOptions {
 export class AutoModuleCatalog implements ModuleCatalog {
 	private readonly workspace: WorkspaceModuleCatalog;
 	private readonly installed: InstalledModuleCatalog;
-	private readonly bindings: ReadonlyMap<string, unknown>;
+	private readonly bindings: ReadonlyMap<string, DeploymentAdapterBinding>;
 
-	constructor(root?: string, bindings?: ReadonlyMap<string, unknown>) {
+	constructor(
+		root?: string,
+		bindings?: ReadonlyMap<string, DeploymentAdapterBinding>,
+	) {
 		this.workspace = new WorkspaceModuleCatalog(root);
 		this.installed = new InstalledModuleCatalog(root);
 		this.bindings = bindings ?? new Map();

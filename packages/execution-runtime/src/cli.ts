@@ -120,6 +120,7 @@ try {
 		modelDecisionReadiness: modelDecisionClient.readiness,
 		browserExecutor: browserComposition.browserExecutor,
 		browserReadiness: () => browserComposition.bridgeStatus().online,
+		carrierSummary: () => browserComposition.bridgeStatus(),
 		log: (entry) => process.stderr.write(`${JSON.stringify(entry)}\n`),
 	});
 	const address = await service.start();

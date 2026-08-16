@@ -3,6 +3,7 @@ import type {
 	ModuleOperationResult,
 } from "@tomflow/proflow-module-contract";
 import type { ProviderProbeResult } from "../src/resource-adapter.ts";
+import { createProviderProbe } from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
 
 export type ProviderProbe = () => Promise<ProviderProbeResult>;
@@ -251,3 +252,18 @@ export function createBehaviorAdapter(input?: {
 }
 
 export const behaviorAdapter = createBehaviorAdapter();
+
+// providerCredential is a secretRef identity, not a raw token, so the production
+// probe stays unauthenticated; a credential-rejecting provider reports false.
+export function createProductionBinding(input: {
+	moduleRef: string;
+	config: Record<string, string>;
+}): { behaviorAdapter: Record<string, unknown> } | undefined {
+	const baseUrl = input.config.providerBaseUrl;
+	if (baseUrl === undefined || baseUrl === "") return undefined;
+	return {
+		behaviorAdapter: createBehaviorAdapter({
+			probeProvider: createProviderProbe({ baseUrl }),
+		}),
+	};
+}

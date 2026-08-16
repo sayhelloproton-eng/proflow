@@ -114,6 +114,40 @@ test("PRESMOKE-B3-SYSOBS-OWNER-01 all eight owner views are bounded projections 
 	);
 });
 
+test("R2-P1-15-SYSOBS-01 carrier/deployment/artifact views read their own owner, never a borrowed signal", async () => {
+	const text = await source();
+	// Carrier view comes from the Execution-owned Browser Carrier summary, not
+	// from Execution recovery observer signals.
+	const carrierBranch = text.slice(
+		text.indexOf('view === "carrier"'),
+		text.indexOf('view === "deployment"'),
+	);
+	assert.match(carrierBranch, /getCarrierSummary/);
+	assert.doesNotMatch(carrierBranch, /RECOVERY_RESUME/);
+
+	// Deployment view projects the Deployment owner's persisted summary; it must
+	// never synthesize allReady from Execution/Model/Agent/Task readiness.
+	const deploymentBranch = text.slice(
+		text.indexOf('view === "deployment"'),
+		text.indexOf('view === "artifact"'),
+	);
+	assert.match(deploymentBranch, /readDeploymentOwnerSummary/);
+	assert.doesNotMatch(deploymentBranch, /allReady/);
+	assert.doesNotMatch(deploymentBranch, /execution\.readiness\(\)/);
+	assert.doesNotMatch(deploymentBranch, /model\.readiness\(\)/);
+
+	// Artifact view projects the Execution artifact/evidence summary, not a
+	// count of UNKNOWN_REALITY observer signals.
+	const artifactStart = text.indexOf('view === "artifact"');
+	const artifactEnd = text.indexOf(
+		"owner aggregate projection unavailable",
+		artifactStart,
+	);
+	const artifactBranch = text.slice(artifactStart, artifactEnd);
+	assert.match(artifactBranch, /getArtifactSummary/);
+	assert.doesNotMatch(artifactBranch, /UNKNOWN_REALITY/);
+});
+
 test("PRESMOKE-B3-OBS-TRANSPORT-01 host exposes authenticated Observer owner/model transport without making it a scheduler", async () => {
 	const text = await source();
 	assert.match(text, /\/application\/observer/);

@@ -677,6 +677,41 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 		return getArtifactStorage(artifactRef).record;
 	}
 
+	const getArtifactSummary = (): {
+		totalArtifacts: number;
+		byKind: Record<string, number>;
+		latestCreatedAt: string | null;
+		pendingObserverSignals: number;
+	} => {
+		const total = database
+			.prepare("SELECT COUNT(*) AS count FROM artifact_registry")
+			.get() as Row | undefined;
+		const kinds = database
+			.prepare(
+				"SELECT kind, COUNT(*) AS count FROM artifact_registry GROUP BY kind ORDER BY kind",
+			)
+			.all() as Row[];
+		const latest = database
+			.prepare("SELECT MAX(created_at) AS latest FROM artifact_registry")
+			.get() as Row | undefined;
+		const pending = database
+			.prepare(
+				"SELECT COUNT(*) AS count FROM execution_observer_signals WHERE acknowledged_at IS NULL",
+			)
+			.get() as Row | undefined;
+		const byKind: Record<string, number> = {};
+		for (const row of kinds) byKind[String(row.kind)] = Number(row.count);
+		return {
+			totalArtifacts: Number(total?.count ?? 0),
+			byKind,
+			latestCreatedAt:
+				latest?.latest === undefined || latest.latest === null
+					? null
+					: String(latest.latest),
+			pendingObserverSignals: Number(pending?.count ?? 0),
+		};
+	};
+
 	function getArtifactRecord(input: {
 		artifactRef: string;
 		callerRef: string;
@@ -1442,6 +1477,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 		listExecutionApprovals: approvalOwner.listApprovals,
 		registerArtifact,
 		getArtifactRecord,
+		getArtifactSummary,
 		recoverIncomplete,
 		databasePath: options.databasePath,
 		logPath,

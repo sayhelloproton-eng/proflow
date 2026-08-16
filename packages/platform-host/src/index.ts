@@ -298,7 +298,13 @@ function createOwnerHttpClient(
 				path = "/executions/lookup";
 			else if (operationId === "listExecutionObserverSignals")
 				path = "/observer-signals/list";
-			else if (operationId === "acknowledgeExecutionObserverSignal")
+			else if (operationId === "getCarrierSummary") {
+				path = "/carrier/summary";
+				method = "GET";
+			} else if (operationId === "getArtifactSummary") {
+				path = "/artifacts/summary";
+				method = "GET";
+			} else if (operationId === "acknowledgeExecutionObserverSignal")
 				path = "/observer-signals/ack";
 			else if (operationId === "cancelExecution") path = "/executions/cancel";
 			else if (operationId === "readExecutionOutput") {
@@ -366,6 +372,42 @@ function unwrap<Value>(result: {
 	if (!result.ok || result.data === undefined)
 		throw new Error(`OWNER_CONTRACT_FAILED:${JSON.stringify(result.error)}`);
 	return result.data;
+}
+
+// Bounded read of the Deployment owner's persisted current summary. The Host
+// never derives Deployment health from Task/Agent/Execution/Model readiness; it
+// only projects what the Deployment domain actually materialized.
+async function readDeploymentOwnerSummary(stateRoot: string): Promise<
+	| {
+			appliedPlans: number;
+			selectedModules: number;
+			pendingActions: number;
+	  }
+	| undefined
+> {
+	try {
+		const raw = await readFile(
+			join(stateRoot, "deployment", "state.json"),
+			"utf8",
+		);
+		const value: unknown = JSON.parse(raw);
+		if (typeof value !== "object" || value === null || Array.isArray(value))
+			return undefined;
+		const record = value as Record<string, unknown>;
+		return {
+			appliedPlans: Array.isArray(record.lastAppliedPlans)
+				? record.lastAppliedPlans.length
+				: 0,
+			selectedModules: Array.isArray(record.selectedModules)
+				? record.selectedModules.length
+				: 0,
+			pendingActions: Array.isArray(record.pendingActions)
+				? record.pendingActions.length
+				: 0,
+		};
+	} catch {
+		return undefined;
+	}
 }
 
 type Graph = Awaited<ReturnType<typeof constructGraph>>;
@@ -662,58 +704,48 @@ async function constructGraph(
 			};
 		}
 		if (view === "carrier") {
-			const signalResult = object(
-				await execution.invoke("listExecutionObserverSignals", { limit: 50 }),
-				"carrier observer signals",
+			const carrier = object(
+				await execution.invoke("getCarrierSummary", {}),
+				"carrier summary",
 			);
-			const signals = Array.isArray(signalResult.signals)
-				? signalResult.signals
-				: [];
-			const recovery = signals.filter(
-				(signal) =>
-					typeof signal === "object" &&
-					signal !== null &&
-					Reflect.get(signal, "kind") === "RECOVERY_RESUME",
-			).length;
+			const online = carrier.online === true;
 			return {
-				summary: `pendingCarrierRecoverySignals=${recovery}`,
-				health: recovery === 0 ? ("HEALTHY" as const) : ("DEGRADED" as const),
+				summary: `bridgeOnline=${online}; queuedCommands=${carrier.queuedCommands ?? 0}; pendingCommands=${carrier.pendingCommands ?? 0}`,
+				health: online ? ("HEALTHY" as const) : ("DEGRADED" as const),
 			};
 		}
 		if (view === "deployment") {
-			const diagnostics = taskStore.diagnostics();
-			const agentDoctor = agent.doctorRoleStore();
-			const [executionStatus, modelStatus] = await Promise.all([
-				execution.readiness(),
-				model.readiness(),
-			]);
-			const allReady =
-				executionStatus.status === "READY" &&
-				modelStatus.status === "READY" &&
-				agentDoctor.status === "PASS" &&
-				diagnostics.integrity === "ok";
+			const deployment = await readDeploymentOwnerSummary(config.stateRoot);
+			if (deployment === undefined) {
+				return {
+					summary: "deployment owner summary unavailable",
+					health: "UNKNOWN" as const,
+					projectionStatus: "UNAVAILABLE" as const,
+					findings: [
+						"Deployment current state is not materialized; no substitute owner readiness is inferred",
+					],
+				};
+			}
 			return {
-				summary: `execution=${executionStatus.status}; model=${modelStatus.status}; agent=${agentDoctor.status}; taskIntegrity=${diagnostics.integrity}`,
-				health: allReady ? ("HEALTHY" as const) : ("DEGRADED" as const),
+				summary: `appliedPlans=${deployment.appliedPlans}; selectedModules=${deployment.selectedModules}; pendingActions=${deployment.pendingActions}`,
+				health:
+					deployment.pendingActions === 0
+						? ("HEALTHY" as const)
+						: ("DEGRADED" as const),
 			};
 		}
 		if (view === "artifact") {
-			const signalResult = object(
-				await execution.invoke("listExecutionObserverSignals", { limit: 50 }),
-				"artifact observer signals",
+			const artifacts = object(
+				await execution.invoke("getArtifactSummary", {}),
+				"artifact summary",
 			);
-			const signals = Array.isArray(signalResult.signals)
-				? signalResult.signals
-				: [];
-			const unknown = signals.filter(
-				(signal) =>
-					typeof signal === "object" &&
-					signal !== null &&
-					Reflect.get(signal, "kind") === "UNKNOWN_REALITY",
-			).length;
+			const byKind =
+				typeof artifacts.byKind === "object" && artifacts.byKind !== null
+					? JSON.stringify(artifacts.byKind)
+					: "none";
 			return {
-				summary: `pendingUnknownRealitySignals=${unknown}`,
-				health: unknown === 0 ? ("HEALTHY" as const) : ("DEGRADED" as const),
+				summary: `totalArtifacts=${artifacts.totalArtifacts ?? 0}; byKind=${byKind}; latest=${artifacts.latestCreatedAt ?? "none"}`,
+				health: "HEALTHY" as const,
 			};
 		}
 		return {

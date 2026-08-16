@@ -19,6 +19,43 @@ const executor: ExecutionExecutorPort = {
 	readArtifact: async () => ({ chunk: "", nextOffset: 0, eof: true, bytes: 0 }),
 };
 
+test("R2-P1-15-ART-01 getArtifactSummary reflects real Execution artifact registry state", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-artifact-summary-"));
+	const databasePath = join(root, "execution.sqlite");
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: executor,
+	});
+	assert.deepEqual(runtime.getArtifactSummary(), {
+		totalArtifacts: 0,
+		byKind: {},
+		latestCreatedAt: null,
+		pendingObserverSignals: 0,
+	});
+	runtime.registerArtifact({
+		path: join(root, "a.txt"),
+		record: {
+			contract: "execution.artifact",
+			contractVersion: "1.0.0",
+			artifactRef: "artifact:test:summary",
+			kind: "external-file",
+			ownerCallerRef: "role:controller",
+			taskId: "task:1",
+			nodeId: "node:1",
+			hash: "sha256:test",
+			mime: "text/plain",
+			bytes: 1,
+			metadata: {},
+			createdAt: "2026-08-16T00:00:00.000Z",
+		},
+	});
+	const summary = runtime.getArtifactSummary();
+	assert.equal(summary.totalArtifacts, 1);
+	assert.equal(summary.byKind["external-file"], 1);
+	assert.equal(summary.latestCreatedAt, "2026-08-16T00:00:00.000Z");
+	runtime.close();
+});
+
 test("CP-EXE-RT-12 immutable Artifact registry is Execution-owned durable truth with caller/task scope metadata", async () => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-artifact-registry-"));
 	const databasePath = join(root, "execution.sqlite");

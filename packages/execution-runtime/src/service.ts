@@ -174,6 +174,12 @@ export async function createExecutionRuntimeProcess(input: {
 	config: ExecutionRuntimeProcessConfig;
 	browserExecutor?: ExecutionRuntimeOptions["browserExecutor"];
 	browserReadiness?: () => boolean;
+	carrierSummary?: () => {
+		online: boolean;
+		extensionInstanceId: string | null;
+		queuedCommands: number;
+		pendingCommands: number;
+	};
 	identityReadiness?: () => boolean;
 	identity?: ExecutionRuntimeOptions["identity"];
 	policy?: ExecutionRuntimeOptions["policy"];
@@ -310,6 +316,22 @@ export async function createExecutionRuntimeProcess(input: {
 					if (!accepting || !runtime)
 						return respond(response, 503, { error: "SERVICE_DRAINING" });
 					try {
+						if (request.method === "GET" && url.pathname === "/carrier/summary")
+							return respond(
+								response,
+								200,
+								input.carrierSummary?.() ?? {
+									online: false,
+									extensionInstanceId: null,
+									queuedCommands: 0,
+									pendingCommands: 0,
+								},
+							);
+						if (
+							request.method === "GET" &&
+							url.pathname === "/artifacts/summary"
+						)
+							return respond(response, 200, runtime.getArtifactSummary());
 						const chunks: Buffer[] = [];
 						let byteLength = 0;
 						for await (const chunk of request) {

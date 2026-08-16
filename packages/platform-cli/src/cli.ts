@@ -8,6 +8,10 @@ import {
 } from "@tomflow/proflow-module-contract";
 import { applyPlan } from "./apply/apply.ts";
 import { rebuildCurrentAssumptions } from "./apply/current.ts";
+import {
+	buildProductionBindings,
+	importRawAdapter,
+} from "./binding/production-bindings.ts";
 import type { ResolvedModule } from "./contracts.ts";
 import { AutoModuleCatalog, discoverModules } from "./discovery/discover.ts";
 import { doctorModules } from "./doctor/doctor.ts";
@@ -21,6 +25,7 @@ import {
 import { buildManifest } from "./manifest/manifest.ts";
 import type { ModuleCatalog, ModuleSource } from "./modules.ts";
 import { ensureLayout, workspacePaths } from "./paths.ts";
+import { loadConfig } from "./persistence/config.ts";
 import { loadPlan, savePlan } from "./persistence/plans.ts";
 import type { PlanInput } from "./planner/plan.ts";
 import { planDeployment } from "./planner/plan.ts";
@@ -215,10 +220,41 @@ interface CliContext {
 
 async function buildContext(workspace?: string): Promise<CliContext> {
 	const root = workspace ?? process.cwd();
-	const catalog = new AutoModuleCatalog(root);
 	const paths = workspacePaths(root);
 	await ensureLayout(paths);
+	const catalog = await buildCatalogWithProductionBindings(root, paths);
 	return { catalog, paths };
+}
+
+/**
+ * The shipped CLI production composition root. Instead of constructing an empty
+ * `AutoModuleCatalog` (whose binding seam would otherwise be used only by tests),
+ * it discovers the governed modules, loads their materialized config, runs the
+ * production binding factory against each module's own deployment adapter, and
+ * passes the resulting real bindings into the catalog. Modules without a
+ * production factory stay unbound and fail closed when operated on.
+ */
+async function buildCatalogWithProductionBindings(
+	root: string,
+	paths: ReturnType<typeof workspacePaths>,
+): Promise<AutoModuleCatalog> {
+	const modules = await discoverModules({ workspaceRoot: root });
+	const configByModuleRef = new Map<string, Record<string, string>>();
+	for (const module of modules) {
+		const config = await loadConfig(paths, module.moduleRef);
+		if (config === undefined) continue;
+		configByModuleRef.set(module.moduleRef, {
+			...config.publicValues,
+			...config.secretValues,
+		});
+	}
+	const bindings = await buildProductionBindings({
+		modules,
+		configByModuleRef,
+		importAdapter: (packageName, source) =>
+			importRawAdapter(packageName, source),
+	});
+	return new AutoModuleCatalog(root, bindings);
 }
 
 async function handlePreflight(

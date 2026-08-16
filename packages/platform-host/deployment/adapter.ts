@@ -70,3 +70,57 @@ export function createBehaviorAdapter(service?: PlatformHostService) {
 }
 
 export const behaviorAdapter = createBehaviorAdapter();
+
+const REQUIRED_CONFIG = [
+	"stateRoot",
+	"workspaceRoot",
+	"executionBaseUrl",
+	"modelBaseUrl",
+] as const;
+
+// Binds the real Host process only when the materialized config is complete;
+// otherwise stays unbound so the CLI's catalog falls back to the fail-closed
+// default. The heavy src import is deferred until a real binding is requested.
+export async function createProductionBinding(input: {
+	moduleRef: string;
+	config: Record<string, string>;
+}): Promise<{ behaviorAdapter: Record<string, unknown> } | undefined> {
+	const config = input.config;
+	if (!REQUIRED_CONFIG.every((key) => config[key] !== undefined)) {
+		return undefined;
+	}
+	const { createPlatformHost, parsePlatformHostConfig } = await import(
+		"../src/index.ts"
+	);
+	const hostConfig = parsePlatformHostConfig({
+		stateRoot: config.stateRoot,
+		workspaceRoot: config.workspaceRoot,
+		host: config.host ?? "127.0.0.1",
+		port: config.port === undefined ? 0 : Number(config.port),
+		executionBaseUrl: config.executionBaseUrl,
+		modelBaseUrl: config.modelBaseUrl,
+		...(config.gatewayTransportCredentialFile
+			? {
+					gatewayTransportCredentialFile: config.gatewayTransportCredentialFile,
+				}
+			: {}),
+		...(config.executionTransportCredentialFile
+			? {
+					executionTransportCredentialFile:
+						config.executionTransportCredentialFile,
+				}
+			: {}),
+		...(config.modelTransportCredentialFile
+			? { modelTransportCredentialFile: config.modelTransportCredentialFile }
+			: {}),
+		roles: [],
+	});
+	const host = createPlatformHost({ config: hostConfig });
+	const service: PlatformHostService = {
+		start: () => host.start(),
+		stop: () => host.stop(),
+		restart: () => host.restart(),
+		status: async () => ({ readiness: (await host.status()).readiness }),
+	};
+	return { behaviorAdapter: createBehaviorAdapter(service) };
+}
