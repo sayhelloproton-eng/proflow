@@ -609,3 +609,92 @@ test("B2-GW-01 putTaskDocument openaiFileIdRefs normalizes to owner-neutral File
 		await gateway.stop();
 	}
 });
+
+test("PRESMOKE-B6-GW-01 declared fileArtifacts serialize through the real Action response path (inline + relay)", async () => {
+	const gateway = await createAgentGateway({
+		relayBaseUrl: "https://gateway.example/relay/",
+		owners: {
+			async authenticateBearer(credential) {
+				if (credential !== fixtureCredential)
+					throw new Error("AUTHENTICATION_FAILED");
+				return "g-authenticated";
+			},
+			async route(operationId) {
+				if (operationId !== "getTaskDocument") return { plain: true };
+				return {
+					fileArtifacts: [
+						{
+							artifactRef: "artifact:doc-small",
+							name: "requirement.md",
+							mimeType: "text/markdown",
+							content: "# Requirement\n",
+						},
+						{
+							artifactRef: "artifact:doc-large",
+							name: "design.md",
+							mimeType: "text/markdown",
+							content: "x".repeat(80_000),
+						},
+					],
+				};
+			},
+			async readiness() {
+				return {
+					credentialStore: true,
+					agent: true,
+					task: true,
+					execution: true,
+					relay: true,
+				};
+			},
+		},
+	});
+	const address = await gateway.start();
+	try {
+		const baseUrl = `http://${address.host}:${address.port}`;
+		const small = await fetch(`${baseUrl}/actions/getTaskDocument`, {
+			method: "POST",
+			headers: {
+				"content-type": "application/json",
+				authorization: `Bearer ${fixtureCredential}`,
+			},
+			body: JSON.stringify({
+				operationId: "getTaskDocument",
+				body: { taskId: "task:1", documentType: "REQUIREMENT" },
+			}),
+		});
+		assert.equal(small.status, 200);
+		const fileResponse = (await small.json()) as {
+			openaiFileResponse: Array<Record<string, string>>;
+		};
+		assert.equal(fileResponse.openaiFileResponse.length, 2);
+		const inline = fileResponse.openaiFileResponse.find(
+			(item) => item.name === "requirement.md",
+		);
+		assert.ok(inline);
+		assert.equal(inline.kind, "inline");
+		assert.equal(
+			Buffer.from(inline.content ?? "", "base64").toString("utf8"),
+			"# Requirement\n",
+		);
+		const relay = fileResponse.openaiFileResponse.find(
+			(item) => item.name === "design.md",
+		);
+		assert.ok(relay);
+		assert.equal(relay.kind, "url");
+		assert.match(relay.download_link ?? "", /^https:\/\/gateway\.example\/relay\//);
+
+		const plain = await fetch(`${baseUrl}/actions/getTask`, {
+			method: "POST",
+			headers: {
+				"content-type": "application/json",
+				authorization: `Bearer ${fixtureCredential}`,
+			},
+			body: JSON.stringify({ operationId: "getTask", body: { taskId: "task:1" } }),
+		});
+		assert.equal(plain.status, 200);
+		assert.deepEqual(await plain.json(), { plain: true });
+	} finally {
+		await gateway.stop();
+	}
+});

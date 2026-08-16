@@ -680,6 +680,14 @@ const EXTERNAL_FILE_MAX_COUNT = 10;
 const EXTERNAL_FILE_MAX_BYTES = 10_000_000;
 const EXTERNAL_FILE_AGGREGATE_MAX_BYTES = 50_000_000;
 const EXTERNAL_FILE_FETCH_TIMEOUT_MS = 15_000;
+const EXTERNAL_FILE_INLINE_MAX_BYTES = 256_000;
+
+type DnsResolver = (
+	hostname: string,
+) => Promise<Array<{ address: string; family: number }>>;
+
+const defaultDnsResolver: DnsResolver = (hostname) =>
+	lookup(hostname, { all: true, verbatim: true });
 
 function safeExternalFilename(name: string): boolean {
 	return (
@@ -727,7 +735,10 @@ function publicIpv6(address: string): boolean {
 	return true;
 }
 
-async function assertSafeExternalUrl(raw: string): Promise<URL> {
+async function assertSafeExternalUrl(
+	raw: string,
+	resolveDns: DnsResolver = defaultDnsResolver,
+): Promise<URL> {
 	let url: URL;
 	try {
 		url = new URL(raw);
@@ -741,7 +752,7 @@ async function assertSafeExternalUrl(raw: string): Promise<URL> {
 		throw new ExternalFileMaterializationError("EXTERNAL_FILE_INPUT_INVALID");
 	let addresses: Array<{ address: string; family: number }>;
 	try {
-		addresses = await lookup(hostname, { all: true, verbatim: true });
+		addresses = await resolveDns(hostname);
 	} catch {
 		throw new ExternalFileMaterializationError("EXTERNAL_FILE_FETCH_FAILED");
 	}
@@ -835,12 +846,18 @@ export async function materializeExternalFiles(options: {
 	artifactRoot: string;
 	files: readonly ExternalFileMaterializationInput[];
 	signal?: AbortSignal;
+	fetchImpl?: typeof fetch;
+	resolveDns?: DnsResolver;
+	fetchTimeoutMs?: number;
 }): Promise<ExternalFileMaterializationResult[]> {
 	if (
 		options.files.length === 0 ||
 		options.files.length > EXTERNAL_FILE_MAX_COUNT
 	)
 		throw new ExternalFileMaterializationError("EXTERNAL_FILE_COUNT_EXCEEDED");
+	const fetchImpl = options.fetchImpl ?? fetch;
+	const resolveDns = options.resolveDns ?? defaultDnsResolver;
+	const fetchTimeoutMs = options.fetchTimeoutMs ?? EXTERNAL_FILE_FETCH_TIMEOUT_MS;
 	const artifactRoot = resolve(options.artifactRoot);
 	await mkdir(artifactRoot, { recursive: true, mode: 0o700 });
 	let aggregate = 0;
@@ -853,18 +870,15 @@ export async function materializeExternalFiles(options: {
 			!file.sourceUrl
 		)
 			throw new ExternalFileMaterializationError("EXTERNAL_FILE_INPUT_INVALID");
-		let currentUrl = await assertSafeExternalUrl(file.sourceUrl);
+		let currentUrl = await assertSafeExternalUrl(file.sourceUrl, resolveDns);
 		const controller = new AbortController();
-		const timeout = setTimeout(
-			() => controller.abort(),
-			EXTERNAL_FILE_FETCH_TIMEOUT_MS,
-		);
+		const timeout = setTimeout(() => controller.abort(), fetchTimeoutMs);
 		const forwardAbort = () => controller.abort();
 		options.signal?.addEventListener("abort", forwardAbort, { once: true });
 		let response: Response | undefined;
 		try {
 			for (let hop = 0; hop <= 5; hop += 1) {
-				response = await fetch(currentUrl, {
+				response = await fetchImpl(currentUrl, {
 					redirect: "manual",
 					signal: controller.signal,
 				});
@@ -877,6 +891,7 @@ export async function materializeExternalFiles(options: {
 					);
 				currentUrl = await assertSafeExternalUrl(
 					new URL(location, currentUrl).href,
+					resolveDns,
 				);
 			}
 			if (!response || response.status < 200 || response.status >= 300)
@@ -948,7 +963,10 @@ export async function materializeExternalFiles(options: {
 			}
 			aggregate += bytes;
 			let content: string | undefined;
-			if (detectedMimeType === "text/plain") {
+			if (
+				detectedMimeType === "text/plain" &&
+				bytes <= EXTERNAL_FILE_INLINE_MAX_BYTES
+			) {
 				try {
 					content = new TextDecoder("utf-8", { fatal: true }).decode(
 						await readFile(stagingPath),

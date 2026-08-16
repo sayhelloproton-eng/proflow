@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdtemp } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -227,4 +228,212 @@ test("B2-GW-01 materializeExternalFiles fails closed on unsafe URL, filename, an
 			}),
 		rejectsWithCode("EXTERNAL_FILE_INPUT_INVALID"),
 	);
+});
+
+type LocalHandler = (
+	request: import("node:http").IncomingMessage,
+	response: import("node:http").ServerResponse,
+) => void;
+
+async function listen(handler: LocalHandler) {
+	const server = createServer(handler);
+	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+	const address = server.address();
+	if (!address || typeof address === "string") throw new Error("no port");
+	return {
+		baseUrl: `http://127.0.0.1:${address.port}`,
+		close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+	};
+}
+
+const publicDns = async (): Promise<Array<{ address: string; family: number }>> => [
+	{ address: "8.8.8.8", family: 4 },
+];
+
+function localFetch(baseUrl: string): typeof fetch {
+	return async (input, init) => {
+		const url = input instanceof URL ? input : new URL(String(input));
+		return fetch(new URL(url.pathname + url.search, baseUrl), init);
+	};
+}
+
+test("PRESMOKE-B6-FILE-01 remote materialization streams, hashes, detects MIME and inlines only small text", async () => {
+	const artifactRoot = await mkdtemp(join(tmpdir(), "proflow-file-bridge-ok-"));
+	const { baseUrl, close } = await listen((request, response) => {
+		response.setHeader("content-type", "text/plain");
+		response.end("hello external world");
+	});
+	try {
+		const [result] = await materializeExternalFiles({
+			artifactRoot,
+			fetchImpl: localFetch(baseUrl),
+			resolveDns: publicDns,
+			files: [
+				input({ sourceUrl: "https://files.example/ok.txt" }),
+			],
+		});
+		assert.ok(result);
+		assert.equal(result.detectedMimeType, "text/plain");
+		assert.equal(result.bytes, Buffer.byteLength("hello external world"));
+		assert.equal(result.content, "hello external world");
+		assert.match(result.hash, /^sha256:/);
+		assert.match(result.artifactRef, /^artifact:/);
+	} finally {
+		await close();
+	}
+});
+
+test("PRESMOKE-B6-FILE-02 large text is not retained in memory (inline budget)", async () => {
+	const artifactRoot = await mkdtemp(join(tmpdir(), "proflow-file-bridge-large-"));
+	const large = "x".repeat(300_000);
+	const { baseUrl, close } = await listen((request, response) => {
+		response.setHeader("content-type", "text/plain");
+		response.end(large);
+	});
+	try {
+		const [result] = await materializeExternalFiles({
+			artifactRoot,
+			fetchImpl: localFetch(baseUrl),
+			resolveDns: publicDns,
+			files: [input({ sourceUrl: "https://files.example/large.txt" })],
+		});
+		assert.ok(result);
+		assert.equal(result.bytes, 300_000);
+		assert.equal("content" in result, false);
+	} finally {
+		await close();
+	}
+});
+
+test("PRESMOKE-B6-FILE-03 redirect hop follows, unsafe hop rejects, hop limit fails", async () => {
+	const artifactRoot = await mkdtemp(join(tmpdir(), "proflow-file-bridge-redir-"));
+	const redirecting = await listen((request, response) => {
+		if (request.url === "/hop") {
+			response.statusCode = 302;
+			response.setHeader("location", "https://files.example/final.txt");
+			response.end();
+			return;
+		}
+		if (request.url === "/to-private") {
+			response.statusCode = 302;
+			response.setHeader("location", "https://private.example/final.txt");
+			response.end();
+			return;
+		}
+		if (request.url === "/loop") {
+			response.statusCode = 302;
+			response.setHeader("location", "https://files.example/loop");
+			response.end();
+			return;
+		}
+		response.setHeader("content-type", "text/plain");
+		response.end("redirected");
+	});
+	const dns = async (hostname: string) =>
+		hostname === "private.example"
+			? [{ address: "192.168.1.10", family: 4 }]
+			: [{ address: "8.8.8.8", family: 4 }];
+	try {
+		const [followed] = await materializeExternalFiles({
+			artifactRoot,
+			fetchImpl: localFetch(redirecting.baseUrl),
+			resolveDns: dns,
+			files: [input({ sourceUrl: "https://files.example/hop" })],
+		});
+		assert.ok(followed);
+		assert.equal(followed.content, "redirected");
+
+		await assert.rejects(
+			materializeExternalFiles({
+				artifactRoot,
+				fetchImpl: localFetch(redirecting.baseUrl),
+				resolveDns: dns,
+				files: [input({ sourceUrl: "https://files.example/to-private" })],
+			}),
+			rejectsWithCode("EXTERNAL_FILE_INPUT_INVALID"),
+		);
+
+		await assert.rejects(
+			materializeExternalFiles({
+				artifactRoot,
+				fetchImpl: localFetch(redirecting.baseUrl),
+				resolveDns: dns,
+				files: [input({ sourceUrl: "https://files.example/loop" })],
+			}),
+			rejectsWithCode("EXTERNAL_FILE_FETCH_FAILED"),
+		);
+	} finally {
+		await redirecting.close();
+	}
+});
+
+test("PRESMOKE-B6-FILE-04 fetch timeout and HTTP failure classify distinctly", async () => {
+	const artifactRoot = await mkdtemp(join(tmpdir(), "proflow-file-bridge-fail-"));
+	const hanging = await listen(() => {
+		/* never respond */
+	});
+	const failing = await listen((_request, response) => {
+		response.statusCode = 503;
+		response.end();
+	});
+	try {
+		await assert.rejects(
+			materializeExternalFiles({
+				artifactRoot,
+				fetchImpl: localFetch(hanging.baseUrl),
+				resolveDns: publicDns,
+				fetchTimeoutMs: 150,
+				files: [input({ sourceUrl: "https://files.example/slow.txt" })],
+			}),
+			rejectsWithCode("EXTERNAL_FILE_FETCH_TIMEOUT"),
+		);
+		await assert.rejects(
+			materializeExternalFiles({
+				artifactRoot,
+				fetchImpl: localFetch(failing.baseUrl),
+				resolveDns: publicDns,
+				files: [input({ sourceUrl: "https://files.example/fail.txt" })],
+			}),
+			rejectsWithCode("EXTERNAL_FILE_FETCH_FAILED"),
+		);
+	} finally {
+		await hanging.close();
+		await failing.close();
+	}
+});
+
+test("PRESMOKE-B6-FILE-05 declared size overflow and MIME mismatch fail closed", async () => {
+	const artifactRoot = await mkdtemp(join(tmpdir(), "proflow-file-bridge-meta-"));
+	const oversized = await listen((_request, response) => {
+		response.setHeader("content-type", "text/plain");
+		response.setHeader("content-length", String(10_000_001));
+		response.end("x".repeat(16));
+	});
+	const mismatched = await listen((_request, response) => {
+		response.setHeader("content-type", "application/pdf");
+		response.end("%PDF-1.4 fake");
+	});
+	try {
+		await assert.rejects(
+			materializeExternalFiles({
+				artifactRoot,
+				fetchImpl: localFetch(oversized.baseUrl),
+				resolveDns: publicDns,
+				files: [input({ sourceUrl: "https://files.example/big.txt" })],
+			}),
+			rejectsWithCode("EXTERNAL_FILE_TOO_LARGE"),
+		);
+		await assert.rejects(
+			materializeExternalFiles({
+				artifactRoot,
+				fetchImpl: localFetch(mismatched.baseUrl),
+				resolveDns: publicDns,
+				files: [input({ sourceUrl: "https://files.example/mime.pdf" })],
+			}),
+			rejectsWithCode("EXTERNAL_FILE_MIME_MISMATCH"),
+		);
+	} finally {
+		await oversized.close();
+		await mismatched.close();
+	}
 });

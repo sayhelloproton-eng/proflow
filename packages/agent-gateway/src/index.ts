@@ -70,6 +70,18 @@ type RelayArtifact = {
 	bytes: Buffer;
 };
 type RelayEntry = RelayArtifact & { expiresAt: number };
+const ownerFileArtifactsSchema = z.object({
+	fileArtifacts: z
+		.array(
+			z.object({
+				artifactRef: z.string().min(1),
+				name: z.string().min(1),
+				mimeType: z.string().min(1),
+				content: z.string().min(1),
+			}),
+		)
+		.max(MAX_INPUT_FILES),
+});
 function safeFilename(name: string): boolean {
 	return (
 		name.length > 0 &&
@@ -220,6 +232,21 @@ export async function createAgentGateway(options: GatewayOptions) {
 		if (JSON.stringify(candidate).length >= MAX_ACTION_CHARS)
 			throw new AgentGatewayError("OPENAI_ACTION_RESPONSE_BUDGET_EXCEEDED");
 		return candidate;
+	};
+	// The owner declares an explicit File Bridge response by returning a
+	// `fileArtifacts` array. Only that declared shape is serialized into the
+	// GPT-facing `openaiFileResponse`; every other owner output stays plain JSON.
+	const ownerFileArtifacts = (output: unknown): RelayArtifact[] | undefined => {
+		if (typeof output !== "object" || output === null || Array.isArray(output))
+			return undefined;
+		if (!("fileArtifacts" in output)) return undefined;
+		const parsed = ownerFileArtifactsSchema.parse(output);
+		return parsed.fileArtifacts.map((item) => ({
+			artifactRef: item.artifactRef,
+			name: item.name,
+			mimeType: item.mimeType,
+			bytes: Buffer.from(item.content, "utf8"),
+		}));
 	};
 	const readiness = async () => {
 		const checks = await options.owners.readiness();
@@ -411,6 +438,11 @@ export async function createAgentGateway(options: GatewayOptions) {
 					),
 				),
 			]);
+			const fileArtifacts = ownerFileArtifacts(output);
+			if (fileArtifacts !== undefined) {
+				response.end(JSON.stringify(serializeFileResponse(fileArtifacts)));
+				return;
+			}
 			const serialized = JSON.stringify(output);
 			if (serialized.length >= MAX_ACTION_CHARS) {
 				response.statusCode = 500;
