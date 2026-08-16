@@ -6,7 +6,9 @@ export type {
 	RegistryRejectedPackage,
 } from "./npm-registry.ts";
 export {
+	discoverRegistryInstallClosure,
 	discoverRegistryModules,
+	loadRegistryModuleDescriptor,
 	PRO_FLOW_PACKAGE_PREFIX,
 	PRO_FLOW_SCOPE,
 	resolveScopeRegistry,

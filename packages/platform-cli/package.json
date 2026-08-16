@@ -16,6 +16,7 @@
   },
   "files": [
     "dist",
+    "proflow.module.json",
     "conformance.json",
     "README.md"
   ],
@@ -39,6 +40,10 @@
   "proflow": {
     "module": true,
     "installClass": "core",
-    "descriptor": "./dist/deployment/descriptor.js"
+    "installRequires": [
+      "@tomflow/proflow-module-contract"
+    ],
+    "descriptor": "./dist/deployment/descriptor.js",
+    "manifest": "./proflow.module.json"
   }
 }

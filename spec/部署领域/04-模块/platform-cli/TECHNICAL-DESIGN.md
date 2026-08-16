@@ -240,3 +240,14 @@ Manifest 不是人工维护真源。
 ## 当前正式约束：plan/apply 与状态真实性
 
 Platform CLI 是唯一全局 Deployment Planner/Executor；Module 只声明 requirements/config/provides/requires/lifecycle/verification/effects。`status/verify/doctor` 必须读取当前 reality；doctor 默认只诊断，修改环境必须生成 repair plan。CLI 按需运行，不成为第二 Runtime/长期 workflow engine。
+## Real-1 runtime diagnosis truthfulness
+
+`platform doctor` MUST aggregate the module's live `status`, `verify`, and `doctor` results when those lifecycle primitives are declared. The effective diagnosis uses the most severe current result (`FAILED > BLOCKED > ACTION_REQUIRED > SUCCEEDED`). A package-owned `doctor()` result MUST NOT hide a failure already observed by `status` or `verify`; doctor remains read-only and only recommends the next action.
+## Managed service process identity
+
+Formal `service` modules use `createServiceProcessBinding` and are supervised by Platform CLI across CLI invocations. Missing service binding/config MUST remain unbound and MUST NOT fall back to legacy in-memory lifecycle composition. Runtime state is stored under Workspace `.proflow/runtime/services/<moduleRef>/`; before status/stop treats a PID as owned, Platform CLI validates that the live command line still references the recorded package-owned binary and generated runtime config, preventing stale PID reuse from targeting an unrelated process.
+
+
+### Service process version reality
+
+Platform Supervisor 的 durable process record 必须同时绑定 `moduleRef + packageName + moduleVersion + PID + binPath + configPath`。`status` 不能只判断 PID 存活：若当前 Workspace 已安装版本与 record 中运行版本不同，必须返回 `ACTION_REQUIRED/restart-service`，禁止把旧版本进程误报为新版本 RUNNING。`stop` 仍可停止同一 package/moduleRef 的旧版本进程，以便 upgrade plan 执行 restart。Supervisor 自己负责创建 `.proflow/runtime/services/*` 与 Deployment log 目录，因此通过外部合法 npm 安装进入 Workspace 的 Module 也可以第一次直接进入 Platform lifecycle。

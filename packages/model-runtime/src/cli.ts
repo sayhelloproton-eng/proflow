@@ -22,6 +22,10 @@ function installSelf(): never {
 }
 
 const [command, configPath] = process.argv.slice(2);
+if (command === "--help" || command === "-h") {
+	process.stdout.write('Usage: proflow-model-runtime install | start /absolute/config.json\\n');
+	process.exit(0);
+}
 if (command === "install") {
 	if (configPath) throw new Error("Usage: proflow-model-runtime install");
 	installSelf();

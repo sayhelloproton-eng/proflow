@@ -27,3 +27,7 @@ npx @tomflow/proflow-module-template create \
 Generated packages include ProFlow package discovery metadata, Descriptor/Adapter/Requirements/Verification, package-owned documentation entry, effect retention skeleton, Conformance configuration, and a thin package-owned `npx <package> install` entry. That entry never implements a second installer: it delegates to `@tomflow/proflow-platform-cli install <self-package>` in the caller's current Workspace, so Registry discovery, package-manager mutation and governance remain single-sourced in Platform CLI. The template does not invent business APIs, permissions, Provides/Requires or domain behavior.
 
 Normative design: `spec/部署领域/04-模块/module-template/TECHNICAL-DESIGN.md`.
+### Service profile runtime rule
+
+Generated `service` packages no longer use an in-memory `RUNNING/STOPPED` variable as deployment reality. They receive a package-owned CLI with `install`, `--help`, and a fail-closed `start <config>` placeholder plus the `createServiceProcessBinding` seam. The owner implements the real long-running process and probes; Platform CLI owns detached supervision and cross-CLI PID/runtime state.
+

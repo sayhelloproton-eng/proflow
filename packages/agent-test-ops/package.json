@@ -20,6 +20,7 @@
     "context",
     "memory",
     "knowledge",
+    "proflow.module.json",
     "conformance.json",
     "README.md"
   ],
@@ -73,6 +74,11 @@
   "proflow": {
     "module": true,
     "installClass": "core",
-    "descriptor": "./dist/deployment/descriptor.js"
+    "installRequires": [
+      "@tomflow/proflow-agent-gateway",
+      "@tomflow/proflow-agent-runtime"
+    ],
+    "descriptor": "./dist/deployment/descriptor.js",
+    "manifest": "./proflow.module.json"
   }
 }

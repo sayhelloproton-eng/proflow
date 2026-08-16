@@ -454,6 +454,16 @@ export function verifyMigrations(input: MigrationInput): MigrationResult {
 }
 
 export async function runCli(args: string[]): Promise<string> {
+	if (args.includes("--help") || args.includes("-h")) {
+		return JSON.stringify({
+			contract: "deployment.result.v1",
+			ok: true,
+			status: "SUCCEEDED",
+			moduleRef: "task-migration-runner",
+			moduleVersion: "0.1.0",
+			data: { usage: "proflow-task-migrate [apply|status|verify] --database <path> [--legacy-role-map <json>]" },
+		});
+	}
 	const command =
 		args.find((item) => ["apply", "status", "verify"].includes(item)) ??
 		"status";

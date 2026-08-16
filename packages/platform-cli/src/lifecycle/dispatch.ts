@@ -43,6 +43,12 @@ function isWrappedResult(
 }
 
 function moduleSource(module: ResolvedModule): ModuleSource {
+	if (module.source.type === "registry") {
+		throw new PlatformError(
+			"DESCRIPTOR_INVALID",
+			`registry bootstrap target ${module.packageName} has no local lifecycle adapter`,
+		);
+	}
 	const source: ModuleSource = {
 		type: module.source.type,
 		packageName: module.packageName,

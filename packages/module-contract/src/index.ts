@@ -28,6 +28,8 @@ export const proflowPackageMetadataSchema = z.strictObject({
 	module: z.literal(true),
 	installClass: moduleInstallClassSchema,
 	descriptor: z.string().min(1),
+	manifest: z.literal("./proflow.module.json"),
+	installRequires: z.array(packageName).default([]),
 });
 export type ProFlowPackageMetadata = z.infer<
 	typeof proflowPackageMetadataSchema
@@ -202,6 +204,14 @@ export const lifecycleSupportSchema = z.strictObject({
 });
 export type LifecycleSupport = z.infer<typeof lifecycleSupportSchema>;
 
+export const serviceProcessBindingSchema = z.strictObject({
+	contract: z.literal("deployment.service-process.v1"),
+	bin: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/),
+	startCommand: z.literal("start"),
+	config: z.record(z.string(), z.unknown()),
+});
+export type ServiceProcessBinding = z.infer<typeof serviceProcessBindingSchema>;
+
 export const verificationCheckSchema = z.strictObject({
 	id: identifier,
 	description: z.string().min(1),
@@ -249,6 +259,14 @@ export const moduleDescriptorSchema = z
 		documentation: z.array(moduleDocumentationEntrySchema),
 	})
 	.superRefine((descriptor, context) => {
+		const expectedModuleRef = descriptor.packageName.slice("@tomflow/proflow-".length);
+		if (descriptor.moduleRef !== expectedModuleRef) {
+			context.addIssue({
+				code: "custom",
+				message: "moduleRef must equal the @tomflow/proflow-* package-name suffix",
+				path: ["moduleRef"],
+			});
+		}
 		const supported = descriptor.lifecycle.supported;
 		if (
 			descriptor.kind === "library" &&
@@ -349,6 +367,16 @@ export const moduleOperationResultSchema = z
 				code: "custom",
 				message: "FAILED must include a typed error",
 				path: ["error"],
+			});
+		}
+		if (
+			result.status === "SUCCEEDED" &&
+			result.checks?.some((check) => check.status === "FAIL")
+		) {
+			context.addIssue({
+				code: "custom",
+				message: "SUCCEEDED cannot contain a failed deployment check",
+				path: ["checks"],
 			});
 		}
 	});

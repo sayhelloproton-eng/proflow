@@ -18,6 +18,7 @@
     "extension",
     "manifest.json",
     "deployment/browser-extension.json",
+    "proflow.module.json",
     "conformance.json",
     "README.md",
     "self-install.mjs"
@@ -42,7 +43,14 @@
   "proflow": {
     "module": true,
     "installClass": "core",
-    "descriptor": "./dist/deployment/descriptor.js"
+    "installRequires": [
+      "@tomflow/proflow-agent-runtime",
+      "@tomflow/proflow-execution-contracts",
+      "@tomflow/proflow-execution-runtime",
+      "@tomflow/proflow-task-orchestration"
+    ],
+    "descriptor": "./dist/deployment/descriptor.js",
+    "manifest": "./proflow.module.json"
   },
   "bin": {
     "proflow-execution-browser-extension": "./self-install.mjs"

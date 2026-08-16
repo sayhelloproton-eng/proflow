@@ -153,3 +153,12 @@ Platform CLI 不手工维护每个业务 Module 的说明副本。
 - package cleanup/uninstall procedure。
 
 如需要新增能力，应先通过 Module Contract/Template/Conformance 补齐，再由 CLI 执行。
+
+## 8. Fresh Workspace dependency closure
+
+Registry bootstrap is fail-closed. `platform install <package>` resolves the requested package by exact npm metadata and recursively follows `package.json.proflow.installRequires`; it does not rely on npm transitive installation to decide the Platform Managed Module Set. `platform install` without an explicit package discovers core packages and MUST fail when Registry discovery yields zero installable core candidates; an empty successful plan is forbidden. After package mutation completes, Workspace Discovery reloads the real installed Descriptors and normal Provides/Requires governance resumes.
+
+### Package bootstrap closure
+
+
+For single-package install, Registry bootstrap resolves `package.json.proflow.installRequires` recursively. The index is the union of ProFlow runtime npm dependencies and additional ProFlow packages required for direct Workspace governance. npm transitive installation alone is not enough: required ProFlow Modules must be planned as direct Workspace packages so Workspace Discovery can manage them uniformly.

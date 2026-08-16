@@ -176,3 +176,17 @@ Template 版本升级不会自动强迫所有 Module 当天迁移；只有出现
 ### Package-owned npx installation entry
 
 Every generated ProFlow Module publishes one package-name-matching npm `bin` entry for `npx <package> install`. The entry points at a root `self-install.mjs` that is explicitly included in the npm `files` allowlist, so package-self installation does not depend on TypeScript build output. The generated executable is deliberately a thin delegator only: it invokes `@tomflow/proflow-platform-cli install <self-package>` against `process.cwd()`. It MUST support `--help/-h` without mutation so npm publishability/binary discovery can probe it safely. It MUST NOT reimplement Registry discovery, package-manager selection, package mutation, Deployment planning, lifecycle or verification. Therefore both Platform-initiated install and package-initiated npx install converge on the same Workspace `package.json` fact and the same Platform governance path.
+
+### Registry bootstrap index
+
+Every newly generated Module starts with `package.json.proflow.installRequires: []`. When the owner later declares package-level bootstrap dependencies, AI must fill exact ProFlow package names there instead of teaching Platform CLI a hard-coded catalog. Template owns the field shape; the Module owner owns the concrete package facts; Conformance rejects malformed/self/duplicate entries.
+## Service process binding
+
+The `service` profile MUST expose the standard `createServiceProcessBinding` seam. The generated skeleton remains fail-closed until the package owner supplies the real package-owned binary configuration and runtime probes. Platform CLI owns detached process supervision, PID/runtime-state persistence, stop/restart, and process logs; a generated service module must not implement cross-CLI lifecycle as an in-memory state variable.
+
+
+### Static Manifest Generation
+
+Template materialize 新 Module 时 MUST 同时生成根级 `proflow.module.json`，并在 `package.json.proflow.manifest` 与 npm `files` allowlist 中声明它。manifest 必须由与 runtime Descriptor 相同的输入事实生成，而不是让 AI 另外维护一份手写合同。
+
+后续 owner 修改 Descriptor 事实时，必须同步更新 static manifest 并重新运行 Conformance；Template/Skill 不允许 AI 省略这一步。

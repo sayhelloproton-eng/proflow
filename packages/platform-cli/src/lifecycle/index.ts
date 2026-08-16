@@ -10,3 +10,9 @@ export {
 	statusModules,
 	stopModules,
 } from "./dispatch.ts";
+export {
+	managedServiceStatus,
+	restartManagedService,
+	startManagedService,
+	stopManagedService,
+} from "./service-process.ts";

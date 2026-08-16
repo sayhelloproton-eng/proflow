@@ -306,3 +306,28 @@ External Module：
 ## 13. Runtime Validation
 
 所有来自 CLI、package metadata、descriptor file、第三方 process、外部 API 的数据先视为 `unknown`，通过 runtime schema 后进入强类型对象。
+
+## 14. Registry bootstrap installation index
+
+`package.json.proflow` is the Registry/Workspace discovery index and now includes `installRequires: string[]`. Each entry is an exact `@tomflow/proflow-*` package name required to materialize this package in a Fresh Workspace before its local Descriptor/Adapter can participate in Platform governance.
+
+`installRequires` is intentionally smaller than the Module Descriptor: it does not duplicate Provides/Requires, config, lifecycle, effects or docs. Runtime/contract truth remains in the Descriptor. The index exists only because Registry bootstrap must resolve a package dependency closure before package code is installed locally. Entries must be unique and must not reference the package itself.
+## Service process binding contract
+
+`deployment.service-process.v1` is the bounded runtime handoff from a package owner to Platform CLI. The package owns the executable name and the fully resolved process configuration; Platform CLI owns detached supervision, PID/runtime-state persistence, stop/restart, and logs. The binding is runtime-only and does not move domain behavior or configuration ownership into Deployment.
+
+
+### Static Module Manifest
+
+每个正式 ProFlow package MUST 发布根级 `proflow.module.json`，其内容必须是该版本完整 `ModuleDescriptor` 的静态 JSON 表达。`package.json.proflow.manifest` 固定为 `./proflow.module.json`，只承担索引，不复制 Descriptor 字段。
+
+静态 manifest 的用途是让 Registry planning 在 package mutation 前读取目标版本的真实 Provides/Requires、platform compatibility、config、lifecycle、verification、effects 与 documentation；安装后的 runtime truth 仍由该 package 的 `deployment/descriptor` 导出。两者必须语义完全一致，禁止出现“Registry manifest 一套、runtime Descriptor 一套”。
+
+### installRequires closure rule
+
+
+`installRequires` MUST include every runtime `package.json.dependencies` entry whose package name matches `@tomflow/proflow-*`, plus any additional ProFlow package that must be directly materialized in a Fresh Workspace for the Module's declared contract/production binding to become governable. It MUST NOT mechanically copy devDependencies. This keeps all required ProFlow Modules as direct Workspace installation facts instead of leaving them hidden as npm transitive packages.
+
+### Module identity invariant
+
+For formal packages, `moduleRef` MUST equal the suffix of `packageName` after `@tomflow/proflow-`. Example: `@tomflow/proflow-agent-gateway` maps to `moduleRef = agent-gateway`. Registry bootstrap, Workspace Discovery, static manifest and runtime Descriptor all rely on this one-to-one identity; aliases are not a v1 feature.

@@ -48,19 +48,42 @@ export function selectBootstrapModules(
 	candidates: readonly RegistryModuleCandidate[],
 	explicitPackageName?: string,
 ): ResolvedModule[] {
-	const selected =
+	const byPackage = new Map(
+		candidates.map((candidate) => [candidate.packageName, candidate]),
+	);
+	const roots =
 		explicitPackageName === undefined
 			? candidates.filter((candidate) => candidate.installClass === "core")
-			: candidates.filter(
-					(candidate) => candidate.packageName === explicitPackageName,
-				);
-	if (explicitPackageName !== undefined && selected.length === 0) {
+			: candidates.filter((candidate) => candidate.packageName === explicitPackageName);
+	if (roots.length === 0) {
 		throw new PlatformError(
-			"PACKAGE_NOT_FOUND",
-			`no installable ProFlow package found for ${explicitPackageName}`,
+			explicitPackageName === undefined ? "REGISTRY_RESPONSE_INVALID" : "PACKAGE_NOT_FOUND",
+			explicitPackageName === undefined
+				? "Registry discovery returned no installable core ProFlow packages"
+				: `no installable ProFlow package found for ${explicitPackageName}`,
 		);
 	}
-	return selected.map(registryCandidateToBootstrapModule);
+
+	const selected = new Map<string, RegistryModuleCandidate>();
+	const queue = [...roots];
+	while (queue.length > 0) {
+		const candidate = queue.shift()!;
+		if (selected.has(candidate.packageName)) continue;
+		selected.set(candidate.packageName, candidate);
+		for (const dependencyName of candidate.installRequires) {
+			const dependency = byPackage.get(dependencyName);
+			if (dependency === undefined) {
+				throw new PlatformError(
+					"DEPENDENCY_UNRESOLVED",
+					`Registry bootstrap dependency ${dependencyName} required by ${candidate.packageName} was not discovered`,
+				);
+			}
+			queue.push(dependency);
+		}
+	}
+	return [...selected.values()]
+		.sort((a, b) => a.packageName.localeCompare(b.packageName))
+		.map(registryCandidateToBootstrapModule);
 }
 
 export function selectUpgradeBootstrapModules(

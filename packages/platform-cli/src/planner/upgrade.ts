@@ -113,6 +113,16 @@ export function planUpgrade(input: PlanInput): DeploymentPlan {
 			current !== undefined && target !== undefined
 				? assessUpgrade(current, target)
 				: undefined;
+		if (
+			assessment !== undefined &&
+			!assessment.compatible &&
+			!assessment.migrationDeclared
+		) {
+			throw new PlatformError(
+				"UPGRADE_FAILED",
+				`upgrade ${ref} has breaking changes but declares no migrate lifecycle: ${assessment.breakingChanges.join("; ")}`,
+			);
+		}
 		const dependencies = deps.get(ref) ?? [];
 
 		steps.push(packageStep(seq, module, "upgrade", dependencies));

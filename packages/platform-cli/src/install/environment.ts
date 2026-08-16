@@ -93,6 +93,7 @@ export async function preflightInstallerEnvironment(options: {
 	}
 
 	const packageManager = await readWorkspacePackageManagerSelection(options.workspaceRoot);
+	let packageManagerVersion: string | undefined;
 	if (packageManager === undefined) {
 		findings.push({
 			code: "PACKAGE_MANAGER_UNSUPPORTED",
@@ -109,7 +110,7 @@ export async function preflightInstallerEnvironment(options: {
 		} else {
 			try {
 				const result = (await systemPackageCommandRunner().run("pnpm", ["--version"], options.workspaceRoot)).trim();
-				packageManager.version = result;
+				packageManagerVersion = result;
 				findings.push({
 					code: "PNPM_READY",
 					severity: "info",
@@ -124,7 +125,7 @@ export async function preflightInstallerEnvironment(options: {
 			}
 		}
 	} else if (npmVersion !== undefined) {
-		packageManager.version = npmVersion;
+		packageManagerVersion = npmVersion;
 		findings.push({
 			code: "PACKAGE_MANAGER_READY",
 			severity: "info",
@@ -161,7 +162,14 @@ export async function preflightInstallerEnvironment(options: {
 		workspaceRoot: options.workspaceRoot,
 		nodeVersion,
 		...(npmVersion === undefined ? {} : { npmVersion }),
-		...(packageManager === undefined ? {} : { packageManager }),
+		...(packageManager === undefined
+			? {}
+			: {
+					packageManager: {
+						...packageManager,
+						...(packageManagerVersion === undefined ? {} : { version: packageManagerVersion }),
+					},
+				}),
 		...(registry === undefined ? {} : { registry }),
 		findings,
 	};

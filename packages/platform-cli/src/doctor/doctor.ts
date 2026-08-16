@@ -74,17 +74,37 @@ export async function doctorModule(
 	catalog: ModuleCatalog,
 	module: ResolvedModule,
 ): Promise<DoctorReport> {
-	const dispatched = await dispatchLifecycle(catalog, module, "doctor");
-	const result = dispatched.result;
+	const primitives = (["status", "verify", "doctor"] as const).filter((primitive) =>
+		module.lifecycle.includes(primitive),
+	);
+	const dispatched = [];
+	for (const primitive of primitives) {
+		dispatched.push(await dispatchLifecycle(catalog, module, primitive));
+	}
+	const severity: Record<ModuleOperationResult["status"], number> = {
+		SUCCEEDED: 0,
+		ACTION_REQUIRED: 1,
+		BLOCKED: 2,
+		FAILED: 3,
+	};
+	const effective = dispatched
+		.map((item) => item.result)
+		.reduce((worst, current) =>
+			severity[current.status] > severity[worst.status] ? current : worst,
+		);
+	const checks = dispatched.flatMap((item) => item.result.checks ?? []);
+	const errors = dispatched.flatMap((item) =>
+		item.result.error === undefined ? [] : [item.result.error],
+	);
 	return {
 		moduleRef: module.moduleRef,
 		moduleVersion: module.moduleVersion,
-		status: result.status,
-		checks: result.checks ?? [],
-		errors: result.error !== undefined ? [result.error] : [],
-		evidenceRefs: evidenceRefsOf(result),
-		nextAction: nextActionOf(result),
-		observedEffects: dispatched.observedEffects,
+		status: effective.status,
+		checks,
+		errors,
+		evidenceRefs: checks.map((check) => `check:${check.id}:${check.status}`),
+		nextAction: nextActionOf(effective),
+		observedEffects: dispatched.flatMap((item) => item.observedEffects),
 	};
 }
 

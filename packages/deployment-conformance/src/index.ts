@@ -183,6 +183,7 @@ interface PackageMetadata {
 	publishConfig?: unknown;
 	files?: unknown;
 	proflow?: unknown;
+	dependencies?: unknown;
 }
 
 function containsPlaintextSecret(input: unknown, key = ""): boolean {
@@ -270,6 +271,17 @@ function stringArrayIncludes(input: unknown, value: string): boolean {
 	return Array.isArray(input) && input.some((item) => item === value || item === `./${value}`);
 }
 
+function canonicalValue(value: unknown): unknown {
+	if (Array.isArray(value)) return value.map(canonicalValue);
+	if (typeof value !== "object" || value === null) return value;
+	const record = value as Record<string, unknown>;
+	return Object.fromEntries(
+		Object.keys(record)
+			.sort()
+			.map((key) => [key, canonicalValue(record[key])]),
+	);
+}
+
 export async function runPackageConformance(
 	packageDirectory: string,
 	descriptor: ModuleDescriptor,
@@ -304,13 +316,71 @@ export async function runPackageConformance(
 	if (!parsedProflow.success) {
 		issues.push({
 			code: "PROFLOW_PACKAGE_METADATA_INVALID",
-			message: "package.json.proflow must declare module/installClass/descriptor",
+			message: "package.json.proflow must declare module/installClass/descriptor/manifest/installRequires",
 		});
-	} else if (parsedProflow.data.installClass !== descriptor.installClass) {
-		issues.push({
-			code: "INSTALL_CLASS_MISMATCH",
-			message: "package.json.proflow.installClass differs from descriptor",
-		});
+	} else {
+		if (parsedProflow.data.installClass !== descriptor.installClass) {
+			issues.push({
+				code: "INSTALL_CLASS_MISMATCH",
+				message: "package.json.proflow.installClass differs from descriptor",
+			});
+		}
+		if (new Set(parsedProflow.data.installRequires).size !== parsedProflow.data.installRequires.length) {
+			issues.push({
+				code: "INSTALL_REQUIRES_DUPLICATE",
+				message: "package.json.proflow.installRequires must not contain duplicates",
+			});
+		}
+		if (parsedProflow.data.installRequires.includes(descriptor.packageName)) {
+			issues.push({
+				code: "INSTALL_REQUIRES_SELF",
+				message: "package.json.proflow.installRequires must not contain the package itself",
+			});
+		}
+		if (typeof metadata.dependencies === "object" && metadata.dependencies !== null) {
+			for (const dependencyName of Object.keys(metadata.dependencies)) {
+				if (
+					dependencyName.startsWith("@tomflow/proflow-") &&
+					!parsedProflow.data.installRequires.includes(dependencyName)
+				) {
+					issues.push({
+						code: "INSTALL_REQUIRES_RUNTIME_DEPENDENCY_MISSING",
+						message: `ProFlow runtime dependency ${dependencyName} must be included in package.json.proflow.installRequires`,
+					});
+				}
+			}
+		}
+		const manifestPath = resolve(packageDirectory, parsedProflow.data.manifest);
+		if (!(await pathExists(manifestPath))) {
+			issues.push({
+				code: "MODULE_MANIFEST_MISSING",
+				message: "proflow.module.json is missing",
+			});
+		} else {
+			try {
+				const manifest = moduleDescriptorSchema.parse(await readJson(manifestPath));
+				if (
+					JSON.stringify(canonicalValue(manifest)) !==
+					JSON.stringify(canonicalValue(descriptor))
+				) {
+					issues.push({
+						code: "MODULE_MANIFEST_MISMATCH",
+						message: "proflow.module.json must describe the same Module facts as deployment/descriptor",
+					});
+				}
+			} catch {
+				issues.push({
+					code: "MODULE_MANIFEST_INVALID",
+					message: "proflow.module.json is not a valid Module Descriptor",
+				});
+			}
+		}
+		if (!stringArrayIncludes(metadata.files, "proflow.module.json")) {
+			issues.push({
+				code: "MODULE_MANIFEST_NOT_PUBLISHED",
+				message: "proflow.module.json must be included in the npm files allowlist",
+			});
+		}
 	}
 	if (metadata.type !== "module") {
 		issues.push({
@@ -478,6 +548,35 @@ export async function runPackageConformance(
 		}
 	}
 	const cliEntry = exportEntry(metadata, "./cli");
+	if (descriptor.kind === "service") {
+		const serviceBin = packageBinEntry(metadata, descriptor.packageName);
+		if (cliEntry === undefined || !(await pathExists(resolve(packageDirectory, cliEntry)))) {
+			issues.push({
+				code: "SERVICE_CLI_MISSING",
+				message: "service package must publish its package-owned CLI through ./cli",
+			});
+		}
+		if (serviceBin === undefined || cliEntry === undefined || serviceBin !== cliEntry) {
+			issues.push({
+				code: "SERVICE_BIN_MISMATCH",
+				message: "service package bin must point to the same package-owned CLI exported as ./cli",
+			});
+		}
+		try {
+			const adapterSource = await readFile(join(packageDirectory, "deployment/adapter.ts"), "utf8");
+			if (!/export\s+(?:async\s+)?function\s+createServiceProcessBinding\b/.test(adapterSource)) {
+				issues.push({
+					code: "SERVICE_PROCESS_BINDING_MISSING",
+					message: "service adapter must export createServiceProcessBinding",
+				});
+			}
+		} catch {
+			issues.push({
+				code: "SERVICE_PROCESS_BINDING_MISSING",
+				message: "service adapter source cannot be read",
+			});
+		}
+	}
 	if (
 		descriptor.kind === "cli" &&
 		(cliEntry === undefined ||

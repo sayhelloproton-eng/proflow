@@ -2,6 +2,8 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import type { ResolvedModule } from "../contracts.ts";
+import { managedServiceStatus, restartManagedService, startManagedService, stopManagedService } from "../lifecycle/service-process.ts";
+import { workspacePaths } from "../paths.ts";
 
 type ResolvedSource = ResolvedModule["source"];
 
@@ -27,6 +29,34 @@ export type ProductionBindingFactory = (input: {
 	| Promise<DeploymentAdapterBinding | undefined>
 	| DeploymentAdapterBinding
 	| undefined;
+
+export type ServiceProcessBindingFactory = (input: {
+	moduleRef: string;
+	config: Record<string, string>;
+	workspaceRoot: string;
+	modules: readonly ResolvedModule[];
+	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
+}) =>
+	| Promise<{ serviceProcess: unknown; behaviorAdapter?: Record<string, unknown> } | undefined>
+	| { serviceProcess: unknown; behaviorAdapter?: Record<string, unknown> }
+	| undefined;
+
+function managedServiceAdapter(
+	workspaceRoot: string,
+	module: ResolvedModule,
+	serviceProcess: unknown,
+	probeAdapter: Record<string, unknown>,
+): Record<string, unknown> {
+	const paths = workspacePaths(workspaceRoot);
+	return {
+		...probeAdapter,
+		status: () => managedServiceStatus(paths, module),
+		start: () => startManagedService(paths, module, serviceProcess),
+		stop: () => stopManagedService(paths, module),
+		restart: () => restartManagedService(paths, module, serviceProcess),
+		uninstall: () => stopManagedService(paths, module),
+	};
+}
 
 export interface ProductionBindingOptions {
 	workspaceRoot: string;
@@ -81,10 +111,40 @@ export async function buildProductionBindings(
 				module.packageName,
 				module.source,
 			);
+			const config = options.configByModuleRef.get(module.moduleRef) ?? {};
+			const serviceFactory = (namespace as { createServiceProcessBinding?: unknown })
+				.createServiceProcessBinding;
+			if (module.kind === "service" && typeof serviceFactory === "function") {
+				const processBinding = await (serviceFactory as ServiceProcessBindingFactory)({
+					moduleRef: module.moduleRef,
+					config,
+					workspaceRoot: options.workspaceRoot,
+					modules: options.modules,
+					configByModuleRef: options.configByModuleRef,
+				});
+				if (processBinding !== undefined) {
+					const defaultProbe = (namespace as { behaviorAdapter?: unknown }).behaviorAdapter;
+					const probeAdapter = processBinding.behaviorAdapter ??
+						(typeof defaultProbe === "object" && defaultProbe !== null
+							? defaultProbe as Record<string, unknown>
+							: {});
+					bindings.set(module.packageName, {
+						behaviorAdapter: managedServiceAdapter(
+							options.workspaceRoot,
+							module,
+							processBinding.serviceProcess,
+							probeAdapter,
+						),
+					});
+				}
+				// A formal service package that exposes the process seam must never fall
+				// back to legacy in-memory production binding. Missing config remains
+				// unbound and therefore fails closed.
+				continue;
+			}
 			const factory = (namespace as { createProductionBinding?: unknown })
 				.createProductionBinding;
 			if (typeof factory !== "function") continue;
-			const config = options.configByModuleRef.get(module.moduleRef) ?? {};
 			const binding = await (factory as ProductionBindingFactory)({
 				moduleRef: module.moduleRef,
 				config,

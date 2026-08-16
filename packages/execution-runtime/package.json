@@ -9,13 +9,15 @@
     ".": "./dist/src/index.js",
     "./service": "./dist/src/service.js",
     "./deployment/adapter": "./dist/deployment/adapter.js",
-    "./deployment/descriptor": "./dist/deployment/descriptor.js"
+    "./deployment/descriptor": "./dist/deployment/descriptor.js",
+    "./cli": "./dist/src/cli.js"
   },
   "bin": {
     "proflow-execution-runtime": "./dist/src/cli.js"
   },
   "files": [
     "dist",
+    "proflow.module.json",
     "conformance.json",
     "README.md"
   ],
@@ -41,6 +43,14 @@
   "proflow": {
     "module": true,
     "installClass": "core",
-    "descriptor": "./dist/deployment/descriptor.js"
+    "descriptor": "./dist/deployment/descriptor.js",
+    "installRequires": [
+      "@tomflow/proflow-execution-browser-extension",
+      "@tomflow/proflow-execution-contracts",
+      "@tomflow/proflow-execution-local",
+      "@tomflow/proflow-model-contracts",
+      "@tomflow/proflow-platform-host"
+    ],
+    "manifest": "./proflow.module.json"
   }
 }

@@ -29,25 +29,60 @@ export function createBehaviorAdapter(service?: ProcessService) {
 	return {
 		describe: () => ({ result: base, observedEffects: [] }),
 		preflight: () => ({ result: base, observedEffects: [] }),
-		status: () => ({
-			result: service ? { ...base, data: service.status() } : unbound,
-			observedEffects: [],
-		}),
-		verify: () => ({
-			result: {
-				...(service ? base : unbound),
-				checks: [
-					{
+		status: () => {
+			const status = service?.status();
+			const ready = status?.readiness === "READY";
+			return {
+				result: service
+					? {
+						...(ready
+							? base
+							: {
+								...base,
+								ok: false as const,
+								status: "ACTION_REQUIRED" as const,
+								actionRequired: {
+									action: "repair-execution-runtime",
+									description: "Execution Runtime is not READY",
+								},
+							}),
+						data: status,
+						checks: [{
+							id: "execution-runtime-readiness",
+							status: ready ? "PASS" as const : "FAIL" as const,
+							message: `Execution Runtime readiness is ${status?.readiness ?? "NOT_READY"}`,
+						}],
+					}
+					: unbound,
+				observedEffects: [],
+			};
+		},
+		verify: () => {
+			const status = service?.status();
+			const ready = status?.readiness === "READY";
+			return {
+				result: {
+					...(service && ready
+						? base
+						: service
+							? {
+								...base,
+								ok: false as const,
+								status: "ACTION_REQUIRED" as const,
+								actionRequired: { action: "repair-execution-runtime", description: "Execution Runtime is not READY" },
+							}
+							: unbound),
+					checks: [{
 						id: "execution-runtime-critical-proofs",
-						status: service?.status().readiness === "READY" ? "PASS" : "FAIL",
+						status: ready ? "PASS" as const : "FAIL" as const,
 						message: service
-							? "Bound process exposes current durable runtime readiness"
+							? `Execution Runtime readiness is ${status?.readiness ?? "NOT_READY"}`
 							: "No configured Execution Runtime process is bound",
-					},
-				],
-			},
-			observedEffects: [],
-		}),
+					}],
+				},
+				observedEffects: [],
+			};
+		},
 		doctor: () => ({ result: base, observedEffects: [] }),
 		start: async () => ({
 			result: service ? { ...base, data: await service.start() } : unbound,
@@ -85,6 +120,90 @@ export function createBehaviorAdapter(service?: ProcessService) {
 }
 
 export const behaviorAdapter = createBehaviorAdapter();
+
+export async function createServiceProcessBinding(input: {
+	moduleRef: string;
+	config: Record<string, string>;
+	workspaceRoot: string;
+	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
+}): Promise<
+	| {
+			serviceProcess: {
+				contract: "deployment.service-process.v1";
+				bin: "proflow-execution-runtime";
+				startCommand: "start";
+				config: Record<string, unknown>;
+			};
+			behaviorAdapter: Record<string, unknown>;
+	  }
+	| undefined
+> {
+	const required = [
+		"databasePath",
+		"projectRoot",
+		"artifactRoot",
+		"browserExecutorConfigPath",
+		"transportCredentialFile",
+		"identity.endpoint",
+		"identity.tokenFile",
+		"modelDecision.endpoint",
+		"modelDecision.credentialFile",
+	] as const;
+	if (!required.every((key) => input.config[key])) return undefined;
+	const platformHost = input.configByModuleRef.get("platform-host");
+	const advertised = platformHost?.executionBaseUrl;
+	if (!advertised) return undefined;
+	const listener = new URL(advertised);
+	if (listener.protocol !== "http:" || listener.pathname !== "/") return undefined;
+	const port = listener.port === "" ? 80 : Number(listener.port);
+	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
+	const { parseExecutionRuntimeProcessConfig } = await import("../src/service.ts");
+	const processConfig = parseExecutionRuntimeProcessConfig({
+		host: listener.hostname,
+		port,
+		databasePath: input.config.databasePath,
+		projectRoot: input.config.projectRoot,
+		artifactRoot: input.config.artifactRoot,
+		browserExecutorConfigPath: input.config.browserExecutorConfigPath,
+		transportCredentialFile: input.config.transportCredentialFile,
+		identity: {
+			endpoint: input.config["identity.endpoint"],
+			tokenFile: input.config["identity.tokenFile"],
+		},
+		modelDecision: {
+			endpoint: input.config["modelDecision.endpoint"],
+			credentialFile: input.config["modelDecision.credentialFile"],
+		},
+	});
+	const probeAdapter = {
+		describe: behaviorAdapter.describe,
+		preflight: behaviorAdapter.preflight,
+		verify: async () => {
+			let ready = false;
+			try {
+				ready = (await fetch(new URL("/ready", listener))).ok;
+			} catch {
+				ready = false;
+			}
+			return {
+				result: ready
+					? { ...base, checks: [{ id: "execution-runtime-critical-proofs", status: "PASS" as const, message: "Managed Execution Runtime /ready probe passed" }] }
+					: { ...base, ok: false as const, status: "ACTION_REQUIRED" as const, actionRequired: { action: "repair-execution-runtime", description: "Managed Execution Runtime /ready probe failed" }, checks: [{ id: "execution-runtime-critical-proofs", status: "FAIL" as const, message: "Managed Execution Runtime /ready probe failed" }] },
+				observedEffects: [],
+			};
+		},
+		doctor: behaviorAdapter.doctor,
+	};
+	return {
+		serviceProcess: {
+			contract: "deployment.service-process.v1",
+			bin: "proflow-execution-runtime",
+			startCommand: "start",
+			config: processConfig as unknown as Record<string, unknown>,
+		},
+		behaviorAdapter: probeAdapter,
+	};
+}
 
 export async function createProductionBinding(input: {
 	moduleRef: string;

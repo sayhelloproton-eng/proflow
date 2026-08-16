@@ -23,7 +23,6 @@ import { generateInstallDoc } from "./install/install.ts";
 import { preflightInstallerEnvironment } from "./install/environment.ts";
 import {
 	selectBootstrapModules,
-	selectUpgradeBootstrapModules,
 } from "./install/bootstrap.ts";
 import {
 	restartModules,
@@ -41,7 +40,11 @@ import type { PlanInput } from "./planner/plan.ts";
 import { planDeployment } from "./planner/plan.ts";
 import { diagnoseRepair } from "./planner/repair.ts";
 import { runPreflight } from "./preflight/preflight.ts";
-import { discoverRegistryModules } from "./registry/index.ts";
+import {
+	discoverRegistryInstallClosure,
+	discoverRegistryModules,
+	loadRegistryModuleDescriptor,
+} from "./registry/index.ts";
 import { verifyModules } from "./verification/verify.ts";
 
 const MODULE_REF = "platform-cli";
@@ -344,7 +347,7 @@ async function handleDocs(
 		const module = selected[0];
 		const descriptor = descriptors[0];
 		if (module === undefined || descriptor === undefined) {
-			throw new PlatformError("MODULE_NOT_FOUND", "docs module not found");
+			throw new PlatformError("COMMAND_FAILED", "docs module selection invariant failed");
 		}
 		return outcome(
 			"docs",
@@ -444,12 +447,13 @@ async function handlePlan(
 				installer,
 			);
 		}
-		const registry = await discoverRegistryModules({
-			workspaceRoot: ctx.paths.root,
-			...(args.positional[0] === undefined
-				? {}
-				: { packageName: args.positional[0] }),
-		});
+		const registry =
+			args.positional[0] === undefined
+				? await discoverRegistryModules({ workspaceRoot: ctx.paths.root })
+				: await discoverRegistryInstallClosure({
+						workspaceRoot: ctx.paths.root,
+						packageName: args.positional[0],
+					});
 		const bootstrapModules = selectBootstrapModules(
 			registry.candidates,
 			args.positional[0],
@@ -498,18 +502,65 @@ async function handlePlan(
 				installer,
 			);
 		}
-		const registry = await discoverRegistryModules({
-			workspaceRoot: ctx.paths.root,
-		});
-		const targets = selectUpgradeBootstrapModules(
-			selected,
-			registry.candidates,
+		const currentDescriptors = await loadDescriptors(ctx.catalog, modules);
+		const currentByRef = new Map(
+			currentDescriptors.map((descriptor) => [descriptor.moduleRef, descriptor]),
 		);
-		const plan = planDeployment({ intent, modules: targets });
+		const targetByRef = new Map(currentByRef);
+		const targets: { moduleRef: string; targetVersion: string }[] = [];
+		let registryUrl: string | undefined;
+
+		for (const module of selected) {
+			const discovered = await discoverRegistryModules({
+				workspaceRoot: ctx.paths.root,
+				packageName: module.packageName,
+			});
+			registryUrl ??= discovered.registry;
+			const candidate = discovered.candidates[0];
+			if (candidate === undefined) {
+				throw new PlatformError(
+					"PACKAGE_NOT_FOUND",
+					`no installable Registry target found for managed package ${module.packageName}`,
+				);
+			}
+			targets.push({
+				moduleRef: module.moduleRef,
+				targetVersion: candidate.moduleVersion,
+			});
+			if (candidate.moduleVersion === module.moduleVersion) continue;
+			const targetDescriptor = await loadRegistryModuleDescriptor({
+				workspaceRoot: ctx.paths.root,
+				candidate,
+			});
+			if (targetDescriptor.moduleRef !== module.moduleRef) {
+				throw new PlatformError(
+					"REGISTRY_RESPONSE_INVALID",
+					`Registry target ${module.packageName}@${candidate.moduleVersion} changed moduleRef from ${module.moduleRef} to ${targetDescriptor.moduleRef}`,
+				);
+			}
+			targetByRef.set(module.moduleRef, targetDescriptor);
+		}
+
+		const targetDescriptors = modules.map((module) => {
+			const descriptor = targetByRef.get(module.moduleRef);
+			if (descriptor === undefined) {
+				throw new PlatformError(
+					"COMMAND_FAILED",
+					`upgrade target descriptor invariant failed for ${module.moduleRef}`,
+				);
+			}
+			return descriptor;
+		});
+		const plan = planDeployment({
+			intent,
+			currentDescriptors,
+			targetDescriptors,
+			targets,
+		});
 		await savePlan(ctx.paths, plan);
 		return outcome("plan", "SUCCEEDED", {
 			planRef: plan.planRef,
-			registry: registry.registry,
+			registry: registryUrl,
 			plan,
 		});
 	}
@@ -835,6 +886,19 @@ function toMachineResult(outcomeResult: CliOutcome): string {
 }
 
 export async function runCli(argv: readonly string[]): Promise<string> {
+	if (argv.includes("--help") || argv.includes("-h")) {
+		return JSON.stringify({
+			contract: "deployment.result.v1",
+			ok: true,
+			status: "SUCCEEDED",
+			moduleRef: MODULE_REF,
+			moduleVersion: MODULE_VERSION,
+			data: {
+				usage: "platform <command> [module|package] [--workspace <path>] [--json]",
+				commands: [...COMMANDS],
+			},
+		});
+	}
 	const filtered = argv.filter((argument) => argument !== "--json");
 	if (filtered.length === 0) {
 		return JSON.stringify({

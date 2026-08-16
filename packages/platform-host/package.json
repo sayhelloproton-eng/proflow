@@ -8,13 +8,15 @@
   "exports": {
     ".": "./dist/src/index.js",
     "./deployment/adapter": "./dist/deployment/adapter.js",
-    "./deployment/descriptor": "./dist/deployment/descriptor.js"
+    "./deployment/descriptor": "./dist/deployment/descriptor.js",
+    "./cli": "./dist/src/cli.js"
   },
   "bin": {
     "proflow-platform-host": "./dist/src/cli.js"
   },
   "files": [
     "dist",
+    "proflow.module.json",
     "conformance.json",
     "README.md"
   ],
@@ -47,6 +49,17 @@
   "proflow": {
     "module": true,
     "installClass": "core",
-    "descriptor": "./dist/deployment/descriptor.js"
+    "descriptor": "./dist/deployment/descriptor.js",
+    "installRequires": [
+      "@tomflow/proflow-agent-runtime",
+      "@tomflow/proflow-execution-browser-extension",
+      "@tomflow/proflow-execution-contracts",
+      "@tomflow/proflow-execution-runtime",
+      "@tomflow/proflow-model-contracts",
+      "@tomflow/proflow-task-migration-runner",
+      "@tomflow/proflow-task-orchestration",
+      "@tomflow/proflow-task-store-sqlite"
+    ],
+    "manifest": "./proflow.module.json"
   }
 }

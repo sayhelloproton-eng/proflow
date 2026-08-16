@@ -28,24 +28,48 @@ export function createBehaviorAdapter(service?: PlatformHostService) {
 	return {
 		describe: () => ({ result: base, observedEffects: [] }),
 		preflight: () => ({ result: base, observedEffects: [] }),
-		status: async () => ({
-			result: service ? { ...base, data: await service.status() } : unbound,
-			observedEffects: [],
-		}),
+		status: async () => {
+			const status = service ? await service.status() : undefined;
+			const ready = status?.readiness === "READY";
+			return {
+				result: service
+					? {
+						...(ready
+							? base
+							: {
+								...base,
+								ok: false as const,
+								status: "ACTION_REQUIRED" as const,
+								actionRequired: { action: "repair-platform-host", description: "Platform Host is not READY" },
+							}),
+						data: status,
+						checks: [{
+							id: "platform-host-readiness",
+							status: ready ? "PASS" as const : "FAIL" as const,
+							message: `Platform Host readiness is ${status?.readiness ?? "NOT_READY"}`,
+						}],
+					}
+					: unbound,
+				observedEffects: [],
+			};
+		},
 		verify: async () => {
 			const status = service ? await service.status() : undefined;
+			const ready = status?.readiness === "READY";
 			return {
 				result: {
-					...(service ? base : unbound),
-					checks: [
-						{
-							id: "platform-host-readiness",
-							status: status?.readiness === "READY" ? "PASS" : "FAIL",
-							message: service
-								? "Bound Host reports current owner readiness"
-								: "No configured Host process is bound",
-						},
-					],
+					...(service && ready
+						? base
+						: service
+							? { ...base, ok: false as const, status: "ACTION_REQUIRED" as const, actionRequired: { action: "repair-platform-host", description: "Platform Host is not READY" } }
+							: unbound),
+					checks: [{
+						id: "platform-host-readiness",
+						status: ready ? "PASS" as const : "FAIL" as const,
+						message: service
+							? `Platform Host readiness is ${status?.readiness ?? "NOT_READY"}`
+							: "No configured Host process is bound",
+					}],
 				},
 				observedEffects: [],
 			};
@@ -91,6 +115,75 @@ const REQUIRED_CONFIG = [
 // Binds the real Host process only when the materialized config is complete;
 // otherwise stays unbound so the CLI's catalog falls back to the fail-closed
 // default. The heavy src import is deferred until a real binding is requested.
+export async function createServiceProcessBinding(input: {
+	moduleRef: string;
+	config: Record<string, string>;
+	workspaceRoot: string;
+	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
+}): Promise<
+	| {
+			serviceProcess: {
+				contract: "deployment.service-process.v1";
+				bin: "proflow-platform-host";
+				startCommand: "start";
+				config: Record<string, unknown>;
+			};
+			behaviorAdapter: Record<string, unknown>;
+	  }
+	| undefined
+> {
+	const config = input.config;
+	if (!REQUIRED_CONFIG.every((key) => config[key] !== undefined)) return undefined;
+	const executionRuntime = input.configByModuleRef.get("execution-runtime");
+	const advertised = executionRuntime?.["identity.endpoint"];
+	if (!advertised) return undefined;
+	const listener = new URL(advertised);
+	if (listener.protocol !== "http:" || listener.pathname !== "/") return undefined;
+	const port = listener.port === "" ? 80 : Number(listener.port);
+	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
+	const { parsePlatformHostConfig } = await import("../src/index.ts");
+	const processConfig = parsePlatformHostConfig({
+		stateRoot: config.stateRoot,
+		workspaceRoot: config.workspaceRoot,
+		host: listener.hostname,
+		port,
+		executionBaseUrl: config.executionBaseUrl,
+		executionTransportCredentialFile: config.executionTransportCredentialFile,
+		modelBaseUrl: config.modelBaseUrl,
+		modelTransportCredentialFile: config.modelTransportCredentialFile,
+		gatewayTransportCredentialFile: config.gatewayTransportCredentialFile,
+		roles: [],
+	});
+	const probeAdapter = {
+		describe: behaviorAdapter.describe,
+		preflight: behaviorAdapter.preflight,
+		verify: async () => {
+			let ready = false;
+			try {
+				ready = (await fetch(new URL("/ready", listener))).ok;
+			} catch {
+				ready = false;
+			}
+			return {
+				result: ready
+					? { ...base, checks: [{ id: "platform-host-readiness", status: "PASS" as const, message: "Managed Platform Host /ready probe passed" }] }
+					: { ...base, ok: false as const, status: "ACTION_REQUIRED" as const, actionRequired: { action: "repair-platform-host", description: "Managed Platform Host /ready probe failed" }, checks: [{ id: "platform-host-readiness", status: "FAIL" as const, message: "Managed Platform Host /ready probe failed" }] },
+				observedEffects: [],
+			};
+		},
+		doctor: behaviorAdapter.doctor,
+	};
+	return {
+		serviceProcess: {
+			contract: "deployment.service-process.v1",
+			bin: "proflow-platform-host",
+			startCommand: "start",
+			config: processConfig as unknown as Record<string, unknown>,
+		},
+		behaviorAdapter: probeAdapter,
+	};
+}
+
 export async function createProductionBinding(input: {
 	moduleRef: string;
 	config: Record<string, string>;

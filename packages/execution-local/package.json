@@ -12,6 +12,7 @@
   },
   "files": [
     "dist",
+    "proflow.module.json",
     "conformance.json",
     "README.md",
     "self-install.mjs"
@@ -32,7 +33,11 @@
   "proflow": {
     "module": true,
     "installClass": "core",
-    "descriptor": "./dist/deployment/descriptor.js"
+    "descriptor": "./dist/deployment/descriptor.js",
+    "installRequires": [
+      "@tomflow/proflow-execution-contracts"
+    ],
+    "manifest": "./proflow.module.json"
   },
   "bin": {
     "proflow-execution-local": "./self-install.mjs"

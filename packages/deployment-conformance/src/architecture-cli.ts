@@ -2,6 +2,11 @@
 
 import { runRepositoryArchitecture } from "./architecture.ts";
 
-const result = await runRepositoryArchitecture(process.cwd());
-process.stdout.write(`${JSON.stringify(result)}\n`);
-if (result.status === "FAIL") process.exitCode = 1;
+const args = process.argv.slice(2);
+if (args.includes("--help") || args.includes("-h")) {
+	process.stdout.write("Usage: proflow-architecture\n");
+} else {
+	const result = await runRepositoryArchitecture(process.cwd());
+	process.stdout.write(`${JSON.stringify(result)}\n`);
+	if (result.status === "FAIL") process.exitCode = 1;
+}

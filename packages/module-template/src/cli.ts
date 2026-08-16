@@ -103,6 +103,12 @@ function installSelf(): never {
 async function main(): Promise<void> {
 	try {
 		const argv = process.argv.slice(2);
+		if (argv[0] === "--help" || argv[0] === "-h") {
+			process.stdout.write(
+				"Usage: proflow-module-template create --target <directory> --module-ref <ref> --package <@tomflow/proflow-name> --kind <profile> --install-class <core|optional> --domain <domain> --summary <text> [--module-version <semver>] [--platform-compatibility <range>]\n",
+			);
+			return;
+		}
 		if (argv[0] === "install") {
 			if (argv.length !== 1) throw new TypeError("Usage: install");
 			installSelf();

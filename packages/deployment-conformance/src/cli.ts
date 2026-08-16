@@ -8,6 +8,16 @@ const moduleRef = "deployment-conformance";
 const moduleVersion = "0.1.0";
 
 export async function runCli(args: readonly string[]): Promise<string> {
+	if (args.includes("--help") || args.includes("-h")) {
+		return JSON.stringify({
+			contract: "deployment.result.v1",
+			ok: true,
+			status: "SUCCEEDED",
+			moduleRef,
+			moduleVersion,
+			data: { usage: "proflow-conformance --json [descriptor.json]" },
+		});
+	}
 	if (!args.includes("--json")) throw new TypeError("--json is required");
 	const descriptorPath = args.find((argument) => argument !== "--json");
 	if (descriptorPath === undefined) {

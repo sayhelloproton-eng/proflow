@@ -145,3 +145,18 @@ Conformance 只检查索引完整性和文件存在性，不替代领域文档�
 ## 11. 当前测试纪律
 
 本轮先更新规范与实现，不修改正式测试用例/测试计划/evidence。人工 Real-1 验证通过后再补自动化回归，避免把尚未验证的实现提前固化为测试真源。
+## Service process conformance
+
+Formal `service` packages must publish a package-owned business CLI, export the same entry through `./cli`, and expose `createServiceProcessBinding` from `deployment/adapter.ts`. A service package whose executable is only a generic self-install shim is non-conformant because Platform CLI needs a stable package-owned long-running process entry for detached supervision.
+
+
+### Static Manifest Conformance
+
+C1/C2 MUST additionally prove:
+
+- `package.json.proflow.manifest === "./proflow.module.json"`；
+- `proflow.module.json` 存在且满足完整 Module Contract；
+- npm `files` allowlist 会发布该 manifest；
+- static manifest 与 runtime `deployment/descriptor` canonical value 完全一致。
+
+任何 manifest/Descriptor 漂移都属于 Conformance FAIL；Registry upgrade 不得信任一个无法与 runtime truth 对齐的发布包。

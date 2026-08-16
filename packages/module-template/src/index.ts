@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -45,6 +45,8 @@ export interface GeneratedPackageMetadata {
 		module: true;
 		installClass: ModuleDescriptor["installClass"];
 		descriptor: "./dist/deployment/descriptor.js";
+		manifest: "./proflow.module.json";
+		installRequires: string[];
 	};
 }
 
@@ -194,7 +196,8 @@ function packageMetadata(
 		"./deployment/adapter": "./dist/deployment/adapter.js",
 		"./deployment/descriptor": "./dist/deployment/descriptor.js",
 	};
-	if (descriptor.kind === "cli") exports["./cli"] = "./dist/src/cli.js";
+	if (descriptor.kind === "cli" || descriptor.kind === "service")
+		exports["./cli"] = "./dist/src/cli.js";
 	const unscopedName = descriptor.packageName.slice("@tomflow/".length);
 	return {
 		name: descriptor.packageName,
@@ -204,11 +207,18 @@ function packageMetadata(
 		keywords: ["proflow", "proflow-module", descriptor.identity.domain],
 		publishConfig: { access: "public" },
 		exports,
-		bin: { [unscopedName]: "./self-install.mjs" },
+		bin: {
+			[unscopedName]:
+				descriptor.kind === "service"
+					? "./dist/src/cli.js"
+					: "./self-install.mjs",
+		},
 		proflow: {
 			module: true,
 			installClass: descriptor.installClass,
 			descriptor: "./dist/deployment/descriptor.js",
+			manifest: "./proflow.module.json",
+			installRequires: [],
 		},
 	};
 }
@@ -217,7 +227,13 @@ function packageJson(descriptor: ModuleDescriptor): string {
 	return `${JSON.stringify(
 		{
 			...packageMetadata(descriptor),
-			files: ["dist", "conformance.json", "README.md", "self-install.mjs"],
+			files: [
+				"dist",
+				"conformance.json",
+				"README.md",
+				"proflow.module.json",
+				"self-install.mjs",
+			],
 			engines: { node: "24.19.0" },
 			scripts: {
 				build: "tsc -p tsconfig.build.json",
@@ -251,35 +267,27 @@ function operationSource(
 	if (primitive === "verify") {
 		return `() => ({ result: { ...baseResult, ok: false, status: "FAILED", checks: [{ id: "owner-verification-required", status: "FAIL", message: "Owner-specific verification is not implemented" }], error: { code: "VERIFY_FAILED", message: "Owner-specific verification is not implemented", retryable: false } }, observedEffects: [] })`;
 	}
-	if (descriptor.kind === "service" && primitive === "status") {
-		return `() => ({ result: { ...baseResult, data: { state: serviceStatus() } }, observedEffects: [] })`;
-	}
-	if (descriptor.kind === "service" && primitive === "start") {
-		return `() => ({ result: { ...baseResult, data: { state: serviceStart() } }, observedEffects: ["Manage the declared service process"] })`;
-	}
-	if (descriptor.kind === "service" && primitive === "stop") {
-		return `() => ({ result: { ...baseResult, data: { state: serviceStop() } }, observedEffects: ["Manage the declared service process"] })`;
-	}
-	if (descriptor.kind === "service" && primitive === "restart") {
-		return `() => ({ result: { ...baseResult, data: { state: serviceRestart() } }, observedEffects: ["Manage the declared service process"] })`;
-	}
-	if (descriptor.kind === "service" && primitive === "uninstall") {
-		return `() => ({ result: { ...baseResult, data: { state: serviceStop() } }, observedEffects: ["Manage the declared service process"] })`;
+	if (
+		descriptor.kind === "service" &&
+		["status", "start", "stop", "restart", "uninstall"].includes(primitive)
+	) {
+		return `() => ({ result: { ...baseResult, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "implement-service-process", description: "Owner must implement createServiceProcessBinding and the package-owned service process before lifecycle operations are available" } }, observedEffects: [] })`;
 	}
 	return `() => ({ result: baseResult, observedEffects: [] })`;
 }
 
 function adapterSource(descriptor: ModuleDescriptor): string {
-	const imports =
-		descriptor.kind === "service"
-			? 'import { restart as serviceRestart, start as serviceStart, status as serviceStatus, stop as serviceStop } from "../src/lifecycle.ts";\n\n'
-			: "";
+	const imports = "";
 	const operations = descriptor.lifecycle.supported
 		.map(
 			(primitive) =>
 				`\t${JSON.stringify(primitive)}: ${operationSource(descriptor, primitive)},`,
 		)
 		.join("\n");
+	const serviceBinding =
+		descriptor.kind === "service"
+			? `\nexport function createServiceProcessBinding() {\n\t// Owner must replace this fail-closed skeleton with the real package-owned process config and probes.\n\treturn undefined;\n}\n`
+			: "";
 	return `${imports}const baseResult = {
 \tcontract: "deployment.result.v1",
 \tok: true,
@@ -291,16 +299,16 @@ function adapterSource(descriptor: ModuleDescriptor): string {
 export const behaviorAdapter = {
 ${operations}
 } as const;
-`;
+${serviceBinding}`;
 }
 
 function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
 	switch (descriptor.kind) {
 		case "service":
 			return {
-				"src/lifecycle.ts": `export type ServiceState = "STOPPED" | "RUNNING";\n\nlet state: ServiceState = "STOPPED";\n\nexport function status(): ServiceState {\n\treturn state;\n}\n\nexport function start(): ServiceState {\n\tstate = "RUNNING";\n\treturn state;\n}\n\nexport function stop(): ServiceState {\n\tstate = "STOPPED";\n\treturn state;\n}\n\nexport function restart(): ServiceState {\n\tstop();\n\treturn start();\n}\n`,
-				"tests/lifecycle.test.ts": `import assert from "node:assert/strict";\nimport { test } from "node:test";\n\nimport { restart, start, status, stop } from "../src/lifecycle.ts";\n\ntest("a service starts in STOPPED and start() moves it to RUNNING", () => {\n\tstop();\n\tassert.equal(status(), "STOPPED");\n\tassert.equal(start(), "RUNNING");\n\tassert.equal(status(), "RUNNING");\n});\n\ntest("stop() moves a running service back to STOPPED", () => {\n\tstart();\n\tassert.equal(status(), "RUNNING");\n\tassert.equal(stop(), "STOPPED");\n\tassert.equal(status(), "STOPPED");\n});\n\ntest("restart() stops then starts, ending in RUNNING", () => {\n\tstop();\n\tassert.equal(restart(), "RUNNING");\n\tassert.equal(status(), "RUNNING");\n});\n`,
+				"src/cli.ts": `#!/usr/bin/env node\nimport { spawnSync } from "node:child_process";\n\nconst [command, configPath, ...rest] = process.argv.slice(2);\nconst usage = "Usage: ${descriptor.packageName} install | start /absolute/config.json\n";\nif (command === "--help" || command === "-h") {\n\tprocess.stdout.write(usage);\n\tprocess.exit(0);\n}\nif (command === "install") {\n\tif (configPath !== undefined || rest.length > 0) {\n\t\tprocess.stderr.write(usage);\n\t\tprocess.exit(2);\n\t}\n\tconst executable = process.platform === "win32" ? "npx.cmd" : "npx";\n\tconst result = spawnSync(executable, ["--yes", "@tomflow/proflow-platform-cli", "install", ${JSON.stringify(descriptor.packageName)}], { cwd: process.cwd(), env: process.env, stdio: "inherit" });\n\tif (result.error) throw result.error;\n\tprocess.exit(result.status ?? 1);\n}\nif (command !== "start" || configPath === undefined || rest.length > 0) {\n\tprocess.stderr.write(usage);\n\tprocess.exit(2);\n}\nthrow new Error("OWNER_IMPLEMENTATION_REQUIRED: implement the package-owned service process entrypoint before start is allowed");\n`,
 			};
+
 		case "cli":
 			return {
 				"src/cli.ts": `export interface CliResult {\n\tcontract: "deployment.result.v1";\n\tok: boolean;\n\tstatus: "SUCCEEDED";\n\tmoduleRef: string;\n\tmoduleVersion: string;\n}\n\nexport function runCli(args: readonly string[]): string {\n\tif (!args.includes("--json")) throw new TypeError("--json is required");\n\tconst result: CliResult = { contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${JSON.stringify(descriptor.moduleRef)}, moduleVersion: ${JSON.stringify(descriptor.moduleVersion)} };\n\treturn JSON.stringify(result);\n}\n`,
@@ -390,6 +398,7 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 		)}\n`,
 		"src/index.ts": `export const moduleRef = ${JSON.stringify(descriptor.moduleRef)};\n`,
 		"tests/smoke.test.ts": `import { moduleRef } from "../src/index.ts";\n\nconst observed: string = moduleRef;\nvoid observed;\n`,
+		"proflow.module.json": `${JSON.stringify(descriptor, null, 2)}\n`,
 		"deployment/descriptor.ts": descriptorSource(descriptor),
 		"deployment/requirements.ts": `import { descriptor } from "./descriptor.ts";\n\nexport const requirements = descriptor.requirements;\n`,
 		"deployment/verification.ts": `import { descriptor } from "./descriptor.ts";\n\nexport const verification = descriptor.verification;\n`,
@@ -416,12 +425,20 @@ export async function materializeModule(
 ): Promise<MaterializeModuleResult> {
 	const descriptor = descriptorFor(input);
 	const metadata = packageMetadata(descriptor);
-	const packageDirectory = resolve(input.targetDirectory, input.moduleRef);
+	const targetRoot = resolve(input.targetDirectory);
+	const packageDirectory = resolve(targetRoot, input.moduleRef);
 	const files = { ...commonFiles(descriptor), ...profileFiles(descriptor) };
-	for (const [relativePath, content] of Object.entries(files)) {
-		const destination = join(packageDirectory, relativePath);
-		await mkdir(resolve(destination, ".."), { recursive: true });
-		await writeFile(destination, content, { encoding: "utf8", flag: "wx" });
+	await mkdir(targetRoot, { recursive: true });
+	await mkdir(packageDirectory);
+	try {
+		for (const [relativePath, content] of Object.entries(files)) {
+			const destination = join(packageDirectory, relativePath);
+			await mkdir(resolve(destination, ".."), { recursive: true });
+			await writeFile(destination, content, { encoding: "utf8", flag: "wx" });
+		}
+	} catch (error) {
+		await rm(packageDirectory, { recursive: true, force: true });
+		throw error;
 	}
 	return {
 		packageDirectory,
