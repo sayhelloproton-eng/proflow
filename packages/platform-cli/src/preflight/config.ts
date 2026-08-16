@@ -1,4 +1,6 @@
 import type { ResolvedModule } from "../contracts.ts";
+import { PlatformError } from "../errors.ts";
+import { isValidSecretRef } from "../security/redact.ts";
 import type { PreflightFinding } from "./findings.ts";
 
 export interface ResolvedModuleConfig {
@@ -30,7 +32,14 @@ export function resolveModuleConfig(
 		}
 		if (value === undefined) continue;
 		values[slot.key] = value;
-		if (slot.type === "secretRef") secretRefs.push(slot.key);
+		if (slot.type === "secretRef") {
+			if (!isValidSecretRef(value))
+				throw new PlatformError(
+					"SECRET_REF_INVALID",
+					`secretRef config "${slot.key}" for ${module.moduleRef} must be an opaque reference identity (e.g. secret://provider/name)`,
+				);
+			secretRefs.push(slot.key);
+		}
 	}
 	return { moduleRef: module.moduleRef, values, secretRefs, missing };
 }

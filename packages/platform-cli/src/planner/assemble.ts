@@ -73,6 +73,7 @@ export interface AssembleArgs {
 	steps: DeploymentStep[];
 	humanActions: HumanAction[];
 	now: Date;
+	targetDescriptors?: readonly ModuleDescriptor[];
 }
 
 export function assemblePlan(args: AssembleArgs): DeploymentPlan {
@@ -138,6 +139,9 @@ export function assemblePlan(args: AssembleArgs): DeploymentPlan {
 		intent: args.intent,
 		moduleTargets,
 		resolvedModules,
+		...(args.targetDescriptors !== undefined
+			? { targetDescriptors: [...args.targetDescriptors] }
+			: {}),
 		steps: args.steps,
 		effects,
 		humanActions,

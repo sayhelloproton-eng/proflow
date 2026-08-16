@@ -144,5 +144,6 @@ export function planUpgrade(input: PlanInput): DeploymentPlan {
 		steps,
 		humanActions: humanActionsFromModules(modules),
 		now: input.now ?? new Date(),
+		targetDescriptors,
 	});
 }

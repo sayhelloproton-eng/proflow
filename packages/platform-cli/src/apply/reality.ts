@@ -17,7 +17,10 @@ import type { PackageManagerDriver } from "./driver.ts";
  * skipped.
  */
 export interface RealityObserver {
-	observe(step: DeploymentStep, plan: DeploymentPlan): Promise<StepReality>;
+	observe(
+		step: DeploymentStep,
+		plan: DeploymentPlan,
+	): Promise<StepReality | undefined>;
 }
 
 export interface RealityObserverDeps {
@@ -92,15 +95,15 @@ function parseStatusReality(value: unknown): StepReality {
 async function observeViaStatus(
 	catalog: ModuleCatalog,
 	module: ResolvedModule,
-): Promise<StepReality> {
+): Promise<StepReality | undefined> {
 	if (!module.lifecycle.includes("status")) return {};
 	try {
 		const dispatched = await dispatchLifecycle(catalog, module, "status");
 		return parseStatusReality(dispatched.result.data);
 	} catch {
-		// Observation failed: reality is simply not observed, which the check
-		// reports as NOT_SATISFIED/UNKNOWN rather than a fabricated success.
-		return {};
+		// Observation failed (transport/timeout/malformed): UNKNOWN, never a
+		// fabricated NOT_SATISFIED that would replay a lifecycle/external effect.
+		return undefined;
 	}
 }
 
@@ -108,7 +111,7 @@ async function observeStep(
 	deps: RealityObserverDeps,
 	step: DeploymentStep,
 	plan: DeploymentPlan,
-): Promise<StepReality> {
+): Promise<StepReality | undefined> {
 	const module = moduleOf(plan, step);
 	if (module === undefined) return {};
 	switch (step.kind) {

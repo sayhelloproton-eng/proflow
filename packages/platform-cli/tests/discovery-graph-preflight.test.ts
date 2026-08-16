@@ -505,8 +505,8 @@ test("requirements: human is ACTION_REQUIRED, node runtime satisfied, missing ex
 	assert.equal(executable?.status, "FAIL");
 });
 
-test("config: missing required config produces CONFIG_MISSING; secretRef is never echoed", () => {
-	const secret = "super-secret-token-123";
+test("config: missing required config produces CONFIG_MISSING; secretRef holds a reference identity and rejects raw secrets", () => {
+	const secretRef = "secret://provider/api";
 	const module = moduleFixture({
 		moduleRef: "m",
 		configSlots: [
@@ -526,23 +526,40 @@ test("config: missing required config produces CONFIG_MISSING; secretRef is neve
 		],
 	});
 
-	const findings = checkConfigReadiness([module], { m: { apiKey: secret } });
+	const findings = checkConfigReadiness([module], { m: { apiKey: secretRef } });
 	assert.ok(
 		findings.some(
 			(finding) =>
 				finding.code === "CONFIG_MISSING" && finding.moduleRef === "m",
 		),
 	);
-	assert.ok(!JSON.stringify(findings).includes(secret));
+	assert.ok(!JSON.stringify(findings).includes("provider/api"));
 
 	const resolved = resolveModuleConfig(module, {
 		requiredThing: "value",
-		apiKey: secret,
+		apiKey: secretRef,
 	});
 	assert.deepEqual(resolved.missing, []);
 	assert.deepEqual(resolved.secretRefs, ["apiKey"]);
 	// held as a reference, never expanded
-	assert.equal(resolved.values.apiKey, secret);
+	assert.equal(resolved.values.apiKey, secretRef);
+
+	assert.throws(
+		() =>
+			resolveModuleConfig(module, {
+				requiredThing: "value",
+				apiKey: "super-secret-token-123",
+			}),
+		/opaque reference identity/,
+	);
+	assert.throws(
+		() =>
+			resolveModuleConfig(module, {
+				requiredThing: "value",
+				apiKey: "sk-live-raw-openai-key",
+			}),
+		/opaque reference identity/,
+	);
 });
 
 test("preflight blocks with findings for an unresolved dependency", async () => {

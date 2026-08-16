@@ -39,27 +39,59 @@ export function createBehaviorAdapter(input?: {
 					),
 			observedEffects: [],
 		}),
-		status: () => ({
-			result: input
-				? {
-						...success(),
-						checks: [
-							{
-								id: "runtime-status-fresh",
-								status:
-									input.service.status() === "RUNNING"
-										? ("PASS" as const)
-										: ("WARN" as const),
-								message: `Model Runtime service is ${input.service.status()}`,
-							},
-						],
-					}
-				: actionRequired(
+		status: () => {
+			const inspection = input ? input.service.inspect() : undefined;
+			if (!inspection)
+				return {
+					result: actionRequired(
 						"configure-provider",
 						"No Model Runtime service is bound",
 					),
-			observedEffects: [],
-		}),
+					observedEffects: [],
+				};
+			const dependency = inspection.dependency;
+			const ready =
+				inspection.readiness === "READY" &&
+				dependency.fast === "READY" &&
+				dependency.reason === "READY";
+			return {
+				result: {
+					...(ready
+						? success()
+						: actionRequired(
+								"repair-model-runtime",
+								"Model Runtime process is not fully READY (roles/lane/provider unavailable)",
+							)),
+					checks: [
+						{
+							id: "runtime-status-fresh",
+							status:
+								inspection.readiness === "READY"
+									? ("PASS" as const)
+									: ("FAIL" as const),
+							message: `Model Runtime readiness is ${inspection.readiness}`,
+						},
+						{
+							id: "fast-role-available",
+							status:
+								dependency.fast === "READY"
+									? ("PASS" as const)
+									: ("FAIL" as const),
+							message: `FAST role is ${dependency.fast}`,
+						},
+						{
+							id: "reason-role-available",
+							status:
+								dependency.reason === "READY"
+									? ("PASS" as const)
+									: ("FAIL" as const),
+							message: `REASON role is ${dependency.reason}`,
+						},
+					],
+				},
+				observedEffects: [],
+			};
+		},
 		verify: async () => {
 			if (!input)
 				return {

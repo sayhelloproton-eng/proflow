@@ -2,6 +2,13 @@ import type { DeploymentPlan } from "../contracts.ts";
 
 export const SECRET_REDACTED = "<redacted>";
 
+const SECRET_REF_PATTERN =
+	/^(?:secret:\/\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*|credential-ref:[A-Za-z0-9._-]+)$/;
+
+export function isValidSecretRef(value: string): boolean {
+	return SECRET_REF_PATTERN.test(value);
+}
+
 // secretRef slot values are opaque reference identities (e.g.
 // `secret://model-provider/default`, `credential-ref:local-platform`), NOT raw
 // tokens/passwords. They are safe to persist and display verbatim, so this

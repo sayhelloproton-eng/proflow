@@ -107,6 +107,17 @@ function outcome(
 	return result;
 }
 
+function aggregateStatus(
+	statuses: ReadonlyArray<
+		"SUCCEEDED" | "BLOCKED" | "ACTION_REQUIRED" | "FAILED"
+	>,
+): CliStatus {
+	if (statuses.includes("FAILED")) return "FAILED";
+	if (statuses.includes("BLOCKED")) return "BLOCKED";
+	if (statuses.includes("ACTION_REQUIRED")) return "ACTION_REQUIRED";
+	return "SUCCEEDED";
+}
+
 function failure(command: string, error: unknown): CliOutcome {
 	if (error instanceof PlatformError) {
 		return {
@@ -331,7 +342,13 @@ async function handleLifecycle(
 			: primitive === "stop"
 				? await stopModules(ctx.catalog, selected)
 				: await statusModules(ctx.catalog, selected);
-	return outcome(primitive, "SUCCEEDED", result);
+	return outcome(
+		primitive,
+		aggregateStatus(
+			result.flatMap((item) => (item.result ? [item.result.status] : [])),
+		),
+		result,
+	);
 }
 
 async function handleVerify(
@@ -341,7 +358,11 @@ async function handleVerify(
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
 	const result = await verifyModules(ctx.catalog, selected, ctx.paths);
-	return outcome("verify", "SUCCEEDED", result);
+	return outcome(
+		"verify",
+		aggregateStatus(result.map((item) => item.result.status)),
+		result,
+	);
 }
 
 async function handleDoctor(
@@ -351,7 +372,11 @@ async function handleDoctor(
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
 	const result = await doctorModules(ctx.catalog, selected);
-	return outcome("doctor", "SUCCEEDED", result);
+	return outcome(
+		"doctor",
+		aggregateStatus(result.map((item) => item.status)),
+		result,
+	);
 }
 
 async function handleManifest(

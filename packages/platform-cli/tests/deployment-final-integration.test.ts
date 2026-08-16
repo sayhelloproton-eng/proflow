@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -23,7 +23,7 @@ import {
 import { applyPlan } from "../src/apply/index.ts";
 import type { ResolvedModule } from "../src/contracts.ts";
 import { WorkspaceModuleCatalog } from "../src/discovery/catalog.ts";
-import { discoverModules } from "../src/discovery/discover.ts";
+import { AutoModuleCatalog, discoverModules } from "../src/discovery/discover.ts";
 import { doctorModules } from "../src/doctor/index.ts";
 import {
 	buildDependencyGraph,
@@ -1124,4 +1124,114 @@ test("secret — generated INSTALL preserves a secretRef identity verbatim (froz
 	// requires it to survive verbatim, never substituted with <redacted>.
 	assert.ok(doc.includes(SECRET_REF), "secretRef identity must be preserved");
 	assert.ok(!doc.includes("<redacted>"));
+});
+
+test("PRESMOKE-B6-BINDER-01 shipped AutoModuleCatalog binds a real local service adapter over the unbound default", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-cli-binder-"));
+	try {
+		await mkdir(join(root, "packages", "svc", "deployment"), { recursive: true });
+		await writeFile(
+			join(root, "pnpm-workspace.yaml"),
+			'packages:\n  - "packages/*"\n',
+		);
+		await writeFile(
+			join(root, "packages", "svc", "package.json"),
+			JSON.stringify({ name: "@tomflow/proflow-svc", version: "1.0.0" }),
+		);
+		await writeFile(
+			join(root, "packages", "svc", "deployment", "descriptor.ts"),
+			`export const descriptor = {
+	contract: "module",
+	contractVersion: "1.0.0",
+	moduleRef: "svc",
+	packageName: "@tomflow/proflow-svc",
+	moduleVersion: "1.0.0",
+	kind: "service",
+	templateVersion: "1.0.0",
+	platformCompatibility: ">=1.0.0 <2.0.0",
+	provides: [],
+	requires: [],
+	requirements: [],
+	configSlots: [],
+	lifecycle: { supported: ["describe", "preflight", "status", "verify", "doctor", "start", "stop", "restart"] },
+	verification: { checks: [{ id: "health", description: "Observed health", lifecycle: "verify" }] },
+	effects: [],
+} as const;
+`,
+		);
+		await writeFile(
+			join(root, "packages", "svc", "deployment", "adapter.ts"),
+			`type Service = { status(): "RUNNING" | "STOPPED"; inspect(): { readiness: "READY" | "NOT_READY" }; start(): Promise<unknown>; stop(): Promise<unknown> };
+const base = { contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: "svc", moduleVersion: "1.0.0" } as const;
+const unbound = { ...base, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "bind-service", description: "No service bound" } } as const;
+export function createBehaviorAdapter(input?: { service: Service }) {
+	return {
+		describe: () => ({ result: base, observedEffects: [] }),
+		preflight: () => ({ result: input ? base : unbound, observedEffects: [] }),
+		status: () => ({
+			result: input ? { ...base, checks: [{ id: "runtime", status: input.service.status() === "RUNNING" ? "PASS" : "FAIL", message: "runtime" }] } : unbound,
+			observedEffects: [],
+		}),
+		verify: async () => ({ result: input ? { ...base, checks: [{ id: "health", status: input.service.inspect().readiness === "READY" ? "PASS" : "FAIL", message: "health" }] } : unbound, observedEffects: [] }),
+		doctor: () => ({ result: input ? base : unbound, observedEffects: [] }),
+		start: async () => ({ result: input ? { ...base, data: await input.service.start() } : unbound, observedEffects: input ? ["start"] : [] }),
+		stop: async () => ({ result: input ? (await input.service.stop(), base) : unbound, observedEffects: input ? ["stop"] : [] }),
+	};
+}
+export const behaviorAdapter = createBehaviorAdapter();
+`,
+		);
+
+		// A real local service with an HTTP transport and current-reality inspect.
+		const { createServer } = await import("node:http");
+		let running = false;
+		let server: import("node:http").Server | undefined;
+		const service = {
+			status() {
+				return running ? ("RUNNING" as const) : ("STOPPED" as const);
+			},
+			inspect() {
+				return { readiness: running ? ("READY" as const) : ("NOT_READY" as const) };
+			},
+			async start() {
+				server = createServer((_req, res) => {
+					res.end("ok");
+				});
+				await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
+				running = true;
+				return { host: "127.0.0.1", port: 0 };
+			},
+			async stop() {
+				await new Promise<void>((resolve) => server?.close(() => resolve()));
+				server = undefined;
+				running = false;
+			},
+		};
+
+		// Production binder: dynamically import the shipped adapter factory and
+		// bind the real service, keyed by packageName.
+		const adapterUrl = join(root, "packages", "svc", "deployment", "adapter.ts");
+		const adapterNs = (await import(adapterUrl)) as {
+			createBehaviorAdapter: (input?: { service: typeof service }) => unknown;
+		};
+		const bound = { behaviorAdapter: adapterNs.createBehaviorAdapter({ service }) };
+		const catalog = new AutoModuleCatalog(root, new Map([["@tomflow/proflow-svc", bound]]));
+
+		const modules = await discoverModules({ catalog });
+		assert.equal(modules.length, 1);
+		assert.equal(modules[0]?.moduleRef, "svc");
+
+		// Unbound default reports ACTION_REQUIRED; bound adapter reports real status.
+		const [statusRun] = await statusModules(catalog, modules);
+		assert.equal(statusRun?.result?.status, "SUCCEEDED");
+		const [startRun] = await startModules(catalog, modules);
+		assert.equal(startRun?.result?.status, "SUCCEEDED");
+		const [afterStart] = await statusModules(catalog, modules);
+		assert.equal(afterStart?.result?.checks?.[0]?.status, "PASS");
+		const [verify] = await verifyModules(catalog, modules, workspacePaths(root));
+		assert.equal(verify?.result?.status, "SUCCEEDED");
+		await service.stop();
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
 });

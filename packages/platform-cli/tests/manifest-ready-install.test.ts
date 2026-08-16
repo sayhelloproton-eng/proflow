@@ -18,6 +18,7 @@ import { buildManifest } from "../src/manifest/index.ts";
 import type { ModuleCatalog, ModuleSource } from "../src/modules.ts";
 import { type WorkspacePaths, workspacePaths } from "../src/paths.ts";
 import { appendVerification } from "../src/persistence/index.ts";
+import { materializeConfig } from "../src/persistence/config.ts";
 import { assessPlatformReady } from "../src/ready/index.ts";
 import { SECRET_REDACTED } from "../src/security/index.ts";
 
@@ -453,6 +454,11 @@ test("buildManifest composes live status, verification summary, secretRef refere
 			],
 		});
 		await appendVerification(paths, verificationRecord("svc", "1.0.0", "PASS"));
+		await materializeConfig(paths, {
+			moduleRef: "svc",
+			values: { token: "secret://model-provider/default", region: "us-east" },
+			secretRefs: ["token"],
+		});
 		const { calls, catalog } = makeCatalog([
 			{ module: svc, primitives: { status: () => ok("svc", "1.0.0") } },
 		]);
@@ -461,9 +467,6 @@ test("buildManifest composes live status, verification summary, secretRef refere
 			catalog,
 			modules: [svc],
 			paths,
-			config: {
-				svc: { token: "secret://model-provider/default", region: "us-east" },
-			},
 		});
 
 		assert.equal(manifest.contract, "proflow.manifest.v1");
@@ -647,6 +650,50 @@ test("generateInstallDoc writes INSTALL.md and redacts a non-secretRef sensitive
 		assert.ok(!content.includes("super-secret-token-123"));
 		assert.ok(content.includes(SECRET_REDACTED));
 		assert.ok(content.includes("svc"));
+	} finally {
+		await cleanup();
+	}
+});
+
+test("PRESMOKE-B6-MANIFEST-01 config readiness requires materialized config, not caller-supplied intent", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({
+			moduleRef: "svc",
+			kind: "service",
+			configSlots: [
+				{
+					key: "token",
+					type: "secretRef",
+					required: true,
+					sensitive: true,
+					description: "api token",
+				},
+			],
+		});
+		await appendVerification(paths, verificationRecord("svc", "1.0.0", "PASS"));
+		const { catalog } = makeCatalog([
+			{ module: svc, primitives: { status: () => ok("svc", "1.0.0") } },
+		]);
+
+		// Caller-supplied config intent alone must not manufacture READY.
+		const notMaterialized = await buildManifest({
+			catalog,
+			modules: [svc],
+			paths,
+			config: { svc: { token: "secret://model-provider/default" } },
+		});
+		assert.equal(notMaterialized.status, "NOT_READY");
+		assert.ok(notMaterialized.config[0]?.missing.includes("token"));
+
+		await materializeConfig(paths, {
+			moduleRef: "svc",
+			values: { token: "secret://model-provider/default" },
+			secretRefs: ["token"],
+		});
+		const materialized = await buildManifest({ catalog, modules: [svc], paths });
+		assert.equal(materialized.status, "READY");
+		assert.deepEqual(materialized.config[0]?.missing, []);
 	} finally {
 		await cleanup();
 	}

@@ -50,6 +50,7 @@ export interface DeploymentPlan {
 	intent: DeploymentIntent;
 	moduleTargets: ModuleTarget[];
 	resolvedModules: ResolvedModule[];
+	targetDescriptors?: ModuleDescriptor[];
 	steps: DeploymentStep[];
 	effects: DeploymentEffect[];
 	humanActions: HumanAction[];

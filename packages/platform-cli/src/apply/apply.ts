@@ -82,11 +82,26 @@ export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 		const stepResults: ApplyStepResult[] = [];
 
 		for (const step of plan.steps) {
-			const check = evaluateStepCheck(
-				step,
-				plan,
-				await observer.observe(step, plan),
-			);
+			const reality = await observer.observe(step, plan);
+			if (reality === undefined) {
+				// UNKNOWN: current reality could not be observed. Stop without
+				// replaying any lifecycle/external effect, then doctor/repair.
+				stepResults.push({
+					stepRef: step.stepRef,
+					moduleRef: step.moduleRef,
+					status: "FAILED",
+					message: `blocked: current reality for ${step.moduleRef} could not be observed`,
+				});
+				state.updatedAt = nowIso();
+				await saveDeploymentState(context.paths, state);
+				return {
+					planRef: plan.planRef,
+					outcome: "BLOCKED",
+					stepResults,
+					completedAt: nowIso(),
+				};
+			}
+			const check = evaluateStepCheck(step, plan, reality);
 			if (check.status === "SATISFIED") {
 				// A previously-pending action for this step can no longer block a
 				// resume: the step is satisfied in current reality, so clear it.
@@ -160,11 +175,24 @@ export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 					// Postcondition re-check: only a genuinely successful mutation is
 					// confirmed; an effect that cannot be confirmed stops the apply
 					// rather than blindly repeating it.
-					const post = evaluateStepCheck(
-						step,
-						plan,
-						await observer.observe(step, plan),
-					);
+					const postReality = await observer.observe(step, plan);
+					if (postReality === undefined) {
+						stepResults.push({
+							stepRef: step.stepRef,
+							moduleRef: step.moduleRef,
+							status: "FAILED",
+							message: `blocked: postcondition reality for ${step.moduleRef} could not be observed`,
+						});
+						state.updatedAt = nowIso();
+						await saveDeploymentState(context.paths, state);
+						return {
+							planRef: plan.planRef,
+							outcome: "BLOCKED",
+							stepResults,
+							completedAt: nowIso(),
+						};
+					}
+					const post = evaluateStepCheck(step, plan, postReality);
 					if (post.status !== "SATISFIED") {
 						stepResults.push({
 							stepRef: step.stepRef,

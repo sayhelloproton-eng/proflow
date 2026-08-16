@@ -123,8 +123,18 @@ export async function buildManifest(
 	const pendingActions: ManifestPendingAction[] = [];
 	const blockingActions: BlockingAction[] = [];
 	const resources: ResourceReality[] = [];
+	const materializedConfig: Record<string, Record<string, string>> = {};
 
 	for (const module of modules) {
+		// materialized config current reality (never caller-supplied intent)
+		const persisted = await loadConfig(deps.paths, module.moduleRef);
+		if (persisted !== undefined) {
+			materializedConfig[module.moduleRef] = {
+				...persisted.publicValues,
+				...persisted.secretValues,
+			};
+		}
+
 		// live runtime status — current reality, not persisted state
 		const run = statusByRef.get(module.moduleRef);
 		let runtimeObserved = false;
@@ -157,7 +167,6 @@ export async function buildManifest(
 		// external resource identity/version
 		let resourceIdentity: string | undefined;
 		if (module.kind === "external-resource") {
-			const persisted = await loadConfig(deps.paths, module.moduleRef);
 			const secretRefs = module.configSlots
 				.filter((slot) => slot.type === "secretRef")
 				.map((slot) => slot.key);
@@ -204,10 +213,10 @@ export async function buildManifest(
 			...(lastFailAt !== undefined ? { lastFailAt } : {}),
 		});
 
-		// config readiness, secret-redacted
+		// config readiness, secret-redacted, from materialized current reality
 		const resolved = resolveModuleConfig(
 			module,
-			deps.config?.[module.moduleRef],
+			materializedConfig[module.moduleRef],
 		);
 		configEntries.push({
 			moduleRef: module.moduleRef,
@@ -238,7 +247,7 @@ export async function buildManifest(
 		modules,
 		status: statusResults,
 		verification: allRecords,
-		...(deps.config !== undefined ? { config: deps.config } : {}),
+		config: materializedConfig,
 		blockingActions,
 		resources,
 	});

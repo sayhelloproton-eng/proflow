@@ -13,7 +13,7 @@ export type {
 	VerificationRecord,
 	VerificationStep,
 } from "./contracts.ts";
-export { discoverModules } from "./discovery/discover.ts";
+export { discoverModules, AutoModuleCatalog } from "./discovery/discover.ts";
 export { doctorModule, doctorModules } from "./doctor/index.ts";
 export type { PlatformErrorCode } from "./errors.ts";
 export { PlatformError } from "./errors.ts";
