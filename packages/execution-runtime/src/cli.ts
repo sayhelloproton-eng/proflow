@@ -4,6 +4,7 @@ import {
 	createBrowserExecutorComposition,
 	loadBrowserExecutorCompositionConfig,
 } from "@tomflow/proflow-execution-browser-extension/runtime-composition";
+import { createExecutionBrowserVisionClient } from "./browser-vision-client.ts";
 import { createExecutionModelDecisionClient } from "./model-decision-client.ts";
 import {
 	createExecutionRuntimeProcess,
@@ -103,9 +104,19 @@ const modelDecisionClient = createExecutionModelDecisionClient({
 	credential: modelDecisionCredential,
 });
 await modelDecisionClient.probe();
-const browserComposition = await createBrowserExecutorComposition(
-	await loadBrowserExecutorCompositionConfig(config.browserExecutorConfigPath),
-);
+const browserVisionClient = createExecutionBrowserVisionClient({
+	endpoint: config.modelDecision.endpoint,
+	...(config.modelDecision.timeoutMs === undefined
+		? {}
+		: { timeoutMs: config.modelDecision.timeoutMs }),
+	credential: modelDecisionCredential,
+});
+const browserComposition = await createBrowserExecutorComposition({
+	...(await loadBrowserExecutorCompositionConfig(
+		config.browserExecutorConfigPath,
+	)),
+	vision: browserVisionClient.port,
+});
 let service:
 	| Awaited<ReturnType<typeof createExecutionRuntimeProcess>>
 	| undefined;

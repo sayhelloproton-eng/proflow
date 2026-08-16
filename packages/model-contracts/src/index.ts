@@ -22,6 +22,52 @@ export const imageInputSchema = z
 	})
 	.strict();
 
+export const browserPageVisionInputSchema = z
+	.object({
+		targetRef: z.string().min(1).max(240),
+		pageState: z.enum(["IDLE", "BUSY", "BLOCKED", "UNKNOWN"]),
+		activityKind: z
+			.enum([
+				"GENERATING",
+				"ACTION_PERMISSION",
+				"ACTION_RUNNING",
+				"WAITING_HUMAN",
+				"WAITING_PEER",
+				"RECOVERING",
+			])
+			.nullable(),
+		observedAt: z.iso.datetime(),
+	})
+	.strict();
+
+export type BrowserPageVisionInput = z.infer<
+	typeof browserPageVisionInputSchema
+>;
+
+export const browserPageVisionObservationSchema = z
+	.object({
+		pageState: z.enum(["IDLE", "BUSY", "BLOCKED", "UNKNOWN"]),
+		activityKind: z
+			.enum([
+				"GENERATING",
+				"ACTION_PERMISSION",
+				"ACTION_RUNNING",
+				"WAITING_HUMAN",
+				"WAITING_PEER",
+				"RECOVERING",
+			])
+			.nullable(),
+		confidence: z.number().min(0).max(1),
+		recommendedNext: z.enum(["NONE", "RECOVER", "WAIT", "REQUEST_HUMAN"]),
+		reasonCode: z.string().min(1).max(160),
+		rationale: z.string().min(1).max(1_000),
+	})
+	.strict();
+
+export type BrowserPageVisionObservation = z.infer<
+	typeof browserPageVisionObservationSchema
+>;
+
 export const inferenceRequestSchema = z
 	.object({
 		contractVersion: z.literal("1.0.0"),
@@ -326,6 +372,8 @@ export const MODEL_CONTRACT_DESCRIPTOR = Object.freeze({
 		"ModelCapabilityProfile",
 		"ReasoningSpec",
 		"CapabilityProposal",
+		"BrowserPageVisionInput",
+		"BrowserPageVisionObservation",
 	],
 	request: [
 		"contractVersion",

@@ -44,13 +44,16 @@ export async function importRawAdapter(
 ): Promise<Record<string, unknown>> {
 	if (source.type === "workspace") {
 		if (source.path === undefined) return {};
-		const url = pathToFileURL(
-			join(source.path, "deployment", "adapter.ts"),
-		).href;
-		return (await import(url)) as Record<string, unknown>;
+		const url = pathToFileURL(join(source.path, "deployment", "adapter.ts"));
+		return (await /* architecture-allow-local-file-url-import */ import(
+			url.href
+		)) as Record<string, unknown>;
 	}
-	const url = import.meta.resolve(`${packageName}/deployment/adapter`);
-	return (await import(url)) as Record<string, unknown>;
+	const resolved = import.meta.resolve(`${packageName}/deployment/adapter`);
+	const url = new URL(resolved);
+	return (await /* architecture-allow-local-file-url-import */ import(
+		url.href
+	)) as Record<string, unknown>;
 }
 
 /**

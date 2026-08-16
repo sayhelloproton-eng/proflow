@@ -70,18 +70,26 @@ type RelayArtifact = {
 	bytes: Buffer;
 };
 type RelayEntry = RelayArtifact & { expiresAt: number };
-const ownerFileArtifactsSchema = z.object({
-	fileArtifacts: z
-		.array(
-			z.object({
-				artifactRef: z.string().min(1),
-				name: z.string().min(1),
-				mimeType: z.string().min(1),
-				content: z.string().min(1),
-			}),
-		)
-		.max(MAX_INPUT_FILES),
+const ownerFileBridgeArtifactSchema = z.object({
+	artifactRef: z.string().min(1),
+	name: z.string().min(1),
+	mimeType: z.string().min(1),
+	content: z.string().min(1),
 });
+export type OwnerFileBridgeArtifact = z.infer<
+	typeof ownerFileBridgeArtifactSchema
+>;
+const ownerFileBridgeOutputSchema = z.object({
+	fileArtifacts: z.array(ownerFileBridgeArtifactSchema).max(MAX_INPUT_FILES),
+});
+export type OwnerFileBridgeOutput = z.infer<typeof ownerFileBridgeOutputSchema>;
+// Only this explicit allowed operation may produce the typed File Bridge
+// descriptor. Any other owner output that happens to carry a same-named
+// `fileArtifacts` key is treated as ordinary JSON and never reaches the
+// GPT-facing `openaiFileResponse` serializer.
+const FILE_BRIDGE_OUTPUT_OPERATIONS: ReadonlySet<string> = new Set([
+	"getTaskDocument",
+]);
 function safeFilename(name: string): boolean {
 	return (
 		name.length > 0 &&
@@ -233,14 +241,15 @@ export async function createAgentGateway(options: GatewayOptions) {
 			throw new AgentGatewayError("OPENAI_ACTION_RESPONSE_BUDGET_EXCEEDED");
 		return candidate;
 	};
-	// The owner declares an explicit File Bridge response by returning a
-	// `fileArtifacts` array. Only that declared shape is serialized into the
-	// GPT-facing `openaiFileResponse`; every other owner output stays plain JSON.
-	const ownerFileArtifacts = (output: unknown): RelayArtifact[] | undefined => {
+	const ownerFileBridgeOutput = (
+		operationId: string,
+		output: unknown,
+	): RelayArtifact[] | undefined => {
+		if (!FILE_BRIDGE_OUTPUT_OPERATIONS.has(operationId)) return undefined;
 		if (typeof output !== "object" || output === null || Array.isArray(output))
 			return undefined;
 		if (!("fileArtifacts" in output)) return undefined;
-		const parsed = ownerFileArtifactsSchema.parse(output);
+		const parsed = ownerFileBridgeOutputSchema.parse(output);
 		return parsed.fileArtifacts.map((item) => ({
 			artifactRef: item.artifactRef,
 			name: item.name,
@@ -438,7 +447,7 @@ export async function createAgentGateway(options: GatewayOptions) {
 					),
 				),
 			]);
-			const fileArtifacts = ownerFileArtifacts(output);
+			const fileArtifacts = ownerFileBridgeOutput(action.operationId, output);
 			if (fileArtifacts !== undefined) {
 				response.end(JSON.stringify(serializeFileResponse(fileArtifacts)));
 				return;

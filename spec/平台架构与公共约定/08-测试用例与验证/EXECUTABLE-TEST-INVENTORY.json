@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 122,
-    "testCalls": 651
+    "files": 124,
+    "testCalls": 661
   },
   "tests": [
     {
@@ -447,6 +447,36 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-gateway/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-gateway",
+      "path": "packages/agent-gateway/tests/file-bridge-get-task-document.test.ts",
+      "line": 206,
+      "title": "R2-P1-22 real getTaskDocument File Bridge chain: admission → descriptor → openaiFileResponse",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-gateway",
+      "path": "packages/agent-gateway/tests/file-bridge-get-task-document.test.ts",
+      "line": 361,
+      "title": "R2-P1-22 gateway serializes only the explicit getTaskDocument descriptor and rejects image/video egress",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-store-sqlite/src/index.ts"
       ]
     },
     {
@@ -1974,7 +2004,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 146,
+      "line": 149,
       "title": "REG-EXE-BR-01 stable role/worker identity rejects stale transient content instances",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1986,7 +2016,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 177,
+      "line": 180,
       "title": "REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, duplicate CREATE is zero",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1998,7 +2028,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 227,
+      "line": 230,
       "title": "PRESMOKE-B3-BINDING-01 RESTORE uses durable TaskRoleBinding conversationLocator instead of reconstructing a URL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2010,7 +2040,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 274,
+      "line": 277,
       "title": "REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Node or Effect completion",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2022,7 +2052,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 322,
+      "line": 325,
       "title": "PRESMOKE-B3-WAKE-01 worker.wake rejects untyped/arbitrary wake reasons before Browser effect",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2034,7 +2064,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 352,
+      "line": 355,
       "title": "REG-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministic observations",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2046,7 +2076,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 383,
+      "line": 386,
       "title": "REG-EXE-BR-05 permission fallback captures evidence and Side Panel remains read-only",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2058,7 +2088,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 409,
+      "line": 412,
       "title": "REG-EXE-BR-06 writes are globally serial and logical delivery follows physical verification",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2070,7 +2100,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 457,
+      "line": 460,
       "title": "REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2082,10 +2112,58 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 485,
+      "line": 488,
       "title": "REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remains ACTION_REQUIRED locally",
       "ids": [],
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-contracts/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
+      "line": 517,
+      "title": "REG-EXE-BR-09 deterministic DOM observation makes zero Vision calls",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-contracts/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
+      "line": 549,
+      "title": "REG-EXE-BR-10 screenshot → Vision receives the exact captured image and returns a typed observation",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-contracts/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
+      "line": 599,
+      "title": "REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fabricated success",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-contracts/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
+      "line": 627,
+      "title": "REG-EXE-BR-12 screenshot boundary rejects unsupported MIME and mismatched dataUrl",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-browser-extension/src/index.ts",
         "packages/execution-contracts/src/index.ts"
@@ -2159,6 +2237,17 @@
       "path": "packages/execution-browser-extension/tests/runtime-composition.test.ts",
       "line": 72,
       "title": "PRESMOKE-B3-BRIDGE-TOPOLOGY-03 Browser adapter reports only confirmed DELIVERED and leaves the single Execution Runtime injection to Batch 4",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/runtime-composition.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/runtime-composition.test.ts",
+      "line": 85,
+      "title": "PRESMOKE-B3-BRIDGE-TOPOLOGY-04 Browser adapter accepts an optional Vision port and forwards it into the Browser executor",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -2926,6 +3015,18 @@
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
       "line": 22,
+      "title": "R2-P1-15-ART-01 getArtifactSummary reflects real Execution artifact registry state",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-runtime/src/executors/local-adapter.ts",
+        "packages/execution-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-runtime",
+      "path": "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
+      "line": 59,
       "title": "CP-EXE-RT-12 immutable Artifact registry is Execution-owned durable truth with caller/task scope metadata",
       "ids": [
         "CP-EXE-RT-12"
@@ -2939,7 +3040,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
-      "line": 93,
+      "line": 130,
       "title": "CP-EXE-RT-13 Context Pack and Patch Proposal share the Execution artifact registry rather than separate stores",
       "ids": [
         "CP-EXE-RT-13"
@@ -2953,7 +3054,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
-      "line": 104,
+      "line": 141,
       "title": "PRESMOKE-B4-ART-07 patch.apply resolves only caller-owned durable proposal and records one Execution effect",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2965,7 +3066,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
-      "line": 191,
+      "line": 228,
       "title": "PRESMOKE-B4-ART-10 patch apply success and verification failure remain separate durable facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2977,7 +3078,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts",
-      "line": 282,
+      "line": 319,
       "title": "CP-EXE-RT-17/RF-EXE-RT-17 Artifact registry and Execution relation commit atomically without replace semantics",
       "ids": [
         "CP-EXE-RT-17",
@@ -7536,6 +7637,17 @@
     },
     {
       "package": "platform-cli",
+      "path": "packages/platform-cli/tests/production-binder.test.ts",
+      "line": 190,
+      "title": "shipped CLI status binds a real service + real external resource and fails closed when unbound",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
       "line": 219,
       "title": "an old-resource PASS cannot READY a new resource — resourceIdentity mismatch is VERIFICATION_STALE",
@@ -8571,6 +8683,17 @@
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
       "line": 117,
+      "title": "R2-P1-15-SYSOBS-01 carrier/deployment/artifact views read their own owner, never a borrowed signal",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-host/src/index.ts"
+      ]
+    },
+    {
+      "package": "platform-host",
+      "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
+      "line": 151,
       "title": "PRESMOKE-B3-OBS-TRANSPORT-01 host exposes authenticated Observer owner/model transport without making it a scheduler",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8581,7 +8704,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 129,
+      "line": 163,
       "title": "PRESMOKE-B3-CARRIER-TRANSPORT-01 Collaboration Carrier transport cannot proxy arbitrary Execution capabilities or caller identity",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8880,7 +9003,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/task-application-entry.test.ts",
-      "line": 41,
+      "line": 136,
       "title": "PRESMOKE-B3-APP-02 New Task application owns no Task truth and provisions only missing fixed workers through Execution",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8891,8 +9014,8 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/task-application-entry.test.ts",
-      "line": 62,
-      "title": "PRESMOKE-B3-APP-03 New Task behavior is PENDING-first, provisions exactly three fixed Workers through Execution, then reaches READY and starts through Task Owner",
+      "line": 161,
+      "title": "R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fills only missing Workers",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
@@ -8902,7 +9025,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/task-application-entry.test.ts",
-      "line": 246,
+      "line": 343,
       "title": "PRESMOKE-B3-APP-04 partial Worker provisioning failure persists successful binding and ensureWorkers only fills missing Workers",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",

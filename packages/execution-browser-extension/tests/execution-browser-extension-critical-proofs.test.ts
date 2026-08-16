@@ -5,7 +5,9 @@ import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contra
 import {
 	type BrowserPageObservation,
 	type BrowserRealityPort,
+	type BrowserVisionPort,
 	createExecutionBrowserExtension,
+	parseCapturedScreenshot,
 } from "../src/index.ts";
 
 class BrowserHarness implements BrowserRealityPort {
@@ -92,7 +94,7 @@ function request(
 	} as ExecuteCapabilityRequest;
 }
 
-async function fixture() {
+async function fixture(vision?: BrowserVisionPort) {
 	const browser = new BrowserHarness();
 	const bindings = new Map<
 		string,
@@ -102,6 +104,7 @@ async function fixture() {
 	let sequence = 0;
 	const extension = createExecutionBrowserExtension({
 		browser,
+		...(vision ? { vision } : {}),
 		task: {
 			async getWorkerBinding(taskId: string, roleRef: string) {
 				return bindings.get(`${taskId}:${roleRef}`) ?? null;
@@ -485,4 +488,171 @@ test("REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality withou
 test("REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remains ACTION_REQUIRED locally", async () => {
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
 	assert.equal(behaviorAdapter.status().result.status, "ACTION_REQUIRED");
+});
+
+type VisionInspectInput = Parameters<BrowserVisionPort["inspect"]>[0];
+
+function recordingVisionPort(
+	calls: VisionInspectInput[],
+	options: { fail?: boolean } = {},
+): BrowserVisionPort {
+	return {
+		async inspect(input) {
+			calls.push(input);
+			if (options.fail) throw new Error("provider vision failure");
+			return {
+				status: "OBSERVED",
+				observationRef: "vision:1",
+				pageState: "BLOCKED",
+				activityKind: "ACTION_PERMISSION",
+				confidence: 0.9,
+				recommendedNext: "REQUEST_HUMAN",
+				reasonCode: "PERMISSION_PROMPT",
+				rationale: "permission prompt visible",
+			};
+		},
+	};
+}
+
+test("REG-EXE-BR-09 deterministic DOM observation makes zero Vision calls", async () => {
+	const calls: VisionInspectInput[] = [];
+	const { extension, browser } = await fixture(recordingVisionPort(calls));
+	const tab = await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
+	await extension.execute({
+		request: request("browser.observe", { targetRef: `tab:${tab.tabId}` }),
+		admission: {
+			policy: "ALLOW",
+			decisionPath: "deterministic",
+			approval: "NOT_REQUIRED",
+		},
+	});
+	extension.classifyProgress({
+		pageState: "IDLE",
+		nodeInProgress: true,
+		millisecondsWithoutProgress: 5_000,
+		legitimateWait: false,
+	});
+	await extension.execute({
+		request: request("browser.verify", {
+			targetRef: `tab:${tab.tabId}`,
+			expectedFingerprint: "absent",
+		}),
+		admission: {
+			policy: "ALLOW",
+			decisionPath: "deterministic",
+			approval: "NOT_REQUIRED",
+		},
+	});
+	assert.equal(calls.length, 0);
+});
+
+test("REG-EXE-BR-10 screenshot → Vision receives the exact captured image and returns a typed observation", async () => {
+	const calls: VisionInspectInput[] = [];
+	const { extension, browser } = await fixture(recordingVisionPort(calls));
+	const tab = await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
+	const observedAt = new Date().toISOString();
+	const observation = await extension.inspectScreenshot(tab.tabId, {
+		targetRef: `tab:${tab.tabId}`,
+		pageState: "BLOCKED",
+		activityKind: "ACTION_PERMISSION",
+		observedAt,
+	});
+	assert.equal(observation.status, "OBSERVED");
+	if (observation.status !== "OBSERVED") return;
+	assert.equal(observation.recommendedNext, "REQUEST_HUMAN");
+	assert.equal(calls.length, 1);
+	const call = calls[0];
+	assert.ok(call);
+	const expectedBase64 = Buffer.from(`screenshot-${tab.tabId}`).toString(
+		"base64",
+	);
+	assert.equal(call.image.mimeType, "image/png");
+	assert.equal(call.image.hash, `sha256:${tab.tabId}`);
+	assert.equal(call.image.sizeBytes, 11 + String(tab.tabId).length);
+	assert.equal(call.image.base64, expectedBase64);
+	assert.equal(call.image.dataUrl, `data:image/png;base64,${expectedBase64}`);
+	assert.equal(call.observationContext.targetRef, `tab:${tab.tabId}`);
+	assert.equal(call.observationContext.pageState, "BLOCKED");
+	assert.equal(call.observationContext.observedAt, observedAt);
+
+	const result = await extension.execute({
+		request: request("browser.screenshot", { targetRef: `tab:${tab.tabId}` }),
+		admission: {
+			policy: "ALLOW",
+			decisionPath: "deterministic",
+			approval: "NOT_REQUIRED",
+		},
+	});
+	assert.equal(result.result.capability, "browser.screenshot");
+	assert.equal(
+		(result.artifacts[0]?.metadata?.vision as { status?: string } | undefined)
+			?.status,
+		"OBSERVED",
+	);
+	assert.equal(
+		(result.result.data as { visionFallback?: string }).visionFallback,
+		"REAL_EXTERNAL_PENDING",
+	);
+	assert.doesNotMatch(JSON.stringify(result), /dataUrl|base64/);
+});
+
+test("REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fabricated success", async () => {
+	const { extension, browser } = await fixture();
+	const tab = await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
+	const missing = await extension.inspectScreenshot(tab.tabId, {
+		targetRef: `tab:${tab.tabId}`,
+		pageState: "BLOCKED",
+		activityKind: "ACTION_PERMISSION",
+		observedAt: new Date().toISOString(),
+	});
+	assert.equal(missing.status, "DEFERRED");
+	if (missing.status !== "DEFERRED") return;
+	assert.equal(missing.reasonCode, "VISION_PORT_UNAVAILABLE");
+
+	const failing = await fixture(recordingVisionPort([], { fail: true }));
+	const failingTab = await failing.browser.open(
+		"https://chatgpt.com/g/g-dev/c/c-dev",
+	);
+	const failed = await failing.extension.inspectScreenshot(failingTab.tabId, {
+		targetRef: `tab:${failingTab.tabId}`,
+		pageState: "BLOCKED",
+		activityKind: "ACTION_PERMISSION",
+		observedAt: new Date().toISOString(),
+	});
+	assert.equal(failed.status, "DEFERRED");
+	if (failed.status !== "DEFERRED") return;
+	assert.equal(failed.reasonCode, "VISION_INFERENCE_FAILED");
+});
+
+test("REG-EXE-BR-12 screenshot boundary rejects unsupported MIME and mismatched dataUrl", () => {
+	assert.throws(
+		() =>
+			parseCapturedScreenshot({
+				dataUrl: "data:image/svg+xml;base64,AA==",
+				mimeType: "image/svg+xml",
+				sizeBytes: 1,
+				hash: "sha256:x",
+			}),
+		/not a supported image type/,
+	);
+	assert.throws(
+		() =>
+			parseCapturedScreenshot({
+				dataUrl: "data:image/jpeg;base64,AA==",
+				mimeType: "image/png",
+				sizeBytes: 1,
+				hash: "sha256:x",
+			}),
+		/does not match its mimeType/,
+	);
+	assert.throws(
+		() =>
+			parseCapturedScreenshot({
+				dataUrl: "data:image/png;base64,AA==",
+				mimeType: "image/png",
+				sizeBytes: 0,
+				hash: "sha256:x",
+			}),
+		/sizeBytes must be a positive integer/,
+	);
 });

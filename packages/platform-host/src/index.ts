@@ -97,6 +97,46 @@ const taskDiagnosticReasonResultSchema = z
 	})
 	.strict();
 
+// GPT transport/application boundary descriptor for an allowed TaskDocument.
+// The Task Owner keeps returning a plain TaskDocument; only after admission
+// succeeds does the Host convert the allowed document into this bounded file
+// descriptor. The Gateway owns the OpenAI wire format, owns the matching
+// `fileArtifacts` schema, and validates this output at the boundary.
+interface TaskDocumentFileBridgeOutput {
+	fileArtifacts: Array<{
+		artifactRef: string;
+		name: string;
+		mimeType: string;
+		content: string;
+	}>;
+}
+
+const taskDocumentFileSchema = z.object({
+	taskId: z.string().min(1),
+	documentType: z.string().min(1),
+	contentHash: z.string().min(1),
+	content: z.string().min(1),
+});
+
+function fileBridgeOutputForTaskResult(result: unknown): unknown {
+	if (typeof result !== "object" || result === null || !("ok" in result))
+		return result;
+	const record = result as Record<string, unknown>;
+	if (record.ok !== true) return result;
+	const document = taskDocumentFileSchema.parse(record.data);
+	const output: TaskDocumentFileBridgeOutput = {
+		fileArtifacts: [
+			{
+				artifactRef: `document:${document.taskId}:${document.documentType}`,
+				name: `${document.documentType.toLowerCase().replaceAll("_", "-")}.md`,
+				mimeType: "text/markdown",
+				content: document.content,
+			},
+		],
+	};
+	return output;
+}
+
 const loopbackUrl = z
 	.url()
 	.transform((value) => new URL(value))
@@ -939,6 +979,8 @@ async function constructGraph(
 					? canonicalTaskInput
 					: { ...canonicalTaskInput, actorRef },
 			);
+			if (operationId === "getTaskDocument")
+				return fileBridgeOutputForTaskResult(taskResult);
 			return taskResult;
 		}
 		if (operationId === "executeCapability") {

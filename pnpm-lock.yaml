@@ -58,6 +58,9 @@ importers:
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract
+      '@tomflow/proflow-platform-host':
+        specifier: workspace:^
+        version: link:../platform-host
       '@tomflow/proflow-task-migration-runner':
         specifier: workspace:^
         version: link:../task-migration-runner

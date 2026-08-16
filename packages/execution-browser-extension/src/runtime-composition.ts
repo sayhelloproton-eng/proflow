@@ -5,7 +5,10 @@ import {
 	type BrowserRealityBridgeOptions,
 	createBrowserRealityBridgeServer,
 } from "./bridge.ts";
-import { createExecutionBrowserExtension } from "./index.ts";
+import {
+	type BrowserVisionPort,
+	createExecutionBrowserExtension,
+} from "./index.ts";
 
 type LocalApplicationConfig = {
 	endpoint: string;
@@ -15,6 +18,7 @@ type LocalApplicationConfig = {
 export type BrowserExecutorCompositionOptions = {
 	platformHost: LocalApplicationConfig;
 	bridge: BrowserRealityBridgeOptions;
+	vision?: BrowserVisionPort;
 };
 
 export type BrowserExecutorCompositionFileConfig = {
@@ -143,6 +147,7 @@ export async function createBrowserExecutorComposition(
 	try {
 		const browserExecutor = createExecutionBrowserExtension({
 			browser: bridge.browser,
+			...(options.vision ? { vision: options.vision } : {}),
 			task: {
 				async getWorkerBinding(taskId, roleRef) {
 					return (await invokeApplication(platformHost, "browser.binding", {

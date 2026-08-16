@@ -79,6 +79,8 @@
         "ExternalFileMaterializationInput",
         "GatewayOptions",
         "GatewayOwnerPorts",
+        "OwnerFileBridgeArtifact",
+        "OwnerFileBridgeOutput",
         "createAgentGateway"
       ],
       "classification": "CLASSIFIED"
@@ -422,7 +424,11 @@
         "createCollaborationCarrierApplication",
         "createExecutionBrowserExtension",
         "createSystemObserver",
-        "createTaskObserver"
+        "createTaskObserver",
+        "deferVisionObservation",
+        "parseCapturedScreenshot",
+        "visionMimeTypes",
+        "visionRecommendedNext"
       ],
       "classification": "CLASSIFIED"
     },
@@ -656,6 +662,8 @@
       ],
       "binaries": [],
       "publicIndexSymbols": [
+        "BrowserPageVisionInput",
+        "BrowserPageVisionObservation",
         "InferenceErrorCode",
         "InferenceMode",
         "InferencePriority",
@@ -665,6 +673,8 @@
         "ModelCapabilityProfile",
         "ModelRuntimeStatus",
         "ReasoningSpec",
+        "browserPageVisionInputSchema",
+        "browserPageVisionObservationSchema",
         "capabilityProposalOutputSchema",
         "checkModelContractCompatibility",
         "createReasoningSpec",

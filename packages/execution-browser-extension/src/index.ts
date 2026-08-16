@@ -11,6 +11,13 @@ import {
 	executeCapabilityRequestSchema,
 	parseExecutionRecord,
 } from "@tomflow/proflow-execution-contracts";
+import type {
+	BrowserVisionImage,
+	BrowserVisionObservationContext,
+	BrowserVisionPort,
+	TypedVisionObservation,
+} from "./vision.ts";
+import { deferVisionObservation, parseCapturedScreenshot } from "./vision.ts";
 
 export type { BrowserRealityBridgeOptions } from "./bridge.ts";
 export {
@@ -47,6 +54,23 @@ export {
 	type TaskObserverOwnerPort,
 	type TaskObserverResumeSignal,
 } from "./task-observer.ts";
+export type {
+	BrowserVisionDeferral,
+	BrowserVisionDeferralReason,
+	BrowserVisionImage,
+	BrowserVisionObservation,
+	BrowserVisionObservationContext,
+	BrowserVisionPort,
+	TypedVisionObservation,
+	VisionMimeType,
+	VisionRecommendedNext,
+} from "./vision.ts";
+export {
+	deferVisionObservation,
+	parseCapturedScreenshot,
+	visionMimeTypes,
+	visionRecommendedNext,
+} from "./vision.ts";
 
 export type BrowserPageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 export type BrowserActivityKind =
@@ -129,6 +153,7 @@ export interface ExecutionBrowserOptions {
 	browser: BrowserRealityPort;
 	task: TaskBrowserPort;
 	agent: AgentDeliveryPort;
+	vision?: BrowserVisionPort;
 	idFactory?: () => string;
 	now?: () => Date;
 }
@@ -394,6 +419,34 @@ export function createExecutionBrowserExtension(
 		await invocation.onEffectStarted(precondition);
 		assertNotAborted(invocation);
 		return precondition;
+	};
+
+	const visionObservation = async (
+		shot: Awaited<ReturnType<BrowserRealityPort["screenshot"]>>,
+		observationContext: BrowserVisionObservationContext,
+	): Promise<TypedVisionObservation> => {
+		let image: BrowserVisionImage;
+		try {
+			image = parseCapturedScreenshot(shot);
+		} catch (error) {
+			return deferVisionObservation(
+				"VISION_IMAGE_INVALID",
+				error instanceof Error ? error.message : "screenshot image is invalid",
+			);
+		}
+		if (!options.vision)
+			return deferVisionObservation(
+				"VISION_PORT_UNAVAILABLE",
+				"no Browser Vision port is injected",
+			);
+		try {
+			return await options.vision.inspect({ image, observationContext });
+		} catch (error) {
+			return deferVisionObservation(
+				"VISION_INFERENCE_FAILED",
+				error instanceof Error ? error.message : "vision inference failed",
+			);
+		}
 	};
 
 	const result = (
@@ -676,6 +729,18 @@ export function createExecutionBrowserExtension(
 			);
 		if (request.capability === "browser.screenshot") {
 			const shot = await options.browser.screenshot(observed.tabId);
+			// The screenshot is the ambiguity/recovery fallback: hand the real
+			// captured image bytes to the injected Vision port and retain only the
+			// bounded typed observation. `visionFallback` stays REAL_EXTERNAL_PENDING
+			// as the honest marker that the physical-phone Vision E2E is not wired;
+			// the code wiring (capture → typed Vision port → typed observation) is
+			// complete and recorded in the artifact metadata below.
+			const vision = await visionObservation(shot, {
+				targetRef: target,
+				pageState: observed.pageState,
+				activityKind: observed.activityKind,
+				observedAt: observed.observedAt,
+			});
 			return {
 				...result(
 					{
@@ -713,7 +778,7 @@ export function createExecutionBrowserExtension(
 						mime: shot.mimeType,
 						metadata: {
 							source: "browser.screenshot",
-							visionFallback: "REAL_EXTERNAL_PENDING",
+							vision,
 						},
 					},
 				],
@@ -1006,6 +1071,13 @@ export function createExecutionBrowserExtension(
 			)
 				return "RUNTIME_STALL" as const;
 			return "NORMAL" as const;
+		},
+		async inspectScreenshot(
+			tabId: number,
+			observationContext: BrowserVisionObservationContext,
+		): Promise<TypedVisionObservation> {
+			const shot = await options.browser.screenshot(tabId);
+			return visionObservation(shot, observationContext);
 		},
 		async handlePermissionFallback(tabId: number, continuationRef: string) {
 			const observed = await options.browser.observe(tabId);

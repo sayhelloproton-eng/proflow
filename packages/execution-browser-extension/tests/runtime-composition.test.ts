@@ -81,3 +81,10 @@ test("PRESMOKE-B3-BRIDGE-TOPOLOGY-03 Browser adapter reports only confirmed DELI
 		/createExecutionRuntimeProcess|proflow-execution-browser-runtime/,
 	);
 });
+
+test("PRESMOKE-B3-BRIDGE-TOPOLOGY-04 Browser adapter accepts an optional Vision port and forwards it into the Browser executor", async () => {
+	const source = await readFile(sourceUrl, "utf8");
+	assert.match(source, /vision\?: BrowserVisionPort/);
+	assert.match(source, /options\.vision/);
+	assert.match(source, /createExecutionBrowserExtension/);
+});
