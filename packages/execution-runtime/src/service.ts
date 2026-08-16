@@ -27,6 +27,7 @@ export type ExecutionRuntimeProcessConfig = {
 	browserExecutorConfigPath?: string;
 	transportCredentialFile?: string;
 	identity?: { endpoint: string; tokenFile: string };
+	modelDecision?: { endpoint: string; timeoutMs?: number };
 };
 
 export type ExecutionRuntimeProcessStatus = {
@@ -86,6 +87,32 @@ export function parseExecutionRuntimeProcessConfig(
 		!isAbsolute(transportCredentialFile)
 	)
 		throw new TypeError("transportCredentialFile must be absolute");
+	let modelDecision: ExecutionRuntimeProcessConfig["modelDecision"];
+	if (input.modelDecision !== undefined) {
+		const value = object(input.modelDecision, "modelDecision");
+		const endpoint = new URL(string(value.endpoint, "modelDecision.endpoint"));
+		if (
+			endpoint.protocol !== "http:" ||
+			!new Set(["127.0.0.1", "localhost", "::1", "[::1]"]).has(
+				endpoint.hostname,
+			) ||
+			endpoint.pathname !== "/" ||
+			endpoint.search ||
+			endpoint.hash
+		)
+			throw new TypeError("modelDecision.endpoint must be loopback HTTP root");
+		const timeoutMs =
+			value.timeoutMs === undefined ? undefined : Number(value.timeoutMs);
+		if (
+			timeoutMs !== undefined &&
+			(!Number.isInteger(timeoutMs) || timeoutMs <= 0)
+		)
+			throw new TypeError("modelDecision.timeoutMs must be a positive integer");
+		modelDecision = {
+			endpoint: endpoint.origin,
+			...(timeoutMs === undefined ? {} : { timeoutMs }),
+		};
+	}
 	let identity: ExecutionRuntimeProcessConfig["identity"];
 	if (input.identity !== undefined) {
 		const value = object(input.identity, "identity");
@@ -120,6 +147,7 @@ export function parseExecutionRuntimeProcessConfig(
 		...(browserExecutorConfigPath ? { browserExecutorConfigPath } : {}),
 		...(transportCredentialFile ? { transportCredentialFile } : {}),
 		...(identity ? { identity } : {}),
+		...(modelDecision ? { modelDecision } : {}),
 	};
 }
 
@@ -139,6 +167,7 @@ export async function createExecutionRuntimeProcess(input: {
 	identity?: ExecutionRuntimeOptions["identity"];
 	policy?: ExecutionRuntimeOptions["policy"];
 	modelDecision?: ExecutionRuntimeOptions["modelDecision"];
+	modelDecisionReadiness?: () => boolean;
 	approval?: ExecutionRuntimeOptions["approval"];
 	log?: (entry: Record<string, unknown>) => void;
 	transportCredential?: string;
@@ -179,7 +208,10 @@ export async function createExecutionRuntimeProcess(input: {
 		const transportRequirementSatisfied =
 			input.config.transportCredentialFile === undefined ||
 			transportAuth === "READY";
-		const modelDecision = input.modelDecision ? "READY" : "UNAVAILABLE";
+		const modelDecision =
+			input.modelDecision && input.modelDecisionReadiness?.() !== false
+				? "READY"
+				: "UNAVAILABLE";
 		const modelRequirementSatisfied =
 			input.requireModelDecision !== true || modelDecision === "READY";
 		return {

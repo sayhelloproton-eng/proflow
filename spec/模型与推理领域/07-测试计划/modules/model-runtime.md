@@ -226,3 +226,10 @@ implementationWave: Wave 2
 - `CP-MODEL-RT-13` 仍为 **REAL_EXTERNAL / 手机 REASON gate**，本 Batch 不得用 fake/provider mock 宣称关闭。
 
 Batch 3 只补正式 caller/application wiring 与 bounded schema proof；真实 MLXHub REASON/Vision/latency/load 仍在 Smoke/Real E2E 阶段验证。
+
+## Pre-Smoke Batch 5 — Execution Command Risk production closure
+
+- `CP-MODEL-RT-14` — `execution.command-risk.v1` is a shipped static ReasoningSpec. AUTO starts FAST and may escalate to REASON only when the typed output decision is `ESCALATE`; a REASON `ESCALATE` remains caller-owned Human escalation and never becomes autonomous authority.
+- Executable proof: `packages/model-runtime/tests/execution-command-risk-alignment.test.ts`.
+- Model-side registration alone is insufficient for P1-18 closure; the formal `proflow-execution-runtime` production caller, consumer-specific readiness, and Execution/Approval authority checks must also pass.
+- Real phone FAST/REASON/load evidence remains `REAL_EXTERNAL`; mock/fake-provider tests do not satisfy `CP-MODEL-RT-13`.

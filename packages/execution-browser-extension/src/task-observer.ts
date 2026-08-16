@@ -51,13 +51,18 @@ export type TaskObserverDiagnosticAssessment = {
 	needsHumanAttention: boolean;
 };
 
+export type TaskObserverDiagnosticFailure = {
+	ok: false;
+	errorCode: "REASON_UNAVAILABLE" | "CONTEXT_TOO_LARGE" | "REASON_FAILED";
+};
+
 export interface TaskObserverDiagnosticPort {
 	assess(input: {
 		taskId: string;
 		nodeId: string;
 		runNo: number;
 		anomaly: TaskObserverAnomalySignal;
-	}): Promise<TaskObserverDiagnosticAssessment>;
+	}): Promise<TaskObserverDiagnosticAssessment | TaskObserverDiagnosticFailure>;
 }
 
 export interface TaskObserverOwnerPort {
@@ -137,6 +142,15 @@ export function createTaskObserver(options: {
 				runNo: node.runNo,
 				anomaly: anomalySignal,
 			});
+			if ("ok" in assessment)
+				return {
+					kind: "NOOP",
+					taskId,
+					reason:
+						assessment.errorCode === "REASON_UNAVAILABLE"
+							? "DIAGNOSTIC_UNAVAILABLE"
+							: `DIAGNOSTIC_DEFERRED:${assessment.errorCode}`,
+				};
 			return {
 				kind: "DIAGNOSTIC",
 				taskId,

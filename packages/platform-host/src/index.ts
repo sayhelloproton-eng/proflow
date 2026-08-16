@@ -1433,10 +1433,20 @@ async function constructGraph(
 					}),
 					"task diagnostic inference",
 				);
-				if (response.status !== "SUCCEEDED")
-					throw new Error(
-						`TASK_DIAGNOSTIC_DEFERRED:${String(response.status)}`,
-					);
+				if (response.status !== "SUCCEEDED") {
+					const error =
+						typeof response.error === "object" && response.error !== null
+							? (response.error as Record<string, unknown>)
+							: {};
+					const code =
+						error.code === "CONTEXT_TOO_LARGE"
+							? "CONTEXT_TOO_LARGE"
+							: error.code === "MODEL_UNAVAILABLE" ||
+									error.code === "CAPABILITY_UNSUPPORTED"
+								? "REASON_UNAVAILABLE"
+								: "REASON_FAILED";
+					return { ok: false, errorCode: code };
+				}
 				return taskDiagnosticReasonResultSchema.parse(response.data);
 			}
 			if (operation === "system.view")
@@ -1464,18 +1474,25 @@ async function constructGraph(
 						specRef: "system.health-assessment.v1",
 						mode: "reason",
 						priority: "background",
-						trace: {
-							callerRef: "extension:system-observer",
-							assessmentRef,
-						},
+						trace: { callerRef: "extension:system-observer", assessmentRef },
 						payload: value.payload,
 					}),
 					"system observer inference",
 				);
-				if (response.status !== "SUCCEEDED")
-					throw new Error(
-						`SYSTEM_OBSERVER_INFERENCE_${String(response.status)}`,
-					);
+				if (response.status !== "SUCCEEDED") {
+					const error =
+						typeof response.error === "object" && response.error !== null
+							? (response.error as Record<string, unknown>)
+							: {};
+					const code =
+						error.code === "CONTEXT_TOO_LARGE"
+							? "CONTEXT_TOO_LARGE"
+							: error.code === "MODEL_UNAVAILABLE" ||
+									error.code === "CAPABILITY_UNSUPPORTED"
+								? "REASON_UNAVAILABLE"
+								: "REASON_FAILED";
+					return { ok: false, errorCode: code };
+				}
 				return systemObserverReasonResultSchema.parse(response.data);
 			}
 			throw new Error("UNSUPPORTED_OBSERVER_APPLICATION_OPERATION");

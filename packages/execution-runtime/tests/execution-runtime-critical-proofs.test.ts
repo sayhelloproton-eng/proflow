@@ -1044,3 +1044,27 @@ test("PRESMOKE-B4-LOOKUP-01 uncertain lookup resolves durable intent without rep
 	);
 	runtime.close();
 });
+
+test("PRESMOKE-B5-EXE-MODEL-05 Runtime passes its durable executionRef and actual input fingerprint to the model decision caller", async () => {
+	const { databasePath } = await fixture();
+	let observed:
+		| { executionRef?: string; inputFingerprint?: string }
+		| undefined;
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => readResult()),
+		policy: { decide: () => ({ decision: "REVIEW", decisionPath: "fast" }) },
+		modelDecision: {
+			async decide(_request, context) {
+				observed = context;
+				return { decision: "ALLOW", decisionPath: "fast" };
+			},
+		},
+	});
+	const record = await runtime.executeCapability(
+		input("file.write", { path: "x", content: "y" }, "model-context"),
+	);
+	assert.equal(observed?.executionRef, record.executionRef);
+	assert.match(observed?.inputFingerprint ?? "", /^sha256:/);
+	runtime.close();
+});

@@ -41,7 +41,10 @@ export interface ExecutionPolicyPort {
 	decide(request: ExecuteCapabilityRequest): MaybePromise<AdmissionDecision>;
 }
 export interface ExecutionModelDecisionPort {
-	decide(request: ExecuteCapabilityRequest): Promise<{
+	decide(
+		request: ExecuteCapabilityRequest,
+		context?: { executionRef: string; inputFingerprint: string },
+	): Promise<{
 		decision: "ALLOW" | "DENY";
 		decisionPath: "fast" | "reason";
 		approvalRequired?: boolean;
@@ -522,7 +525,10 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					"review requires a model decision",
 				);
 			const model = options.modelDecision;
-			const modelDecision = await model.decide(request);
+			const modelDecision = await model.decide(request, {
+				executionRef,
+				inputFingerprint,
+			});
 			decisionPath = modelDecision.decisionPath;
 			approvalRequired =
 				approvalRequired || modelDecision.approvalRequired === true;

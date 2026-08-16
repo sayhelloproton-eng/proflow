@@ -198,6 +198,9 @@ importers:
       '@tomflow/proflow-execution-local':
         specifier: workspace:^
         version: link:../execution-local
+      '@tomflow/proflow-model-contracts':
+        specifier: workspace:^
+        version: link:../model-contracts
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^

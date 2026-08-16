@@ -4,6 +4,7 @@ import {
 	createBrowserExecutorComposition,
 	loadBrowserExecutorCompositionConfig,
 } from "@tomflow/proflow-execution-browser-extension/runtime-composition";
+import { createExecutionModelDecisionClient } from "./model-decision-client.ts";
 import {
 	createExecutionRuntimeProcess,
 	loadExecutionRuntimeProcessConfig,
@@ -74,11 +75,19 @@ if (!config.browserExecutorConfigPath)
 	throw new Error(
 		"formal execution-runtime requires browserExecutorConfigPath",
 	);
+if (!config.modelDecision)
+	throw new Error(
+		"formal execution-runtime requires modelDecision configuration",
+	);
 const identityClient = await createIdentityClient(config.identity);
 const transportCredential = await readSecret(
 	config.transportCredentialFile,
 	"execution transport credential",
 );
+const modelDecisionClient = createExecutionModelDecisionClient(
+	config.modelDecision,
+);
+await modelDecisionClient.probe();
 const browserComposition = await createBrowserExecutorComposition(
 	await loadBrowserExecutorCompositionConfig(config.browserExecutorConfigPath),
 );
@@ -92,6 +101,8 @@ try {
 		identityReadiness: identityClient.readiness,
 		transportCredential,
 		requireModelDecision: true,
+		modelDecision: modelDecisionClient.port,
+		modelDecisionReadiness: modelDecisionClient.readiness,
 		browserExecutor: browserComposition.browserExecutor,
 		browserReadiness: () => browserComposition.bridgeStatus().online,
 		log: (entry) => process.stderr.write(`${JSON.stringify(entry)}\n`),

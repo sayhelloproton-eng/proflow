@@ -294,3 +294,53 @@ test("PRESMOKE-B3-TASKOBS-REPLAY-01 repeated recovery of the same READY run emit
 	assert.equal(wakes.length, 2);
 	assert.deepEqual(wakes[0], wakes[1]);
 });
+
+test("PRESMOKE-B5-TASK-DIAG-02 typed Model diagnostic failure defers without Carrier or workflow authority", async () => {
+	let wakes = 0;
+	const observer = createTaskObserver({
+		owner: {
+			async getTaskDriveProjection(taskId) {
+				return {
+					taskId,
+					taskStatus: "ACTIVE",
+					taskVersion: 1,
+					terminal: false,
+					currentNode: {
+						nodeId: "node:1",
+						status: "IN_PROGRESS",
+						version: 1,
+						runNo: 1,
+						requiredAgentPackageRef: "@tomflow/proflow-agent-controller-dev",
+					},
+					roleBinding: {
+						agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+						roleRef: "g-controller",
+						workerRef: "worker:1",
+						conversationLocator: "https://chatgpt.com/c/1",
+					},
+					canDrive: true,
+					blockedReason: null,
+				};
+			},
+		},
+		carrier: {
+			async requestWake() {
+				wakes += 1;
+			},
+		},
+		diagnostic: {
+			async assess() {
+				return { ok: false, errorCode: "REASON_UNAVAILABLE" as const };
+			},
+		},
+	});
+	const decision = await observer.drive("task:1", undefined, {
+		kind: "UNKNOWN_REALITY",
+		ref: "execution:1",
+		facts: { status: "UNKNOWN" },
+	});
+	assert.equal(decision.kind, "NOOP");
+	if (decision.kind === "NOOP")
+		assert.equal(decision.reason, "DIAGNOSTIC_UNAVAILABLE");
+	assert.equal(wakes, 0);
+});

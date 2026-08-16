@@ -6,7 +6,10 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { promisify } from "node:util";
 
-import { createExecutionRuntimeProcess } from "../src/service.ts";
+import {
+	createExecutionRuntimeProcess,
+	parseExecutionRuntimeProcessConfig,
+} from "../src/service.ts";
 
 const exec = promisify(execFile);
 
@@ -216,5 +219,43 @@ test("PRESMOKE-B4-RUNTIME-03 shipped execution-runtime binary refuses a producti
 			configPath,
 		]),
 		/formal execution-runtime requires browserExecutorConfigPath/,
+	);
+});
+
+test("PRESMOKE-B5-RUNTIME-04 modelDecision readiness reflects the consumer-specific dependency probe", async () => {
+	const { config } = await fixture();
+	let modelReady = false;
+	const process = await createExecutionRuntimeProcess({
+		config,
+		requireModelDecision: true,
+		modelDecision: {
+			async decide() {
+				return { decision: "ALLOW", decisionPath: "fast" };
+			},
+		},
+		modelDecisionReadiness: () => modelReady,
+	});
+	await process.start();
+	assert.equal(process.status().modelDecision, "UNAVAILABLE");
+	assert.equal(process.status().readiness, "NOT_READY");
+	modelReady = true;
+	assert.equal(process.status().modelDecision, "READY");
+	assert.equal(process.status().readiness, "READY");
+	await process.stop();
+});
+
+test("PRESMOKE-B5-RUNTIME-05 modelDecision config is loopback-only", () => {
+	assert.throws(
+		() =>
+			parseExecutionRuntimeProcessConfig({
+				databasePath: "/tmp/a.db",
+				projectRoot: "/tmp",
+				artifactRoot: "/tmp/a",
+				host: "127.0.0.1",
+				port: 0,
+				exactNetworkTargets: [],
+				modelDecision: { endpoint: "https://example.com" },
+			}),
+		/loopback HTTP root/,
 	);
 });

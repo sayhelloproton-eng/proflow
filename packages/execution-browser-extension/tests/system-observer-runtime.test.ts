@@ -151,3 +151,78 @@ test("PRESMOKE-B3-SYSOBS-03 reason unavailability/failure defers and never synth
 	assert.equal(output.errorCode, "REASON_FAILED");
 	assert.equal(output.global, null);
 });
+
+test("PRESMOKE-B5-SYSOBS-04 CONTEXT_TOO_LARGE is caller-owned: pair splits, single view compacts, and synthesis continues", async () => {
+	const calls: Array<{
+		scope: string;
+		viewCount: number;
+		previousCount: number;
+	}> = [];
+	const overflowed = new Set<string>();
+	const observer = createSystemObserver({
+		snapshots: {
+			async readView(view) {
+				return {
+					summary: `${view}:${"x".repeat(1200)}`,
+					health: "HEALTHY",
+					findings: [],
+				};
+			},
+		},
+		reason: async (input) => {
+			calls.push({
+				scope: input.scope,
+				viewCount: Object.keys(input.views).length,
+				previousCount: input.previousUnresolved.length,
+			});
+			if (input.scope === "task-worker" && !overflowed.has("pair")) {
+				overflowed.add("pair");
+				return { ok: false, errorCode: "CONTEXT_TOO_LARGE" };
+			}
+			if (input.scope === "task-worker:task" && !overflowed.has("single")) {
+				overflowed.add("single");
+				return { ok: false, errorCode: "CONTEXT_TOO_LARGE" };
+			}
+			return result();
+		},
+		idFactory: () => "adaptive",
+	});
+	const output = await observer.synthesize({
+		previousUnresolved: Array.from({ length: 40 }, (_, i) => `previous-${i}`),
+	});
+	assert.equal(output.status, "ASSESSED");
+	assert.ok(
+		calls.some((call) => call.scope === "task-worker" && call.viewCount === 2),
+	);
+	assert.ok(
+		calls.some(
+			(call) => call.scope === "task-worker:task" && call.viewCount === 1,
+		),
+	);
+	assert.ok(
+		calls.some(
+			(call) =>
+				call.scope === "task-worker:task:compact" && call.previousCount <= 8,
+		),
+	);
+});
+
+test("PRESMOKE-B5-SYSOBS-05 global CONTEXT_TOO_LARGE gets one explicit compact synthesis retry", async () => {
+	let globalCalls = 0;
+	const observer = createSystemObserver({
+		snapshots: {
+			async readView(view) {
+				return { summary: `${view}:${"y".repeat(900)}`, health: "HEALTHY" };
+			},
+		},
+		reason: async (input) => {
+			if (input.kind === "GLOBAL_SYNTHESIS" && globalCalls++ === 0)
+				return { ok: false, errorCode: "CONTEXT_TOO_LARGE" };
+			return result();
+		},
+		idFactory: () => "global-adaptive",
+	});
+	const output = await observer.synthesize();
+	assert.equal(output.status, "ASSESSED");
+	assert.equal(globalCalls, 2);
+});

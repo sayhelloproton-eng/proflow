@@ -2,11 +2,13 @@ import {
 	createCollaborationCarrierApplication,
 	createSystemObserver,
 	createTaskObserver,
+	type SystemObserverReasonFailure,
 	type SystemObserverReasonRequest,
 	type SystemObserverReasonResult,
 	type SystemObserverView,
 	type TaskDriveProjection,
 	type TaskObserverDiagnosticAssessment,
+	type TaskObserverDiagnosticFailure,
 } from "../src/index.js";
 
 type PageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
@@ -256,7 +258,7 @@ const taskObserver = createTaskObserver({
 				nodeId: input.nodeId,
 				correlationId: input.anomaly.ref,
 				payload: input,
-			})) as TaskObserverDiagnosticAssessment;
+			})) as TaskObserverDiagnosticAssessment | TaskObserverDiagnosticFailure;
 		},
 	},
 	carrier: {
@@ -323,7 +325,7 @@ const systemObserver = createSystemObserver({
 		return (await invokeObserverApplication("system.reason", {
 			assessmentRef: request.assessmentRef,
 			payload: request,
-		})) as SystemObserverReasonResult;
+		})) as SystemObserverReasonResult | SystemObserverReasonFailure;
 	},
 });
 
@@ -440,7 +442,8 @@ function runObserverRecovery() {
 						decision.kind === "NOOP" &&
 						(decision.reason === "BINDING_NOT_READY" ||
 							decision.reason === "RESUME_TARGET_NOT_CURRENT_WORKER" ||
-							decision.reason === "DIAGNOSTIC_UNAVAILABLE")
+							decision.reason === "DIAGNOSTIC_UNAVAILABLE" ||
+							decision.reason.startsWith("DIAGNOSTIC_DEFERRED:"))
 					)
 						continue;
 					await invokeObserverApplication("execution.ackSignal", {

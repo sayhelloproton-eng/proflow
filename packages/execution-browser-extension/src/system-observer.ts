@@ -75,6 +75,11 @@ export interface SystemObserverReasonResult
 	scope?: string;
 }
 
+export type SystemObserverReasonFailure = {
+	ok: false;
+	errorCode: "CONTEXT_TOO_LARGE" | "REASON_UNAVAILABLE" | "REASON_FAILED";
+};
+
 export interface SystemObserverResult {
 	assessmentRef: string;
 	priority: SystemObserverPriority;
@@ -83,7 +88,7 @@ export interface SystemObserverResult {
 	drilldown: Array<{ topic: string; data: unknown }>;
 	global: SystemObserverAssessment | null;
 	status: "ASSESSED" | "DEFERRED";
-	errorCode?: "REASON_UNAVAILABLE" | "REASON_FAILED";
+	errorCode?: "CONTEXT_TOO_LARGE" | "REASON_UNAVAILABLE" | "REASON_FAILED";
 }
 
 const DEFAULT_CONCERN_BATCHES: ReadonlyArray<{
@@ -118,11 +123,65 @@ function normalizeAssessment(
 	};
 }
 
+function isReasonFailure(
+	value: SystemObserverReasonResult | SystemObserverReasonFailure,
+): value is SystemObserverReasonFailure {
+	return "ok" in value && value.ok === false;
+}
+
+function compactView(value: unknown): unknown {
+	if (typeof value !== "object" || value === null || Array.isArray(value))
+		return value;
+	const source = value as Record<string, unknown>;
+	return {
+		summary:
+			typeof source.summary === "string"
+				? source.summary.slice(0, 600)
+				: "bounded view unavailable",
+		...(typeof source.health === "string" ? { health: source.health } : {}),
+		...(typeof source.projectionStatus === "string"
+			? { projectionStatus: source.projectionStatus }
+			: {}),
+		...(Array.isArray(source.findings)
+			? {
+					findings: source.findings
+						.filter((item): item is string => typeof item === "string")
+						.slice(0, 8)
+						.map((item) => item.slice(0, 240)),
+				}
+			: {}),
+		...(Array.isArray(source.evidenceRefs)
+			? {
+					evidenceRefs: source.evidenceRefs
+						.filter((item): item is string => typeof item === "string")
+						.slice(0, 8),
+				}
+			: {}),
+	};
+}
+
+function compactAssessment(
+	value: SystemObserverAssessment,
+): SystemObserverAssessment {
+	return {
+		...value,
+		findings: value.findings.slice(0, 8),
+		risks: value.risks.slice(0, 8),
+		anomalies: value.anomalies.slice(0, 8),
+		hypotheses: value.hypotheses.slice(0, 8),
+		unresolved: value.unresolved.slice(0, 8),
+		needsDrilldown: value.needsDrilldown.slice(0, 8),
+		evidenceRefs: value.evidenceRefs.slice(0, 8),
+		carryForward: value.carryForward.slice(0, 8),
+		rationale: value.rationale.slice(0, 240),
+	};
+}
+
 export function createSystemObserver(options: {
 	snapshots: SystemObserverSnapshotPort;
 	reason?: (
 		input: SystemObserverReasonRequest,
-	) => Promise<SystemObserverReasonResult>;
+	) => Promise<SystemObserverReasonResult | SystemObserverReasonFailure>;
 	idFactory?: () => string;
 	now?: () => Date;
 }) {
@@ -178,6 +237,55 @@ export function createSystemObserver(options: {
 					previousUnresolved,
 					previousCarryForward,
 				});
+				if (
+					isReasonFailure(result) &&
+					result.errorCode === "CONTEXT_TOO_LARGE" &&
+					batch.views.length > 1
+				) {
+					for (const view of batch.views) {
+						const singleViews = await readViews([view]);
+						let single = await options.reason({
+							assessmentRef,
+							kind: "CONCERN_BATCH",
+							scope: `${batch.scope}:${view}`,
+							observedAt,
+							views: singleViews,
+							previousUnresolved,
+							previousCarryForward,
+						});
+						if (
+							isReasonFailure(single) &&
+							single.errorCode === "CONTEXT_TOO_LARGE"
+						) {
+							single = await options.reason({
+								assessmentRef,
+								kind: "CONCERN_BATCH",
+								scope: `${batch.scope}:${view}:compact`,
+								observedAt,
+								views: Object.fromEntries(
+									Object.entries(singleViews).map(([key, value]) => [
+										key,
+										compactView(value),
+									]),
+								),
+								previousUnresolved: previousUnresolved.slice(0, 8),
+								previousCarryForward: previousCarryForward.slice(0, 8),
+							});
+						}
+						if (isReasonFailure(single))
+							throw Object.assign(new Error(single.errorCode), {
+								code: single.errorCode,
+							});
+						assessments.push(
+							normalizeAssessment(single, `${batch.scope}:${view}`, observedAt),
+						);
+					}
+					continue;
+				}
+				if (isReasonFailure(result))
+					throw Object.assign(new Error(result.errorCode), {
+						code: result.errorCode,
+					});
 				assessments.push(normalizeAssessment(result, batch.scope, observedAt));
 			}
 
@@ -198,7 +306,7 @@ export function createSystemObserver(options: {
 			}
 
 			const topLevelViews = await readViews(SYSTEM_OBSERVER_VIEWS);
-			const globalResult = await options.reason({
+			let globalResult = await options.reason({
 				assessmentRef,
 				kind: "GLOBAL_SYNTHESIS",
 				scope: "global",
@@ -209,6 +317,34 @@ export function createSystemObserver(options: {
 				batchAssessments: assessments,
 				drilldown,
 			});
+			if (
+				isReasonFailure(globalResult) &&
+				globalResult.errorCode === "CONTEXT_TOO_LARGE"
+			) {
+				globalResult = await options.reason({
+					assessmentRef,
+					kind: "GLOBAL_SYNTHESIS",
+					scope: "global:compact",
+					observedAt,
+					views: Object.fromEntries(
+						Object.entries(topLevelViews).map(([key, value]) => [
+							key,
+							compactView(value),
+						]),
+					),
+					previousUnresolved: previousUnresolved.slice(0, 8),
+					previousCarryForward: previousCarryForward.slice(0, 8),
+					batchAssessments: assessments.slice(0, 8).map(compactAssessment),
+					drilldown: drilldown.slice(0, 8).map((item) => ({
+						topic: item.topic.slice(0, 240),
+						data: compactView(item.data),
+					})),
+				});
+			}
+			if (isReasonFailure(globalResult))
+				throw Object.assign(new Error(globalResult.errorCode), {
+					code: globalResult.errorCode,
+				});
 			const global = normalizeAssessment(globalResult, "global", observedAt);
 
 			return {
@@ -220,7 +356,13 @@ export function createSystemObserver(options: {
 				global,
 				status: "ASSESSED",
 			};
-		} catch {
+		} catch (error) {
+			const code =
+				typeof error === "object" &&
+				error !== null &&
+				Reflect.get(error, "code") === "CONTEXT_TOO_LARGE"
+					? "CONTEXT_TOO_LARGE"
+					: "REASON_FAILED";
 			return {
 				assessmentRef,
 				priority: "DEFERRED",
@@ -229,7 +371,7 @@ export function createSystemObserver(options: {
 				drilldown: [],
 				global: null,
 				status: "DEFERRED",
-				errorCode: "REASON_FAILED",
+				errorCode: code,
 			};
 		}
 	};

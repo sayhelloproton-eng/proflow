@@ -160,3 +160,9 @@ STOP：必须新增host-owned state/scheduler/Observer authority/Browser runtime
 | Approval application | `packages/platform-host/tests/platform-host-critical-proofs.test.ts` | dedicated loopback credential, fixed human actor/decision semantics, Host owns no Approval business state |
 
 Host remains transport/composition only: it must not become Approval owner, Artifact store, Observer scheduler, or a second Execution runtime.
+
+## Pre-Smoke Batch 5 — Model business caller reconciliation
+
+- `CP-HOST-15` — shipped Observer application transport calls the single Model `infer(...)` contract: Task Diagnostic uses `task.diagnostic.v1 / reason / business / extension:task-observer`, while System Assessment uses `system.health-assessment.v1 / reason / background / extension:system-observer`.
+- Executable proof: `packages/platform-host/tests/model-business-callers.test.ts` starts a real platform-host with a bounded fake Model HTTP dependency and observes the forwarded inference requests.
+- Host remains transport/composition only; Task Diagnostic is advisory and System Assessment is read-only. Neither path grants Effect, Approval, Task mutation, or retry authority.

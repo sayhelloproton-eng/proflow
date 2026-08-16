@@ -267,3 +267,10 @@ The formal `proflow-execution-runtime` binary now marks `modelDecision=UNAVAILAB
 | `CP/RF-EXE-RT-08` Approval closure | `tests/execution-approval-lifecycle.test.ts` | Execution-owned PENDING draft, decision/version/expiry/revoke/consume, effect-boundary revalidation, abort-before-consume |
 
 **Batch 5 carry-forward（不得在 Batch 4 伪造 PASS）**：正式 `execution.command-risk.v1` Model Decision business caller/composition 尚未接入；shipped runtime 必须在该 port 缺失时保持 `modelDecision=UNAVAILABLE` / global `NOT_READY`。Batch 4 的测试只能证明该 fail-closed readiness，不能用 injected fake Model port 证明 production caller 已完成。
+
+## Pre-Smoke Batch 5 — production Model Decision caller
+
+- `CP-EXE-RT-21` — the sole formal `proflow-execution-runtime` constructs the production Model Decision client, requires loopback `modelDecision` configuration, probes `/status`, requires both FAST and REASON READY for `execution.command-risk.v1`, and calls `/infer` with `mode=auto` / `priority=business`.
+- Runtime-generated `executionRef` and the actual Execution input fingerprint are propagated into the Model caller trace/facts; physical provider/model identifiers remain Model-owned and never enter Execution configuration.
+- `CONTEXT_TOO_LARGE` is handled by one explicit caller-owned compact retry; repeated overflow fails closed. Protocol/transport mismatch degrades consumer readiness.
+- Executable proof: `packages/execution-runtime/tests/model-decision-client.test.ts`, `execution-runtime-critical-proofs.test.ts`, and `execution-runtime-service.test.ts`.

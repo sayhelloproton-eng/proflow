@@ -32,5 +32,5 @@ test("PRESMOKE-B3-TASK-DIAG-01 Task Diagnostic is a typed REASON-only advisory s
 		new URL("../src/process.ts", import.meta.url),
 		"utf8",
 	);
-	assert.match(processSource, /systemHealthAssessmentSpec, taskDiagnosticSpec/);
+	assert.match(processSource, /systemHealthAssessmentSpec[\s\S]*taskDiagnosticSpec/);
 });

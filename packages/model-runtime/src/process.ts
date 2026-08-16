@@ -14,6 +14,7 @@ import {
 	verifyProviderCapabilities,
 } from "./provider.ts";
 import { createModelRuntimeService } from "./service.ts";
+import { executionCommandRiskSpec } from "./specs/execution-command-risk.ts";
 import { systemHealthAssessmentSpec } from "./specs/system-health-assessment.ts";
 import { taskDiagnosticSpec } from "./specs/task-diagnostic.ts";
 
@@ -121,7 +122,11 @@ export async function createModelRuntimeProcess(input: {
 		});
 	let roles = await verify();
 	const runtime = createModelRuntime({
-		specs: [systemHealthAssessmentSpec, taskDiagnosticSpec],
+		specs: [
+			systemHealthAssessmentSpec,
+			taskDiagnosticSpec,
+			executionCommandRiskSpec,
+		],
 		roles,
 		provider,
 		refreshRoles: async () => {
