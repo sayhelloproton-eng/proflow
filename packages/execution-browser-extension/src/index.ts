@@ -18,11 +18,6 @@ export {
 	createBrowserRealityBridgeServer,
 } from "./bridge.ts";
 export {
-	type CarrierControllerPort,
-	type CarrierWakeRequest,
-	createCarrierController,
-} from "./carrier-controller.ts";
-export {
 	type CollaborationCarrierAgentPort,
 	type CollaborationCarrierExecutionPort,
 	type CollaborationCarrierOutcome,
@@ -1025,26 +1020,6 @@ export function createExecutionBrowserExtension(
 		},
 		execute,
 		reconcile,
-		async finalizeCollaborationDelivery(recordRaw: unknown) {
-			const record = parseExecutionRecord(recordRaw);
-			// Durable Execution success is proven by the applied side effect plus a
-			// confirmed delivery result; the status field itself is not re-read here.
-			if (
-				record.sideEffectState !== "APPLIED" ||
-				record.result?.capability !== "collaboration.deliver" ||
-				record.result.data.delivered !== true
-			)
-				throw new ExecutionBrowserError(
-					"PRECONDITION_FAILED",
-					"COLLABORATION_EXECUTION_NOT_COMMITTED",
-				);
-			await options.agent.reportPhysicalDelivery(
-				record.result.data.messageRef,
-				record.result.data.evidenceRef,
-				record.executionRef,
-			);
-			return { status: "DELIVERED" as const };
-		},
 		async readArtifact() {
 			throw new ExecutionBrowserError(
 				"EXECUTOR_UNAVAILABLE",

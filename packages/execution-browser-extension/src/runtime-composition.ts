@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import {
@@ -40,6 +40,9 @@ function nonEmpty(value: unknown, name: string): string {
 }
 
 async function readSecret(path: string, name: string): Promise<string> {
+	const info = await stat(path);
+	if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
+		throw new TypeError(`${name} permissions must be owner-only`);
 	const value = (await readFile(path, "utf8")).trim();
 	if (value.length < 32)
 		throw new TypeError(`${name} must contain at least 32 characters`);

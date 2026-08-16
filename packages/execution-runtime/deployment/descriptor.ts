@@ -22,6 +22,57 @@ export const descriptor = {
 			required: true,
 			description: "Execution SQLite database",
 		},
+		{
+			key: "projectRoot",
+			type: "path",
+			required: true,
+			description: "Canonical project boundary consumed by the local executor",
+		},
+		{
+			key: "artifactRoot",
+			type: "path",
+			required: true,
+			description: "Execution-owned Artifact/Evidence filesystem root",
+		},
+		{
+			key: "browserExecutorConfigPath",
+			type: "path",
+			required: true,
+			description: "Absolute configuration path for the formal Browser Reality Bridge composition",
+		},
+		{
+			key: "transportCredentialFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description: "File containing the Execution Runtime transport credential",
+		},
+		{
+			key: "identity.endpoint",
+			type: "url",
+			required: true,
+			description: "Loopback platform-host execution identity endpoint",
+		},
+		{
+			key: "identity.tokenFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description: "File containing the Execution-to-platform-host identity transport credential",
+		},
+		{
+			key: "modelDecision.endpoint",
+			type: "url",
+			required: true,
+			description: "Loopback Model Runtime endpoint used by execution.command-risk.v1",
+		},
+		{
+			key: "modelDecision.credentialFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description: "File containing the Execution-to-Model transport credential",
+		},
 	],
 	lifecycle: {
 		supported: [
@@ -39,7 +90,7 @@ export const descriptor = {
 		checks: [
 			{
 				id: "execution-runtime-critical-proofs",
-				description: "All seven runtime proofs pass",
+				description: "Execution Runtime critical proofs pass",
 				lifecycle: "verify",
 			},
 		],

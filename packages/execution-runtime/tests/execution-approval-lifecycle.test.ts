@@ -234,7 +234,7 @@ test("PRESMOKE-B4-APPROVAL-04 aborted effect boundary cannot consume approval fi
 	);
 });
 
-test("PRESMOKE-B4-APPROVAL-05 patch approval fingerprint binds durable Artifact hash/base metadata", async () => {
+test("CP-EXE-RT-16/RF-EXE-RT-16 patch approval fingerprint binds durable Artifact hash/base metadata", async () => {
 	const source = await readFile(
 		new URL("../src/approval-owner.ts", import.meta.url),
 		"utf8",

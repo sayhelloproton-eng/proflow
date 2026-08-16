@@ -16,7 +16,11 @@
 		"test": "pnpm build && node --test 'packages/*/tests/**/*.test.ts'",
 		"architecture": "node packages/deployment-conformance/src/architecture-cli.ts",
 		"publishability": "node scripts/publishability.mjs",
-		"check": "pnpm build && pnpm lint && pnpm typecheck && pnpm test && pnpm architecture && pnpm publishability"
+		"check": "pnpm test-governance && pnpm surface-governance && pnpm build && pnpm lint && pnpm typecheck && pnpm test && pnpm architecture && pnpm publishability",
+		"test-governance": "node scripts/test-governance.mjs --check",
+		"test-governance:write": "node scripts/test-governance.mjs --write",
+		"surface-governance": "node scripts/surface-governance.mjs --check",
+		"surface-governance:write": "node scripts/surface-governance.mjs --write"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.6",

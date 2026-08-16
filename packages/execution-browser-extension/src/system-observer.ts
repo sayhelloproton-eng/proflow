@@ -357,11 +357,13 @@ export function createSystemObserver(options: {
 				status: "ASSESSED",
 			};
 		} catch (error) {
+			const errorCode =
+				typeof error === "object" && error !== null
+					? Reflect.get(error, "code")
+					: undefined;
 			const code =
-				typeof error === "object" &&
-				error !== null &&
-				Reflect.get(error, "code") === "CONTEXT_TOO_LARGE"
-					? "CONTEXT_TOO_LARGE"
+				errorCode === "CONTEXT_TOO_LARGE" || errorCode === "REASON_UNAVAILABLE"
+					? errorCode
 					: "REASON_FAILED";
 			return {
 				assessmentRef,

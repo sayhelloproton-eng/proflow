@@ -18,7 +18,9 @@ async function server(
 ) {
 	let count = 0;
 	const seen: InferenceRequestBody[] = [];
+	const authorizations: Array<string | undefined> = [];
 	const instance = createServer(async (request, response) => {
+		authorizations.push(request.headers.authorization);
 		if (request.url === "/status") {
 			response.setHeader("content-type", "application/json");
 			response.end(
@@ -57,6 +59,7 @@ async function server(
 	return {
 		endpoint: `http://127.0.0.1:${address.port}`,
 		seen,
+		authorizations,
 		close: () =>
 			new Promise<void>((resolve, reject) =>
 				instance.close((error) => (error ? reject(error) : resolve())),
@@ -102,8 +105,10 @@ test("PRESMOKE-B5-EXE-MODEL-01 production client uses auto/business, bounded fac
 		}),
 	);
 	try {
+		const transportCredential = "model-runtime-transport-credential-value";
 		const client = createExecutionModelDecisionClient({
 			endpoint: fake.endpoint,
+			credential: transportCredential,
 		});
 		const decision = await client.port.decide(request(), {
 			executionRef: "execution:server-generated",
@@ -118,6 +123,13 @@ test("PRESMOKE-B5-EXE-MODEL-01 production client uses auto/business, bounded fac
 		assert.equal(body.priority, "business");
 		assert.equal(body.trace.executionRef, "execution:server-generated");
 		assert.equal(body.payload.inputFingerprint, "sha256:abc");
+		assert.deepEqual(
+			fake.authorizations,
+			[
+				`Bearer ${transportCredential}`,
+				`Bearer ${transportCredential}`,
+			],
+		);
 		assert.doesNotMatch(JSON.stringify(body), /SECRET-CONTENT|SECRET-TOKEN/);
 	} finally {
 		await fake.close();
@@ -196,13 +208,21 @@ test("PRESMOKE-B5-EXE-MODEL-03 CONTEXT_TOO_LARGE gets one explicit compact calle
 		const client = createExecutionModelDecisionClient({
 			endpoint: fake.endpoint,
 		});
-		const argv = Array.from(
-			{ length: 200 },
-			(_, index) => `arg-${index}-${"x".repeat(300)}`,
-		);
+		const argv = [
+			"--token",
+			"SECRET-ARGV",
+			"--api-key=SECRET-INLINE",
+			"AUTHORIZATION:SECRET-HEADER",
+			"https://user:password@example.test/path?token=SECRET-ARGV-URL#frag",
+			...Array.from(
+				{ length: 200 },
+				(_, index) => `arg-${index}-${"x".repeat(300)}`,
+			),
+		];
 		await client.port.decide(
 			request({
 				argv,
+				args: ["TOKEN=SECRET-ENVLIKE", "plain-argument"],
 				url: "https://user:password@example.test/path?token=SECRET#frag",
 			}),
 			{ executionRef: "execution:1", inputFingerprint: "sha256:x" },
@@ -217,6 +237,9 @@ test("PRESMOKE-B5-EXE-MODEL-03 CONTEXT_TOO_LARGE gets one explicit compact calle
 		assert.ok(Buffer.byteLength(first) < 10_000);
 		assert.ok(Buffer.byteLength(second) < Buffer.byteLength(first));
 		assert.doesNotMatch(first + second, /password|SECRET/);
+		assert.match(first, /--token/);
+		assert.match(first, /plain-argument/);
+		assert.match(first, /\[REDACTED\]/);
 	} finally {
 		await fake.close();
 	}

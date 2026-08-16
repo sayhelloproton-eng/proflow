@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
@@ -25,6 +25,7 @@ const configSchema = z
 		stateRoot: z.string().min(1),
 		providerBaseUrl: z.url(),
 		providerCredentialEnv: z.string().min(1).optional(),
+		transportCredentialFile: z.string().min(1).optional(),
 		models: z
 			.object({ fast: z.string().min(1), reason: z.string().min(1) })
 			.strict(),
@@ -76,6 +77,20 @@ export async function createModelRuntimeProcess(input: {
 	const credential = input.config.providerCredentialEnv
 		? (input.env ?? process.env)[input.config.providerCredentialEnv]
 		: undefined;
+	const transportCredentialFile = input.config.transportCredentialFile;
+	const transportCredential = transportCredentialFile
+		? await (async () => {
+				const path = resolve(transportCredentialFile);
+				const info = await stat(path);
+				if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
+					throw new TypeError("model-runtime transport credential permissions must be owner-only");
+				return (await readFile(path, "utf8")).trim();
+			})()
+		: undefined;
+	if (transportCredential !== undefined && transportCredential.length < 32)
+		throw new TypeError(
+			"model-runtime transport credential must contain at least 32 characters",
+		);
 	if (input.config.providerCredentialEnv && !credential)
 		throw new TypeError(
 			"configured provider credential environment value is missing",
@@ -141,6 +156,7 @@ export async function createModelRuntimeProcess(input: {
 		runtime,
 		host: input.config.host,
 		port: input.config.port,
+		...(transportCredential ? { transportCredential } : {}),
 	});
 	return Object.freeze({
 		...service,

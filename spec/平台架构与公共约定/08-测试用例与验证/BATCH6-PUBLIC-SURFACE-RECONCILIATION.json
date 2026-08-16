@@ -1,0 +1,1304 @@
+{
+  "contract": "proflow.batch6-public-surface-reconciliation.v1",
+  "generatedFor": "PHASE3_BATCH6_NON_E2E_CLOSURE_20260816",
+  "semantics": "Mechanical inventory of shipped public package exports/binaries, Role OpenAPI operations, Host runtime ACL, Extension message types and application operations. Inventory presence is not execution PASS evidence.",
+  "packages": [
+    {
+      "package": "@tomflow/proflow-agent-controller-dev",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/agent-controller-dev/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/agent-controller-dev/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/agent-controller-dev/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [
+        {
+          "name": "proflow-agent-controller-dev",
+          "target": "./dist/src/cli.js",
+          "source": "packages/agent-controller-dev/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
+      "publicIndexSymbols": [
+        "AgentPackageMaterial",
+        "materializeAgentPackage"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-agent-gateway",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/agent-gateway/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./process",
+          "target": "./dist/src/process.js",
+          "source": "packages/agent-gateway/src/process.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/agent-gateway/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/agent-gateway/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [
+        {
+          "name": "proflow-agent-gateway",
+          "target": "./dist/src/cli.js",
+          "source": "packages/agent-gateway/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
+      "publicIndexSymbols": [
+        "AgentGatewayError",
+        "ExternalFileMaterializationInput",
+        "GatewayOptions",
+        "GatewayOwnerPorts",
+        "createAgentGateway"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-agent-product",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/agent-product/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/agent-product/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/agent-product/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [
+        {
+          "name": "proflow-agent-product",
+          "target": "./dist/src/cli.js",
+          "source": "packages/agent-product/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
+      "publicIndexSymbols": [
+        "AgentPackageMaterial",
+        "materializeAgentPackage"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-agent-runtime",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/agent-runtime/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/agent-runtime/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/agent-runtime/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./role-management-client",
+          "target": "./dist/src/role-management-client.js",
+          "source": "packages/agent-runtime/src/role-management-client.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "AGENT_CONTRACT_VERSION",
+        "AgentRuntimeError",
+        "AgentRuntimeOptions",
+        "CollaborationMessage",
+        "CollaborationThread",
+        "RegisteredRole",
+        "TaskFacts",
+        "TaskPublicPort",
+        "createAgentRuntime"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-agent-test-ops",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/agent-test-ops/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/agent-test-ops/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/agent-test-ops/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [
+        {
+          "name": "proflow-agent-test-ops",
+          "target": "./dist/src/cli.js",
+          "source": "packages/agent-test-ops/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
+      "publicIndexSymbols": [
+        "AgentPackageMaterial",
+        "materializeAgentPackage"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-chatgpt-carrier",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/chatgpt-carrier/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/chatgpt-carrier/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/chatgpt-carrier/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "behaviorAdapter",
+        "createBehaviorAdapter",
+        "descriptor"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-chrome-runtime",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/chrome-runtime/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/chrome-runtime/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/chrome-runtime/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "behaviorAdapter",
+        "createBehaviorAdapter",
+        "descriptor"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-deployment-conformance",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/deployment-conformance/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./architecture",
+          "target": "./dist/src/architecture.js",
+          "source": "packages/deployment-conformance/src/architecture.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./cli",
+          "target": "./dist/src/cli.js",
+          "source": "packages/deployment-conformance/src/cli.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/deployment-conformance/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/deployment-conformance/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [
+        {
+          "name": "proflow-architecture",
+          "target": "./dist/src/architecture-cli.js",
+          "source": "packages/deployment-conformance/src/architecture-cli.ts",
+          "classification": "SHIPPED_BINARY"
+        },
+        {
+          "name": "proflow-conformance",
+          "target": "./dist/src/cli.js",
+          "source": "packages/deployment-conformance/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
+      "publicIndexSymbols": [
+        "BehaviorAdapter",
+        "BehaviorObservation",
+        "ConformanceGateResult",
+        "ConformanceIssue",
+        "FileBridgeError",
+        "GateStatus",
+        "GptActionOperation",
+        "GptActionsConformanceInput",
+        "runBehaviorConformance",
+        "runGeneratedPackageConformance",
+        "runGptActionsConformance",
+        "runPackageConformance",
+        "runStaticConformance"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-dev-tunnel",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/dev-tunnel/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/dev-tunnel/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/dev-tunnel/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "behaviorAdapter",
+        "createBehaviorAdapter",
+        "descriptor"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-execution-browser-extension",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/execution-browser-extension/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./bridge",
+          "target": "./dist/src/bridge.js",
+          "source": "packages/execution-browser-extension/src/bridge.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/execution-browser-extension/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/execution-browser-extension/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./runtime-composition",
+          "target": "./dist/src/runtime-composition.js",
+          "source": "packages/execution-browser-extension/src/runtime-composition.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "AgentDeliveryPort",
+        "BrowserActivityKind",
+        "BrowserPageObservation",
+        "BrowserPageState",
+        "BrowserRealityBridgeError",
+        "BrowserRealityPort",
+        "CollaborationCarrierAgentPort",
+        "CollaborationCarrierExecutionPort",
+        "CollaborationCarrierOutcome",
+        "CollaborationCarrierTaskPort",
+        "ExecutionBrowserError",
+        "ExecutionBrowserOptions",
+        "PendingCollaborationCarrierMessage",
+        "SystemObserverAssessment",
+        "SystemObserverPriority",
+        "SystemObserverReasonFailure",
+        "SystemObserverReasonRequest",
+        "SystemObserverReasonResult",
+        "SystemObserverSnapshotPort",
+        "SystemObserverView",
+        "TaskBrowserPort",
+        "TaskDriveProjection",
+        "TaskObserverAnomalySignal",
+        "TaskObserverCarrierPort",
+        "TaskObserverDecision",
+        "TaskObserverDiagnosticAssessment",
+        "TaskObserverDiagnosticFailure",
+        "TaskObserverDiagnosticPort",
+        "TaskObserverOwnerPort",
+        "TaskObserverResumeSignal",
+        "createBrowserRealityBridgeServer",
+        "createCollaborationCarrierApplication",
+        "createExecutionBrowserExtension",
+        "createSystemObserver",
+        "createTaskObserver"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-execution-contracts",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/execution-contracts/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/execution-contracts/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/execution-contracts/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "ArtifactMaterializationResponse",
+        "ArtifactRef",
+        "BrowserCapabilityId",
+        "CancelExecutionRequest",
+        "CancelExecutionResponse",
+        "DecideExecutionApproval",
+        "EXECUTION_CONTRACT_DESCRIPTOR",
+        "EXECUTION_CONTRACT_VERSION",
+        "EvidenceRef",
+        "ExecuteCapabilityRequest",
+        "ExecuteCapabilityResponse",
+        "ExecutionApprovalRecord",
+        "ExecutionApprovalStatus",
+        "ExecutionArtifactKind",
+        "ExecutionArtifactRecord",
+        "ExecutionCapabilityId",
+        "ExecutionCapabilityResult",
+        "ExecutionError",
+        "ExecutionErrorCode",
+        "ExecutionEvidence",
+        "ExecutionRecord",
+        "ExecutionRef",
+        "ExecutionService",
+        "ExecutionStatus",
+        "ExternalFileMaterializationInput",
+        "ExternalFileMaterializationResult",
+        "GetExecutionResponse",
+        "LocalCapabilityId",
+        "MaterializeContextPackRequest",
+        "MaterializeExternalFilesRequest",
+        "MaterializeExternalFilesResponse",
+        "MaterializePatchProposalRequest",
+        "ReadExecutionOutputRequest",
+        "ReadExecutionOutputResponse",
+        "RequestExecutionApproval",
+        "RevokeExecutionApproval",
+        "SideEffectState",
+        "artifactMaterializationResponseSchema",
+        "browserCapabilityIds",
+        "cancelExecutionRequestSchema",
+        "checkExecutionContractCompatibility",
+        "decideExecutionApprovalSchema",
+        "executeCapabilityRequestSchema",
+        "executionApprovalRecordSchema",
+        "executionApprovalStatuses",
+        "executionArtifactKinds",
+        "executionArtifactRecordSchema",
+        "executionCapabilityIds",
+        "executionCapabilityResultSchema",
+        "executionErrorCodes",
+        "executionErrorSchema",
+        "executionEvidenceSchema",
+        "executionRecordSchema",
+        "executionStatuses",
+        "externalFileMaterializationInputSchema",
+        "externalFileMaterializationResultSchema",
+        "localCapabilityIds",
+        "materializeContextPackRequestSchema",
+        "materializeExternalFilesRequestSchema",
+        "materializeExternalFilesResponseSchema",
+        "materializePatchProposalRequestSchema",
+        "parseCancelExecutionRequest",
+        "parseCapabilityResult",
+        "parseDecideExecutionApproval",
+        "parseExecuteCapabilityRequest",
+        "parseExecutionApprovalRecord",
+        "parseExecutionArtifactRecord",
+        "parseExecutionRecord",
+        "parseExecutionRef",
+        "parseMaterializeContextPackRequest",
+        "parseMaterializePatchProposalRequest",
+        "parseReadExecutionOutputRequest",
+        "parseReadExecutionOutputResponse",
+        "parseRequestExecutionApproval",
+        "parseRevokeExecutionApproval",
+        "readExecutionOutputRequestSchema",
+        "readExecutionOutputResponseSchema",
+        "requestExecutionApprovalSchema",
+        "revokeExecutionApprovalSchema",
+        "sideEffectStates"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-execution-local",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/execution-local/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/execution-local/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/execution-local/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "ContextPackEntryInput",
+        "ContextPackManifestEntry",
+        "ContextPackResult",
+        "ExternalFileMaterializationError",
+        "LocalAdmission",
+        "LocalArtifact",
+        "LocalExecutionError",
+        "LocalExecutionResult",
+        "LocalExecutorInvocation",
+        "LocalExecutorOptions",
+        "LocalPrecondition",
+        "LocalReconciliation",
+        "LocalResolvedPatchArtifact",
+        "PatchProposalInput",
+        "PatchProposalResult",
+        "createLocalExecutor",
+        "detectedExternalMime",
+        "externalMimeCompatible",
+        "materializeContextPack",
+        "materializeExternalFiles",
+        "materializePatchProposal"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-execution-runtime",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/execution-runtime/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./service",
+          "target": "./dist/src/service.js",
+          "source": "packages/execution-runtime/src/service.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/execution-runtime/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/execution-runtime/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [
+        {
+          "name": "proflow-execution-runtime",
+          "target": "./dist/src/cli.js",
+          "source": "packages/execution-runtime/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
+      "publicIndexSymbols": [
+        "ExecutionApprovalOwnerError",
+        "ExecutionApprovalPort",
+        "ExecutionIdentityPort",
+        "ExecutionModelDecisionPort",
+        "ExecutionPolicyPort",
+        "ExecutionRuntimeError",
+        "ExecutionRuntimeOptions",
+        "createExecutionApprovalOwner",
+        "createExecutionRuntime",
+        "executionInputFingerprint",
+        "moduleRef"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-model-contracts",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/model-contracts/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/model-contracts/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/model-contracts/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "InferenceErrorCode",
+        "InferenceMode",
+        "InferencePriority",
+        "InferenceRequest",
+        "InferenceResult",
+        "MODEL_CONTRACT_DESCRIPTOR",
+        "ModelCapabilityProfile",
+        "ModelRuntimeStatus",
+        "ReasoningSpec",
+        "capabilityProposalOutputSchema",
+        "checkModelContractCompatibility",
+        "createReasoningSpec",
+        "imageInputSchema",
+        "inferenceErrorCodes",
+        "inferenceErrorSchema",
+        "inferenceModes",
+        "inferencePriorities",
+        "inferenceRequestSchema",
+        "inferenceResultSchema",
+        "modelCapabilityProfileSchema",
+        "modelRuntimeStatusSchema"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-model-provider-api",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/model-provider-api/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/model-provider-api/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/model-provider-api/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "RESOURCE_IDENTITY",
+        "RESOURCE_IDENTITY_VERSION",
+        "behaviorAdapter",
+        "createBehaviorAdapter",
+        "descriptor"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-model-runtime",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/model-runtime/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./provider",
+          "target": "./dist/src/provider.js",
+          "source": "packages/model-runtime/src/provider.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./service",
+          "target": "./dist/src/service.js",
+          "source": "packages/model-runtime/src/service.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./process",
+          "target": "./dist/src/process.js",
+          "source": "packages/model-runtime/src/process.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./specs/system-health-assessment",
+          "target": "./dist/src/specs/system-health-assessment.js",
+          "source": "packages/model-runtime/src/specs/system-health-assessment.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/model-runtime/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/model-runtime/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [
+        {
+          "name": "proflow-model-runtime",
+          "target": "./dist/src/cli.js",
+          "source": "packages/model-runtime/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
+      "publicIndexSymbols": [
+        "MODEL_RUNTIME_PUBLIC_API",
+        "createFileModelRuntimeLogger",
+        "createModelRuntime",
+        "createReasoningSpec",
+        "healthFromRoles",
+        "renderPrompt",
+        "verifyProviderCapabilities",
+        "verifyRoleCapabilities"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-module-contract",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/module-contract/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/module-contract/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/module-contract/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "CompatibilityAssessment",
+        "ConfigSlot",
+        "ConfigValueType",
+        "DeploymentCheck",
+        "DeploymentEffect",
+        "DeploymentError",
+        "HumanAction",
+        "LifecyclePrimitive",
+        "LifecycleSupport",
+        "ModuleDescriptor",
+        "ModuleKind",
+        "ModuleOperationResult",
+        "ModuleProvide",
+        "ModuleRequire",
+        "ModuleRequirement",
+        "VerificationContract",
+        "assessModuleCompatibility",
+        "configSlotSchema",
+        "configValueTypeSchema",
+        "deploymentCheckSchema",
+        "deploymentEffectSchema",
+        "deploymentErrorCodeSchema",
+        "deploymentErrorSchema",
+        "humanActionSchema",
+        "lifecyclePrimitiveSchema",
+        "lifecycleSupportSchema",
+        "moduleDescriptorSchema",
+        "moduleKindSchema",
+        "moduleOperationResultSchema",
+        "moduleProvideSchema",
+        "moduleRequireSchema",
+        "moduleRequirementSchema",
+        "parseModuleDescriptor",
+        "queryRequirements",
+        "verificationCheckSchema",
+        "verificationContractSchema"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-module-skill",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/module-skill/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/module-skill/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/module-skill/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "FROZEN_FACT_CATEGORIES",
+        "STOP_RULE_TOKENS",
+        "descriptor",
+        "kind",
+        "moduleRef",
+        "moduleVersion",
+        "packageName"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-module-template",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/module-template/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/module-template/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/module-template/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "CURRENT_TEMPLATE_VERSION",
+        "CliResult",
+        "GeneratedBehaviorAdapter",
+        "GeneratedBehaviorObservation",
+        "GeneratedPackageMetadata",
+        "MaterializeModuleInput",
+        "MaterializeModuleResult",
+        "ResourceObservation",
+        "ServiceState",
+        "TemplateMigrationAssessment",
+        "TemplateMigrationInput",
+        "assessTemplateMigration",
+        "behaviorAdapter",
+        "descriptor",
+        "loadGeneratedBehaviorAdapter",
+        "materializeModule",
+        "moduleRef"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-platform-cli",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/platform-cli/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./cli",
+          "target": "./dist/src/cli.js",
+          "source": "packages/platform-cli/src/cli.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/platform-cli/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/platform-cli/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [
+        {
+          "name": "platform",
+          "target": "./dist/src/cli.js",
+          "source": "packages/platform-cli/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
+      "publicIndexSymbols": [
+        "CheckStrategy",
+        "ExecuteStrategy",
+        "MANIFEST_CONTRACT",
+        "PlatformError",
+        "SECRET_REDACTED",
+        "acquireWorkspaceLock",
+        "appendVerification",
+        "applyPlan",
+        "assessPlatformReady",
+        "assessUpgrade",
+        "atomicWrite",
+        "buildManifest",
+        "checkPlanStale",
+        "computeFingerprint",
+        "discoverModules",
+        "dispatchLifecycle",
+        "doctorModule",
+        "doctorModules",
+        "emptyDeploymentState",
+        "evaluateStepCheck",
+        "generateInstallDoc",
+        "listPlans",
+        "loadConfig",
+        "loadDeploymentState",
+        "loadLatestVerification",
+        "loadPlan",
+        "loadVerificationHistory",
+        "materializeConfig",
+        "planDeployment",
+        "planRepair",
+        "planUpgrade",
+        "readWorkspaceLock",
+        "redactDeep",
+        "redactPlanSecrets",
+        "redactSecretValues",
+        "renderInstallDoc",
+        "repairFactCodes",
+        "runCli",
+        "runPreflight",
+        "saveDeploymentState",
+        "savePlan",
+        "startModules",
+        "statusModules",
+        "stopModules",
+        "verifyModule",
+        "verifyModules",
+        "versionSatisfies",
+        "workspaceLockPath",
+        "workspacePaths",
+        "workspaceResidentDriver",
+        "writeInstallDoc"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-platform-host",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/platform-host/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/platform-host/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/platform-host/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [
+        {
+          "name": "proflow-platform-host",
+          "target": "./dist/src/cli.js",
+          "source": "packages/platform-host/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
+      "publicIndexSymbols": [
+        "DependencyReadiness",
+        "PlatformHostAgentIdentityPorts",
+        "PlatformHostBrowserOwnerPorts",
+        "PlatformHostConfig",
+        "PlatformHostExecutionIdentityPort",
+        "PlatformHostRoleManagement",
+        "PlatformHostStatus",
+        "PlatformHostTaskDriverPorts",
+        "createPlatformHost",
+        "loadPlatformHostConfig",
+        "parsePlatformHostConfig"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-task-migration-runner",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/task-migration-runner/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./cli",
+          "target": "./dist/src/cli.js",
+          "source": "packages/task-migration-runner/src/cli.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/task-migration-runner/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/task-migration-runner/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [
+        {
+          "name": "proflow-task-migrate",
+          "target": "./dist/src/cli.js",
+          "source": "packages/task-migration-runner/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
+      "publicIndexSymbols": [
+        "MigrationInput",
+        "MigrationResult",
+        "MigrationStatus",
+        "applyMigrations",
+        "discoverMigrations",
+        "getMigrationStatus",
+        "runCli",
+        "verifyMigrations"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-task-orchestration",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/task-orchestration/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/task-orchestration/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/task-orchestration/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "DocumentResult",
+        "NodeResult",
+        "PublicOperationName",
+        "TaskSummary",
+        "TaskView",
+        "assertNodeTransition",
+        "assertTaskGroupTransition",
+        "assertTaskTransition",
+        "createTaskServices",
+        "publicOperationNames",
+        "validatePublicInput"
+      ],
+      "classification": "CLASSIFIED"
+    },
+    {
+      "package": "@tomflow/proflow-task-store-sqlite",
+      "exports": [
+        {
+          "key": ".",
+          "target": "./dist/src/index.js",
+          "source": "packages/task-store-sqlite/src/index.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./migrations",
+          "target": "./dist/src/migrations.js",
+          "source": "packages/task-store-sqlite/src/migrations.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/adapter",
+          "target": "./dist/deployment/adapter.js",
+          "source": "packages/task-store-sqlite/deployment/adapter.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./deployment/descriptor",
+          "target": "./dist/deployment/descriptor.js",
+          "source": "packages/task-store-sqlite/deployment/descriptor.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        }
+      ],
+      "binaries": [],
+      "publicIndexSymbols": [
+        "SqliteTaskStore",
+        "TaskMigration",
+        "TaskMigrationContext",
+        "taskMigrations"
+      ],
+      "classification": "CLASSIFIED"
+    }
+  ],
+  "roleActionReconciliation": [
+    {
+      "package": "@tomflow/proflow-agent-product",
+      "openApiOperationIds": [
+        "askPeer",
+        "getTask",
+        "getTaskDocument",
+        "putTaskDocument",
+        "replyPeer"
+      ],
+      "hostAuthorizedOperations": [
+        "askPeer",
+        "getTask",
+        "getTaskDocument",
+        "putTaskDocument",
+        "replyPeer"
+      ],
+      "missingInHost": [],
+      "missingInOpenApi": [],
+      "classification": "EXACT_MATCH"
+    },
+    {
+      "package": "@tomflow/proflow-agent-controller-dev",
+      "openApiOperationIds": [
+        "askPeer",
+        "completeNode",
+        "executeCapability",
+        "failNode",
+        "getExecution",
+        "getNodeContext",
+        "getTask",
+        "getTaskDocument",
+        "putTaskDocument",
+        "readExecutionOutput",
+        "reopenNode",
+        "replyPeer",
+        "startNode",
+        "waitNode"
+      ],
+      "hostAuthorizedOperations": [
+        "askPeer",
+        "completeNode",
+        "executeCapability",
+        "failNode",
+        "getExecution",
+        "getNodeContext",
+        "getTask",
+        "getTaskDocument",
+        "putTaskDocument",
+        "readExecutionOutput",
+        "reopenNode",
+        "replyPeer",
+        "startNode",
+        "waitNode"
+      ],
+      "missingInHost": [],
+      "missingInOpenApi": [],
+      "classification": "EXACT_MATCH"
+    },
+    {
+      "package": "@tomflow/proflow-agent-test-ops",
+      "openApiOperationIds": [
+        "askPeer",
+        "completeNode",
+        "executeCapability",
+        "failNode",
+        "getExecution",
+        "getNodeContext",
+        "getTask",
+        "getTaskDocument",
+        "putTaskDocument",
+        "readExecutionOutput",
+        "replyPeer",
+        "startNode",
+        "waitNode"
+      ],
+      "hostAuthorizedOperations": [
+        "askPeer",
+        "completeNode",
+        "executeCapability",
+        "failNode",
+        "getExecution",
+        "getNodeContext",
+        "getTask",
+        "getTaskDocument",
+        "putTaskDocument",
+        "readExecutionOutput",
+        "replyPeer",
+        "startNode",
+        "waitNode"
+      ],
+      "missingInHost": [],
+      "missingInOpenApi": [],
+      "classification": "EXACT_MATCH"
+    }
+  ],
+  "extension": {
+    "messageTypes": [
+      "PROFLOW_APPROVAL_APPLICATION",
+      "PROFLOW_CONTENT_OBSERVATION",
+      "PROFLOW_PAGE_COMMAND",
+      "PROFLOW_SIDE_PANEL_SNAPSHOT",
+      "PROFLOW_TASK_APPLICATION"
+    ],
+    "applicationOperations": [
+      "approval.allow",
+      "approval.deny",
+      "approval.list",
+      "node.reopen",
+      "task.create",
+      "task.ensureWorkers",
+      "task.get",
+      "task.list",
+      "task.start"
+    ]
+  },
+  "gate": {
+    "unclassified": 0,
+    "ownerDrift": 0,
+    "missingSourceTargets": 0
+  }
+}

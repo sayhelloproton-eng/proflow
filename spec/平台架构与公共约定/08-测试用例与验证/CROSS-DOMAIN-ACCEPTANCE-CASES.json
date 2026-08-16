@@ -2176,5 +2176,8 @@
       ],
       "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
     }
-  ]
+  ],
+  "status": "ACTIVE_TRACE_EVIDENCE_MAPPING",
+  "semantics": "44 cases means cross-domain trace/evidence mappings. It does not mean 44 independent real runtime/E2E journey executions or PASS results.",
+  "currentReconciliation": "BATCH6-TEST-GOVERNANCE-RECONCILIATION.json"
 }

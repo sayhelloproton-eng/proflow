@@ -1,8 +1,8 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync } from "node:fs";
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { appendFile, chmod, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
-import { basename, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 import { createAgentRuntime } from "@tomflow/proflow-agent-runtime";
 import type { SystemObserverView } from "@tomflow/proflow-execution-browser-extension";
@@ -16,13 +16,13 @@ import { SqliteTaskStore } from "@tomflow/proflow-task-store-sqlite";
 import { taskMigrations } from "@tomflow/proflow-task-store-sqlite/migrations";
 import { z } from "zod";
 
+import {
+	roleOperations,
+	rolePackageRefs,
+	type RolePackageRef,
+} from "./role-operations.ts";
+
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-const rolePackageRefs = [
-	"@tomflow/proflow-agent-product",
-	"@tomflow/proflow-agent-controller-dev",
-	"@tomflow/proflow-agent-test-ops",
-] as const;
-type RolePackageRef = (typeof rolePackageRefs)[number];
 
 const systemObserverReasonResultSchema = z
 	.object({
@@ -52,6 +52,33 @@ const systemObserverReasonResultSchema = z
 	})
 	.strict();
 
+const browserStructuredLogSchema = z
+	.object({
+		timestamp: z.string().datetime(),
+		level: z.enum(["DEBUG", "INFO", "WARN", "ERROR"]),
+		component: z.string().min(1).max(100),
+		capability: z.string().min(1).max(160).optional(),
+		operation: z.string().min(1).max(160).optional(),
+		status: z.string().min(1).max(80).optional(),
+		errorCode: z.string().min(1).max(160).optional(),
+		correlationId: z.string().min(1).max(240).optional(),
+		taskId: z.string().min(1).max(240).optional(),
+		nodeId: z.string().min(1).max(240).optional(),
+		runNo: z.number().int().nonnegative().optional(),
+		agentPackageRef: z.string().min(1).max(240).optional(),
+		roleRef: z.string().min(1).max(240).optional(),
+		workerRef: z.string().min(1).max(240).optional(),
+		executionRef: z.string().min(1).max(240).optional(),
+		messageRef: z.string().min(1).max(240).optional(),
+		artifactRef: z.string().min(1).max(240).optional(),
+		evidenceRef: z.string().min(1).max(240).optional(),
+		conversationLocator: z.string().min(1).max(1_000).optional(),
+		operationRef: z.string().min(1).max(240).optional(),
+		attemptNo: z.number().int().nonnegative().optional(),
+		tabId: z.number().int().nonnegative().optional(),
+	})
+	.strict();
+
 const taskDiagnosticReasonResultSchema = z
 	.object({
 		finding: z.string().min(1).max(1_000),
@@ -62,48 +89,6 @@ const taskDiagnosticReasonResultSchema = z
 		needsHumanAttention: z.boolean(),
 	})
 	.strict();
-
-const roleOperations: Record<RolePackageRef, ReadonlySet<string>> = {
-	"@tomflow/proflow-agent-product": new Set([
-		"getTask",
-		"putTaskDocument",
-		"getTaskDocument",
-		"askPeer",
-		"replyPeer",
-	]),
-	"@tomflow/proflow-agent-controller-dev": new Set([
-		"getTask",
-		"getNodeContext",
-		"startNode",
-		"completeNode",
-		"waitNode",
-		"failNode",
-		"reopenNode",
-		"getTaskDocument",
-		"putTaskDocument",
-		"askPeer",
-		"replyPeer",
-		"executeCapability",
-		"getExecution",
-		"readExecutionOutput",
-	]),
-	"@tomflow/proflow-agent-test-ops": new Set([
-		"getTask",
-		"getNodeContext",
-		"startNode",
-		"completeNode",
-		"waitNode",
-		"failNode",
-		"getTaskDocument",
-		"putTaskDocument",
-		"getTaskDocument",
-		"askPeer",
-		"replyPeer",
-		"executeCapability",
-		"getExecution",
-		"readExecutionOutput",
-	]),
-};
 
 const loopbackUrl = z
 	.url()
@@ -121,6 +106,8 @@ const configSchema = z
 		port: z.number().int().min(0).max(65_535).default(0),
 		executionBaseUrl: loopbackUrl,
 		modelBaseUrl: loopbackUrl,
+		modelTransportCredentialFile: z.string().min(1).optional(),
+		gatewayTransportCredentialFile: z.string().min(1).optional(),
 		roles: z
 			.array(
 				z
@@ -187,6 +174,20 @@ const configSchema = z
 		...value,
 		stateRoot: resolve(value.stateRoot),
 		workspaceRoot: resolve(value.workspaceRoot),
+		...(value.modelTransportCredentialFile
+			? {
+					modelTransportCredentialFile: resolve(
+						value.modelTransportCredentialFile,
+					),
+				}
+			: {}),
+		...(value.gatewayTransportCredentialFile
+			? {
+					gatewayTransportCredentialFile: resolve(
+						value.gatewayTransportCredentialFile,
+					),
+				}
+			: {}),
 	}));
 
 export type PlatformHostConfig = z.infer<typeof configSchema>;
@@ -498,6 +499,7 @@ export type PlatformHostRoleManagement = {
 async function constructGraph(
 	config: PlatformHostConfig,
 	executionCredential?: string,
+	modelCredential?: string,
 ) {
 	const databasePath = join(config.stateRoot, "state", "task.sqlite");
 	const migration = applyMigrations({
@@ -574,7 +576,11 @@ async function constructGraph(
 		config.executionBaseUrl,
 		executionCredential,
 	);
-	const model = createOwnerHttpClient("model", config.modelBaseUrl);
+	const model = createOwnerHttpClient(
+		"model",
+		config.modelBaseUrl,
+		modelCredential,
+	);
 	const boundedSystemView = async (view: SystemObserverView) => {
 		if (view === "task") {
 			const tasks = unwrap(task.queries.listTasks({})).tasks;
@@ -1468,6 +1474,19 @@ async function constructGraph(
 			}
 			if (operation === "system.reason") {
 				const assessmentRef = string(value.assessmentRef, "assessmentRef");
+				const observerPayload = object(
+					value.payload,
+					"system observer reason payload",
+				);
+				const payloadAssessmentRef = string(
+					observerPayload.assessmentRef,
+					"payload.assessmentRef",
+				);
+				if (payloadAssessmentRef !== assessmentRef) {
+					throw new Error("SYSTEM_OBSERVER_ASSESSMENT_REF_MISMATCH");
+				}
+				const { assessmentRef: _assessmentRef, kind, ...modelPayload } =
+					observerPayload;
 				const response = object(
 					await model.invoke("infer", {
 						contractVersion: "1.0.0",
@@ -1475,7 +1494,10 @@ async function constructGraph(
 						mode: "reason",
 						priority: "background",
 						trace: { callerRef: "extension:system-observer", assessmentRef },
-						payload: value.payload,
+						payload: {
+							...modelPayload,
+							assessmentKind: string(kind, "payload.kind"),
+						},
 					}),
 					"system observer inference",
 				);
@@ -1657,6 +1679,22 @@ async function ensureTaskApplicationCredential(stateRoot: string) {
 	return credential;
 }
 
+async function readPrivateTransportCredential(file: string, name: "GATEWAY" | "MODEL") {
+	const info = await stat(file);
+	if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
+		throw new Error(`${name}_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID`);
+	const credential = (await readFile(file, "utf8")).trim();
+	if (credential.length < 32)
+		throw new Error(`${name}_TRANSPORT_CREDENTIAL_INVALID`);
+	return credential;
+}
+async function readGatewayTransportCredential(file: string) {
+	return readPrivateTransportCredential(file, "GATEWAY");
+}
+async function readModelTransportCredential(file: string) {
+	return readPrivateTransportCredential(file, "MODEL");
+}
+
 function managementCredentialMatches(
 	header: string | undefined,
 	expected: string,
@@ -1684,6 +1722,8 @@ export function createPlatformHost(input: {
 	let taskApplicationCredential: string | undefined;
 	let approvalApplicationCredential: string | undefined;
 	let executionIdentityCredential: string | undefined;
+	let gatewayTransportCredential: string | undefined;
+	let modelTransportCredential: string | undefined;
 	const active = new Set<Promise<void>>();
 	const log = (event: string, detail: Record<string, unknown> = {}) =>
 		input.log?.({
@@ -1819,10 +1859,24 @@ export function createPlatformHost(input: {
 			executionIdentityCredential = await ensureExecutionIdentityCredential(
 				input.config.stateRoot,
 			);
+			gatewayTransportCredential = input.config.gatewayTransportCredentialFile
+				? await readGatewayTransportCredential(
+						input.config.gatewayTransportCredentialFile,
+					)
+				: undefined;
+			modelTransportCredential = input.config.modelTransportCredentialFile
+				? await readModelTransportCredential(
+						input.config.modelTransportCredentialFile,
+					)
+				: undefined;
 			log("DEPENDENCY_INITIALIZATION_STARTED", {
 				order: ["task", "agent", "execution-client", "model-client"],
 			});
-			graph = await constructGraph(input.config, input.executionCredential);
+			graph = await constructGraph(
+				input.config,
+				input.executionCredential,
+				modelTransportCredential,
+			);
 			await graph.readiness();
 			server = createServer((request, response) => {
 				const work = (async () => {
@@ -1923,6 +1977,54 @@ export function createPlatformHost(input: {
 								return respond(response, 400, {
 									error:
 										error instanceof Error ? error.message : "INVALID_REQUEST",
+								});
+							}
+						}
+						if (
+							request.method === "POST" &&
+							url.pathname === "/application/log"
+						) {
+							if (
+								!taskApplicationCredential ||
+								!managementCredentialMatches(
+									request.headers.authorization,
+									taskApplicationCredential,
+								)
+							)
+								return respond(response, 401, {
+									error: "BROWSER_LOG_AUTH_FAILED",
+								});
+							const chunks: Buffer[] = [];
+							let bytes = 0;
+							for await (const chunk of request) {
+								const buffer = Buffer.isBuffer(chunk)
+									? chunk
+									: Buffer.from(chunk);
+								bytes += buffer.byteLength;
+								if (bytes > 32_768)
+									throw new TypeError("REQUEST_BODY_TOO_LARGE");
+								chunks.push(buffer);
+							}
+							try {
+								const entry = browserStructuredLogSchema.parse(
+									JSON.parse(Buffer.concat(chunks).toString("utf8")),
+								);
+								const logPath = join(
+									input.config.stateRoot,
+									"logs",
+									"browser-extension",
+									"events.jsonl",
+								);
+								await mkdir(dirname(logPath), { recursive: true, mode: 0o700 });
+								await appendFile(
+									logPath,
+									`${JSON.stringify({ ...entry, receivedAt: new Date().toISOString() })}\n`,
+									{ mode: 0o600 },
+								);
+								return respond(response, 200, { accepted: true });
+							} catch (error) {
+								return respond(response, 400, {
+									error: error instanceof Error ? error.message : "INVALID_LOG_ENTRY",
 								});
 							}
 						}
@@ -2066,6 +2168,16 @@ export function createPlatformHost(input: {
 							!url.pathname.startsWith("/actions/")
 						)
 							return respond(response, 404, { error: "NOT_FOUND" });
+						if (
+							gatewayTransportCredential &&
+							!managementCredentialMatches(
+								request.headers.authorization,
+								gatewayTransportCredential,
+							)
+						)
+							return respond(response, 401, {
+								error: "GATEWAY_TRANSPORT_AUTH_FAILED",
+							});
 						const chunks: Buffer[] = [];
 						let bytes = 0;
 						for await (const chunk of request) {

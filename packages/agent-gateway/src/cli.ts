@@ -7,8 +7,13 @@ import {
 const [command, configPath] = process.argv.slice(2);
 if (command !== "start" || !configPath)
 	throw new Error("Usage: proflow-agent-gateway start /absolute/config.json");
+const config = await loadAgentGatewayProcessConfig(configPath);
+if (!config.downstreamCredentialFile)
+	throw new Error(
+		"agent-gateway requires downstreamCredentialFile for authenticated platform-host transport",
+	);
 const processService = await createAgentGatewayProcess({
-	config: await loadAgentGatewayProcessConfig(configPath),
+	config,
 	log: (entry) => process.stderr.write(`${JSON.stringify(entry)}\n`),
 });
 const address = await processService.start();

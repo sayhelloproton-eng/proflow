@@ -1,0 +1,93 @@
+{
+  "contract": "proflow.batch6-ui-interaction-reconciliation.v1",
+  "generatedFor": "PHASE3_BATCH6_NON_E2E_CLOSURE_20260816",
+  "semantics": "Mechanical shipped UI inventory. Controls prove an implemented interaction surface only; real Chrome/Custom GPT behavior remains REAL_EXTERNAL where applicable.",
+  "sidePanel": {
+    "forms": [
+      {
+        "id": "new-task-form",
+        "classification": "SHIPPED_UI_FORM"
+      }
+    ],
+    "staticButtons": [
+      {
+        "id": "new-task",
+        "label": "New Task + 3 Workers",
+        "classification": "SHIPPED_UI_CONTROL"
+      },
+      {
+        "id": "refresh-tasks",
+        "label": "Refresh",
+        "classification": "SHIPPED_UI_CONTROL"
+      },
+      {
+        "id": "start-task",
+        "label": "Confirm / Start",
+        "classification": "SHIPPED_UI_CONTROL"
+      },
+      {
+        "id": "ensure-workers",
+        "label": "Recover missing Workers",
+        "classification": "SHIPPED_UI_CONTROL"
+      },
+      {
+        "id": "refresh-approvals",
+        "label": "Refresh approvals",
+        "classification": "SHIPPED_UI_CONTROL"
+      }
+    ],
+    "dynamicControls": [
+      {
+        "label": "Allow",
+        "operation": "approval.allow",
+        "classification": "SHIPPED_UI_CONTROL"
+      },
+      {
+        "label": "Deny",
+        "operation": "approval.deny",
+        "classification": "SHIPPED_UI_CONTROL"
+      },
+      {
+        "label": "Reopen",
+        "operation": "node.reopen",
+        "classification": "SHIPPED_UI_CONTROL"
+      },
+      {
+        "label": "Task row open",
+        "operation": "task.get",
+        "classification": "SHIPPED_UI_CONTROL"
+      }
+    ],
+    "applicationOperations": [
+      "approval.allow",
+      "approval.deny",
+      "approval.list",
+      "node.reopen",
+      "task.create",
+      "task.ensureWorkers",
+      "task.get",
+      "task.list",
+      "task.start"
+    ]
+  },
+  "options": {
+    "forms": [
+      {
+        "id": "bridge-form",
+        "classification": "SHIPPED_CONFIG_FORM"
+      },
+      {
+        "id": "task-application-form",
+        "classification": "SHIPPED_CONFIG_FORM"
+      },
+      {
+        "id": "approval-application-form",
+        "classification": "SHIPPED_CONFIG_FORM"
+      }
+    ]
+  },
+  "gate": {
+    "unclassified": 0,
+    "missingHandlers": 0
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "contract": "proflow.batch6-final-non-e2e-closure-ledger.v1",
+  "generatedFor": "PHASE3_BATCH6_NON_E2E_CLOSURE_20260816",
+  "sourceBaseline": {
+    "archive": "proflow-source-da55f875-20260816-085708.zip",
+    "head": "da55f875dd1f605a2ffd7fc6b48085c6436ddcef",
+    "sha256": "d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e"
+  },
+  "authority": {
+    "architectureTruth": "Frozen spec and Batch4 architecture decision remain authoritative; Batch6 test-plan/evidence reconciliation does not grant tests authority to redefine owner or business semantics.",
+    "sandboxResultSemantics": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "closedSemantics": "Only local Node 24.19.0 / pnpm 11.21.0 verification plus ChatGPT review may upgrade a source-fixed item to CLOSED."
+  },
+  "batch5IndependentAuditCarry": {
+    "systemAssessmentComposition": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "commandRiskArgvSecretRedaction": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "systemObserverTypedReasonUnavailable": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION"
+  },
+  "batch6": {
+    "P1-19_TEST_GOVERNANCE": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "P2-01_TESTPLAN_SOURCE_BASELINE": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "P2-02_HISTORICAL_COUNT_OVERCLAIM": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "P2-03_GATEWAY_TO_HOST_TRANSPORT_AUTH": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "P2-04_MODEL_RUNTIME_TRANSPORT_AUTH": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "P2-05_GATEWAY_DESCRIBE_OPENAPI_DRIFT": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "P2-06_BROWSER_CARRIER_STRUCTURED_LOGGING": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "DOC_CLARIFICATION_01_MODULE_SKILL": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "ROLE_CLI_REAL_SUBPROCESS_PROOF": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "STALE_OR_ORPHAN_PUBLIC_SURFACE": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION",
+    "CANONICAL_ROLE_OPENAPI_HOST_ACL": "SOURCE_FIXED_PENDING_LOCAL_VERIFICATION"
+  },
+  "mechanicalGates": {
+    "testGovernance": {
+      "testPlans": 37,
+      "formalCaseIdentities": 312,
+      "criticalProofs": 188,
+      "requiredFailureBoundaries": 124,
+      "executableTestFiles": 122,
+      "executableTestCalls": 634,
+      "crossDomainTraceCases": 44,
+      "unknown": 0,
+      "notChecked": 0,
+      "noMapping": 0,
+      "implementationNoMapping": 0,
+      "ownerNoMapping": 0,
+      "assumed": 0
+    },
+    "surfaceGovernance": {
+      "packages": 24,
+      "publicExports": 86,
+      "binaries": 11,
+      "roleActions": 32,
+      "extensionMessages": 5,
+      "applicationOperations": 9,
+      "uiControls": 9,
+      "unclassified": 0,
+      "ownerDrift": 0,
+      "missingSourceTargets": 0,
+      "missingHandlers": 0
+    }
+  },
+  "historicalClaimSemantics": {
+    "261": "HISTORICAL_TRACE_BASELINE_ONLY",
+    "44": "TRACE_EVIDENCE_MAPPED_NOT_44_INDEPENDENT_REAL_RUNTIME_E2E_JOURNEYS",
+    "541": "HISTORICAL_SOURCE_TEST_CALL_INVENTORY_NOT_EXECUTED_PASS"
+  },
+  "realExternalPending": [
+    "REAL_CHROME_EXTENSION_E2E",
+    "REAL_CUSTOM_GPT_E2E",
+    "REAL_PHONE_FAST",
+    "REAL_PHONE_REASON",
+    "REAL_PHONE_LOAD",
+    "REAL_CROSS_DOMAIN_J0_J6_JOURNEY"
+  ],
+  "sandboxLongTestsRun": false,
+  "localVerificationRequired": [
+    "pnpm test-governance",
+    "pnpm surface-governance",
+    "pnpm build",
+    "pnpm lint",
+    "pnpm typecheck",
+    "pnpm test",
+    "pnpm architecture",
+    "pnpm publishability",
+    "pnpm check"
+  ],
+  "preSmokeDecision": "PENDING_LOCAL_VERIFICATION",
+  "phase3FinalGo": "NO"
+}

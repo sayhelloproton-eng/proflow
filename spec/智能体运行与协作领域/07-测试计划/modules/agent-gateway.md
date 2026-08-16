@@ -14,8 +14,9 @@ requires: []
 contractRefs: []
 testPlanPhase: PRE_IMPLEMENTATION
 testPlanStatus: FINAL_FROZEN
-sourceBaseline: ProFlow-ProFlow-DDD规范化技术文档-最终冻结基线-20260812.zip
-sourceBaselineSha256: 69fdfbac8a5ee36b700bcb10c0b8a9a61f0a5aa3367386cb5bc7e98118a4a875
+sourceBaseline: proflow-source-da55f875-20260816-085708.zip
+sourceBaselineSha256: d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e
+sourceReconciledThrough: PHASE3_BATCH6_NON_E2E_CLOSURE_20260816
 sourceRefs:
 - AGENT-AGENT-GATEWAY-TECH-DESIGN
 - AGENT-DOC-02-01
@@ -90,7 +91,7 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 - [ ] **CP-AGT-GW-04** — `openaiFileIdRefs` object-array normalization，最多 10 项；input single 10MB / aggregate 50MB / fetch 15s 等平台 hard gate。
 - [ ] **CP-AGT-GW-05** — filename/MIME/URL untrusted；redirect private/localhost/metadata、path traversal/control chars、MIME mismatch fail-closed。
 - [ ] **CP-AGT-GW-06** — `openaiFileResponse` inline→URL relay、10 files/10MB、no image/video；relay token opaque/GET-only/artifact-scoped/TTL=5min，headers 不泄漏本地路径/secret。
-- [ ] **CP-AGT-GW-07** — 每个 operation 显式 `x-openai-isConsequential`；Carrier confirmation 与 Execution Approval 独立。
+- [ ] **CP-AGT-GW-07** — Gateway 不维护手写 `describeOpenApi`/诊断 schema 第二真源；每个 shipped Role OpenAPI operation 的 `x-openai-isConsequential` 由对应 Role Package canonical schema 与其 executable conformance proof 负责，Carrier confirmation 与 Execution Approval 独立。
 - [ ] **CP-AGT-GW-08** — Gateway 无业务 persistence；expired locator/timeout 只重试无 business mutation transport，已有 Action 先按 owner idempotency/result 查询。
 - [ ] **CP-AGT-GW-09** — process readiness 分别验证 ingress/credential/required downstream/relay capability；任一 blocking dependency 缺失不得 READY，restart 不重放业务 mutation。
 
@@ -105,8 +106,8 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 | `AGT-GW-003` | 实现 45s/<100k/429/5xx transport hard guards | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-003` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-03` | 45s/<100k/429/5xx transport hard guards | 45s ceiling 与 `<100,000 chars` request/response hard guard、真实 429/5xx semantics 可证明。 |
 | `AGT-GW-004` | 实现 openaiFileIdRefs object-array normalization 与 bounded input validation | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-004` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-04`<br>`CP-AGT-GW-05` | openaiFileIdRefs object-array normalization 与 bounded input validation | `openaiFileIdRefs` object-array normalization，最多 10 项；input single 10MB / aggregate 50MB / fetch 15s 等平台 hard gate。；filename/MIME/URL untrusted；redirect private/localhost/metadata、path traversal/control chars、MIME mismatch fail-closed。 |
 | `AGT-GW-005` | 实现 openaiFileResponse inline/URL serializer、relay TTL/token/scope/SSRF guards | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-005` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-05`<br>`CP-AGT-GW-06` | openaiFileResponse inline/URL serializer、relay TTL/token/scope/SSRF guards | filename/MIME/URL untrusted；redirect private/localhost/metadata、path traversal/control chars、MIME mismatch fail-closed。；`openaiFileResponse` inline→URL relay、10 files/10MB、no image/video；relay token opaque/GET-only/artifact-scoped/TTL=5min，headers 不泄漏本地路径/secret。 |
-| `AGT-GW-006` | 为每个 Action operation 固定 x-openai-isConsequential 并做 schema conformance | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-006` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-07` | 为每个 Action operation 固定 x-openai-isConsequential 并做 schema conformance | 每个 operation 显式 `x-openai-isConsequential`；Carrier confirmation 与 Execution Approval 独立。 |
-| `AGT-GW-007` | 完成真实 Custom GPT Preview/Actions/File Bridge E2E | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-007` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-01`<br>`CP-AGT-GW-02`<br>`CP-AGT-GW-03`<br>`CP-AGT-GW-04`<br>`CP-AGT-GW-05`<br>`CP-AGT-GW-06`<br>`CP-AGT-GW-07`<br>`CP-AGT-GW-08`<br>`CP-AGT-GW-09` | 真实 Custom GPT Preview/Actions/File Bridge E2E | Bearer key 解析 authenticatedRoleRef，不信任 body 自报 roleRef；所有外部输入 `unknown → validate → typed`。；GPT-facing body/path/query 正规化为 internal canonical DTO，不依赖 arbitrary custom headers。；45s ceiling 与 `<100,000 chars` request/response hard guard、真实 429/5xx semantics 可证明。；`openaiFileIdRefs` object-array normalization，最多 10 项；input single 10MB / aggregate 50MB / fetch 15s 等平台 hard gate。；filename/MIME/URL untrusted；redirect private/localhost/metadata、path traversal/control chars、MIME mismatch fail-closed。；`openaiFileResponse` inline→URL relay、10 files/10MB、no image/video；relay token opaque/GET-only/artifact-scoped/TTL=5min，headers 不泄漏本地路径/secret。；每个 operation 显式 `x-openai-isConsequential`；Carrier confirmation 与 Execution Approval 独立。；Gateway 无业务 persistence；expired locator/timeout 只重试无 business mutation transport，已有 Action 先按 owner idempotency/result 查询。；process readiness 分别验证 ingress/credential/required downstream/relay capability；任一 blocking dependency 缺失不得 READY，restart 不重放业务 mutation。 |
+| `AGT-GW-006` | 移除 Gateway OpenAPI 第二真源，并由 shipped Role schema 做 consequential metadata conformance | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-006` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-07` | 移除 Gateway OpenAPI 第二真源，并由 shipped Role schema 做 consequential metadata conformance | Gateway 不维护手写 OpenAPI 诊断子集；shipped Role schema 为 canonical Action schema，且 Carrier confirmation 与 Execution Approval 独立。 |
+| `AGT-GW-007` | 完成真实 Custom GPT Preview/Actions/File Bridge E2E | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-007` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-01`<br>`CP-AGT-GW-02`<br>`CP-AGT-GW-03`<br>`CP-AGT-GW-04`<br>`CP-AGT-GW-05`<br>`CP-AGT-GW-06`<br>`CP-AGT-GW-07`<br>`CP-AGT-GW-08`<br>`CP-AGT-GW-09` | 真实 Custom GPT Preview/Actions/File Bridge E2E | Bearer key 解析 authenticatedRoleRef，不信任 body 自报 roleRef；所有外部输入 `unknown → validate → typed`。；GPT-facing body/path/query 正规化为 internal canonical DTO，不依赖 arbitrary custom headers。；45s ceiling 与 `<100,000 chars` request/response hard guard、真实 429/5xx semantics 可证明。；`openaiFileIdRefs` object-array normalization，最多 10 项；input single 10MB / aggregate 50MB / fetch 15s 等平台 hard gate。；filename/MIME/URL untrusted；redirect private/localhost/metadata、path traversal/control chars、MIME mismatch fail-closed。；`openaiFileResponse` inline→URL relay、10 files/10MB、no image/video；relay token opaque/GET-only/artifact-scoped/TTL=5min，headers 不泄漏本地路径/secret。；Gateway 不维护手写 OpenAPI 诊断子集；shipped Role schema 为 canonical Action schema，且 Carrier confirmation 与 Execution Approval 独立。；Gateway 无业务 persistence；expired locator/timeout 只重试无 business mutation transport，已有 Action 先按 owner idempotency/result 查询。；process readiness 分别验证 ingress/credential/required downstream/relay capability；任一 blocking dependency 缺失不得 READY，restart 不重放业务 mutation。 |
 
 ## 7. Required Failure / Boundary Families
 
@@ -118,7 +119,7 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 - [ ] **RF-AGT-GW-04** — openaiFileIdRefs count/size/aggregate/fetch hard gate 失效
 - [ ] **RF-AGT-GW-05** — filename/MIME/URL/redirect/SSRF/path/control-char 边界失效
 - [ ] **RF-AGT-GW-06** — openaiFileResponse/relay size/type/token/scope/TTL/header 安全失效
-- [ ] **RF-AGT-GW-07** — x-openai-isConsequential 缺失或 Carrier confirmation 与 Execution Approval 混淆
+- [ ] **RF-AGT-GW-07** — Gateway 再次引入手写 OpenAPI/operation metadata 第二真源、shipped Role schema consequential metadata 缺失，或 Carrier confirmation 与 Execution Approval 混淆
 - [ ] **RF-AGT-GW-08** — 启动时 credential/downstream/relay blocking dependency 缺失却宣称 READY，或 restart 重放业务 mutation
 - [ ] **RF-AGT-GW-09** — expired locator/timeout 在 business mutation 后盲重试或 Gateway 建立业务 persistence
 
@@ -197,3 +198,10 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 - [ ] **CP-AGT-GW-11** — 同一Worker Turn连续Actions时Gateway保持stateless/thin，不建Turn Store，不产生Browser“continue”协议。
 - [ ] **CP-AGT-GW-12** — routine request-intent `x-openai-isConsequential:false`/Always Allow与Execution危险Effect Approval独立；Gateway不能因nonconsequential标记自动授权Effect。
 - [ ] **CP-AGT-GW-13** — File Bridge inbound由Execution materialize，outbound relay引用canonical Artifact/Document；Gateway无durable File/Artifact business store。
+- [ ] **CP-AGT-GW-14** — Gateway→platform-host local transport 使用独立 Bearer credential；loopback-only ≠ authenticated transport，`authenticatedRoleRef` body 自报值不能在缺少正确 transport credential 时进入 Owner routing。
+
+## 12. 2026-08-16 Pre-Smoke Batch 6 Transport Auth Addendum
+
+- [ ] **RF-AGT-GW-14** — Gateway→platform-host 仅依赖 loopback 或 body `authenticatedRoleRef`，导致本机进程可绕过 Gateway ingress 身份认证直接冒充 Role。
+- **Executable proof**：`packages/agent-gateway/tests/agent-gateway-process.test.ts` + `packages/platform-host/tests/platform-host-critical-proofs.test.ts`。
+- **Proof class**：`Process Lifecycle` + `Security / Boundary` behavior proof；正式 Deployment/binary 对 credential 的 mandatory provisioning/fail-closed 由 Batch 6 deployment closure 共同证明。

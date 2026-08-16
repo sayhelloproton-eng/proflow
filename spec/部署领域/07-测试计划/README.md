@@ -14,8 +14,9 @@ requires: []
 contractRefs: []
 testPlanPhase: PRE_IMPLEMENTATION
 testPlanStatus: FINAL_FROZEN
-sourceBaseline: ProFlow-ProFlow-DDD规范化技术文档-最终冻结基线-20260812.zip
-sourceBaselineSha256: 69fdfbac8a5ee36b700bcb10c0b8a9a61f0a5aa3367386cb5bc7e98118a4a875
+sourceBaseline: proflow-source-da55f875-20260816-085708.zip
+sourceBaselineSha256: d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e
+sourceReconciledThrough: PHASE3_BATCH6_NON_E2E_CLOSURE_20260816
 sourceRefs:
 - DEPLOYMENT-DOC-05-02
 - DEPLOYMENT-DOC-05-03

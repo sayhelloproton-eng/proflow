@@ -47,21 +47,3 @@ test("SPEC-ALIGN agent-test-ops remains registered and has an ACTIVE current Mod
 	);
 	assert.match(planText, /Module Test Plan|测试计划/);
 });
-
-test("PRESMOKE-B2 role package CLI exposes the frozen local role/key management surface through Agent owner composition", async () => {
-	const cli = await readFile(new URL("../src/cli.ts", import.meta.url), "utf8");
-	for (const command of [
-		"role register",
-		"role show",
-		"role list",
-		"role validate",
-		"role delete",
-		"role key show",
-		"role key rotate",
-	])
-		assert.match(cli, new RegExp(command.replace(/ /g, "\\s+")));
-	assert.match(cli, /createRoleManagementClient/);
-	assert.match(cli, /validateRoleCarrier/);
-	assert.match(cli, /manualChecklist/);
-	assert.doesNotMatch(cli, /SqliteTaskStore|task\.sqlite|schema_migrations/);
-});

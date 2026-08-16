@@ -492,22 +492,5 @@ export async function createAgentGateway(options: GatewayOptions) {
 		readRelay,
 		serializeFileResponse,
 		businessPersistence: Object.freeze([]),
-		describeOpenApi: () => ({
-			openapi: "3.1.0",
-			paths: {
-				"/actions/getTask": {
-					get: {
-						operationId: "getTask",
-						"x-openai-isConsequential": false,
-					},
-				},
-				"/actions/executeCapability": {
-					post: {
-						operationId: "executeCapability",
-						"x-openai-isConsequential": true,
-					},
-				},
-			},
-		}),
 	});
 }

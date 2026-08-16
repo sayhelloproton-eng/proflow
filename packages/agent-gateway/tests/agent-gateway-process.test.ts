@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,7 +7,7 @@ import { test } from "node:test";
 
 import { createAgentGatewayProcess } from "../src/process.ts";
 
-test("formal agent-gateway process loads credentials, routes, reports readiness, drains and restarts", async () => {
+test("CP-AGT-GW-14/RF-AGT-GW-14 formal agent-gateway process authenticates downstream transport, routes, reports readiness, drains and restarts", async () => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-gateway-process-"));
 	const credentialFile = join(root, "credentials.json");
 	await writeFile(
@@ -15,7 +15,16 @@ test("formal agent-gateway process loads credentials, routes, reports readiness,
 		JSON.stringify({ "role:product": "credential-long-enough-value" }),
 		{ mode: 0o600 },
 	);
+	const downstreamCredentialFile = join(root, "downstream.token");
+	const downstreamCredential = "downstream-transport-credential-value";
+	await writeFile(downstreamCredentialFile, `${downstreamCredential}\n`, {
+		mode: 0o600,
+	});
 	const downstream = createServer(async (request, response) => {
+		assert.equal(
+			request.headers.authorization,
+			`Bearer ${downstreamCredential}`,
+		);
 		response.setHeader("content-type", "application/json");
 		if (request.url === "/ready") return response.end('{"status":"READY"}');
 		const chunks: Buffer[] = [];
@@ -42,6 +51,7 @@ test("formal agent-gateway process loads credentials, routes, reports readiness,
 			publicBaseUrl: "https://gateway.example",
 			downstreamBaseUrl: `http://127.0.0.1:${address.port}`,
 			credentialFile,
+			downstreamCredentialFile,
 		},
 		log: (entry) => logs.push(entry),
 	});
@@ -93,7 +103,16 @@ test("B2-GW-02 running gateway consumes current credential authority and fails c
 	await writeFile(credentialFile, JSON.stringify({ "role:product": oldKey }), {
 		mode: 0o600,
 	});
+	const downstreamCredentialFile = join(root, "downstream.token");
+	const downstreamCredential = "downstream-transport-credential-value";
+	await writeFile(downstreamCredentialFile, `${downstreamCredential}\n`, {
+		mode: 0o600,
+	});
 	const downstream = createServer(async (request, response) => {
+		assert.equal(
+			request.headers.authorization,
+			`Bearer ${downstreamCredential}`,
+		);
 		response.setHeader("content-type", "application/json");
 		if (request.url === "/ready") return response.end('{"status":"READY"}');
 		const chunks: Buffer[] = [];
@@ -119,6 +138,7 @@ test("B2-GW-02 running gateway consumes current credential authority and fails c
 			publicBaseUrl: "https://gateway.example",
 			downstreamBaseUrl: `http://127.0.0.1:${address.port}`,
 			credentialFile,
+			downstreamCredentialFile,
 		},
 		log: (entry) => logs.push(entry),
 	});
@@ -181,4 +201,39 @@ test("B2-GW-02 running gateway consumes current credential authority and fails c
 		await gateway.stop();
 		downstream.close();
 	}
+});
+
+test("RF-AGT-GW-14 downstream transport credential rejects group/world-readable files", async (t) => {
+	if (process.platform === "win32") return t.skip("POSIX mode proof");
+	const root = await mkdtemp(
+		join(tmpdir(), "proflow-agent-gateway-permissions-"),
+	);
+	t.after(() => rm(root, { recursive: true, force: true }));
+	const credentialFile = join(root, "credentials.json");
+	const downstreamCredentialFile = join(root, "downstream.token");
+	await writeFile(
+		credentialFile,
+		JSON.stringify({ "role:product": "credential-long-enough-value" }),
+		{ mode: 0o600 },
+	);
+	await writeFile(
+		downstreamCredentialFile,
+		"downstream-transport-credential-value\n",
+		{ mode: 0o600 },
+	);
+	await chmod(downstreamCredentialFile, 0o644);
+	await assert.rejects(
+		() =>
+			createAgentGatewayProcess({
+				config: {
+					host: "127.0.0.1",
+					port: 0,
+					publicBaseUrl: "https://gateway.example.test",
+					downstreamBaseUrl: "http://127.0.0.1:47830",
+					credentialFile,
+					downstreamCredentialFile,
+				},
+			}),
+		/DOWNSTREAM_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID/,
+	);
 });

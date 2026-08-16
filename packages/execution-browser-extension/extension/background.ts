@@ -218,29 +218,134 @@ async function invokeTaskApplication(
 	return body;
 }
 
+type BrowserStructuredLogEntry = {
+	level: "DEBUG" | "INFO" | "WARN" | "ERROR";
+	component: string;
+	capability?: string;
+	operation?: string;
+	status?: string;
+	errorCode?: string;
+	correlationId?: string;
+	taskId?: string;
+	nodeId?: string;
+	runNo?: number;
+	agentPackageRef?: string;
+	roleRef?: string;
+	workerRef?: string;
+	executionRef?: string;
+	messageRef?: string;
+	artifactRef?: string;
+	evidenceRef?: string;
+	conversationLocator?: string;
+	operationRef?: string;
+	attemptNo?: number;
+	tabId?: number;
+};
+
+function sanitizeConversationLocator(value: string): string {
+	try {
+		const locator = new URL(value);
+		locator.username = "";
+		locator.password = "";
+		locator.search = "";
+		locator.hash = "";
+		return locator.toString();
+	} catch {
+		return "[REDACTED_INVALID_LOCATOR]";
+	}
+}
+
+function normalizeLogErrorCode(error: unknown, fallback: string): string {
+	const value = error instanceof Error ? error.message : error;
+	return typeof value === "string" && /^[A-Z][A-Z0-9_.:-]{0,159}$/.test(value)
+		? value
+		: fallback;
+}
+
+function structuredAxes(input: Record<string, unknown>) {
+	const result: Record<string, string | number> = {};
+	for (const key of [
+		"correlationId",
+		"taskId",
+		"nodeId",
+		"agentPackageRef",
+		"roleRef",
+		"workerRef",
+		"executionRef",
+		"messageRef",
+		"artifactRef",
+		"evidenceRef",
+	] as const) {
+		const value = input[key];
+		if (typeof value === "string" && value.length > 0) result[key] = value;
+	}
+	if (typeof input.conversationLocator === "string" && input.conversationLocator.length > 0)
+		result.conversationLocator = sanitizeConversationLocator(input.conversationLocator);
+	for (const key of ["runNo", "attemptNo", "tabId"] as const) {
+		const value = input[key];
+		if (Number.isInteger(value) && Number(value) >= 0) result[key] = Number(value);
+	}
+	return result;
+}
+
+async function emitStructuredLog(entry: BrowserStructuredLogEntry) {
+	const config = await taskApplicationConfig();
+	if (!config) return;
+	await fetch(`${config.endpoint}/application/log`, {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${config.token}`,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({ timestamp: new Date().toISOString(), ...entry }),
+	}).catch(() => undefined);
+}
+
 async function invokeObserverApplication(
 	operation: string,
 	input: Record<string, unknown>,
 ): Promise<unknown> {
 	const config = await taskApplicationConfig();
 	if (!config) throw new Error("OBSERVER_APPLICATION_NOT_CONFIGURED");
-	const response = await fetch(`${config.endpoint}/application/observer`, {
-		method: "POST",
-		headers: {
-			authorization: `Bearer ${config.token}`,
-			"content-type": "application/json",
-		},
-		body: JSON.stringify({ operation, input }),
-	});
-	const body = (await response.json()) as unknown;
-	if (!response.ok) {
-		const detail =
-			isRecord(body) && typeof body.error === "string"
-				? body.error
-				: "OBSERVER_APPLICATION_REQUEST_FAILED";
-		throw new Error(detail);
+	const component = operation.startsWith("collaboration.")
+		? "browser-collaboration-carrier"
+		: "browser-observer";
+	try {
+		const response = await fetch(`${config.endpoint}/application/observer`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${config.token}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({ operation, input }),
+		});
+		const body = (await response.json()) as unknown;
+		if (!response.ok) {
+			const detail =
+				isRecord(body) && typeof body.error === "string"
+					? body.error
+					: "OBSERVER_APPLICATION_REQUEST_FAILED";
+			throw new Error(detail);
+		}
+		void emitStructuredLog({
+			level: "INFO",
+			component,
+			operation,
+			status: "SUCCEEDED",
+			...structuredAxes(input),
+		});
+		return body;
+	} catch (error) {
+		void emitStructuredLog({
+			level: "WARN",
+			component,
+			operation,
+			status: "FAILED",
+			errorCode: normalizeLogErrorCode(error, "OBSERVER_APPLICATION_REQUEST_FAILED"),
+			...structuredAxes(input),
+		});
+		throw error;
 	}
-	return body;
 }
 
 const taskObserver = createTaskObserver({
@@ -712,6 +817,25 @@ async function runBridgeLoop() {
 								: "EXTENSION_COMMAND_FAILED",
 					};
 				}
+				void emitStructuredLog({
+					level: result.ok === true ? "INFO" : "WARN",
+					component: "browser-carrier",
+					operation: command.type,
+					operationRef: command.commandId,
+					status: result.ok === true ? "SUCCEEDED" : "FAILED",
+					...(typeof result.error === "string"
+						? { errorCode: normalizeLogErrorCode(result.error, "EXTENSION_COMMAND_FAILED") }
+						: {}),
+					...(command.tabId === undefined ? {} : { tabId: command.tabId }),
+					...(isRecord(command.request)
+						? {
+							...(typeof command.request.capability === "string"
+								? { capability: command.request.capability }
+								: {}),
+							...structuredAxes(command.request),
+						}
+						: {}),
+				});
 				const reported = await bridgeFetch(
 					config,
 					`/v1/commands/result${query}`,

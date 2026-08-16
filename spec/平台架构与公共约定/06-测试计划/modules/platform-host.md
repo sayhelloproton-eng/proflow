@@ -14,8 +14,9 @@ requires: []
 contractRefs: []
 testPlanPhase: PRE_IMPLEMENTATION
 testPlanStatus: FINAL_FROZEN
-sourceBaseline: ProFlow-ProFlow-DDD规范化技术文档-最终冻结基线-20260812.zip
-sourceBaselineSha256: 69fdfbac8a5ee36b700bcb10c0b8a9a61f0a5aa3367386cb5bc7e98118a4a875
+sourceBaseline: proflow-source-da55f875-20260816-085708.zip
+sourceBaselineSha256: d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e
+sourceReconciledThrough: PHASE3_BATCH6_NON_E2E_CLOSURE_20260816
 sourceRefs:
 - PLATFORM-HOST-TECH-DESIGN
 - PLATFORM-HOST-SERVICE-RUNTIME
@@ -102,10 +103,10 @@ STOP：必须新增host-owned state/scheduler/Observer authority/Browser runtime
 
 - [ ] **CP-HOST-08** — platform-host 提供 loopback-only、独立 0600 management credential 保护的 Agent management composition；Role Package CLI 不直接持有 Task/Agent persistence ownership。
 - [ ] **CP-HOST-09** — platform-host 仅保持 Collaboration 的 owner-port/composition 边界：不创建 Collaboration business scheduler/timer，不替 Extension Carrier 驱动物理投递，也不把 Agent pending message 自动 replay 成 Execution effect；真实 pending→Carrier→Execution→delivery report 主链由 `execution-browser-extension` 在其正式 Carrier lifecycle 中完成。
-- [ ] **CP-HOST-10** — Test/Ops canonical OpenAPI 与 role ACL 对 `startNode` 一致。
+- [ ] **CP-HOST-10** — Product / Controller-Dev / Test-Ops 三份 shipped canonical OpenAPI operation inventory 与 platform-host internal role ACL 逐项完全一致；Test/Ops `startNode` 包含在该精确集合中。
 - [ ] **RF-HOST-08** — management 无认证、CLI 直读 Task DB、或 Role delete 绕过 Task usage owner port。
 - [ ] **RF-HOST-09** — platform-host 出现 Collaboration timer/scheduler、以内部 caller 自动重放 pending message、拥有 Browser delivery truth，或绕过 Agent/Execution/Extension Owner boundary。
-- [ ] **RF-HOST-10** — Role OpenAPI 与 Host ACL 漂移。
+- [ ] **RF-HOST-10** — 任一 shipped Role OpenAPI operation inventory 与 Host ACL 出现新增、缺失或 owner authority 漂移。
 
 **Executable proof**：`packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts`。
 

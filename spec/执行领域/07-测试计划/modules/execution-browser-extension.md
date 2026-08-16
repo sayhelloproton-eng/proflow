@@ -14,8 +14,9 @@ requires: []
 contractRefs: []
 testPlanPhase: PRE_IMPLEMENTATION
 testPlanStatus: FINAL_FROZEN
-sourceBaseline: ProFlow-ProFlow-DDD规范化技术文档-最终冻结基线-20260812.zip
-sourceBaselineSha256: 69fdfbac8a5ee36b700bcb10c0b8a9a61f0a5aa3367386cb5bc7e98118a4a875
+sourceBaseline: proflow-source-da55f875-20260816-085708.zip
+sourceBaselineSha256: d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e
+sourceReconciledThrough: PHASE3_BATCH6_NON_E2E_CLOSURE_20260816
 sourceRefs:
 - EXECUTION-EXECUTION-BROWSER-EXTENSION-TECH-DESIGN
 - EXECUTION-DOC-05-02
@@ -101,6 +102,7 @@ STOP：必须靠frame/persistent tab/business store/Browser natural-language Tas
 ## 2026-08-15 Pre-Smoke Batch 3｜Application / Observer / Carrier Closure Addendum
 
 - [ ] **CP-EXE-BR-13** — Browser Reality Bridge 与 Browser Executor 形成正式 adapter composition，并通过 Task/Agent Owner transport 获取 durable binding/message facts；Browser package 不启动第二套 Execution Runtime。
+- [ ] **CP-EXE-BR-14** — Browser Carrier / Collaboration Carrier / Task+System Observer 通过 authenticated local `/application/log` 提交 bounded structured logs，覆盖 execution/task/node/run/role/worker/correlation/capability/operationRef/tab 等关联轴；日志只含 refs/status/errorCode 等机器事实，不含 Authorization/credential/full prompt/reply/file/screenshot bytes。
 - [ ] **RF-EXE-BR-13** — Browser package 自建第二个 Execution Runtime truth/process、绕过 Task/Agent owner transport、或把 Browser bridge readiness 冒充整个 Execution Runtime readiness。
 
 **Batch boundary**：`execution-browser-extension` 在本批只交付 `Browser Reality Bridge ↔ Browser Executor` adapter/composition。**唯一正式 `execution-runtime` binary 注入 `browserExecutor`、并将该依赖纳入 runtime readiness，继续由既定 Batch 4 / P1-15 收口。** 这不是 Batch 3 缺失的新批次，也不得通过新增 alternate runtime binary 规避。
@@ -119,7 +121,7 @@ STOP：必须靠frame/persistent tab/business store/Browser natural-language Tas
 | `CP-EXE-BR-09` no blind replay | `packages/execution-browser-extension/tests/collaboration-carrier-application.test.ts`, `packages/execution-browser-extension/tests/task-observer-runtime.test.ts` | deterministic wake intent + Execution idempotency；UNKNOWN 不自动重投。 |
 | `CP-EXE-BR-10` Task Observer deterministic/diagnostic | `packages/execution-browser-extension/tests/task-observer-runtime.test.ts`, `packages/model-runtime/tests/observer-task-diagnostic-alignment.test.ts` | 正常路径零模型；异常只 diagnostic/no effect authority。 |
 | `CP-EXE-BR-11` System Observer | `packages/execution-browser-extension/tests/system-observer-runtime.test.ts`, `packages/execution-browser-extension/tests/background-observer-application.test.ts`, `packages/model-runtime/tests/observer-system-assessment-alignment.test.ts` | 8-view batching/carry-forward/drill-down/global synthesis；service-worker restart 持久化 previous state。 |
-| `CP-EXE-BR-13` Browser adapter composition | `packages/execution-browser-extension/tests/runtime-composition.test.ts` | Browser adapter 完成；**唯一 Execution Runtime binary 注入/readiness = Batch 4 / P1-15 carry-forward**。 |
+| `CP-EXE-BR-13` Browser adapter composition | `packages/execution-browser-extension/tests/runtime-composition.test.ts` | Browser adapter 完成；Platform Host / Bridge credential 仅从 secret file 读取，POSIX 下 group/world-readable secret fail-closed；**唯一 Execution Runtime binary 注入/readiness = Batch 4 / P1-15 carry-forward**。 |
 
 **不得过度宣称**：上述自动 proof 不等于真实 Chrome / Custom GPT / physical Conversation E2E；真实页面 CREATE/RESTORE/WAKE/DOM submit/permission/extension reload 继续保留 `MANUAL_E2E_REQUIRED`。
 

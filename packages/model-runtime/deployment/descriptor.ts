@@ -22,6 +22,14 @@ export const descriptor = {
 			description: "Absolute .proflow owner state root",
 		},
 		{
+			key: "transportCredentialFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description:
+				"File containing the dedicated local credential required by Model Runtime callers",
+		},
+		{
 			key: "providerBaseUrl",
 			type: "url",
 			required: true,

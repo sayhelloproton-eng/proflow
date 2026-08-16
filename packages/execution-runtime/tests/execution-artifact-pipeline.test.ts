@@ -19,7 +19,7 @@ const executor: ExecutionExecutorPort = {
 	readArtifact: async () => ({ chunk: "", nextOffset: 0, eof: true, bytes: 0 }),
 };
 
-test("PRESMOKE-B4-ART-01 Artifact registry is Execution-owned durable truth with caller/task scope metadata", async () => {
+test("CP-EXE-RT-12 immutable Artifact registry is Execution-owned durable truth with caller/task scope metadata", async () => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-artifact-registry-"));
 	const databasePath = join(root, "execution.sqlite");
 	let runtime = await createExecutionRuntime({
@@ -90,7 +90,7 @@ test("PRESMOKE-B4-ART-01 Artifact registry is Execution-owned durable truth with
 	runtime.close();
 });
 
-test("PRESMOKE-B4-ART-04 Context Pack and Patch Proposal share the Execution artifact registry rather than separate stores", async () => {
+test("CP-EXE-RT-13 Context Pack and Patch Proposal share the Execution artifact registry rather than separate stores", async () => {
 	const source = await import("node:fs/promises").then(({ readFile }) =>
 		readFile(new URL("../src/index.ts", import.meta.url), "utf8"),
 	);
@@ -279,7 +279,7 @@ test("PRESMOKE-B4-ART-10 patch apply success and verification failure remain sep
 	runtime.close();
 });
 
-test("PRESMOKE-B4-ART-11 Artifact registry and Execution relation commit atomically without replace semantics", async () => {
+test("CP-EXE-RT-17/RF-EXE-RT-17 Artifact registry and Execution relation commit atomically without replace semantics", async () => {
 	const source = await readFile(
 		new URL("../src/index.ts", import.meta.url),
 		"utf8",

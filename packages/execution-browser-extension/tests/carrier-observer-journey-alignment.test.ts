@@ -84,7 +84,8 @@ test("CP-EXE-BR-07 DOM-first operation may use screenshot/Vision only as ambigui
 
 test("CP-EXE-BR-08 Collaboration delivery stays a physical Execution concern and logical message truth remains Agent-owned", async () => {
 	const text = await sourceCorpus();
-	assert.match(text, /collaboration\.deliver|finalizeCollaborationDelivery/);
+	assert.match(text, /createCollaborationCarrierApplication/);
+	assert.match(text, /collaboration\.deliver/);
 	assert.match(text, /executionRef/);
 	assert.match(text, /evidenceRef/);
 	assert.doesNotMatch(text, /UPDATE\s+(?:collaboration_messages|task_messages)|INSERT\s+INTO\s+collaboration/i);

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,6 +9,7 @@ import { createPlatformHost, parsePlatformHostConfig } from "../src/index.ts";
 
 async function modelDependency() {
 	const requests: Array<Record<string, unknown>> = [];
+	const inferAuthorizations: Array<string | undefined> = [];
 	const server = createServer(async (request, response) => {
 		response.setHeader("content-type", "application/json");
 		if (request.url === "/ready") {
@@ -16,6 +17,7 @@ async function modelDependency() {
 			return;
 		}
 		if (request.url === "/infer") {
+			inferAuthorizations.push(request.headers.authorization);
 			const chunks: Buffer[] = [];
 			for await (const chunk of request) chunks.push(Buffer.from(chunk));
 			const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<
@@ -74,6 +76,7 @@ async function modelDependency() {
 	return {
 		baseUrl: `http://127.0.0.1:${address.port}`,
 		requests,
+		inferAuthorizations,
 		close: () => new Promise<void>((resolve) => server.close(() => resolve())),
 	};
 }
@@ -82,6 +85,13 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 	const root = await mkdtemp(join(tmpdir(), "proflow-host-model-callers-"));
 	const dependency = await modelDependency();
 	const stateRoot = join(root, ".proflow");
+	const modelTransportCredentialFile = join(root, "model-runtime.token");
+	const modelTransportCredential = "model-runtime-transport-credential-value";
+	await writeFile(
+		modelTransportCredentialFile,
+		`${modelTransportCredential}\n`,
+		{ mode: 0o600 },
+	);
 	const host = createPlatformHost({
 		config: parsePlatformHostConfig({
 			stateRoot,
@@ -90,6 +100,7 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 			port: 0,
 			executionBaseUrl: dependency.baseUrl,
 			modelBaseUrl: dependency.baseUrl,
+			modelTransportCredentialFile,
 			roles: [],
 		}),
 	});
@@ -129,7 +140,8 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 		const assessment = await call("system.reason", {
 			assessmentRef: "assessment:1",
 			payload: {
-				assessmentKind: "CONCERN_BATCH",
+				assessmentRef: "assessment:1",
+				kind: "CONCERN_BATCH",
 				scope: "task-worker",
 				observedAt: "2026-08-16T00:00:00.000Z",
 				views: { task: { summary: "bounded task", health: "HEALTHY" } },
@@ -139,6 +151,10 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 		});
 		assert.equal(assessment.status, 200);
 		assert.equal(dependency.requests.length, 2);
+		assert.deepEqual(dependency.inferAuthorizations, [
+			`Bearer ${modelTransportCredential}`,
+			`Bearer ${modelTransportCredential}`,
+		]);
 		const task = dependency.requests[0] as {
 			specRef: string;
 			mode: string;
@@ -153,12 +169,45 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 			specRef: string;
 			mode: string;
 			priority: string;
-			trace: { callerRef: string };
+			trace: { callerRef: string; assessmentRef: string };
+			payload: Record<string, unknown>;
 		};
 		assert.equal(system.specRef, "system.health-assessment.v1");
 		assert.equal(system.mode, "reason");
 		assert.equal(system.priority, "background");
 		assert.equal(system.trace.callerRef, "extension:system-observer");
+		assert.equal(system.trace.assessmentRef, "assessment:1");
+		assert.equal(system.payload.assessmentKind, "CONCERN_BATCH");
+		assert.equal("kind" in system.payload, false);
+		assert.equal("assessmentRef" in system.payload, false);
+	} finally {
+		await host.stop();
+		await dependency.close();
+	}
+});
+
+
+test("RF-MODEL-RT-14 platform-host rejects group/world-readable Model transport credential", async (t) => {
+	if (process.platform === "win32") return t.skip("POSIX mode proof");
+	const root = await mkdtemp(join(tmpdir(), "proflow-host-model-permissions-"));
+	const dependency = await modelDependency();
+	const credentialFile = join(root, "model-runtime.token");
+	await writeFile(credentialFile, "model-runtime-transport-credential-value\n", { mode: 0o600 });
+	await chmod(credentialFile, 0o644);
+	const host = createPlatformHost({
+		config: parsePlatformHostConfig({
+			stateRoot: join(root, ".proflow"),
+			workspaceRoot: join(root, "workspace"),
+			host: "127.0.0.1",
+			port: 0,
+			executionBaseUrl: dependency.baseUrl,
+			modelBaseUrl: dependency.baseUrl,
+			modelTransportCredentialFile: credentialFile,
+			roles: [],
+		}),
+	});
+	try {
+		await assert.rejects(() => host.start(), /MODEL_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID/);
 	} finally {
 		await host.stop();
 		await dependency.close();

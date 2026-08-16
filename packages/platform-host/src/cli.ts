@@ -4,8 +4,17 @@ import { createPlatformHost, loadPlatformHostConfig } from "./index.ts";
 const [command, configPath] = process.argv.slice(2);
 if (command !== "start" || !configPath)
 	throw new Error("Usage: proflow-platform-host start /absolute/config.json");
+const config = await loadPlatformHostConfig(configPath);
+if (!config.gatewayTransportCredentialFile)
+	throw new Error(
+		"platform-host requires gatewayTransportCredentialFile for authenticated Gateway transport",
+	);
+if (!config.modelTransportCredentialFile)
+	throw new Error(
+		"platform-host requires modelTransportCredentialFile for authenticated Model Runtime transport",
+	);
 const host = createPlatformHost({
-	config: await loadPlatformHostConfig(configPath),
+	config,
 	log: (entry) => process.stderr.write(`${JSON.stringify(entry)}\n`),
 });
 const address = await host.start();

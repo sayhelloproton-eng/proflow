@@ -13329,5 +13329,8 @@
       ],
       "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
     }
-  ]
+  ],
+  "status": "HISTORICAL_TRACE_BASELINE_SUPERSEDED",
+  "supersededBy": "BATCH6-TEST-GOVERNANCE-RECONCILIATION.json",
+  "semantics": "The 261 formal identities and 541 executable calls are the 2026-08-15 trace/source baseline only. They are not current counts and are not PASS evidence."
 }

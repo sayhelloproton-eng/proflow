@@ -350,15 +350,12 @@ test("CP-AGT-GW-06 relay is a real unauthenticated opaque HTTP download with str
 		await gateway.stop();
 	}
 });
-test("CP-AGT-GW-07 every operation has explicit consequential metadata independent from approval", async () => {
+test("CP-AGT-GW-07 Gateway exposes no second OpenAPI truth beside shipped Role schemas", async () => {
 	const { gateway } = await fixture();
-	const schema = gateway.describeOpenApi();
-	for (const path of Object.values(schema.paths) as Array<
-		Record<string, Record<string, unknown>>
-	>)
-		for (const operation of Object.values(path))
-			assert.equal(typeof operation["x-openai-isConsequential"], "boolean");
-	assert.doesNotMatch(JSON.stringify(schema), /executionApproval|approvalRef/);
+	// Role packages own the shipped Custom GPT OpenAPI documents and their own
+	// executable schema proofs. The Gateway must not publish a hand-written
+	// diagnostic subset that can drift from those canonical artifacts.
+	assert.equal("describeOpenApi" in gateway, false);
 	await gateway.stop();
 });
 test("CP-AGT-GW-08 gateway has no business persistence and uncertainty looks up owner result", async () => {

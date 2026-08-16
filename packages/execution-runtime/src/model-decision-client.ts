@@ -27,6 +27,56 @@ function sanitizeUrl(value: string): string {
 	}
 }
 
+function sanitizeArgumentString(value: string): {
+	value: string;
+	redactNext: boolean;
+} {
+	if (/^(?:https?:)?\/\//i.test(value))
+		return { value: sanitizeUrl(value), redactNext: false };
+
+	const assignment = value.match(/^([^=:\s]+)([=:])(.*)$/);
+	if (assignment) {
+		const [, name, separator] = assignment;
+		const normalizedName = name?.replace(/^-+/, "") ?? "";
+		if (sensitiveKey.test(normalizedName))
+			return {
+				value: `${name}${separator}[REDACTED]`,
+				redactNext: false,
+			};
+	}
+
+	const normalizedFlag = value.replace(/^-+/, "");
+	if (value.startsWith("-") && sensitiveKey.test(normalizedFlag))
+		return { value: boundedString(value, 240), redactNext: true };
+
+	if (/^bearer\s+/i.test(value))
+		return { value: "Bearer [REDACTED]", redactNext: false };
+
+	return { value: boundedString(value, 240), redactNext: false };
+}
+
+function sanitizeArgumentArray(
+	raw: unknown[],
+): Array<string | number | boolean | null> {
+	let redactNext = false;
+	return raw.slice(0, 24).map((item) => {
+		if (redactNext) {
+			redactNext = false;
+			return "[REDACTED]";
+		}
+		if (
+			item === null ||
+			typeof item === "number" ||
+			typeof item === "boolean"
+		)
+			return item;
+		if (typeof item !== "string") return "[OBJECT]";
+		const sanitized = sanitizeArgumentString(item);
+		redactNext = sanitized.redactNext;
+		return sanitized.value;
+	});
+}
+
 function flattenOperation(
 	input: Record<string, unknown>,
 	budgetBytes: number,
@@ -65,16 +115,7 @@ function flattenOperation(
 				? sanitizeUrl(raw)
 				: boundedString(raw);
 		else if (Array.isArray(raw)) {
-			value = raw.slice(0, 24).map((item) => {
-				if (
-					item === null ||
-					typeof item === "number" ||
-					typeof item === "boolean"
-				)
-					return item;
-				if (typeof item === "string") return boundedString(item, 240);
-				return "[OBJECT]";
-			});
+			value = sanitizeArgumentArray(raw);
 			if (raw.length > 24) truncated = true;
 		} else value = "[OBJECT]";
 		const candidate = { ...output, [key]: value };
@@ -130,6 +171,7 @@ function outputData(value: unknown) {
 export function createExecutionModelDecisionClient(config: {
 	endpoint: string;
 	timeoutMs?: number;
+	credential?: string;
 }) {
 	const endpoint = new URL(config.endpoint);
 	if (
@@ -140,10 +182,18 @@ export function createExecutionModelDecisionClient(config: {
 		endpoint.hash
 	)
 		throw new TypeError("modelDecision.endpoint must be loopback HTTP root");
+	if (config.credential && config.credential.length < 32)
+		throw new TypeError(
+			"modelDecision credential must contain at least 32 characters",
+		);
 	const timeoutMs = config.timeoutMs ?? 12_000;
+	const authorizationHeaders = config.credential
+		? { authorization: `Bearer ${config.credential}` }
+		: {};
 	let ready = false;
 	const status = async () => {
 		const response = await fetch(`${endpoint.origin}/status`, {
+			headers: authorizationHeaders,
 			signal: AbortSignal.timeout(Math.min(timeoutMs, 3_000)),
 		});
 		if (!response.ok) throw new Error(`MODEL_STATUS_HTTP_${response.status}`);
@@ -173,7 +223,10 @@ export function createExecutionModelDecisionClient(config: {
 		);
 		const response = await fetch(`${endpoint.origin}/infer`, {
 			method: "POST",
-			headers: { "content-type": "application/json" },
+			headers: {
+				...authorizationHeaders,
+				"content-type": "application/json",
+			},
 			body: JSON.stringify({
 				contractVersion: "1.0.0",
 				specRef: "execution.command-risk.v1",

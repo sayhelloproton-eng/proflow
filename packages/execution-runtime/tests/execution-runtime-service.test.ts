@@ -4,6 +4,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { descriptor as executionRuntimeDescriptor } from "../deployment/descriptor.ts";
 import { promisify } from "node:util";
 
 import {
@@ -107,7 +108,7 @@ test("PRESMOKE-B4-RUNTIME-01 configured identity and transport dependencies part
 	}
 });
 
-test("PRESMOKE-B4-ART-08 specialised Context Pack/Patch APIs return durable executionRef and reuse idempotent Execution truth", async () => {
+test("CP-EXE-RT-14 specialised Context Pack/Patch APIs return durable executionRef and reuse idempotent Execution truth", async () => {
 	const { config } = await fixture();
 	const service = await createExecutionRuntimeProcess({ config });
 	const address = await service.start();
@@ -198,7 +199,41 @@ test("PRESMOKE-B4-RUNTIME-02 formal readiness can require the Model Decision por
 	await wired.stop();
 });
 
-test("PRESMOKE-B4-RUNTIME-03 shipped execution-runtime binary refuses a production config that omits Browser composition", async () => {
+test("CP-EXE-RT-20 shipped execution-runtime descriptor and binary require the formal Browser/security/model composition", async () => {
+	const requiredSlots = new Map(
+		executionRuntimeDescriptor.configSlots.map((slot) => [slot.key, slot] as const),
+	);
+	const requiredKeys = [
+		"databasePath",
+		"projectRoot",
+		"artifactRoot",
+		"browserExecutorConfigPath",
+		"transportCredentialFile",
+		"identity.endpoint",
+		"identity.tokenFile",
+		"modelDecision.endpoint",
+		"modelDecision.credentialFile",
+	] as const;
+	const sensitiveKeys = [
+		"transportCredentialFile",
+		"identity.tokenFile",
+		"modelDecision.credentialFile",
+	] as const;
+	for (const key of requiredKeys)
+		assert.equal(
+			requiredSlots.get(key)?.required,
+			true,
+			`${key} must be a required Deployment config slot`,
+		);
+	for (const key of sensitiveKeys) {
+		const slot = requiredSlots.get(key);
+		assert.ok(slot, `${key} must exist`);
+		assert.equal(
+			"sensitive" in slot ? slot.sensitive : false,
+			true,
+			`${key} must be marked sensitive`,
+		);
+	}
 	const { root, config } = await fixture();
 	const configPath = join(root, "execution-runtime-missing-browser.json");
 	await writeFile(

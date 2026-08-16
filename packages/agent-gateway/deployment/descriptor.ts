@@ -24,6 +24,14 @@ export const descriptor = {
 			description: "Public HTTPS URL supplied by the dev-tunnel resource",
 		},
 		{
+			key: "downstreamCredentialFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description:
+				"File containing the dedicated Gateway-to-platform-host transport credential",
+		},
+		{
 			key: "publicIngressModuleRef",
 			type: "moduleRef",
 			required: false,

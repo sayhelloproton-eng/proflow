@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, readFile } from "node:fs/promises";
+import { chmod, mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -173,6 +173,133 @@ test("CP-HOST-03 local transport is loopback-only, restartable, and shutdown dra
 		);
 	} finally {
 		dependency.release();
+		await host.stop();
+		await dependency.close();
+	}
+});
+
+test("PRESMOKE-B6-A1 Gateway-to-platform-host actions require an independent transport bearer when configured", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-gateway-auth-"));
+	const stateRoot = join(root, ".proflow");
+	const transportCredentialFile = join(root, "gateway-to-host.token");
+	const transportCredential = "gateway-to-host-transport-credential";
+	await writeFile(transportCredentialFile, `${transportCredential}\n`, {
+		mode: 0o600,
+	});
+	const dependency = await dependencyServer();
+	const hostConfig = parsePlatformHostConfig({
+		...config(stateRoot, join(root, "project"), dependency.baseUrl),
+		gatewayTransportCredentialFile: transportCredentialFile,
+	});
+	const host = createPlatformHost({ config: hostConfig });
+	try {
+		const started = await host.start();
+		const baseUrl = `http://${started.host}:${started.port}`;
+		const body = JSON.stringify({
+			authenticatedRoleRef: "g-controller",
+			input: { taskId: "task:missing" },
+		});
+		const unauthenticated = await fetch(`${baseUrl}/actions/getTask`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body,
+		});
+		assert.equal(unauthenticated.status, 401);
+		assert.equal(
+			((await unauthenticated.json()) as { error: string }).error,
+			"GATEWAY_TRANSPORT_AUTH_FAILED",
+		);
+
+		const authenticated = await fetch(`${baseUrl}/actions/getTask`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${transportCredential}`,
+				"content-type": "application/json",
+			},
+			body,
+		});
+		assert.notEqual(authenticated.status, 401);
+	} finally {
+		await host.stop();
+		await dependency.close();
+	}
+});
+
+test("PRESMOKE-B6-C1 browser structured logs use authenticated local ingestion, bounded typed axes, and reject secret-shaped fields", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-browser-log-"));
+	const stateRoot = join(root, ".proflow");
+	const dependency = await dependencyServer();
+	const host = createPlatformHost({
+		config: config(stateRoot, join(root, "project"), dependency.baseUrl),
+	});
+	try {
+		const started = await host.start();
+		const baseUrl = `http://${started.host}:${started.port}`;
+		const token = (
+			await readFile(
+				join(stateRoot, "browser", "secrets", "task-application.token"),
+				"utf8",
+			)
+		).trim();
+		const withoutAuth = await fetch(`${baseUrl}/application/log`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				timestamp: new Date().toISOString(),
+				level: "INFO",
+				component: "browser-carrier",
+			}),
+		});
+		assert.equal(withoutAuth.status, 401);
+
+		const entry = {
+			timestamp: new Date().toISOString(),
+			level: "INFO",
+			component: "browser-carrier",
+			capability: "browser.submit",
+			operation: "SUBMIT",
+			status: "SUCCEEDED",
+			correlationId: "correlation:1",
+			taskId: "task:1",
+			nodeId: "node:1",
+			runNo: 2,
+			roleRef: "g-dev",
+			workerRef: "c-dev",
+			executionRef: "execution:1",
+			operationRef: "command:1",
+			tabId: 7,
+		};
+		const accepted = await fetch(`${baseUrl}/application/log`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${token}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify(entry),
+		});
+		assert.equal(accepted.status, 200);
+		const rejectedSecret = await fetch(`${baseUrl}/application/log`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${token}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({ ...entry, authorization: "Bearer DO-NOT-LOG" }),
+		});
+		assert.equal(rejectedSecret.status, 400);
+
+		const text = await readFile(
+			join(stateRoot, "logs", "browser-extension", "events.jsonl"),
+			"utf8",
+		);
+		const persisted = JSON.parse(text.trim()) as Record<string, unknown>;
+		assert.equal(persisted.executionRef, "execution:1");
+		assert.equal(persisted.taskId, "task:1");
+		assert.equal(persisted.workerRef, "c-dev");
+		assert.equal(persisted.operationRef, "command:1");
+		assert.equal(persisted.tabId, 7);
+		assert.doesNotMatch(text, /DO-NOT-LOG|authorization/i);
+	} finally {
 		await host.stop();
 		await dependency.close();
 	}
@@ -390,4 +517,27 @@ test("PRESMOKE-B4-HOST-FILE-01 Carrier File Bridge materialization carries stabl
 	assert.match(section, /correlationId: taskMutationIdempotencyKey/);
 	assert.match(section, /roleRef: authenticatedRoleRef/);
 	assert.match(section, /workerRef: actorRef/);
+});
+
+
+test("RF-AGT-GW-14 platform-host rejects group/world-readable Gateway transport credential", async (t) => {
+	if (process.platform === "win32") return t.skip("POSIX mode proof");
+	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-gateway-permissions-"));
+	const stateRoot = join(root, ".proflow");
+	const transportCredentialFile = join(root, "gateway-to-host.token");
+	await writeFile(transportCredentialFile, "gateway-to-host-transport-credential\n", { mode: 0o600 });
+	await chmod(transportCredentialFile, 0o644);
+	const dependency = await dependencyServer();
+	const host = createPlatformHost({
+		config: parsePlatformHostConfig({
+			...config(stateRoot, join(root, "project"), dependency.baseUrl),
+			gatewayTransportCredentialFile: transportCredentialFile,
+		}),
+	});
+	try {
+		await assert.rejects(() => host.start(), /GATEWAY_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID/);
+	} finally {
+		await host.stop();
+		await dependency.close();
+	}
 });

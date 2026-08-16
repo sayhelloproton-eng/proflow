@@ -31,10 +31,26 @@ export const descriptor = {
 			description: "Absolute Task document workspace root",
 		},
 		{
+			key: "gatewayTransportCredentialFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description:
+				"File containing the dedicated credential accepted from agent-gateway",
+		},
+		{
 			key: "executionBaseUrl",
 			type: "url",
 			required: true,
 			description: "Loopback Execution Runtime public transport",
+		},
+		{
+			key: "modelTransportCredentialFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description:
+				"File containing the credential used for Platform Host calls to Model Runtime",
 		},
 		{
 			key: "modelBaseUrl",

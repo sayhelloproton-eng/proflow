@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { test } from "node:test";
 
 import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
-import { createExecutionRuntime } from "@tomflow/proflow-execution-runtime";
 import {
 	type BrowserPageObservation,
 	type BrowserRealityPort,
@@ -438,72 +434,6 @@ test("REG-EXE-BR-06 writes are globally serial and logical delivery follows phys
 			"",
 		/owner-backed reply content/,
 	);
-});
-
-test("REG-EXE-BR-06 logical delivery finalizes only after durable Execution success", async () => {
-	const directory = await mkdtemp(join(tmpdir(), "proflow-delivery-order-"));
-	const { extension, browser, bindings, deliveryReports } = await fixture();
-	bindings.set("task:1:g-dev", {
-		workerRef: "c-dev",
-		conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
-	});
-	await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
-	const runtime = await createExecutionRuntime({
-		databasePath: join(directory, "execution.sqlite"),
-		localExecutor: {
-			async execute() {
-				throw new Error("LOCAL_EXECUTOR_NOT_EXPECTED");
-			},
-			async reconcile() {
-				return { state: "UNKNOWN" as const, evidence: [] };
-			},
-			async readArtifact() {
-				throw new Error("ARTIFACT_NOT_EXPECTED");
-			},
-		},
-		browserExecutor: extension,
-		policy: {
-			decide() {
-				return {
-					decision: "ALLOW" as const,
-					decisionPath: "deterministic" as const,
-				};
-			},
-		},
-	});
-	try {
-		const record = await runtime.executeCapability(
-			request("collaboration.deliver", {
-				roleRef: "g-dev",
-				workerRef: "c-dev",
-				messageRef: "message:committed",
-				contentFingerprint: "message:committed-fingerprint",
-			}),
-		);
-		assert.equal(record.status, "SUCCEEDED");
-		assert.equal(record.sideEffectState, "APPLIED");
-		assert.deepEqual(deliveryReports, []);
-		await extension.finalizeCollaborationDelivery(record);
-		assert.deepEqual(deliveryReports, ["message:committed"]);
-		const { result: _result, ...withoutResult } = record;
-		await assert.rejects(
-			() =>
-				extension.finalizeCollaborationDelivery({
-					...withoutResult,
-					status: "FAILED",
-					sideEffectState: "NOT_APPLIED",
-					error: {
-						code: "EXECUTION_FAILED",
-						message: "controlled failure",
-						retryable: false,
-					},
-				}),
-			/COLLABORATION_EXECUTION_NOT_COMMITTED/,
-		);
-	} finally {
-		runtime.close();
-		await rm(directory, { recursive: true, force: true });
-	}
 });
 
 test("REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay", async () => {

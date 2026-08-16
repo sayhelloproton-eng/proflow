@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import {
 	createBrowserExecutorComposition,
 	loadBrowserExecutorCompositionConfig,
@@ -11,6 +11,9 @@ import {
 } from "./service.ts";
 
 async function readSecret(path: string, name: string) {
+	const info = await stat(path);
+	if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
+		throw new TypeError(`${name} permissions must be owner-only`);
 	const value = (await readFile(path, "utf8")).trim();
 	if (value.length < 32)
 		throw new TypeError(`${name} must contain at least 32 characters`);
@@ -79,14 +82,26 @@ if (!config.modelDecision)
 	throw new Error(
 		"formal execution-runtime requires modelDecision configuration",
 	);
+if (!config.modelDecision.credentialFile)
+	throw new Error(
+		"formal execution-runtime requires modelDecision.credentialFile",
+	);
 const identityClient = await createIdentityClient(config.identity);
 const transportCredential = await readSecret(
 	config.transportCredentialFile,
 	"execution transport credential",
 );
-const modelDecisionClient = createExecutionModelDecisionClient(
-	config.modelDecision,
+const modelDecisionCredential = await readSecret(
+	config.modelDecision.credentialFile,
+	"model decision transport credential",
 );
+const modelDecisionClient = createExecutionModelDecisionClient({
+	endpoint: config.modelDecision.endpoint,
+	...(config.modelDecision.timeoutMs === undefined
+		? {}
+		: { timeoutMs: config.modelDecision.timeoutMs }),
+	credential: modelDecisionCredential,
+});
 await modelDecisionClient.probe();
 const browserComposition = await createBrowserExecutorComposition(
 	await loadBrowserExecutorCompositionConfig(config.browserExecutorConfigPath),

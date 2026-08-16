@@ -13,6 +13,7 @@ import {
 } from "@tomflow/proflow-task-store-sqlite";
 
 import { createPlatformHost, parsePlatformHostConfig } from "../src/index.ts";
+import { roleOperations } from "../src/role-operations.ts";
 
 const packages = {
 	product: "@tomflow/proflow-agent-product",
@@ -491,22 +492,41 @@ test("CP-HOST-10 Test/Ops bound Worker can invoke startNode through the formal p
 	assert.equal((result.data as { workerRef: string }).workerRef, workers.test);
 });
 
-test("CP-HOST-10 Test/Ops canonical Action surface and platform-host ACL both include startNode", async () => {
-	const source = await readFile(
-		new URL("../src/index.ts", import.meta.url),
-		"utf8",
-	);
-	const openApi = await readFile(
-		new URL(
+function openApiOperationIds(text: string) {
+	return text
+		.split("\n")
+		.map((line) => line.trim())
+		.filter((line) => line.startsWith("operationId:"))
+		.map((line) => line.slice("operationId:".length).trim())
+		.sort();
+}
+
+test("CP-HOST-10 all shipped Role OpenAPI operation inventories exactly match platform-host ACL", async () => {
+	for (const [agentPackageRef, relativeOpenApi] of [
+		[
+			packages.product,
+			"../../agent-product/actions/custom-gpt.openapi.yaml",
+		],
+		[
+			packages.dev,
+			"../../agent-controller-dev/actions/custom-gpt.openapi.yaml",
+		],
+		[
+			packages.test,
 			"../../agent-test-ops/actions/custom-gpt.openapi.yaml",
-			import.meta.url,
-		),
-		"utf8",
-	);
-	assert.match(openApi, /operationId:\s*startNode/);
-	const testOpsAcl = source.match(
-		/"@tomflow\/proflow-agent-test-ops": new Set\(\[([\s\S]*?)\]\),/,
-	)?.[1];
-	assert.ok(testOpsAcl, "Test/Ops ACL block must exist");
-	assert.match(testOpsAcl, /"startNode"/);
+		],
+	] as const) {
+		const openApi = await readFile(
+			new URL(relativeOpenApi, import.meta.url),
+			"utf8",
+		);
+		const shipped = openApiOperationIds(openApi);
+		const authorized = [...roleOperations[agentPackageRef]].sort();
+		assert.deepEqual(
+			authorized,
+			shipped,
+			`${agentPackageRef} Host ACL must equal the shipped Role OpenAPI surface`,
+		);
+	}
+	assert.equal(roleOperations[packages.test].has("startNode"), true);
 });

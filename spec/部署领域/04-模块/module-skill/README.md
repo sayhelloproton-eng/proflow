@@ -47,6 +47,9 @@ process/deployment: none / determined by Deployment kind
 
 ## Runtime / Lifecycle
 
+> **Batch 6 taxonomy clarification**：`agent-skill` 是文档/产品语义 taxonomy；`module-contract` 当前冻结的 runtime `ModuleDescriptor.kind` 不包含 `agent-skill`，因此 `@tomflow/proflow-module-skill` 的 runtime descriptor 必须继续使用 `library`。这不是第二种 ModuleKind，也不允许为本澄清修改冻结 contract enum。
+
+- **Batch 6 taxonomy clarification**：文档/Registry 的语义 taxonomy 仍为 `agent-skill`；`module-contract` 的 runtime `ModuleDescriptor.kind` 枚举不新增 `agent-skill`，因此 `@tomflow/proflow-module-skill` 的可执行 descriptor 继续使用 `kind: library`。这是 semantic taxonomy 与 runtime contract kind 的两层表达，不是两个 Module，也不修改 Frozen contract 枚举。
 - `agent-skill` 的真实 lifecycle 由 Module 自身声明并由 Deployment Domain 治理。
 - Library 不伪造 start/stop。
 - Service/Process 的启动、关闭、health、recovery 以对应 TECHNICAL-DESIGN 与 Deployment requirements 为准。

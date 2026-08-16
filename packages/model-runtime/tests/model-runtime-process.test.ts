@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -55,11 +55,17 @@ test("formal model-runtime process verifies provider, serves readiness, restarts
 	};
 	const logs: Record<string, unknown>[] = [];
 	const stateRoot = await mkdtemp(join(tmpdir(), "proflow-model-process-"));
+	const transportCredentialFile = join(stateRoot, "model-runtime.token");
+	const transportCredential = "model-runtime-transport-credential-value";
+	await writeFile(transportCredentialFile, `${transportCredential}\n`, {
+		mode: 0o600,
+	});
 	const service = await createModelRuntimeProcess({
 		config: {
 			host: "127.0.0.1",
 			port: 0,
 			stateRoot,
+			transportCredentialFile,
 			providerBaseUrl: `http://127.0.0.1:${providerAddress.port}/v1/`,
 			models: { fast: "fast-model", reason: "reason-model" },
 			profiles: {
@@ -94,6 +100,14 @@ test("formal model-runtime process verifies provider, serves readiness, restarts
 		assert.equal(service.inspect().readiness, "READY");
 		assert.equal(
 			(await fetch(`http://${first.host}:${first.port}/ready`)).status,
+			401,
+		);
+		assert.equal(
+			(
+				await fetch(`http://${first.host}:${first.port}/ready`, {
+					headers: { authorization: `Bearer ${transportCredential}` },
+				})
+			).status,
 			200,
 		);
 		const second = await service.restart();
@@ -122,6 +136,11 @@ test("formal model-runtime process verifies provider, serves readiness, restarts
 
 test("B2-MOD-02 formal process writes sanitized disk inference JSONL for result and pre-queue rejection", async () => {
 	const stateRoot = await mkdtemp(join(tmpdir(), "proflow-model-logger-"));
+	const transportCredentialFile = join(stateRoot, "model-runtime.token");
+	const transportCredential = "model-runtime-transport-credential-value";
+	await writeFile(transportCredentialFile, `${transportCredential}\n`, {
+		mode: 0o600,
+	});
 	const provider = createServer(async (request, response) => {
 		const chunks: Buffer[] = [];
 		for await (const chunk of request)
@@ -169,6 +188,7 @@ test("B2-MOD-02 formal process writes sanitized disk inference JSONL for result 
 			host: "127.0.0.1",
 			port: 0,
 			stateRoot,
+			transportCredentialFile,
 			providerBaseUrl: `http://127.0.0.1:${providerAddress.port}/v1/`,
 			models: { fast: "fast-model", reason: "reason-model" },
 			profiles: {
@@ -202,7 +222,10 @@ test("B2-MOD-02 formal process writes sanitized disk inference JSONL for result 
 		const base = `http://${host}:${port}`;
 		const valid = await fetch(`${base}/infer`, {
 			method: "POST",
-			headers: { "content-type": "application/json" },
+			headers: {
+				authorization: `Bearer ${transportCredential}`,
+				"content-type": "application/json",
+			},
 			body: JSON.stringify({
 				contractVersion: "1.0.0",
 				specRef: systemHealthAssessmentSpec.specRef,
@@ -225,7 +248,10 @@ test("B2-MOD-02 formal process writes sanitized disk inference JSONL for result 
 		const secret = "PROCESS_SECRET_MUST_NOT_LEAK";
 		const rejected = await fetch(`${base}/infer`, {
 			method: "POST",
-			headers: { "content-type": "application/json" },
+			headers: {
+				authorization: `Bearer ${transportCredential}`,
+				"content-type": "application/json",
+			},
 			body: JSON.stringify({
 				contractVersion: "1.0.0",
 				specRef: systemHealthAssessmentSpec.specRef,
@@ -272,4 +298,35 @@ test("B2-MOD-02 formal process writes sanitized disk inference JSONL for result 
 		provider.close();
 		await rm(stateRoot, { recursive: true, force: true });
 	}
+});
+
+
+test("RF-MODEL-RT-14 transport credential rejects group/world-readable files", async (t) => {
+	if (process.platform === "win32") return t.skip("POSIX mode proof");
+	const stateRoot = await mkdtemp(join(tmpdir(), "proflow-model-runtime-permissions-"));
+	t.after(() => rm(stateRoot, { recursive: true, force: true }));
+	const transportCredentialFile = join(stateRoot, "model-runtime.token");
+	await writeFile(transportCredentialFile, "model-runtime-transport-credential-value\n", { mode: 0o600 });
+	await chmod(transportCredentialFile, 0o644);
+	await assert.rejects(
+		() => createModelRuntimeProcess({
+			config: {
+				host: "127.0.0.1",
+				port: 0,
+				stateRoot,
+				providerBaseUrl: "http://127.0.0.1:9/v1",
+				transportCredentialFile,
+				models: { fast: "fast", reason: "reason" },
+				profiles: {
+					fast: { modelRef: "fast", reasoningModes: ["no-thinking"], inputModalities: ["text"], structuredOutput: "native", contextWindow: 8192, maxOutputTokens: 1024 },
+					reason: { modelRef: "reason", reasoningModes: ["thinking"], inputModalities: ["text"], structuredOutput: "native", contextWindow: 8192, maxOutputTokens: 1024 },
+				},
+				capabilityFacts: {
+					fast: { contextWindow: 8192, maxOutputTokens: 1024, basis: "provider-config" },
+					reason: { contextWindow: 8192, maxOutputTokens: 1024, basis: "provider-config" },
+				},
+			},
+		}),
+		/transport credential permissions must be owner-only/,
+	);
 });

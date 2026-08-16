@@ -27,7 +27,11 @@ export type ExecutionRuntimeProcessConfig = {
 	browserExecutorConfigPath?: string;
 	transportCredentialFile?: string;
 	identity?: { endpoint: string; tokenFile: string };
-	modelDecision?: { endpoint: string; timeoutMs?: number };
+	modelDecision?: {
+		endpoint: string;
+		timeoutMs?: number;
+		credentialFile?: string;
+	};
 };
 
 export type ExecutionRuntimeProcessStatus = {
@@ -108,9 +112,16 @@ export function parseExecutionRuntimeProcessConfig(
 			(!Number.isInteger(timeoutMs) || timeoutMs <= 0)
 		)
 			throw new TypeError("modelDecision.timeoutMs must be a positive integer");
+		const credentialFile =
+			value.credentialFile === undefined
+				? undefined
+				: string(value.credentialFile, "modelDecision.credentialFile");
+		if (credentialFile !== undefined && !isAbsolute(credentialFile))
+			throw new TypeError("modelDecision.credentialFile must be absolute");
 		modelDecision = {
 			endpoint: endpoint.origin,
 			...(timeoutMs === undefined ? {} : { timeoutMs }),
+			...(credentialFile === undefined ? {} : { credentialFile }),
 		};
 	}
 	let identity: ExecutionRuntimeProcessConfig["identity"];

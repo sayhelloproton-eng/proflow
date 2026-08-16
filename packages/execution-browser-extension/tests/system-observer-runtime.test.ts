@@ -150,6 +150,20 @@ test("PRESMOKE-B3-SYSOBS-03 reason unavailability/failure defers and never synth
 	assert.equal(output.status, "DEFERRED");
 	assert.equal(output.errorCode, "REASON_FAILED");
 	assert.equal(output.global, null);
+
+	const typedUnavailable = createSystemObserver({
+		snapshots: {
+			async readView() {
+				return {};
+			},
+		},
+		reason: async () => ({ ok: false, errorCode: "REASON_UNAVAILABLE" }),
+		idFactory: () => "typed-unavailable",
+	});
+	const typedUnavailableResult = await typedUnavailable.synthesize();
+	assert.equal(typedUnavailableResult.status, "DEFERRED");
+	assert.equal(typedUnavailableResult.errorCode, "REASON_UNAVAILABLE");
+	assert.equal(typedUnavailableResult.global, null);
 });
 
 test("PRESMOKE-B5-SYSOBS-04 CONTEXT_TOO_LARGE is caller-owned: pair splits, single view compacts, and synthesis continues", async () => {

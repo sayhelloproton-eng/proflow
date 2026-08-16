@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { createServer, type Server } from "node:http";
 
 import type {
@@ -41,11 +42,26 @@ async function requestBody(
 	return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
+function transportCredentialMatches(
+	header: string | undefined,
+	expected: string,
+) {
+	if (!header?.startsWith("Bearer ")) return false;
+	const supplied = Buffer.from(header.slice("Bearer ".length));
+	const target = Buffer.from(expected);
+	return supplied.length === target.length && timingSafeEqual(supplied, target);
+}
+
 export function createModelRuntimeService(input: {
 	runtime: RuntimePublicApi;
 	host?: string;
 	port?: number;
+	transportCredential?: string;
 }): ModelRuntimeService {
+	if (input.transportCredential && input.transportCredential.length < 32)
+		throw new TypeError(
+			"model-runtime transport credential must contain at least 32 characters",
+		);
 	const host = input.host ?? "127.0.0.1";
 	const port = input.port ?? 0;
 	let server: Server | undefined;
@@ -66,6 +82,20 @@ export function createModelRuntimeService(input: {
 				try {
 					if (request.method === "GET" && request.url === "/health") {
 						response.end(JSON.stringify({ status: "UP" }));
+						return;
+					}
+					if (
+						input.transportCredential &&
+						new Set(["/ready", "/status", "/infer"]).has(request.url ?? "") &&
+						!transportCredentialMatches(
+							request.headers.authorization,
+							input.transportCredential,
+						)
+					) {
+						response.statusCode = 401;
+						response.end(
+							JSON.stringify({ error: "MODEL_TRANSPORT_AUTH_FAILED" }),
+						);
 						return;
 					}
 					if (request.method === "GET" && request.url === "/ready") {

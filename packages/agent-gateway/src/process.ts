@@ -1,5 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { createAgentGateway } from "./index.ts";
@@ -10,6 +10,7 @@ export type AgentGatewayProcessConfig = {
 	publicBaseUrl: string;
 	downstreamBaseUrl: string;
 	credentialFile: string;
+	downstreamCredentialFile?: string;
 };
 
 function record(value: unknown, name: string): Record<string, unknown> {
@@ -46,6 +47,13 @@ export function parseAgentGatewayProcessConfig(
 		publicBaseUrl: publicBaseUrl.href.replace(/\/$/, ""),
 		downstreamBaseUrl: downstreamBaseUrl.href.replace(/\/$/, ""),
 		credentialFile: resolve(text(input.credentialFile, "credentialFile")),
+		...(input.downstreamCredentialFile === undefined
+			? {}
+			: {
+					downstreamCredentialFile: resolve(
+						text(input.downstreamCredentialFile, "downstreamCredentialFile"),
+					),
+				}),
 	};
 }
 
@@ -82,6 +90,16 @@ async function readCurrentCredentialStore(file: string) {
 	return parseCredentialStore(JSON.parse(await readFile(file, "utf8")));
 }
 
+async function readDownstreamCredential(file: string) {
+	const info = await stat(file);
+	if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
+		throw new Error("DOWNSTREAM_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID");
+	const credential = (await readFile(file, "utf8")).trim();
+	if (credential.length < 32)
+		throw new Error("DOWNSTREAM_TRANSPORT_CREDENTIAL_INVALID");
+	return credential;
+}
+
 export async function createAgentGatewayProcess(input: {
 	config: AgentGatewayProcessConfig;
 	fetch?: typeof globalThis.fetch;
@@ -95,6 +113,8 @@ export async function createAgentGatewayProcess(input: {
 	// and a malformed/half-written store fails closed instead of serving a stale
 	// snapshot.
 	await readCurrentCredentialStore(credentialFile);
+	if (input.config.downstreamCredentialFile)
+		await readDownstreamCredential(input.config.downstreamCredentialFile);
 	const credentialAuthority = async (): Promise<boolean> => {
 		try {
 			return (
@@ -109,16 +129,20 @@ export async function createAgentGatewayProcess(input: {
 		body?: unknown,
 		signal?: AbortSignal,
 	) => {
+		const downstreamCredential = input.config.downstreamCredentialFile
+			? await readDownstreamCredential(input.config.downstreamCredentialFile)
+			: undefined;
 		const response = await fetchImplementation(
 			`${input.config.downstreamBaseUrl}${path}`,
 			{
 				method: body === undefined ? "GET" : "POST",
-				...(body === undefined
-					? {}
-					: {
-							headers: { "content-type": "application/json" },
-							body: JSON.stringify(body),
-						}),
+				headers: {
+					...(body === undefined ? {} : { "content-type": "application/json" }),
+					...(downstreamCredential
+						? { authorization: `Bearer ${downstreamCredential}` }
+						: {}),
+				},
+				...(body === undefined ? {} : { body: JSON.stringify(body) }),
 				...(signal ? { signal } : {}),
 			},
 		);
@@ -165,9 +189,19 @@ export async function createAgentGatewayProcess(input: {
 			},
 			async readiness() {
 				try {
+					const downstreamCredential = input.config.downstreamCredentialFile
+						? await readDownstreamCredential(
+								input.config.downstreamCredentialFile,
+							)
+						: undefined;
 					const response = await fetchImplementation(
 						`${input.config.downstreamBaseUrl}/ready`,
-						{ signal: AbortSignal.timeout(2_000) },
+						{
+							headers: downstreamCredential
+								? { authorization: `Bearer ${downstreamCredential}` }
+								: {},
+							signal: AbortSignal.timeout(2_000),
+						},
 					);
 					return {
 						credentialStore: await credentialAuthority(),

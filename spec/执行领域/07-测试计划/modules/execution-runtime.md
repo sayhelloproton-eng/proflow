@@ -14,8 +14,9 @@ requires: []
 contractRefs: []
 testPlanPhase: PRE_IMPLEMENTATION
 testPlanStatus: FINAL_FROZEN
-sourceBaseline: ProFlow-ProFlow-DDD规范化技术文档-最终冻结基线-20260812.zip
-sourceBaselineSha256: 69fdfbac8a5ee36b700bcb10c0b8a9a61f0a5aa3367386cb5bc7e98118a4a875
+sourceBaseline: proflow-source-da55f875-20260816-085708.zip
+sourceBaselineSha256: d44aee2e4b5e31647de5fcdc2adea7ca39c90bd1734b854198524f1ac239a09e
+sourceReconciledThrough: PHASE3_BATCH6_NON_E2E_CLOSURE_20260816
 sourceRefs:
 - EXECUTION-EXECUTION-RUNTIME-TECH-DESIGN
 - EXECUTION-DOC-03-01
@@ -247,6 +248,7 @@ The formal `proflow-execution-runtime` binary now marks `modelDecision=UNAVAILAB
 ### CP-EXE-RT-20 / RF-EXE-RT-20 — Formal Browser dependency is mandatory
 
 - The shipped `proflow-execution-runtime` binary must require `browserExecutorConfigPath`; omitting the Browser composition is not a supported way to make production readiness green.
+- The Deployment descriptor must expose every security/composition input that the formal binary requires (`browserExecutorConfigPath`, transport credential, identity endpoint/token, Model Decision endpoint/credential, project/artifact roots); Planner success with an unprovisionable formal binary is forbidden.
 - The sole Runtime composes the Browser Executor/Reality Bridge and reports `NOT_READY` whenever that configured bridge is offline. No alternate Browser-owned Execution Runtime process is allowed.
 - Embedded/test `createExecutionRuntimeProcess()` may omit Browser wiring for isolated lower-layer tests, but that flexibility is not the formal deployment contract.
 
@@ -263,7 +265,7 @@ The formal `proflow-execution-runtime` binary now marks `modelDecision=UNAVAILAB
 | `CP-EXE-RT-15` / `16` / `17` | `tests/execution-artifact-pipeline.test.ts`<br>`tests/execution-approval-lifecycle.test.ts` | Artifact caller/scope admission; immutable artifact identity; Patch Approval binds content/base/scope; registry+producer relation are atomic |
 | `CP-EXE-RT-18` | `tests/execution-contracts-critical-proofs.test.ts`<br>`tests/execution-runtime-critical-proofs.test.ts` | Frozen public read DTO is unchanged; caller identity is trusted transport context; ArtifactRef is not EvidenceRef |
 | `CP-EXE-RT-19` | `tests/execution-runtime-critical-proofs.test.ts`<br>`../execution-browser-extension/tests/background-observer-application.test.ts` | restart/reconciliation emits durable bounded observer signals; unconsumable signal is not acked; no sync-action double wake |
-| `CP-EXE-RT-20` | `tests/execution-runtime-service.test.ts` | shipped `proflow-execution-runtime` fails closed without mandatory Browser composition and reports dependency-aware readiness |
+| `CP-EXE-RT-20` | `tests/execution-runtime-service.test.ts` | Deployment descriptor and shipped `proflow-execution-runtime` agree on mandatory Browser/security/identity/Model composition; missing Browser composition fails closed and readiness is dependency-aware |
 | `CP/RF-EXE-RT-08` Approval closure | `tests/execution-approval-lifecycle.test.ts` | Execution-owned PENDING draft, decision/version/expiry/revoke/consume, effect-boundary revalidation, abort-before-consume |
 
 **Batch 5 carry-forward（不得在 Batch 4 伪造 PASS）**：正式 `execution.command-risk.v1` Model Decision business caller/composition 尚未接入；shipped runtime 必须在该 port 缺失时保持 `modelDecision=UNAVAILABLE` / global `NOT_READY`。Batch 4 的测试只能证明该 fail-closed readiness，不能用 injected fake Model port 证明 production caller 已完成。

@@ -83,3 +83,23 @@ test("PRESMOKE-B4-OBS-EXT-05 durable Execution recovery signals are acknowledged
 	assert.match(source, /decision\.reason === "DIAGNOSTIC_UNAVAILABLE"/);
 	assert.match(source, /continue;[\s\S]*execution\.ackSignal/);
 });
+
+test("PRESMOKE-B6-C1 Browser Carrier and Observers emit bounded structured logs through authenticated local ingestion", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	assert.match(source, /\/application\/log/);
+	assert.match(source, /component: "browser-carrier"/);
+	assert.match(source, /browser-collaboration-carrier/);
+	assert.match(source, /browser-observer/);
+	assert.match(source, /operationRef: command\.commandId/);
+	assert.match(source, /structuredAxes\(command\.request\)/);
+	assert.match(source, /sanitizeConversationLocator/);
+	assert.match(source, /locator\.username = ""/);
+	assert.match(source, /locator\.password = ""/);
+	assert.match(source, /locator\.search = ""/);
+	assert.match(source, /locator\.hash = ""/);
+	assert.match(source, /normalizeLogErrorCode/);
+	assert.match(source, /\^\[A-Z\]\[A-Z0-9_\.:-\]/);
+	assert.doesNotMatch(source, /error\.message\.slice\(0, 160\)/);
+	assert.doesNotMatch(source, /result\.error\.slice\(0, 160\)/);
+	assert.doesNotMatch(source, /emitStructuredLog\([^)]*(?:authorization|token|cookie|password)/is);
+});
