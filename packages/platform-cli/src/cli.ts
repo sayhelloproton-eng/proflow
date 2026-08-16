@@ -24,6 +24,7 @@ import {
 } from "./lifecycle/dispatch.ts";
 import { buildManifest } from "./manifest/manifest.ts";
 import type { ModuleCatalog, ModuleSource } from "./modules.ts";
+import { writeDeploymentObserverSummary } from "./observer/deployment-summary.ts";
 import { ensureLayout, workspacePaths } from "./paths.ts";
 import { loadConfig } from "./persistence/config.ts";
 import { loadPlan, savePlan } from "./persistence/plans.ts";
@@ -249,6 +250,7 @@ async function buildCatalogWithProductionBindings(
 		});
 	}
 	const bindings = await buildProductionBindings({
+		workspaceRoot: root,
 		modules,
 		configByModuleRef,
 		importAdapter: (packageName, source) =>
@@ -378,13 +380,24 @@ async function handleLifecycle(
 			: primitive === "stop"
 				? await stopModules(ctx.catalog, selected)
 				: await statusModules(ctx.catalog, selected);
-	return outcome(
-		primitive,
-		aggregateStatus(
-			result.flatMap((item) => (item.result ? [item.result.status] : [])),
-		),
-		result,
+	const statuses = result.flatMap((item) =>
+		item.result ? [item.result.status] : [],
 	);
+	const status = aggregateStatus(statuses);
+	if (primitive === "status" && !args.positional[0]) {
+		await writeDeploymentObserverSummary({
+			paths: ctx.paths,
+			source: "status",
+			selectedModuleCount: selected.length,
+			totalModuleCount: modules.length,
+			modules: result.flatMap((item) =>
+				item.result
+					? [{ moduleRef: item.moduleRef, status: item.result.status }]
+					: [],
+			),
+		});
+	}
+	return outcome(primitive, status, result);
 }
 
 async function handleVerify(
@@ -394,11 +407,20 @@ async function handleVerify(
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
 	const result = await verifyModules(ctx.catalog, selected, ctx.paths);
-	return outcome(
-		"verify",
-		aggregateStatus(result.map((item) => item.result.status)),
-		result,
-	);
+	const status = aggregateStatus(result.map((item) => item.result.status));
+	if (!args.positional[0]) {
+		await writeDeploymentObserverSummary({
+			paths: ctx.paths,
+			source: "verify",
+			selectedModuleCount: selected.length,
+			totalModuleCount: modules.length,
+			modules: result.map((item) => ({
+				moduleRef: item.moduleRef,
+				status: item.result.status,
+			})),
+		});
+	}
+	return outcome("verify", status, result);
 }
 
 async function handleDoctor(
@@ -408,11 +430,20 @@ async function handleDoctor(
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
 	const result = await doctorModules(ctx.catalog, selected);
-	return outcome(
-		"doctor",
-		aggregateStatus(result.map((item) => item.status)),
-		result,
-	);
+	const status = aggregateStatus(result.map((item) => item.status));
+	if (!args.positional[0]) {
+		await writeDeploymentObserverSummary({
+			paths: ctx.paths,
+			source: "doctor",
+			selectedModuleCount: selected.length,
+			totalModuleCount: modules.length,
+			modules: result.map((item) => ({
+				moduleRef: item.moduleRef,
+				status: item.status,
+			})),
+		});
+	}
+	return outcome("doctor", status, result);
 }
 
 async function handleManifest(

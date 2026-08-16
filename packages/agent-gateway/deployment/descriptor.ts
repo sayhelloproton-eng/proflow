@@ -18,6 +18,13 @@ export const descriptor = {
 	],
 	configSlots: [
 		{
+			key: "localBaseUrl",
+			type: "url",
+			required: true,
+			description:
+				"Loopback HTTP listener URL owned by Agent Gateway and targeted by the public ingress resource",
+		},
+		{
 			key: "publicBaseUrl",
 			type: "url",
 			required: true,

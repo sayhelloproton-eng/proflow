@@ -74,8 +74,11 @@ export const behaviorAdapter = createBehaviorAdapter();
 const REQUIRED_CONFIG = [
 	"stateRoot",
 	"workspaceRoot",
+	"gatewayTransportCredentialFile",
 	"executionBaseUrl",
+	"executionTransportCredentialFile",
 	"modelBaseUrl",
+	"modelTransportCredentialFile",
 ] as const;
 
 // Binds the real Host process only when the materialized config is complete;
@@ -84,35 +87,38 @@ const REQUIRED_CONFIG = [
 export async function createProductionBinding(input: {
 	moduleRef: string;
 	config: Record<string, string>;
+	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
 }): Promise<{ behaviorAdapter: Record<string, unknown> } | undefined> {
 	const config = input.config;
-	if (!REQUIRED_CONFIG.every((key) => config[key] !== undefined)) {
+	if (!REQUIRED_CONFIG.every((key) => config[key] !== undefined))
 		return undefined;
-	}
+
+	// The Platform Host's public loopback endpoint is already a cross-module
+	// contract: Execution calls it through identity.endpoint. Reuse that
+	// materialized endpoint as the listener instead of binding an ephemeral port
+	// that no dependent module could discover after `start`.
+	const executionRuntime = input.configByModuleRef.get("execution-runtime");
+	const advertised = executionRuntime?.["identity.endpoint"];
+	if (!advertised) return undefined;
+	const listener = new URL(advertised);
+	if (listener.protocol !== "http:" || listener.pathname !== "/")
+		return undefined;
+	const port = listener.port === "" ? 80 : Number(listener.port);
+	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
+
 	const { createPlatformHost, parsePlatformHostConfig } = await import(
 		"../src/index.ts"
 	);
 	const hostConfig = parsePlatformHostConfig({
 		stateRoot: config.stateRoot,
 		workspaceRoot: config.workspaceRoot,
-		host: config.host ?? "127.0.0.1",
-		port: config.port === undefined ? 0 : Number(config.port),
+		host: listener.hostname,
+		port,
 		executionBaseUrl: config.executionBaseUrl,
+		executionTransportCredentialFile: config.executionTransportCredentialFile,
 		modelBaseUrl: config.modelBaseUrl,
-		...(config.gatewayTransportCredentialFile
-			? {
-					gatewayTransportCredentialFile: config.gatewayTransportCredentialFile,
-				}
-			: {}),
-		...(config.executionTransportCredentialFile
-			? {
-					executionTransportCredentialFile:
-						config.executionTransportCredentialFile,
-				}
-			: {}),
-		...(config.modelTransportCredentialFile
-			? { modelTransportCredentialFile: config.modelTransportCredentialFile }
-			: {}),
+		modelTransportCredentialFile: config.modelTransportCredentialFile,
+		gatewayTransportCredentialFile: config.gatewayTransportCredentialFile,
 		roles: [],
 	});
 	const host = createPlatformHost({ config: hostConfig });

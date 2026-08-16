@@ -94,3 +94,59 @@ export function createBehaviorAdapter(service?: GatewayProcess) {
 }
 
 export const behaviorAdapter = createBehaviorAdapter();
+
+export async function createProductionBinding(input: {
+	moduleRef: string;
+	config: Record<string, string>;
+	workspaceRoot: string;
+	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
+}): Promise<{ behaviorAdapter: Record<string, unknown> } | undefined> {
+	const localBaseUrl = input.config.localBaseUrl;
+	const publicBaseUrl = input.config.publicBaseUrl;
+	const downstreamCredentialFile = input.config.downstreamCredentialFile;
+	const platformHost = input.configByModuleRef.get("platform-host");
+	const executionRuntime = input.configByModuleRef.get("execution-runtime");
+	const stateRoot = platformHost?.stateRoot;
+	const downstreamBaseUrl = executionRuntime?.["identity.endpoint"];
+	if (
+		!localBaseUrl ||
+		!publicBaseUrl ||
+		!downstreamCredentialFile ||
+		!stateRoot ||
+		!downstreamBaseUrl
+	) {
+		return undefined;
+	}
+	const listener = new URL(localBaseUrl);
+	if (
+		listener.protocol !== "http:" ||
+		!new Set(["127.0.0.1", "localhost", "::1", "[::1]"]).has(
+			listener.hostname,
+		) ||
+		listener.pathname !== "/"
+	)
+		return undefined;
+	const port = listener.port === "" ? 80 : Number(listener.port);
+	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
+
+	const [
+		{ join },
+		{ createAgentGatewayProcess, parseAgentGatewayProcessConfig },
+	] = await Promise.all([import("node:path"), import("../src/process.ts")]);
+	const service = await createAgentGatewayProcess({
+		config: parseAgentGatewayProcessConfig({
+			host: listener.hostname,
+			port,
+			publicBaseUrl,
+			downstreamBaseUrl,
+			credentialFile: join(
+				stateRoot,
+				"agent",
+				"secrets",
+				"role-credentials.json",
+			),
+			downstreamCredentialFile,
+		}),
+	});
+	return { behaviorAdapter: createBehaviorAdapter(service) };
+}

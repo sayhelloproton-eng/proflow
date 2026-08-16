@@ -17,7 +17,11 @@ import type {
 	BrowserVisionPort,
 	TypedVisionObservation,
 } from "./vision.ts";
-import { deferVisionObservation, parseCapturedScreenshot } from "./vision.ts";
+import {
+	deferVisionObservation,
+	isVisionObservationVerified,
+	parseCapturedScreenshot,
+} from "./vision.ts";
 
 export type { BrowserRealityBridgeOptions } from "./bridge.ts";
 export {
@@ -67,7 +71,9 @@ export type {
 } from "./vision.ts";
 export {
 	deferVisionObservation,
+	isVisionObservationVerified,
 	parseCapturedScreenshot,
+	VISION_OBSERVATION_MIN_CONFIDENCE,
 	visionMimeTypes,
 	visionRecommendedNext,
 } from "./vision.ts";
@@ -714,19 +720,82 @@ export function createExecutionBrowserExtension(
 				"PRECONDITION_FAILED",
 				"BROWSER_TARGET_NOT_FOUND",
 			);
-		if (request.capability === "browser.observe")
-			return result(
-				{
-					capability: "browser.observe",
-					data: {
-						targetRef: target,
-						verified: true,
-						observationRef: `observation:${idFactory()}`,
+		if (request.capability === "browser.observe") {
+			const needsVisionFallback =
+				observed.pageState === "UNKNOWN" ||
+				observed.activityKind === "RECOVERING";
+			if (!needsVisionFallback)
+				return result(
+					{
+						capability: "browser.observe",
+						data: {
+							targetRef: target,
+							verified: true,
+							observationRef: `observation:${idFactory()}`,
+						},
 					},
-				},
-				observed,
-				false,
-			);
+					observed,
+					false,
+				);
+
+			// Deterministic DOM/runtime observation is always primary. Only an
+			// explicitly ambiguous/recovery state may escalate to screenshot Vision.
+			// The typed Vision result remains bounded diagnostic evidence and never
+			// mutates Task/Execution/Approval authority.
+			const shot = await options.browser.screenshot(observed.tabId);
+			const vision = await visionObservation(shot, {
+				targetRef: target,
+				pageState: observed.pageState,
+				activityKind: observed.activityKind,
+				observedAt: observed.observedAt,
+			});
+			const visionVerified = isVisionObservationVerified(vision);
+			const observationRef =
+				vision.status === "OBSERVED" ? vision.observationRef : shot.evidenceRef;
+			return {
+				...result(
+					{
+						capability: "browser.observe",
+						data: {
+							targetRef: target,
+							verified: visionVerified,
+							observationRef,
+							visionFallback: "REAL_EXTERNAL_PENDING",
+						},
+					},
+					observed,
+					false,
+				),
+				evidence: [
+					{
+						kind: "browser",
+						evidenceRef: shot.evidenceRef,
+						targetRef: target,
+						observationRef: shot.evidenceRef,
+						verified: visionVerified,
+					},
+				],
+				artifacts: [
+					{
+						ref: shot.evidenceRef,
+						path: "",
+						bytes: shot.sizeBytes,
+						stream: "report",
+						kind: "output",
+						hash: shot.hash,
+						mime: shot.mimeType,
+						metadata: {
+							source: "browser.observe.vision-fallback",
+							trigger: {
+								pageState: observed.pageState,
+								activityKind: observed.activityKind,
+							},
+							vision,
+						},
+					},
+				],
+			};
+		}
 		if (request.capability === "browser.screenshot") {
 			const shot = await options.browser.screenshot(observed.tabId);
 			// The screenshot is the ambiguity/recovery fallback: hand the real

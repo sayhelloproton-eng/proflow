@@ -414,36 +414,67 @@ function unwrap<Value>(result: {
 	return result.data;
 }
 
-// Bounded read of the Deployment owner's persisted current summary. The Host
-// never derives Deployment health from Task/Agent/Execution/Model readiness; it
-// only projects what the Deployment domain actually materialized.
+// Bounded read of the Deployment owner's explicit System Observer projection.
+// Platform Host never reads Deployment's internal state.json or derives health;
+// it consumes only the bounded summary emitted by Deployment status/verify/doctor.
 async function readDeploymentOwnerSummary(stateRoot: string): Promise<
 	| {
-			appliedPlans: number;
-			selectedModules: number;
-			pendingActions: number;
+			state: "READY" | "DEGRADED" | "ACTION_REQUIRED" | "NOT_READY";
+			source: "status" | "verify" | "doctor";
+			selectedModuleCount: number;
+			totalModuleCount: number;
+			observedModuleCount: number;
+			blockingModuleCount: number;
+			observedAt: string;
+			freshUntil: string;
 	  }
 	| undefined
 > {
 	try {
 		const raw = await readFile(
-			join(stateRoot, "deployment", "state.json"),
+			join(stateRoot, "deployment", "observer-summary.json"),
 			"utf8",
 		);
 		const value: unknown = JSON.parse(raw);
 		if (typeof value !== "object" || value === null || Array.isArray(value))
 			return undefined;
 		const record = value as Record<string, unknown>;
+		if (
+			record.contract !== "proflow.deployment-observer-summary.v1" ||
+			record.scope !== "PLATFORM"
+		)
+			return undefined;
+		if (
+			!new Set(["READY", "DEGRADED", "ACTION_REQUIRED", "NOT_READY"]).has(
+				String(record.state),
+			) ||
+			!new Set(["status", "verify", "doctor"]).has(String(record.source)) ||
+			typeof record.selectedModuleCount !== "number" ||
+			typeof record.totalModuleCount !== "number" ||
+			typeof record.observedModuleCount !== "number" ||
+			typeof record.blockingModuleCount !== "number" ||
+			typeof record.observedAt !== "string" ||
+			typeof record.freshUntil !== "string" ||
+			Number.isNaN(Date.parse(record.observedAt)) ||
+			Number.isNaN(Date.parse(record.freshUntil)) ||
+			record.selectedModuleCount !== record.totalModuleCount ||
+			Date.parse(record.freshUntil) <= Date.now()
+		) {
+			return undefined;
+		}
 		return {
-			appliedPlans: Array.isArray(record.lastAppliedPlans)
-				? record.lastAppliedPlans.length
-				: 0,
-			selectedModules: Array.isArray(record.selectedModules)
-				? record.selectedModules.length
-				: 0,
-			pendingActions: Array.isArray(record.pendingActions)
-				? record.pendingActions.length
-				: 0,
+			state: record.state as
+				| "READY"
+				| "DEGRADED"
+				| "ACTION_REQUIRED"
+				| "NOT_READY",
+			source: record.source as "status" | "verify" | "doctor",
+			selectedModuleCount: record.selectedModuleCount,
+			totalModuleCount: record.totalModuleCount,
+			observedModuleCount: record.observedModuleCount,
+			blockingModuleCount: record.blockingModuleCount,
+			observedAt: record.observedAt,
+			freshUntil: record.freshUntil,
 		};
 	} catch {
 		return undefined;
@@ -767,11 +798,15 @@ async function constructGraph(
 				};
 			}
 			return {
-				summary: `appliedPlans=${deployment.appliedPlans}; selectedModules=${deployment.selectedModules}; pendingActions=${deployment.pendingActions}`,
+				summary: `deploymentOwnerState=${deployment.state}; source=${deployment.source}; selectedModules=${deployment.selectedModuleCount}; observedModules=${deployment.observedModuleCount}; blockingModules=${deployment.blockingModuleCount}; observedAt=${deployment.observedAt}`,
 				health:
-					deployment.pendingActions === 0
+					deployment.state === "READY"
 						? ("HEALTHY" as const)
 						: ("DEGRADED" as const),
+				findings:
+					deployment.state === "READY"
+						? []
+						: [`Deployment owner reports ${deployment.state}`],
 			};
 		}
 		if (view === "artifact") {

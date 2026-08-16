@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 124,
-    "testCalls": 661
+    "files": 125,
+    "testCalls": 667
   },
   "tests": [
     {
@@ -1749,6 +1749,18 @@
     },
     {
       "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+      "line": 135,
+      "title": "P1-18 bounded startup/event recovery replenishes missing Task Workers before Task progression",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-reality-bridge.test.ts",
       "line": 48,
       "title": "REG-EXE-BR-08 loopback bridge authenticates exact extension session and transports typed reality",
@@ -2004,7 +2016,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 149,
+      "line": 150,
       "title": "REG-EXE-BR-01 stable role/worker identity rejects stale transient content instances",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2016,7 +2028,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 180,
+      "line": 181,
       "title": "REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, duplicate CREATE is zero",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2028,7 +2040,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 230,
+      "line": 231,
       "title": "PRESMOKE-B3-BINDING-01 RESTORE uses durable TaskRoleBinding conversationLocator instead of reconstructing a URL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2040,7 +2052,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 277,
+      "line": 278,
       "title": "REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Node or Effect completion",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2052,7 +2064,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 325,
+      "line": 326,
       "title": "PRESMOKE-B3-WAKE-01 worker.wake rejects untyped/arbitrary wake reasons before Browser effect",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2064,7 +2076,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 355,
+      "line": 356,
       "title": "REG-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministic observations",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2076,7 +2088,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 386,
+      "line": 387,
       "title": "REG-EXE-BR-05 permission fallback captures evidence and Side Panel remains read-only",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2088,7 +2100,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 412,
+      "line": 413,
       "title": "REG-EXE-BR-06 writes are globally serial and logical delivery follows physical verification",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2100,7 +2112,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 460,
+      "line": 461,
       "title": "REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2112,7 +2124,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 488,
+      "line": 489,
       "title": "REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remains ACTION_REQUIRED locally",
       "ids": [],
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
@@ -2124,7 +2136,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 517,
+      "line": 518,
       "title": "REG-EXE-BR-09 deterministic DOM observation makes zero Vision calls",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2136,7 +2148,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 549,
+      "line": 550,
       "title": "REG-EXE-BR-10 screenshot → Vision receives the exact captured image and returns a typed observation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2148,7 +2160,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 599,
+      "line": 634,
       "title": "REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fabricated success",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2160,8 +2172,20 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 627,
+      "line": 684,
       "title": "REG-EXE-BR-12 screenshot boundary rejects unsupported MIME and mismatched dataUrl",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-contracts/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
+      "line": 717,
+      "title": "REG-EXE-BR-13 Vision verification requires deterministic confidence and no human escalation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5769,6 +5793,42 @@
     },
     {
       "package": "platform-cli",
+      "path": "packages/platform-cli/tests/deployment-observer-summary.test.ts",
+      "line": 10,
+      "title": "P1-15 Deployment owner emits bounded observer summary from current lifecycle results",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/observer/deployment-summary.ts",
+        "packages/platform-cli/src/paths.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/deployment-observer-summary.test.ts",
+      "line": 44,
+      "title": "P1-15 Deployment owner never reports READY from an empty observation",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/observer/deployment-summary.ts",
+        "packages/platform-cli/src/paths.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/deployment-observer-summary.test.ts",
+      "line": 64,
+      "title": "P1-15 Deployment owner never reports READY from a partial platform observation",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/observer/deployment-summary.ts",
+        "packages/platform-cli/src/paths.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
       "line": 121,
       "title": "versionSatisfies covers exact and comparator ranges",
@@ -7638,12 +7698,27 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/production-binder.test.ts",
-      "line": 190,
+      "line": 192,
       "title": "shipped CLI status binds a real service + real external resource and fails closed when unbound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
-        "packages/platform-cli/src/cli.ts"
+        "packages/platform-cli/src/binding/production-bindings.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/discovery/discover.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/production-binder.test.ts",
+      "line": 259,
+      "title": "all shipped service/external-resource modules expose a production binding factory",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/production-bindings.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/discovery/discover.ts"
       ]
     },
     {
@@ -8693,7 +8768,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 151,
+      "line": 156,
       "title": "PRESMOKE-B3-OBS-TRANSPORT-01 host exposes authenticated Observer owner/model transport without making it a scheduler",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8704,7 +8779,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 163,
+      "line": 168,
       "title": "PRESMOKE-B3-CARRIER-TRANSPORT-01 Collaboration Carrier transport cannot proxy arbitrary Execution capabilities or caller identity",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

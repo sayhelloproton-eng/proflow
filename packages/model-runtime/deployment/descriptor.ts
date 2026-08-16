@@ -55,6 +55,13 @@ export const descriptor = {
 			description: "Provider model identifier for REASON",
 		},
 		{
+			key: "capabilityProfilesFile",
+			type: "path",
+			required: true,
+			description:
+				"JSON file containing Deployment-configured FAST/REASON ModelCapabilityProfile values",
+		},
+		{
 			key: "providerModuleRef",
 			type: "moduleRef",
 			required: false,

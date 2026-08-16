@@ -578,6 +578,15 @@ function runObserverRecovery() {
 					candidate.status === "TERMINATED"
 				)
 					continue;
+				// J1 Worker teaming recovery is driven from durable Task binding facts.
+				// This bounded startup/event recovery pass re-runs the idempotent
+				// ensureWorkers application before Task progression, so Dev/Test
+				// completion never depends on an in-memory Promise surviving a Host
+				// or Extension restart. Successful bindings are preserved and only
+				// missing roles are re-provisioned by the Host/Execution path.
+				await invokeTaskApplication("task.ensureWorkers", {
+					taskId: candidate.taskId,
+				}).catch(() => undefined);
 				await taskObserver.drive(candidate.taskId).catch(() => undefined);
 			}
 		}

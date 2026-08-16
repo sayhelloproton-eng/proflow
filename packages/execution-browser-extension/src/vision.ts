@@ -87,6 +87,25 @@ export function deferVisionObservation(
 	return Object.freeze({ status: "DEFERRED", reasonCode, message });
 }
 
+export const VISION_OBSERVATION_MIN_CONFIDENCE = 0.75;
+
+/**
+ * Deterministic Carrier policy for deciding whether a model observation is
+ * strong enough to count as a verified Browser observation. A successful
+ * model response is diagnostic evidence only; UNKNOWN, low-confidence, or
+ * explicit human-escalation recommendations remain unverified.
+ */
+export function isVisionObservationVerified(
+	value: TypedVisionObservation,
+): value is BrowserVisionObservation {
+	return (
+		value.status === "OBSERVED" &&
+		value.pageState !== "UNKNOWN" &&
+		value.confidence >= VISION_OBSERVATION_MIN_CONFIDENCE &&
+		value.recommendedNext !== "REQUEST_HUMAN"
+	);
+}
+
 /**
  * Runtime-validate a raw screenshot capture into a trusted image payload before
  * it may reach a Vision port. Only supported image MIME types are accepted; the

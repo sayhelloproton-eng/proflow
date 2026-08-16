@@ -7,6 +7,7 @@ import {
 	type BrowserRealityPort,
 	type BrowserVisionPort,
 	createExecutionBrowserExtension,
+	isVisionObservationVerified,
 	parseCapturedScreenshot,
 } from "../src/index.ts";
 
@@ -594,6 +595,40 @@ test("REG-EXE-BR-10 screenshot → Vision receives the exact captured image and 
 		"REAL_EXTERNAL_PENDING",
 	);
 	assert.doesNotMatch(JSON.stringify(result), /dataUrl|base64/);
+
+	// The production browser.observe path must automatically escalate only when
+	// deterministic DOM/runtime observation reports ambiguity/recovery.
+	browser.tabs.set(tab.tabId, {
+		...(await browser.observe(tab.tabId)),
+		pageState: "UNKNOWN",
+		activityKind: "RECOVERING",
+		observedAt: new Date().toISOString(),
+	});
+	const automaticFallback = await extension.execute({
+		request: request("browser.observe", { targetRef: `tab:${tab.tabId}` }),
+		admission: {
+			policy: "ALLOW",
+			decisionPath: "deterministic",
+			approval: "NOT_REQUIRED",
+		},
+	});
+	assert.equal(calls.length, 3);
+	assert.equal(automaticFallback.result.capability, "browser.observe");
+	assert.equal(
+		(automaticFallback.result.data as { verified?: boolean }).verified,
+		false,
+		"REQUEST_HUMAN remains diagnostic evidence and cannot verify the page",
+	);
+	assert.equal(
+		automaticFallback.artifacts[0]?.metadata?.source,
+		"browser.observe.vision-fallback",
+	);
+	assert.equal(
+		(automaticFallback.artifacts[0]?.metadata?.vision as { status?: string })
+			?.status,
+		"OBSERVED",
+	);
+	assert.doesNotMatch(JSON.stringify(automaticFallback), /dataUrl|base64/);
 });
 
 test("REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fabricated success", async () => {
@@ -608,6 +643,28 @@ test("REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fab
 	assert.equal(missing.status, "DEFERRED");
 	if (missing.status !== "DEFERRED") return;
 	assert.equal(missing.reasonCode, "VISION_PORT_UNAVAILABLE");
+	browser.tabs.set(tab.tabId, {
+		...(await browser.observe(tab.tabId)),
+		pageState: "UNKNOWN",
+		activityKind: "RECOVERING",
+	});
+	const automaticDeferred = await extension.execute({
+		request: request("browser.observe", { targetRef: `tab:${tab.tabId}` }),
+		admission: {
+			policy: "ALLOW",
+			decisionPath: "deterministic",
+			approval: "NOT_REQUIRED",
+		},
+	});
+	assert.equal(
+		(automaticDeferred.result.data as { verified?: boolean }).verified,
+		false,
+	);
+	assert.equal(
+		(automaticDeferred.artifacts[0]?.metadata?.vision as { status?: string })
+			?.status,
+		"DEFERRED",
+	);
 
 	const failing = await fixture(recordingVisionPort([], { fail: true }));
 	const failingTab = await failing.browser.open(
@@ -655,4 +712,51 @@ test("REG-EXE-BR-12 screenshot boundary rejects unsupported MIME and mismatched 
 			}),
 		/sizeBytes must be a positive integer/,
 	);
+});
+
+test("REG-EXE-BR-13 Vision verification requires deterministic confidence and no human escalation", () => {
+	assert.equal(
+		isVisionObservationVerified({
+			status: "OBSERVED",
+			observationRef: "vision:reliable",
+			pageState: "BLOCKED",
+			activityKind: "ACTION_PERMISSION",
+			confidence: 0.9,
+			recommendedNext: "WAIT",
+			reasonCode: "KNOWN_WAIT",
+			rationale: "known waiting state",
+		}),
+		true,
+	);
+	for (const observation of [
+		{
+			pageState: "UNKNOWN" as const,
+			confidence: 0.9,
+			recommendedNext: "WAIT" as const,
+		},
+		{
+			pageState: "BLOCKED" as const,
+			confidence: 0.5,
+			recommendedNext: "WAIT" as const,
+		},
+		{
+			pageState: "BLOCKED" as const,
+			confidence: 0.9,
+			recommendedNext: "REQUEST_HUMAN" as const,
+		},
+	]) {
+		assert.equal(
+			isVisionObservationVerified({
+				status: "OBSERVED",
+				observationRef: "vision:bounded",
+				pageState: observation.pageState,
+				activityKind: "ACTION_PERMISSION",
+				confidence: observation.confidence,
+				recommendedNext: observation.recommendedNext,
+				reasonCode: "BOUNDED",
+				rationale: "bounded diagnostic",
+			}),
+			false,
+		);
+	}
 });

@@ -131,3 +131,30 @@ test("PRESMOKE-B6-OBS-EXT-06 Side Panel snapshot carries a bounded read-only Sys
 		/systemAssessmentTarget\.[\s\S]{0,120}(?:complete|approve|reopen)/,
 	);
 });
+
+test("P1-18 bounded startup/event recovery replenishes missing Task Workers before Task progression", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	const recovery = source.slice(
+		source.indexOf("function runObserverRecovery()"),
+		source.indexOf(
+			"function observationFor",
+			source.indexOf("function runObserverRecovery()"),
+		),
+	);
+	assert.match(recovery, /task\.list/);
+	assert.match(recovery, /task\.ensureWorkers/);
+	assert.match(recovery, /taskObserver\.drive/);
+	assert.ok(
+		recovery.indexOf('invokeTaskApplication("task.ensureWorkers"') <
+			recovery.indexOf("taskObserver.drive(candidate.taskId)"),
+		"worker recovery must reconcile durable bindings before Task progression",
+	);
+	assert.match(
+		source,
+		/chrome\.runtime\.onStartup[\s\S]*runObserverRecovery\(\)/,
+	);
+	assert.match(
+		source,
+		/chrome\.runtime\.onInstalled[\s\S]*runObserverRecovery\(\)/,
+	);
+});

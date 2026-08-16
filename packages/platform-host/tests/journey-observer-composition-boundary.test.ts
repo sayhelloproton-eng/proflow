@@ -132,6 +132,11 @@ test("R2-P1-15-SYSOBS-01 carrier/deployment/artifact views read their own owner,
 		text.indexOf('view === "artifact"'),
 	);
 	assert.match(deploymentBranch, /readDeploymentOwnerSummary/);
+	assert.match(text, /deployment["',\s]+observer-summary\.json/);
+	assert.match(text, /record\.scope !== "PLATFORM"/);
+	assert.match(text, /record\.freshUntil/);
+	assert.match(text, /Date\.parse\(record\.freshUntil\) <= Date\.now\(\)/);
+	assert.doesNotMatch(text, /deployment["',\s]+state\.json/);
 	assert.doesNotMatch(deploymentBranch, /allReady/);
 	assert.doesNotMatch(deploymentBranch, /execution\.readiness\(\)/);
 	assert.doesNotMatch(deploymentBranch, /model\.readiness\(\)/);

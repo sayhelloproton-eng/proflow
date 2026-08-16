@@ -271,3 +271,44 @@ export function createBehaviorAdapter(input?: CarrierProbeInput) {
 }
 
 export const behaviorAdapter = createBehaviorAdapter();
+
+export function createProductionBinding(input: {
+	moduleRef: string;
+	config: Record<string, string>;
+}): { behaviorAdapter: Record<string, unknown> } {
+	const carrierUrl = input.config.carrierUrl ?? "https://chatgpt.com/";
+	return {
+		behaviorAdapter: createBehaviorAdapter({
+			carrierUrl,
+			async observeCarrier() {
+				try {
+					const response = await fetch(carrierUrl, {
+						method: "HEAD",
+						redirect: "follow",
+						signal: AbortSignal.timeout(5_000),
+					});
+					return response.ok
+						? {
+								availability: "AVAILABLE" as const,
+								evidence: "real" as const,
+								message: "Configured Custom GPT carrier URL is reachable",
+							}
+						: {
+								availability: "UNAVAILABLE" as const,
+								evidence: "real" as const,
+								message: `Carrier URL returned HTTP ${response.status}`,
+							};
+				} catch (error) {
+					return {
+						availability: "UNKNOWN" as const,
+						evidence: "real" as const,
+						message:
+							error instanceof Error
+								? error.message
+								: "Carrier reachability observation failed",
+					};
+				}
+			},
+		}),
+	};
+}

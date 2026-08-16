@@ -305,3 +305,20 @@ function failureReason(verification: PublicIngressVerification): string {
 }
 
 export const behaviorAdapter = createBehaviorAdapter();
+
+export async function createProductionBinding(input: {
+	moduleRef: string;
+	config: Record<string, string>;
+}): Promise<{ behaviorAdapter: Record<string, unknown> } | undefined> {
+	const publicBaseUrl = input.config.publicBaseUrl;
+	if (!publicBaseUrl) return undefined;
+	const { createDevTunnelRuntime } = await import("../src/resource-adapter.ts");
+	return {
+		behaviorAdapter: createBehaviorAdapter({
+			runtime: createDevTunnelRuntime({
+				publicBaseUrl,
+				...(input.config.tunnelId ? { tunnelId: input.config.tunnelId } : {}),
+			}),
+		}),
+	};
+}

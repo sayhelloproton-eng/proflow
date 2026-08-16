@@ -20,12 +20,16 @@ export interface DeploymentAdapterBinding {
 export type ProductionBindingFactory = (input: {
 	moduleRef: string;
 	config: Record<string, string>;
+	workspaceRoot: string;
+	modules: readonly ResolvedModule[];
+	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
 }) =>
 	| Promise<DeploymentAdapterBinding | undefined>
 	| DeploymentAdapterBinding
 	| undefined;
 
 export interface ProductionBindingOptions {
+	workspaceRoot: string;
 	modules: readonly ResolvedModule[];
 	// materialized public+secret config by moduleRef (already loaded by the CLI)
 	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
@@ -84,6 +88,9 @@ export async function buildProductionBindings(
 			const binding = await (factory as ProductionBindingFactory)({
 				moduleRef: module.moduleRef,
 				config,
+				workspaceRoot: options.workspaceRoot,
+				modules: options.modules,
+				configByModuleRef: options.configByModuleRef,
 			});
 			if (
 				binding !== undefined &&

@@ -74,3 +74,57 @@ export function createBehaviorAdapter(service?: ProcessService) {
 }
 
 export const behaviorAdapter = createBehaviorAdapter();
+
+export async function createProductionBinding(input: {
+	moduleRef: string;
+	config: Record<string, string>;
+	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
+}): Promise<{ behaviorAdapter: Record<string, unknown> } | undefined> {
+	const required = [
+		"databasePath",
+		"projectRoot",
+		"artifactRoot",
+		"browserExecutorConfigPath",
+		"transportCredentialFile",
+		"identity.endpoint",
+		"identity.tokenFile",
+		"modelDecision.endpoint",
+		"modelDecision.credentialFile",
+	] as const;
+	if (!required.every((key) => input.config[key])) return undefined;
+	const platformHost = input.configByModuleRef.get("platform-host");
+	const advertised = platformHost?.executionBaseUrl;
+	if (!advertised) return undefined;
+	const listener = new URL(advertised);
+	if (listener.protocol !== "http:" || listener.pathname !== "/")
+		return undefined;
+	const port = listener.port === "" ? 80 : Number(listener.port);
+	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
+	const [
+		{ createFormalExecutionRuntimeLifecycle },
+		{ parseExecutionRuntimeProcessConfig },
+	] = await Promise.all([
+		import("../src/formal-process.ts"),
+		import("../src/service.ts"),
+	]);
+	const service = createFormalExecutionRuntimeLifecycle({
+		config: parseExecutionRuntimeProcessConfig({
+			host: listener.hostname,
+			port,
+			databasePath: input.config.databasePath,
+			projectRoot: input.config.projectRoot,
+			artifactRoot: input.config.artifactRoot,
+			browserExecutorConfigPath: input.config.browserExecutorConfigPath,
+			transportCredentialFile: input.config.transportCredentialFile,
+			identity: {
+				endpoint: input.config["identity.endpoint"],
+				tokenFile: input.config["identity.tokenFile"],
+			},
+			modelDecision: {
+				endpoint: input.config["modelDecision.endpoint"],
+				credentialFile: input.config["modelDecision.credentialFile"],
+			},
+		}),
+	});
+	return { behaviorAdapter: createBehaviorAdapter(service) };
+}

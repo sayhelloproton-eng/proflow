@@ -198,3 +198,16 @@ export function createBehaviorAdapter(input?: { probe: ChromeRuntimeProbe }) {
 }
 
 export const behaviorAdapter = createBehaviorAdapter();
+
+export async function createProductionBinding(input: {
+	moduleRef: string;
+	config: Record<string, string>;
+}): Promise<{ behaviorAdapter: Record<string, unknown> }> {
+	const { probeChromeRuntime } = await import("../src/resource-adapter.ts");
+	const chromeExecutablePath = input.config.chromeExecutablePath;
+	return {
+		behaviorAdapter: createBehaviorAdapter({
+			probe: () => probeChromeRuntime(chromeExecutablePath),
+		}),
+	};
+}

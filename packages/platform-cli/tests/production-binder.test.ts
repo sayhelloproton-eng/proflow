@@ -4,8 +4,10 @@ import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-
+import { fileURLToPath } from "node:url";
+import { importRawAdapter } from "../src/binding/production-bindings.ts";
 import { runCli } from "../src/cli.ts";
+import { discoverModules } from "../src/discovery/discover.ts";
 
 // The shipped Platform CLI must construct real production bindings itself — a
 // test must not hand-build a Map. This proof drives `runCli(["status", ...])`
@@ -252,4 +254,22 @@ test("shipped CLI status binds a real service + real external resource and fails
 		await new Promise<void>((resolve) => server?.close(() => resolve()));
 		await rm(root, { recursive: true, force: true });
 	}
+});
+
+test("all shipped service/external-resource modules expose a production binding factory", async () => {
+	const root = fileURLToPath(new URL("../../../", import.meta.url));
+	const modules = await discoverModules({ workspaceRoot: root });
+	const governed = modules.filter(
+		(module) =>
+			module.kind === "service" || module.kind === "external-resource",
+	);
+	assert.ok(governed.length > 0);
+	const missing: string[] = [];
+	for (const module of governed) {
+		const namespace = await importRawAdapter(module.packageName, module.source);
+		if (typeof namespace.createProductionBinding !== "function") {
+			missing.push(`${module.moduleRef}:${module.packageName}`);
+		}
+	}
+	assert.deepEqual(missing, []);
 });
