@@ -857,7 +857,8 @@ export async function materializeExternalFiles(options: {
 		throw new ExternalFileMaterializationError("EXTERNAL_FILE_COUNT_EXCEEDED");
 	const fetchImpl = options.fetchImpl ?? fetch;
 	const resolveDns = options.resolveDns ?? defaultDnsResolver;
-	const fetchTimeoutMs = options.fetchTimeoutMs ?? EXTERNAL_FILE_FETCH_TIMEOUT_MS;
+	const fetchTimeoutMs =
+		options.fetchTimeoutMs ?? EXTERNAL_FILE_FETCH_TIMEOUT_MS;
 	const artifactRoot = resolve(options.artifactRoot);
 	await mkdir(artifactRoot, { recursive: true, mode: 0o700 });
 	let aggregate = 0;
@@ -1085,32 +1086,25 @@ export async function materializeContextPack(options: {
 	}
 	const id = randomUUID();
 	const artifactRef = `artifact:${id}:context-pack`;
+	const serialized = JSON.stringify({
+		taskId: options.taskId,
+		nodeId: options.nodeId,
+		manifest,
+		entries,
+	});
 	const hash = `sha256:${createHash("sha256")
-		.update(
-			JSON.stringify({
-				taskId: options.taskId,
-				nodeId: options.nodeId,
-				manifest,
-				entries,
-			}),
-		)
+		.update(serialized)
 		.digest("hex")}`;
 	const artifactRoot = resolve(options.artifactRoot);
 	await mkdir(artifactRoot, { recursive: true, mode: 0o700 });
-	await writeFile(
-		join(artifactRoot, `${id}.context-pack.json`),
-		JSON.stringify({
-			taskId: options.taskId,
-			nodeId: options.nodeId,
-			manifest,
-			entries,
-		}),
-		{ encoding: "utf8", mode: 0o600 },
-	);
+	await writeFile(join(artifactRoot, `${id}.context-pack.json`), serialized, {
+		encoding: "utf8",
+		mode: 0o600,
+	});
 	return {
 		artifactRef,
 		hash,
-		bytes: totalBytes,
+		bytes: Buffer.byteLength(serialized),
 		entries: entries.length,
 		binaryFiltered,
 		redacted: secrets.length > 0,
@@ -3231,8 +3225,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 				const before = (await fileExists(path))
 					? await readFile(path, "utf8")
 					: undefined;
-				const beforeHash =
-					before === undefined ? undefined : sha256(before);
+				const beforeHash = before === undefined ? undefined : sha256(before);
 				return {
 					kind: "file.write",
 					capability: "file.write",
@@ -3247,9 +3240,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 						"EXECUTOR_UNAVAILABLE",
 						"patch artifact resolver is not configured",
 					);
-				const artifact = await resolvePatchArtifact(
-					request.input.artifactRef,
-				);
+				const artifact = await resolvePatchArtifact(request.input.artifactRef);
 				if (artifact?.kind !== "patch-proposal")
 					throw new LocalExecutionError(
 						"PRECONDITION_FAILED",
@@ -3314,10 +3305,7 @@ export async function createLocalExecutor(options: LocalExecutorOptions) {
 					projectRoot,
 				);
 				if (head.code !== 0)
-					throw new LocalExecutionError(
-						"PRECONDITION_FAILED",
-						head.stderr,
-					);
+					throw new LocalExecutionError("PRECONDITION_FAILED", head.stderr);
 				return {
 					kind: "git.commit",
 					capability: "git.commit",

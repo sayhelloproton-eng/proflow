@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	mkdir,
+	mkdtemp,
+	readdir,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -23,7 +30,10 @@ import {
 import { applyPlan } from "../src/apply/index.ts";
 import type { ResolvedModule } from "../src/contracts.ts";
 import { WorkspaceModuleCatalog } from "../src/discovery/catalog.ts";
-import { AutoModuleCatalog, discoverModules } from "../src/discovery/discover.ts";
+import {
+	AutoModuleCatalog,
+	discoverModules,
+} from "../src/discovery/discover.ts";
 import { doctorModules } from "../src/doctor/index.ts";
 import {
 	buildDependencyGraph,
@@ -1129,7 +1139,9 @@ test("secret — generated INSTALL preserves a secretRef identity verbatim (froz
 test("PRESMOKE-B6-BINDER-01 shipped AutoModuleCatalog binds a real local service adapter over the unbound default", async () => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-cli-binder-"));
 	try {
-		await mkdir(join(root, "packages", "svc", "deployment"), { recursive: true });
+		await mkdir(join(root, "packages", "svc", "deployment"), {
+			recursive: true,
+		});
 		await writeFile(
 			join(root, "pnpm-workspace.yaml"),
 			'packages:\n  - "packages/*"\n',
@@ -1191,13 +1203,17 @@ export const behaviorAdapter = createBehaviorAdapter();
 				return running ? ("RUNNING" as const) : ("STOPPED" as const);
 			},
 			inspect() {
-				return { readiness: running ? ("READY" as const) : ("NOT_READY" as const) };
+				return {
+					readiness: running ? ("READY" as const) : ("NOT_READY" as const),
+				};
 			},
 			async start() {
 				server = createServer((_req, res) => {
 					res.end("ok");
 				});
-				await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
+				await new Promise<void>((resolve) =>
+					server?.listen(0, "127.0.0.1", resolve),
+				);
 				running = true;
 				return { host: "127.0.0.1", port: 0 };
 			},
@@ -1210,12 +1226,23 @@ export const behaviorAdapter = createBehaviorAdapter();
 
 		// Production binder: dynamically import the shipped adapter factory and
 		// bind the real service, keyed by packageName.
-		const adapterUrl = join(root, "packages", "svc", "deployment", "adapter.ts");
+		const adapterUrl = join(
+			root,
+			"packages",
+			"svc",
+			"deployment",
+			"adapter.ts",
+		);
 		const adapterNs = (await import(adapterUrl)) as {
 			createBehaviorAdapter: (input?: { service: typeof service }) => unknown;
 		};
-		const bound = { behaviorAdapter: adapterNs.createBehaviorAdapter({ service }) };
-		const catalog = new AutoModuleCatalog(root, new Map([["@tomflow/proflow-svc", bound]]));
+		const bound = {
+			behaviorAdapter: adapterNs.createBehaviorAdapter({ service }),
+		};
+		const catalog = new AutoModuleCatalog(
+			root,
+			new Map([["@tomflow/proflow-svc", bound]]),
+		);
 
 		const modules = await discoverModules({ catalog });
 		assert.equal(modules.length, 1);
@@ -1228,7 +1255,11 @@ export const behaviorAdapter = createBehaviorAdapter();
 		assert.equal(startRun?.result?.status, "SUCCEEDED");
 		const [afterStart] = await statusModules(catalog, modules);
 		assert.equal(afterStart?.result?.checks?.[0]?.status, "PASS");
-		const [verify] = await verifyModules(catalog, modules, workspacePaths(root));
+		const [verify] = await verifyModules(
+			catalog,
+			modules,
+			workspacePaths(root),
+		);
 		assert.equal(verify?.result?.status, "SUCCEEDED");
 		await service.stop();
 	} finally {

@@ -246,9 +246,9 @@ async function listen(handler: LocalHandler) {
 	};
 }
 
-const publicDns = async (): Promise<Array<{ address: string; family: number }>> => [
-	{ address: "8.8.8.8", family: 4 },
-];
+const publicDns = async (): Promise<
+	Array<{ address: string; family: number }>
+> => [{ address: "8.8.8.8", family: 4 }];
 
 function localFetch(baseUrl: string): typeof fetch {
 	return async (input, init) => {
@@ -268,9 +268,7 @@ test("PRESMOKE-B6-FILE-01 remote materialization streams, hashes, detects MIME a
 			artifactRoot,
 			fetchImpl: localFetch(baseUrl),
 			resolveDns: publicDns,
-			files: [
-				input({ sourceUrl: "https://files.example/ok.txt" }),
-			],
+			files: [input({ sourceUrl: "https://files.example/ok.txt" })],
 		});
 		assert.ok(result);
 		assert.equal(result.detectedMimeType, "text/plain");
@@ -284,7 +282,9 @@ test("PRESMOKE-B6-FILE-01 remote materialization streams, hashes, detects MIME a
 });
 
 test("PRESMOKE-B6-FILE-02 large text is not retained in memory (inline budget)", async () => {
-	const artifactRoot = await mkdtemp(join(tmpdir(), "proflow-file-bridge-large-"));
+	const artifactRoot = await mkdtemp(
+		join(tmpdir(), "proflow-file-bridge-large-"),
+	);
 	const large = "x".repeat(300_000);
 	const { baseUrl, close } = await listen((request, response) => {
 		response.setHeader("content-type", "text/plain");
@@ -306,7 +306,9 @@ test("PRESMOKE-B6-FILE-02 large text is not retained in memory (inline budget)",
 });
 
 test("PRESMOKE-B6-FILE-03 redirect hop follows, unsafe hop rejects, hop limit fails", async () => {
-	const artifactRoot = await mkdtemp(join(tmpdir(), "proflow-file-bridge-redir-"));
+	const artifactRoot = await mkdtemp(
+		join(tmpdir(), "proflow-file-bridge-redir-"),
+	);
 	const redirecting = await listen((request, response) => {
 		if (request.url === "/hop") {
 			response.statusCode = 302;
@@ -368,7 +370,9 @@ test("PRESMOKE-B6-FILE-03 redirect hop follows, unsafe hop rejects, hop limit fa
 });
 
 test("PRESMOKE-B6-FILE-04 fetch timeout and HTTP failure classify distinctly", async () => {
-	const artifactRoot = await mkdtemp(join(tmpdir(), "proflow-file-bridge-fail-"));
+	const artifactRoot = await mkdtemp(
+		join(tmpdir(), "proflow-file-bridge-fail-"),
+	);
 	const hanging = await listen(() => {
 		/* never respond */
 	});
@@ -403,7 +407,9 @@ test("PRESMOKE-B6-FILE-04 fetch timeout and HTTP failure classify distinctly", a
 });
 
 test("PRESMOKE-B6-FILE-05 declared size overflow and MIME mismatch fail closed", async () => {
-	const artifactRoot = await mkdtemp(join(tmpdir(), "proflow-file-bridge-meta-"));
+	const artifactRoot = await mkdtemp(
+		join(tmpdir(), "proflow-file-bridge-meta-"),
+	);
 	const oversized = await listen((_request, response) => {
 		response.setHeader("content-type", "text/plain");
 		response.setHeader("content-length", String(10_000_001));

@@ -28,17 +28,33 @@ test("PRESMOKE-B3-BRIDGE-TOPOLOGY-01 Browser adapter composes Reality Bridge + B
 
 test("PRESMOKE-B3-BRIDGE-TOPOLOGY-02 Browser adapter credentials are loaded only from owner-private secret files", async (t) => {
 	if (process.platform === "win32") return t.skip("POSIX mode proof");
-	const root = await mkdtemp(join(tmpdir(), "proflow-browser-composition-security-"));
+	const root = await mkdtemp(
+		join(tmpdir(), "proflow-browser-composition-security-"),
+	);
 	const platformToken = join(root, "platform-host.token");
 	const bridgeToken = join(root, "bridge.token");
 	const configPath = join(root, "browser.json");
-	await writeFile(platformToken, "platform-host-token-abcdefghijklmnopqrstuvwxyz012345\n", { mode: 0o600 });
-	await writeFile(bridgeToken, "browser-bridge-token-abcdefghijklmnopqrstuvwxyz012345\n", { mode: 0o600 });
+	await writeFile(
+		platformToken,
+		"platform-host-token-abcdefghijklmnopqrstuvwxyz012345\n",
+		{ mode: 0o600 },
+	);
+	await writeFile(
+		bridgeToken,
+		"browser-bridge-token-abcdefghijklmnopqrstuvwxyz012345\n",
+		{ mode: 0o600 },
+	);
 	await writeFile(
 		configPath,
 		JSON.stringify({
-			platformHost: { endpoint: "http://127.0.0.1:8787", tokenFile: "platform-host.token" },
-			bridge: { extensionId: "abcdefghijklmnopabcdefghijklmnop", tokenFile: "bridge.token" },
+			platformHost: {
+				endpoint: "http://127.0.0.1:8787",
+				tokenFile: "platform-host.token",
+			},
+			bridge: {
+				extensionId: "abcdefghijklmnopabcdefghijklmnop",
+				tokenFile: "bridge.token",
+			},
 		}),
 	);
 

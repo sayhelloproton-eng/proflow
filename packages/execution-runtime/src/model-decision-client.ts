@@ -64,11 +64,7 @@ function sanitizeArgumentArray(
 			redactNext = false;
 			return "[REDACTED]";
 		}
-		if (
-			item === null ||
-			typeof item === "number" ||
-			typeof item === "boolean"
-		)
+		if (item === null || typeof item === "number" || typeof item === "boolean")
 			return item;
 		if (typeof item !== "string") return "[OBJECT]";
 		const sanitized = sanitizeArgumentString(item);

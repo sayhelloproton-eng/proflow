@@ -503,18 +503,12 @@ function openApiOperationIds(text: string) {
 
 test("CP-HOST-10 all shipped Role OpenAPI operation inventories exactly match platform-host ACL", async () => {
 	for (const [agentPackageRef, relativeOpenApi] of [
-		[
-			packages.product,
-			"../../agent-product/actions/custom-gpt.openapi.yaml",
-		],
+		[packages.product, "../../agent-product/actions/custom-gpt.openapi.yaml"],
 		[
 			packages.dev,
 			"../../agent-controller-dev/actions/custom-gpt.openapi.yaml",
 		],
-		[
-			packages.test,
-			"../../agent-test-ops/actions/custom-gpt.openapi.yaml",
-		],
+		[packages.test, "../../agent-test-ops/actions/custom-gpt.openapi.yaml"],
 	] as const) {
 		const openApi = await readFile(
 			new URL(relativeOpenApi, import.meta.url),

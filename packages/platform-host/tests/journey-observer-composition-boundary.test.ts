@@ -100,7 +100,10 @@ test("PRESMOKE-B3-SYSOBS-OWNER-01 all eight owner views are bounded projections 
 	])
 		assert.match(text, new RegExp(`view === ${view}`));
 	assert.match(text, /listExecutionObserverSignals/);
-	assert.match(text, /unknown drilldown topic is not defaulted to execution or another owner/);
+	assert.match(
+		text,
+		/unknown drilldown topic is not defaulted to execution or another owner/,
+	);
 	assert.doesNotMatch(
 		text,
 		/view === "carrier"[\s\S]{0,160}model\.readiness\(\)/,

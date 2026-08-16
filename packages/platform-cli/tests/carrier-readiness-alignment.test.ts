@@ -10,7 +10,9 @@ async function sources(): Promise<string> {
 		"../src/planner/plan.ts",
 	];
 	return (
-		await Promise.all(urls.map((url) => readFile(new URL(url, import.meta.url), "utf8")))
+		await Promise.all(
+			urls.map((url) => readFile(new URL(url, import.meta.url), "utf8")),
+		)
 	).join("\n");
 }
 
@@ -31,6 +33,15 @@ test("CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) an
 
 test("CP-DPL-CLI-22 platform CLI never invents Task worker/conversation/browser identity", async () => {
 	const text = await sources();
-	for (const forbidden of ["workerRef", "conversationLocator", "tabId", "frameId"])
-		assert.equal(text.includes(forbidden), false, `${forbidden} must not be deployment truth`);
+	for (const forbidden of [
+		"workerRef",
+		"conversationLocator",
+		"tabId",
+		"frameId",
+	])
+		assert.equal(
+			text.includes(forbidden),
+			false,
+			`${forbidden} must not be deployment truth`,
+		);
 });

@@ -359,7 +359,9 @@ test("PRESMOKE-B6-APPROVAL-01 automatic approval binds the concrete effect preco
 		expectedVersion: draft2.version,
 		decision: "ALLOW",
 	});
-	const completed = await runtime2.executeCapability(write2(pending2.approvalRef));
+	const completed = await runtime2.executeCapability(
+		write2(pending2.approvalRef),
+	);
 	assert.equal(completed.status, "SUCCEEDED");
 	assert.equal(
 		runtime2.getExecutionApproval(pending2.approvalRef).status,

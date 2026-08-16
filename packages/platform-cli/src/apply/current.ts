@@ -1,8 +1,11 @@
-import { parseModuleDescriptor, type ModuleDescriptor } from "@tomflow/proflow-module-contract";
+import {
+	type ModuleDescriptor,
+	parseModuleDescriptor,
+} from "@tomflow/proflow-module-contract";
 
 import type { DeploymentPlan, ResolvedModule } from "../contracts.ts";
-import { doctorModules } from "../doctor/index.ts";
 import { discoverModules } from "../discovery/index.ts";
+import { doctorModules } from "../doctor/index.ts";
 import type { ModuleCatalog, ModuleSource } from "../modules.ts";
 import type { PlanInput } from "../planner/plan.ts";
 import { diagnoseRepair } from "../planner/repair.ts";

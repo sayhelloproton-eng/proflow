@@ -28,7 +28,10 @@ test("EXT-CHATGPT-01 v1 carrier readiness is capability/behavior based, never ex
 test("EXT-CHATGPT-02 Knowledge specialization is deferred and is not a v1 readiness prerequisite", () => {
 	assert.match(readme, /future Knowledge specialization/i);
 	const checks = descriptor.verification.checks.map((check) => check.id);
-	assert.equal(checks.some((id) => /knowledge/i.test(id)), false);
+	assert.equal(
+		checks.some((id) => /knowledge/i.test(id)),
+		false,
+	);
 });
 
 test("EXT-CHATGPT-03 real Action auth/OpenAPI/File Bridge/native capabilities are independently verifiable", async () => {
@@ -40,16 +43,22 @@ test("EXT-CHATGPT-03 real Action auth/OpenAPI/File Bridge/native capabilities ar
 		"carrier-file-bridge",
 		"carrier-code-interpreter",
 		"carrier-web-search",
-	]) assert.equal(ids.has(id), true, id);
+	])
+		assert.equal(ids.has(id), true, id);
 
-	const adapter = createBehaviorAdapter({ observeVerification: async () => verified() });
+	const adapter = createBehaviorAdapter({
+		observeVerification: async () => verified(),
+	});
 	assert.equal((await adapter.verify()).result.status, "SUCCEEDED");
 });
 
 test("EXT-CHATGPT-04 stable Conversation c-id is not claimed from GPT Actions or persisted by Deployment adapter", () => {
 	assert.match(readme, /c-id is not supplied by Actions/i);
 	assert.match(readme, /observed later by the Chrome\/Browser Carrier/i);
-	assert.doesNotMatch(JSON.stringify(descriptor), /workerRef|conversationLocator|tabId|frameId/);
+	assert.doesNotMatch(
+		JSON.stringify(descriptor),
+		/workerRef|conversationLocator|tabId|frameId/,
+	);
 });
 
 test("EXT-CHATGPT-05 unmet Web-only setup remains ACTION_REQUIRED and never becomes fake READY", async () => {

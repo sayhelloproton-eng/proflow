@@ -849,7 +849,9 @@ test("B2-AGT-06 rotateCredential publishes only durable current authority", asyn
 
 test("PRESMOKE-B6-AGT-01 register/delete cross-file failure converges or surfaces half-state in-process", async (context) => {
 	if (process.platform === "win32") return context.skip("POSIX mode proof");
-	const proflowRoot = await mkdtemp(join(tmpdir(), "proflow-agent-half-state-"));
+	const proflowRoot = await mkdtemp(
+		join(tmpdir(), "proflow-agent-half-state-"),
+	);
 	context.after(() => rm(proflowRoot, { recursive: true, force: true }));
 	const runtime = await createAgentRuntime({
 		proflowRoot,

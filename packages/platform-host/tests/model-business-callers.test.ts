@@ -20,9 +20,7 @@ async function modelDependency(expectedCredential?: string) {
 				request.headers.authorization !== `Bearer ${expectedCredential}`
 			) {
 				response.statusCode = 401;
-				response.end(
-					JSON.stringify({ error: "MODEL_TRANSPORT_AUTH_FAILED" }),
-				);
+				response.end(JSON.stringify({ error: "MODEL_TRANSPORT_AUTH_FAILED" }));
 				return;
 			}
 			response.end(JSON.stringify({ status: "READY" }));
@@ -206,7 +204,6 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 	}
 });
 
-
 test("PRESMOKE-B6-HOST-MODEL-READY-01 Model /ready requires the configured Bearer and Host aggregate readiness reflects it", async () => {
 	const modelCredential = "model-runtime-transport-credential-value";
 	const model = await modelDependency(modelCredential);
@@ -273,7 +270,9 @@ test("PRESMOKE-B6-HOST-MODEL-READY-01 Model /ready requires the configured Beare
 		"correct Bearer must be observed on Model /ready",
 	);
 	assert.ok(
-		model.readyAuthorizations.includes(`Bearer wrong-model-runtime-transport-credential`),
+		model.readyAuthorizations.includes(
+			`Bearer wrong-model-runtime-transport-credential`,
+		),
 		"wrong Bearer must be observed (and rejected) on Model /ready",
 	);
 	assert.ok(
@@ -289,7 +288,11 @@ test("RF-MODEL-RT-14 platform-host rejects group/world-readable Model transport 
 	const root = await mkdtemp(join(tmpdir(), "proflow-host-model-permissions-"));
 	const dependency = await modelDependency();
 	const credentialFile = join(root, "model-runtime.token");
-	await writeFile(credentialFile, "model-runtime-transport-credential-value\n", { mode: 0o600 });
+	await writeFile(
+		credentialFile,
+		"model-runtime-transport-credential-value\n",
+		{ mode: 0o600 },
+	);
 	await chmod(credentialFile, 0o644);
 	const host = createPlatformHost({
 		config: parsePlatformHostConfig({
@@ -304,7 +307,10 @@ test("RF-MODEL-RT-14 platform-host rejects group/world-readable Model transport 
 		}),
 	});
 	try {
-		await assert.rejects(() => host.start(), /MODEL_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID/);
+		await assert.rejects(
+			() => host.start(),
+			/MODEL_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID/,
+		);
 	} finally {
 		await host.stop();
 		await dependency.close();

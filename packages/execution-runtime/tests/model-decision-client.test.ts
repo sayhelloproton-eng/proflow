@@ -123,13 +123,10 @@ test("PRESMOKE-B5-EXE-MODEL-01 production client uses auto/business, bounded fac
 		assert.equal(body.priority, "business");
 		assert.equal(body.trace.executionRef, "execution:server-generated");
 		assert.equal(body.payload.inputFingerprint, "sha256:abc");
-		assert.deepEqual(
-			fake.authorizations,
-			[
-				`Bearer ${transportCredential}`,
-				`Bearer ${transportCredential}`,
-			],
-		);
+		assert.deepEqual(fake.authorizations, [
+			`Bearer ${transportCredential}`,
+			`Bearer ${transportCredential}`,
+		]);
 		assert.doesNotMatch(JSON.stringify(body), /SECRET-CONTENT|SECRET-TOKEN/);
 	} finally {
 		await fake.close();

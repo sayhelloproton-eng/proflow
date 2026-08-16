@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { descriptor as executionRuntimeDescriptor } from "../deployment/descriptor.ts";
 import { promisify } from "node:util";
+import { descriptor as executionRuntimeDescriptor } from "../deployment/descriptor.ts";
 
 import {
 	createExecutionRuntimeProcess,
@@ -202,7 +202,9 @@ test("PRESMOKE-B4-RUNTIME-02 formal readiness can require the Model Decision por
 
 test("CP-EXE-RT-20 shipped execution-runtime descriptor and binary require the formal Browser/security/model composition", async () => {
 	const requiredSlots = new Map(
-		executionRuntimeDescriptor.configSlots.map((slot) => [slot.key, slot] as const),
+		executionRuntimeDescriptor.configSlots.map(
+			(slot) => [slot.key, slot] as const,
+		),
 	);
 	const requiredKeys = [
 		"databasePath",

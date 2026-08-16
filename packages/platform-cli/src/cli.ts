@@ -393,9 +393,16 @@ async function handleManifest(
 		config,
 	});
 	await generateInstallDoc({ modules: selected, config, paths: ctx.paths });
-	return manifest.status === "READY"
-		? outcome("manifest", "SUCCEEDED", manifest)
-		: outcome("manifest", "ACTION_REQUIRED", manifest);
+	switch (manifest.status) {
+		case "READY":
+			return outcome("manifest", "SUCCEEDED", manifest);
+		case "ACTION_REQUIRED":
+			return outcome("manifest", "ACTION_REQUIRED", manifest);
+		case "DEGRADED":
+			return outcome("manifest", "BLOCKED", manifest);
+		case "NOT_READY":
+			return outcome("manifest", "FAILED", manifest);
+	}
 }
 
 async function dispatchCommand(argv: readonly string[]): Promise<CliOutcome> {

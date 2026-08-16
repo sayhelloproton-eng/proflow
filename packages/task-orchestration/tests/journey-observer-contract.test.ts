@@ -93,14 +93,26 @@ test("CP-TASK-ORCH-10 v1 has no authorizeTask or persisted Task approval/authori
 	assert.equal(publicOperationNames.includes("authorizeTask" as never), false);
 	const services = surface();
 	assert.equal("authorizeTask" in services.commands, false);
-	const modelSource = await readFile(new URL("../src/model.ts", import.meta.url), "utf8");
-	const serviceSource = await readFile(new URL("../src/services.ts", import.meta.url), "utf8");
-	assert.doesNotMatch(modelSource, /authorizedByRef|authorizedAt|APPROVAL_PENDING/);
+	const modelSource = await readFile(
+		new URL("../src/model.ts", import.meta.url),
+		"utf8",
+	);
+	const serviceSource = await readFile(
+		new URL("../src/services.ts", import.meta.url),
+		"utf8",
+	);
+	assert.doesNotMatch(
+		modelSource,
+		/authorizedByRef|authorizedAt|APPROVAL_PENDING/,
+	);
 	assert.doesNotMatch(serviceSource, /TASK_AUTHORIZED|authorizeTask/);
 });
 
 test("CP-TASK-ORCH-11 Task Observer receives a bounded read-only drive projection and cannot mutate Task through it", () => {
-	assert.equal(publicOperationNames.includes("getTaskDriveProjection" as never), true);
+	assert.equal(
+		publicOperationNames.includes("getTaskDriveProjection" as never),
+		true,
+	);
 	const services = surface();
 	assert.equal("getTaskDriveProjection" in services.queries, true);
 	assert.equal("getTaskDriveProjection" in services.commands, false);
@@ -108,7 +120,10 @@ test("CP-TASK-ORCH-11 Task Observer receives a bounded read-only drive projectio
 });
 
 test("CP-TASK-ORCH-12 async Execution/Collaboration/Carrier pending is not a hidden Task WAIT command", async () => {
-	const contractSource = await readFile(new URL("../src/contracts.ts", import.meta.url), "utf8");
+	const contractSource = await readFile(
+		new URL("../src/contracts.ts", import.meta.url),
+		"utf8",
+	);
 	for (const forbidden of [
 		"executionResultPending",
 		"peerReplyPending",
@@ -123,11 +138,23 @@ test("CP-TASK-ORCH-12 async Execution/Collaboration/Carrier pending is not a hid
 });
 
 test("CP-TASK-ORCH-13 reopen/terminal contracts preserve stable Task binding semantics and stop-driving is a projection concern", async () => {
-	const contractSource = await readFile(new URL("../src/contracts.ts", import.meta.url), "utf8");
-	const modelSource = await readFile(new URL("../src/model.ts", import.meta.url), "utf8");
+	const contractSource = await readFile(
+		new URL("../src/contracts.ts", import.meta.url),
+		"utf8",
+	);
+	const modelSource = await readFile(
+		new URL("../src/model.ts", import.meta.url),
+		"utf8",
+	);
 	assert.match(`${contractSource}\n${modelSource}`, /agentPackageRef/);
 	assert.match(`${contractSource}\n${modelSource}`, /conversationLocator/);
-	assert.doesNotMatch(`${contractSource}\n${modelSource}`, /frameId|persistentTabId|taskDriverState/);
+	assert.doesNotMatch(
+		`${contractSource}\n${modelSource}`,
+		/frameId|persistentTabId|taskDriverState/,
+	);
 	assert.equal(publicOperationNames.includes("reopenNode"), true);
-	assert.equal(publicOperationNames.includes("getTaskDriveProjection" as never), true);
+	assert.equal(
+		publicOperationNames.includes("getTaskDriveProjection" as never),
+		true,
+	);
 });

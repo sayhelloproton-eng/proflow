@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-	MODEL_CONTRACT_DESCRIPTOR,
 	inferenceRequestSchema,
+	MODEL_CONTRACT_DESCRIPTOR,
 } from "../src/index.ts";
 
 test("CP-MODEL-CON-05 Task Diagnostic/System Assessment reuse infer(specRef); no extra business inference API", () => {
-	const descriptor = MODEL_CONTRACT_DESCRIPTOR as unknown as Record<string, unknown>;
+	const descriptor = MODEL_CONTRACT_DESCRIPTOR as unknown as Record<
+		string,
+		unknown
+	>;
 	const serialized = JSON.stringify(descriptor);
 	assert.doesNotMatch(serialized, /assessSystem|judgeTask/);
 	assert.match(serialized, /specRef/);
@@ -38,5 +41,6 @@ test("CP-MODEL-CON-07 Observer output contract carries judgment only, never Task
 		"approveExecution",
 		"executeCapability",
 		"applyPatch",
-	]) assert.equal(serialized.includes(forbidden), false, forbidden);
+	])
+		assert.equal(serialized.includes(forbidden), false, forbidden);
 });

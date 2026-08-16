@@ -83,7 +83,9 @@ export async function createModelRuntimeProcess(input: {
 				const path = resolve(transportCredentialFile);
 				const info = await stat(path);
 				if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
-					throw new TypeError("model-runtime transport credential permissions must be owner-only");
+					throw new TypeError(
+						"model-runtime transport credential permissions must be owner-only",
+					);
 				return (await readFile(path, "utf8")).trim();
 			})()
 		: undefined;

@@ -7,7 +7,10 @@ const packageRoot = new URL("../", import.meta.url);
 async function collectTypeScript(rootUrl: URL): Promise<string[]> {
 	const parts: string[] = [];
 	for (const entry of await readdir(rootUrl, { withFileTypes: true })) {
-		const child = new URL(`${entry.name}${entry.isDirectory() ? "/" : ""}`, rootUrl);
+		const child = new URL(
+			`${entry.name}${entry.isDirectory() ? "/" : ""}`,
+			rootUrl,
+		);
 		if (entry.isDirectory()) parts.push(...(await collectTypeScript(child)));
 		else if (entry.isFile() && entry.name.endsWith(".ts"))
 			parts.push(await readFile(child, "utf8"));
@@ -28,16 +31,25 @@ test("CP-EXE-BR-01 stable Carrier identity is package/role/worker/conversation b
 	assert.match(text, /roleRef/);
 	assert.match(text, /workerRef/);
 	assert.match(text, /conversationLocator|conversationUrl/);
-	assert.doesNotMatch(text, /frameRegistry|frameRoleHandshake|persistentTab(?:Id|Ref)|iframeWorkspace/i);
+	assert.doesNotMatch(
+		text,
+		/frameRegistry|frameRoleHandshake|persistentTab(?:Id|Ref)|iframeWorkspace/i,
+	);
 });
 
 test("CP-EXE-BR-02 New Task provisioning starts from PENDING, keeps successful bindings, and has no authorization-gated all-or-nothing rebuild", async () => {
 	const text = await sourceCorpus();
-	assert.doesNotMatch(text, /TASK_NOT_AUTHORIZED_FOR_PROVISIONING|authorizeTask|authorizedByRef/);
+	assert.doesNotMatch(
+		text,
+		/TASK_NOT_AUTHORIZED_FOR_PROVISIONING|authorizeTask|authorizedByRef/,
+	);
 	assert.match(text, /PENDING/);
 	assert.match(text, /agentPackageRef/);
 	assert.match(text, /conversationLocator/);
-	assert.doesNotMatch(text, /recreateAll|resetAllWorkers|deleteAllConversations/i);
+	assert.doesNotMatch(
+		text,
+		/recreateAll|resetAllWorkers|deleteAllConversations/i,
+	);
 });
 
 test("CP-EXE-BR-03 WAKE targets the existing Conversation with a minimal trigger and claims only physical delivery", async () => {
@@ -45,15 +57,24 @@ test("CP-EXE-BR-03 WAKE targets the existing Conversation with a minimal trigger
 	for (const required of ["taskId", "workerRef", "runNo", "trigger"]) {
 		assert.match(text, new RegExp(`\\b${required}\\b`));
 	}
-	assert.doesNotMatch(text, /Requirement.*trigger|PRD|fullLog|sourceCode.*trigger/i);
-	assert.doesNotMatch(text, /wake.*(?:completeNode|SUCCEEDED.*Task|Task.*SUCCEEDED)/i);
+	assert.doesNotMatch(
+		text,
+		/Requirement.*trigger|PRD|fullLog|sourceCode.*trigger/i,
+	);
+	assert.doesNotMatch(
+		text,
+		/wake.*(?:completeNode|SUCCEEDED.*Task|Task.*SUCCEEDED)/i,
+	);
 });
 
 test("CP-EXE-BR-04 Task Observer requests WAKE before the Worker formally startNode; Browser does not mutate Node state", async () => {
 	const text = await sourceCorpus();
 	assert.match(text, /getTaskDriveProjection/);
 	assert.doesNotMatch(text, /\.startNode\s*\(/);
-	assert.doesNotMatch(text, /\.completeNode\s*\(|\.waitNode\s*\(|\.reopenNode\s*\(/);
+	assert.doesNotMatch(
+		text,
+		/\.completeNode\s*\(|\.waitNode\s*\(|\.reopenNode\s*\(/,
+	);
 });
 
 test("CP-EXE-BR-05 one Worker Turn has no per-Action Browser continue/wake scheduler or natural-language Task progression", async () => {
@@ -65,21 +86,28 @@ test("CP-EXE-BR-05 one Worker Turn has no per-Action Browser continue/wake sched
 		/continueWorker/i,
 		/parseAssistantReply.*(?:complete|wait|reopen)/i,
 		/naturalLanguage.*Task/i,
-	]) assert.doesNotMatch(text, forbidden);
+	])
+		assert.doesNotMatch(text, forbidden);
 });
 
 test("CP-EXE-BR-06 routine Action permission recovery remains separate from Execution effect approval", async () => {
 	const text = await sourceCorpus();
 	assert.match(text, /permission/i);
 	assert.doesNotMatch(text, /permission.*approvalRef|approvalRef.*permission/i);
-	assert.doesNotMatch(text, /isConsequential.*(?:policyAllow|effectApproved|approvalRef)/is);
+	assert.doesNotMatch(
+		text,
+		/isConsequential.*(?:policyAllow|effectApproved|approvalRef)/is,
+	);
 });
 
 test("CP-EXE-BR-07 DOM-first operation may use screenshot/Vision only as ambiguity recovery, never as business success", async () => {
 	const text = await sourceCorpus();
 	assert.match(text, /screenshot/);
 	assert.match(text, /observe|observation/);
-	assert.doesNotMatch(text, /vision[^\n]{0,160}(?:completeNode|taskStatus|executionStatus\s*=\s*["']SUCCEEDED)/i);
+	assert.doesNotMatch(
+		text,
+		/vision[^\n]{0,160}(?:completeNode|taskStatus|executionStatus\s*=\s*["']SUCCEEDED)/i,
+	);
 	assert.match(text, /visionFallback:\s*"REAL_EXTERNAL_PENDING"/);
 });
 
@@ -89,15 +117,24 @@ test("CP-EXE-BR-08 Collaboration delivery stays a physical Execution concern and
 	assert.match(text, /collaboration\.deliver/);
 	assert.match(text, /executionRef/);
 	assert.match(text, /evidenceRef/);
-	assert.doesNotMatch(text, /UPDATE\s+(?:collaboration_messages|task_messages)|INSERT\s+INTO\s+collaboration/i);
+	assert.doesNotMatch(
+		text,
+		/UPDATE\s+(?:collaboration_messages|task_messages)|INSERT\s+INTO\s+collaboration/i,
+	);
 });
 
 test("CP-EXE-BR-09 uncertain submit/WAKE reconciles DELIVERED/ABSENT/UNKNOWN and contains no blind replay loop", async () => {
 	const text = await sourceCorpus();
 	assert.match(text, /UNKNOWN/);
 	assert.match(text, /reconcil|recover|observe/i);
-	assert.doesNotMatch(text, /while\s*\([^)]*UNKNOWN[^)]*\)\s*\{[^}]*executeCapability/is);
-	assert.doesNotMatch(text, /UNKNOWN[^\n]{0,120}(?:retryImmediately|blindReplay|reSubmit)/i);
+	assert.doesNotMatch(
+		text,
+		/while\s*\([^)]*UNKNOWN[^)]*\)\s*\{[^}]*executeCapability/is,
+	);
+	assert.doesNotMatch(
+		text,
+		/UNKNOWN[^\n]{0,120}(?:retryImmediately|blindReplay|reSubmit)/i,
+	);
 });
 
 test("CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON is diagnostic-only, and terminal stops driving", async () => {
@@ -105,7 +142,10 @@ test("CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON 
 	assert.match(text, /Task Observer|taskObserver/i);
 	assert.match(text, /terminal/i);
 	assert.doesNotMatch(text, /NODE_READY[^\n]{0,200}(?:infer|reason)/i);
-	assert.doesNotMatch(text, /taskObserver[^\n]{0,240}(?:completeNode|reopenNode|approve|authorize)/i);
+	assert.doesNotMatch(
+		text,
+		/taskObserver[^\n]{0,240}(?:completeNode|reopenNode|approve|authorize)/i,
+	);
 });
 
 test("CP-EXE-BR-11 System Observer covers eight bounded concern families, defers as lowest priority, and never owns mutation", async () => {
@@ -119,15 +159,22 @@ test("CP-EXE-BR-11 System Observer covers eight bounded concern families, defers
 		/model/i,
 		/deployment|service/i,
 		/artifact|evidence|log/i,
-	]) assert.match(text, concern);
+	])
+		assert.match(text, concern);
 	assert.match(text, /background|lowest.?priority|defer/i);
 	assert.match(text, /carry.?forward|drill.?down|global.?synthesis/i);
-	assert.doesNotMatch(text, /systemObserver[^\n]{0,240}(?:completeNode|reopenNode|approve|executeCapability|bindTaskWorker)/i);
+	assert.doesNotMatch(
+		text,
+		/systemObserver[^\n]{0,240}(?:completeNode|reopenNode|approve|executeCapability|bindTaskWorker)/i,
+	);
 });
 
 test("CP-EXE-BR-12 ordinary file transport is not Browser DOM work; screenshot/image remains a separate Vision fallback", async () => {
 	const text = await sourceCorpus();
-	assert.doesNotMatch(text, /openaiFileIdRefs[^\n]{0,240}(?:composer|input|contentScript|sendMessage)/i);
+	assert.doesNotMatch(
+		text,
+		/openaiFileIdRefs[^\n]{0,240}(?:composer|input|contentScript|sendMessage)/i,
+	);
 	assert.doesNotMatch(text, /FileManager|BrowserFileStore|ArtifactStore/);
 	assert.match(text, /screenshot/);
 });

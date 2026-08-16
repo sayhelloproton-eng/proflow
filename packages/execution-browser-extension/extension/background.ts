@@ -279,11 +279,17 @@ function structuredAxes(input: Record<string, unknown>) {
 		const value = input[key];
 		if (typeof value === "string" && value.length > 0) result[key] = value;
 	}
-	if (typeof input.conversationLocator === "string" && input.conversationLocator.length > 0)
-		result.conversationLocator = sanitizeConversationLocator(input.conversationLocator);
+	if (
+		typeof input.conversationLocator === "string" &&
+		input.conversationLocator.length > 0
+	)
+		result.conversationLocator = sanitizeConversationLocator(
+			input.conversationLocator,
+		);
 	for (const key of ["runNo", "attemptNo", "tabId"] as const) {
 		const value = input[key];
-		if (Number.isInteger(value) && Number(value) >= 0) result[key] = Number(value);
+		if (Number.isInteger(value) && Number(value) >= 0)
+			result[key] = Number(value);
 	}
 	return result;
 }
@@ -341,7 +347,10 @@ async function invokeObserverApplication(
 			component,
 			operation,
 			status: "FAILED",
-			errorCode: normalizeLogErrorCode(error, "OBSERVER_APPLICATION_REQUEST_FAILED"),
+			errorCode: normalizeLogErrorCode(
+				error,
+				"OBSERVER_APPLICATION_REQUEST_FAILED",
+			),
 			...structuredAxes(input),
 		});
 		throw error;
@@ -828,16 +837,21 @@ async function runBridgeLoop() {
 					operationRef: command.commandId,
 					status: result.ok === true ? "SUCCEEDED" : "FAILED",
 					...(typeof result.error === "string"
-						? { errorCode: normalizeLogErrorCode(result.error, "EXTENSION_COMMAND_FAILED") }
+						? {
+								errorCode: normalizeLogErrorCode(
+									result.error,
+									"EXTENSION_COMMAND_FAILED",
+								),
+							}
 						: {}),
 					...(command.tabId === undefined ? {} : { tabId: command.tabId }),
 					...(isRecord(command.request)
 						? {
-							...(typeof command.request.capability === "string"
-								? { capability: command.request.capability }
-								: {}),
-							...structuredAxes(command.request),
-						}
+								...(typeof command.request.capability === "string"
+									? { capability: command.request.capability }
+									: {}),
+								...structuredAxes(command.request),
+							}
 						: {}),
 				});
 				const reported = await bridgeFetch(

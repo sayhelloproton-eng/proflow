@@ -1048,7 +1048,8 @@ export function createExecutionBrowserExtension(
 		execute,
 		observePrecondition: async (
 			request: ExecuteCapabilityRequest,
-		): Promise<ExecutorPrecondition | undefined> => browserPrecondition(request),
+		): Promise<ExecutorPrecondition | undefined> =>
+			browserPrecondition(request),
 		reconcile,
 		async readArtifact() {
 			throw new ExecutionBrowserError(

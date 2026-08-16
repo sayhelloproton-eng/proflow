@@ -682,7 +682,10 @@ test("PRESMOKE-B6-GW-01 declared fileArtifacts serialize through the real Action
 		);
 		assert.ok(relay);
 		assert.equal(relay.kind, "url");
-		assert.match(relay.download_link ?? "", /^https:\/\/gateway\.example\/relay\//);
+		assert.match(
+			relay.download_link ?? "",
+			/^https:\/\/gateway\.example\/relay\//,
+		);
 
 		const plain = await fetch(`${baseUrl}/actions/getTask`, {
 			method: "POST",
@@ -690,7 +693,10 @@ test("PRESMOKE-B6-GW-01 declared fileArtifacts serialize through the real Action
 				"content-type": "application/json",
 				authorization: `Bearer ${fixtureCredential}`,
 			},
-			body: JSON.stringify({ operationId: "getTask", body: { taskId: "task:1" } }),
+			body: JSON.stringify({
+				operationId: "getTask",
+				body: { taskId: "task:1" },
+			}),
 		});
 		assert.equal(plain.status, 200);
 		assert.deepEqual(await plain.json(), { plain: true });

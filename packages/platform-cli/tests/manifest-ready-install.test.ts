@@ -17,8 +17,8 @@ import type { LifecycleRunResult } from "../src/lifecycle/index.ts";
 import { buildManifest } from "../src/manifest/index.ts";
 import type { ModuleCatalog, ModuleSource } from "../src/modules.ts";
 import { type WorkspacePaths, workspacePaths } from "../src/paths.ts";
-import { appendVerification } from "../src/persistence/index.ts";
 import { materializeConfig } from "../src/persistence/config.ts";
+import { appendVerification } from "../src/persistence/index.ts";
 import { assessPlatformReady } from "../src/ready/index.ts";
 import { SECRET_REDACTED } from "../src/security/index.ts";
 
@@ -691,7 +691,11 @@ test("PRESMOKE-B6-MANIFEST-01 config readiness requires materialized config, not
 			values: { token: "secret://model-provider/default" },
 			secretRefs: ["token"],
 		});
-		const materialized = await buildManifest({ catalog, modules: [svc], paths });
+		const materialized = await buildManifest({
+			catalog,
+			modules: [svc],
+			paths,
+		});
 		assert.equal(materialized.status, "READY");
 		assert.deepEqual(materialized.config[0]?.missing, []);
 	} finally {

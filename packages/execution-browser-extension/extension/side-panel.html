@@ -30,7 +30,7 @@
 			<form id="new-task-form">
 				<label>Title <input id="task-title" required /></label>
 				<label>Objective <textarea id="task-objective" required></textarea></label>
-				<label>Requirement <em>clarified by the Product Worker after binding; not seeded here</em></label>
+				<p class="meta">Requirement — clarified by the Product Worker after binding; not seeded here.</p>
 				<label>Ordered plan (JSON array)
 					<textarea id="task-plan" required>[{"nodeId":"dev","title":"Implement","objective":"Implement the requirement","requiredAgentPackageRef":"@tomflow/proflow-agent-controller-dev","inputDocuments":["REQUIREMENT"],"outputDocuments":[]},{"nodeId":"test","title":"Verify","objective":"Verify the implementation","requiredAgentPackageRef":"@tomflow/proflow-agent-test-ops","inputDocuments":["REQUIREMENT"],"outputDocuments":[]}]</textarea>
 				</label>

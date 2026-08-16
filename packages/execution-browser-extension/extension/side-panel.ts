@@ -247,7 +247,9 @@ async function refreshBrowserStatus() {
 		systemAssessmentTarget.textContent = "No assessment yet.";
 	} else {
 		const unresolved = Array.isArray(observer.unresolved)
-			? observer.unresolved.filter((item): item is string => typeof item === "string")
+			? observer.unresolved.filter(
+					(item): item is string => typeof item === "string",
+				)
 			: [];
 		const carry = Array.isArray(observer.carryForward)
 			? observer.carryForward
@@ -273,30 +275,30 @@ async function run(action: () => Promise<void>) {
 	}
 }
 
-	newTaskForm.addEventListener("submit", (event) => {
-		event.preventDefault();
-		void run(async () => {
-			const title = element<HTMLInputElement>("#task-title").value.trim();
-			const objective =
-				element<HTMLTextAreaElement>("#task-objective").value.trim();
-			const nodes = JSON.parse(
-				element<HTMLTextAreaElement>("#task-plan").value,
-			) as unknown;
-			if (!Array.isArray(nodes) || nodes.length === 0)
-				throw new Error("Task plan must be a non-empty JSON array");
-			const value = await taskApplication("task.create", {
-				title,
-				objective,
-				plan: { nodes },
-				initialDocuments: [],
-				idempotencyKey: requestId("extension-new-task"),
-			});
-			const created = record(value);
-			resultTarget.textContent = `Created ${String(created.taskId ?? "Task")}.`;
-			if (typeof created.taskId === "string") await loadTask(created.taskId);
-			await refreshTasks();
+newTaskForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	void run(async () => {
+		const title = element<HTMLInputElement>("#task-title").value.trim();
+		const objective =
+			element<HTMLTextAreaElement>("#task-objective").value.trim();
+		const nodes = JSON.parse(
+			element<HTMLTextAreaElement>("#task-plan").value,
+		) as unknown;
+		if (!Array.isArray(nodes) || nodes.length === 0)
+			throw new Error("Task plan must be a non-empty JSON array");
+		const value = await taskApplication("task.create", {
+			title,
+			objective,
+			plan: { nodes },
+			initialDocuments: [],
+			idempotencyKey: requestId("extension-new-task"),
 		});
+		const created = record(value);
+		resultTarget.textContent = `Created ${String(created.taskId ?? "Task")}.`;
+		if (typeof created.taskId === "string") await loadTask(created.taskId);
+		await refreshTasks();
 	});
+});
 
 element<HTMLButtonElement>("#refresh-tasks").addEventListener(
 	"click",

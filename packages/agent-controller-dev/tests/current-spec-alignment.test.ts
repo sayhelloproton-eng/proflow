@@ -26,7 +26,7 @@ test("SPEC-ALIGN agent-controller-dev remains registered and has an ACTIVE curre
 		documents: Array<{
 			moduleRef?: string | null;
 			path: string;
-			testPlanStatus: string;
+			governanceStatus: string;
 		}>;
 	};
 	const plan = index.documents.find(
@@ -36,7 +36,7 @@ test("SPEC-ALIGN agent-controller-dev remains registered and has an ACTIVE curre
 		plan,
 		"formal package must be covered by the current Test Plan Index",
 	);
-	assert.equal(plan.testPlanStatus, "ACTIVE_BASELINE");
+	assert.equal(plan.governanceStatus, "ACTIVE_BASELINE");
 	assert.equal(
 		plan.path,
 		"智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md",

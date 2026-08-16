@@ -72,7 +72,7 @@
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
-      "line": 18,
+      "line": 33,
       "title": "CP-AGT-DEV-07 J1 bind is IDLE and formal Node work starts only after NODE_READY wake",
       "ids": [
         "CP-AGT-DEV-07"
@@ -85,7 +85,7 @@
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
-      "line": 24,
+      "line": 42,
       "title": "CP-AGT-DEV-08 one Worker Turn uses 0..N routine Actions and has no Browser per-action scheduler protocol",
       "ids": [
         "CP-AGT-DEV-08"
@@ -98,7 +98,7 @@
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
-      "line": 29,
+      "line": 51,
       "title": "CP-AGT-DEV-09 File Bridge + Code Interpreter produce candidate artifacts while Execution proves real apply/test effects",
       "ids": [
         "CP-AGT-DEV-09"
@@ -111,7 +111,7 @@
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
-      "line": 38,
+      "line": 63,
       "title": "CP-AGT-DEV-10 reopen and async result resume reuse the Task-bound Worker/Conversation instead of creating another Worker",
       "ids": [
         "CP-AGT-DEV-10"
@@ -124,7 +124,7 @@
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
-      "line": 44,
+      "line": 75,
       "title": "CP-AGT-DEV-11 public research uses native Web Search while local/private/credentialed engineering requests remain Execution-owned",
       "ids": [
         "CP-AGT-DEV-11"
@@ -164,7 +164,7 @@
     {
       "package": "agent-gateway",
       "path": "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
-      "line": 36,
+      "line": 40,
       "title": "CP-AGT-GW-11 Gateway remains stateless across 0..N Actions in one Worker Turn",
       "ids": [
         "CP-AGT-GW-11"
@@ -177,7 +177,7 @@
     {
       "package": "agent-gateway",
       "path": "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
-      "line": 47,
+      "line": 54,
       "title": "CP-AGT-GW-12 nonconsequential Action metadata never grants Execution approval",
       "ids": [
         "CP-AGT-GW-12"
@@ -190,7 +190,7 @@
     {
       "package": "agent-gateway",
       "path": "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
-      "line": 60,
+      "line": 74,
       "title": "CP-AGT-GW-13 File Bridge is transport over Execution-owned Artifact truth",
       "ids": [
         "CP-AGT-GW-13"
@@ -466,7 +466,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 32,
+      "line": 38,
       "title": "CP-AGT-PROD-01 generic Product package does not own pre-Task creation or require Knowledge specialization in v1",
       "ids": [
         "CP-AGT-PROD-01"
@@ -479,7 +479,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 47,
+      "line": 65,
       "title": "CP-AGT-PROD-02 Product GPT-facing OpenAPI is static and excludes New Task / dynamic Role discovery operations",
       "ids": [
         "CP-AGT-PROD-02"
@@ -492,7 +492,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 64,
+      "line": 91,
       "title": "CP-AGT-PROD-03 + CP-AGT-PROD-04 Extension-first Task ownership is reflected by the Product surface while real c-id binding remains external",
       "ids": [
         "CP-AGT-PROD-03",
@@ -506,7 +506,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 74,
+      "line": 107,
       "title": "CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browser continue protocol",
       "ids": [
         "CP-AGT-PROD-05"
@@ -519,7 +519,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 83,
+      "line": 119,
       "title": "CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked by package-local fixtures",
       "ids": [
         "CP-AGT-PROD-06"
@@ -760,7 +760,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/journey-collaboration-alignment.test.ts",
-      "line": 25,
+      "line": 32,
       "title": "CP-AGT-RUNTIME-08 credential authenticates roleRef while Task owner keeps durable worker binding",
       "ids": [
         "CP-AGT-RUNTIME-08"
@@ -773,7 +773,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/journey-collaboration-alignment.test.ts",
-      "line": 34,
+      "line": 44,
       "title": "CP-AGT-RUNTIME-09 collaboration facts correlate with Task but cannot create workflow state",
       "ids": [
         "CP-AGT-RUNTIME-09"
@@ -786,7 +786,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/journey-collaboration-alignment.test.ts",
-      "line": 43,
+      "line": 56,
       "title": "CP-AGT-RUNTIME-10 Agent Runtime owns no browser/observer scheduler identity or persistence",
       "ids": [
         "CP-AGT-RUNTIME-10"
@@ -900,7 +900,7 @@
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
-      "line": 18,
+      "line": 33,
       "title": "CP-AGT-TEST-07 J1 Test/Ops is bind-only/IDLE and starts the formal Node only after NODE_READY wake",
       "ids": [
         "CP-AGT-TEST-07"
@@ -913,7 +913,7 @@
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
-      "line": 24,
+      "line": 45,
       "title": "CP-AGT-TEST-08 one Worker Turn permits 0..N routine Actions without Browser per-action scheduling",
       "ids": [
         "CP-AGT-TEST-08"
@@ -926,7 +926,7 @@
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
-      "line": 29,
+      "line": 54,
       "title": "CP-AGT-TEST-09 File Bridge/Code Interpreter may analyze artifacts but PASS/FAIL/Evidence remain Owner facts",
       "ids": [
         "CP-AGT-TEST-09"
@@ -939,7 +939,7 @@
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
-      "line": 39,
+      "line": 67,
       "title": "CP-AGT-TEST-10 fail→reopen keeps the same Worker/Conversation and runNo advances through Task ownership",
       "ids": [
         "CP-AGT-TEST-10"
@@ -1070,7 +1070,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/current-spec-alignment.test.ts",
-      "line": 10,
+      "line": 13,
       "title": "SPEC-ALIGN chatgpt-carrier remains an honest Deployment-owned external-resource adapter",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1105,7 +1105,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 34,
+      "line": 37,
       "title": "EXT-CHATGPT-03 real Action auth/OpenAPI/File Bridge/native capabilities are independently verifiable",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1117,7 +1117,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 49,
+      "line": 55,
       "title": "EXT-CHATGPT-04 stable Conversation c-id is not claimed from GPT Actions or persisted by Deployment adapter",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1129,7 +1129,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 55,
+      "line": 64,
       "title": "EXT-CHATGPT-05 unmet Web-only setup remains ACTION_REQUIRED and never becomes fake READY",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1183,7 +1183,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/current-spec-alignment.test.ts",
-      "line": 10,
+      "line": 13,
       "title": "SPEC-ALIGN chrome-runtime remains an honest Deployment-owned external-resource adapter",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1206,7 +1206,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/v1-carrier-boundary.test.ts",
-      "line": 16,
+      "line": 19,
       "title": "EXT-CHROME-02 tab/window identity is transient and frame registry is not a v1 readiness contract",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1218,7 +1218,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/v1-carrier-boundary.test.ts",
-      "line": 22,
+      "line": 28,
       "title": "EXT-CHROME-03 runtime availability alone cannot prove MV3 extension load/authorization",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1230,7 +1230,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/v1-carrier-boundary.test.ts",
-      "line": 34,
+      "line": 40,
       "title": "EXT-CHROME-04 external Chrome runtime has no synthetic process lifecycle",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1410,7 +1410,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/current-spec-alignment.test.ts",
-      "line": 10,
+      "line": 13,
       "title": "SPEC-ALIGN dev-tunnel remains an honest Deployment-owned external-resource adapter",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1614,7 +1614,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/v1-owner-boundary.test.ts",
-      "line": 15,
+      "line": 23,
       "title": "EXT-TUNNEL-02 only the real managed tunnel resource declares start/stop/restart",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1625,7 +1625,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/v1-owner-boundary.test.ts",
-      "line": 21,
+      "line": 35,
       "title": "EXT-TUNNEL-03 tunnel verification remains bounded to ingress/file-relay diagnostics",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1708,7 +1708,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 107,
+      "line": 110,
       "title": "PRESMOKE-B6-OBS-EXT-06 Side Panel snapshot carries a bounded read-only System Observer summary",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1759,7 +1759,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 25,
+      "line": 28,
       "title": "CP-EXE-BR-01 stable Carrier identity is package/role/worker/conversation based and frame/persistent-tab identity is absent",
       "ids": [
         "CP-EXE-BR-01"
@@ -1772,7 +1772,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 34,
+      "line": 40,
       "title": "CP-EXE-BR-02 New Task provisioning starts from PENDING, keeps successful bindings, and has no authorization-gated all-or-nothing rebuild",
       "ids": [
         "CP-EXE-BR-02"
@@ -1785,7 +1785,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 43,
+      "line": 55,
       "title": "CP-EXE-BR-03 WAKE targets the existing Conversation with a minimal trigger and claims only physical delivery",
       "ids": [
         "CP-EXE-BR-03"
@@ -1798,7 +1798,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 52,
+      "line": 70,
       "title": "CP-EXE-BR-04 Task Observer requests WAKE before the Worker formally startNode; Browser does not mutate Node state",
       "ids": [
         "CP-EXE-BR-04"
@@ -1811,7 +1811,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 59,
+      "line": 80,
       "title": "CP-EXE-BR-05 one Worker Turn has no per-Action Browser continue/wake scheduler or natural-language Task progression",
       "ids": [
         "CP-EXE-BR-05"
@@ -1824,7 +1824,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 71,
+      "line": 93,
       "title": "CP-EXE-BR-06 routine Action permission recovery remains separate from Execution effect approval",
       "ids": [
         "CP-EXE-BR-06"
@@ -1837,7 +1837,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 78,
+      "line": 103,
       "title": "CP-EXE-BR-07 DOM-first operation may use screenshot/Vision only as ambiguity recovery, never as business success",
       "ids": [
         "CP-EXE-BR-07"
@@ -1850,7 +1850,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 86,
+      "line": 114,
       "title": "CP-EXE-BR-08 Collaboration delivery stays a physical Execution concern and logical message truth remains Agent-owned",
       "ids": [
         "CP-EXE-BR-08"
@@ -1863,7 +1863,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 95,
+      "line": 126,
       "title": "CP-EXE-BR-09 uncertain submit/WAKE reconciles DELIVERED/ABSENT/UNKNOWN and contains no blind replay loop",
       "ids": [
         "CP-EXE-BR-09"
@@ -1876,7 +1876,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 103,
+      "line": 140,
       "title": "CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON is diagnostic-only, and terminal stops driving",
       "ids": [
         "CP-EXE-BR-10"
@@ -1889,7 +1889,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 111,
+      "line": 151,
       "title": "CP-EXE-BR-11 System Observer covers eight bounded concern families, defers as lowest priority, and never owns mutation",
       "ids": [
         "CP-EXE-BR-11"
@@ -1902,7 +1902,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-      "line": 128,
+      "line": 172,
       "title": "CP-EXE-BR-12 ordinary file transport is not Browser DOM work; screenshot/image remains a separate Vision fallback",
       "ids": [
         "CP-EXE-BR-12"
@@ -2124,7 +2124,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/observer-carrier-boundary.test.ts",
-      "line": 16,
+      "line": 19,
       "title": "historical universal Task Driver is removed; Observer and Carrier responsibilities stay separated",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2157,7 +2157,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/runtime-composition.test.ts",
-      "line": 56,
+      "line": 72,
       "title": "PRESMOKE-B3-BRIDGE-TOPOLOGY-03 Browser adapter reports only confirmed DELIVERED and leaves the single Execution Runtime injection to Batch 4",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2409,7 +2409,7 @@
     {
       "package": "execution-contracts",
       "path": "packages/execution-contracts/tests/journey-artifact-contract-alignment.test.ts",
-      "line": 20,
+      "line": 29,
       "title": "CP-EXE-CONTRACTS-09 stable Execution identity uses Task/Node/run/role/worker/correlation refs and excludes frame or persistent-tab identity",
       "ids": [
         "CP-EXE-CONTRACTS-09"
@@ -2422,7 +2422,7 @@
     {
       "package": "execution-contracts",
       "path": "packages/execution-contracts/tests/journey-artifact-contract-alignment.test.ts",
-      "line": 28,
+      "line": 47,
       "title": "CP-EXE-CONTRACTS-10 Carrier capabilities stay typed Execution requests and no Observer business-mutation contract is added",
       "ids": [
         "CP-EXE-CONTRACTS-10"
@@ -2789,7 +2789,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
-      "line": 286,
+      "line": 284,
       "title": "PRESMOKE-B6-FILE-02 large text is not retained in memory (inline budget)",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2811,7 +2811,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
-      "line": 370,
+      "line": 372,
       "title": "PRESMOKE-B6-FILE-04 fetch timeout and HTTP failure classify distinctly",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2822,7 +2822,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-file-bridge.test.ts",
-      "line": 405,
+      "line": 409,
       "title": "PRESMOKE-B6-FILE-05 declared size overflow and MIME mismatch fail closed",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2992,7 +2992,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-cli-security.test.ts",
-      "line": 18,
+      "line": 22,
       "title": "RF-EXE-RT-11 formal execution CLI rejects group/world-readable transport credentials",
       "ids": [
         "RF-EXE-RT-11"
@@ -3363,7 +3363,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 261,
+      "line": 263,
       "title": "PRESMOKE-B5-RUNTIME-04 modelDecision readiness reflects the consumer-specific dependency probe",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3375,7 +3375,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 283,
+      "line": 285,
       "title": "PRESMOKE-B5-RUNTIME-05 modelDecision config is loopback-only",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3401,7 +3401,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
-      "line": 24,
+      "line": 27,
       "title": "CP-EXE-RT-09 File Bridge locator materialization produces Artifact truth before reuse",
       "ids": [
         "CP-EXE-RT-09"
@@ -3415,7 +3415,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
-      "line": 35,
+      "line": 41,
       "title": "CP-EXE-RT-10 Context Pack/Patch remain Artifact subtypes and patch apply is a separate effect",
       "ids": [
         "CP-EXE-RT-10"
@@ -3429,7 +3429,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts",
-      "line": 45,
+      "line": 54,
       "title": "CP-EXE-RT-11 model/observer judgment cannot bypass hard Execution authority",
       "ids": [
         "CP-EXE-RT-11"
@@ -3455,7 +3455,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/model-decision-client.test.ts",
-      "line": 139,
+      "line": 136,
       "title": "PRESMOKE-B5-EXE-MODEL-02 FAST READY without REASON READY is consumer-unavailable",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3467,7 +3467,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/model-decision-client.test.ts",
-      "line": 181,
+      "line": 178,
       "title": "PRESMOKE-B5-EXE-MODEL-03 CONTEXT_TOO_LARGE gets one explicit compact caller retry without leaking long argv/url secrets",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3479,7 +3479,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/model-decision-client.test.ts",
-      "line": 248,
+      "line": 245,
       "title": "PRESMOKE-B5-EXE-MODEL-04 protocol mismatch fails closed and degrades client readiness",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3578,7 +3578,7 @@
     {
       "package": "model-contracts",
       "path": "packages/model-contracts/tests/observer-contract-alignment.test.ts",
-      "line": 15,
+      "line": 18,
       "title": "CP-MODEL-CON-06 trace accepts assessmentRef and background priority; oversized context is typed, never silent",
       "ids": [
         "CP-MODEL-CON-06"
@@ -3591,7 +3591,7 @@
     {
       "package": "model-contracts",
       "path": "packages/model-contracts/tests/observer-contract-alignment.test.ts",
-      "line": 33,
+      "line": 36,
       "title": "CP-MODEL-CON-07 Observer output contract carries judgment only, never Task/Execution authority",
       "ids": [
         "CP-MODEL-CON-07"
@@ -3604,7 +3604,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/current-spec-alignment.test.ts",
-      "line": 10,
+      "line": 13,
       "title": "SPEC-ALIGN model-provider-api remains an honest Deployment-owned external-resource adapter",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -3767,7 +3767,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/v1-provider-boundary.test.ts",
-      "line": 17,
+      "line": 20,
       "title": "EXT-MODEL-PROVIDER-02 capability verification is delegated to Model Domain before verification can succeed",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3779,7 +3779,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/v1-provider-boundary.test.ts",
-      "line": 30,
+      "line": 36,
       "title": "EXT-MODEL-PROVIDER-03 external provider adapter has no process lifecycle or system-assessment truth",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4202,7 +4202,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-process.test.ts",
-      "line": 304,
+      "line": 303,
       "title": "RF-MODEL-RT-14 transport credential rejects group/world-readable files",
       "ids": [
         "RF-MODEL-RT-14"
@@ -4917,7 +4917,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-      "line": 17,
+      "line": 19,
       "title": "CP-DPL-CLI-05 Carrier/Role readiness is current owner verification, not exact model pin or System Assessment",
       "ids": [
         "CP-DPL-CLI-05"
@@ -4930,7 +4930,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-      "line": 25,
+      "line": 27,
       "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
       "ids": [
         "CP-DPL-CLI-03"
@@ -4943,7 +4943,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-      "line": 32,
+      "line": 34,
       "title": "CP-DPL-CLI-22 platform CLI never invents Task worker/conversation/browser identity",
       "ids": [
         "CP-DPL-CLI-22"
@@ -5077,7 +5077,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 268,
+      "line": 278,
       "title": "D1 Contract Gate — parseModuleDescriptor enforces the frozen module contract",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5105,7 +5105,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 292,
+      "line": 302,
       "title": "D2 Template + Conformance — module-template passes C1/C2/C3 and materialized descriptors conform",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5133,7 +5133,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 323,
+      "line": 333,
       "title": "D3 Platform CLI Offline — a fake module closes the loop with no network I/O",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5161,7 +5161,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 378,
+      "line": 388,
       "title": "D4 External Resource Governance — real adapters report honest ACTION_REQUIRED, never fake READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5189,7 +5189,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 404,
+      "line": 414,
       "title": "D5 Cross-domain Deployment — a library + service + external-resource graph plans together",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5217,7 +5217,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 435,
+      "line": 445,
       "title": "D6 Failure Injection — an injected FAILED stop never fakes success",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5245,7 +5245,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 507,
+      "line": 517,
       "title": "Track A — deterministic full-chain closes preflight→apply→lifecycle→verify→manifest READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5273,7 +5273,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 677,
+      "line": 687,
       "title": "Track B — discovery loads every real package descriptor + the 4 external adapters + platform-host",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5301,7 +5301,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 694,
+      "line": 704,
       "title": "Track B — a coherent platform-host subgraph resolves with correct order",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5329,7 +5329,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 717,
+      "line": 727,
       "title": "Track B — moduleRef bindings resolve against the real model-provider module",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5357,7 +5357,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 742,
+      "line": 752,
       "title": "Track B — unsupported lifecycle is rejected, never faked",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5385,7 +5385,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 764,
+      "line": 774,
       "title": "Track B — unverified external resources yield a Manifest that is not fake READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5413,7 +5413,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 792,
+      "line": 802,
       "title": "CP-DPL-CLI-06 upgrade — current != target drives a migrate step and never a rollback step",
       "ids": [
         "CP-DPL-CLI-06"
@@ -5443,7 +5443,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 842,
+      "line": 852,
       "title": "upgrade — migration is emitted only when the target declares migrate",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5471,7 +5471,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 861,
+      "line": 871,
       "title": "CP-DPL-CLI-06 upgrade — a verify FAIL during upgrade preserves prior PASS history (no erase)",
       "ids": [
         "CP-DPL-CLI-06"
@@ -5501,7 +5501,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 901,
+      "line": 911,
       "title": "repair — doctor FAILED flows into a repair plan and applies the declared capability",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5529,7 +5529,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 968,
+      "line": 978,
       "title": "repair — an unmappable fact (verify-failed / target-behind) never invents a mutation",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5557,7 +5557,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1004,
+      "line": 1014,
       "title": "secret — secretRef identity survives the full chain verbatim, raw sentinel appears zero times",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5585,7 +5585,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1079,
+      "line": 1089,
       "title": "secret — generated INSTALL deep-redacts a raw secret sentinel",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5613,7 +5613,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1109,
+      "line": 1119,
       "title": "secret — generated INSTALL preserves a secretRef identity verbatim (frozen design: identity, not raw secret)",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5641,7 +5641,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1129,
+      "line": 1139,
       "title": "PRESMOKE-B6-BINDER-01 shipped AutoModuleCatalog binds a real local service adapter over the unbound default",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8439,7 +8439,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/cross-domain-composition-integration.test.ts",
-      "line": 11,
+      "line": 16,
       "title": "REG-HOST-COMPOSITION-01 formal owner packages stay independent while Host only composes public paths",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8450,7 +8450,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/cross-domain-composition-integration.test.ts",
-      "line": 23,
+      "line": 41,
       "title": "REG-HOST-COMPOSITION-02 old Task Driver/authorization compatibility surface is not part of the current composition contract",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8570,7 +8570,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 114,
+      "line": 117,
       "title": "PRESMOKE-B3-OBS-TRANSPORT-01 host exposes authenticated Observer owner/model transport without making it a scheduler",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8581,7 +8581,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 126,
+      "line": 129,
       "title": "PRESMOKE-B3-CARRIER-TRANSPORT-01 Collaboration Carrier transport cannot proxy arbitrary Execution capabilities or caller identity",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8592,7 +8592,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/model-business-callers.test.ts",
-      "line": 97,
+      "line": 95,
       "title": "PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the single Model infer contract with caller-owned mode/priority/trace",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8603,7 +8603,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/model-business-callers.test.ts",
-      "line": 210,
+      "line": 207,
       "title": "PRESMOKE-B6-HOST-MODEL-READY-01 Model /ready requires the configured Bearer and Host aggregate readiness reflects it",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8614,7 +8614,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/model-business-callers.test.ts",
-      "line": 287,
+      "line": 286,
       "title": "RF-MODEL-RT-14 platform-host rejects group/world-readable Model transport credential",
       "ids": [
         "RF-MODEL-RT-14"
@@ -8679,7 +8679,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 228,
+      "line": 230,
       "title": "PRESMOKE-B6-C1 browser structured logs use authenticated local ingestion, bounded typed axes, and reject secret-shaped fields",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8690,7 +8690,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 308,
+      "line": 312,
       "title": "CP-HOST-04 dependency unavailability is reported as dependency health, never invented Domain READY/System Assessment",
       "ids": [
         "CP-HOST-04"
@@ -8703,7 +8703,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 336,
+      "line": 340,
       "title": "CP-HOST-05 restart rebuilds composition and has no host mutation replay/cache truth",
       "ids": [
         "CP-HOST-05"
@@ -8716,7 +8716,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 348,
+      "line": 352,
       "title": "PRESMOKE-B3-APP-01 Extension Task application surface is loopback-authenticated and calls Task owner queries",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8727,7 +8727,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 389,
+      "line": 393,
       "title": "PRESMOKE-B4-APPROVAL-03 human Approval application has a dedicated token and cannot self-report actor/decision authority",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8738,7 +8738,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 438,
+      "line": 442,
       "title": "PRESMOKE-B4-IDENTITY-01 execution-runtime identity admission uses a dedicated loopback credential and platform-host owner facts",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8749,7 +8749,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 486,
+      "line": 490,
       "title": "PRESMOKE-B4-HOST-READ execution reads re-admit durable Task/Role/Worker scope",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8760,7 +8760,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 505,
+      "line": 509,
       "title": "PRESMOKE-B4-HOST-FILE-01 Carrier File Bridge materialization carries stable Execution idempotency and canonical role/worker scope",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8771,7 +8771,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 523,
+      "line": 526,
       "title": "RF-AGT-GW-14 platform-host rejects group/world-readable Gateway transport credential",
       "ids": [
         "RF-AGT-GW-14"
@@ -8784,7 +8784,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 599,
+      "line": 611,
       "title": "PRESMOKE-B6-HOST-EXEC-01 Host→Execution transport credential is wired from config and business routes carry the Bearer",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -9134,7 +9134,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
-      "line": 102,
+      "line": 111,
       "title": "CP-TASK-ORCH-11 Task Observer receives a bounded read-only drive projection and cannot mutate Task through it",
       "ids": [
         "CP-TASK-ORCH-11"
@@ -9150,7 +9150,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
-      "line": 110,
+      "line": 122,
       "title": "CP-TASK-ORCH-12 async Execution/Collaboration/Carrier pending is not a hidden Task WAIT command",
       "ids": [
         "CP-TASK-ORCH-12"
@@ -9166,7 +9166,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/journey-observer-contract.test.ts",
-      "line": 125,
+      "line": 140,
       "title": "CP-TASK-ORCH-13 reopen/terminal contracts preserve stable Task binding semantics and stop-driving is a projection concern",
       "ids": [
         "CP-TASK-ORCH-13"

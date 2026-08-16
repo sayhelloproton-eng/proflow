@@ -1,6 +1,13 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync } from "node:fs";
-import { appendFile, chmod, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import {
+	appendFile,
+	chmod,
+	mkdir,
+	readFile,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
@@ -17,9 +24,9 @@ import { taskMigrations } from "@tomflow/proflow-task-store-sqlite/migrations";
 import { z } from "zod";
 
 import {
+	type RolePackageRef,
 	roleOperations,
 	rolePackageRefs,
-	type RolePackageRef,
 } from "./role-operations.ts";
 
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
@@ -1277,8 +1284,7 @@ async function constructGraph(
 			rolePackageRefs.map((agentPackageRef) => provision(agentPackageRef)),
 		);
 		const failure = results.find(
-			(result): result is PromiseRejectedResult =>
-				result.status === "rejected",
+			(result): result is PromiseRejectedResult => result.status === "rejected",
 		);
 		if (failure) throw failure.reason;
 		return unwrap(task.queries.getTask({ taskId }));
@@ -1565,8 +1571,11 @@ async function constructGraph(
 				if (payloadAssessmentRef !== assessmentRef) {
 					throw new Error("SYSTEM_OBSERVER_ASSESSMENT_REF_MISMATCH");
 				}
-				const { assessmentRef: _assessmentRef, kind, ...modelPayload } =
-					observerPayload;
+				const {
+					assessmentRef: _assessmentRef,
+					kind,
+					...modelPayload
+				} = observerPayload;
 				const response = object(
 					await model.invoke("infer", {
 						contractVersion: "1.0.0",
@@ -1956,12 +1965,12 @@ export function createPlatformHost(input: {
 						input.config.modelTransportCredentialFile,
 					)
 				: undefined;
-			executionTransportCredential =
-				input.config.executionTransportCredentialFile
-					? await readExecutionTransportCredential(
-							input.config.executionTransportCredentialFile,
-						)
-					: input.executionCredential;
+			executionTransportCredential = input.config
+				.executionTransportCredentialFile
+				? await readExecutionTransportCredential(
+						input.config.executionTransportCredentialFile,
+					)
+				: input.executionCredential;
 			log("DEPENDENCY_INITIALIZATION_STARTED", {
 				order: ["task", "agent", "execution-client", "model-client"],
 			});
@@ -1989,7 +1998,10 @@ export function createPlatformHost(input: {
 					if (!accepting || !graph)
 						return respond(response, 503, { error: "SERVICE_DRAINING" });
 					try {
-						if (url.pathname === "/internal/execution/identity/ready") {
+						if (
+							request.method === "GET" &&
+							url.pathname === "/internal/execution/identity/ready"
+						) {
 							if (
 								!executionIdentityCredential ||
 								!managementCredentialMatches(
@@ -2117,7 +2129,10 @@ export function createPlatformHost(input: {
 								return respond(response, 200, { accepted: true });
 							} catch (error) {
 								return respond(response, 400, {
-									error: error instanceof Error ? error.message : "INVALID_LOG_ENTRY",
+									error:
+										error instanceof Error
+											? error.message
+											: "INVALID_LOG_ENTRY",
 								});
 							}
 						}

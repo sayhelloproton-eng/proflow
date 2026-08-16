@@ -179,7 +179,9 @@ test("CP-HOST-03 local transport is loopback-only, restartable, and shutdown dra
 });
 
 test("PRESMOKE-B6-A1 Gateway-to-platform-host actions require an independent transport bearer when configured", async () => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-gateway-auth-"));
+	const root = await mkdtemp(
+		join(tmpdir(), "proflow-platform-host-gateway-auth-"),
+	);
 	const stateRoot = join(root, ".proflow");
 	const transportCredentialFile = join(root, "gateway-to-host.token");
 	const transportCredential = "gateway-to-host-transport-credential";
@@ -226,7 +228,9 @@ test("PRESMOKE-B6-A1 Gateway-to-platform-host actions require an independent tra
 });
 
 test("PRESMOKE-B6-C1 browser structured logs use authenticated local ingestion, bounded typed axes, and reject secret-shaped fields", async () => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-browser-log-"));
+	const root = await mkdtemp(
+		join(tmpdir(), "proflow-platform-host-browser-log-"),
+	);
 	const stateRoot = join(root, ".proflow");
 	const dependency = await dependencyServer();
 	const host = createPlatformHost({
@@ -519,13 +523,18 @@ test("PRESMOKE-B4-HOST-FILE-01 Carrier File Bridge materialization carries stabl
 	assert.match(section, /workerRef: actorRef/);
 });
 
-
 test("RF-AGT-GW-14 platform-host rejects group/world-readable Gateway transport credential", async (t) => {
 	if (process.platform === "win32") return t.skip("POSIX mode proof");
-	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-gateway-permissions-"));
+	const root = await mkdtemp(
+		join(tmpdir(), "proflow-platform-host-gateway-permissions-"),
+	);
 	const stateRoot = join(root, ".proflow");
 	const transportCredentialFile = join(root, "gateway-to-host.token");
-	await writeFile(transportCredentialFile, "gateway-to-host-transport-credential\n", { mode: 0o600 });
+	await writeFile(
+		transportCredentialFile,
+		"gateway-to-host-transport-credential\n",
+		{ mode: 0o600 },
+	);
 	await chmod(transportCredentialFile, 0o644);
 	const dependency = await dependencyServer();
 	const host = createPlatformHost({
@@ -535,7 +544,10 @@ test("RF-AGT-GW-14 platform-host rejects group/world-readable Gateway transport 
 		}),
 	});
 	try {
-		await assert.rejects(() => host.start(), /GATEWAY_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID/);
+		await assert.rejects(
+			() => host.start(),
+			/GATEWAY_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID/,
+		);
 	} finally {
 		await host.stop();
 		await dependency.close();
@@ -600,7 +612,9 @@ test("PRESMOKE-B6-HOST-EXEC-01 Host→Execution transport credential is wired fr
 	const executionCredential = "execution-runtime-transport-credential-value";
 	const execution = await securedExecutionServer(executionCredential);
 	const model = await dependencyServer();
-	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-exec-auth-"));
+	const root = await mkdtemp(
+		join(tmpdir(), "proflow-platform-host-exec-auth-"),
+	);
 	const correctFile = join(root, "execution-correct.token");
 	const wrongFile = join(root, "execution-wrong.token");
 	await writeFile(correctFile, `${executionCredential}\n`, { mode: 0o600 });
@@ -617,7 +631,11 @@ test("PRESMOKE-B6-HOST-EXEC-01 Host→Execution transport credential is wired fr
 			config: parsePlatformHostConfig({
 				...config(
 					stateRoot,
-					join(await mkdtemp(join(tmpdir(), "proflow-platform-host-exec-auth-ws-"))),
+					join(
+						await mkdtemp(
+							join(tmpdir(), "proflow-platform-host-exec-auth-ws-"),
+						),
+					),
 					execution.baseUrl,
 				),
 				modelBaseUrl: model.baseUrl,

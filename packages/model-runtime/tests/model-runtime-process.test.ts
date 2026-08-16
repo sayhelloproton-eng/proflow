@@ -300,33 +300,61 @@ test("B2-MOD-02 formal process writes sanitized disk inference JSONL for result 
 	}
 });
 
-
 test("RF-MODEL-RT-14 transport credential rejects group/world-readable files", async (t) => {
 	if (process.platform === "win32") return t.skip("POSIX mode proof");
-	const stateRoot = await mkdtemp(join(tmpdir(), "proflow-model-runtime-permissions-"));
+	const stateRoot = await mkdtemp(
+		join(tmpdir(), "proflow-model-runtime-permissions-"),
+	);
 	t.after(() => rm(stateRoot, { recursive: true, force: true }));
 	const transportCredentialFile = join(stateRoot, "model-runtime.token");
-	await writeFile(transportCredentialFile, "model-runtime-transport-credential-value\n", { mode: 0o600 });
+	await writeFile(
+		transportCredentialFile,
+		"model-runtime-transport-credential-value\n",
+		{ mode: 0o600 },
+	);
 	await chmod(transportCredentialFile, 0o644);
 	await assert.rejects(
-		() => createModelRuntimeProcess({
-			config: {
-				host: "127.0.0.1",
-				port: 0,
-				stateRoot,
-				providerBaseUrl: "http://127.0.0.1:9/v1",
-				transportCredentialFile,
-				models: { fast: "fast", reason: "reason" },
-				profiles: {
-					fast: { modelRef: "fast", reasoningModes: ["no-thinking"], inputModalities: ["text"], structuredOutput: "native", contextWindow: 8192, maxOutputTokens: 1024 },
-					reason: { modelRef: "reason", reasoningModes: ["thinking"], inputModalities: ["text"], structuredOutput: "native", contextWindow: 8192, maxOutputTokens: 1024 },
+		() =>
+			createModelRuntimeProcess({
+				config: {
+					host: "127.0.0.1",
+					port: 0,
+					stateRoot,
+					providerBaseUrl: "http://127.0.0.1:9/v1",
+					transportCredentialFile,
+					models: { fast: "fast", reason: "reason" },
+					profiles: {
+						fast: {
+							modelRef: "fast",
+							reasoningModes: ["no-thinking"],
+							inputModalities: ["text"],
+							structuredOutput: "native",
+							contextWindow: 8192,
+							maxOutputTokens: 1024,
+						},
+						reason: {
+							modelRef: "reason",
+							reasoningModes: ["thinking"],
+							inputModalities: ["text"],
+							structuredOutput: "native",
+							contextWindow: 8192,
+							maxOutputTokens: 1024,
+						},
+					},
+					capabilityFacts: {
+						fast: {
+							contextWindow: 8192,
+							maxOutputTokens: 1024,
+							basis: "provider-config",
+						},
+						reason: {
+							contextWindow: 8192,
+							maxOutputTokens: 1024,
+							basis: "provider-config",
+						},
+					},
 				},
-				capabilityFacts: {
-					fast: { contextWindow: 8192, maxOutputTokens: 1024, basis: "provider-config" },
-					reason: { contextWindow: 8192, maxOutputTokens: 1024, basis: "provider-config" },
-				},
-			},
-		}),
+			}),
 		/transport credential permissions must be owner-only/,
 	);
 });

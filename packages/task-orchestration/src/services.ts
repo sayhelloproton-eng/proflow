@@ -807,7 +807,12 @@ export function createTaskServices(options: {
 					(left, right) => (left.sequenceNo ?? 0) - (right.sequenceNo ?? 0),
 				);
 				for (const member of members) {
-					const readied = recomputeReadiness(tx, member, timestamp, workspaceRoot);
+					const readied = recomputeReadiness(
+						tx,
+						member,
+						timestamp,
+						workspaceRoot,
+					);
 					if (readied.status !== member.status) tx.tasks.update(readied);
 					if (firstEligibleTaskId === null && readied.status === "READY")
 						firstEligibleTaskId = readied.taskId;
@@ -1085,7 +1090,12 @@ export function createTaskServices(options: {
 						updatedAt: timestamp,
 					};
 					tx.tasks.update(updated);
-					const readied = recomputeReadiness(tx, updated, timestamp, workspaceRoot);
+					const readied = recomputeReadiness(
+						tx,
+						updated,
+						timestamp,
+						workspaceRoot,
+					);
 					if (readied.status !== updated.status) tx.tasks.update(readied);
 					return {
 						taskId: readied.taskId,
@@ -1396,7 +1406,12 @@ export function createTaskServices(options: {
 									item.status === "PENDING",
 							);
 							if (nextTask) {
-								const readied = recomputeReadiness(tx, nextTask, timestamp, workspaceRoot);
+								const readied = recomputeReadiness(
+									tx,
+									nextTask,
+									timestamp,
+									workspaceRoot,
+								);
 								if (readied.status !== nextTask.status)
 									tx.tasks.update(readied);
 							}
@@ -2043,7 +2058,12 @@ export function createTaskServices(options: {
 						updatedByRef: validated.actorRef,
 						updatedAt: timestamp,
 					});
-					const readied = recomputeReadiness(tx, updated, timestamp, workspaceRoot);
+					const readied = recomputeReadiness(
+						tx,
+						updated,
+						timestamp,
+						workspaceRoot,
+					);
 					if (readied.status !== updated.status) tx.tasks.update(readied);
 					event(
 						tx,

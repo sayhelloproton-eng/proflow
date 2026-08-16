@@ -9,7 +9,7 @@
       "domain": "task-orchestration",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "任务与编排领域/07-测试计划/README.md",
@@ -18,7 +18,7 @@
       "domain": "task-orchestration",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "任务与编排领域/07-测试计划/modules/task-migration-runner.md",
@@ -27,7 +27,7 @@
       "domain": "task-orchestration",
       "moduleRef": "task-migration-runner",
       "implementationWave": "Wave 1",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "任务与编排领域/07-测试计划/modules/task-orchestration.md",
@@ -36,7 +36,7 @@
       "domain": "task-orchestration",
       "moduleRef": "task-orchestration",
       "implementationWave": "Wave 1",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "任务与编排领域/07-测试计划/modules/task-store-sqlite.md",
@@ -45,7 +45,7 @@
       "domain": "task-orchestration",
       "moduleRef": "task-store-sqlite",
       "implementationWave": "Wave 1",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "平台架构与公共约定/06-测试计划/00-ProFlow测试总计划.md",
@@ -54,7 +54,7 @@
       "domain": "platform",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "平台架构与公共约定/06-测试计划/01-跨领域Contract与Integration测试计划.md",
@@ -63,7 +63,7 @@
       "domain": "platform",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "平台架构与公共约定/06-测试计划/02-真实E2E与故障恢复测试计划.md",
@@ -72,7 +72,7 @@
       "domain": "platform",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "平台架构与公共约定/06-测试计划/03-安全边界与稳定性测试计划.md",
@@ -81,7 +81,7 @@
       "domain": "platform",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "平台架构与公共约定/06-测试计划/04-证据与停止门.md",
@@ -90,7 +90,7 @@
       "domain": "platform",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "平台架构与公共约定/06-测试计划/05-实施Wave与测试Gate.md",
@@ -99,7 +99,7 @@
       "domain": "platform",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "平台架构与公共约定/06-测试计划/README.md",
@@ -108,7 +108,7 @@
       "domain": "platform",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "平台架构与公共约定/06-测试计划/modules/platform-host.md",
@@ -117,7 +117,7 @@
       "domain": "platform",
       "moduleRef": "platform-host",
       "implementationWave": "Wave 6",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "执行领域/07-测试计划/00-领域测试总计划.md",
@@ -126,7 +126,7 @@
       "domain": "execution",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "执行领域/07-测试计划/README.md",
@@ -135,7 +135,7 @@
       "domain": "execution",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "执行领域/07-测试计划/modules/execution-browser-extension.md",
@@ -144,7 +144,7 @@
       "domain": "execution",
       "moduleRef": "execution-browser-extension",
       "implementationWave": "Wave 5",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "执行领域/07-测试计划/modules/execution-contracts.md",
@@ -153,7 +153,7 @@
       "domain": "execution",
       "moduleRef": "execution-contracts",
       "implementationWave": "Wave 3",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "执行领域/07-测试计划/modules/execution-local.md",
@@ -162,7 +162,7 @@
       "domain": "execution",
       "moduleRef": "execution-local",
       "implementationWave": "Wave 3",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "执行领域/07-测试计划/modules/execution-runtime.md",
@@ -171,7 +171,7 @@
       "domain": "execution",
       "moduleRef": "execution-runtime",
       "implementationWave": "Wave 3",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/00-领域测试总计划.md",
@@ -180,7 +180,7 @@
       "domain": "agent-runtime-collaboration",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/README.md",
@@ -189,7 +189,7 @@
       "domain": "agent-runtime-collaboration",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md",
@@ -198,7 +198,7 @@
       "domain": "agent-runtime-collaboration",
       "moduleRef": "agent-controller-dev",
       "implementationWave": "Wave 4",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-gateway.md",
@@ -207,7 +207,7 @@
       "domain": "agent-runtime-collaboration",
       "moduleRef": "agent-gateway",
       "implementationWave": "Wave 4",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-product.md",
@@ -216,7 +216,7 @@
       "domain": "agent-runtime-collaboration",
       "moduleRef": "agent-product",
       "implementationWave": "Wave 4",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-runtime.md",
@@ -225,7 +225,7 @@
       "domain": "agent-runtime-collaboration",
       "moduleRef": "agent-runtime",
       "implementationWave": "Wave 4",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-test-ops.md",
@@ -234,7 +234,7 @@
       "domain": "agent-runtime-collaboration",
       "moduleRef": "agent-test-ops",
       "implementationWave": "Wave 4",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "模型与推理领域/07-测试计划/00-领域测试总计划.md",
@@ -243,7 +243,7 @@
       "domain": "model-reasoning",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "模型与推理领域/07-测试计划/README.md",
@@ -252,7 +252,7 @@
       "domain": "model-reasoning",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "模型与推理领域/07-测试计划/modules/model-contracts.md",
@@ -261,7 +261,7 @@
       "domain": "model-reasoning",
       "moduleRef": "model-contracts",
       "implementationWave": "Wave 2",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "模型与推理领域/07-测试计划/modules/model-runtime.md",
@@ -270,7 +270,7 @@
       "domain": "model-reasoning",
       "moduleRef": "model-runtime",
       "implementationWave": "Wave 2",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "部署领域/07-测试计划/00-领域测试总计划.md",
@@ -279,7 +279,7 @@
       "domain": "deployment-governance",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "部署领域/07-测试计划/README.md",
@@ -288,7 +288,7 @@
       "domain": "deployment-governance",
       "moduleRef": null,
       "implementationWave": null,
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "部署领域/07-测试计划/modules/deployment-conformance.md",
@@ -297,7 +297,7 @@
       "domain": "deployment-governance",
       "moduleRef": "deployment-conformance",
       "implementationWave": "Wave 0",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "部署领域/07-测试计划/modules/module-contract.md",
@@ -306,7 +306,7 @@
       "domain": "deployment-governance",
       "moduleRef": "module-contract",
       "implementationWave": "Wave 0",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "部署领域/07-测试计划/modules/module-skill.md",
@@ -315,7 +315,7 @@
       "domain": "deployment-governance",
       "moduleRef": "module-skill",
       "implementationWave": "Wave 6",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "部署领域/07-测试计划/modules/module-template.md",
@@ -324,7 +324,7 @@
       "domain": "deployment-governance",
       "moduleRef": "module-template",
       "implementationWave": "Wave 0",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     },
     {
       "path": "部署领域/07-测试计划/modules/platform-cli.md",
@@ -333,7 +333,7 @@
       "domain": "deployment-governance",
       "moduleRef": "platform-cli",
       "implementationWave": "Wave 6",
-      "testPlanStatus": "ACTIVE_BASELINE"
+      "governanceStatus": "ACTIVE_BASELINE"
     }
   ]
 }

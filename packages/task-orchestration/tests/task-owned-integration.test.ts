@@ -795,7 +795,7 @@ test("PRESMOKE-B6-TASK-01 createTask initial-document crash is recovered on firs
 		"documents",
 		"requirement.md",
 	);
-	assert.equal((await readFile(canonical, "utf8")), "# Requirement\n");
+	assert.equal(await readFile(canonical, "utf8"), "# Requirement\n");
 
 	await bindAll(recovered, "task-crash", document.taskVersion);
 	const task = ok(recovered.queries.getTask({ taskId: "task-crash" }));
@@ -804,7 +804,9 @@ test("PRESMOKE-B6-TASK-01 createTask initial-document crash is recovered on firs
 
 test("PRESMOKE-B6-TASK-02 a TERMINATED Task is rejected by reopenNode with zero mutation", async (context) => {
 	const { services } = await fixture(context);
-	const created = ok(services.commands.createTask(taskInput("task-terminated")));
+	const created = ok(
+		services.commands.createTask(taskInput("task-terminated")),
+	);
 	const boundVersion = await bindAll(services, created.taskId, created.version);
 	const started = ok(
 		services.commands.startTask({
