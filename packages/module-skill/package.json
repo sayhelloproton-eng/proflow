@@ -1,6 +1,6 @@
 {
 	"name": "@tomflow/proflow-module-skill",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"type": "module",
 	"publishConfig": {
 		"access": "public"
@@ -26,8 +26,8 @@
 		"@tomflow/proflow-module-contract": "workspace:^"
 	},
 	"devDependencies": {
-		"@tomflow/proflow-module-template": "workspace:^",
-		"@tomflow/proflow-deployment-conformance": "workspace:^"
+		"@tomflow/proflow-deployment-conformance": "workspace:^",
+		"@tomflow/proflow-module-template": "workspace:^"
 	},
 	"description": "Guides AI through standard ProFlow module creation and maintenance.",
 	"keywords": [

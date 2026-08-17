@@ -1,0 +1,4 @@
+"@tomflow/proflow-module-skill@0.1.1":
+  dir: packages/module-skill
+  intents:
+    - module-skill-acceptance-not-frozen
