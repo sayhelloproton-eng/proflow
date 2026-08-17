@@ -42,6 +42,10 @@
   dir: packages/module-skill
   intents:
     - module-skill-acceptance-not-frozen
+"@tomflow/proflow-module-skill@0.1.2":
+  dir: packages/module-skill
+  intents:
+    - module-skill-published-skill-path
 "@tomflow/proflow-module-template@0.1.1":
   dir: packages/module-template
   intents:
