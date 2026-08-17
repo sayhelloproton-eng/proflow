@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "ProFlow Execution Browser",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"permissions": ["tabs", "storage", "sidePanel"],
 	"host_permissions": ["https://chatgpt.com/*", "http://127.0.0.1/*"],
 	"background": {
@@ -15,6 +15,8 @@
 			"run_at": "document_idle"
 		}
 	],
-	"side_panel": { "default_path": "extension/side-panel.html" },
+	"side_panel": {
+		"default_path": "extension/side-panel.html"
+	},
 	"options_page": "extension/options.html"
 }

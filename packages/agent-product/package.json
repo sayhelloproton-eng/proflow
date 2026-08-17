@@ -1,6 +1,6 @@
 {
 	"name": "@tomflow/proflow-agent-product",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Versioned Product Custom GPT materialization package for the fixed Product role.",
 	"type": "module",
 	"publishConfig": {

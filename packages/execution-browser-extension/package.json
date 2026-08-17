@@ -1,6 +1,6 @@
 {
 	"name": "@tomflow/proflow-execution-browser-extension",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Execution-owned MV3 Browser executor, evidence provider and browser application surface.",
 	"type": "module",
 	"publishConfig": {
