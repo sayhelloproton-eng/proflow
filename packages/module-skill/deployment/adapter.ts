@@ -3,11 +3,14 @@ import { readFile } from "node:fs/promises";
 import { descriptor, STOP_RULE_TOKENS } from "../src/index.ts";
 
 async function readSkillPolicy(): Promise<string> {
-	try {
-		return await readFile(new URL("../SKILL.md", import.meta.url), "utf8");
-	} catch {
-		return "";
+	for (const relativePath of ["../SKILL.md", "../../SKILL.md"] as const) {
+		try {
+			return await readFile(new URL(relativePath, import.meta.url), "utf8");
+		} catch {
+			// Source execution resolves ../SKILL.md; compiled dist resolves ../../SKILL.md.
+		}
 	}
+	return "";
 }
 
 function stopRulesPresent(content: string): boolean {

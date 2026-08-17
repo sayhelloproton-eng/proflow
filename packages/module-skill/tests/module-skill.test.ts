@@ -6,7 +6,6 @@ import { parseModuleDescriptor } from "@tomflow/proflow-module-contract";
 
 import {
 	descriptor,
-	FROZEN_FACT_CATEGORIES,
 	kind,
 	moduleRef,
 	moduleVersion,
@@ -16,11 +15,33 @@ import {
 
 const SKILL_SECTIONS = [
 	"Source Order",
-	"Allowed Facts",
+	"Required Owner Facts For Create",
+	"Create Flow",
+	"Modify Flow",
 	"Forbidden",
 	"Stop Rules",
-	"Create/Modify Flow",
 	"Deployment Use",
+] as const;
+
+const REQUIRED_OWNER_FACTS = [
+	"moduleRef",
+	"packageName",
+	"kind",
+	"installClass",
+	"domain",
+	"summary",
+] as const;
+
+const OWNER_CONTENT_FACTS = [
+	"provides",
+	"requires",
+	"requirements",
+	"config slots",
+	"commands / APIs / permissions",
+	"lifecycle",
+	"verification",
+	"effects",
+	"docs",
 ] as const;
 
 async function readSkill(): Promise<string> {
@@ -33,10 +54,11 @@ async function readPackageJson(): Promise<Record<string, unknown>> {
 	) as Record<string, unknown>;
 }
 
-test("CP-DPL-SKILL-01 descriptor round-trips the frozen contract and invents no capability/contract/dependency", () => {
+test("CP-DPL-SKILL-01 descriptor round-trips the frozen contract and invents no capability/contract/dependency", async () => {
+	const pkg = await readPackageJson();
 	assert.equal(moduleRef, "module-skill");
 	assert.equal(packageName, "@tomflow/proflow-module-skill");
-	assert.equal(moduleVersion, "0.1.0");
+	assert.equal(moduleVersion, pkg.version);
 	assert.equal(kind, "library");
 	assert.deepEqual(parseModuleDescriptor(descriptor), descriptor);
 	assert.deepEqual(descriptor.provides, []);
@@ -53,17 +75,25 @@ test("CP-DPL-SKILL-01 SKILL.md references only the frozen fact vocabulary", asyn
 			`SKILL.md must declare section: ${section}`,
 		);
 	}
-	for (const category of FROZEN_FACT_CATEGORIES) {
+	for (const fact of REQUIRED_OWNER_FACTS) {
 		assert.ok(
-			skill.includes(category),
-			`SKILL.md must reference frozen fact category: ${category}`,
+			skill.includes(fact),
+			`SKILL.md must reference required owner fact: ${fact}`,
+		);
+	}
+	for (const fact of OWNER_CONTENT_FACTS) {
+		assert.ok(
+			skill.includes(fact),
+			`SKILL.md must reference owner-controlled content fact: ${fact}`,
 		);
 	}
 });
 
 test("CP-DPL-SKILL-02 package and descriptor carry no process lifecycle, persistence, service, or business store", async () => {
 	const pkg = await readPackageJson();
-	assert.equal("bin" in pkg, false);
+	assert.deepEqual(pkg.bin, {
+		"proflow-module-skill": "./self-install.mjs",
+	});
 	assert.equal(kind, "library");
 	assert.deepEqual(descriptor.lifecycle.supported, ["verify"]);
 	assert.deepEqual(descriptor.effects, []);
@@ -93,7 +123,13 @@ test("RF-DPL-SKILL-01 the skill invents no capability, dependency, or permission
 test("RF-DPL-SKILL-02 real static conformance rejects a skill promoted to a process runtime", () => {
 	const withProcessEffect = runStaticConformance({
 		...descriptor,
-		effects: [{ kind: "process", description: "fake daemon" }],
+		effects: [
+			{
+				kind: "process",
+				description: "fake daemon",
+				retention: "preserve",
+			},
+		],
 	});
 	assert.equal(withProcessEffect.status, "FAIL");
 	assert.ok(

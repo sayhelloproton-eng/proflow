@@ -54,6 +54,9 @@ test("CP-DPL-SKILL-04 a well-formed fixture conforms; a corrupted artifact stops
 		moduleRef: "skill-fixture-good",
 		packageName: "@tomflow/proflow-skill-fixture-good",
 		kind: "library",
+		installClass: "optional",
+		domain: "deployment",
+		summary: "Module skill conformance fixture",
 	});
 	await buildFixture(good.packageDirectory);
 	const goodGates = await runGeneratedPackageConformance(good.packageDirectory);
@@ -68,6 +71,9 @@ test("CP-DPL-SKILL-04 a well-formed fixture conforms; a corrupted artifact stops
 		moduleRef: "skill-fixture-c1",
 		packageName: "@tomflow/proflow-skill-fixture-c1",
 		kind: "library",
+		installClass: "optional",
+		domain: "deployment",
+		summary: "Module skill conformance fixture",
 	});
 	await writeFile(
 		join(c1Broken.packageDirectory, "deployment/descriptor.ts"),
@@ -84,6 +90,9 @@ test("CP-DPL-SKILL-04 a well-formed fixture conforms; a corrupted artifact stops
 		moduleRef: "skill-fixture-c2",
 		packageName: "@tomflow/proflow-skill-fixture-c2",
 		kind: "library",
+		installClass: "optional",
+		domain: "deployment",
+		summary: "Module skill conformance fixture",
 	});
 	await buildFixture(c2Broken.packageDirectory);
 	await rm(join(c2Broken.packageDirectory, "conformance.json"));
@@ -98,6 +107,9 @@ test("CP-DPL-SKILL-04 a well-formed fixture conforms; a corrupted artifact stops
 		moduleRef: "skill-fixture-c3",
 		packageName: "@tomflow/proflow-skill-fixture-c3",
 		kind: "library",
+		installClass: "optional",
+		domain: "deployment",
+		summary: "Module skill conformance fixture",
 	});
 	await buildFixture(c3Broken.packageDirectory);
 	await writeFile(
@@ -120,6 +132,9 @@ test("RF-DPL-SKILL-04 a modified artifact that skips re-conformance is rejected 
 		moduleRef: "skill-fixture-reconform",
 		packageName: "@tomflow/proflow-skill-fixture-reconform",
 		kind: "library",
+		installClass: "optional",
+		domain: "deployment",
+		summary: "Module skill conformance fixture",
 	});
 	await buildFixture(fixture.packageDirectory);
 
