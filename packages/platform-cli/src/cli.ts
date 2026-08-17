@@ -277,7 +277,7 @@ async function buildCatalogWithProductionBindings(
 		modules,
 		configByModuleRef,
 		importAdapter: (packageName, source) =>
-			importRawAdapter(packageName, source),
+			importRawAdapter(packageName, source, root),
 	});
 	return new AutoModuleCatalog(root, bindings);
 }

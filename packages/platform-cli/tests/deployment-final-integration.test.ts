@@ -26,8 +26,9 @@ import {
 	loadGeneratedBehaviorAdapter,
 	materializeModule,
 } from "@tomflow/proflow-module-template";
-
+import { workspaceResidentDriver } from "../src/apply/driver.ts";
 import { applyPlan } from "../src/apply/index.ts";
+import { runCli } from "../src/cli.ts";
 import type { ResolvedModule } from "../src/contracts.ts";
 import { WorkspaceModuleCatalog } from "../src/discovery/catalog.ts";
 import {
@@ -89,13 +90,20 @@ async function tmpWorkspace(): Promise<{
 function descriptor(
 	overrides: Partial<ModuleDescriptor> = {},
 ): ModuleDescriptor {
+	const moduleRef = overrides.moduleRef ?? "fixture";
+	const packageName = overrides.packageName ?? `@tomflow/proflow-${moduleRef}`;
 	return parseModuleDescriptor({
 		contract: "module",
 		contractVersion: "1.0.0",
-		moduleRef: "fixture",
-		packageName: "@tomflow/proflow-fixture",
+		moduleRef,
+		packageName,
 		moduleVersion: "1.0.0",
 		kind: "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Deployment final integration fixture",
+		},
 		templateVersion: "1.0.0",
 		platformCompatibility: ">=1.0.0 <2.0.0",
 		provides: [],
@@ -109,6 +117,7 @@ function descriptor(
 			],
 		},
 		effects: [],
+		documentation: [],
 		...overrides,
 	});
 }
@@ -144,6 +153,12 @@ function moduleFixture(input: ModuleFixtureInput): ResolvedModule {
 		packageName: `@tomflow/proflow-${input.moduleRef}`,
 		moduleVersion: input.moduleVersion ?? "1.0.0",
 		kind: input.kind ?? "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Platform CLI test fixture",
+		},
+		documentation: [],
 		provides: input.provides ?? [],
 		requires: input.requires ?? [],
 		requirements: input.requirements ?? [],
@@ -311,11 +326,18 @@ test("D2 Template + Conformance — module-template passes C1/C2/C3 and material
 
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
+		await writeFile(
+			join(paths.root, "pnpm-workspace.yaml"),
+			'packages:\n  - "d2-generated-service"\n',
+		);
 		const generated = await materializeModule({
 			targetDirectory: paths.root,
-			moduleRef: "d2-generated",
-			packageName: "@tomflow/proflow-d2-generated",
-			kind: "library",
+			moduleRef: "d2-generated-service",
+			packageName: "@tomflow/proflow-d2-generated-service",
+			kind: "service",
+			installClass: "optional",
+			domain: "deployment-governance",
+			summary: "Generated Service consumed by Platform CLI",
 		});
 		assert.equal(runStaticConformance(generated.descriptor).status, "PASS");
 		const adapter = await loadGeneratedBehaviorAdapter(
@@ -325,6 +347,52 @@ test("D2 Template + Conformance — module-template passes C1/C2/C3 and material
 			(await runBehaviorConformance(generated.descriptor, adapter)).status,
 			"PASS",
 		);
+
+		const modules = JSON.parse(
+			await runCli([
+				"modules",
+				"d2-generated-service",
+				"--workspace",
+				paths.root,
+			]),
+		) as { status: string; data?: Array<{ moduleRef: string; kind: string }> };
+		assert.equal(modules.status, "SUCCEEDED");
+		assert.equal(modules.data?.length, 1);
+		assert.equal(modules.data?.[0]?.moduleRef, "d2-generated-service");
+		assert.equal(modules.data?.[0]?.kind, "service");
+
+		const docs = JSON.parse(
+			await runCli(["docs", "d2-generated-service", "--workspace", paths.root]),
+		) as { status: string; data?: { moduleRef?: string; kind?: string } };
+		assert.equal(docs.status, "SUCCEEDED");
+		assert.equal(docs.data?.moduleRef, "d2-generated-service");
+		assert.equal(docs.data?.kind, "service");
+
+		const status = JSON.parse(
+			await runCli([
+				"status",
+				"d2-generated-service",
+				"--workspace",
+				paths.root,
+			]),
+		) as { status: string; data?: Array<{ result?: { status?: string } }> };
+		assert.equal(status.status, "ACTION_REQUIRED");
+		assert.equal(status.data?.[0]?.result?.status, "ACTION_REQUIRED");
+
+		const verify = JSON.parse(
+			await runCli([
+				"verify",
+				"d2-generated-service",
+				"--workspace",
+				paths.root,
+			]),
+		) as {
+			status: string;
+			data?: Array<{ result?: { status?: string; error?: { code?: string } } }>;
+		};
+		assert.equal(verify.status, "FAILED");
+		assert.equal(verify.data?.[0]?.result?.status, "FAILED");
+		assert.equal(verify.data?.[0]?.result?.error?.code, "VERIFY_FAILED");
 	} finally {
 		await cleanup();
 	}
@@ -362,6 +430,7 @@ test("D3 Platform CLI Offline — a fake module closes the loop with no network 
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 		assert.equal(applied.outcome, "COMPLETE");
@@ -476,6 +545,7 @@ test("D6 Failure Injection — an injected FAILED stop never fakes success", asy
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 		assert.equal(applied.outcome, "FAILED");
@@ -619,6 +689,7 @@ test("Track A — deterministic full-chain closes preflight→apply→lifecycle�
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 		assert.equal(first.outcome, "ACTION_REQUIRED");
@@ -634,6 +705,7 @@ test("Track A — deterministic full-chain closes preflight→apply→lifecycle�
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 		assert.equal(resumed.outcome, "COMPLETE");
@@ -966,6 +1038,7 @@ test("repair — doctor FAILED flows into a repair plan and applies the declared
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 		assert.equal(applied.outcome, "COMPLETE");
@@ -1043,6 +1116,7 @@ test("secret — secretRef identity survives the full chain verbatim, raw sentin
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 		assert.equal(applied.outcome, "COMPLETE");
@@ -1148,7 +1222,17 @@ test("PRESMOKE-B6-BINDER-01 shipped AutoModuleCatalog binds a real local service
 		);
 		await writeFile(
 			join(root, "packages", "svc", "package.json"),
-			JSON.stringify({ name: "@tomflow/proflow-svc", version: "1.0.0" }),
+			JSON.stringify({
+				name: "@tomflow/proflow-svc",
+				version: "1.0.0",
+				proflow: {
+					module: true,
+					installClass: "optional",
+					descriptor: "./deployment/descriptor.ts",
+					manifest: "./proflow.module.json",
+					installRequires: [],
+				},
+			}),
 		);
 		await writeFile(
 			join(root, "packages", "svc", "deployment", "descriptor.ts"),
@@ -1159,6 +1243,8 @@ test("PRESMOKE-B6-BINDER-01 shipped AutoModuleCatalog binds a real local service
 	packageName: "@tomflow/proflow-svc",
 	moduleVersion: "1.0.0",
 	kind: "service",
+	installClass: "optional",
+	identity: { domain: "deployment-governance", summary: "Platform binding test service" },
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
 	provides: [],
@@ -1168,6 +1254,7 @@ test("PRESMOKE-B6-BINDER-01 shipped AutoModuleCatalog binds a real local service
 	lifecycle: { supported: ["describe", "preflight", "status", "verify", "doctor", "start", "stop", "restart"] },
 	verification: { checks: [{ id: "health", description: "Observed health", lifecycle: "verify" }] },
 	effects: [],
+	documentation: [],
 } as const;
 `,
 		);

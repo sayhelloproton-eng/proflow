@@ -81,6 +81,12 @@ function makePlan(
 			packageName: "@tomflow/proflow-mod-a",
 			moduleVersion: "1.0.0",
 			kind: "service",
+			installClass: "optional",
+			identity: {
+				domain: "deployment-governance",
+				summary: "Platform CLI test fixture",
+			},
+			documentation: [],
 			provides: [],
 			requires: [],
 			requirements: [],

@@ -16,6 +16,11 @@ const libraryDescriptor = {
 	packageName: "@tomflow/proflow-example-library",
 	moduleVersion: "1.0.0",
 	kind: "library",
+	installClass: "optional",
+	identity: {
+		domain: "deployment-governance",
+		summary: "Module contract test fixture",
+	},
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
 	provides: [{ contractRef: "example.contract", version: "1.0.0" }],
@@ -35,6 +40,7 @@ const libraryDescriptor = {
 		],
 	},
 	effects: [],
+	documentation: [],
 } as const satisfies ModuleDescriptor;
 
 test("CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete boundary", () => {
@@ -131,7 +137,7 @@ test("CP-DPL-CON-04 libraries and uncontrollable external resources do not fake 
 	const external = parseModuleDescriptor({
 		...libraryDescriptor,
 		moduleRef: "external-provider",
-		packageName: "@tomflow/proflow-external-provider-adapter",
+		packageName: "@tomflow/proflow-external-provider",
 		kind: "external-resource",
 		lifecycle: {
 			supported: ["describe", "preflight", "status", "verify", "doctor"],

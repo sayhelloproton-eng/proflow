@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-
+import { workspaceResidentDriver } from "../src/apply/driver.ts";
 import { applyPlan } from "../src/apply/index.ts";
 import type { ResolvedModule } from "../src/contracts.ts";
 import {
@@ -48,6 +48,11 @@ function syntheticDescriptor(): Record<string, unknown> {
 		packageName: FIXTURE_PRODUCT_PACKAGE,
 		moduleVersion: "1.0.0",
 		kind: "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Product workspace synthetic service",
+		},
 		templateVersion: "1.0.0",
 		platformCompatibility: ">=1.0.0 <2.0.0",
 		provides: [],
@@ -70,6 +75,7 @@ function syntheticDescriptor(): Record<string, unknown> {
 			],
 		},
 		effects: [],
+		documentation: [],
 	};
 }
 
@@ -103,6 +109,13 @@ async function writeSyntheticInstalledPackage(root: string): Promise<void> {
 			exports: {
 				"./deployment/descriptor": "./deployment/descriptor.js",
 				"./deployment/adapter": "./deployment/adapter.js",
+			},
+			proflow: {
+				module: true,
+				installClass: "optional",
+				descriptor: "./deployment/descriptor.js",
+				manifest: "./proflow.module.json",
+				installRequires: [],
 			},
 		}),
 	);
@@ -241,6 +254,7 @@ test("product workspace — apply safe gate blocks a stale plan and records no a
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current: stale,
 		});
 		assert.equal(result.outcome, "BLOCKED");
@@ -260,6 +274,7 @@ test("product workspace — apply materializes config, verifies, and composes a 
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 		assert.equal(applied.outcome, "COMPLETE");

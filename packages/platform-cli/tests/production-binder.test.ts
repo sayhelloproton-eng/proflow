@@ -40,6 +40,8 @@ function descriptorSource(fixture: ModuleFixture): string {
 	packageName: ${JSON.stringify(fixture.packageName)},
 	moduleVersion: "1.0.0",
 	kind: ${JSON.stringify(fixture.kind)},
+	installClass: "optional",
+	identity: { domain: "deployment-governance", summary: "Production binder test fixture" },
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
 	provides: [],
@@ -49,6 +51,7 @@ function descriptorSource(fixture: ModuleFixture): string {
 	lifecycle: { supported: ${JSON.stringify(SERVICE_LIFECYCLE)} },
 	verification: { checks: [{ id: "health", description: "Observed health", lifecycle: "verify" }] },
 	effects: [],
+	documentation: [],
 } as const;
 `;
 }
@@ -165,6 +168,13 @@ async function writeFixtureWorkspace(
 		JSON.stringify({
 			name: fixture.packageName,
 			version: "1.0.0",
+			proflow: {
+				module: true,
+				installClass: "optional",
+				descriptor: "./deployment/descriptor.ts",
+				manifest: "./proflow.module.json",
+				installRequires: [],
+			},
 		}),
 	);
 	await writeFile(join(dir, "descriptor.ts"), descriptorSource(fixture));
@@ -180,6 +190,112 @@ export function createBehaviorAdapter() {
 	return { describe: () => ({ result: base, observedEffects: [] }), preflight: () => ({ result: unbound, observedEffects: [] }), status: () => ({ result: unbound, observedEffects: [] }), verify: () => ({ result: unbound, observedEffects: [] }), doctor: () => ({ result: unbound, observedEffects: [] }) };
 }
 export const behaviorAdapter = createBehaviorAdapter();
+`,
+	);
+}
+
+async function writeInstalledResourceFixture(root: string): Promise<void> {
+	const packageName = "@tomflow/proflow-installed-res";
+	const packageRoot = join(
+		root,
+		"node_modules",
+		"@tomflow",
+		"proflow-installed-res",
+	);
+	const deployment = join(packageRoot, "deployment");
+	await mkdir(deployment, { recursive: true });
+	await writeFile(
+		join(root, "package.json"),
+		JSON.stringify({
+			name: "production-binder-product-workspace",
+			version: "0.0.0",
+			private: true,
+			dependencies: { [packageName]: "1.0.0" },
+		}),
+	);
+	await writeFile(
+		join(packageRoot, "package.json"),
+		JSON.stringify({
+			name: packageName,
+			version: "1.0.0",
+			type: "module",
+			exports: {
+				"./deployment/descriptor": "./deployment/descriptor.js",
+				"./deployment/adapter": "./deployment/adapter.js",
+			},
+			proflow: {
+				module: true,
+				installClass: "optional",
+				descriptor: "./deployment/descriptor.js",
+				manifest: "./proflow.module.json",
+				installRequires: [],
+			},
+		}),
+	);
+	await writeFile(
+		join(packageRoot, "proflow.module.json"),
+		JSON.stringify({
+			contract: "proflow.module-manifest.v1",
+			moduleRef: "installed-res",
+			packageName,
+			moduleVersion: "1.0.0",
+			kind: "external-resource",
+			installClass: "optional",
+			identity: {
+				domain: "deployment-governance",
+				summary: "Installed production binding fixture",
+			},
+			templateVersion: "1.0.0",
+			platformCompatibility: ">=1.0.0 <2.0.0",
+		}),
+	);
+	await writeFile(
+		join(deployment, "descriptor.js"),
+		`export const descriptor = {
+	contract: "module",
+	contractVersion: "1.0.0",
+	moduleRef: "installed-res",
+	packageName: ${JSON.stringify(packageName)},
+	moduleVersion: "1.0.0",
+	kind: "external-resource",
+	installClass: "optional",
+	identity: { domain: "deployment-governance", summary: "Installed production binding fixture" },
+	templateVersion: "1.0.0",
+	platformCompatibility: ">=1.0.0 <2.0.0",
+	provides: [],
+	requires: [],
+	requirements: [],
+	configSlots: [],
+	lifecycle: { supported: ["describe", "preflight", "status", "verify", "doctor"] },
+	verification: { checks: [{ id: "health", description: "Observed resource health", lifecycle: "verify" }] },
+	effects: [],
+	documentation: [],
+};
+`,
+	);
+	await writeFile(
+		join(deployment, "adapter.js"),
+		`const base = { contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: "installed-res", moduleVersion: "1.0.0" };
+const unbound = { ...base, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "bind-resource", description: "No installed resource bound" } };
+export const behaviorAdapter = {
+	describe: () => ({ result: base, observedEffects: [] }),
+	preflight: () => ({ result: unbound, observedEffects: [] }),
+	status: () => ({ result: unbound, observedEffects: [] }),
+	verify: () => ({ result: unbound, observedEffects: [] }),
+	doctor: () => ({ result: unbound, observedEffects: [] }),
+};
+export function createProductionBinding(input) {
+	if (!input.config.resourceUrl) return undefined;
+	return {
+		behaviorAdapter: {
+			...behaviorAdapter,
+			preflight: () => ({ result: base, observedEffects: [] }),
+			status: () => ({ result: { ...base, checks: [{ id: "resource-status", status: "PASS", message: "installed binding resolved from target workspace" }] }, observedEffects: ["Observes installed target-workspace resource"] }),
+			verify: () => ({ result: { ...base, checks: [{ id: "health", status: "PASS", message: "installed binding verified" }] }, observedEffects: [] }),
+			doctor: () => ({ result: base, observedEffects: [] }),
+		},
+	};
+}
 `,
 	);
 }
@@ -218,6 +334,7 @@ test("shipped CLI status binds a real service + real external resource and fails
 		await writeFixtureWorkspace(root, svc, true);
 		await writeFixtureWorkspace(root, res, true);
 		await writeFixtureWorkspace(root, plain, false);
+		await writeInstalledResourceFixture(root);
 
 		server = createServer((request, response) => {
 			response.writeHead(200, { "content-type": "application/json" });
@@ -241,6 +358,10 @@ test("shipped CLI status binds a real service + real external resource and fails
 			join(root, ".proflow", "config", "res.json"),
 			JSON.stringify({ resourceUrl: baseUrl }),
 		);
+		await writeFile(
+			join(root, ".proflow", "config", "installed-res.json"),
+			JSON.stringify({ resourceUrl: baseUrl }),
+		);
 
 		const output = await runCli(["status", "--workspace", root]);
 		const parsed = JSON.parse(output) as { data?: StatusEntry[] };
@@ -249,6 +370,7 @@ test("shipped CLI status binds a real service + real external resource and fails
 
 		assert.equal(byRef.get("svc")?.result?.status, "SUCCEEDED");
 		assert.equal(byRef.get("res")?.result?.status, "SUCCEEDED");
+		assert.equal(byRef.get("installed-res")?.result?.status, "SUCCEEDED");
 		assert.equal(byRef.get("plain")?.result?.status, "ACTION_REQUIRED");
 	} finally {
 		await new Promise<void>((resolve) => server?.close(() => resolve()));
@@ -266,7 +388,11 @@ test("all shipped service/external-resource modules expose a production binding 
 	assert.ok(governed.length > 0);
 	const missing: string[] = [];
 	for (const module of governed) {
-		const namespace = await importRawAdapter(module.packageName, module.source);
+		const namespace = await importRawAdapter(
+			module.packageName,
+			module.source,
+			root,
+		);
 		if (typeof namespace.createProductionBinding !== "function") {
 			missing.push(`${module.moduleRef}:${module.packageName}`);
 		}

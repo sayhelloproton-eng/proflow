@@ -38,13 +38,20 @@ const REF_B = "credential-ref:local-platform";
 function descriptor(
 	overrides: Partial<ModuleDescriptor> = {},
 ): ModuleDescriptor {
+	const moduleRef = overrides.moduleRef ?? "fixture";
+	const packageName = overrides.packageName ?? `@tomflow/proflow-${moduleRef}`;
 	return parseModuleDescriptor({
 		contract: "module",
 		contractVersion: "1.0.0",
-		moduleRef: "fixture",
-		packageName: "@tomflow/proflow-fixture",
+		moduleRef,
+		packageName,
 		moduleVersion: "1.0.0",
 		kind: "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Platform CLI descriptor fixture",
+		},
 		templateVersion: "1.0.0",
 		platformCompatibility: ">=1.0.0 <2.0.0",
 		provides: [],
@@ -58,6 +65,7 @@ function descriptor(
 			],
 		},
 		effects: [],
+		documentation: [],
 		...overrides,
 	});
 }
@@ -72,6 +80,12 @@ function moduleFixture(input: {
 		packageName: `@tomflow/proflow-${input.moduleRef}`,
 		moduleVersion: input.moduleVersion ?? "1.0.0",
 		kind: "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Platform CLI test fixture",
+		},
+		documentation: [],
 		provides: [],
 		requires: [],
 		requirements: [],

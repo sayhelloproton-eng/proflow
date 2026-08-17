@@ -68,6 +68,9 @@ async function generatedExternal(context: TestContext) {
 		moduleRef: "fixture-external-resource",
 		packageName: "@tomflow/proflow-fixture-external-resource",
 		kind: "external-resource",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	await execFileAsync(process.execPath, [
 		tsc,
@@ -296,6 +299,9 @@ test("remediation C3 rejects result identity drift and effects outside the descr
 		moduleRef: "identity-service",
 		packageName: "@tomflow/proflow-identity-service",
 		kind: "service",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	const descriptor = generated.descriptor;
 	const base = {

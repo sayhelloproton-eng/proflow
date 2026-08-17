@@ -8,7 +8,7 @@ import type {
 	ConfigSlot,
 	ModuleOperationResult,
 } from "@tomflow/proflow-module-contract";
-
+import { workspaceResidentDriver } from "../src/apply/driver.ts";
 import { applyPlan, type PackageManagerDriver } from "../src/apply/index.ts";
 import type { DeploymentPlan, ResolvedModule } from "../src/contracts.ts";
 import { PlatformError } from "../src/errors.ts";
@@ -66,6 +66,12 @@ function moduleFixture(input: {
 		packageName: `@tomflow/proflow-${input.moduleRef}`,
 		moduleVersion: input.moduleVersion ?? "1.0.0",
 		kind: input.kind ?? "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Platform CLI test fixture",
+		},
+		documentation: [],
 		provides: [],
 		requires: [],
 		requirements: input.requirements ?? [],
@@ -170,6 +176,9 @@ function makeFakeDriver(): FakeDriver {
 				(upgradeCounts.get(module.moduleRef) ?? 0) + 1,
 			);
 		},
+		async remove(module) {
+			installed.delete(module.moduleRef);
+		},
 	};
 	return { driver, installed, installCounts, upgradeCounts };
 }
@@ -193,6 +202,7 @@ test("apply completes when every step is satisfied and records the applied plan"
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current: { intent: "install", modules: [svc] },
 		});
 
@@ -304,6 +314,7 @@ test("CP-DPL-CLI-02 a stale plan is BLOCKED and never applied", async () => {
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current: { intent: "install", modules: [upgraded] },
 		});
 
@@ -329,6 +340,7 @@ test("a missing plan throws PLAN_NOT_FOUND", async () => {
 					paths,
 					planRef: "plan-missing",
 					catalog,
+					driver: workspaceResidentDriver(),
 					current: { intent: "install", modules: [svc] },
 				}),
 			(error: unknown): boolean =>
@@ -372,6 +384,7 @@ test("a human step persists a pendingAction, returns ACTION_REQUIRED, and stops"
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 
@@ -426,6 +439,7 @@ test("resume after ACTION_REQUIRED skips the now-verified human step and complet
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 		assert.equal(interrupted.outcome, "ACTION_REQUIRED");
@@ -436,6 +450,7 @@ test("resume after ACTION_REQUIRED skips the now-verified human step and complet
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 
@@ -496,6 +511,7 @@ test("a failing lifecycle step stops the apply, records FAILED, and persists not
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 
@@ -646,6 +662,7 @@ test("external-resource configure dispatches the start primitive and observes re
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current: { intent: "install", modules: [tunnel] },
 		});
 

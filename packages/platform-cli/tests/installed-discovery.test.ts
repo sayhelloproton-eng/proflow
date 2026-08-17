@@ -24,6 +24,11 @@ function descriptorFor({ moduleRef, packageName }: FixtureDescriptor) {
 		packageName,
 		moduleVersion: "1.0.0",
 		kind: "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Installed discovery test fixture",
+		},
 		templateVersion: "1.0.0",
 		platformCompatibility: ">=1.0.0 <2.0.0",
 		provides: [],
@@ -37,6 +42,7 @@ function descriptorFor({ moduleRef, packageName }: FixtureDescriptor) {
 			],
 		},
 		effects: [],
+		documentation: [],
 	};
 }
 
@@ -64,7 +70,17 @@ async function writeWorkspacePackage(
 	await mkdir(join(pkgDir, "deployment"), { recursive: true });
 	await writeFile(
 		join(pkgDir, "package.json"),
-		JSON.stringify({ name: packageName, version: "1.0.0" }),
+		JSON.stringify({
+			name: packageName,
+			version: "1.0.0",
+			proflow: {
+				module: true,
+				installClass: "optional",
+				descriptor: "./deployment/descriptor.ts",
+				manifest: "./proflow.module.json",
+				installRequires: [],
+			},
+		}),
 	);
 	await writeFile(
 		join(pkgDir, "deployment", "descriptor.ts"),
@@ -96,6 +112,13 @@ async function writeInstalledPackage(
 			exports: {
 				"./deployment/descriptor": "./deployment/descriptor.js",
 				"./deployment/adapter": "./deployment/adapter.js",
+			},
+			proflow: {
+				module: true,
+				installClass: "optional",
+				descriptor: "./deployment/descriptor.js",
+				manifest: "./proflow.module.json",
+				installRequires: [],
 			},
 		}),
 	);

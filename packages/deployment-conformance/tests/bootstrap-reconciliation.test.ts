@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -20,8 +20,20 @@ const tsc = resolve(
 	"../../../node_modules/typescript/bin/tsc",
 );
 
+const repositoryRoot = resolve(import.meta.dirname, "../../..");
+
+async function generatedRoot(prefix: string): Promise<string> {
+	const root = await mkdtemp(join(tmpdir(), prefix));
+	await symlink(
+		join(repositoryRoot, "node_modules"),
+		join(root, "node_modules"),
+		"dir",
+	);
+	return root;
+}
+
 test("Bootstrap closure generates, typechecks, validates, and conforms all six profiles", async (context) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-bootstrap-closure-"));
+	const root = await generatedRoot("proflow-bootstrap-closure-");
 	context.after(() => rm(root, { recursive: true, force: true }));
 	const kinds: ModuleDescriptor["kind"][] = [
 		"library",
@@ -38,6 +50,9 @@ test("Bootstrap closure generates, typechecks, validates, and conforms all six p
 			moduleRef,
 			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
+			installClass: "optional",
+			domain: "deployment-governance",
+			summary: "Generated test fixture",
 		});
 		await execFileAsync(process.execPath, [
 			tsc,
@@ -60,13 +75,16 @@ test("Bootstrap closure generates, typechecks, validates, and conforms all six p
 });
 
 test("Bootstrap closure deterministically rejects intentional C1, C2, and C3 breakage", async (context) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-bootstrap-broken-"));
+	const root = await generatedRoot("proflow-bootstrap-broken-");
 	context.after(() => rm(root, { recursive: true, force: true }));
 	const generated = await materializeModule({
 		targetDirectory: root,
 		moduleRef: "bootstrap-broken",
 		packageName: "@tomflow/proflow-bootstrap-broken",
 		kind: "service",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	assert.equal(
 		runStaticConformance({ ...generated.descriptor, contractVersion: "2.0.0" })
@@ -98,6 +116,9 @@ test("Bootstrap closure deterministically rejects intentional C1, C2, and C3 bre
 		moduleRef: "bootstrap-broken-behavior",
 		packageName: "@tomflow/proflow-bootstrap-broken-behavior",
 		kind: "service",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	await writeFile(
 		join(brokenBehavior.packageDirectory, "deployment/adapter.ts"),
@@ -116,7 +137,6 @@ test("Bootstrap closure deterministically rejects intentional C1, C2, and C3 bre
 });
 
 test("Bootstrap packages reconcile with their own Module Contract and Package gates", async () => {
-	const repositoryRoot = resolve(import.meta.dirname, "../../..");
 	for (const directory of [
 		"module-contract",
 		"module-template",

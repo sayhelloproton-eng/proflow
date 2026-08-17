@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { promisify } from "node:util";
 
@@ -13,6 +13,17 @@ import {
 import { assessTemplateMigration, materializeModule } from "../src/index.ts";
 
 const execFileAsync = promisify(execFile);
+const repositoryRoot = resolve(import.meta.dirname, "../../..");
+
+async function generatedToolchainRoot(prefix: string): Promise<string> {
+	const root = await mkdtemp(join(tmpdir(), prefix));
+	await symlink(
+		join(repositoryRoot, "node_modules"),
+		join(root, "node_modules"),
+		"dir",
+	);
+	return root;
+}
 const kinds: ModuleKind[] = [
 	"library",
 	"service",
@@ -41,16 +52,38 @@ test("CP-DPL-TPL-01 materializes six profiles with only their real responsibilit
 			moduleRef,
 			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
+			installClass: "optional",
+			domain: "deployment-governance",
+			summary: "Generated test fixture",
 		});
 		assert.equal(parseModuleDescriptor(result.descriptor).kind, kind);
 		assert.equal(
 			await exists(join(result.packageDirectory, "src/lifecycle.ts")),
-			kind === "service",
+			false,
 		);
 		assert.equal(
 			await exists(join(result.packageDirectory, "src/cli.ts")),
-			kind === "cli",
+			kind === "cli" || kind === "service",
 		);
+		if (kind === "service") {
+			const adapter = await readFile(
+				join(result.packageDirectory, "deployment/adapter.ts"),
+				"utf8",
+			);
+			assert.match(adapter, /createServiceProcessBinding/);
+			for (const primitive of [
+				"status",
+				"start",
+				"stop",
+				"restart",
+				"uninstall",
+			] as const) {
+				assert.equal(
+					result.descriptor.lifecycle.supported.includes(primitive),
+					true,
+				);
+			}
+		}
 		assert.equal(
 			await exists(
 				join(result.packageDirectory, "deployment/browser-extension.json"),
@@ -80,6 +113,9 @@ test("CP-DPL-TPL-02 emits minimum metadata and verification without fake lifecyc
 			moduleRef,
 			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
+			installClass: "optional",
+			domain: "deployment-governance",
+			summary: "Generated test fixture",
 		});
 		for (const relative of [
 			"package.json",
@@ -89,6 +125,8 @@ test("CP-DPL-TPL-02 emits minimum metadata and verification without fake lifecyc
 			"deployment/descriptor.ts",
 			"deployment/requirements.ts",
 			"deployment/verification.ts",
+			"proflow.module.json",
+			"self-install.mjs",
 			"conformance.json",
 		]) {
 			assert.equal(
@@ -111,9 +149,7 @@ test("CP-DPL-TPL-02 emits minimum metadata and verification without fake lifecyc
 });
 
 test("CP-DPL-TPL-03 generated TypeScript packages pass strict tsc with typed public boundaries", async (context) => {
-	const root = await mkdtemp(
-		join(import.meta.dirname, "../../../.proflow-template-typecheck-"),
-	);
+	const root = await generatedToolchainRoot("proflow-template-typecheck-");
 	context.after(() => rm(root, { recursive: true, force: true }));
 	const tsc = join(
 		import.meta.dirname,
@@ -126,7 +162,18 @@ test("CP-DPL-TPL-03 generated TypeScript packages pass strict tsc with typed pub
 			moduleRef,
 			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
+			installClass: "optional",
+			domain: "deployment-governance",
+			summary: "Generated test fixture",
 		});
+		const generatedTsconfig = JSON.parse(
+			await readFile(join(result.packageDirectory, "tsconfig.json"), "utf8"),
+		) as { compilerOptions?: { types?: string[] } };
+		assert.deepEqual(generatedTsconfig.compilerOptions?.types, ["node"]);
+		const generatedPackage = JSON.parse(
+			await readFile(join(result.packageDirectory, "package.json"), "utf8"),
+		) as { devDependencies?: Record<string, string> };
+		assert.equal(generatedPackage.devDependencies?.["@types/node"], "24.10.1");
 		await execFileAsync(process.execPath, [
 			tsc,
 			"--noEmit",

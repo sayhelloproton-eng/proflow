@@ -56,6 +56,12 @@ function moduleFixture(input: FixtureInput): ResolvedModule {
 		packageName: `@tomflow/proflow-${input.moduleRef}`,
 		moduleVersion: "1.0.0",
 		kind: input.kind,
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Platform CLI test fixture",
+		},
+		documentation: [],
 		provides: input.provides ?? [],
 		requires: input.requires ?? [],
 		requirements: [],

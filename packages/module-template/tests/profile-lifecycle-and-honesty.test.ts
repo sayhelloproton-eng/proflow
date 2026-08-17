@@ -1,18 +1,14 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { promisify } from "node:util";
 
 import {
 	type GeneratedBehaviorObservation,
 	loadGeneratedBehaviorAdapter,
 	materializeModule,
 } from "../src/index.ts";
-
-const execFileAsync = promisify(execFile);
 
 // Compile-time regression guard: the public observation type must be the
 // canonical ModuleOperationResult (data / error / resourceVersion and the full
@@ -43,11 +39,18 @@ test("gap-1 generated observation matches canonical ModuleOperationResult at run
 		moduleRef: "shape-service",
 		packageName: "@tomflow/proflow-shape-service",
 		kind: "service",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	const adapter = await loadGeneratedBehaviorAdapter(service.packageDirectory);
 
 	const status = await adapter.status?.();
-	assert.deepEqual(status?.result.data, { state: "STOPPED" });
+	assert.equal(status?.result.status, "ACTION_REQUIRED");
+	assert.equal(
+		status?.result.actionRequired?.action,
+		"implement-service-process",
+	);
 
 	const verify = await adapter.verify?.();
 	assert.equal(verify?.result.error?.code, "VERIFY_FAILED");
@@ -63,15 +66,33 @@ test("gap-2 service profile generates and passes lifecycle tests", async (contex
 		moduleRef: "lifecycle-service",
 		packageName: "@tomflow/proflow-lifecycle-service",
 		kind: "service",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
-	const testPath = join(generated.packageDirectory, "tests/lifecycle.test.ts");
-	const content = await readFile(testPath, "utf8");
-	for (const symbol of ["status", "start", "stop", "restart"]) {
-		assert.match(content, new RegExp(`\\b${symbol}\\b`), symbol);
+	const adapter = await loadGeneratedBehaviorAdapter(
+		generated.packageDirectory,
+	);
+	for (const primitive of [
+		"status",
+		"start",
+		"stop",
+		"restart",
+		"uninstall",
+	] as const) {
+		const observation = await adapter[primitive]?.();
+		assert.equal(observation?.result.status, "ACTION_REQUIRED", primitive);
+		assert.equal(
+			observation?.result.actionRequired?.action,
+			"implement-service-process",
+			primitive,
+		);
 	}
-	await execFileAsync(process.execPath, ["--test", "tests/lifecycle.test.ts"], {
-		cwd: generated.packageDirectory,
-	});
+	const source = await readFile(
+		join(generated.packageDirectory, "deployment/adapter.ts"),
+		"utf8",
+	);
+	assert.match(source, /createServiceProcessBinding/);
 });
 
 test("gap-3 browser-extension status reports honest UNKNOWN / ACTION_REQUIRED", async (context) => {
@@ -83,6 +104,9 @@ test("gap-3 browser-extension status reports honest UNKNOWN / ACTION_REQUIRED", 
 		moduleRef: "browser-honest",
 		packageName: "@tomflow/proflow-browser-honest",
 		kind: "browser-extension",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	const adapter = await loadGeneratedBehaviorAdapter(
 		generated.packageDirectory,

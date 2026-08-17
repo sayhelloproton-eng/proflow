@@ -52,6 +52,12 @@ function moduleFixture(input: FixtureInput): ResolvedModule {
 		packageName: `@tomflow/proflow-${input.moduleRef}`,
 		moduleVersion: input.moduleVersion ?? "1.0.0",
 		kind: input.kind,
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Platform CLI test fixture",
+		},
+		documentation: [],
 		provides: input.provides ?? [],
 		requires: input.requires ?? [],
 		requirements: input.requirements ?? [],
@@ -580,7 +586,13 @@ test("renderInstallDoc includes module set, requirements, config slots, effects,
 				description: "region",
 			},
 		],
-		effects: [{ kind: "process", description: "runs a server" }],
+		effects: [
+			{
+				kind: "process",
+				description: "runs a server",
+				retention: "preserve",
+			},
+		],
 	});
 
 	const doc = renderInstallDoc({

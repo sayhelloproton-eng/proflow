@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -83,6 +84,7 @@ export interface ProductionBindingOptions {
 export async function importRawAdapter(
 	packageName: string,
 	source: ResolvedSource,
+	workspaceRoot: string,
 ): Promise<Record<string, unknown>> {
 	if (source.type === "workspace") {
 		if (source.path === undefined) return {};
@@ -91,8 +93,13 @@ export async function importRawAdapter(
 			url.href
 		)) as Record<string, unknown>;
 	}
-	const resolved = import.meta.resolve(`${packageName}/deployment/adapter`);
-	const url = new URL(resolved);
+	const workspaceRequire = createRequire(
+		pathToFileURL(join(workspaceRoot, "package.json")),
+	);
+	const resolved = workspaceRequire.resolve(
+		`${packageName}/deployment/adapter`,
+	);
+	const url = pathToFileURL(resolved);
 	return (await /* architecture-allow-local-file-url-import */ import(
 		url.href
 	)) as Record<string, unknown>;

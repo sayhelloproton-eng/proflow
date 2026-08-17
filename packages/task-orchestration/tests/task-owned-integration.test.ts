@@ -254,7 +254,7 @@ test("CP-TASK-ORCH-03 TaskRoleBinding is stable/idempotent and startNode resolve
 		}),
 	);
 	const versions = nodeVersion(services, active.taskId, `${active.taskId}-dev`);
-	ok(
+	const started = ok(
 		services.commands.startNode({
 			taskId: active.taskId,
 			nodeId: `${active.taskId}-dev`,

@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { test } from "node:test";
 
 import { runRepositoryArchitecture } from "../src/architecture.ts";
+
+const repositoryRoot = resolve(import.meta.dirname, "../../..");
 
 async function packageFixture(
 	root: string,
@@ -22,7 +24,10 @@ async function packageFixture(
 }
 
 test("platform conventions gate covers current repository and future package discovery", async (context) => {
-	assert.equal((await runRepositoryArchitecture(process.cwd())).status, "PASS");
+	assert.equal(
+		(await runRepositoryArchitecture(repositoryRoot)).status,
+		"PASS",
+	);
 	const root = await mkdtemp(join(tmpdir(), "proflow-architecture-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
 	await writeFile(

@@ -17,6 +17,11 @@ function descriptor(
 		packageName: "@tomflow/proflow-compatibility-fixture",
 		moduleVersion: "1.0.0",
 		kind: "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Compatibility hardening fixture",
+		},
 		templateVersion: "1.0.0",
 		platformCompatibility: ">=1.0.0 <2.0.0",
 		provides: [{ contractRef: "fixture.public", version: "1.0.0" }],
@@ -35,7 +40,14 @@ function descriptor(
 				{ id: "health", description: "Observed health", lifecycle: "verify" },
 			],
 		},
-		effects: [{ kind: "network", description: "Call the declared provider" }],
+		effects: [
+			{
+				kind: "network",
+				description: "Call the declared provider",
+				retention: "preserve",
+			},
+		],
+		documentation: [],
 		...overrides,
 	});
 }

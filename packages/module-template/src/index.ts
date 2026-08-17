@@ -412,6 +412,7 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 					target: "ESNext",
 					module: "NodeNext",
 					moduleResolution: "NodeNext",
+					types: ["node"],
 					strict: true,
 					noEmit: true,
 					erasableSyntaxOnly: true,

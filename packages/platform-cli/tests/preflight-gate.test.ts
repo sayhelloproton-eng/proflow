@@ -14,6 +14,12 @@ function moduleFixture(lifecycle: string[]): ResolvedModule {
 		packageName: "@tomflow/proflow-m",
 		moduleVersion: "1.0.0",
 		kind: "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Platform CLI test fixture",
+		},
+		documentation: [],
 		provides: [],
 		requires: [],
 		requirements: [],

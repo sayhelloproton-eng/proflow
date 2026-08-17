@@ -35,13 +35,20 @@ import {
 function descriptor(
 	overrides: Partial<ModuleDescriptor> = {},
 ): ModuleDescriptor {
+	const moduleRef = overrides.moduleRef ?? "fixture-module";
+	const packageName = overrides.packageName ?? `@tomflow/proflow-${moduleRef}`;
 	return parseModuleDescriptor({
 		contract: "module",
 		contractVersion: "1.0.0",
-		moduleRef: "fixture-module",
-		packageName: "@tomflow/proflow-fixture-module",
+		moduleRef,
+		packageName,
 		moduleVersion: "1.0.0",
 		kind: "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Discovery graph test fixture",
+		},
 		templateVersion: "1.0.0",
 		platformCompatibility: ">=1.0.0 <2.0.0",
 		provides: [],
@@ -55,6 +62,7 @@ function descriptor(
 			],
 		},
 		effects: [],
+		documentation: [],
 		...overrides,
 	});
 }
@@ -74,6 +82,12 @@ function moduleFixture(input: FixtureInput): ResolvedModule {
 		packageName: input.packageName ?? `@tomflow/proflow-${input.moduleRef}`,
 		moduleVersion: "1.0.0",
 		kind: "service",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Discovery graph test fixture",
+		},
+		documentation: [],
 		provides: input.provides ?? [],
 		requires: input.requires ?? [],
 		requirements: input.requirements ?? [],
@@ -416,8 +430,8 @@ test("discovery finds the real governed module set", async () => {
 
 test("resolveModules rejects duplicate moduleRef", async () => {
 	const catalog = arrayCatalog([
-		descriptor({ moduleRef: "dup", packageName: "@tomflow/proflow-aaa" }),
-		descriptor({ moduleRef: "dup", packageName: "@tomflow/proflow-bbb" }),
+		descriptor({ moduleRef: "dup" }),
+		descriptor({ moduleRef: "dup" }),
 	]);
 	const sources = [
 		workspaceSource("@tomflow/proflow-aaa"),
@@ -431,8 +445,8 @@ test("resolveModules rejects duplicate moduleRef", async () => {
 
 test("resolveModules rejects duplicate packageName", async () => {
 	const catalog = arrayCatalog([
-		descriptor({ moduleRef: "aaa", packageName: "@tomflow/proflow-same" }),
-		descriptor({ moduleRef: "bbb", packageName: "@tomflow/proflow-same" }),
+		descriptor({ moduleRef: "same" }),
+		descriptor({ moduleRef: "same" }),
 	]);
 	const sources = [
 		workspaceSource("@tomflow/proflow-same"),

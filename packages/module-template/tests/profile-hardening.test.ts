@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
+import {
+	mkdtemp,
+	readdir,
+	readFile,
+	rm,
+	stat,
+	symlink,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
@@ -22,6 +29,17 @@ const kinds: ModuleKind[] = [
 	"external-resource",
 ];
 const execFileAsync = promisify(execFile);
+const repositoryRoot = resolve(import.meta.dirname, "../../..");
+
+async function generatedToolchainRoot(prefix: string): Promise<string> {
+	const root = await mkdtemp(join(tmpdir(), prefix));
+	await symlink(
+		join(repositoryRoot, "node_modules"),
+		join(root, "node_modules"),
+		"dir",
+	);
+	return root;
+}
 
 test("P1-1/P1-2 all six profiles load and execute their own generated adapter", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-own-adapter-"));
@@ -32,6 +50,9 @@ test("P1-1/P1-2 all six profiles load and execute their own generated adapter", 
 			moduleRef: `own-adapter-${kind}`,
 			packageName: `@tomflow/proflow-own-adapter-${kind}`,
 			kind,
+			installClass: "optional",
+			domain: "deployment-governance",
+			summary: "Generated test fixture",
 		});
 		const adapter = await loadGeneratedBehaviorAdapter(
 			generated.packageDirectory,
@@ -74,6 +95,9 @@ test("P1-4/P1-5 template enforces formal names and creates publishable public pa
 			moduleRef: "invalid-name",
 			packageName: "@tomflow/invalid-name",
 			kind: "library",
+			installClass: "optional",
+			domain: "deployment-governance",
+			summary: "Generated test fixture",
 		}),
 	);
 	const generated = await materializeModule({
@@ -81,6 +105,9 @@ test("P1-4/P1-5 template enforces formal names and creates publishable public pa
 		moduleRef: "publishable",
 		packageName: "@tomflow/proflow-publishable",
 		kind: "library",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	assert.equal(generated.packageMetadata.private, undefined);
 	assert.deepEqual(generated.packageMetadata.publishConfig, {
@@ -89,13 +116,16 @@ test("P1-4/P1-5 template enforces formal names and creates publishable public pa
 });
 
 test("FND-P1-01 generated Module builds JS and declarations, packs, and imports from an isolated consumer", async (context) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-template-publish-e2e-"));
+	const root = await generatedToolchainRoot("proflow-template-publish-e2e-");
 	context.after(() => rm(root, { recursive: true, force: true }));
 	const generated = await materializeModule({
 		targetDirectory: root,
 		moduleRef: "published-module",
 		packageName: "@tomflow/proflow-published-module",
 		kind: "library",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	const metadata = JSON.parse(
 		await readFile(join(generated.packageDirectory, "package.json"), "utf8"),
@@ -104,12 +134,21 @@ test("FND-P1-01 generated Module builds JS and declarations, packs, and imports 
 		files: string[];
 	};
 	assert.equal(metadata.exports["."], "./dist/src/index.js");
-	assert.deepEqual(metadata.files, ["dist", "conformance.json", "README.md"]);
+	assert.deepEqual(metadata.files, [
+		"dist",
+		"conformance.json",
+		"README.md",
+		"proflow.module.json",
+		"self-install.mjs",
+	]);
 	assert.equal(
 		Object.values(metadata.exports).some((entry) => entry.endsWith(".ts")),
 		false,
 	);
 
+	await execFileAsync("pnpm", ["run", "typecheck"], {
+		cwd: generated.packageDirectory,
+	});
 	await execFileAsync("pnpm", ["run", "build"], {
 		cwd: generated.packageDirectory,
 	});

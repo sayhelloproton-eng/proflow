@@ -8,7 +8,7 @@ import type {
 	ConfigSlot,
 	ModuleOperationResult,
 } from "@tomflow/proflow-module-contract";
-
+import { workspaceResidentDriver } from "../src/apply/driver.ts";
 import { applyPlan } from "../src/apply/index.ts";
 import type { DeploymentPlan, ResolvedModule } from "../src/contracts.ts";
 import type { ModuleCatalog, ModuleSource } from "../src/modules.ts";
@@ -78,6 +78,12 @@ function externalResourceFixture(input: {
 		packageName: `@tomflow/proflow-${input.moduleRef}`,
 		moduleVersion: "1.0.0",
 		kind: "external-resource",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Platform CLI test fixture",
+		},
+		documentation: [],
 		provides: [],
 		requires: [],
 		requirements: input.requirements ?? [],
@@ -298,6 +304,7 @@ test("external-resource start reporting ACTION_REQUIRED keeps ACTION_REQUIRED an
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 
@@ -359,6 +366,7 @@ test("external-resource start reporting BLOCKED stops the apply with BLOCKED", a
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 
@@ -406,6 +414,7 @@ test("external-resource start reporting FAILED stops the apply with FAILED", asy
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 
@@ -458,6 +467,7 @@ test("a pending action for an external-resource step is cleared once the step is
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 		assert.equal(first.outcome, "ACTION_REQUIRED");
@@ -469,6 +479,7 @@ test("a pending action for an external-resource step is cleared once the step is
 			paths,
 			planRef: plan.planRef,
 			catalog,
+			driver: workspaceResidentDriver(),
 			current,
 		});
 		assert.equal(resumed.outcome, "COMPLETE");

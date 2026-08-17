@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -18,6 +18,17 @@ const tsc = resolve(
 	import.meta.dirname,
 	"../../../node_modules/typescript/bin/tsc",
 );
+const repositoryRoot = resolve(import.meta.dirname, "../../..");
+
+async function generatedRoot(prefix: string): Promise<string> {
+	const root = await mkdtemp(join(tmpdir(), prefix));
+	await symlink(
+		join(repositoryRoot, "node_modules"),
+		join(root, "node_modules"),
+		"dir",
+	);
+	return root;
+}
 
 async function buildGenerated(packageDirectory: string) {
 	await execFileAsync(process.execPath, [
@@ -28,7 +39,7 @@ async function buildGenerated(packageDirectory: string) {
 }
 
 test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the owning gate", async (context) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-foundation-hardening-"));
+	const root = await generatedRoot("proflow-foundation-hardening-");
 	context.after(() => rm(root, { recursive: true, force: true }));
 	for (const kind of [
 		"library",
@@ -43,6 +54,9 @@ test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the o
 			moduleRef: `closure-${kind}`,
 			packageName: `@tomflow/proflow-closure-${kind}`,
 			kind,
+			installClass: "optional",
+			domain: "deployment-governance",
+			summary: "Generated test fixture",
 		});
 		await buildGenerated(generated.packageDirectory);
 		const result = await runGeneratedPackageConformance(
@@ -59,6 +73,9 @@ test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the o
 		moduleRef: "broken-c1",
 		packageName: "@tomflow/proflow-broken-c1",
 		kind: "library",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	assert.equal(
 		runStaticConformance({ ...c1.descriptor, packageName: "@tomflow/broken" })
@@ -71,6 +88,9 @@ test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the o
 		moduleRef: "broken-c2",
 		packageName: "@tomflow/proflow-broken-c2",
 		kind: "library",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	const packagePath = join(c2.packageDirectory, "package.json");
 	const metadata = JSON.parse(await readFile(packagePath, "utf8")) as Record<
@@ -91,6 +111,9 @@ test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the o
 		moduleRef: "broken-c3",
 		packageName: "@tomflow/proflow-broken-c3",
 		kind: "service",
+		installClass: "optional",
+		domain: "deployment-governance",
+		summary: "Generated test fixture",
 	});
 	await writeFile(
 		join(c3.packageDirectory, "deployment/adapter.ts"),
