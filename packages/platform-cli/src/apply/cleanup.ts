@@ -40,7 +40,9 @@ export async function cleanupRemovableFilesystemEffects(input: {
 			target === proflowRoot ||
 			withinProflow === "" ||
 			withinProflow === ".." ||
-			withinProflow.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) ||
+			withinProflow.startsWith(
+				`..${process.platform === "win32" ? "\\" : "/"}`,
+			) ||
 			isAbsolute(withinProflow)
 		) {
 			throw new PlatformError(

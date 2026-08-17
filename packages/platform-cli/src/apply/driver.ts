@@ -1,14 +1,14 @@
+import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { readFile } from "node:fs/promises";
 
 import type { ResolvedModule } from "../contracts.ts";
 import { PlatformError } from "../errors.ts";
 import {
+	type PackageCommandRunner,
 	readWorkspacePackageManagerSelection,
 	systemPackageCommandRunner,
-	type PackageCommandRunner,
 	type WorkspacePackageManagerSelection,
 } from "../install/package-manager.ts";
 import { atomicWrite } from "../paths.ts";
@@ -130,12 +130,18 @@ async function requirePackageManager(
 	return manager;
 }
 
-async function ensureWorkspacePackageJson(workspaceRoot: string): Promise<void> {
+async function ensureWorkspacePackageJson(
+	workspaceRoot: string,
+): Promise<void> {
 	const path = join(workspaceRoot, "package.json");
 	try {
 		const raw = await readFile(path, "utf8");
 		const parsed: unknown = JSON.parse(raw);
-		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+		if (
+			typeof parsed !== "object" ||
+			parsed === null ||
+			Array.isArray(parsed)
+		) {
 			throw new Error("package.json root must be an object");
 		}
 		return;
@@ -162,7 +168,9 @@ async function observeInstalledVersion(
 	) {
 		return undefined;
 	}
-	const require = createRequire(pathToFileURL(join(workspaceRoot, "package.json")));
+	const require = createRequire(
+		pathToFileURL(join(workspaceRoot, "package.json")),
+	);
 	let entry: string;
 	try {
 		entry = require.resolve(packageName);
@@ -203,7 +211,9 @@ async function readWorkspaceManifest(
 	try {
 		const raw = await readFile(join(workspaceRoot, "package.json"), "utf8");
 		const parsed: unknown = JSON.parse(raw);
-		return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+		return typeof parsed === "object" &&
+			parsed !== null &&
+			!Array.isArray(parsed)
 			? (parsed as WorkspaceManifest)
 			: undefined;
 	} catch {
@@ -215,7 +225,7 @@ function hasOwn(
 	record: Record<string, unknown> | undefined,
 	key: string,
 ): boolean {
-	return record !== undefined && Object.prototype.hasOwnProperty.call(record, key);
+	return record !== undefined && Object.hasOwn(record, key);
 }
 
 function isMissingFile(error: unknown): boolean {
@@ -229,7 +239,8 @@ function isMissingFile(error: unknown): boolean {
 function errorMessage(error: unknown): string {
 	if (typeof error === "object" && error !== null) {
 		const stderr = Reflect.get(error, "stderr");
-		if (typeof stderr === "string" && stderr.trim() !== "") return stderr.trim();
+		if (typeof stderr === "string" && stderr.trim() !== "")
+			return stderr.trim();
 	}
 	return error instanceof Error ? error.message : String(error);
 }

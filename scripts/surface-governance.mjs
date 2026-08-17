@@ -29,6 +29,20 @@ function sourceForDist(packageDir, target) {
 		target.slice("./dist/".length).replace(/\.js$/, ".ts"),
 	);
 }
+function sourceForBinary(packageDir, target) {
+	const compiledSource = sourceForDist(packageDir, target);
+	if (compiledSource) return compiledSource;
+
+	if (typeof target !== "string" || !target.startsWith("./")) return null;
+
+	const directSource = resolve(packageDir, target);
+	const relativeTarget = relative(packageDir, directSource);
+	if (relativeTarget === ".." || relativeTarget.split(/[\\/]/)[0] === "..")
+		return null;
+
+	return directSource;
+}
+
 function publicSymbols(source) {
 	const names = [];
 	for (const match of source.matchAll(
@@ -100,7 +114,7 @@ async function main() {
 		}
 		const binaries = [];
 		for (const [name, target] of Object.entries(manifest.bin ?? {})) {
-			const source = sourceForDist(dir, target);
+			const source = sourceForBinary(dir, target);
 			const sourceExists = source ? await exists(source) : false;
 			if (!sourceExists)
 				errors.push(

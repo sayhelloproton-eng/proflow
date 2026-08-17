@@ -461,7 +461,10 @@ export async function runCli(args: string[]): Promise<string> {
 			status: "SUCCEEDED",
 			moduleRef: "task-migration-runner",
 			moduleVersion: "0.1.0",
-			data: { usage: "proflow-task-migrate [apply|status|verify] --database <path> [--legacy-role-map <json>]" },
+			data: {
+				usage:
+					"proflow-task-migrate [apply|status|verify] --database <path> [--legacy-role-map <json>]",
+			},
 		});
 	}
 	const command =

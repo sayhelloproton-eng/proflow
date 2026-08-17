@@ -53,10 +53,13 @@ export interface ModuleDocumentContent {
 }
 
 function executableName(packageName: string): string {
-	return packageName.includes("/") ? packageName.split("/").at(-1)! : packageName;
+	return packageName.split("/").pop() ?? packageName;
 }
 
-function commandsFrom(manifest: PackageManifest, packageName: string): PublishedCommand[] {
+function commandsFrom(
+	manifest: PackageManifest,
+	packageName: string,
+): PublishedCommand[] {
 	if (typeof manifest.bin === "string") {
 		return [{ name: executableName(packageName), target: manifest.bin }];
 	}
@@ -72,7 +75,8 @@ function publicApiEntriesFrom(manifest: PackageManifest): PublicApiEntry[] {
 	if (typeof manifest.exports === "string") {
 		return [{ subpath: ".", target: manifest.exports }];
 	}
-	if (typeof manifest.exports !== "object" || manifest.exports === null) return [];
+	if (typeof manifest.exports !== "object" || manifest.exports === null)
+		return [];
 	return Object.entries(manifest.exports as Record<string, unknown>)
 		.filter(([subpath]) => subpath.startsWith("."))
 		.map(([subpath, target]) => ({
@@ -96,10 +100,14 @@ async function packageRootFor(
 		return await realpath(source.path);
 	}
 
-	const require = createRequire(pathToFileURL(join(workspaceRoot, "package.json")));
+	const require = createRequire(
+		pathToFileURL(join(workspaceRoot, "package.json")),
+	);
 	let current: string;
 	try {
-		current = dirname(require.resolve(`${source.packageName}/deployment/descriptor`));
+		current = dirname(
+			require.resolve(`${source.packageName}/deployment/descriptor`),
+		);
 	} catch (error) {
 		throw new PlatformError(
 			"DESCRIPTOR_INVALID",
@@ -126,7 +134,10 @@ async function packageRootFor(
 	);
 }
 
-async function readManifest(packageRoot: string, packageName: string): Promise<PackageManifest> {
+async function readManifest(
+	packageRoot: string,
+	packageName: string,
+): Promise<PackageManifest> {
 	try {
 		const manifest = JSON.parse(
 			await readFile(join(packageRoot, "package.json"), "utf8"),
@@ -149,7 +160,10 @@ export async function describeModule(input: {
 	descriptor: ModuleDescriptor;
 }): Promise<ModuleDocsView> {
 	const packageRoot = await packageRootFor(input.workspaceRoot, input.source);
-	const manifest = await readManifest(packageRoot, input.descriptor.packageName);
+	const manifest = await readManifest(
+		packageRoot,
+		input.descriptor.packageName,
+	);
 	return {
 		moduleRef: input.descriptor.moduleRef,
 		packageName: input.descriptor.packageName,
@@ -203,7 +217,9 @@ export async function readModuleDocument(input: {
 			packageName: input.descriptor.packageName,
 			documentId: entry.id,
 			path: entry.path,
-			...(entry.description === undefined ? {} : { description: entry.description }),
+			...(entry.description === undefined
+				? {}
+				: { description: entry.description }),
 			content,
 		};
 	} catch (error) {

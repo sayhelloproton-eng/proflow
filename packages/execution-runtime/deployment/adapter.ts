@@ -35,24 +35,26 @@ export function createBehaviorAdapter(service?: ProcessService) {
 			return {
 				result: service
 					? {
-						...(ready
-							? base
-							: {
-								...base,
-								ok: false as const,
-								status: "ACTION_REQUIRED" as const,
-								actionRequired: {
-									action: "repair-execution-runtime",
-									description: "Execution Runtime is not READY",
+							...(ready
+								? base
+								: {
+										...base,
+										ok: false as const,
+										status: "ACTION_REQUIRED" as const,
+										actionRequired: {
+											action: "repair-execution-runtime",
+											description: "Execution Runtime is not READY",
+										},
+									}),
+							data: status,
+							checks: [
+								{
+									id: "execution-runtime-readiness",
+									status: ready ? ("PASS" as const) : ("FAIL" as const),
+									message: `Execution Runtime readiness is ${status?.readiness ?? "NOT_READY"}`,
 								},
-							}),
-						data: status,
-						checks: [{
-							id: "execution-runtime-readiness",
-							status: ready ? "PASS" as const : "FAIL" as const,
-							message: `Execution Runtime readiness is ${status?.readiness ?? "NOT_READY"}`,
-						}],
-					}
+							],
+						}
 					: unbound,
 				observedEffects: [],
 			};
@@ -66,19 +68,24 @@ export function createBehaviorAdapter(service?: ProcessService) {
 						? base
 						: service
 							? {
-								...base,
-								ok: false as const,
-								status: "ACTION_REQUIRED" as const,
-								actionRequired: { action: "repair-execution-runtime", description: "Execution Runtime is not READY" },
-							}
+									...base,
+									ok: false as const,
+									status: "ACTION_REQUIRED" as const,
+									actionRequired: {
+										action: "repair-execution-runtime",
+										description: "Execution Runtime is not READY",
+									},
+								}
 							: unbound),
-					checks: [{
-						id: "execution-runtime-critical-proofs",
-						status: ready ? "PASS" as const : "FAIL" as const,
-						message: service
-							? `Execution Runtime readiness is ${status?.readiness ?? "NOT_READY"}`
-							: "No configured Execution Runtime process is bound",
-					}],
+					checks: [
+						{
+							id: "execution-runtime-critical-proofs",
+							status: ready ? ("PASS" as const) : ("FAIL" as const),
+							message: service
+								? `Execution Runtime readiness is ${status?.readiness ?? "NOT_READY"}`
+								: "No configured Execution Runtime process is bound",
+						},
+					],
 				},
 				observedEffects: [],
 			};
@@ -154,10 +161,13 @@ export async function createServiceProcessBinding(input: {
 	const advertised = platformHost?.executionBaseUrl;
 	if (!advertised) return undefined;
 	const listener = new URL(advertised);
-	if (listener.protocol !== "http:" || listener.pathname !== "/") return undefined;
+	if (listener.protocol !== "http:" || listener.pathname !== "/")
+		return undefined;
 	const port = listener.port === "" ? 80 : Number(listener.port);
 	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
-	const { parseExecutionRuntimeProcessConfig } = await import("../src/service.ts");
+	const { parseExecutionRuntimeProcessConfig } = await import(
+		"../src/service.ts"
+	);
 	const processConfig = parseExecutionRuntimeProcessConfig({
 		host: listener.hostname,
 		port,
@@ -187,8 +197,32 @@ export async function createServiceProcessBinding(input: {
 			}
 			return {
 				result: ready
-					? { ...base, checks: [{ id: "execution-runtime-critical-proofs", status: "PASS" as const, message: "Managed Execution Runtime /ready probe passed" }] }
-					: { ...base, ok: false as const, status: "ACTION_REQUIRED" as const, actionRequired: { action: "repair-execution-runtime", description: "Managed Execution Runtime /ready probe failed" }, checks: [{ id: "execution-runtime-critical-proofs", status: "FAIL" as const, message: "Managed Execution Runtime /ready probe failed" }] },
+					? {
+							...base,
+							checks: [
+								{
+									id: "execution-runtime-critical-proofs",
+									status: "PASS" as const,
+									message: "Managed Execution Runtime /ready probe passed",
+								},
+							],
+						}
+					: {
+							...base,
+							ok: false as const,
+							status: "ACTION_REQUIRED" as const,
+							actionRequired: {
+								action: "repair-execution-runtime",
+								description: "Managed Execution Runtime /ready probe failed",
+							},
+							checks: [
+								{
+									id: "execution-runtime-critical-proofs",
+									status: "FAIL" as const,
+									message: "Managed Execution Runtime /ready probe failed",
+								},
+							],
+						},
 				observedEffects: [],
 			};
 		},

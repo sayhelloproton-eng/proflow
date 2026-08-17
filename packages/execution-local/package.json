@@ -1,45 +1,45 @@
 {
-  "name": "@tomflow/proflow-execution-local",
-  "version": "0.1.0",
-  "type": "module",
-  "publishConfig": {
-    "access": "public"
-  },
-  "exports": {
-    ".": "./dist/src/index.js",
-    "./deployment/adapter": "./dist/deployment/adapter.js",
-    "./deployment/descriptor": "./dist/deployment/descriptor.js"
-  },
-  "files": [
-    "dist",
-    "proflow.module.json",
-    "conformance.json",
-    "README.md",
-    "self-install.mjs"
-  ],
-  "scripts": {
-    "test": "node --test tests/**/*.test.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@tomflow/proflow-execution-contracts": "workspace:^"
-  },
-  "description": "In-process real local executor for typed ProFlow Execution capabilities.",
-  "keywords": [
-    "proflow",
-    "proflow-module",
-    "execution"
-  ],
-  "proflow": {
-    "module": true,
-    "installClass": "core",
-    "descriptor": "./dist/deployment/descriptor.js",
-    "installRequires": [
-      "@tomflow/proflow-execution-contracts"
-    ],
-    "manifest": "./proflow.module.json"
-  },
-  "bin": {
-    "proflow-execution-local": "./self-install.mjs"
-  }
+	"name": "@tomflow/proflow-execution-local",
+	"version": "0.1.0",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./dist/src/index.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js"
+	},
+	"files": [
+		"dist",
+		"proflow.module.json",
+		"conformance.json",
+		"README.md",
+		"self-install.mjs"
+	],
+	"scripts": {
+		"test": "node --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@tomflow/proflow-execution-contracts": "workspace:^"
+	},
+	"description": "In-process real local executor for typed ProFlow Execution capabilities.",
+	"keywords": [
+		"proflow",
+		"proflow-module",
+		"execution"
+	],
+	"proflow": {
+		"module": true,
+		"installClass": "core",
+		"descriptor": "./dist/deployment/descriptor.js",
+		"installRequires": [
+			"@tomflow/proflow-execution-contracts"
+		],
+		"manifest": "./proflow.module.json"
+	},
+	"bin": {
+		"proflow-execution-local": "./self-install.mjs"
+	}
 }

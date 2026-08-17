@@ -530,7 +530,7 @@ test("B1-EXE-10 reconcile reconstructs the concrete Result for file.write and gi
 	assert.equal(fileReconciled.state, "APPLIED");
 	const fileResult = fileReconciled.result;
 	assert.ok(fileResult);
-	if (!fileResult || fileResult.capability !== "file.write")
+	if (fileResult?.capability !== "file.write")
 		assert.fail("expected file.write result");
 	assert.equal(fileResult.data.path, "recovered.txt");
 	assert.equal(typeof fileResult.data.afterHash, "string");
@@ -558,7 +558,7 @@ test("B1-EXE-10 reconcile reconstructs the concrete Result for file.write and gi
 	assert.equal(gitReconciled.state, "APPLIED");
 	const gitResult = gitReconciled.result;
 	assert.ok(gitResult);
-	if (!gitResult || gitResult.capability !== "git.commit")
+	if (gitResult?.capability !== "git.commit")
 		assert.fail("expected git.commit result");
 	assert.equal(typeof gitResult.data.commitSha, "string");
 	assert.equal(gitResult.data.head, gitResult.data.commitSha);
@@ -603,13 +603,13 @@ test("B1-EXE-04 installDependency crash recovers reality from package.json/lockf
 		},
 	});
 	assert.ok(precondition);
-	if (!precondition || precondition.kind !== "install-dependency")
+	if (precondition?.kind !== "install-dependency")
 		assert.fail("expected install-dependency precondition");
 	const reconciled = await executor.reconcile(installRequest, precondition);
 	assert.equal(reconciled.state, "APPLIED");
 	const result = reconciled.result;
 	assert.ok(result);
-	if (!result || result.capability !== "project.installDependency")
+	if (result?.capability !== "project.installDependency")
 		assert.fail("expected project.installDependency result");
 	assert.equal(result.data.manifestChanged, true);
 	assert.equal(result.data.lockfileChanged, true);
@@ -694,13 +694,13 @@ test("B1-EXE-06 managed process identity, crash-before-persist and stop recovery
 		},
 	});
 	assert.ok(startPrecondition);
-	if (!startPrecondition || startPrecondition.kind !== "process.start")
+	if (startPrecondition?.kind !== "process.start")
 		assert.fail("expected process.start precondition");
 	const processRef = startPrecondition.processRef;
 	const started = await executor.reconcile(startRequest, startPrecondition);
 	assert.equal(started.state, "APPLIED");
 	assert.ok(started.result);
-	if (!started.result || started.result.capability !== "process.start")
+	if (started.result?.capability !== "process.start")
 		assert.fail("expected process.start result");
 	assert.equal(started.result.data.mode, "managed");
 	assert.equal(started.result.data.processRef, processRef);
@@ -730,7 +730,7 @@ test("B1-EXE-06 managed process identity, crash-before-persist and stop recovery
 		},
 	});
 	assert.ok(stopPrecondition);
-	if (!stopPrecondition || stopPrecondition.kind !== "process.stop")
+	if (stopPrecondition?.kind !== "process.stop")
 		assert.fail("expected process.stop precondition");
 	assert.equal(stopPrecondition.processRef, processRef);
 	assert.equal(typeof stopPrecondition.birthIdentity, "string");
@@ -741,7 +741,7 @@ test("B1-EXE-06 managed process identity, crash-before-persist and stop recovery
 	);
 	assert.equal(stopped.state, "APPLIED");
 	assert.ok(stopped.result);
-	if (!stopped.result || stopped.result.capability !== "process.stop")
+	if (stopped.result?.capability !== "process.stop")
 		assert.fail("expected process.stop result");
 	assert.equal(stopped.result.data.processRef, processRef);
 	assert.equal(stopped.result.data.stopped, true);

@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "platform-architecture",
-		summary: "Provides the ProFlow local application composition root that binds Task, Agent, Execution and Model owner transports.",
+		summary:
+			"Provides the ProFlow local application composition root that binds Task, Agent, Execution and Model owner transports.",
 	},
 	provides: [{ contractRef: "platform-host", version: "1.0.0" }],
 	requires: [
@@ -95,9 +96,17 @@ export const descriptor = {
 		],
 	},
 	effects: [
-		{ kind: "process", description: "Manage the platform-host process", retention: "remove" },
+		{
+			kind: "process",
+			description: "Manage the platform-host process",
+			retention: "remove",
+		},
 	],
 	documentation: [
-		{ id: "overview", path: "./README.md", description: "Platform Host package overview" },
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Platform Host package overview",
+		},
 	],
 } as const;

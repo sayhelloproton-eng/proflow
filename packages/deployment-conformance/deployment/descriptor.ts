@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "deployment-governance",
-		summary: "Validates ProFlow module contract, package and behavior conformance.",
+		summary:
+			"Validates ProFlow module contract, package and behavior conformance.",
 	},
 	provides: [],
 	requires: [],

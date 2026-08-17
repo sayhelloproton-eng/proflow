@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "deployment-governance",
-		summary: "Deterministic platform-level deployment discovery, planning, lifecycle and verification CLI.",
+		summary:
+			"Deterministic platform-level deployment discovery, planning, lifecycle and verification CLI.",
 	},
 	provides: [],
 	requires: [],

@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "deployment-governance",
-		summary: "Governs and verifies the real-world ChatGPT Custom GPT carrier without faking readiness.",
+		summary:
+			"Governs and verifies the real-world ChatGPT Custom GPT carrier without faking readiness.",
 	},
 	provides: [],
 	requires: [],
@@ -93,6 +94,10 @@ export const descriptor = {
 		},
 	],
 	documentation: [
-		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Package-owned module overview",
+		},
 	],
 };

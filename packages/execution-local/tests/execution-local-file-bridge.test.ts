@@ -259,7 +259,7 @@ function localFetch(baseUrl: string): typeof fetch {
 
 test("PRESMOKE-B6-FILE-01 remote materialization streams, hashes, detects MIME and inlines only small text", async () => {
 	const artifactRoot = await mkdtemp(join(tmpdir(), "proflow-file-bridge-ok-"));
-	const { baseUrl, close } = await listen((request, response) => {
+	const { baseUrl, close } = await listen((_request, response) => {
 		response.setHeader("content-type", "text/plain");
 		response.end("hello external world");
 	});
@@ -286,7 +286,7 @@ test("PRESMOKE-B6-FILE-02 large text is not retained in memory (inline budget)",
 		join(tmpdir(), "proflow-file-bridge-large-"),
 	);
 	const large = "x".repeat(300_000);
-	const { baseUrl, close } = await listen((request, response) => {
+	const { baseUrl, close } = await listen((_request, response) => {
 		response.setHeader("content-type", "text/plain");
 		response.end(large);
 	});

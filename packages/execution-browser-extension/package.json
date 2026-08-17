@@ -1,58 +1,58 @@
 {
-  "name": "@tomflow/proflow-execution-browser-extension",
-  "version": "0.1.0",
-  "description": "Execution-owned MV3 Browser executor, evidence provider and browser application surface.",
-  "type": "module",
-  "publishConfig": {
-    "access": "public"
-  },
-  "exports": {
-    ".": "./dist/src/index.js",
-    "./bridge": "./dist/src/bridge.js",
-    "./deployment/adapter": "./dist/deployment/adapter.js",
-    "./deployment/descriptor": "./dist/deployment/descriptor.js",
-    "./runtime-composition": "./dist/src/runtime-composition.js"
-  },
-  "files": [
-    "dist",
-    "extension",
-    "manifest.json",
-    "deployment/browser-extension.json",
-    "proflow.module.json",
-    "conformance.json",
-    "README.md",
-    "self-install.mjs"
-  ],
-  "scripts": {
-    "test": "node --test tests/**/*.test.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@tomflow/proflow-execution-contracts": "workspace:^"
-  },
-  "devDependencies": {
-    "@tomflow/proflow-deployment-conformance": "workspace:^",
-    "@tomflow/proflow-execution-runtime": "workspace:^",
-    "@tomflow/proflow-module-contract": "workspace:^"
-  },
-  "keywords": [
-    "proflow",
-    "proflow-module",
-    "execution"
-  ],
-  "proflow": {
-    "module": true,
-    "installClass": "core",
-    "installRequires": [
-      "@tomflow/proflow-agent-runtime",
-      "@tomflow/proflow-execution-contracts",
-      "@tomflow/proflow-execution-runtime",
-      "@tomflow/proflow-task-orchestration"
-    ],
-    "descriptor": "./dist/deployment/descriptor.js",
-    "manifest": "./proflow.module.json"
-  },
-  "bin": {
-    "proflow-execution-browser-extension": "./self-install.mjs"
-  }
+	"name": "@tomflow/proflow-execution-browser-extension",
+	"version": "0.1.0",
+	"description": "Execution-owned MV3 Browser executor, evidence provider and browser application surface.",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./dist/src/index.js",
+		"./bridge": "./dist/src/bridge.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js",
+		"./runtime-composition": "./dist/src/runtime-composition.js"
+	},
+	"files": [
+		"dist",
+		"extension",
+		"manifest.json",
+		"deployment/browser-extension.json",
+		"proflow.module.json",
+		"conformance.json",
+		"README.md",
+		"self-install.mjs"
+	],
+	"scripts": {
+		"test": "node --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@tomflow/proflow-execution-contracts": "workspace:^"
+	},
+	"devDependencies": {
+		"@tomflow/proflow-deployment-conformance": "workspace:^",
+		"@tomflow/proflow-execution-runtime": "workspace:^",
+		"@tomflow/proflow-module-contract": "workspace:^"
+	},
+	"keywords": [
+		"proflow",
+		"proflow-module",
+		"execution"
+	],
+	"proflow": {
+		"module": true,
+		"installClass": "core",
+		"installRequires": [
+			"@tomflow/proflow-agent-runtime",
+			"@tomflow/proflow-execution-contracts",
+			"@tomflow/proflow-execution-runtime",
+			"@tomflow/proflow-task-orchestration"
+		],
+		"descriptor": "./dist/deployment/descriptor.js",
+		"manifest": "./proflow.module.json"
+	},
+	"bin": {
+		"proflow-execution-browser-extension": "./self-install.mjs"
+	}
 }

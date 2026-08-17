@@ -7,8 +7,8 @@ import {
 	parseModuleDescriptor,
 } from "@tomflow/proflow-module-contract";
 import { applyPlan } from "./apply/apply.ts";
-import { createWorkspacePackageManagerDriver } from "./apply/driver.ts";
 import { rebuildCurrentAssumptions } from "./apply/current.ts";
+import { createWorkspacePackageManagerDriver } from "./apply/driver.ts";
 import {
 	buildProductionBindings,
 	importRawAdapter,
@@ -19,11 +19,9 @@ import { describeModule, readModuleDocument } from "./docs/docs.ts";
 import { doctorModules } from "./doctor/doctor.ts";
 import { PlatformError } from "./errors.ts";
 import { buildDependencyGraph } from "./graph/graph.ts";
-import { generateInstallDoc } from "./install/install.ts";
+import { selectBootstrapModules } from "./install/bootstrap.ts";
 import { preflightInstallerEnvironment } from "./install/environment.ts";
-import {
-	selectBootstrapModules,
-} from "./install/bootstrap.ts";
+import { generateInstallDoc } from "./install/install.ts";
 import {
 	restartModules,
 	startModules,
@@ -347,7 +345,10 @@ async function handleDocs(
 		const module = selected[0];
 		const descriptor = descriptors[0];
 		if (module === undefined || descriptor === undefined) {
-			throw new PlatformError("COMMAND_FAILED", "docs module selection invariant failed");
+			throw new PlatformError(
+				"COMMAND_FAILED",
+				"docs module selection invariant failed",
+			);
 		}
 		return outcome(
 			"docs",
@@ -366,7 +367,13 @@ async function handleDocs(
 			describeModule({
 				workspaceRoot: ctx.paths.root,
 				source: moduleSourceOf(module),
-				descriptor: descriptors[index]!,
+				descriptor:
+					descriptors[index] ??
+					(() => {
+						throw new Error(
+							`Missing module descriptor for ${module.packageName}`,
+						);
+					})(),
 			}),
 		),
 	);
@@ -393,9 +400,7 @@ async function handleDocs(
 	);
 }
 
-async function handleInstallerPreflight(
-	root: string,
-): Promise<CliOutcome> {
+async function handleInstallerPreflight(root: string): Promise<CliOutcome> {
 	const result = await preflightInstallerEnvironment({ workspaceRoot: root });
 	const status: CliStatus =
 		result.status === "READY"
@@ -458,7 +463,10 @@ async function handlePlan(
 			registry.candidates,
 			args.positional[0],
 		);
-		const plan = planDeployment({ intent: "install", modules: bootstrapModules });
+		const plan = planDeployment({
+			intent: "install",
+			modules: bootstrapModules,
+		});
 		await savePlan(ctx.paths, plan);
 		return outcome("plan", "SUCCEEDED", {
 			planRef: plan.planRef,
@@ -504,7 +512,10 @@ async function handlePlan(
 		}
 		const currentDescriptors = await loadDescriptors(ctx.catalog, modules);
 		const currentByRef = new Map(
-			currentDescriptors.map((descriptor) => [descriptor.moduleRef, descriptor]),
+			currentDescriptors.map((descriptor) => [
+				descriptor.moduleRef,
+				descriptor,
+			]),
 		);
 		const targetByRef = new Map(currentByRef);
 		const targets: { moduleRef: string; targetVersion: string }[] = [];
@@ -628,18 +639,23 @@ async function handleApply(
 	return outcome("apply", status, result);
 }
 
-
 function planRefFromOutcome(result: CliOutcome): string {
 	if (
 		typeof result.data !== "object" ||
 		result.data === null ||
 		Array.isArray(result.data)
 	) {
-		throw new PlatformError("PLAN_INVALID", "planned mutation returned no plan data");
+		throw new PlatformError(
+			"PLAN_INVALID",
+			"planned mutation returned no plan data",
+		);
 	}
 	const planRef = Reflect.get(result.data, "planRef");
 	if (typeof planRef !== "string" || planRef === "") {
-		throw new PlatformError("PLAN_INVALID", "planned mutation returned no planRef");
+		throw new PlatformError(
+			"PLAN_INVALID",
+			"planned mutation returned no planRef",
+		);
 	}
 	return planRef;
 }
@@ -894,7 +910,8 @@ export async function runCli(argv: readonly string[]): Promise<string> {
 			moduleRef: MODULE_REF,
 			moduleVersion: MODULE_VERSION,
 			data: {
-				usage: "platform <command> [module|package] [--workspace <path>] [--json]",
+				usage:
+					"platform <command> [module|package] [--workspace <path>] [--json]",
 				commands: [...COMMANDS],
 			},
 		});

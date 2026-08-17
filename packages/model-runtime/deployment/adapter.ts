@@ -228,47 +228,74 @@ export async function createServiceProcessBinding(input: {
 		"capabilityProfilesFile",
 	] as const;
 	if (!required.every((key) => input.config[key])) return undefined;
+	const capabilityProfilesFile = input.config.capabilityProfilesFile;
+	const transportCredentialFile = input.config.transportCredentialFile;
+	if (!capabilityProfilesFile || !transportCredentialFile) return undefined;
 	const platformHost = input.configByModuleRef.get("platform-host");
 	const executionRuntime = input.configByModuleRef.get("execution-runtime");
 	const advertised = platformHost?.modelBaseUrl;
 	if (!advertised) return undefined;
 	const listener = new URL(advertised);
-	if (listener.protocol !== "http:" || listener.pathname !== "/") return undefined;
+	if (listener.protocol !== "http:" || listener.pathname !== "/")
+		return undefined;
 	const port = listener.port === "" ? 80 : Number(listener.port);
 	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
 	const executionModelEndpoint = executionRuntime?.["modelDecision.endpoint"];
 	if (
 		executionModelEndpoint &&
-		new URL(executionModelEndpoint).href.replace(/\/$/, "") !== listener.href.replace(/\/$/, "")
-	) return undefined;
+		new URL(executionModelEndpoint).href.replace(/\/$/, "") !==
+			listener.href.replace(/\/$/, "")
+	)
+		return undefined;
 	if (input.config.providerCredential) return undefined;
 	const [fs, contracts, processModule] = await Promise.all([
 		import("node:fs/promises"),
 		import("@tomflow/proflow-model-contracts"),
 		import("../src/process.ts"),
 	]);
-	const raw: unknown = JSON.parse(await fs.readFile(input.config.capabilityProfilesFile, "utf8"));
-	if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return undefined;
+	const raw: unknown = JSON.parse(
+		await fs.readFile(capabilityProfilesFile, "utf8"),
+	);
+	if (typeof raw !== "object" || raw === null || Array.isArray(raw))
+		return undefined;
 	const profilesObject = raw as Record<string, unknown>;
-	const fast = contracts.modelCapabilityProfileSchema.parse(profilesObject.fast);
-	const reason = contracts.modelCapabilityProfileSchema.parse(profilesObject.reason);
-	if (fast.modelRef !== input.config.fastModel || reason.modelRef !== input.config.reasonModel) return undefined;
+	const fast = contracts.modelCapabilityProfileSchema.parse(
+		profilesObject.fast,
+	);
+	const reason = contracts.modelCapabilityProfileSchema.parse(
+		profilesObject.reason,
+	);
+	if (
+		fast.modelRef !== input.config.fastModel ||
+		reason.modelRef !== input.config.reasonModel
+	)
+		return undefined;
 	const processConfig = processModule.parseModelRuntimeProcessConfig({
 		host: listener.hostname,
 		port,
 		stateRoot: input.config.stateRoot,
-		transportCredentialFile: input.config.transportCredentialFile,
+		transportCredentialFile,
 		providerBaseUrl: input.config.providerBaseUrl,
 		models: { fast: input.config.fastModel, reason: input.config.reasonModel },
 		profiles: { fast, reason },
 		capabilityFacts: {
-			fast: { contextWindow: fast.contextWindow, maxOutputTokens: fast.maxOutputTokens, basis: "provider-config" },
-			reason: { contextWindow: reason.contextWindow, maxOutputTokens: reason.maxOutputTokens, basis: "provider-config" },
+			fast: {
+				contextWindow: fast.contextWindow,
+				maxOutputTokens: fast.maxOutputTokens,
+				basis: "provider-config",
+			},
+			reason: {
+				contextWindow: reason.contextWindow,
+				maxOutputTokens: reason.maxOutputTokens,
+				basis: "provider-config",
+			},
 		},
 	});
 	const probe = async () => {
 		try {
-			const credential = (await fs.readFile(input.config.transportCredentialFile, "utf8")).trim();
+			const credential = (
+				await fs.readFile(transportCredentialFile, "utf8")
+			).trim();
 			const response = await fetch(new URL("/ready", listener), {
 				headers: { authorization: `Bearer ${credential}` },
 			});
@@ -278,14 +305,38 @@ export async function createServiceProcessBinding(input: {
 		}
 	};
 	const probeAdapter = {
-		describe: () => ({ result: success({ publicApi: ["infer", "getRuntimeStatus"] }), observedEffects: [] }),
+		describe: () => ({
+			result: success({ publicApi: ["infer", "getRuntimeStatus"] }),
+			observedEffects: [],
+		}),
 		preflight: () => ({ result: success(), observedEffects: [] }),
 		verify: async () => {
 			const ready = await probe();
 			return {
 				result: ready
-					? { ...success(), checks: [{ id: "model-runtime-ready", status: "PASS" as const, message: "Managed Model Runtime /ready probe passed" }] }
-					: { ...actionRequired("repair-model-runtime", "Managed Model Runtime /ready probe failed"), checks: [{ id: "model-runtime-ready", status: "FAIL" as const, message: "Managed Model Runtime /ready probe failed" }] },
+					? {
+							...success(),
+							checks: [
+								{
+									id: "model-runtime-ready",
+									status: "PASS" as const,
+									message: "Managed Model Runtime /ready probe passed",
+								},
+							],
+						}
+					: {
+							...actionRequired(
+								"repair-model-runtime",
+								"Managed Model Runtime /ready probe failed",
+							),
+							checks: [
+								{
+									id: "model-runtime-ready",
+									status: "FAIL" as const,
+									message: "Managed Model Runtime /ready probe failed",
+								},
+							],
+						},
 				observedEffects: [],
 			};
 		},

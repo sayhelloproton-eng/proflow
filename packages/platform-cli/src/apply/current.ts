@@ -12,7 +12,9 @@ import { diagnoseRepair } from "../planner/repair.ts";
 
 function moduleSourceOf(module: ResolvedModule): ModuleSource {
 	if (module.source.type === "registry") {
-		throw new Error(`registry bootstrap target ${module.packageName} has no local descriptor`);
+		throw new Error(
+			`registry bootstrap target ${module.packageName} has no local descriptor`,
+		);
 	}
 	const source: ModuleSource = {
 		type: module.source.type,

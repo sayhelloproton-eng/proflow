@@ -13,7 +13,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "deployment-governance",
-		summary: "Governs and probes the configured OpenAI-compatible model provider API as an external resource.",
+		summary:
+			"Governs and probes the configured OpenAI-compatible model provider API as an external resource.",
 	},
 	provides: [{ contractRef: "model.provider.api", version: "1.0.0" }],
 	requires: [],
@@ -71,6 +72,10 @@ export const descriptor = {
 		},
 	],
 	documentation: [
-		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Package-owned module overview",
+		},
 	],
 } as const;

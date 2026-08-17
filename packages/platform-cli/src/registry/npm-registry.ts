@@ -6,10 +6,10 @@ import { promisify } from "node:util";
 import { gunzipSync } from "node:zlib";
 
 import {
-	parseModuleDescriptor,
-	proflowPackageMetadataSchema,
 	type ModuleDescriptor,
 	type ModuleInstallClass,
+	parseModuleDescriptor,
+	proflowPackageMetadataSchema,
 } from "@tomflow/proflow-module-contract";
 
 import { PlatformError } from "../errors.ts";
@@ -99,7 +99,10 @@ export async function resolveScopeRegistry(
 	);
 	const scopedValue = normalizeConfigValue(scoped.stdout);
 	if (scopedValue !== undefined) return scopedValue;
-	const fallback = await runner.run(["config", "get", "registry"], workspaceRoot);
+	const fallback = await runner.run(
+		["config", "get", "registry"],
+		workspaceRoot,
+	);
 	const registry = normalizeConfigValue(fallback.stdout);
 	if (registry === undefined) {
 		throw new PlatformError(
@@ -142,7 +145,9 @@ export async function discoverRegistryModules(options: {
 	candidates.sort((left, right) =>
 		left.packageName.localeCompare(right.packageName),
 	);
-	rejected.sort((left, right) => left.packageName.localeCompare(right.packageName));
+	rejected.sort((left, right) =>
+		left.packageName.localeCompare(right.packageName),
+	);
 	return { registry, candidates, rejected };
 }
 
@@ -170,7 +175,10 @@ export async function loadRegistryModuleDescriptor(options: {
 		const manifestPath = `package/${options.candidate.manifest.replace(/^\.\//, "")}`;
 		const rawManifest = readTarEntry(archive, manifestPath);
 		const descriptor = parseModuleDescriptor(
-			parseJson(rawManifest.toString("utf8"), `${options.candidate.packageName} module manifest`),
+			parseJson(
+				rawManifest.toString("utf8"),
+				`${options.candidate.packageName} module manifest`,
+			),
 		);
 		if (
 			descriptor.packageName !== options.candidate.packageName ||
@@ -215,7 +223,10 @@ function readTarEntry(tgz: Buffer, targetName: string): Buffer {
 	try {
 		tar = gunzipSync(tgz);
 	} catch {
-		throw new PlatformError("REGISTRY_RESPONSE_INVALID", "npm package tarball is not valid gzip");
+		throw new PlatformError(
+			"REGISTRY_RESPONSE_INVALID",
+			"npm package tarball is not valid gzip",
+		);
 	}
 	for (let offset = 0; offset + 512 <= tar.length; ) {
 		const header = tar.subarray(offset, offset + 512);
@@ -226,16 +237,25 @@ function readTarEntry(tgz: Buffer, targetName: string): Buffer {
 		const sizeRaw = tarString(header, 124, 12).trim();
 		const size = sizeRaw === "" ? 0 : Number.parseInt(sizeRaw, 8);
 		if (!Number.isSafeInteger(size) || size < 0) {
-			throw new PlatformError("REGISTRY_RESPONSE_INVALID", "npm package tarball has an invalid entry size");
+			throw new PlatformError(
+				"REGISTRY_RESPONSE_INVALID",
+				"npm package tarball has an invalid entry size",
+			);
 		}
 		const dataStart = offset + 512;
 		const dataEnd = dataStart + size;
 		if (dataEnd > tar.length) {
-			throw new PlatformError("REGISTRY_RESPONSE_INVALID", "npm package tarball is truncated");
+			throw new PlatformError(
+				"REGISTRY_RESPONSE_INVALID",
+				"npm package tarball is truncated",
+			);
 		}
 		if (entryName === targetName) {
 			if (size > 1024 * 1024) {
-				throw new PlatformError("REGISTRY_RESPONSE_INVALID", "ProFlow module manifest exceeds 1 MiB");
+				throw new PlatformError(
+					"REGISTRY_RESPONSE_INVALID",
+					"ProFlow module manifest exceeds 1 MiB",
+				);
 			}
 			return tar.subarray(dataStart, dataEnd);
 		}
@@ -267,17 +287,21 @@ export async function discoverRegistryInstallClosure(options: {
 	let registry: string | undefined;
 
 	while (queue.length > 0) {
-		const packageName = queue.shift()!;
+		const packageName = queue.shift();
+		if (!packageName) continue;
 		if (seen.has(packageName)) continue;
 		seen.add(packageName);
 		const discovered = await discoverRegistryModules({
 			workspaceRoot: options.workspaceRoot,
 			packageName,
 			runner,
-			...(options.nodeVersion === undefined ? {} : { nodeVersion: options.nodeVersion }),
+			...(options.nodeVersion === undefined
+				? {}
+				: { nodeVersion: options.nodeVersion }),
 		});
 		registry ??= discovered.registry;
-		for (const item of discovered.rejected) rejected.set(item.packageName, item);
+		for (const item of discovered.rejected)
+			rejected.set(item.packageName, item);
 		const candidate = discovered.candidates[0];
 		if (candidate === undefined) {
 			throw new PlatformError(
@@ -296,8 +320,12 @@ export async function discoverRegistryInstallClosure(options: {
 	}
 	return {
 		registry,
-		candidates: [...candidates.values()].sort((a, b) => a.packageName.localeCompare(b.packageName)),
-		rejected: [...rejected.values()].sort((a, b) => a.packageName.localeCompare(b.packageName)),
+		candidates: [...candidates.values()].sort((a, b) =>
+			a.packageName.localeCompare(b.packageName),
+		),
+		rejected: [...rejected.values()].sort((a, b) =>
+			a.packageName.localeCompare(b.packageName),
+		),
 	};
 }
 
@@ -340,7 +368,13 @@ async function viewManifest(
 	runner: NpmCommandRunner,
 ): Promise<NpmViewManifest> {
 	const result = await runner.run(
-		["view", packageName, "--json", "--prefer-online", `--registry=${registry}`],
+		[
+			"view",
+			packageName,
+			"--json",
+			"--prefer-online",
+			`--registry=${registry}`,
+		],
 		workspaceRoot,
 	);
 	const parsed = parseJson(result.stdout, `npm view ${packageName}`);
@@ -357,16 +391,33 @@ function assessManifest(
 	manifest: NpmViewManifest,
 	registry: string,
 	nodeVersion: string,
-): { candidate: RegistryModuleCandidate } | { rejected: RegistryRejectedPackage } {
-	if (typeof manifest.name !== "string" || !manifest.name.startsWith(PRO_FLOW_PACKAGE_PREFIX)) {
-		return rejectedManifest(manifest, "NOT_PROFLOW_MODULE", "package name is outside the ProFlow scope prefix");
+):
+	| { candidate: RegistryModuleCandidate }
+	| { rejected: RegistryRejectedPackage } {
+	if (
+		typeof manifest.name !== "string" ||
+		!manifest.name.startsWith(PRO_FLOW_PACKAGE_PREFIX)
+	) {
+		return rejectedManifest(
+			manifest,
+			"NOT_PROFLOW_MODULE",
+			"package name is outside the ProFlow scope prefix",
+		);
 	}
 	const packageName = manifest.name;
-	const moduleVersion = typeof manifest.version === "string" ? manifest.version : undefined;
+	const moduleVersion =
+		typeof manifest.version === "string" ? manifest.version : undefined;
 	if (moduleVersion === undefined) {
-		return rejectedManifest(manifest, "METADATA_INVALID", "package version is missing");
+		return rejectedManifest(
+			manifest,
+			"METADATA_INVALID",
+			"package version is missing",
+		);
 	}
-	if (typeof manifest.deprecated === "string" && manifest.deprecated.trim() !== "") {
+	if (
+		typeof manifest.deprecated === "string" &&
+		manifest.deprecated.trim() !== ""
+	) {
 		return {
 			rejected: {
 				packageName,
@@ -383,7 +434,8 @@ function assessManifest(
 				packageName,
 				moduleVersion,
 				reason: "METADATA_INVALID",
-				message: "package.json.proflow does not satisfy the ProFlow Module Contract",
+				message:
+					"package.json.proflow does not satisfy the ProFlow Module Contract",
 			},
 		};
 	}
@@ -491,6 +543,7 @@ function npmFailure(error: unknown): PlatformError {
 function npmErrorText(error: unknown): string {
 	if (!isRecord(error)) return String(error);
 	const stderr = typeof error.stderr === "string" ? error.stderr.trim() : "";
-	const message = typeof error.message === "string" ? error.message : String(error);
+	const message =
+		typeof error.message === "string" ? error.message : String(error);
 	return stderr === "" ? message : stderr;
 }

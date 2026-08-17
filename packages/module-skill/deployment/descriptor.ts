@@ -12,7 +12,8 @@ export const descriptor = parseModuleDescriptor({
 	installClass: "core",
 	identity: {
 		domain: "deployment-governance",
-		summary: "Guides AI through standard ProFlow module creation and maintenance.",
+		summary:
+			"Guides AI through standard ProFlow module creation and maintenance.",
 	},
 	provides: [],
 	requires: [],

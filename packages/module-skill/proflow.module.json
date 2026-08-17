@@ -1,52 +1,50 @@
 {
-  "contract": "module",
-  "contractVersion": "1.0.0",
-  "moduleRef": "module-skill",
-  "packageName": "@tomflow/proflow-module-skill",
-  "moduleVersion": "0.1.0",
-  "kind": "library",
-  "templateVersion": "1.0.0",
-  "platformCompatibility": ">=1.0.0 <2.0.0",
-  "installClass": "core",
-  "identity": {
-    "domain": "deployment-governance",
-    "summary": "Guides AI through standard ProFlow module creation and maintenance."
-  },
-  "provides": [],
-  "requires": [],
-  "requirements": [
-    {
-      "kind": "runtime",
-      "runtime": "node",
-      "versionRange": ">=24.19.0"
-    }
-  ],
-  "configSlots": [],
-  "lifecycle": {
-    "supported": [
-      "verify"
-    ]
-  },
-  "verification": {
-    "checks": [
-      {
-        "id": "skill-policy-verify",
-        "description": "SKILL.md exists and declares frozen-fact-only stop rules",
-        "lifecycle": "verify"
-      }
-    ]
-  },
-  "effects": [],
-  "documentation": [
-    {
-      "id": "overview",
-      "path": "./README.md",
-      "description": "Module skill package overview"
-    },
-    {
-      "id": "skill",
-      "path": "./SKILL.md",
-      "description": "AI module creation and maintenance workflow"
-    }
-  ]
+	"contract": "module",
+	"contractVersion": "1.0.0",
+	"moduleRef": "module-skill",
+	"packageName": "@tomflow/proflow-module-skill",
+	"moduleVersion": "0.1.0",
+	"kind": "library",
+	"templateVersion": "1.0.0",
+	"platformCompatibility": ">=1.0.0 <2.0.0",
+	"installClass": "core",
+	"identity": {
+		"domain": "deployment-governance",
+		"summary": "Guides AI through standard ProFlow module creation and maintenance."
+	},
+	"provides": [],
+	"requires": [],
+	"requirements": [
+		{
+			"kind": "runtime",
+			"runtime": "node",
+			"versionRange": ">=24.19.0"
+		}
+	],
+	"configSlots": [],
+	"lifecycle": {
+		"supported": ["verify"]
+	},
+	"verification": {
+		"checks": [
+			{
+				"id": "skill-policy-verify",
+				"description": "SKILL.md exists and declares frozen-fact-only stop rules",
+				"lifecycle": "verify"
+			}
+		]
+	},
+	"effects": [],
+	"documentation": [
+		{
+			"id": "overview",
+			"path": "./README.md",
+			"description": "Module skill package overview"
+		},
+		{
+			"id": "skill",
+			"path": "./SKILL.md",
+			"description": "AI module creation and maintenance workflow"
+		}
+	]
 }

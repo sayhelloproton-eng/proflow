@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "execution",
-		summary: "Durable, policy-controlled Execution Core orchestration over SQLite and controlled executor ports.",
+		summary:
+			"Durable, policy-controlled Execution Core orchestration over SQLite and controlled executor ports.",
 	},
 	provides: [{ contractRef: "execution", version: "1.0.0" }],
 	requires: [
@@ -119,6 +120,10 @@ export const descriptor = {
 		},
 	],
 	documentation: [
-		{ id: "overview", path: "./README.md", description: "Execution Runtime package overview" },
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Execution Runtime package overview",
+		},
 	],
 } as const;

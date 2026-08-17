@@ -306,7 +306,52 @@ function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
 	switch (descriptor.kind) {
 		case "service":
 			return {
-				"src/cli.ts": `#!/usr/bin/env node\nimport { spawnSync } from "node:child_process";\n\nconst [command, configPath, ...rest] = process.argv.slice(2);\nconst usage = "Usage: ${descriptor.packageName} install | start /absolute/config.json\n";\nif (command === "--help" || command === "-h") {\n\tprocess.stdout.write(usage);\n\tprocess.exit(0);\n}\nif (command === "install") {\n\tif (configPath !== undefined || rest.length > 0) {\n\t\tprocess.stderr.write(usage);\n\t\tprocess.exit(2);\n\t}\n\tconst executable = process.platform === "win32" ? "npx.cmd" : "npx";\n\tconst result = spawnSync(executable, ["--yes", "@tomflow/proflow-platform-cli", "install", ${JSON.stringify(descriptor.packageName)}], { cwd: process.cwd(), env: process.env, stdio: "inherit" });\n\tif (result.error) throw result.error;\n\tprocess.exit(result.status ?? 1);\n}\nif (command !== "start" || configPath === undefined || rest.length > 0) {\n\tprocess.stderr.write(usage);\n\tprocess.exit(2);\n}\nthrow new Error("OWNER_IMPLEMENTATION_REQUIRED: implement the package-owned service process entrypoint before start is allowed");\n`,
+				"src/cli.ts": `#!/usr/bin/env node
+import { spawnSync } from "node:child_process";
+
+function main(): void {
+	const [command, configPath, ...rest] = process.argv.slice(2);
+	const usage = "Usage: ${descriptor.packageName} install | start /absolute/config.json\\n";
+
+	if (command === "--help" || command === "-h") {
+		process.stdout.write(usage);
+		return;
+	}
+
+	if (command === "install") {
+		if (configPath !== undefined || rest.length > 0) {
+			process.stderr.write(usage);
+			process.exit(2);
+		}
+		const executable = process.platform === "win32" ? "npx.cmd" : "npx";
+		const result = spawnSync(
+			executable,
+			[
+				"--yes",
+				"@tomflow/proflow-platform-cli",
+				"install",
+				${JSON.stringify(descriptor.packageName)},
+			],
+			{ cwd: process.cwd(), env: process.env, stdio: "inherit" },
+		);
+		if (result.error) throw result.error;
+		process.exit(result.status ?? 1);
+	}
+
+	if (command !== "start" || configPath === undefined || rest.length > 0) {
+		process.stderr.write(usage);
+		process.exit(2);
+	}
+
+	throw new Error(
+		"OWNER_IMPLEMENTATION_REQUIRED: implement the package-owned service process entrypoint before start is allowed",
+	);
+}
+
+if (import.meta.main) {
+	main();
+}
+`,
 			};
 
 		case "cli":

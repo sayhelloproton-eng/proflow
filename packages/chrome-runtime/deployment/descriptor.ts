@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "deployment-governance",
-		summary: "Observes the real Chrome runtime and MV3 extension load prerequisite.",
+		summary:
+			"Observes the real Chrome runtime and MV3 extension load prerequisite.",
 	},
 	provides: [],
 	requires: [],
@@ -66,6 +67,10 @@ export const descriptor = {
 		},
 	],
 	documentation: [
-		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Package-owned module overview",
+		},
 	],
 } as const;

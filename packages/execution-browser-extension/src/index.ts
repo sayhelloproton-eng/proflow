@@ -9,7 +9,6 @@ import {
 	type ExecutionExecutorPort,
 	type ExecutorPrecondition,
 	executeCapabilityRequestSchema,
-	parseExecutionRecord,
 } from "@tomflow/proflow-execution-contracts";
 import type {
 	BrowserVisionImage,

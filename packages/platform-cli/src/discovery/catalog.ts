@@ -29,7 +29,8 @@ export class WorkspaceModuleCatalog implements ModuleCatalog {
 			const packageJson = await readPackageJson(directory);
 			if (packageJson.name === undefined) continue;
 			if (!packageJson.name.startsWith("@tomflow/proflow-")) continue;
-			if (!proflowPackageMetadataSchema.safeParse(packageJson.proflow).success) continue;
+			if (!proflowPackageMetadataSchema.safeParse(packageJson.proflow).success)
+				continue;
 			sources.push({
 				type: "workspace",
 				packageName: packageJson.name,

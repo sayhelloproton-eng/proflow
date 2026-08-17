@@ -1,139 +1,139 @@
 {
-  "contract": "module",
-  "contractVersion": "1.0.0",
-  "moduleRef": "execution-runtime",
-  "packageName": "@tomflow/proflow-execution-runtime",
-  "moduleVersion": "0.1.0",
-  "kind": "service",
-  "templateVersion": "1.0.0",
-  "platformCompatibility": ">=1.0.0 <2.0.0",
-  "installClass": "core",
-  "identity": {
-    "domain": "execution",
-    "summary": "Durable, policy-controlled Execution Core orchestration over SQLite and controlled executor ports."
-  },
-  "provides": [
-    {
-      "contractRef": "execution",
-      "version": "1.0.0"
-    }
-  ],
-  "requires": [
-    {
-      "contractRef": "execution-local",
-      "versionRange": ">=1.0.0 <2.0.0"
-    }
-  ],
-  "requirements": [
-    {
-      "kind": "runtime",
-      "runtime": "node",
-      "versionRange": ">=24.19.0"
-    },
-    {
-      "kind": "filesystem",
-      "path": ".proflow",
-      "access": "read-write"
-    }
-  ],
-  "configSlots": [
-    {
-      "key": "databasePath",
-      "type": "path",
-      "required": true,
-      "description": "Execution SQLite database"
-    },
-    {
-      "key": "projectRoot",
-      "type": "path",
-      "required": true,
-      "description": "Canonical project boundary consumed by the local executor"
-    },
-    {
-      "key": "artifactRoot",
-      "type": "path",
-      "required": true,
-      "description": "Execution-owned Artifact/Evidence filesystem root"
-    },
-    {
-      "key": "browserExecutorConfigPath",
-      "type": "path",
-      "required": true,
-      "description": "Absolute configuration path for the formal Browser Reality Bridge composition"
-    },
-    {
-      "key": "transportCredentialFile",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the Execution Runtime transport credential"
-    },
-    {
-      "key": "identity.endpoint",
-      "type": "url",
-      "required": true,
-      "description": "Loopback platform-host execution identity endpoint"
-    },
-    {
-      "key": "identity.tokenFile",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the Execution-to-platform-host identity transport credential"
-    },
-    {
-      "key": "modelDecision.endpoint",
-      "type": "url",
-      "required": true,
-      "description": "Loopback Model Runtime endpoint used by execution.command-risk.v1"
-    },
-    {
-      "key": "modelDecision.credentialFile",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the Execution-to-Model transport credential"
-    }
-  ],
-  "lifecycle": {
-    "supported": [
-      "describe",
-      "preflight",
-      "status",
-      "verify",
-      "doctor",
-      "start",
-      "stop",
-      "restart",
-      "uninstall"
-    ]
-  },
-  "verification": {
-    "checks": [
-      {
-        "id": "execution-runtime-critical-proofs",
-        "description": "Execution Runtime critical proofs pass",
-        "lifecycle": "verify"
-      }
-    ]
-  },
-  "effects": [
-    {
-      "kind": "process",
-      "description": "Runs the single backend Execution Runtime service",
-      "retention": "remove"
-    },
-    {
-      "kind": "filesystem",
-      "description": "Persists execution state, output references and evidence in WAL SQLite",
-      "retention": "preserve"
-    }
-  ],
-  "documentation": [
-    {
-      "id": "overview",
-      "path": "./README.md",
-      "description": "Execution Runtime package overview"
-    }
-  ]
+	"contract": "module",
+	"contractVersion": "1.0.0",
+	"moduleRef": "execution-runtime",
+	"packageName": "@tomflow/proflow-execution-runtime",
+	"moduleVersion": "0.1.0",
+	"kind": "service",
+	"templateVersion": "1.0.0",
+	"platformCompatibility": ">=1.0.0 <2.0.0",
+	"installClass": "core",
+	"identity": {
+		"domain": "execution",
+		"summary": "Durable, policy-controlled Execution Core orchestration over SQLite and controlled executor ports."
+	},
+	"provides": [
+		{
+			"contractRef": "execution",
+			"version": "1.0.0"
+		}
+	],
+	"requires": [
+		{
+			"contractRef": "execution-local",
+			"versionRange": ">=1.0.0 <2.0.0"
+		}
+	],
+	"requirements": [
+		{
+			"kind": "runtime",
+			"runtime": "node",
+			"versionRange": ">=24.19.0"
+		},
+		{
+			"kind": "filesystem",
+			"path": ".proflow",
+			"access": "read-write"
+		}
+	],
+	"configSlots": [
+		{
+			"key": "databasePath",
+			"type": "path",
+			"required": true,
+			"description": "Execution SQLite database"
+		},
+		{
+			"key": "projectRoot",
+			"type": "path",
+			"required": true,
+			"description": "Canonical project boundary consumed by the local executor"
+		},
+		{
+			"key": "artifactRoot",
+			"type": "path",
+			"required": true,
+			"description": "Execution-owned Artifact/Evidence filesystem root"
+		},
+		{
+			"key": "browserExecutorConfigPath",
+			"type": "path",
+			"required": true,
+			"description": "Absolute configuration path for the formal Browser Reality Bridge composition"
+		},
+		{
+			"key": "transportCredentialFile",
+			"type": "path",
+			"required": true,
+			"sensitive": true,
+			"description": "File containing the Execution Runtime transport credential"
+		},
+		{
+			"key": "identity.endpoint",
+			"type": "url",
+			"required": true,
+			"description": "Loopback platform-host execution identity endpoint"
+		},
+		{
+			"key": "identity.tokenFile",
+			"type": "path",
+			"required": true,
+			"sensitive": true,
+			"description": "File containing the Execution-to-platform-host identity transport credential"
+		},
+		{
+			"key": "modelDecision.endpoint",
+			"type": "url",
+			"required": true,
+			"description": "Loopback Model Runtime endpoint used by execution.command-risk.v1"
+		},
+		{
+			"key": "modelDecision.credentialFile",
+			"type": "path",
+			"required": true,
+			"sensitive": true,
+			"description": "File containing the Execution-to-Model transport credential"
+		}
+	],
+	"lifecycle": {
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor",
+			"start",
+			"stop",
+			"restart",
+			"uninstall"
+		]
+	},
+	"verification": {
+		"checks": [
+			{
+				"id": "execution-runtime-critical-proofs",
+				"description": "Execution Runtime critical proofs pass",
+				"lifecycle": "verify"
+			}
+		]
+	},
+	"effects": [
+		{
+			"kind": "process",
+			"description": "Runs the single backend Execution Runtime service",
+			"retention": "remove"
+		},
+		{
+			"kind": "filesystem",
+			"description": "Persists execution state, output references and evidence in WAL SQLite",
+			"retention": "preserve"
+		}
+	],
+	"documentation": [
+		{
+			"id": "overview",
+			"path": "./README.md",
+			"description": "Execution Runtime package overview"
+		}
+	]
 }

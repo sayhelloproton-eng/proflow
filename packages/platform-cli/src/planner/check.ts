@@ -59,7 +59,9 @@ export function evaluateStepCheck(
 		case CheckStrategy.packageAbsent:
 			return reality.installedVersion === undefined
 				? satisfied(`${step.moduleRef} package is absent`)
-				: notSatisfied(`${step.moduleRef} package is still installed at ${reality.installedVersion}`);
+				: notSatisfied(
+						`${step.moduleRef} package is still installed at ${reality.installedVersion}`,
+					);
 		case CheckStrategy.configMaterialized:
 			return checkConfig(step, plan, reality);
 		case CheckStrategy.lifecycleRunning:

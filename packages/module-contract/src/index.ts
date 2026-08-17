@@ -259,11 +259,14 @@ export const moduleDescriptorSchema = z
 		documentation: z.array(moduleDocumentationEntrySchema),
 	})
 	.superRefine((descriptor, context) => {
-		const expectedModuleRef = descriptor.packageName.slice("@tomflow/proflow-".length);
+		const expectedModuleRef = descriptor.packageName.slice(
+			"@tomflow/proflow-".length,
+		);
 		if (descriptor.moduleRef !== expectedModuleRef) {
 			context.addIssue({
 				code: "custom",
-				message: "moduleRef must equal the @tomflow/proflow-* package-name suffix",
+				message:
+					"moduleRef must equal the @tomflow/proflow-* package-name suffix",
 				path: ["moduleRef"],
 			});
 		}

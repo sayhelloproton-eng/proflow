@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "task-orchestration",
-		summary: "Deterministically discovers, applies and verifies Task Store SQLite schema migrations.",
+		summary:
+			"Deterministically discovers, applies and verifies Task Store SQLite schema migrations.",
 	},
 	provides: [],
 	requires: [],
@@ -52,6 +53,10 @@ export const descriptor = {
 		},
 	],
 	documentation: [
-		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Package-owned module overview",
+		},
 	],
 } as const;

@@ -254,7 +254,7 @@ test("CP-TASK-ORCH-03 TaskRoleBinding is stable/idempotent and startNode resolve
 		}),
 	);
 	const versions = nodeVersion(services, active.taskId, `${active.taskId}-dev`);
-	const started = ok(
+	ok(
 		services.commands.startNode({
 			taskId: active.taskId,
 			nodeId: `${active.taskId}-dev`,
@@ -808,7 +808,7 @@ test("PRESMOKE-B6-TASK-02 a TERMINATED Task is rejected by reopenNode with zero 
 		services.commands.createTask(taskInput("task-terminated")),
 	);
 	const boundVersion = await bindAll(services, created.taskId, created.version);
-	const started = ok(
+	const _started = ok(
 		services.commands.startTask({
 			taskId: created.taskId,
 			expectedTaskVersion: boundVersion,

@@ -1,20 +1,20 @@
-import { access, readFile, stat } from "node:fs/promises";
 import { constants } from "node:fs";
+import { access, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import { PlatformError } from "../errors.ts";
 import { versionSatisfies } from "../modules.ts";
 import {
-	findExecutable,
-	readWorkspacePackageManagerSelection,
-	systemPackageCommandRunner,
-	type SupportedWorkspacePackageManager,
-} from "./package-manager.ts";
-import {
+	type NpmCommandRunner,
 	resolveScopeRegistry,
 	systemNpmRunner,
-	type NpmCommandRunner,
 } from "../registry/index.ts";
+import {
+	findExecutable,
+	readWorkspacePackageManagerSelection,
+	type SupportedWorkspacePackageManager,
+	systemPackageCommandRunner,
+} from "./package-manager.ts";
 
 export const PLATFORM_INSTALL_NODE_RANGE = ">=24.19.0";
 
@@ -92,7 +92,9 @@ export async function preflightInstallerEnvironment(options: {
 		}
 	}
 
-	const packageManager = await readWorkspacePackageManagerSelection(options.workspaceRoot);
+	const packageManager = await readWorkspacePackageManagerSelection(
+		options.workspaceRoot,
+	);
 	let packageManagerVersion: string | undefined;
 	if (packageManager === undefined) {
 		findings.push({
@@ -109,7 +111,13 @@ export async function preflightInstallerEnvironment(options: {
 			});
 		} else {
 			try {
-				const result = (await systemPackageCommandRunner().run("pnpm", ["--version"], options.workspaceRoot)).trim();
+				const result = (
+					await systemPackageCommandRunner().run(
+						"pnpm",
+						["--version"],
+						options.workspaceRoot,
+					)
+				).trim();
 				packageManagerVersion = result;
 				findings.push({
 					code: "PNPM_READY",
@@ -167,7 +175,9 @@ export async function preflightInstallerEnvironment(options: {
 			: {
 					packageManager: {
 						...packageManager,
-						...(packageManagerVersion === undefined ? {} : { version: packageManagerVersion }),
+						...(packageManagerVersion === undefined
+							? {}
+							: { version: packageManagerVersion }),
 					},
 				}),
 		...(registry === undefined ? {} : { registry }),
@@ -215,7 +225,8 @@ async function inspectWorkspace(workspaceRoot: string): Promise<{
 	try {
 		const raw = await readFile(manifestPath, "utf8");
 		const parsed: unknown = JSON.parse(raw);
-		if (!isRecord(parsed)) throw new Error("package.json root is not an object");
+		if (!isRecord(parsed))
+			throw new Error("package.json root is not an object");
 		const manifest = parsed as WorkspacePackageJson;
 		findings.push({
 			code: "PACKAGE_JSON_READY",
@@ -233,7 +244,8 @@ async function inspectWorkspace(workspaceRoot: string): Promise<{
 			findings.push({
 				code: "PACKAGE_JSON_CREATABLE",
 				severity: "info",
-				message: "workspace has no package.json; installer may create one before the first package mutation",
+				message:
+					"workspace has no package.json; installer may create one before the first package mutation",
 			});
 			return { findings };
 		}
@@ -249,7 +261,8 @@ async function inspectWorkspace(workspaceRoot: string): Promise<{
 function aggregateInstallerStatus(
 	findings: readonly InstallerFinding[],
 ): InstallerPreflightStatus {
-	if (findings.some((finding) => finding.severity === "error")) return "BLOCKED";
+	if (findings.some((finding) => finding.severity === "error"))
+		return "BLOCKED";
 	if (findings.some((finding) => finding.severity === "action")) {
 		return "ACTION_REQUIRED";
 	}

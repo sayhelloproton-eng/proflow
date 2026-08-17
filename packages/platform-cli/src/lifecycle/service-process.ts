@@ -7,13 +7,13 @@ import { promisify } from "node:util";
 
 import {
 	type ModuleOperationResult,
-	serviceProcessBindingSchema,
 	type ServiceProcessBinding,
+	serviceProcessBindingSchema,
 } from "@tomflow/proflow-module-contract";
 
 import type { ResolvedModule } from "../contracts.ts";
-import { writeJsonAtomic } from "../persistence/atomic.ts";
 import type { WorkspacePaths } from "../paths.ts";
+import { writeJsonAtomic } from "../persistence/atomic.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -60,7 +60,10 @@ function actionRequired(
 	};
 }
 
-function failed(module: ResolvedModule, message: string): ModuleOperationResult {
+function failed(
+	module: ResolvedModule,
+	message: string,
+): ModuleOperationResult {
 	return {
 		...base(module),
 		ok: false,
@@ -82,7 +85,9 @@ async function readRecord(
 	moduleRef: string,
 ): Promise<ManagedServiceRecord | undefined> {
 	try {
-		const raw = JSON.parse(await readFile(recordPath(paths, moduleRef), "utf8")) as unknown;
+		const raw = JSON.parse(
+			await readFile(recordPath(paths, moduleRef), "utf8"),
+		) as unknown;
 		if (typeof raw !== "object" || raw === null) return undefined;
 		const value = raw as Partial<ManagedServiceRecord>;
 		if (
@@ -96,7 +101,8 @@ async function readRecord(
 			typeof value.stdoutPath !== "string" ||
 			typeof value.stderrPath !== "string" ||
 			typeof value.startedAt !== "string"
-		) return undefined;
+		)
+			return undefined;
 		return value as ManagedServiceRecord;
 	} catch {
 		return undefined;
@@ -152,13 +158,19 @@ async function isOwnedProcess(record: ManagedServiceRecord): Promise<boolean> {
 			);
 			commandLine = result.stdout;
 		}
-		return commandLine.includes(record.binPath) && commandLine.includes(record.configPath);
+		return (
+			commandLine.includes(record.binPath) &&
+			commandLine.includes(record.configPath)
+		);
 	} catch {
 		return false;
 	}
 }
 
-async function removeRecord(paths: WorkspacePaths, moduleRef: string): Promise<void> {
+async function removeRecord(
+	paths: WorkspacePaths,
+	moduleRef: string,
+): Promise<void> {
 	await rm(recordPath(paths, moduleRef), { force: true });
 }
 
@@ -167,24 +179,36 @@ async function resolvePackageRoot(
 	module: ResolvedModule,
 ): Promise<string> {
 	if (module.source.type === "workspace") {
-		if (!module.source.path) throw new Error(`workspace source missing path for ${module.packageName}`);
+		if (!module.source.path)
+			throw new Error(
+				`workspace source missing path for ${module.packageName}`,
+			);
 		return module.source.path;
 	}
 	if (module.source.type !== "installed") {
-		throw new Error(`registry bootstrap target ${module.packageName} has no local package root`);
+		throw new Error(
+			`registry bootstrap target ${module.packageName} has no local package root`,
+		);
 	}
-	const require = createRequire(pathToFileURL(join(workspaceRoot, "package.json")));
-	const artifact = require.resolve(`${module.packageName}/deployment/descriptor`);
+	const require = createRequire(
+		pathToFileURL(join(workspaceRoot, "package.json")),
+	);
+	const artifact = require.resolve(
+		`${module.packageName}/deployment/descriptor`,
+	);
 	let current = dirname(artifact);
 	for (;;) {
 		try {
-			const parsed = JSON.parse(await readFile(join(current, "package.json"), "utf8")) as { name?: unknown };
+			const parsed = JSON.parse(
+				await readFile(join(current, "package.json"), "utf8"),
+			) as { name?: unknown };
 			if (parsed.name === module.packageName) return current;
 		} catch {
 			// keep walking upward
 		}
 		const parent = dirname(current);
-		if (parent === current) throw new Error(`package root not found for ${module.packageName}`);
+		if (parent === current)
+			throw new Error(`package root not found for ${module.packageName}`);
 		current = parent;
 	}
 }
@@ -195,14 +219,23 @@ async function resolveOwnedBin(
 	binding: ServiceProcessBinding,
 ): Promise<string> {
 	const packageRoot = await resolvePackageRoot(workspaceRoot, module);
-	const manifest = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")) as {
+	const manifest = JSON.parse(
+		await readFile(join(packageRoot, "package.json"), "utf8"),
+	) as {
 		bin?: string | Record<string, string>;
 	};
-	const relative = typeof manifest.bin === "string" ? manifest.bin : manifest.bin?.[binding.bin];
-	if (typeof relative !== "string") throw new Error(`package ${module.packageName} does not own bin ${binding.bin}`);
+	const relative =
+		typeof manifest.bin === "string"
+			? manifest.bin
+			: manifest.bin?.[binding.bin];
+	if (typeof relative !== "string")
+		throw new Error(
+			`package ${module.packageName} does not own bin ${binding.bin}`,
+		);
 	const target = resolve(packageRoot, relative);
 	const root = resolve(packageRoot);
-	if (target !== root && !target.startsWith(`${root}/`)) throw new Error(`service bin escapes package root: ${relative}`);
+	if (target !== root && !target.startsWith(`${root}/`))
+		throw new Error(`service bin escapes package root: ${relative}`);
 	return target;
 }
 
@@ -214,15 +247,27 @@ export async function managedServiceStatus(
 	if (!record || !(await isOwnedProcess(record))) {
 		if (record) await removeRecord(paths, module.moduleRef);
 		return {
-			result: actionRequired(module, "start-service", "Service process is not running", [
-				{ id: "service-process-live", status: "FAIL", message: "No live managed service process" },
-			]),
+			result: actionRequired(
+				module,
+				"start-service",
+				"Service process is not running",
+				[
+					{
+						id: "service-process-live",
+						status: "FAIL",
+						message: "No live managed service process",
+					},
+				],
+			),
 			observedEffects: [],
 		};
 	}
 	if (!recordIdentityMatchesModule(record, module)) {
 		return {
-			result: failed(module, "managed service state identity does not match the current module"),
+			result: failed(
+				module,
+				"managed service state identity does not match the current module",
+			),
 			observedEffects: [],
 		};
 	}
@@ -232,7 +277,13 @@ export async function managedServiceStatus(
 				module,
 				"restart-service",
 				`Managed service process is still running package version ${record.moduleVersion}; restart is required for ${module.moduleVersion}`,
-				[{ id: "service-process-version", status: "FAIL", message: `Running ${record.moduleVersion}, installed ${module.moduleVersion}` }],
+				[
+					{
+						id: "service-process-version",
+						status: "FAIL",
+						message: `Running ${record.moduleVersion}, installed ${module.moduleVersion}`,
+					},
+				],
 			),
 			observedEffects: [],
 		};
@@ -241,7 +292,13 @@ export async function managedServiceStatus(
 		result: {
 			...base(module),
 			data: { state: "RUNNING", pid: record.pid, startedAt: record.startedAt },
-			checks: [{ id: "service-process-live", status: "PASS", message: `Managed service process ${record.pid} is alive` }],
+			checks: [
+				{
+					id: "service-process-live",
+					status: "PASS",
+					message: `Managed service process ${record.pid} is alive`,
+				},
+			],
 		},
 		observedEffects: [],
 	};
@@ -255,7 +312,13 @@ export async function startManagedService(
 	const existing = await readRecord(paths, module.moduleRef);
 	if (existing && (await isOwnedProcess(existing))) {
 		if (!recordIdentityMatchesModule(existing, module)) {
-			return { result: failed(module, "managed service state identity does not match the current module"), observedEffects: [] };
+			return {
+				result: failed(
+					module,
+					"managed service state identity does not match the current module",
+				),
+				observedEffects: [],
+			};
 		}
 		return managedServiceStatus(paths, module);
 	}
@@ -265,28 +328,48 @@ export async function startManagedService(
 	try {
 		binPath = await resolveOwnedBin(paths.root, module, binding);
 	} catch (error) {
-		return { result: failed(module, error instanceof Error ? error.message : String(error)), observedEffects: [] };
+		return {
+			result: failed(
+				module,
+				error instanceof Error ? error.message : String(error),
+			),
+			observedEffects: [],
+		};
 	}
 	const dir = serviceDir(paths, module.moduleRef);
 	const configPath = join(dir, "config.json");
-	const stdoutPath = join(paths.logsDeployment, `${module.moduleRef}.stdout.log`);
-	const stderrPath = join(paths.logsDeployment, `${module.moduleRef}.stderr.log`);
+	const stdoutPath = join(
+		paths.logsDeployment,
+		`${module.moduleRef}.stdout.log`,
+	);
+	const stderrPath = join(
+		paths.logsDeployment,
+		`${module.moduleRef}.stderr.log`,
+	);
 	await writeJsonAtomic(configPath, binding.config, 0o600);
 	await mkdir(paths.logsDeployment, { recursive: true });
 	const stdout = await open(stdoutPath, "a");
 	const stderr = await open(stderrPath, "a");
 	try {
-		const child = spawn(process.execPath, [binPath, binding.startCommand, configPath], {
-			cwd: paths.root,
-			detached: true,
-			env: process.env,
-			stdio: ["ignore", stdout.fd, stderr.fd],
-		});
+		const child = spawn(
+			process.execPath,
+			[binPath, binding.startCommand, configPath],
+			{
+				cwd: paths.root,
+				detached: true,
+				env: process.env,
+				stdio: ["ignore", stdout.fd, stderr.fd],
+			},
+		);
 		await new Promise<void>((resolveSpawn, rejectSpawn) => {
 			child.once("spawn", resolveSpawn);
 			child.once("error", rejectSpawn);
 		});
-		if (child.pid === undefined) return { result: failed(module, "service process spawned without pid"), observedEffects: [] };
+		if (child.pid === undefined)
+			return {
+				result: failed(module, "service process spawned without pid"),
+				observedEffects: [],
+			};
 		child.unref();
 		const record: ManagedServiceRecord = {
 			contract: "deployment.service-process-state.v1",
@@ -306,7 +389,13 @@ export async function startManagedService(
 			observedEffects: ["Manage the declared service process"],
 		};
 	} catch (error) {
-		return { result: failed(module, error instanceof Error ? error.message : String(error)), observedEffects: [] };
+		return {
+			result: failed(
+				module,
+				error instanceof Error ? error.message : String(error),
+			),
+			observedEffects: [],
+		};
 	} finally {
 		await Promise.all([stdout.close(), stderr.close()]);
 	}
@@ -328,18 +417,30 @@ export async function stopManagedService(
 	const record = await readRecord(paths, module.moduleRef);
 	if (!record || !(await isOwnedProcess(record))) {
 		if (record) await removeRecord(paths, module.moduleRef);
-		return { result: { ...base(module), data: { state: "STOPPED" } }, observedEffects: [] };
+		return {
+			result: { ...base(module), data: { state: "STOPPED" } },
+			observedEffects: [],
+		};
 	}
 	if (!recordIdentityMatchesModule(record, module)) {
 		return {
-			result: failed(module, "managed service state identity does not match the current module"),
+			result: failed(
+				module,
+				"managed service state identity does not match the current module",
+			),
 			observedEffects: [],
 		};
 	}
 	try {
 		process.kill(record.pid, "SIGTERM");
 		if (!(await waitForExit(record.pid))) {
-			return { result: failed(module, `service process ${record.pid} did not stop after SIGTERM`), observedEffects: [] };
+			return {
+				result: failed(
+					module,
+					`service process ${record.pid} did not stop after SIGTERM`,
+				),
+				observedEffects: [],
+			};
 		}
 		await removeRecord(paths, module.moduleRef);
 		return {
@@ -347,7 +448,13 @@ export async function stopManagedService(
 			observedEffects: ["Manage the declared service process"],
 		};
 	} catch (error) {
-		return { result: failed(module, error instanceof Error ? error.message : String(error)), observedEffects: [] };
+		return {
+			result: failed(
+				module,
+				error instanceof Error ? error.message : String(error),
+			),
+			observedEffects: [],
+		};
 	}
 }
 

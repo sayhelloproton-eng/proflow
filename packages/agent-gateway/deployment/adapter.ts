@@ -35,12 +35,26 @@ export function createBehaviorAdapter(service?: GatewayProcess) {
 			return {
 				result: service
 					? {
-						...(ready
-							? base
-							: { ...base, ok: false as const, status: "ACTION_REQUIRED" as const, actionRequired: { action: "repair-gateway", description: "Gateway is not READY" } }),
-						data: processStatus,
-						checks: [{ id: "gateway-readiness", status: ready ? "PASS" as const : "FAIL" as const, message: `Gateway readiness is ${readiness?.status ?? "NOT_READY"}` }],
-					}
+							...(ready
+								? base
+								: {
+										...base,
+										ok: false as const,
+										status: "ACTION_REQUIRED" as const,
+										actionRequired: {
+											action: "repair-gateway",
+											description: "Gateway is not READY",
+										},
+									}),
+							data: processStatus,
+							checks: [
+								{
+									id: "gateway-readiness",
+									status: ready ? ("PASS" as const) : ("FAIL" as const),
+									message: `Gateway readiness is ${readiness?.status ?? "NOT_READY"}`,
+								},
+							],
+						}
 					: unbound,
 				observedEffects: [],
 			};
@@ -53,13 +67,25 @@ export function createBehaviorAdapter(service?: GatewayProcess) {
 					...(service && ready
 						? base
 						: service
-							? { ...base, ok: false as const, status: "ACTION_REQUIRED" as const, actionRequired: { action: "repair-gateway", description: "Gateway is not READY" } }
+							? {
+									...base,
+									ok: false as const,
+									status: "ACTION_REQUIRED" as const,
+									actionRequired: {
+										action: "repair-gateway",
+										description: "Gateway is not READY",
+									},
+								}
 							: unbound),
-					checks: [{
-						id: "gateway-readiness",
-						status: ready ? "PASS" as const : "FAIL" as const,
-						message: service ? `Gateway readiness is ${readiness?.status ?? "NOT_READY"}` : "No configured Gateway process is bound",
-					}],
+					checks: [
+						{
+							id: "gateway-readiness",
+							status: ready ? ("PASS" as const) : ("FAIL" as const),
+							message: service
+								? `Gateway readiness is ${readiness?.status ?? "NOT_READY"}`
+								: "No configured Gateway process is bound",
+						},
+					],
 				},
 				observedEffects: [],
 			};
@@ -140,15 +166,24 @@ export async function createServiceProcessBinding(input: {
 	const executionRuntime = input.configByModuleRef.get("execution-runtime");
 	const stateRoot = platformHost?.stateRoot;
 	const downstreamBaseUrl = executionRuntime?.["identity.endpoint"];
-	if (!localBaseUrl || !publicBaseUrl || !downstreamCredentialFile || !stateRoot || !downstreamBaseUrl) {
+	if (
+		!localBaseUrl ||
+		!publicBaseUrl ||
+		!downstreamCredentialFile ||
+		!stateRoot ||
+		!downstreamBaseUrl
+	) {
 		return undefined;
 	}
 	const listener = new URL(localBaseUrl);
 	if (
 		listener.protocol !== "http:" ||
-		!new Set(["127.0.0.1", "localhost", "::1", "[::1]"]).has(listener.hostname) ||
+		!new Set(["127.0.0.1", "localhost", "::1", "[::1]"]).has(
+			listener.hostname,
+		) ||
 		listener.pathname !== "/"
-	) return undefined;
+	)
+		return undefined;
 	const port = listener.port === "" ? 80 : Number(listener.port);
 	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
 	const [{ join }, { parseAgentGatewayProcessConfig }] = await Promise.all([
@@ -160,22 +195,36 @@ export async function createServiceProcessBinding(input: {
 		port,
 		publicBaseUrl,
 		downstreamBaseUrl,
-		credentialFile: join(stateRoot, "agent", "secrets", "role-credentials.json"),
+		credentialFile: join(
+			stateRoot,
+			"agent",
+			"secrets",
+			"role-credentials.json",
+		),
 		downstreamCredentialFile,
 	});
 	const probeService: GatewayProcess = {
-		async start() { throw new Error("managed by Platform CLI service supervisor"); },
+		async start() {
+			throw new Error("managed by Platform CLI service supervisor");
+		},
 		async stop() {},
-		async restart() { throw new Error("managed by Platform CLI service supervisor"); },
+		async restart() {
+			throw new Error("managed by Platform CLI service supervisor");
+		},
 		async readiness() {
 			try {
 				const response = await fetch(new URL("/ready", listener));
-				return { status: response.ok ? "READY" as const : "NOT_READY" as const };
+				return {
+					status: response.ok ? ("READY" as const) : ("NOT_READY" as const),
+				};
 			} catch {
 				return { status: "NOT_READY" as const };
 			}
 		},
-		status: () => ({ endpoint: listener.href.replace(/\/$/, ""), managed: true }),
+		status: () => ({
+			endpoint: listener.href.replace(/\/$/, ""),
+			managed: true,
+		}),
 	};
 	return {
 		serviceProcess: {

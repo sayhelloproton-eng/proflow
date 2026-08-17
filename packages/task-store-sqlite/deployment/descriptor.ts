@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "task-orchestration",
-		summary: "Provides the node:sqlite store and repository adapters for Task-owned structured facts.",
+		summary:
+			"Provides the node:sqlite store and repository adapters for Task-owned structured facts.",
 	},
 	provides: [],
 	requires: [
@@ -45,6 +46,10 @@ export const descriptor = {
 		},
 	],
 	documentation: [
-		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Package-owned module overview",
+		},
 	],
 } as const;

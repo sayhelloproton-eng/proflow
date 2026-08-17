@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "task-orchestration",
-		summary: "Owns the Task & Orchestration public contract, domain rules and application services.",
+		summary:
+			"Owns the Task & Orchestration public contract, domain rules and application services.",
 	},
 	provides: [{ contractRef: "task-orchestration", version: "1.0.0" }],
 	requires: [],
@@ -37,6 +38,10 @@ export const descriptor = {
 		},
 	],
 	documentation: [
-		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Package-owned module overview",
+		},
 	],
 } as const;

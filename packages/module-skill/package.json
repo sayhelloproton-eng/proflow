@@ -1,50 +1,50 @@
 {
-  "name": "@tomflow/proflow-module-skill",
-  "version": "0.1.0",
-  "type": "module",
-  "publishConfig": {
-    "access": "public"
-  },
-  "exports": {
-    ".": "./dist/src/index.js",
-    "./deployment/adapter": "./dist/deployment/adapter.js",
-    "./deployment/descriptor": "./dist/deployment/descriptor.js"
-  },
-  "files": [
-    "dist",
-    "proflow.module.json",
-    "conformance.json",
-    "README.md",
-    "SKILL.md",
-    "self-install.mjs"
-  ],
-  "scripts": {
-    "test": "node --test tests/**/*.test.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@tomflow/proflow-module-contract": "workspace:^"
-  },
-  "devDependencies": {
-    "@tomflow/proflow-module-template": "workspace:^",
-    "@tomflow/proflow-deployment-conformance": "workspace:^"
-  },
-  "description": "Guides AI through standard ProFlow module creation and maintenance.",
-  "keywords": [
-    "proflow",
-    "proflow-module",
-    "deployment-governance"
-  ],
-  "proflow": {
-    "module": true,
-    "installClass": "core",
-    "installRequires": [
-      "@tomflow/proflow-module-contract"
-    ],
-    "descriptor": "./dist/deployment/descriptor.js",
-    "manifest": "./proflow.module.json"
-  },
-  "bin": {
-    "proflow-module-skill": "./self-install.mjs"
-  }
+	"name": "@tomflow/proflow-module-skill",
+	"version": "0.1.0",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./dist/src/index.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js"
+	},
+	"files": [
+		"dist",
+		"proflow.module.json",
+		"conformance.json",
+		"README.md",
+		"SKILL.md",
+		"self-install.mjs"
+	],
+	"scripts": {
+		"test": "node --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@tomflow/proflow-module-contract": "workspace:^"
+	},
+	"devDependencies": {
+		"@tomflow/proflow-module-template": "workspace:^",
+		"@tomflow/proflow-deployment-conformance": "workspace:^"
+	},
+	"description": "Guides AI through standard ProFlow module creation and maintenance.",
+	"keywords": [
+		"proflow",
+		"proflow-module",
+		"deployment-governance"
+	],
+	"proflow": {
+		"module": true,
+		"installClass": "core",
+		"installRequires": [
+			"@tomflow/proflow-module-contract"
+		],
+		"descriptor": "./dist/deployment/descriptor.js",
+		"manifest": "./proflow.module.json"
+	},
+	"bin": {
+		"proflow-module-skill": "./self-install.mjs"
+	}
 }

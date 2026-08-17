@@ -2,7 +2,12 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import type { ResolvedModule } from "../contracts.ts";
-import { managedServiceStatus, restartManagedService, startManagedService, stopManagedService } from "../lifecycle/service-process.ts";
+import {
+	managedServiceStatus,
+	restartManagedService,
+	startManagedService,
+	stopManagedService,
+} from "../lifecycle/service-process.ts";
 import { workspacePaths } from "../paths.ts";
 
 type ResolvedSource = ResolvedModule["source"];
@@ -37,7 +42,10 @@ export type ServiceProcessBindingFactory = (input: {
 	modules: readonly ResolvedModule[];
 	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
 }) =>
-	| Promise<{ serviceProcess: unknown; behaviorAdapter?: Record<string, unknown> } | undefined>
+	| Promise<
+			| { serviceProcess: unknown; behaviorAdapter?: Record<string, unknown> }
+			| undefined
+	  >
 	| { serviceProcess: unknown; behaviorAdapter?: Record<string, unknown> }
 	| undefined;
 
@@ -112,10 +120,13 @@ export async function buildProductionBindings(
 				module.source,
 			);
 			const config = options.configByModuleRef.get(module.moduleRef) ?? {};
-			const serviceFactory = (namespace as { createServiceProcessBinding?: unknown })
-				.createServiceProcessBinding;
+			const serviceFactory = (
+				namespace as { createServiceProcessBinding?: unknown }
+			).createServiceProcessBinding;
 			if (module.kind === "service" && typeof serviceFactory === "function") {
-				const processBinding = await (serviceFactory as ServiceProcessBindingFactory)({
+				const processBinding = await (
+					serviceFactory as ServiceProcessBindingFactory
+				)({
 					moduleRef: module.moduleRef,
 					config,
 					workspaceRoot: options.workspaceRoot,
@@ -123,10 +134,12 @@ export async function buildProductionBindings(
 					configByModuleRef: options.configByModuleRef,
 				});
 				if (processBinding !== undefined) {
-					const defaultProbe = (namespace as { behaviorAdapter?: unknown }).behaviorAdapter;
-					const probeAdapter = processBinding.behaviorAdapter ??
+					const defaultProbe = (namespace as { behaviorAdapter?: unknown })
+						.behaviorAdapter;
+					const probeAdapter =
+						processBinding.behaviorAdapter ??
 						(typeof defaultProbe === "object" && defaultProbe !== null
-							? defaultProbe as Record<string, unknown>
+							? (defaultProbe as Record<string, unknown>)
 							: {});
 					bindings.set(module.packageName, {
 						behaviorAdapter: managedServiceAdapter(

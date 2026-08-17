@@ -1,56 +1,56 @@
 {
-  "name": "@tomflow/proflow-execution-runtime",
-  "version": "0.1.0",
-  "type": "module",
-  "publishConfig": {
-    "access": "public"
-  },
-  "exports": {
-    ".": "./dist/src/index.js",
-    "./service": "./dist/src/service.js",
-    "./deployment/adapter": "./dist/deployment/adapter.js",
-    "./deployment/descriptor": "./dist/deployment/descriptor.js",
-    "./cli": "./dist/src/cli.js"
-  },
-  "bin": {
-    "proflow-execution-runtime": "./dist/src/cli.js"
-  },
-  "files": [
-    "dist",
-    "proflow.module.json",
-    "conformance.json",
-    "README.md"
-  ],
-  "scripts": {
-    "test": "node --conditions=development --test tests/**/*.test.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@tomflow/proflow-execution-contracts": "workspace:^",
-    "@tomflow/proflow-execution-local": "workspace:^",
-    "@tomflow/proflow-execution-browser-extension": "workspace:^",
-    "@tomflow/proflow-model-contracts": "workspace:^"
-  },
-  "devDependencies": {
-    "@tomflow/proflow-deployment-conformance": "workspace:^"
-  },
-  "description": "Durable, policy-controlled Execution Core orchestration over SQLite and controlled executor ports.",
-  "keywords": [
-    "proflow",
-    "proflow-module",
-    "execution"
-  ],
-  "proflow": {
-    "module": true,
-    "installClass": "core",
-    "descriptor": "./dist/deployment/descriptor.js",
-    "installRequires": [
-      "@tomflow/proflow-execution-browser-extension",
-      "@tomflow/proflow-execution-contracts",
-      "@tomflow/proflow-execution-local",
-      "@tomflow/proflow-model-contracts",
-      "@tomflow/proflow-platform-host"
-    ],
-    "manifest": "./proflow.module.json"
-  }
+	"name": "@tomflow/proflow-execution-runtime",
+	"version": "0.1.0",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./dist/src/index.js",
+		"./service": "./dist/src/service.js",
+		"./deployment/adapter": "./dist/deployment/adapter.js",
+		"./deployment/descriptor": "./dist/deployment/descriptor.js",
+		"./cli": "./dist/src/cli.js"
+	},
+	"bin": {
+		"proflow-execution-runtime": "./dist/src/cli.js"
+	},
+	"files": [
+		"dist",
+		"proflow.module.json",
+		"conformance.json",
+		"README.md"
+	],
+	"scripts": {
+		"test": "node --conditions=development --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@tomflow/proflow-execution-contracts": "workspace:^",
+		"@tomflow/proflow-execution-local": "workspace:^",
+		"@tomflow/proflow-execution-browser-extension": "workspace:^",
+		"@tomflow/proflow-model-contracts": "workspace:^"
+	},
+	"devDependencies": {
+		"@tomflow/proflow-deployment-conformance": "workspace:^"
+	},
+	"description": "Durable, policy-controlled Execution Core orchestration over SQLite and controlled executor ports.",
+	"keywords": [
+		"proflow",
+		"proflow-module",
+		"execution"
+	],
+	"proflow": {
+		"module": true,
+		"installClass": "core",
+		"descriptor": "./dist/deployment/descriptor.js",
+		"installRequires": [
+			"@tomflow/proflow-execution-browser-extension",
+			"@tomflow/proflow-execution-contracts",
+			"@tomflow/proflow-execution-local",
+			"@tomflow/proflow-model-contracts",
+			"@tomflow/proflow-platform-host"
+		],
+		"manifest": "./proflow.module.json"
+	}
 }

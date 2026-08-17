@@ -75,10 +75,7 @@ function parseCreateArgs(argv: readonly string[]): ParsedCreateArgs {
 			: {}),
 		...(values.has("--platform-compatibility")
 			? {
-					platformCompatibility: required(
-						values,
-						"--platform-compatibility",
-					),
+					platformCompatibility: required(values, "--platform-compatibility"),
 				}
 			: {}),
 	};
@@ -150,4 +147,6 @@ async function main(): Promise<void> {
 	}
 }
 
-await main();
+if (import.meta.main) {
+	await main();
+}

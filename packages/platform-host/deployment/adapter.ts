@@ -34,21 +34,26 @@ export function createBehaviorAdapter(service?: PlatformHostService) {
 			return {
 				result: service
 					? {
-						...(ready
-							? base
-							: {
-								...base,
-								ok: false as const,
-								status: "ACTION_REQUIRED" as const,
-								actionRequired: { action: "repair-platform-host", description: "Platform Host is not READY" },
-							}),
-						data: status,
-						checks: [{
-							id: "platform-host-readiness",
-							status: ready ? "PASS" as const : "FAIL" as const,
-							message: `Platform Host readiness is ${status?.readiness ?? "NOT_READY"}`,
-						}],
-					}
+							...(ready
+								? base
+								: {
+										...base,
+										ok: false as const,
+										status: "ACTION_REQUIRED" as const,
+										actionRequired: {
+											action: "repair-platform-host",
+											description: "Platform Host is not READY",
+										},
+									}),
+							data: status,
+							checks: [
+								{
+									id: "platform-host-readiness",
+									status: ready ? ("PASS" as const) : ("FAIL" as const),
+									message: `Platform Host readiness is ${status?.readiness ?? "NOT_READY"}`,
+								},
+							],
+						}
 					: unbound,
 				observedEffects: [],
 			};
@@ -61,15 +66,25 @@ export function createBehaviorAdapter(service?: PlatformHostService) {
 					...(service && ready
 						? base
 						: service
-							? { ...base, ok: false as const, status: "ACTION_REQUIRED" as const, actionRequired: { action: "repair-platform-host", description: "Platform Host is not READY" } }
+							? {
+									...base,
+									ok: false as const,
+									status: "ACTION_REQUIRED" as const,
+									actionRequired: {
+										action: "repair-platform-host",
+										description: "Platform Host is not READY",
+									},
+								}
 							: unbound),
-					checks: [{
-						id: "platform-host-readiness",
-						status: ready ? "PASS" as const : "FAIL" as const,
-						message: service
-							? `Platform Host readiness is ${status?.readiness ?? "NOT_READY"}`
-							: "No configured Host process is bound",
-					}],
+					checks: [
+						{
+							id: "platform-host-readiness",
+							status: ready ? ("PASS" as const) : ("FAIL" as const),
+							message: service
+								? `Platform Host readiness is ${status?.readiness ?? "NOT_READY"}`
+								: "No configured Host process is bound",
+						},
+					],
 				},
 				observedEffects: [],
 			};
@@ -133,12 +148,14 @@ export async function createServiceProcessBinding(input: {
 	| undefined
 > {
 	const config = input.config;
-	if (!REQUIRED_CONFIG.every((key) => config[key] !== undefined)) return undefined;
+	if (!REQUIRED_CONFIG.every((key) => config[key] !== undefined))
+		return undefined;
 	const executionRuntime = input.configByModuleRef.get("execution-runtime");
 	const advertised = executionRuntime?.["identity.endpoint"];
 	if (!advertised) return undefined;
 	const listener = new URL(advertised);
-	if (listener.protocol !== "http:" || listener.pathname !== "/") return undefined;
+	if (listener.protocol !== "http:" || listener.pathname !== "/")
+		return undefined;
 	const port = listener.port === "" ? 80 : Number(listener.port);
 	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
 	const { parsePlatformHostConfig } = await import("../src/index.ts");
@@ -166,8 +183,32 @@ export async function createServiceProcessBinding(input: {
 			}
 			return {
 				result: ready
-					? { ...base, checks: [{ id: "platform-host-readiness", status: "PASS" as const, message: "Managed Platform Host /ready probe passed" }] }
-					: { ...base, ok: false as const, status: "ACTION_REQUIRED" as const, actionRequired: { action: "repair-platform-host", description: "Managed Platform Host /ready probe failed" }, checks: [{ id: "platform-host-readiness", status: "FAIL" as const, message: "Managed Platform Host /ready probe failed" }] },
+					? {
+							...base,
+							checks: [
+								{
+									id: "platform-host-readiness",
+									status: "PASS" as const,
+									message: "Managed Platform Host /ready probe passed",
+								},
+							],
+						}
+					: {
+							...base,
+							ok: false as const,
+							status: "ACTION_REQUIRED" as const,
+							actionRequired: {
+								action: "repair-platform-host",
+								description: "Managed Platform Host /ready probe failed",
+							},
+							checks: [
+								{
+									id: "platform-host-readiness",
+									status: "FAIL" as const,
+									message: "Managed Platform Host /ready probe failed",
+								},
+							],
+						},
 				observedEffects: [],
 			};
 		},

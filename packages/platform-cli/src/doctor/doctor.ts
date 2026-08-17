@@ -59,12 +59,6 @@ export function nextActionOf(result: ModuleOperationResult): DoctorNextAction {
 	}
 }
 
-function evidenceRefsOf(result: ModuleOperationResult): string[] {
-	return (result.checks ?? []).map(
-		(check) => `check:${check.id}:${check.status}`,
-	);
-}
-
 /**
  * Diagnoses a single module by dispatching its public `doctor` primitive. The
  * report carries live checks, typed errors, evidence refs, and a recommended
@@ -74,8 +68,8 @@ export async function doctorModule(
 	catalog: ModuleCatalog,
 	module: ResolvedModule,
 ): Promise<DoctorReport> {
-	const primitives = (["status", "verify", "doctor"] as const).filter((primitive) =>
-		module.lifecycle.includes(primitive),
+	const primitives = (["status", "verify", "doctor"] as const).filter(
+		(primitive) => module.lifecycle.includes(primitive),
 	);
 	const dispatched = [];
 	for (const primitive of primitives) {

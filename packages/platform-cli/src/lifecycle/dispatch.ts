@@ -206,7 +206,6 @@ export async function stopModules(
 	return runInOrder(catalog, modules, order, "stop");
 }
 
-
 /**
  * Restarts a module set in forward dependency topological order, dispatching
  * `restart` only to modules that explicitly declare it. Dependencies are

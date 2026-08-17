@@ -54,10 +54,14 @@ export function selectBootstrapModules(
 	const roots =
 		explicitPackageName === undefined
 			? candidates.filter((candidate) => candidate.installClass === "core")
-			: candidates.filter((candidate) => candidate.packageName === explicitPackageName);
+			: candidates.filter(
+					(candidate) => candidate.packageName === explicitPackageName,
+				);
 	if (roots.length === 0) {
 		throw new PlatformError(
-			explicitPackageName === undefined ? "REGISTRY_RESPONSE_INVALID" : "PACKAGE_NOT_FOUND",
+			explicitPackageName === undefined
+				? "REGISTRY_RESPONSE_INVALID"
+				: "PACKAGE_NOT_FOUND",
 			explicitPackageName === undefined
 				? "Registry discovery returned no installable core ProFlow packages"
 				: `no installable ProFlow package found for ${explicitPackageName}`,
@@ -67,7 +71,8 @@ export function selectBootstrapModules(
 	const selected = new Map<string, RegistryModuleCandidate>();
 	const queue = [...roots];
 	while (queue.length > 0) {
-		const candidate = queue.shift()!;
+		const candidate = queue.shift();
+		if (!candidate) continue;
 		if (selected.has(candidate.packageName)) continue;
 		selected.set(candidate.packageName, candidate);
 		for (const dependencyName of candidate.installRequires) {

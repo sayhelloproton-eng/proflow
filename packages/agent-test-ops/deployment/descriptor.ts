@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "agent-runtime-collaboration",
-		summary: "Versioned Test/Operations Custom GPT materialization package for the fixed Test-Ops role.",
+		summary:
+			"Versioned Test/Operations Custom GPT materialization package for the fixed Test-Ops role.",
 	},
 	provides: [],
 	requires: [
@@ -53,6 +54,10 @@ export const descriptor = {
 		},
 	],
 	documentation: [
-		{ id: "overview", path: "./README.md", description: "Package-owned module overview" },
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Package-owned module overview",
+		},
 	],
 } as const;

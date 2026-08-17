@@ -10,7 +10,8 @@ export const descriptor = {
 	installClass: "core",
 	identity: {
 		domain: "deployment-governance",
-		summary: "Governs the Microsoft Dev Tunnel public HTTPS ingress resource and its managed local host process.",
+		summary:
+			"Governs the Microsoft Dev Tunnel public HTTPS ingress resource and its managed local host process.",
 	},
 	provides: [],
 	requires: [],
@@ -93,6 +94,10 @@ export const descriptor = {
 		},
 	],
 	documentation: [
-		{ id: "overview", path: "./README.md", description: "Dev Tunnel module overview" },
+		{
+			id: "overview",
+			path: "./README.md",
+			description: "Dev Tunnel module overview",
+		},
 	],
 } as const;
