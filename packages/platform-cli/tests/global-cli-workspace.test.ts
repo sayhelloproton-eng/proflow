@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -395,6 +395,46 @@ test("CP-DPL-CLI-10 + RF-DPL-CLI-11 whole-instance uninstall works from another 
 			(rebound.workspace as { boundWorkspace?: string }).boundWorkspace,
 			await realpath(f.workspaceB),
 		);
+	} finally {
+		await f.cleanup();
+	}
+});
+
+test("fresh install preflight failure does not claim a global binding", async () => {
+	const f = await fixture();
+	try {
+		await writeFile(
+			join(f.workspaceA, "package.json"),
+			JSON.stringify({
+				name: "preflight-conflict",
+				version: "0.0.0",
+				private: true,
+				packageManager: "npm@11.0.0",
+			}),
+			"utf8",
+		);
+		await writeFile(
+			join(f.workspaceA, "pnpm-lock.yaml"),
+			"lockfileVersion: '9.0'\n",
+			"utf8",
+		);
+
+		const result = parse(
+			await runCli(["install", "--workspace", f.workspaceA, "--json"], {
+				cwd: f.workspaceB,
+				globalRoot: f.globalRoot,
+			}),
+		);
+		assert.equal(result.status, "BLOCKED");
+		const findings = (
+			result.data as
+				| { preflight?: { findings?: Array<{ code?: string }> } }
+				| undefined
+		)?.preflight?.findings;
+		assert.ok(
+			findings?.some((finding) => finding.code === "PACKAGE_MANAGER_CONFLICT"),
+		);
+		assert.equal(await loadGlobalBinding(f.globalRoot), undefined);
 	} finally {
 		await f.cleanup();
 	}

@@ -469,13 +469,37 @@ async function handleInstallerPreflight(root: string): Promise<CliOutcome> {
 	return outcome("preflight", status, result);
 }
 
+async function loadEffectiveConfig(
+	ctx: CliContext,
+	modules: readonly ResolvedModule[],
+	configFile: string | undefined,
+): Promise<Record<string, Record<string, string>>> {
+	const effective: Record<string, Record<string, string>> = {};
+	for (const module of modules) {
+		const stored = await loadConfig(ctx.paths, module.moduleRef);
+		if (stored === undefined) continue;
+		effective[module.moduleRef] = {
+			...stored.publicValues,
+			...stored.secretValues,
+		};
+	}
+	const provided = await loadConfigFile(configFile);
+	for (const [moduleRef, values] of Object.entries(provided)) {
+		effective[moduleRef] = {
+			...(effective[moduleRef] ?? {}),
+			...values,
+		};
+	}
+	return effective;
+}
+
 async function handlePreflight(
 	ctx: CliContext,
 	args: ParsedArgs,
 ): Promise<CliOutcome> {
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
-	const config = await loadConfigFile(args.configFile);
+	const config = await loadEffectiveConfig(ctx, selected, args.configFile);
 	const result = await runPreflight(selected, { config, catalog: ctx.catalog });
 	return result.ok
 		? outcome("preflight", "SUCCEEDED", result)
@@ -727,6 +751,26 @@ async function handleManagedMutation(
 	if (planned.status !== "SUCCEEDED") {
 		return { ...planned, command: intent };
 	}
+	if (intent === "upgrade") {
+		const data = planned.data;
+		if (typeof data === "object" && data !== null && !Array.isArray(data)) {
+			const plan = Reflect.get(data, "plan");
+			if (
+				typeof plan === "object" &&
+				plan !== null &&
+				!Array.isArray(plan) &&
+				Array.isArray(Reflect.get(plan, "steps")) &&
+				(Reflect.get(plan, "steps") as unknown[]).length === 0
+			) {
+				return outcome("upgrade", "SUCCEEDED", {
+					...data,
+					alreadyLatest: true,
+					changed: false,
+				});
+			}
+		}
+	}
+
 	const planRef = planRefFromOutcome(planned);
 	const applied = await handleApply(ctx, {
 		...args,
@@ -912,32 +956,54 @@ async function handleInstallWithGlobalBinding(
 			args,
 			runtime,
 		);
-		const claimed = await claimWorkspaceBinding({
-			workspace: requestedWorkspace,
-			globalRoot: runtime.globalRoot,
-		});
-		const initialBinding = claimed.binding;
-
+		const existing = await loadGlobalBinding(runtime.globalRoot);
 		if (
-			claimed.alreadyBound &&
-			initialBinding.state === "INSTALLED" &&
-			args.positional[0] === undefined
+			existing !== undefined &&
+			existing.workspaceRealPath !== requestedWorkspace
 		) {
+			throw new PlatformError(
+				"WORKSPACE_ALREADY_BOUND",
+				`ProFlow is already bound to ${existing.workspaceRealPath}; uninstall it before installing ${requestedWorkspace}`,
+			);
+		}
+		if (existing?.state === "INSTALLED" && args.positional[0] === undefined) {
 			return withWorkspace(
 				outcome("install", "SUCCEEDED", {
 					alreadyInstalled: true,
 					changed: false,
-					boundWorkspace: initialBinding.workspaceRealPath,
+					boundWorkspace: existing.workspaceRealPath,
 				}),
-				initialBinding,
+				existing,
 			);
 		}
-		if (initialBinding.state === "UNINSTALLING") {
+		if (existing?.state === "UNINSTALLING") {
 			throw new PlatformError(
 				"GLOBAL_OPERATION_LOCKED",
 				"the bound Platform Instance is marked UNINSTALLING; finish recovery before installing",
 			);
 		}
+
+		// Gate A runs before claiming a fresh global binding. Deterministic local
+		// failures (package-manager conflict, missing executable, registry down,
+		// unwritable Workspace) therefore do not leave a fake BROKEN installation.
+		// The global operation lock keeps this preflight + claim sequence atomic
+		// against other Platform mutations.
+		const installer = await preflightInstallerEnvironment({
+			workspaceRoot: requestedWorkspace,
+		});
+		if (installer.status !== "READY") {
+			return outcome(
+				"install",
+				installer.status === "ACTION_REQUIRED" ? "ACTION_REQUIRED" : "BLOCKED",
+				{ requestedWorkspace, preflight: installer },
+			);
+		}
+
+		const claimed = await claimWorkspaceBinding({
+			workspace: requestedWorkspace,
+			globalRoot: runtime.globalRoot,
+		});
+		const initialBinding = claimed.binding;
 
 		let activeBinding = initialBinding;
 		const controlsPlatformState =
@@ -1229,7 +1295,7 @@ async function handleManifest(
 ): Promise<CliOutcome> {
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
-	const config = await loadConfigFile(args.configFile);
+	const config = await loadEffectiveConfig(ctx, selected, args.configFile);
 	const manifest = await buildManifest({
 		catalog: ctx.catalog,
 		modules: selected,
@@ -1463,10 +1529,141 @@ function toMachineResult(outcomeResult: CliOutcome): string {
 	});
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function humanDetailLines(data: unknown): string[] {
+	if (!isRecord(data)) {
+		return data === undefined ? [] : [String(data)];
+	}
+	const lines: string[] = [];
+	for (const key of [
+		"installed",
+		"bindingState",
+		"boundWorkspace",
+		"requestedWorkspace",
+		"alreadyInstalled",
+		"alreadyLatest",
+		"changed",
+		"bindingCleared",
+		"resourcesCleaned",
+		"planRef",
+		"outcome",
+	] as const) {
+		const value = data[key];
+		if (
+			typeof value === "string" ||
+			typeof value === "number" ||
+			typeof value === "boolean"
+		) {
+			lines.push(`${key}: ${String(value)}`);
+		}
+	}
+	if (typeof data.nextAction === "string" && data.nextAction !== "") {
+		lines.push(`Next: ${data.nextAction}`);
+	}
+	const findings = data.findings;
+	let hasMissingConfig = false;
+	if (Array.isArray(findings) && findings.length > 0) {
+		lines.push("Findings:");
+		for (const finding of findings) {
+			if (!isRecord(finding)) continue;
+			const severity =
+				typeof finding.severity === "string"
+					? finding.severity.toUpperCase()
+					: "INFO";
+			const code = typeof finding.code === "string" ? finding.code : "CHECK";
+			if (code === "CONFIG_MISSING") hasMissingConfig = true;
+			const moduleRef =
+				typeof finding.moduleRef === "string" ? ` ${finding.moduleRef}` : "";
+			const message =
+				typeof finding.message === "string" ? finding.message : "";
+			lines.push(
+				`- [${severity}] ${code}${moduleRef}${message === "" ? "" : `: ${message}`}`,
+			);
+		}
+	}
+	if (hasMissingConfig) {
+		lines.push(
+			"Next: review .proflow/deployment/generated/INSTALL.md, create the required config file, then run platform plan --intent configure --config <file> and platform apply <planRef>.",
+		);
+	}
+	const preflight = data.preflight;
+	if (isRecord(preflight)) {
+		const nested = humanDetailLines(preflight);
+		if (nested.length > 0) {
+			lines.push("Preflight:", ...nested.map((line) => `  ${line}`));
+		}
+	}
+	return lines;
+}
+
+export function renderHumanResult(machineOutput: string): string {
+	const parsed: unknown = JSON.parse(machineOutput);
+	if (!isRecord(parsed)) return machineOutput;
+	const data = parsed.data;
+	if (isRecord(data) && typeof data.version === "string") {
+		return `ProFlow Platform CLI ${data.version}`;
+	}
+	if (isRecord(data) && typeof data.usage === "string") {
+		const commands = Array.isArray(data.commands)
+			? data.commands.filter((item): item is string => typeof item === "string")
+			: [];
+		const examples = Array.isArray(data.examples)
+			? data.examples.filter((item): item is string => typeof item === "string")
+			: [];
+		return [
+			"ProFlow Platform CLI",
+			"",
+			`Usage: ${data.usage}`,
+			...(commands.length === 0
+				? []
+				: ["", `Commands: ${commands.join(", ")}`]),
+			...(examples.length === 0
+				? []
+				: ["", "Common flows:", ...examples.map((item) => `  ${item}`)]),
+		].join("\n");
+	}
+
+	const status = typeof parsed.status === "string" ? parsed.status : "UNKNOWN";
+	const lines = [`ProFlow: ${status}`];
+	const workspace = parsed.workspace;
+	if (isRecord(workspace) && typeof workspace.boundWorkspace === "string") {
+		lines.push(`Workspace: ${workspace.boundWorkspace}`);
+	}
+	const error = parsed.error;
+	if (isRecord(error)) {
+		const code = typeof error.code === "string" ? error.code : "COMMAND_FAILED";
+		const message =
+			typeof error.message === "string" ? error.message : "Unknown error";
+		lines.push(`Error: ${code}: ${message}`);
+	}
+	lines.push(...humanDetailLines(data));
+	if (lines.length === 1 && status === "SUCCEEDED") {
+		lines.push(`Version: ${MODULE_VERSION}`, "Next: run platform --help");
+	}
+	return lines.join("\n");
+}
+
 export async function runCli(
 	argv: readonly string[],
 	runtime: CliRuntimeOptions = {},
 ): Promise<string> {
+	const filtered = argv.filter((argument) => argument !== "--json");
+	if (
+		filtered.length === 1 &&
+		(filtered[0] === "--version" || filtered[0] === "-v")
+	) {
+		return JSON.stringify({
+			contract: "deployment.result.v1",
+			ok: true,
+			status: "SUCCEEDED",
+			moduleRef: MODULE_REF,
+			moduleVersion: MODULE_VERSION,
+			data: { version: MODULE_VERSION },
+		});
+	}
 	if (argv.includes("--help") || argv.includes("-h")) {
 		return JSON.stringify({
 			contract: "deployment.result.v1",
@@ -1478,10 +1675,19 @@ export async function runCli(
 				usage:
 					"platform <command> [module|package] [--workspace <path>] [--json]",
 				commands: [...COMMANDS],
+				examples: [
+					"platform preflight --intent install --workspace <path>",
+					"platform install [module|package] [--workspace <path>]",
+					"platform preflight  # startup/runtime readiness for the bound Workspace",
+					"platform plan --intent configure --config <file>",
+					"platform apply <planRef>",
+					"platform start | status | verify | doctor | stop | restart",
+					"platform uninstall  # uninstall the bound Platform Instance, not the global CLI",
+					"append --json for the stable machine-readable contract",
+				],
 			},
 		});
 	}
-	const filtered = argv.filter((argument) => argument !== "--json");
 	if (filtered.length === 0) {
 		return JSON.stringify({
 			contract: "deployment.result.v1",
@@ -1495,8 +1701,10 @@ export async function runCli(
 }
 
 if (import.meta.main) {
-	const output = await runCli(process.argv.slice(2));
-	process.stdout.write(`${output}\n`);
+	const argv = process.argv.slice(2);
+	const output = await runCli(argv);
+	const rendered = argv.includes("--json") ? output : renderHumanResult(output);
+	process.stdout.write(`${rendered}\n`);
 	const parsed: unknown = JSON.parse(output);
 	if (
 		typeof parsed === "object" &&

@@ -8,7 +8,14 @@ import {
 	claimWorkspaceBinding,
 	updateGlobalBindingState,
 } from "../src/binding/global-binding.ts";
-import { type CliRuntimeOptions, runCli } from "../src/cli.ts";
+import {
+	type CliRuntimeOptions,
+	renderHumanResult,
+	runCli,
+} from "../src/cli.ts";
+import { discoverModules } from "../src/discovery/discover.ts";
+import { workspacePaths } from "../src/paths.ts";
+import { materializeConfig } from "../src/persistence/config.ts";
 
 const WORKSPACE = resolve(import.meta.dirname, "../../..");
 
@@ -98,6 +105,25 @@ async function bindInstalled(workspace: string) {
 		},
 	};
 }
+
+test("--version exposes the published CLI version and human rendering is readable", async () => {
+	const output = await runCli(["--version", "--json"]);
+	const result = JSON.parse(output) as { data?: { version?: string } };
+	assert.equal(result.data?.version, "0.1.2");
+	assert.equal(renderHumanResult(output), "ProFlow Platform CLI 0.1.2");
+});
+
+test("human help explains common install, readiness, configure, and lifecycle flows", async () => {
+	const output = await runCli(["--help"]);
+	const rendered = renderHumanResult(output);
+	assert.ok(rendered.includes("Usage:"));
+	assert.ok(rendered.includes("platform preflight --intent install"));
+	assert.ok(
+		rendered.includes("platform plan --intent configure --config <file>"),
+	);
+	assert.ok(rendered.includes("append --json"));
+	assert.ok(!rendered.trimStart().startsWith("{"));
+});
 
 test("runCli --json returns the structured machine result contract", async () => {
 	const result = await machineResult(["--json"]);
@@ -232,5 +258,68 @@ test("plan --intent install persists a plan with a planRef before binding", asyn
 		assert.ok(data.planRef.length > 0);
 	} finally {
 		await rm(temp, { recursive: true, force: true });
+	}
+});
+
+test("preflight reuses materialized Workspace config after configuration is applied", async () => {
+	const fixture = await boundRealWorkspaceFixture();
+	try {
+		const modules = await discoverModules({ workspaceRoot: fixture.root });
+		const target = modules.find((module) =>
+			module.configSlots.some((slot) => slot.required),
+		);
+		assert.ok(target, "fixture must expose at least one required config slot");
+
+		const before = await machineResult(["preflight", target.moduleRef], {
+			cwd: WORKSPACE,
+			globalRoot: fixture.globalRoot,
+		});
+		const beforeFindings =
+			(
+				before.data as
+					| { findings?: Array<{ code?: string; moduleRef?: string }> }
+					| undefined
+			)?.findings ?? [];
+		assert.ok(
+			beforeFindings.some(
+				(finding) =>
+					finding.code === "CONFIG_MISSING" &&
+					finding.moduleRef === target.moduleRef,
+			),
+		);
+
+		const values: Record<string, string> = {};
+		const secretRefs: string[] = [];
+		for (const slot of target.configSlots.filter((slot) => slot.required)) {
+			values[slot.key] =
+				slot.type === "secretRef" ? "secret://real1/test" : "real1-test-value";
+			if (slot.type === "secretRef") secretRefs.push(slot.key);
+		}
+		await materializeConfig(workspacePaths(fixture.root), {
+			moduleRef: target.moduleRef,
+			values,
+			secretRefs,
+		});
+
+		const after = await machineResult(["preflight", target.moduleRef], {
+			cwd: WORKSPACE,
+			globalRoot: fixture.globalRoot,
+		});
+		const afterFindings =
+			(
+				after.data as
+					| { findings?: Array<{ code?: string; moduleRef?: string }> }
+					| undefined
+			)?.findings ?? [];
+		assert.equal(
+			afterFindings.some(
+				(finding) =>
+					finding.code === "CONFIG_MISSING" &&
+					finding.moduleRef === target.moduleRef,
+			),
+			false,
+		);
+	} finally {
+		await fixture.cleanup();
 	}
 });
