@@ -8,6 +8,7 @@ import {
 	type TaskMigrationContext,
 	taskMigrations,
 } from "@tomflow/proflow-task-store-sqlite/migrations";
+import { descriptor as moduleDescriptor } from "../deployment/descriptor.ts";
 
 export interface MigrationInput {
 	databasePath: string;
@@ -459,8 +460,8 @@ export async function runCli(args: string[]): Promise<string> {
 			contract: "deployment.result.v1",
 			ok: true,
 			status: "SUCCEEDED",
-			moduleRef: "task-migration-runner",
-			moduleVersion: "0.1.0",
+			moduleRef: moduleDescriptor.moduleRef,
+			moduleVersion: moduleDescriptor.moduleVersion,
 			data: {
 				usage:
 					"proflow-task-migrate [apply|status|verify] --database <path> [--legacy-role-map <json>]",
@@ -528,8 +529,8 @@ export async function runCli(args: string[]): Promise<string> {
 		contract: "deployment.result.v1",
 		ok: success,
 		status: success ? "SUCCEEDED" : "FAILED",
-		moduleRef: "task-migration-runner",
-		moduleVersion: "0.1.0",
+		moduleRef: moduleDescriptor.moduleRef,
+		moduleVersion: moduleDescriptor.moduleVersion,
 		checks: [
 			{ id: "migration-state", status: success ? "PASS" : "FAIL", message },
 		],

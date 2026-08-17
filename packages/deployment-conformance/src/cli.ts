@@ -2,10 +2,11 @@
 
 import { readFile } from "node:fs/promises";
 
+import { descriptor } from "../deployment/descriptor.ts";
 import { runStaticConformance } from "./index.ts";
 
-const moduleRef = "deployment-conformance";
-const moduleVersion = "0.1.0";
+const moduleRef = descriptor.moduleRef;
+const moduleVersion = descriptor.moduleVersion;
 
 export async function runCli(args: readonly string[]): Promise<string> {
 	if (args.includes("--help") || args.includes("-h")) {

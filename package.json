@@ -20,7 +20,14 @@
 		"test-governance": "node scripts/test-governance.mjs --check",
 		"test-governance:write": "node scripts/test-governance.mjs --write",
 		"surface-governance": "node scripts/surface-governance.mjs --check",
-		"surface-governance:write": "node scripts/surface-governance.mjs --write"
+		"surface-governance:write": "node scripts/surface-governance.mjs --write",
+		"release:status": "pnpm change status",
+		"release:version:dry-run": "pnpm version -r --dry-run",
+		"release:version": "pnpm version -r && node scripts/release-sync-versions.mjs --write",
+		"release:sync": "node scripts/release-sync-versions.mjs --write",
+		"release:sync:check": "node scripts/release-sync-versions.mjs --check",
+		"release:publish:dry-run": "pnpm release:sync:check && pnpm -r publish --dry-run --no-git-checks",
+		"release:publish": "pnpm release:sync:check && pnpm -r publish"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.6",

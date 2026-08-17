@@ -4,7 +4,9 @@
 		"includes": ["**", "!!spec", "!!**/dist", "!!.omo", "!!.codegraph"]
 	},
 	"formatter": {
-		"enabled": true
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineEnding": "lf"
 	},
 	"linter": {
 		"enabled": true,

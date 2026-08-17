@@ -2,9 +2,10 @@
 
 import { spawnSync } from "node:child_process";
 
+import { descriptor } from "../deployment/descriptor.ts";
 import { materializeModule } from "./index.ts";
 
-const MODULE_TEMPLATE_VERSION = "0.1.0";
+const MODULE_TEMPLATE_VERSION = descriptor.moduleVersion;
 
 interface ParsedCreateArgs {
 	targetDirectory: string;

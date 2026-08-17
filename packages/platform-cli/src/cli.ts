@@ -6,6 +6,7 @@ import {
 	type ModuleDescriptor,
 	parseModuleDescriptor,
 } from "@tomflow/proflow-module-contract";
+import { descriptor as platformCliDescriptor } from "../deployment/descriptor.ts";
 import { applyPlan } from "./apply/apply.ts";
 import { rebuildCurrentAssumptions } from "./apply/current.ts";
 import { createWorkspacePackageManagerDriver } from "./apply/driver.ts";
@@ -45,8 +46,8 @@ import {
 } from "./registry/index.ts";
 import { verifyModules } from "./verification/verify.ts";
 
-const MODULE_REF = "platform-cli";
-const MODULE_VERSION = "0.1.0";
+const MODULE_REF = platformCliDescriptor.moduleRef;
+const MODULE_VERSION = platformCliDescriptor.moduleVersion;
 
 const COMMANDS = [
 	"search",

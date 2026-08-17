@@ -37,6 +37,22 @@ Examples:
 @tomflow/proflow-model-runtime
 ```
 
+## Package release workflow
+
+ProFlow uses pnpm native workspace release management. While the five domains are still pre-1.0, package releases are capped to patch bumps on the `0.1.x` line. Packages version independently; `workspace:^` remains the internal dependency contract.
+
+```bash
+pnpm change
+pnpm release:status
+pnpm release:version:dry-run
+pnpm release:version
+pnpm release:sync:check
+pnpm release:publish:dry-run
+pnpm release:publish
+```
+
+Canonical release/version rules: `spec/平台架构与公共约定/02-契约/03-版本与兼容性约定.md`.
+
 ## Implementation gate
 
 Do not begin Phase 3 implementation merely because this repository exists.
