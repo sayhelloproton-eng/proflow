@@ -2,42 +2,110 @@
   dir: packages/agent-controller-dev
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-agent-controller-dev@0.1.2":
+  dir: packages/agent-controller-dev
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-agent-gateway@0.1.1":
   dir: packages/agent-gateway
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-agent-gateway@0.1.2":
+  dir: packages/agent-gateway
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-agent-product@0.1.1":
   dir: packages/agent-product
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-agent-product@0.1.2":
+  dir: packages/agent-product
+  intents:
+    - real1-generated-service-platform-closure
+"@tomflow/proflow-agent-runtime@0.1.1":
+  dir: packages/agent-runtime
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-agent-test-ops@0.1.1":
   dir: packages/agent-test-ops
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-agent-test-ops@0.1.2":
+  dir: packages/agent-test-ops
+  intents:
+    - real1-generated-service-platform-closure
+"@tomflow/proflow-chatgpt-carrier@0.1.1":
+  dir: packages/chatgpt-carrier
+  intents:
+    - real1-generated-service-platform-closure
+"@tomflow/proflow-chrome-runtime@0.1.1":
+  dir: packages/chrome-runtime
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-deployment-conformance@0.1.1":
   dir: packages/deployment-conformance
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-deployment-conformance@0.1.2":
+  dir: packages/deployment-conformance
+  intents:
+    - real1-generated-service-platform-closure
+"@tomflow/proflow-dev-tunnel@0.1.1":
+  dir: packages/dev-tunnel
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-execution-browser-extension@0.1.1":
   dir: packages/execution-browser-extension
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-execution-browser-extension@0.1.2":
+  dir: packages/execution-browser-extension
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-execution-contracts@0.1.1":
   dir: packages/execution-contracts
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-execution-contracts@0.1.2":
+  dir: packages/execution-contracts
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-execution-local@0.1.1":
   dir: packages/execution-local
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-execution-local@0.1.2":
+  dir: packages/execution-local
+  intents:
+    - real1-generated-service-platform-closure
+"@tomflow/proflow-execution-runtime@0.1.1":
+  dir: packages/execution-runtime
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-model-contracts@0.1.1":
   dir: packages/model-contracts
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-model-contracts@0.1.2":
+  dir: packages/model-contracts
+  intents:
+    - real1-generated-service-platform-closure
+"@tomflow/proflow-model-provider-api@0.1.1":
+  dir: packages/model-provider-api
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-model-runtime@0.1.1":
   dir: packages/model-runtime
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-model-runtime@0.1.2":
+  dir: packages/model-runtime
+  intents:
+    - real1-generated-service-platform-closure
+"@tomflow/proflow-module-contract@0.1.1":
+  dir: packages/module-contract
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-module-skill@0.1.1":
   dir: packages/module-skill
   intents:
@@ -46,15 +114,43 @@
   dir: packages/module-skill
   intents:
     - module-skill-published-skill-path
+"@tomflow/proflow-module-skill@0.1.3":
+  dir: packages/module-skill
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-module-template@0.1.1":
   dir: packages/module-template
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-module-template@0.1.2":
+  dir: packages/module-template
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-platform-cli@0.1.1":
   dir: packages/platform-cli
   intents:
     - platform-cli-installed-version-observation
+"@tomflow/proflow-platform-cli@0.1.2":
+  dir: packages/platform-cli
+  intents:
+    - real1-generated-service-platform-closure
 "@tomflow/proflow-platform-host@0.1.1":
   dir: packages/platform-host
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-platform-host@0.1.2":
+  dir: packages/platform-host
+  intents:
+    - real1-generated-service-platform-closure
+"@tomflow/proflow-task-migration-runner@0.1.1":
+  dir: packages/task-migration-runner
+  intents:
+    - real1-generated-service-platform-closure
+"@tomflow/proflow-task-orchestration@0.1.1":
+  dir: packages/task-orchestration
+  intents:
+    - real1-generated-service-platform-closure
+"@tomflow/proflow-task-store-sqlite@0.1.1":
+  dir: packages/task-store-sqlite
+  intents:
+    - real1-generated-service-platform-closure
