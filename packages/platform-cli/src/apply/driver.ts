@@ -1,7 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { join } from "node:path";
 
 import type { ResolvedModule } from "../contracts.ts";
 import { PlatformError } from "../errors.ts";
@@ -168,35 +166,29 @@ async function observeInstalledVersion(
 	) {
 		return undefined;
 	}
-	const require = createRequire(
-		pathToFileURL(join(workspaceRoot, "package.json")),
-	);
-	let entry: string;
 	try {
-		entry = require.resolve(packageName);
+		const raw = await readFile(
+			join(
+				workspaceRoot,
+				"node_modules",
+				...packageName.split("/"),
+				"package.json",
+			),
+			"utf8",
+		);
+		const parsed: unknown = JSON.parse(raw);
+		if (
+			typeof parsed === "object" &&
+			parsed !== null &&
+			!Array.isArray(parsed) &&
+			Reflect.get(parsed, "name") === packageName &&
+			typeof Reflect.get(parsed, "version") === "string"
+		) {
+			return Reflect.get(parsed, "version") as string;
+		}
+		return undefined;
 	} catch {
 		return undefined;
-	}
-	let current = dirname(entry);
-	for (;;) {
-		try {
-			const raw = await readFile(join(current, "package.json"), "utf8");
-			const parsed: unknown = JSON.parse(raw);
-			if (
-				typeof parsed === "object" &&
-				parsed !== null &&
-				!Array.isArray(parsed) &&
-				Reflect.get(parsed, "name") === packageName &&
-				typeof Reflect.get(parsed, "version") === "string"
-			) {
-				return Reflect.get(parsed, "version") as string;
-			}
-		} catch {
-			// keep walking to the package root
-		}
-		const parent = dirname(current);
-		if (parent === current) return undefined;
-		current = parent;
 	}
 }
 
