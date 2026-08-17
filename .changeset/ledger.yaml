@@ -46,6 +46,10 @@
   dir: packages/module-template
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-platform-cli@0.1.1":
+  dir: packages/platform-cli
+  intents:
+    - platform-cli-installed-version-observation
 "@tomflow/proflow-platform-host@0.1.1":
   dir: packages/platform-host
   intents:
