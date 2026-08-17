@@ -487,7 +487,11 @@ test("verifyModules skips modules that do not declare verify", async () => {
 test("doctor diagnoses a failure, recommends a repair plan, and never repairs", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
-		const svc = moduleFixture({ moduleRef: "svc", kind: "service" });
+		const svc = moduleFixture({
+			moduleRef: "svc",
+			kind: "service",
+			lifecycle: ["describe", "preflight", "doctor"],
+		});
 		const { calls, catalog } = makeCatalog([
 			{
 				module: svc,
@@ -516,7 +520,11 @@ test("doctor diagnoses a failure, recommends a repair plan, and never repairs", 
 });
 
 test("doctor reports a human action for ACTION_REQUIRED and does not auto-act", async () => {
-	const svc = moduleFixture({ moduleRef: "svc", kind: "service" });
+	const svc = moduleFixture({
+		moduleRef: "svc",
+		kind: "service",
+		lifecycle: ["describe", "preflight", "doctor"],
+	});
 	const { calls, catalog } = makeCatalog([
 		{
 			module: svc,
@@ -538,7 +546,11 @@ test("doctor reports a human action for ACTION_REQUIRED and does not auto-act", 
 });
 
 test("doctor reports no next action when the module is healthy", async () => {
-	const svc = moduleFixture({ moduleRef: "svc", kind: "service" });
+	const svc = moduleFixture({
+		moduleRef: "svc",
+		kind: "service",
+		lifecycle: ["describe", "preflight", "doctor"],
+	});
 	const { catalog } = makeCatalog([
 		{ module: svc, primitives: { doctor: () => ok("svc", "1.0.0") } },
 	]);
@@ -552,7 +564,11 @@ test("doctor reports no next action when the module is healthy", async () => {
 });
 
 test("doctorModules skips modules that do not declare doctor", async () => {
-	const svc = moduleFixture({ moduleRef: "svc", kind: "service" });
+	const svc = moduleFixture({
+		moduleRef: "svc",
+		kind: "service",
+		lifecycle: ["describe", "preflight", "doctor"],
+	});
 	const lib = moduleFixture({
 		moduleRef: "lib",
 		kind: "library",

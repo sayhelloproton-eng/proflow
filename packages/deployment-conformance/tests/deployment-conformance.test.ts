@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { type TestContext, test } from "node:test";
@@ -26,6 +26,18 @@ const tsc = resolve(
 	import.meta.dirname,
 	"../../../node_modules/typescript/bin/tsc",
 );
+
+const repositoryRoot = resolve(import.meta.dirname, "../../..");
+
+async function generatedRoot(prefix: string): Promise<string> {
+	const root = await mkdtemp(join(tmpdir(), prefix));
+	await symlink(
+		join(repositoryRoot, "node_modules"),
+		join(root, "node_modules"),
+		"dir",
+	);
+	return root;
+}
 
 function result(
 	moduleRef: string,
@@ -61,7 +73,7 @@ function adapterFor(descriptor: ModuleDescriptor): BehaviorAdapter {
 }
 
 async function generatedExternal(context: TestContext) {
-	const root = await mkdtemp(join(tmpdir(), "proflow-conformance-"));
+	const root = await generatedRoot("proflow-conformance-");
 	context.after(() => rm(root, { recursive: true, force: true }));
 	const generated = await materializeModule({
 		targetDirectory: root,

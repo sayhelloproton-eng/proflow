@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { type TestContext, test } from "node:test";
@@ -17,6 +17,18 @@ const tsc = resolve(
 	import.meta.dirname,
 	"../../../node_modules/typescript/bin/tsc",
 );
+
+const repositoryRoot = resolve(import.meta.dirname, "../../..");
+
+async function generatedRoot(prefix: string): Promise<string> {
+	const root = await mkdtemp(join(tmpdir(), prefix));
+	await symlink(
+		join(repositoryRoot, "node_modules"),
+		join(root, "node_modules"),
+		"dir",
+	);
+	return root;
+}
 
 type FlowDecision = "PROCEED" | "STOP_CONFORMANCE_FAILED";
 
@@ -46,7 +58,7 @@ test("module-skill itself passes C1/C2/C3 generated-package conformance", async 
 });
 
 test("CP-DPL-SKILL-04 a well-formed fixture conforms; a corrupted artifact stops the flow", async (context: TestContext) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-skill-flow-"));
+	const root = await generatedRoot("proflow-skill-flow-");
 	context.after(() => rm(root, { recursive: true, force: true }));
 
 	const good = await materializeModule({
@@ -124,7 +136,7 @@ test("CP-DPL-SKILL-04 a well-formed fixture conforms; a corrupted artifact stops
 });
 
 test("RF-DPL-SKILL-04 a modified artifact that skips re-conformance is rejected by a real gate", async (context: TestContext) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-skill-reconform-"));
+	const root = await generatedRoot("proflow-skill-reconform-");
 	context.after(() => rm(root, { recursive: true, force: true }));
 
 	const fixture = await materializeModule({

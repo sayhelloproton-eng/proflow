@@ -378,7 +378,7 @@ test("shipped CLI status binds a real service + real external resource and fails
 	}
 });
 
-test("all shipped service/external-resource modules expose a production binding factory", async () => {
+test("all shipped service/external-resource modules expose their current production binding seam", async () => {
 	const root = fileURLToPath(new URL("../../../", import.meta.url));
 	const modules = await discoverModules({ workspaceRoot: root });
 	const governed = modules.filter(
@@ -393,8 +393,12 @@ test("all shipped service/external-resource modules expose a production binding 
 			module.source,
 			root,
 		);
-		if (typeof namespace.createProductionBinding !== "function") {
-			missing.push(`${module.moduleRef}:${module.packageName}`);
+		const binding =
+			module.kind === "service"
+				? namespace.createServiceProcessBinding
+				: namespace.createProductionBinding;
+		if (typeof binding !== "function") {
+			missing.push(`${module.moduleRef}:${module.packageName}:${module.kind}`);
 		}
 	}
 	assert.deepEqual(missing, []);

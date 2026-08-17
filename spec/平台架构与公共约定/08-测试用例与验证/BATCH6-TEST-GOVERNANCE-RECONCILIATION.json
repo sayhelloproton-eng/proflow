@@ -10,8 +10,8 @@
     "formalCaseIdentities": 314,
     "criticalProofs": 190,
     "requiredFailureBoundaries": 124,
-    "executableTestFiles": 125,
-    "executableTestCalls": 667,
+    "executableTestFiles": 126,
+    "executableTestCalls": 668,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -1420,6 +1420,7 @@
       ],
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -1533,7 +1534,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5887,6 +5890,7 @@
       ],
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -6040,7 +6044,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",

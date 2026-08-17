@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 125,
-    "testCalls": 667
+    "files": 126,
+    "testCalls": 668
   },
   "tests": [
     {
@@ -1272,7 +1272,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/architecture-enforcement.test.ts",
-      "line": 24,
+      "line": 26,
       "title": "platform conventions gate covers current repository and future package discovery",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1283,7 +1283,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/architecture-enforcement.test.ts",
-      "line": 51,
+      "line": 56,
       "title": "architecture rejects deep imports, undeclared dependencies, cycles, dumping grounds, and secrets",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1294,7 +1294,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/architecture-enforcement.test.ts",
-      "line": 111,
+      "line": 116,
       "title": "production imports cannot be satisfied only by devDependencies",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1305,7 +1305,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/bootstrap-reconciliation.test.ts",
-      "line": 23,
+      "line": 35,
       "title": "Bootstrap closure generates, typechecks, validates, and conforms all six profiles",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1318,7 +1318,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/bootstrap-reconciliation.test.ts",
-      "line": 62,
+      "line": 77,
       "title": "Bootstrap closure deterministically rejects intentional C1, C2, and C3 breakage",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1331,7 +1331,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/bootstrap-reconciliation.test.ts",
-      "line": 118,
+      "line": 139,
       "title": "Bootstrap packages reconcile with their own Module Contract and Package gates",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1355,7 +1355,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 80,
+      "line": 95,
       "title": "CP-DPL-CONF-01 C1 rejects missing, version, config, lifecycle, and verification defects",
       "ids": [
         "CP-DPL-CONF-01"
@@ -1370,7 +1370,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 133,
+      "line": 148,
       "title": "CP-DPL-CONF-02 C2 inspects real package metadata, exports, entry, and version",
       "ids": [
         "CP-DPL-CONF-02"
@@ -1385,7 +1385,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 203,
+      "line": 218,
       "title": "CP-DPL-CONF-03 C3 rejects side effects and fake external availability without invoking undeclared lifecycle",
       "ids": [
         "CP-DPL-CONF-03"
@@ -1400,7 +1400,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 291,
+      "line": 306,
       "title": "remediation C3 rejects result identity drift and effects outside the descriptor",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1413,7 +1413,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 420,
+      "line": 438,
       "title": "CP-DPL-CONF-04 enforces GPT Actions and File Bridge frozen limits",
       "ids": [
         "CP-DPL-CONF-04"
@@ -1428,7 +1428,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/foundation-hardening.test.ts",
-      "line": 30,
+      "line": 41,
       "title": "P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the owning gate",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -4461,7 +4461,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/compatibility-hardening.test.ts",
-      "line": 43,
+      "line": 55,
       "title": "P1-6 compatibility covers all mechanically decidable breaking dimensions",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4483,7 +4483,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 40,
+      "line": 46,
       "title": "CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete boundary",
       "ids": [
         "CP-DPL-CON-01"
@@ -4496,7 +4496,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 75,
+      "line": 81,
       "title": "CP-DPL-CON-02 distinguishes moduleRef and secretRef and rejects unsafe combinations",
       "ids": [
         "CP-DPL-CON-02"
@@ -4509,7 +4509,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 113,
+      "line": 119,
       "title": "CP-DPL-CON-03 requirement queries are deterministic and side-effect free",
       "ids": [
         "CP-DPL-CON-03"
@@ -4522,7 +4522,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 123,
+      "line": 129,
       "title": "CP-DPL-CON-04 libraries and uncontrollable external resources do not fake start/stop",
       "ids": [
         "CP-DPL-CON-04"
@@ -4535,7 +4535,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 143,
+      "line": 149,
       "title": "CP-DPL-CON-05 compatibility distinguishes additive and breaking changes",
       "ids": [
         "CP-DPL-CON-05"
@@ -4559,7 +4559,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 36,
+      "line": 57,
       "title": "CP-DPL-SKILL-01 descriptor round-trips the frozen contract and invents no capability/contract/dependency",
       "ids": [
         "CP-DPL-SKILL-01"
@@ -4574,7 +4574,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 48,
+      "line": 70,
       "title": "CP-DPL-SKILL-01 SKILL.md references only the frozen fact vocabulary",
       "ids": [
         "CP-DPL-SKILL-01"
@@ -4589,7 +4589,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 64,
+      "line": 92,
       "title": "CP-DPL-SKILL-02 package and descriptor carry no process lifecycle, persistence, service, or business store",
       "ids": [
         "CP-DPL-SKILL-02"
@@ -4604,7 +4604,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 74,
+      "line": 104,
       "title": "CP-DPL-SKILL-03 SKILL.md declares the required STOP / NOT_FROZEN stop rules",
       "ids": [
         "CP-DPL-SKILL-03"
@@ -4619,7 +4619,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 85,
+      "line": 115,
       "title": "RF-DPL-SKILL-01 the skill invents no capability, dependency, or permission",
       "ids": [
         "RF-DPL-SKILL-01"
@@ -4634,7 +4634,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 93,
+      "line": 123,
       "title": "RF-DPL-SKILL-02 real static conformance rejects a skill promoted to a process runtime",
       "ids": [
         "RF-DPL-SKILL-02"
@@ -4649,7 +4649,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 112,
+      "line": 148,
       "title": "RF-DPL-SKILL-03 SKILL.md stop rules cover missing dependency/permission/conformance before guessing",
       "ids": [
         "RF-DPL-SKILL-03"
@@ -4664,7 +4664,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/skill-conformance.test.ts",
-      "line": 37,
+      "line": 49,
       "title": "module-skill itself passes C1/C2/C3 generated-package conformance",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4676,7 +4676,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/skill-conformance.test.ts",
-      "line": 48,
+      "line": 60,
       "title": "CP-DPL-SKILL-04 a well-formed fixture conforms; a corrupted artifact stops the flow",
       "ids": [
         "CP-DPL-SKILL-04"
@@ -4690,7 +4690,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/skill-conformance.test.ts",
-      "line": 114,
+      "line": 138,
       "title": "RF-DPL-SKILL-04 a modified artifact that skips re-conformance is rejected by a real gate",
       "ids": [
         "RF-DPL-SKILL-04"
@@ -4715,7 +4715,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 34,
+      "line": 45,
       "title": "CP-DPL-TPL-01 materializes six profiles with only their real responsibilities",
       "ids": [
         "CP-DPL-TPL-01"
@@ -4729,7 +4729,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 73,
+      "line": 106,
       "title": "CP-DPL-TPL-02 emits minimum metadata and verification without fake lifecycle",
       "ids": [
         "CP-DPL-TPL-02"
@@ -4743,7 +4743,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 113,
+      "line": 151,
       "title": "CP-DPL-TPL-03 generated TypeScript packages pass strict tsc with typed public boundaries",
       "ids": [
         "CP-DPL-TPL-03"
@@ -4757,7 +4757,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 144,
+      "line": 191,
       "title": "CP-DPL-TPL-04 migration is conditional and always requires re-conformance",
       "ids": [
         "CP-DPL-TPL-04"
@@ -4771,7 +4771,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/profile-hardening.test.ts",
-      "line": 26,
+      "line": 44,
       "title": "P1-1/P1-2 all six profiles load and execute their own generated adapter",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4783,7 +4783,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/profile-hardening.test.ts",
-      "line": 68,
+      "line": 89,
       "title": "P1-4/P1-5 template enforces formal names and creates publishable public packages",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4795,7 +4795,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/profile-hardening.test.ts",
-      "line": 91,
+      "line": 118,
       "title": "FND-P1-01 generated Module builds JS and declarations, packs, and imports from an isolated consumer",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4807,7 +4807,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/profile-lifecycle-and-honesty.test.ts",
-      "line": 37,
+      "line": 33,
       "title": "gap-1 generated observation matches canonical ModuleOperationResult at runtime",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4818,7 +4818,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/profile-lifecycle-and-honesty.test.ts",
-      "line": 57,
+      "line": 60,
       "title": "gap-2 service profile generates and passes lifecycle tests",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4829,7 +4829,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/profile-lifecycle-and-honesty.test.ts",
-      "line": 77,
+      "line": 98,
       "title": "gap-3 browser-extension status reports honest UNKNOWN / ACTION_REQUIRED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4840,12 +4840,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 181,
+      "line": 190,
       "title": "apply completes when every step is satisfied and records the applied plan",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -4858,12 +4859,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 218,
+      "line": 228,
       "title": "apply executes a package step and re-checks the postcondition",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -4876,7 +4878,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 247,
+      "line": 257,
       "title": "CP-DPL-CLI-02 resume re-observes reality and skips already-satisfied steps without re-execution",
       "ids": [
         "CP-DPL-CLI-02"
@@ -4884,6 +4886,7 @@
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -4896,7 +4899,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 287,
+      "line": 297,
       "title": "CP-DPL-CLI-02 a stale plan is BLOCKED and never applied",
       "ids": [
         "CP-DPL-CLI-02"
@@ -4904,6 +4907,7 @@
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -4916,12 +4920,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 320,
+      "line": 331,
       "title": "a missing plan throws PLAN_NOT_FOUND",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -4934,12 +4939,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 342,
+      "line": 354,
       "title": "a human step persists a pendingAction, returns ACTION_REQUIRED, and stops",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -4952,12 +4958,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 395,
+      "line": 408,
       "title": "resume after ACTION_REQUIRED skips the now-verified human step and completes",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -4970,12 +4977,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 458,
+      "line": 473,
       "title": "a failing lifecycle step stops the apply, records FAILED, and persists nothing as applied",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -4988,12 +4996,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 524,
+      "line": 540,
       "title": "historical success with missing reality is re-executed, not faked as skip",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -5006,12 +5015,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 565,
+      "line": 581,
       "title": "config step materializes real config and its postcondition reads from disk",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -5024,12 +5034,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 607,
+      "line": 623,
       "title": "external-resource configure dispatches the start primitive and observes resourceConfigured",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
@@ -5147,7 +5158,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 71,
+      "line": 73,
       "title": "preflight against the real workspace returns a typed result",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5158,7 +5169,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 86,
+      "line": 88,
       "title": "doctor against the real workspace returns a structured array",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5169,7 +5180,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 92,
+      "line": 96,
       "title": "manifest materializes .proflow and emits a typed manifest",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5180,7 +5191,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 106,
+      "line": 110,
       "title": "plan --intent install persists a plan with a planRef",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5202,7 +5213,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 278,
+      "line": 293,
       "title": "D1 Contract Gate — parseModuleDescriptor enforces the frozen module contract",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5210,7 +5221,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5230,7 +5243,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 302,
+      "line": 317,
       "title": "D2 Template + Conformance — module-template passes C1/C2/C3 and materialized descriptors conform",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5238,7 +5251,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5258,7 +5273,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 333,
+      "line": 401,
       "title": "D3 Platform CLI Offline — a fake module closes the loop with no network I/O",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5266,7 +5281,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5286,7 +5303,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 388,
+      "line": 457,
       "title": "D4 External Resource Governance — real adapters report honest ACTION_REQUIRED, never fake READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5294,7 +5311,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5314,7 +5333,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 414,
+      "line": 483,
       "title": "D5 Cross-domain Deployment — a library + service + external-resource graph plans together",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5322,7 +5341,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5342,7 +5363,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 445,
+      "line": 514,
       "title": "D6 Failure Injection — an injected FAILED stop never fakes success",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5350,7 +5371,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5370,7 +5393,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 517,
+      "line": 587,
       "title": "Track A — deterministic full-chain closes preflight→apply→lifecycle→verify→manifest READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5378,7 +5401,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5398,7 +5423,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 687,
+      "line": 759,
       "title": "Track B — discovery loads every real package descriptor + the 4 external adapters + platform-host",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5406,7 +5431,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5426,7 +5453,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 704,
+      "line": 776,
       "title": "Track B — a coherent platform-host subgraph resolves with correct order",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5434,7 +5461,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5454,7 +5483,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 727,
+      "line": 801,
       "title": "Track B — moduleRef bindings resolve against the real model-provider module",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5462,7 +5491,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5482,7 +5513,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 752,
+      "line": 826,
       "title": "Track B — unsupported lifecycle is rejected, never faked",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5490,7 +5521,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5510,7 +5543,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 774,
+      "line": 848,
       "title": "Track B — unverified external resources yield a Manifest that is not fake READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5518,7 +5551,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5538,7 +5573,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 802,
+      "line": 876,
       "title": "CP-DPL-CLI-06 upgrade — current != target drives a migrate step and never a rollback step",
       "ids": [
         "CP-DPL-CLI-06"
@@ -5548,7 +5583,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5568,7 +5605,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 852,
+      "line": 926,
       "title": "upgrade — migration is emitted only when the target declares migrate",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5576,7 +5613,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5596,7 +5635,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 871,
+      "line": 945,
       "title": "CP-DPL-CLI-06 upgrade — a verify FAIL during upgrade preserves prior PASS history (no erase)",
       "ids": [
         "CP-DPL-CLI-06"
@@ -5606,7 +5645,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5626,7 +5667,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 911,
+      "line": 985,
       "title": "repair — doctor FAILED flows into a repair plan and applies the declared capability",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5634,7 +5675,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5654,7 +5697,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 978,
+      "line": 1053,
       "title": "repair — an unmappable fact (verify-failed / target-behind) never invents a mutation",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5662,35 +5705,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
-        "packages/platform-cli/src/contracts.ts",
-        "packages/platform-cli/src/discovery/catalog.ts",
-        "packages/platform-cli/src/discovery/discover.ts",
-        "packages/platform-cli/src/doctor/index.ts",
-        "packages/platform-cli/src/graph/index.ts",
-        "packages/platform-cli/src/install/index.ts",
-        "packages/platform-cli/src/lifecycle/index.ts",
-        "packages/platform-cli/src/manifest/index.ts",
-        "packages/platform-cli/src/modules.ts",
-        "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/index.ts",
-        "packages/platform-cli/src/planner/index.ts",
-        "packages/platform-cli/src/preflight/preflight.ts",
-        "packages/platform-cli/src/verification/index.ts"
-      ]
-    },
-    {
-      "package": "platform-cli",
-      "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1014,
-      "title": "secret — secretRef identity survives the full chain verbatim, raw sentinel appears zero times",
-      "ids": [],
-      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
-      "implementationRefs": [
-        "packages/deployment-conformance/src/index.ts",
-        "packages/module-contract/src/index.ts",
-        "packages/module-template/src/index.ts",
-        "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5711,6 +5728,36 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
       "line": 1089,
+      "title": "secret — secretRef identity survives the full chain verbatim, raw sentinel appears zero times",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts",
+        "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/discovery/catalog.ts",
+        "packages/platform-cli/src/discovery/discover.ts",
+        "packages/platform-cli/src/doctor/index.ts",
+        "packages/platform-cli/src/graph/index.ts",
+        "packages/platform-cli/src/install/index.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/manifest/index.ts",
+        "packages/platform-cli/src/modules.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/index.ts",
+        "packages/platform-cli/src/planner/index.ts",
+        "packages/platform-cli/src/preflight/preflight.ts",
+        "packages/platform-cli/src/verification/index.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
+      "line": 1165,
       "title": "secret — generated INSTALL deep-redacts a raw secret sentinel",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5718,7 +5765,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5738,7 +5787,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1119,
+      "line": 1195,
       "title": "secret — generated INSTALL preserves a secretRef identity verbatim (frozen design: identity, not raw secret)",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5746,7 +5795,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5766,7 +5817,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1139,
+      "line": 1215,
       "title": "PRESMOKE-B6-BINDER-01 shipped AutoModuleCatalog binds a real local service adapter over the unbound default",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5774,7 +5825,9 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5830,7 +5883,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 121,
+      "line": 135,
       "title": "versionSatisfies covers exact and comparator ranges",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5847,7 +5900,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 140,
+      "line": 154,
       "title": "CP-DPL-CLI-01 graph throws DEPENDENCY_UNRESOLVED for a missing required provider",
       "ids": [
         "CP-DPL-CLI-01"
@@ -5866,7 +5919,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 155,
+      "line": 169,
       "title": "CP-DPL-CLI-01 graph throws DEPENDENCY_INCOMPATIBLE for an out-of-range provider",
       "ids": [
         "CP-DPL-CLI-01"
@@ -5885,7 +5938,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 172,
+      "line": 186,
       "title": "CP-DPL-CLI-01 graph throws DEPENDENCY_CYCLE for cyclic dependencies",
       "ids": [
         "CP-DPL-CLI-01"
@@ -5904,7 +5957,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 191,
+      "line": 205,
       "title": "graph builds exact moduleRef edges from moduleRef config slots",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5921,7 +5974,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 218,
+      "line": 232,
       "title": "graph binds the effective config moduleRef override over the slot default",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5938,7 +5991,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 256,
+      "line": 270,
       "title": "graph throws MODULE_REF_UNRESOLVED for a default moduleRef with no target",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5955,7 +6008,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 279,
+      "line": 293,
       "title": "graph throws MODULE_REF_UNRESOLVED for a config override with no target",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5972,7 +6025,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 306,
+      "line": 320,
       "title": "graph does not treat a URL config value as a module identity",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5989,7 +6042,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 333,
+      "line": 347,
       "title": "preflight reports MODULE_REF_UNRESOLVED as a blocking finding",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6006,7 +6059,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 355,
+      "line": 369,
       "title": "graph keeps all matching providers and orders the consumer after them",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6023,7 +6076,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 384,
+      "line": 398,
       "title": "optional dependency does not block when no provider exists",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6040,7 +6093,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 402,
+      "line": 416,
       "title": "discovery finds the real governed module set",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6057,7 +6110,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 417,
+      "line": 431,
       "title": "resolveModules rejects duplicate moduleRef",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6074,7 +6127,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 432,
+      "line": 446,
       "title": "resolveModules rejects duplicate packageName",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6091,7 +6144,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 447,
+      "line": 461,
       "title": "resolveModules rejects an invalid descriptor",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6108,7 +6161,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 456,
+      "line": 470,
       "title": "resolveModules detects moduleVersion != package.json version",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6125,7 +6178,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 486,
+      "line": 500,
       "title": "requirements: human is ACTION_REQUIRED, node runtime satisfied, missing executable FAIL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6142,7 +6195,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 508,
+      "line": 522,
       "title": "config: missing required config produces CONFIG_MISSING; secretRef holds a reference identity and rejects raw secrets",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6159,7 +6212,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 565,
+      "line": 579,
       "title": "preflight blocks with findings for an unresolved dependency",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6176,7 +6229,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 580,
+      "line": 594,
       "title": "preflight blocks with findings for a cyclic dependency",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6193,7 +6246,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-      "line": 600,
+      "line": 614,
       "title": "preflight blocks with findings for missing config",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6210,12 +6263,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/external-apply.test.ts",
-      "line": 185,
+      "line": 191,
       "title": "install plan generates no start mutation step for status/verify-only external resources",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/modules.ts",
@@ -6227,12 +6281,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/external-apply.test.ts",
-      "line": 232,
+      "line": 238,
       "title": "install plan still generates an activation step for a start-capable external resource",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/modules.ts",
@@ -6244,12 +6299,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/external-apply.test.ts",
-      "line": 255,
+      "line": 261,
       "title": "external-resource start reporting ACTION_REQUIRED keeps ACTION_REQUIRED and persists a structured pending action",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/modules.ts",
@@ -6261,12 +6317,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/external-apply.test.ts",
-      "line": 328,
+      "line": 335,
       "title": "external-resource start reporting BLOCKED stops the apply with BLOCKED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/modules.ts",
@@ -6278,12 +6335,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/external-apply.test.ts",
-      "line": 375,
+      "line": 383,
       "title": "external-resource start reporting FAILED stops the apply with FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/modules.ts",
@@ -6295,12 +6353,13 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/external-apply.test.ts",
-      "line": 422,
+      "line": 431,
       "title": "a pending action for an external-resource step is cleared once the step is satisfied on resume",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/modules.ts",
@@ -6312,7 +6371,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 116,
+      "line": 139,
       "title": "InstalledModuleCatalog discovers declared governed installed modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6323,7 +6382,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 143,
+      "line": 166,
       "title": "InstalledModuleCatalog ignores undeclared and ungoverned packages",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6334,7 +6393,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 185,
+      "line": 208,
       "title": "discoverModules resolves installed modules through real Node resolution",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6345,7 +6404,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 215,
+      "line": 238,
       "title": "discoverModules finds installed modules in a product repo without pnpm-workspace.yaml",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6356,7 +6415,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 243,
+      "line": 266,
       "title": "AutoModuleCatalog combines workspace and installed sources",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6367,7 +6426,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 279,
+      "line": 302,
       "title": "AutoModuleCatalog prefers workspace over installed on packageName collision",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6378,7 +6437,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 317,
+      "line": 340,
       "title": "InstalledModuleCatalog resolves a real built package via symlink",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6388,8 +6447,20 @@
     },
     {
       "package": "platform-cli",
+      "path": "packages/platform-cli/tests/installed-version-observation.test.ts",
+      "line": 70,
+      "title": "installed-version observation follows the current node_modules package after a symlink upgrade",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 149,
+      "line": 155,
       "title": "dispatchLifecycle invokes a declared primitive and returns its validated result",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6404,7 +6475,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 167,
+      "line": 173,
       "title": "CP-DPL-CLI-04 dispatchLifecycle rejects an undeclared primitive with LIFECYCLE_UNSUPPORTED and never invokes the adapter",
       "ids": [
         "CP-DPL-CLI-04"
@@ -6421,7 +6492,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 185,
+      "line": 191,
       "title": "dispatchLifecycle runtime-validates the adapter result and rejects malformed results",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6436,7 +6507,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 209,
+      "line": 215,
       "title": "dispatchLifecycle never upgrades a non-success result to success",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6451,7 +6522,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 235,
+      "line": 241,
       "title": "startModules dispatches only modules that declare start and never forges library/remote start",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6466,7 +6537,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 270,
+      "line": 276,
       "title": "startModules follows forward dependency topological order",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6481,7 +6552,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 303,
+      "line": 309,
       "title": "stopModules follows reverse dependency topological order",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6496,7 +6567,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 335,
+      "line": 341,
       "title": "statusModules dispatches real-time status and preserves non-success",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6511,7 +6582,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 376,
+      "line": 382,
       "title": "statusModules skips modules that do not declare status",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6526,7 +6597,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 225,
+      "line": 231,
       "title": "assessPlatformReady returns READY when all required reality is satisfied",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6547,7 +6618,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 236,
+      "line": 242,
       "title": "READY requires a current-version verification record — a stale version is NOT_READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6568,7 +6639,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 251,
+      "line": 257,
       "title": "last verify PASS + current status unavailable cannot be READY (RF-DPL-CLI-05)",
       "ids": [
         "RF-DPL-CLI-05"
@@ -6591,7 +6662,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 264,
+      "line": 270,
       "title": "an operation reporting SUCCEEDED while its checks FAIL cannot be READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6612,7 +6683,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 275,
+      "line": 281,
       "title": "an operation reporting SUCCEEDED while its checks WARN is DEGRADED, not READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6633,7 +6704,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 286,
+      "line": 292,
       "title": "a structured result that is not SUCCEEDED is not READY (BLOCKED)",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6654,7 +6725,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 297,
+      "line": 303,
       "title": "NOT_READY when a required runtime is FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6675,7 +6746,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 308,
+      "line": 314,
       "title": "DEGRADED never masks a required failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6696,7 +6767,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 320,
+      "line": 326,
       "title": "blocking human action yields ACTION_REQUIRED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6717,7 +6788,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 338,
+      "line": 344,
       "title": "runtime status ACTION_REQUIRED yields ACTION_REQUIRED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6738,7 +6809,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 349,
+      "line": 355,
       "title": "NOT_READY on unresolvable required dependency",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6759,7 +6830,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 364,
+      "line": 370,
       "title": "NOT_READY on missing required config",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6780,7 +6851,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 387,
+      "line": 393,
       "title": "NOT_READY on unresolvable moduleRef binding",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6801,7 +6872,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 410,
+      "line": 416,
       "title": "NOT_READY when current-version verification is FAIL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6822,7 +6893,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 421,
+      "line": 427,
       "title": "NOT_READY when verification is missing",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6843,7 +6914,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 434,
+      "line": 440,
       "title": "buildManifest composes live status, verification summary, secretRef references, and pending actions",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6864,7 +6935,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 498,
+      "line": 504,
       "title": "manifest status reflects live reality, not persisted PASS history",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6885,7 +6956,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 527,
+      "line": 533,
       "title": "a doctor SUCCEEDED with FAIL checks cannot rescue a verify FAIL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6906,7 +6977,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 561,
+      "line": 567,
       "title": "renderInstallDoc includes module set, requirements, config slots, effects, verification plan, and never leaks raw secrets",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6927,7 +6998,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 602,
+      "line": 614,
       "title": "renderInstallDoc redacts a non-secretRef sensitive raw value",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6948,7 +7019,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 626,
+      "line": 638,
       "title": "generateInstallDoc writes INSTALL.md and redacts a non-secretRef sensitive raw value",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6969,7 +7040,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-      "line": 658,
+      "line": 670,
       "title": "PRESMOKE-B6-MANIFEST-01 config readiness requires materialized config, not caller-supplied intent",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6990,7 +7061,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 141,
+      "line": 147,
       "title": "state roundtrips deployment facts without claiming runtime readiness",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7006,7 +7077,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 173,
+      "line": 179,
       "title": "missing state loads as undefined so current reality wins",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7022,7 +7093,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 182,
+      "line": 188,
       "title": "pending actions persist durably as an interrupted-apply resume signal",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7038,7 +7109,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 211,
+      "line": 217,
       "title": "CP-DPL-CLI-07 plan save/load roundtrips and is atomic",
       "ids": [
         "CP-DPL-CLI-07"
@@ -7056,7 +7127,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 229,
+      "line": 235,
       "title": "missing plan loads as undefined",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7072,7 +7143,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 238,
+      "line": 244,
       "title": "secretRef reference persists verbatim in the plan",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7088,7 +7159,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 257,
+      "line": 263,
       "title": "verification history appends and preserves every record",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7104,7 +7175,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 286,
+      "line": 292,
       "title": "verification records for distinct modules stay isolated",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7120,7 +7191,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 305,
+      "line": 311,
       "title": "config materialization preserves secretRef references in public config, never .secrets.json",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7136,7 +7207,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 339,
+      "line": 345,
       "title": "generated INSTALL.md never contains a raw secret",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7152,7 +7223,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 359,
+      "line": 365,
       "title": "acquire records lock metadata and release removes it",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7168,7 +7239,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 379,
+      "line": 385,
       "title": "CP-DPL-CLI-07 second same-workspace apply is blocked with WORKSPACE_LOCKED",
       "ids": [
         "CP-DPL-CLI-07"
@@ -7186,7 +7257,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 403,
+      "line": 409,
       "title": "lock is released via finally even when the body throws",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7202,7 +7273,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 422,
+      "line": 428,
       "title": "a lock that cannot be proven stale is never reclaimed",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7218,7 +7289,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 452,
+      "line": 458,
       "title": "redactSecretValues preserves secretRef references verbatim",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7234,7 +7305,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 461,
+      "line": 467,
       "title": "redactDeep scrubs raw secrets from nested structures",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7250,7 +7321,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-      "line": 474,
+      "line": 480,
       "title": "redactPlanSecrets preserves secretRef references without mutating the input",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7266,7 +7337,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 100,
+      "line": 114,
       "title": "planDeployment produces an immutable, dependency-ordered plan",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7279,7 +7350,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 133,
+      "line": 147,
       "title": "planDeployment covers config/package/human/external-resource/lifecycle kinds",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7292,7 +7363,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 168,
+      "line": 182,
       "title": "computeFingerprint is stable for the same plan and reacts to intent/targets/modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7305,7 +7376,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 197,
+      "line": 211,
       "title": "checkPlanStale flags stable assumption change but not volatile reality change",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7318,7 +7389,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 234,
+      "line": 248,
       "title": "fingerprint includes secretRef references verbatim so A→B changes it",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7331,7 +7402,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 263,
+      "line": 277,
       "title": "evaluateStepCheck returns SATISFIED only from current reality, not history",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7344,7 +7415,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 288,
+      "line": 302,
       "title": "evaluateStepCheck for config requires materialized required config",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7357,7 +7428,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 314,
+      "line": 328,
       "title": "evaluateStepCheck for human requires current verification",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7370,7 +7441,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 337,
+      "line": 351,
       "title": "assessUpgrade reports compatible upgrades with no migration",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7383,7 +7454,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 347,
+      "line": 361,
       "title": "assessUpgrade: template version change alone does not force migration",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7396,7 +7467,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 364,
+      "line": 378,
       "title": "assessUpgrade requires migration only when declared and breaking",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7409,7 +7480,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 393,
+      "line": 407,
       "title": "planDeployment upgrade includes migrate step only when required, and verify, and no rollback",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7422,7 +7493,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 435,
+      "line": 449,
       "title": "planDeployment upgrade with no migration does not emit a migrate step",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7435,7 +7506,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 463,
+      "line": 477,
       "title": "planRepair maps facts to declared capabilities only",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7448,7 +7519,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 491,
+      "line": 505,
       "title": "planRepair emits human step for actionRequired and no arbitrary shell fixes",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7461,7 +7532,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 516,
+      "line": 530,
       "title": "planRepair ignores lifecycle facts for modules without that primitive",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7474,7 +7545,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 101,
+      "line": 107,
       "title": "preflight dispatches a declared preflight primitive and reports SUCCEEDED as ready",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7488,7 +7559,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 118,
+      "line": 124,
       "title": "preflight reports ACTION_REQUIRED when the adapter preflight needs a human action",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7502,7 +7573,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 139,
+      "line": 145,
       "title": "preflight reports BLOCKED as a blocking finding, not a thrown failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7516,7 +7587,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 160,
+      "line": 166,
       "title": "preflight reports FAILED as a blocking finding, not a thrown failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7530,7 +7601,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 181,
+      "line": 187,
       "title": "preflight reports ACTION_REQUIRED when the adapter is unbound, not a failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7544,7 +7615,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 202,
+      "line": 208,
       "title": "preflight skips module preflight dispatch for modules that do not declare it",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7558,7 +7629,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 212,
+      "line": 218,
       "title": "preflight without a catalog still runs generic checks and skips module preflight",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7572,11 +7643,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/product-workspace-integration.test.ts",
-      "line": 167,
+      "line": 180,
       "title": "product workspace — installed discovery resolves real + synthetic governed modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/index.ts",
@@ -7593,11 +7665,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/product-workspace-integration.test.ts",
-      "line": 181,
+      "line": 194,
       "title": "product workspace — preflight is READY when required config is provided",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/index.ts",
@@ -7614,11 +7687,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/product-workspace-integration.test.ts",
-      "line": 192,
+      "line": 205,
       "title": "product workspace — preflight flags a missing required config slot",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/index.ts",
@@ -7635,11 +7709,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/product-workspace-integration.test.ts",
-      "line": 209,
+      "line": 222,
       "title": "product workspace — plan persists and round-trips through savePlan/loadPlan",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/index.ts",
@@ -7656,11 +7731,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/product-workspace-integration.test.ts",
-      "line": 227,
+      "line": 240,
       "title": "product workspace — apply safe gate blocks a stale plan and records no applied plan",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/index.ts",
@@ -7677,11 +7753,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/product-workspace-integration.test.ts",
-      "line": 252,
+      "line": 266,
       "title": "product workspace — apply materializes config, verifies, and composes a READY manifest + INSTALL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/index.ts",
@@ -7698,7 +7775,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/production-binder.test.ts",
-      "line": 192,
+      "line": 308,
       "title": "shipped CLI status binds a real service + real external resource and fails closed when unbound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -7711,8 +7788,8 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/production-binder.test.ts",
-      "line": 259,
-      "title": "all shipped service/external-resource modules expose a production binding factory",
+      "line": 381,
+      "title": "all shipped service/external-resource modules expose their current production binding seam",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
@@ -7724,7 +7801,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 219,
+      "line": 225,
       "title": "an old-resource PASS cannot READY a new resource — resourceIdentity mismatch is VERIFICATION_STALE",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7745,7 +7822,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 238,
+      "line": 244,
       "title": "a matching resource identity is required for READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7766,7 +7843,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 257,
+      "line": 263,
       "title": "resourceVersion mismatch against live reality is VERIFICATION_STALE",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7787,7 +7864,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 283,
+      "line": 289,
       "title": "a current resource with matching identity and version is READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7808,7 +7885,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 309,
+      "line": 315,
       "title": "non-external modules require only a current-version PASS (no resource reality)",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7829,7 +7906,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 321,
+      "line": 327,
       "title": "configFingerprint includes secretRef reference identity without raw secret values",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7850,7 +7927,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 334,
+      "line": 340,
       "title": "a persisted pending action blocks READY as a BLOCKING_ACTION",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7871,7 +7948,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 363,
+      "line": 369,
       "title": "a pending action whose plan is COMPLETE no longer blocks READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7892,7 +7969,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 391,
+      "line": 397,
       "title": "clearCompletedPendingActions removes only COMPLETE-plan actions",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7913,7 +7990,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 411,
+      "line": 417,
       "title": "clearPendingActions removes only actions matched by the resolver",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7934,7 +8011,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 431,
+      "line": 437,
       "title": "isDeploymentState validates the new PendingActionRecord structure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7955,7 +8032,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 468,
+      "line": 474,
       "title": "assessPlatformReady yields ACTION_REQUIRED for a blocking action",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7976,7 +8053,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 140,
+      "line": 154,
       "title": "secretRef reference persists verbatim through savePlan/loadPlan",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7994,7 +8071,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 167,
+      "line": 181,
       "title": "secretRef reference materializes to public config verbatim, not .secrets.json",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8012,7 +8089,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 197,
+      "line": 211,
       "title": "secretRef reference A→B changes the fingerprint and marks the plan stale",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8030,7 +8107,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 223,
+      "line": 237,
       "title": "unchanged secretRef reference does not mark the plan stale",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8048,7 +8125,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 245,
+      "line": 259,
       "title": "raw secret sentinel is scrubbed by redactDeep and never survives",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8066,7 +8143,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 259,
+      "line": 273,
       "title": "redactDeep leaves non-secret strings untouched",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8084,7 +8161,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 270,
+      "line": 284,
       "title": "rebuildCurrentAssumptions re-discovers modules from the catalog, not the old plan",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8102,7 +8179,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 156,
+      "line": 180,
       "title": "resolveTargetCatalog loads real descriptors from a target workspace",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8119,7 +8196,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 174,
+      "line": 198,
       "title": "resolveTargetCatalog returns no descriptors for a workspace without governed modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8136,7 +8213,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 184,
+      "line": 208,
       "title": "resolveTargetCatalog rejects a workspace whose version mismatches package.json",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8153,7 +8230,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 208,
+      "line": 242,
       "title": "planUpgrade treats identical current/target descriptors as a no-op",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8170,7 +8247,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 226,
+      "line": 260,
       "title": "planUpgrade emits a real package upgrade when current != target",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8187,7 +8264,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 242,
+      "line": 276,
       "title": "planUpgrade plans an upgrade against descriptors resolved from a real target workspace",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8204,7 +8281,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 273,
+      "line": 307,
       "title": "planUpgrade is a no-op when the target workspace already equals current",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8221,7 +8298,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 303,
+      "line": 337,
       "title": "repairFactsFromDoctor maps known error codes to known repair facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8238,7 +8315,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 329,
+      "line": 363,
       "title": "repairFactsFromDoctor emits ACTION_REQUIRED for a human-action next action",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8255,7 +8332,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 350,
+      "line": 384,
       "title": "repairFactsFromDoctor emits no facts for a healthy module",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8272,7 +8349,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 355,
+      "line": 389,
       "title": "repairFactsFromDoctor blocks unknown doctor errors without inventing facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8289,7 +8366,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 371,
+      "line": 405,
       "title": "repairFactsFromDoctor blocks a failed report with no typed error",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8306,7 +8383,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 380,
+      "line": 414,
       "title": "diagnoseRepair combines facts and blocked across reports",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8323,7 +8400,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 410,
+      "line": 444,
       "title": "planRepair emits apply-able steps with preconditions from known facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8340,7 +8417,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 440,
+      "line": 474,
       "title": "planRepair never invents a mutation for a blocked (unknown) diagnosis",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8357,7 +8434,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 456,
+      "line": 490,
       "title": "planRepair produces no step for VERIFY_FAILED or DEPENDENCY_UNRESOLVED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8374,7 +8451,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 189,
+      "line": 195,
       "title": "verifyModule dispatches the live verify primitive and persists a PASS record",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8392,7 +8469,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 214,
+      "line": 220,
       "title": "verifyModule records FAIL when the adapter reports FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8410,7 +8487,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 237,
+      "line": 243,
       "title": "verifyModule never records ACTION_REQUIRED as PASS",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8428,7 +8505,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 264,
+      "line": 270,
       "title": "verify history appends and preserves every version without overwrite",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8446,7 +8523,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 317,
+      "line": 323,
       "title": "persisted PASS history cannot fake a FAIL — verify reads current reality",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8464,7 +8541,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 356,
+      "line": 362,
       "title": "external-resource verify carries resourceVersion and a config-fingerprint identity",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8482,7 +8559,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 391,
+      "line": 397,
       "title": "non-external verify omits resource identity/version",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8500,7 +8577,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 410,
+      "line": 416,
       "title": "verificationRef is deterministic and unique per verifiedAt",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8518,7 +8595,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 430,
+      "line": 436,
       "title": "verifyModule rejects undeclared verify with LIFECYCLE_UNSUPPORTED and writes nothing",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8536,7 +8613,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 453,
+      "line": 459,
       "title": "verifyModules skips modules that do not declare verify",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8554,7 +8631,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 481,
+      "line": 487,
       "title": "doctor diagnoses a failure, recommends a repair plan, and never repairs",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8572,7 +8649,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 512,
+      "line": 522,
       "title": "doctor reports a human action for ACTION_REQUIRED and does not auto-act",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8590,7 +8667,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 534,
+      "line": 548,
       "title": "doctor reports no next action when the module is healthy",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8608,7 +8685,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/verify-doctor.test.ts",
-      "line": 548,
+      "line": 566,
       "title": "doctorModules skips modules that do not declare doctor",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

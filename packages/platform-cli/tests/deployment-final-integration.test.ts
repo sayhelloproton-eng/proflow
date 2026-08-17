@@ -780,8 +780,10 @@ test("Track B — a coherent platform-host subgraph resolves with correct order"
 		"platform-host",
 		"task-orchestration",
 		"agent-runtime",
-		"execution-contracts",
-		"model-contracts",
+		"execution-runtime",
+		"execution-local",
+		"model-runtime",
+		"model-provider-api",
 	].map((ref) => {
 		const module = byRef.get(ref);
 		assert.ok(module !== undefined, `missing ${ref}`);
@@ -926,7 +928,7 @@ test("upgrade — migration is emitted only when the target declares migrate", (
 	const target = descriptor({
 		moduleRef: "m",
 		moduleVersion: "1.0.1",
-		lifecycle: { supported: ["describe", "verify", "doctor"] },
+		lifecycle: { supported: ["describe", "preflight", "verify", "doctor"] },
 	});
 	const plan = planDeployment({
 		intent: "upgrade",
@@ -1268,7 +1270,7 @@ export function createBehaviorAdapter(input?: { service: Service }) {
 		describe: () => ({ result: base, observedEffects: [] }),
 		preflight: () => ({ result: input ? base : unbound, observedEffects: [] }),
 		status: () => ({
-			result: input ? { ...base, checks: [{ id: "runtime", status: input.service.status() === "RUNNING" ? "PASS" : "FAIL", message: "runtime" }] } : unbound,
+			result: input ? { ...base, checks: [{ id: "runtime", status: "PASS", message: "runtime=" + input.service.status() }] } : unbound,
 			observedEffects: [],
 		}),
 		verify: async () => ({ result: input ? { ...base, checks: [{ id: "health", status: input.service.inspect().readiness === "READY" ? "PASS" : "FAIL", message: "health" }] } : unbound, observedEffects: [] }),

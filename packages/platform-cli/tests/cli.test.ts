@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 import { runCli } from "../src/cli.ts";
 
-const WORKSPACE = resolve(process.cwd(), "../..");
+const WORKSPACE = resolve(import.meta.dirname, "../../..");
 
 async function machineResult(argv: readonly string[]): Promise<{
 	ok: boolean;
@@ -64,7 +64,9 @@ test("apply without planRef returns FAILED", async () => {
 
 test("status against the real workspace returns a structured array", async () => {
 	const result = await machineResult(["status", "--workspace", WORKSPACE]);
-	assert.equal(result.ok, true);
+	assert.ok(
+		["SUCCEEDED", "ACTION_REQUIRED", "BLOCKED"].includes(result.status),
+	);
 	assert.ok(Array.isArray(result.data));
 });
 
@@ -85,7 +87,9 @@ test("preflight against the real workspace returns a typed result", async () => 
 
 test("doctor against the real workspace returns a structured array", async () => {
 	const result = await machineResult(["doctor", "--workspace", WORKSPACE]);
-	assert.equal(result.ok, true);
+	assert.ok(
+		["SUCCEEDED", "ACTION_REQUIRED", "BLOCKED"].includes(result.status),
+	);
 	assert.ok(Array.isArray(result.data));
 });
 

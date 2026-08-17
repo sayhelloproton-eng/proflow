@@ -149,7 +149,17 @@ async function writeTargetWorkspace(
 	await mkdir(join(pkgDir, "deployment"), { recursive: true });
 	await writeFile(
 		join(pkgDir, "package.json"),
-		JSON.stringify({ name: packageName, version: moduleVersion }),
+		JSON.stringify({
+			name: packageName,
+			version: moduleVersion,
+			proflow: {
+				module: true,
+				installClass: "optional",
+				descriptor: "./deployment/descriptor.ts",
+				manifest: "./proflow.module.json",
+				installRequires: [],
+			},
+		}),
 	);
 	await writeFile(
 		join(pkgDir, "deployment", "descriptor.ts"),
@@ -202,7 +212,17 @@ test("resolveTargetCatalog rejects a workspace whose version mismatches package.
 		// Mutate package.json version so it no longer matches the descriptor.
 		await writeFile(
 			join(root, "packages", "prov", "package.json"),
-			JSON.stringify({ name: "@tomflow/proflow-prov", version: "1.0.0" }),
+			JSON.stringify({
+				name: "@tomflow/proflow-prov",
+				version: "1.0.0",
+				proflow: {
+					module: true,
+					installClass: "optional",
+					descriptor: "./deployment/descriptor.ts",
+					manifest: "./proflow.module.json",
+					installRequires: [],
+				},
+			}),
 		);
 
 		await assert.rejects(
