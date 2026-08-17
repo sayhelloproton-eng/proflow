@@ -32,6 +32,7 @@ export interface PlanInput {
 	currentDescriptors?: readonly ModuleDescriptor[];
 	targetDescriptors?: readonly ModuleDescriptor[];
 	facts?: readonly RepairFact[];
+	uninstallScope?: "module" | "platform-instance";
 	now?: Date;
 }
 
@@ -171,7 +172,7 @@ function planUninstall(input: PlanInput): DeploymentPlan {
 		throw new PlatformError("INVALID_REQUEST", "uninstall requires modules");
 	}
 	const core = modules.find((module) => module.installClass === "core");
-	if (core !== undefined) {
+	if (core !== undefined && input.uninstallScope !== "platform-instance") {
 		throw new PlatformError(
 			"CORE_PACKAGE_REQUIRED",
 			`core module ${core.moduleRef} cannot be individually uninstalled`,

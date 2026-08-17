@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import {
+	claimWorkspaceBinding,
+	updateGlobalBindingState,
+} from "../src/binding/global-binding.ts";
 import { importRawAdapter } from "../src/binding/production-bindings.ts";
 import { runCli } from "../src/cli.ts";
 import { discoverModules } from "../src/discovery/discover.ts";
@@ -363,7 +367,20 @@ test("shipped CLI status binds a real service + real external resource and fails
 			JSON.stringify({ resourceUrl: baseUrl }),
 		);
 
-		const output = await runCli(["status", "--workspace", root]);
+		const globalRoot = join(root, ".test-global-binding");
+		const { binding: claimed } = await claimWorkspaceBinding({
+			workspace: root,
+			globalRoot,
+		});
+		await updateGlobalBindingState({
+			workspaceInstanceId: claimed.workspaceInstanceId,
+			state: "INSTALLED",
+			globalRoot,
+		});
+		const output = await runCli(["status"], {
+			cwd: tmpdir(),
+			globalRoot,
+		});
 		const parsed = JSON.parse(output) as { data?: StatusEntry[] };
 		const entries = parsed.data ?? [];
 		const byRef = new Map(entries.map((entry) => [entry.moduleRef, entry]));
@@ -372,6 +389,18 @@ test("shipped CLI status binds a real service + real external resource and fails
 		assert.equal(byRef.get("res")?.result?.status, "SUCCEEDED");
 		assert.equal(byRef.get("installed-res")?.result?.status, "SUCCEEDED");
 		assert.equal(byRef.get("plain")?.result?.status, "ACTION_REQUIRED");
+
+		const started = JSON.parse(
+			await runCli(["start", "svc"], { cwd: tmpdir(), globalRoot }),
+		) as {
+			status: string;
+			data?: Array<{ moduleRef?: string; result?: { status?: string } }>;
+			workspace?: { boundWorkspace?: string };
+		};
+		assert.equal(started.status, "SUCCEEDED");
+		assert.equal(started.data?.[0]?.moduleRef, "svc");
+		assert.equal(started.data?.[0]?.result?.status, "SUCCEEDED");
+		assert.equal(started.workspace?.boundWorkspace, await realpath(root));
 	} finally {
 		await new Promise<void>((resolve) => server?.close(() => resolve()));
 		await rm(root, { recursive: true, force: true });

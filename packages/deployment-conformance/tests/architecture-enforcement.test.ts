@@ -24,9 +24,17 @@ async function packageFixture(
 }
 
 test("platform conventions gate covers current repository and future package discovery", async (context) => {
+	const current = await runRepositoryArchitecture(repositoryRoot);
+	assert.equal(current.status, "PASS");
+	assert.equal(current.checkedPackages.length, 24);
 	assert.equal(
-		(await runRepositoryArchitecture(repositoryRoot)).status,
-		"PASS",
+		current.issues.some((issue) =>
+			[
+				"PACKAGE_INSTALL_GLOBAL_PLATFORM_DELEGATION_MISSING",
+				"PACKAGE_INSTALL_TRANSIENT_PLATFORM_CLI_FORBIDDEN",
+			].includes(issue.code),
+		),
+		false,
 	);
 	const root = await mkdtemp(join(tmpdir(), "proflow-architecture-"));
 	context.after(() => rm(root, { recursive: true, force: true }));

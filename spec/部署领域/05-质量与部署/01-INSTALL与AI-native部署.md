@@ -14,9 +14,27 @@ contractRefs: []
 
 # INSTALL 与 AI-native Deployment
 
-## 1. Workspace 与安装事实
+## 1. Global CLI、Single Workspace Binding 与安装事实
 
-Platform CLI 默认以当前执行目录 `process.cwd()` 作为目标 Workspace；`--workspace <path>` 仅作为显式覆盖能力。
+第一版 `platform` 是 Shell 全局命令；Global CLI binary 的安装生命周期与 ProFlow Platform Instance / Workspace 的安装生命周期彼此独立。`platform uninstall` 卸载的是当前唯一绑定的 Platform Instance，并解除 Workspace binding；它不等价于删除全局安装的 `@tomflow/proflow-platform-cli` package。
+
+第一版全局同时只允许 `0 or 1` 个受管 Workspace。Platform CLI 必须维护 durable global binding，并把当前 `boundWorkspace` 作为用户可观察的一等部署事实。
+
+安装目标解析固定为：
+
+```text
+platform install
+→ requestedWorkspace = process.cwd()
+
+platform install --workspace <path>
+→ requestedWorkspace = explicit path
+```
+
+`--workspace` 第一版必须支持，主要服务 Agent / 自动化调用；它只负责确定 `requestedWorkspace`，不能绕过 single-binding。进入 binding 判断前必须 canonicalize（absolute + realpath/等价规范化），避免相对路径、`..` 或 symlink 把同一 Workspace 误判为不同实例。
+
+若当前无 binding，可原子占用 requested Workspace 并进入安装；若已经绑定 Workspace A：同一 canonical Workspace 的重复 install 只允许幂等 `ALREADY_INSTALLED / no-op success`，不同 Workspace B 必须 `WORKSPACE_ALREADY_BOUND`，要求先 `platform uninstall` 再安装 B。不得静默覆盖、切换或同时管理第二个 Workspace。
+
+`status/start/stop/restart/verify/doctor/modules/docs/upgrade/uninstall` 等当前实例命令不以 cwd 决定目标；它们必须读取 global binding，并在任意目录操作当前唯一 `boundWorkspace`。无 binding 时必须明确返回 `WORKSPACE_NOT_BOUND / NOT_INSTALLED`，不得从 cwd 猜测平台实例。`platform status` 必须直接暴露当前绑定目录。
 
 安装完成的机器事实必须落在目标 Workspace：
 
@@ -34,9 +52,9 @@ Platform CLI 默认以当前执行目录 `process.cwd()` 作为目标 Workspace�
 安装入口允许两种等价形式：
 
 - `platform install [package]`：Platform CLI 直接表达平台级安装意图；
-- `npx <proflow-package> install`：package-owned 入口只识别“安装我自己”，随后委托 `@tomflow/proflow-platform-cli install <self-package>`。
+- `npx <proflow-package> install`：package-owned 入口只识别“安装我自己”，随后委托 Shell-global `platform install <self-package> --workspace <cwd>`；不得 transient 下载另一份 Platform CLI。
 
-两种入口必须汇聚到同一套 Registry Discovery → Planner → Apply → Workspace package manager 流程；package 自身不得复制第二套安装器。已有同名业务 CLI 的 Module 复用其 `install` 子命令；没有业务 CLI 的 Module 使用 Module Template 统一生成的 `self-install.mjs`。
+两种入口必须汇聚到同一套 Global Binding → Registry Discovery → Planner → Apply → Workspace package manager 流程；package 自身不得复制第二套安装器，也不得通过 `npx @tomflow/proflow-platform-cli` 绕过全局 CLI 与唯一 Workspace Binding。已有同名业务 CLI 的 Module 复用其 `install` 子命令；没有业务 CLI 的 Module 使用 Module Template 统一生成的 `self-install.mjs`。
 
 ## 2. 两类发现，不维护固定安装目录
 
@@ -58,22 +76,43 @@ Platform CLI 不内置固定 Platform Install Catalog。
 
 ### Workspace Discovery：识别“当前管理什么”
 
-Platform CLI 读取目标 Workspace `package.json` 的 dependencies/devDependencies，并对本地可解析 package 验证 ProFlow Module metadata/Descriptor，形成 Managed Module Set。
+Platform CLI 先读取 durable global binding，得到当前唯一 `boundWorkspace`，再读取该 Workspace `package.json` 的 dependencies/devDependencies，并对本地可解析 package 验证 ProFlow Module metadata/Descriptor，形成 Managed Module Set。
 
-Platform 的 start/stop/status/verify/doctor/upgrade/uninstall/docs 均以该 Managed Module Set 为当前 reality，不以安装入口来源区分治理方式。
+只有 `platform install` 在当前无 binding 时，才通过 cwd 或显式 `--workspace <path>` 确定新的 requested Workspace。实例建立后，当前 shell cwd 不再改变 Managed World。
+
+Platform 的 start/stop/status/verify/doctor/upgrade/uninstall/docs 均以该唯一 bound Workspace 的 Managed Module Set 为当前 reality，不以安装入口来源或当前目录区分治理方式。
 
 ## 3. 安装前环境检查
 
 真实 package install 之前必须检查：
 
 - Node 是否存在且版本满足要求；
-- npm 是否可用；
 - 目标 Workspace 是否存在/可写，`package.json` 是否可读或可创建；
-- package manager 是否可用；用户机器不能被假设已预装 pnpm；
-- npm Registry 是否可访问；
+- global binding 是否允许本次 requested Workspace，且跨进程 global operation lock 未被其它实例 mutation 占用；
+- Workspace package manager 的确定性事实；第一版正式支持 `npm | yarn | pnpm`，不能把 pnpm 当作用户前置要求；
+- package manager executable 是否可用；
+- npm Registry / ProFlow scope registry 是否可访问；
 - 私有 scope 所需 registry auth 是否可用。
 
+Workspace package manager 的选择优先读取 `package.json#packageManager`，并结合对应 lockfile / executable 做一致性校验；事实冲突或声明不受支持时必须返回 typed BLOCKED/ACTION_REQUIRED，不能猜。Global CLI 自身由 npm/yarn/pnpm 中哪一种工具安装，与 bound Workspace 选择哪一种 package manager 无关。
+
 环境缺失必须返回稳定的 structured result / action-required，不得把空 `install()`、假 `installedVersion` 或源码 monorepo 存在误报为真实安装成功。
+
+## 3.1 Global binding 原子性、状态与恢复
+
+“只能安装一次”必须由跨进程原子机制保证，不能实现为普通的 `if (!binding) install()`。第一版至少需要：
+
+```text
+UNBOUND
+INSTALLING
+INSTALLED
+UNINSTALLING
+BROKEN
+```
+
+install 必须先获得 global operation lock，再通过短 binding lock 检查并原子 claim requested Workspace。安装中途失败时不得悄悄清除 binding 并允许另一个 Workspace 接管；必须保留可诊断的 `BROKEN` 事实，直到用户完成恢复或显式卸载/forget。`apply/start/stop/restart/upgrade/module-uninstall/whole-instance uninstall` 等实例 mutation 同样必须受 global operation lock 串行化。
+
+Binding 至少持久化 canonical workspace path 与 stable workspace instance identity。若 bound Workspace 被手工移动/删除，`status/doctor/uninstall` 必须报告 `BOUND_WORKSPACE_MISSING`；普通 uninstall 不能假装已经清理不存在的 Workspace。允许显式 forget/force-forget 只清除失效 global binding，但必须明确说明它没有证明 Workspace 内部资源已被清理。
 
 ## 4. 两层 INSTALL 文档
 

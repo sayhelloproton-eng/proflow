@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 126,
-    "testCalls": 668
+    "files": 129,
+    "testCalls": 697
   },
   "tests": [
     {
@@ -1283,7 +1283,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/architecture-enforcement.test.ts",
-      "line": 56,
+      "line": 64,
       "title": "architecture rejects deep imports, undeclared dependencies, cycles, dumping grounds, and secrets",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1294,7 +1294,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/architecture-enforcement.test.ts",
-      "line": 116,
+      "line": 124,
       "title": "production imports cannot be satisfied only by devDependencies",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1371,9 +1371,11 @@
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
       "line": 148,
-      "title": "CP-DPL-CONF-02 C2 inspects real package metadata, exports, entry, and version",
+      "title": "CP-DPL-CONF-02 + CP-DPL-CONF-05 + RF-DPL-CONF-05 C2 inspects package form and enforces global package-owned install delegation",
       "ids": [
-        "CP-DPL-CONF-02"
+        "CP-DPL-CONF-02",
+        "CP-DPL-CONF-05",
+        "RF-DPL-CONF-05"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1385,7 +1387,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 218,
+      "line": 238,
       "title": "CP-DPL-CONF-03 C3 rejects side effects and fake external availability without invoking undeclared lifecycle",
       "ids": [
         "CP-DPL-CONF-03"
@@ -1400,7 +1402,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 306,
+      "line": 326,
       "title": "remediation C3 rejects result identity drift and effects outside the descriptor",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1413,7 +1415,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 438,
+      "line": 458,
       "title": "CP-DPL-CONF-04 enforces GPT Actions and File Bridge frozen limits",
       "ids": [
         "CP-DPL-CONF-04"
@@ -4730,9 +4732,11 @@
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
       "line": 106,
-      "title": "CP-DPL-TPL-02 emits minimum metadata and verification without fake lifecycle",
+      "title": "CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata, honest lifecycle, and global package-owned install delegation",
       "ids": [
-        "CP-DPL-TPL-02"
+        "CP-DPL-TPL-02",
+        "CP-DPL-TPL-05",
+        "RF-DPL-TPL-05"
       ],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4743,7 +4747,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 151,
+      "line": 173,
       "title": "CP-DPL-TPL-03 generated TypeScript packages pass strict tsc with typed public boundaries",
       "ids": [
         "CP-DPL-TPL-03"
@@ -4757,7 +4761,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 191,
+      "line": 213,
       "title": "CP-DPL-TPL-04 migration is conditional and always requires re-conformance",
       "ids": [
         "CP-DPL-TPL-04"
@@ -5092,110 +5096,120 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 28,
+      "line": 102,
       "title": "runCli --json returns the structured machine result contract",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 34,
+      "line": 108,
       "title": "unknown command returns FAILED with INVALID_REQUEST",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 41,
+      "line": 115,
       "title": "plan without --intent returns FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 47,
+      "line": 121,
       "title": "plan with invalid --intent returns FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 59,
+      "line": 133,
       "title": "apply without planRef returns FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 65,
-      "title": "status against the real workspace returns a structured array",
+      "line": 139,
+      "title": "status against a bound real-module workspace returns a structured array and bound path",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 73,
-      "title": "preflight against the real workspace returns a typed result",
+      "line": 159,
+      "title": "preflight against the bound real-module workspace returns a typed result",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 88,
-      "title": "doctor against the real workspace returns a structured array",
+      "line": 184,
+      "title": "doctor against the bound real-module workspace returns a structured array",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 96,
+      "line": 200,
       "title": "manifest materializes .proflow and emits a typed manifest",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 110,
-      "title": "plan --intent install persists a plan with a planRef",
+      "line": 219,
+      "title": "plan --intent install persists a plan with a planRef before binding",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts"
       ]
     },
@@ -5213,7 +5227,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 293,
+      "line": 297,
       "title": "D1 Contract Gate — parseModuleDescriptor enforces the frozen module contract",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5223,6 +5237,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5243,7 +5258,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 317,
+      "line": 321,
       "title": "D2 Template + Conformance — module-template passes C1/C2/C3 and materialized descriptors conform",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5253,6 +5268,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5273,7 +5289,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 401,
+      "line": 402,
       "title": "D3 Platform CLI Offline — a fake module closes the loop with no network I/O",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5283,6 +5299,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5303,7 +5320,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 457,
+      "line": 458,
       "title": "D4 External Resource Governance — real adapters report honest ACTION_REQUIRED, never fake READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5313,6 +5330,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5333,7 +5351,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 483,
+      "line": 484,
       "title": "D5 Cross-domain Deployment — a library + service + external-resource graph plans together",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5343,6 +5361,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5363,7 +5382,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 514,
+      "line": 515,
       "title": "D6 Failure Injection — an injected FAILED stop never fakes success",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5373,6 +5392,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5393,7 +5413,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 587,
+      "line": 588,
       "title": "Track A — deterministic full-chain closes preflight→apply→lifecycle→verify→manifest READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5403,6 +5423,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5423,7 +5444,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 759,
+      "line": 760,
       "title": "Track B — discovery loads every real package descriptor + the 4 external adapters + platform-host",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5433,6 +5454,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5453,7 +5475,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 776,
+      "line": 777,
       "title": "Track B — a coherent platform-host subgraph resolves with correct order",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5463,6 +5485,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5483,7 +5506,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 801,
+      "line": 802,
       "title": "Track B — moduleRef bindings resolve against the real model-provider module",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5493,6 +5516,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5513,7 +5537,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 826,
+      "line": 827,
       "title": "Track B — unsupported lifecycle is rejected, never faked",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5523,6 +5547,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5543,7 +5568,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 848,
+      "line": 849,
       "title": "Track B — unverified external resources yield a Manifest that is not fake READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5553,6 +5578,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5573,7 +5599,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 876,
+      "line": 877,
       "title": "CP-DPL-CLI-06 upgrade — current != target drives a migrate step and never a rollback step",
       "ids": [
         "CP-DPL-CLI-06"
@@ -5585,6 +5611,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5605,7 +5632,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 926,
+      "line": 927,
       "title": "upgrade — migration is emitted only when the target declares migrate",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5615,6 +5642,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5635,7 +5663,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 945,
+      "line": 946,
       "title": "CP-DPL-CLI-06 upgrade — a verify FAIL during upgrade preserves prior PASS history (no erase)",
       "ids": [
         "CP-DPL-CLI-06"
@@ -5647,6 +5675,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5667,7 +5696,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 985,
+      "line": 986,
       "title": "repair — doctor FAILED flows into a repair plan and applies the declared capability",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5677,6 +5706,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5697,7 +5727,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1053,
+      "line": 1054,
       "title": "repair — an unmappable fact (verify-failed / target-behind) never invents a mutation",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5707,6 +5737,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5727,7 +5758,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1089,
+      "line": 1090,
       "title": "secret — secretRef identity survives the full chain verbatim, raw sentinel appears zero times",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5737,6 +5768,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5757,7 +5789,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1165,
+      "line": 1166,
       "title": "secret — generated INSTALL deep-redacts a raw secret sentinel",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5767,6 +5799,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5787,7 +5820,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1195,
+      "line": 1196,
       "title": "secret — generated INSTALL preserves a secretRef identity verbatim (frozen design: identity, not raw secret)",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5797,6 +5830,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -5817,7 +5851,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-      "line": 1215,
+      "line": 1216,
       "title": "PRESMOKE-B6-BINDER-01 shipped AutoModuleCatalog binds a real local service adapter over the unbound default",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5827,6 +5861,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -6366,6 +6401,342 @@
         "packages/platform-cli/src/paths.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/planner/index.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-binding.test.ts",
+      "line": 46,
+      "title": "CP-DPL-CLI-08 global binding claims exactly one Workspace and persists stable identity",
+      "ids": [
+        "CP-DPL-CLI-08"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/errors.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-binding.test.ts",
+      "line": 81,
+      "title": "CP-DPL-CLI-08 + RF-DPL-CLI-09 same canonical Workspace is idempotent but a second Workspace is blocked",
+      "ids": [
+        "CP-DPL-CLI-08",
+        "RF-DPL-CLI-09"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/errors.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-binding.test.ts",
+      "line": 114,
+      "title": "CP-DPL-CLI-08 binding state transitions are instance-guarded and clear removes the active binding",
+      "ids": [
+        "CP-DPL-CLI-08"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/errors.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-binding.test.ts",
+      "line": 147,
+      "title": "CP-DPL-CLI-08 missing bound Workspace is reported and can only be forgotten explicitly",
+      "ids": [
+        "CP-DPL-CLI-08"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/errors.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-binding.test.ts",
+      "line": 171,
+      "title": "CP-DPL-CLI-08 global state paths are outside the managed Workspace and can be isolated for tests",
+      "ids": [
+        "CP-DPL-CLI-08"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/errors.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-binding.test.ts",
+      "line": 184,
+      "title": "CP-DPL-CLI-08 global operation lock covers the whole install/uninstall critical section",
+      "ids": [
+        "CP-DPL-CLI-08"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/errors.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-binding.test.ts",
+      "line": 205,
+      "title": "CP-DPL-CLI-08 orphan Workspace marker restores the stable instance identity instead of minting a new one",
+      "ids": [
+        "CP-DPL-CLI-08"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/errors.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-binding.test.ts",
+      "line": 227,
+      "title": "CP-DPL-CLI-08 a malformed orphan Workspace marker fails closed",
+      "ids": [
+        "CP-DPL-CLI-08"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/errors.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 53,
+      "title": "CP-DPL-CLI-09 status without a binding reports UNBOUND instead of guessing cwd",
+      "ids": [
+        "CP-DPL-CLI-09"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 71,
+      "title": "CP-DPL-CLI-09 Agent workspace options fail closed when missing or misspelled",
+      "ids": [
+        "CP-DPL-CLI-09"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 85,
+      "title": "CP-DPL-CLI-09 instance commands reject a different --workspace instead of bypassing the global binding",
+      "ids": [
+        "CP-DPL-CLI-09"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 105,
+      "title": "CP-DPL-CLI-08 mutating instance commands share the global operation lock",
+      "ids": [
+        "CP-DPL-CLI-08"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 138,
+      "title": "CP-DPL-CLI-09 + RF-DPL-CLI-10 status from another cwd resolves the bound Workspace and exposes it",
+      "ids": [
+        "CP-DPL-CLI-09",
+        "RF-DPL-CLI-10"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 155,
+      "title": "CP-DPL-CLI-09 status reports a missing bound Workspace without silently switching to cwd",
+      "ids": [
+        "CP-DPL-CLI-09"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 177,
+      "title": "CP-DPL-CLI-10 uninstall --forget rejects module/package and --workspace arguments instead of ignoring them",
+      "ids": [
+        "CP-DPL-CLI-10"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 205,
+      "title": "CP-DPL-CLI-10 uninstall --forget clears only a missing Workspace binding",
+      "ids": [
+        "CP-DPL-CLI-10"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 233,
+      "title": "CP-DPL-CLI-09 an install plan can establish the first binding only when apply begins",
+      "ids": [
+        "CP-DPL-CLI-09"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 271,
+      "title": "CP-DPL-CLI-09 an unbound Workspace cannot apply a non-install plan",
+      "ids": [
+        "CP-DPL-CLI-09"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 292,
+      "title": "CP-DPL-CLI-10 same-Workspace install is idempotent but a second Workspace is blocked",
+      "ids": [
+        "CP-DPL-CLI-10"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 325,
+      "title": "CP-DPL-CLI-10 whole-instance uninstall rejects an explicit different Workspace instead of silently uninstalling the bound one",
+      "ids": [
+        "CP-DPL-CLI-10"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 349,
+      "title": "CP-DPL-CLI-10 + RF-DPL-CLI-11 whole-instance uninstall works from another cwd and only then allows rebind to B",
+      "ids": [
+        "CP-DPL-CLI-10",
+        "RF-DPL-CLI-11"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
       ]
     },
     {
@@ -7060,6 +7431,119 @@
     },
     {
       "package": "platform-cli",
+      "path": "packages/platform-cli/tests/package-manager.test.ts",
+      "line": 50,
+      "title": "CP-DPL-CLI-11 packageManager declaration supports npm, yarn, and pnpm",
+      "ids": [
+        "CP-DPL-CLI-11"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/package-manager.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/package-manager.test.ts",
+      "line": 68,
+      "title": "CP-DPL-CLI-11 a single lockfile selects yarn/pnpm/npm when packageManager is absent",
+      "ids": [
+        "CP-DPL-CLI-11"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/package-manager.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/package-manager.test.ts",
+      "line": 87,
+      "title": "CP-DPL-CLI-11 + RF-DPL-CLI-12 conflicting declaration/lockfile and multiple lockfiles fail closed",
+      "ids": [
+        "CP-DPL-CLI-11",
+        "RF-DPL-CLI-12"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/package-manager.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/package-manager.test.ts",
+      "line": 103,
+      "title": "CP-DPL-CLI-11 Fresh Workspace with no declaration or lockfile deterministically defaults to npm",
+      "ids": [
+        "CP-DPL-CLI-11"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/package-manager.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/package-manager.test.ts",
+      "line": 113,
+      "title": "CP-DPL-CLI-11 Yarn Classic and modern Yarn receive script-safe exact mutation argv",
+      "ids": [
+        "CP-DPL-CLI-11"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/package-manager.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/package-manager.test.ts",
+      "line": 152,
+      "title": "CP-DPL-CLI-11 npm and pnpm receive exact script-safe install/remove argv",
+      "ids": [
+        "CP-DPL-CLI-11"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/package-manager.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/package-manager.test.ts",
+      "line": 201,
+      "title": "CP-DPL-CLI-11 a declared Workspace package manager that is unavailable fails closed",
+      "ids": [
+        "CP-DPL-CLI-11"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/package-manager.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
       "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
       "line": 147,
       "title": "state roundtrips deployment facts without claiming runtime readiness",
@@ -7337,7 +7821,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 114,
+      "line": 115,
       "title": "planDeployment produces an immutable, dependency-ordered plan",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7350,7 +7834,20 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 147,
+      "line": 148,
+      "title": "platform-instance uninstall may remove core modules while individual uninstall remains guarded",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/planner/index.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/planner.test.ts",
+      "line": 170,
       "title": "planDeployment covers config/package/human/external-resource/lifecycle kinds",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7363,7 +7860,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 182,
+      "line": 205,
       "title": "computeFingerprint is stable for the same plan and reacts to intent/targets/modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7376,7 +7873,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 211,
+      "line": 234,
       "title": "checkPlanStale flags stable assumption change but not volatile reality change",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7389,7 +7886,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 248,
+      "line": 271,
       "title": "fingerprint includes secretRef references verbatim so A→B changes it",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7402,7 +7899,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 277,
+      "line": 300,
       "title": "evaluateStepCheck returns SATISFIED only from current reality, not history",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7415,7 +7912,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 302,
+      "line": 325,
       "title": "evaluateStepCheck for config requires materialized required config",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7428,7 +7925,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 328,
+      "line": 351,
       "title": "evaluateStepCheck for human requires current verification",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7441,7 +7938,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 351,
+      "line": 374,
       "title": "assessUpgrade reports compatible upgrades with no migration",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7454,7 +7951,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 361,
+      "line": 384,
       "title": "assessUpgrade: template version change alone does not force migration",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7467,7 +7964,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 378,
+      "line": 401,
       "title": "assessUpgrade requires migration only when declared and breaking",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7480,7 +7977,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 407,
+      "line": 430,
       "title": "planDeployment upgrade includes migrate step only when required, and verify, and no rollback",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7493,7 +7990,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 449,
+      "line": 472,
       "title": "planDeployment upgrade with no migration does not emit a migrate step",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7506,7 +8003,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 477,
+      "line": 500,
       "title": "planRepair maps facts to declared capabilities only",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7519,7 +8016,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 505,
+      "line": 528,
       "title": "planRepair emits human step for actionRequired and no arbitrary shell fixes",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7532,7 +8029,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/planner.test.ts",
-      "line": 530,
+      "line": 553,
       "title": "planRepair ignores lifecycle facts for modules without that primitive",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7775,11 +8272,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/production-binder.test.ts",
-      "line": 308,
+      "line": 312,
       "title": "shipped CLI status binds a real service + real external resource and fails closed when unbound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/binding/production-bindings.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts"
@@ -7788,11 +8286,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/production-binder.test.ts",
-      "line": 381,
+      "line": 410,
       "title": "all shipped service/external-resource modules expose their current production binding seam",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/binding/production-bindings.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts"

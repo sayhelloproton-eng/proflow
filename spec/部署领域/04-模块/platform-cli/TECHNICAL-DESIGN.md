@@ -19,9 +19,9 @@ contractRefs:
 
 ## 1. 定位
 
-Platform CLI 是 Deployment Domain 唯一平台级确定性应用。
+Platform CLI 是 Deployment Domain 唯一平台级确定性应用，也是第一版 Shell 全局 `platform` Deployment Control Plane。
 
-它不懂其他领域内部业务，只懂 Module Contract 和公开 lifecycle/verification contract。
+它不懂其他领域内部业务，只懂 Module Contract 和公开 lifecycle/verification contract。Global CLI binary 与 Platform Instance 生命周期分离；第一版同时只允许一个 durable global Workspace binding。
 
 ## 2. Commands
 
@@ -30,8 +30,8 @@ platform search [package]
 platform modules [module]
 platform preflight [module]
 platform preflight --intent install
-platform install [package]
-platform uninstall <package|moduleRef>
+platform install [package] [--workspace <path>]
+platform uninstall [module|package]
 platform upgrade [module]
 platform plan --intent install|configure|upgrade|uninstall|repair [options]
 platform apply <planRef>
@@ -47,7 +47,8 @@ platform manifest [module]
 
 - `search` 读取 npm Registry reality，回答“当前可以安装什么”；
 - `modules/status/...` 读取 Workspace reality，回答“当前已经安装并由平台管理什么”；
-- `install/uninstall/upgrade` 是用户/AI 级意图入口，必须复用 Deployment Planner/Apply 与 package manager driver，不建立第二套旁路安装器。
+- `install/uninstall/upgrade` 是用户/AI 级意图入口，必须复用 Deployment Planner/Apply 与 package manager driver，不建立第二套旁路安装器；
+- `install` 在无 binding 时用 cwd 或 `--workspace` 建立唯一 Workspace binding；其余实例命令从 global binding 解析目标，不跟随当前 cwd。
 
 `restart` 可通过 stop/start 组合或未来 alias，不增加独立部署语义。
 
@@ -100,9 +101,11 @@ Registry auth 由 npm 自身配置（用户/Workspace `.npmrc` 等）承载；Pl
 
 ### Workspace Discovery
 
-Platform CLI 只从当前 Workspace 根 `package.json` 的 `dependencies/devDependencies` 枚举已安装候选，再通过本地 package resolution + ProFlow metadata + Descriptor/Adapter 验证形成 Managed Module Set。
+第一版先从 global binding store 解析唯一 `boundWorkspace`，再从该 Workspace 根 `package.json` 的 `dependencies/devDependencies` 枚举已安装候选，通过本地 package resolution + ProFlow metadata + Descriptor/Adapter 验证形成 Managed Module Set。
 
-“是否受平台管理”只由当前 Workspace 的真实安装事实决定，与最初通过 `platform install`、package 自身 `npx` 入口或其他合法安装入口无关。
+只有首次 `platform install` 在 global binding 为 UNBOUND 时使用 cwd / `--workspace` 选择 requested Workspace；绑定后，切换 shell 目录不会切换 Managed World。
+
+“是否受平台管理”只由 bound Workspace 的真实安装事实决定，与最初通过 `platform install`、package-owned install 或其他合法安装入口无关。
 
 
 ## 5. Fresh install / package mutation
@@ -114,8 +117,10 @@ Fresh Workspace 的 Registry package 在安装前尚不能本地 import 完整 D
 
 `plan --intent install` 对 Registry candidate 生成受控 package bootstrap steps，只冻结精确 package/version，不伪造尚未安装的 Provides/Requires/lifecycle。Apply 必须使用目标 Workspace 的真实 package manager：
 
-- Workspace 声明 `packageManager: pnpm@...` 时使用 pnpm；
-- Workspace 声明 npm 或未声明时使用 npm；
+- 第一版正式支持 `npm | yarn | pnpm`；
+- 优先读取 `package.json#packageManager`，结合对应 lockfile 与 executable 做确定性一致性检查；
+- Workspace 未声明 package manager 时可以按冻结 fallback 规则选择 bootstrap manager，但不得默认要求 pnpm；
+- 声明、lockfile 与 executable 事实冲突时 `BLOCKED/ACTION_REQUIRED`，不能猜；
 - 声明的 package manager 不可用时 `ACTION_REQUIRED`；
 - package manager command 以 argv 调用，不经过任意 shell；
 - package install 默认禁止 package lifecycle scripts 旁路 Deployment adapter；
@@ -123,7 +128,25 @@ Fresh Workspace 的 Registry package 在安装前尚不能本地 import 完整 D
 
 高层 `platform install` 复用 `plan -> apply`，package bootstrap 完成后立即重新 Workspace Discovery；后续缺 config/human/external reality 时返回结构化下一步，而不是把“包已安装”等同于“平台 READY”。
 
-Package-owned `npx <package> install` 不是第二套安装实现。每个 Module 的稳定 package executable 只负责把自身 package name 委托给 `@tomflow/proflow-platform-cli install <self-package>`：已有同名业务 CLI 时增加 `install` 分支；否则使用 Module Template 生成并随包发布的 `self-install.mjs`。因此环境检查、Registry selection、Plan fingerprint、package mutation、Workspace rediscovery 和错误语义始终只有 Platform CLI 一份实现。
+Package-owned `npx <package> install` 不是第二套安装实现。每个 Module 的稳定 package executable 只负责把自身 package name 委托给已经安装在 Shell PATH 中的全局 `platform install <self-package> --workspace <cwd>`：已有同名业务 CLI 时增加 `install` 分支；否则使用 Module Template 生成并随包发布的 `self-install.mjs`。package-owned 入口不得 transient `npx @tomflow/proflow-platform-cli` 下载另一份 CLI；若全局 `platform` 不存在，必须以 `GLOBAL_PLATFORM_CLI_REQUIRED` fail-closed。因此环境检查、Registry selection、Single Workspace Binding、Plan fingerprint、package mutation、Workspace rediscovery 和错误语义始终只有全局 Platform CLI 一份实现。
+
+## 5.1 Global binding / cross-directory command semantics
+
+第一版 global binding state 至少区分 `UNBOUND | INSTALLING | INSTALLED | UNINSTALLING | BROKEN`。所有改变唯一 Platform Instance 现实的命令必须受同一个 cross-process global operation lock 串行化；其中首次 `platform install/apply` 在锁内 canonicalize requested Workspace、检查 existing binding、原子 claim，再进入真实 package mutation。`start/stop/restart/upgrade/module-uninstall/whole-instance uninstall` 也不得与其它实例 mutation 并发。
+
+```text
+platform install
+→ requestedWorkspace = cwd
+
+platform install --workspace <path>
+→ requestedWorkspace = explicit path (Agent-friendly)
+```
+
+若已绑定 A：再次请求 canonical A 为幂等 no-op；请求 B 必须返回 `WORKSPACE_ALREADY_BOUND`。`--workspace` 不得绕过该规则。
+
+`platform status/start/stop/restart/modules/docs/verify/doctor/upgrade/uninstall` 在任意 cwd 都操作 A。`status` 的 machine/human output 必须暴露 `boundWorkspace`。无 binding 时实例命令返回 `WORKSPACE_NOT_BOUND/NOT_INSTALLED`。
+
+Global binding 必须保存 canonical path + stable instance identity。若路径失效，报告 `BOUND_WORKSPACE_MISSING`，不得自动把 cwd 认成新 Workspace。
 
 ## 6. Uninstall
 
@@ -134,6 +157,8 @@ Package-owned `npx <package> install` 不是第二套安装实现。每个 Modul
 - 支持 `uninstall` lifecycle 的 Module 先执行 package-owned cleanup；Service 在该 primitive 中负责 stop 本包服务并清理 `retention=remove` 的 owner effects；
 - `preserve` 数据默认保留，`explicit-purge` 不由普通 uninstall 自动删除；
 - cleanup 成功后再执行 package manager remove，并以 package 不再存在于 Workspace manifest/local resolution 作为 postcondition。
+
+无 module/package 参数的 `platform uninstall` 是第一版 Platform Instance 卸载入口：无论当前 cwd 在哪里，都针对 global `boundWorkspace`，按受控顺序卸载实例、观察 postcondition，并仅在真实卸载闭环后解除 binding。它不卸载全局 CLI package 本身。
 
 ## 7. `plan`
 

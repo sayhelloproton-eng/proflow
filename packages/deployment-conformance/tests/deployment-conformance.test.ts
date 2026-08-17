@@ -145,7 +145,7 @@ test("CP-DPL-CONF-01 C1 rejects missing, version, config, lifecycle, and verific
 		assert.equal(runStaticConformance(fixture).status, "FAIL");
 });
 
-test("CP-DPL-CONF-02 C2 inspects real package metadata, exports, entry, and version", async (context) => {
+test("CP-DPL-CONF-02 + CP-DPL-CONF-05 + RF-DPL-CONF-05 C2 inspects package form and enforces global package-owned install delegation", async (context) => {
 	const generated = await generatedExternal(context);
 	assert.equal(
 		(
@@ -211,6 +211,26 @@ test("CP-DPL-CONF-02 C2 inspects real package metadata, exports, entry, and vers
 	assert.ok(
 		result.issues.some(
 			(issue) => issue.code === "GENERATED_TRUTH_SOURCE_INVALID",
+		),
+	);
+
+	await writeFile(conformancePath, `${JSON.stringify(conformance, null, 2)}\n`);
+	const selfInstallPath = join(generated.packageDirectory, "self-install.mjs");
+	const selfInstall = await readFile(selfInstallPath, "utf8");
+	await writeFile(
+		selfInstallPath,
+		selfInstall
+			.replace('"platform.cmd"', '"npx.cmd"')
+			.replace('"platform"', '"npx"'),
+	);
+	result = await runPackageConformance(
+		generated.packageDirectory,
+		generated.descriptor,
+	);
+	assert.ok(
+		result.issues.some(
+			(issue) =>
+				issue.code === "PACKAGE_INSTALL_GLOBAL_PLATFORM_DELEGATION_MISSING",
 		),
 	);
 });

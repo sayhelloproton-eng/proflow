@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFile } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 
 import {
 	type ModuleDescriptor,
@@ -10,6 +10,18 @@ import { descriptor as platformCliDescriptor } from "../deployment/descriptor.ts
 import { applyPlan } from "./apply/apply.ts";
 import { rebuildCurrentAssumptions } from "./apply/current.ts";
 import { createWorkspacePackageManagerDriver } from "./apply/driver.ts";
+import {
+	acquireGlobalOperationLock,
+	canonicalizeWorkspace,
+	claimWorkspaceBinding,
+	clearGlobalBinding,
+	forgetMissingWorkspaceBinding,
+	type GlobalWorkspaceBinding,
+	loadGlobalBinding,
+	observeBoundWorkspace,
+	requireBoundWorkspace,
+	updateGlobalBindingState,
+} from "./binding/global-binding.ts";
 import {
 	buildProductionBindings,
 	importRawAdapter,
@@ -72,11 +84,23 @@ type Command = (typeof COMMANDS)[number];
 
 export type CliStatus = "SUCCEEDED" | "ACTION_REQUIRED" | "BLOCKED" | "FAILED";
 
+export interface CliWorkspaceSummary {
+	boundWorkspace: string;
+	workspaceInstanceId: string;
+	bindingState: GlobalWorkspaceBinding["state"];
+}
+
 export interface CliOutcome {
 	command: string;
 	status: CliStatus;
 	data?: unknown;
+	workspace?: CliWorkspaceSummary;
 	error?: { code: string; message: string };
+}
+
+export interface CliRuntimeOptions {
+	cwd?: string;
+	globalRoot?: string;
 }
 
 interface ParsedArgs {
@@ -84,6 +108,7 @@ interface ParsedArgs {
 	workspace: string | undefined;
 	intent: string | undefined;
 	configFile: string | undefined;
+	forget: boolean;
 	positional: string[];
 }
 
@@ -94,26 +119,42 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 		workspace: undefined,
 		intent: undefined,
 		configFile: undefined,
+		forget: false,
 		positional,
 	};
 	for (let index = 1; index < argv.length; index += 1) {
 		const token = argv[index];
 		if (token === undefined) continue;
 		if (token === "--workspace") {
-			parsed.workspace = argv[index + 1];
+			parsed.workspace = requiredOptionValue(argv, index, token);
 			index += 1;
 		} else if (token === "--intent") {
-			parsed.intent = argv[index + 1];
+			parsed.intent = requiredOptionValue(argv, index, token);
 			index += 1;
 		} else if (token === "--config") {
-			parsed.configFile = argv[index + 1];
+			parsed.configFile = requiredOptionValue(argv, index, token);
 			index += 1;
+		} else if (token === "--forget") {
+			parsed.forget = true;
 		} else if (token.startsWith("-")) {
+			throw new PlatformError("INVALID_REQUEST", `unknown option: ${token}`);
 		} else {
 			positional.push(token);
 		}
 	}
 	return parsed;
+}
+
+function requiredOptionValue(
+	argv: readonly string[],
+	index: number,
+	option: string,
+): string {
+	const value = argv[index + 1];
+	if (value === undefined || value.startsWith("-")) {
+		throw new PlatformError("INVALID_REQUEST", `${option} requires a value`);
+	}
+	return value;
 }
 
 function outcome(
@@ -124,6 +165,23 @@ function outcome(
 	const result: CliOutcome = { command, status };
 	if (data !== undefined) result.data = data;
 	return result;
+}
+
+function workspaceSummary(
+	binding: GlobalWorkspaceBinding,
+): CliWorkspaceSummary {
+	return {
+		boundWorkspace: binding.workspaceRealPath,
+		workspaceInstanceId: binding.workspaceInstanceId,
+		bindingState: binding.state,
+	};
+}
+
+function withWorkspace(
+	result: CliOutcome,
+	binding: GlobalWorkspaceBinding,
+): CliOutcome {
+	return { ...result, workspace: workspaceSummary(binding) };
 }
 
 function aggregateStatus(
@@ -243,8 +301,7 @@ interface CliContext {
 	paths: ReturnType<typeof workspacePaths>;
 }
 
-async function buildContext(workspace?: string): Promise<CliContext> {
-	const root = workspace ?? process.cwd();
+async function buildContext(root: string): Promise<CliContext> {
 	const paths = workspacePaths(root);
 	const catalog = await buildCatalogWithProductionBindings(root, paths);
 	return { catalog, paths };
@@ -687,7 +744,7 @@ async function handleManagedMutation(
 	// Package mutations change Workspace package reality. Rebuild the catalog
 	// before reporting the managed set so the result can never be sourced from
 	// the pre-mutation catalog.
-	const refreshed = await buildContext(args.workspace);
+	const refreshed = await buildContext(ctx.paths.root);
 	const managed = await handleModules(refreshed, {
 		...args,
 		command: "modules",
@@ -699,6 +756,390 @@ async function handleManagedMutation(
 		apply: applied.data,
 		managedModules: managed.data,
 	});
+}
+
+async function resolveRequestedInstallWorkspace(
+	args: ParsedArgs,
+	runtime: CliRuntimeOptions,
+): Promise<string> {
+	const requested = args.workspace ?? runtime.cwd ?? process.cwd();
+	return (await canonicalizeWorkspace(requested)).workspaceRealPath;
+}
+
+async function handleInstallPlanBeforeBinding(
+	args: ParsedArgs,
+	runtime: CliRuntimeOptions,
+): Promise<CliOutcome> {
+	const requestedWorkspace = await resolveRequestedInstallWorkspace(
+		args,
+		runtime,
+	);
+	const current = await loadGlobalBinding(runtime.globalRoot);
+	if (
+		current !== undefined &&
+		current.workspaceRealPath !== requestedWorkspace
+	) {
+		throw new PlatformError(
+			"WORKSPACE_ALREADY_BOUND",
+			`ProFlow is already bound to ${current.workspaceRealPath}; uninstall it before planning an install for ${requestedWorkspace}`,
+		);
+	}
+	const ctx = await buildContext(
+		current?.workspaceRealPath ?? requestedWorkspace,
+	);
+	const result = await handlePlan(ctx, args);
+	return current === undefined ? result : withWorkspace(result, current);
+}
+
+async function handleApplyWithGlobalBinding(
+	args: ParsedArgs,
+	runtime: CliRuntimeOptions,
+): Promise<CliOutcome> {
+	const planRef = args.positional[0];
+	if (planRef === undefined) {
+		throw new PlatformError("INVALID_REQUEST", "apply requires <planRef>");
+	}
+	const operationLock = await acquireGlobalOperationLock(runtime.globalRoot);
+	let binding = await loadGlobalBinding(runtime.globalRoot);
+	try {
+		let ctx: CliContext;
+		if (binding === undefined) {
+			const requestedWorkspace = await resolveRequestedInstallWorkspace(
+				args,
+				runtime,
+			);
+			ctx = await buildContext(requestedWorkspace);
+			const plan = await loadPlan(ctx.paths, planRef);
+			if (plan === undefined) {
+				throw new PlatformError("PLAN_NOT_FOUND", `plan ${planRef} not found`);
+			}
+			if (plan.intent !== "install") {
+				throw new PlatformError(
+					"WORKSPACE_NOT_BOUND",
+					"only an install plan may establish the first global Workspace binding",
+				);
+			}
+			binding = (
+				await claimWorkspaceBinding({
+					workspace: requestedWorkspace,
+					globalRoot: runtime.globalRoot,
+				})
+			).binding;
+		} else {
+			if (args.workspace !== undefined) {
+				const requested = await canonicalizeWorkspace(args.workspace);
+				if (requested.workspaceRealPath !== binding.workspaceRealPath) {
+					throw new PlatformError(
+						"WORKSPACE_ALREADY_BOUND",
+						`command targets ${requested.workspaceRealPath}, but the global Platform Instance is bound to ${binding.workspaceRealPath}`,
+					);
+				}
+			}
+			ctx = await buildContext(binding.workspaceRealPath);
+		}
+
+		const plan = await loadPlan(ctx.paths, planRef);
+		if (plan === undefined) {
+			throw new PlatformError("PLAN_NOT_FOUND", `plan ${planRef} not found`);
+		}
+		const controlsPlatformState =
+			plan.intent === "install" && binding.state !== "INSTALLED";
+		if (binding.state === "UNINSTALLING") {
+			throw new PlatformError(
+				"GLOBAL_OPERATION_LOCKED",
+				"the bound Platform Instance is marked UNINSTALLING; finish recovery before apply",
+			);
+		}
+		if (controlsPlatformState && binding.state !== "INSTALLING") {
+			binding = await updateGlobalBindingState({
+				workspaceInstanceId: binding.workspaceInstanceId,
+				state: "INSTALLING",
+				globalRoot: runtime.globalRoot,
+			});
+		}
+
+		try {
+			const result = await handleApply(ctx, args);
+			if (controlsPlatformState) {
+				if (result.status === "SUCCEEDED") {
+					binding = await updateGlobalBindingState({
+						workspaceInstanceId: binding.workspaceInstanceId,
+						state: "INSTALLED",
+						globalRoot: runtime.globalRoot,
+					});
+				} else if (result.status === "FAILED" || result.status === "BLOCKED") {
+					binding = await updateGlobalBindingState({
+						workspaceInstanceId: binding.workspaceInstanceId,
+						state: "BROKEN",
+						globalRoot: runtime.globalRoot,
+						failure: {
+							code: result.error?.code ?? result.status,
+							message:
+								result.error?.message ??
+								"install apply did not reach a successful postcondition",
+						},
+					});
+				}
+			}
+			return withWorkspace(result, binding);
+		} catch (error) {
+			if (controlsPlatformState) {
+				binding = await updateGlobalBindingState({
+					workspaceInstanceId: binding.workspaceInstanceId,
+					state: "BROKEN",
+					globalRoot: runtime.globalRoot,
+					failure: {
+						code:
+							error instanceof PlatformError ? error.code : "COMMAND_FAILED",
+						message: error instanceof Error ? error.message : String(error),
+					},
+				});
+			}
+			throw error;
+		}
+	} finally {
+		await operationLock.release();
+	}
+}
+
+async function handleInstallWithGlobalBinding(
+	args: ParsedArgs,
+	runtime: CliRuntimeOptions,
+): Promise<CliOutcome> {
+	const operationLock = await acquireGlobalOperationLock(runtime.globalRoot);
+	try {
+		const requestedWorkspace = await resolveRequestedInstallWorkspace(
+			args,
+			runtime,
+		);
+		const claimed = await claimWorkspaceBinding({
+			workspace: requestedWorkspace,
+			globalRoot: runtime.globalRoot,
+		});
+		const initialBinding = claimed.binding;
+
+		if (
+			claimed.alreadyBound &&
+			initialBinding.state === "INSTALLED" &&
+			args.positional[0] === undefined
+		) {
+			return withWorkspace(
+				outcome("install", "SUCCEEDED", {
+					alreadyInstalled: true,
+					changed: false,
+					boundWorkspace: initialBinding.workspaceRealPath,
+				}),
+				initialBinding,
+			);
+		}
+		if (initialBinding.state === "UNINSTALLING") {
+			throw new PlatformError(
+				"GLOBAL_OPERATION_LOCKED",
+				"the bound Platform Instance is marked UNINSTALLING; finish recovery before installing",
+			);
+		}
+
+		let activeBinding = initialBinding;
+		const controlsPlatformState =
+			!claimed.alreadyBound || initialBinding.state !== "INSTALLED";
+		if (controlsPlatformState && initialBinding.state !== "INSTALLING") {
+			activeBinding = await updateGlobalBindingState({
+				workspaceInstanceId: initialBinding.workspaceInstanceId,
+				state: "INSTALLING",
+				globalRoot: runtime.globalRoot,
+			});
+		}
+
+		try {
+			const ctx = await buildContext(activeBinding.workspaceRealPath);
+			const result = await handleManagedMutation(ctx, args, "install");
+			if (controlsPlatformState) {
+				if (result.status === "SUCCEEDED") {
+					activeBinding = await updateGlobalBindingState({
+						workspaceInstanceId: activeBinding.workspaceInstanceId,
+						state: "INSTALLED",
+						globalRoot: runtime.globalRoot,
+					});
+				} else if (result.status === "FAILED" || result.status === "BLOCKED") {
+					activeBinding = await updateGlobalBindingState({
+						workspaceInstanceId: activeBinding.workspaceInstanceId,
+						state: "BROKEN",
+						globalRoot: runtime.globalRoot,
+						failure: {
+							code: result.error?.code ?? result.status,
+							message:
+								result.error?.message ??
+								"Platform install did not reach a successful postcondition",
+						},
+					});
+				}
+			}
+			return withWorkspace(result, activeBinding);
+		} catch (error) {
+			if (controlsPlatformState) {
+				activeBinding = await updateGlobalBindingState({
+					workspaceInstanceId: activeBinding.workspaceInstanceId,
+					state: "BROKEN",
+					globalRoot: runtime.globalRoot,
+					failure: {
+						code:
+							error instanceof PlatformError ? error.code : "COMMAND_FAILED",
+						message: error instanceof Error ? error.message : String(error),
+					},
+				});
+			}
+			throw error;
+		}
+	} finally {
+		await operationLock.release();
+	}
+}
+
+async function resolveBoundContext(
+	runtime: CliRuntimeOptions,
+	requestedWorkspace?: string,
+): Promise<{ ctx: CliContext; binding: GlobalWorkspaceBinding }> {
+	const binding = await requireBoundWorkspace(runtime.globalRoot);
+	if (requestedWorkspace !== undefined) {
+		const requested = await canonicalizeWorkspace(requestedWorkspace);
+		if (requested.workspaceRealPath !== binding.workspaceRealPath) {
+			throw new PlatformError(
+				"WORKSPACE_ALREADY_BOUND",
+				`command targets ${requested.workspaceRealPath}, but the global Platform Instance is bound to ${binding.workspaceRealPath}`,
+			);
+		}
+	}
+	return {
+		ctx: await buildContext(binding.workspaceRealPath),
+		binding,
+	};
+}
+
+async function handleBoundMutatingCommand(
+	args: ParsedArgs,
+	runtime: CliRuntimeOptions,
+): Promise<CliOutcome> {
+	const operationLock = await acquireGlobalOperationLock(runtime.globalRoot);
+	try {
+		const { ctx, binding } = await resolveBoundContext(runtime, args.workspace);
+		if (binding.state === "UNINSTALLING") {
+			throw new PlatformError(
+				"GLOBAL_OPERATION_LOCKED",
+				"the bound Platform Instance is marked UNINSTALLING; finish uninstall recovery before another mutation",
+			);
+		}
+		let result: CliOutcome;
+		if (args.command === "upgrade" || args.command === "uninstall") {
+			result = await handleManagedMutation(
+				ctx,
+				args,
+				args.command as "uninstall" | "upgrade",
+			);
+		} else {
+			result = await handleLifecycle(
+				ctx,
+				args,
+				args.command as "start" | "stop" | "restart",
+			);
+		}
+		return withWorkspace(result, binding);
+	} finally {
+		await operationLock.release();
+	}
+}
+
+async function handlePlatformInstanceUninstall(
+	args: ParsedArgs,
+	runtime: CliRuntimeOptions,
+): Promise<CliOutcome> {
+	const operationLock = await acquireGlobalOperationLock(runtime.globalRoot);
+	let binding: GlobalWorkspaceBinding | undefined;
+	try {
+		binding = await requireBoundWorkspace(runtime.globalRoot);
+		if (args.workspace !== undefined) {
+			const requested = await canonicalizeWorkspace(args.workspace);
+			if (requested.workspaceRealPath !== binding.workspaceRealPath) {
+				throw new PlatformError(
+					"WORKSPACE_ALREADY_BOUND",
+					`uninstall targets ${requested.workspaceRealPath}, but the global Platform Instance is bound to ${binding.workspaceRealPath}`,
+				);
+			}
+		}
+		binding = await updateGlobalBindingState({
+			workspaceInstanceId: binding.workspaceInstanceId,
+			state: "UNINSTALLING",
+			globalRoot: runtime.globalRoot,
+		});
+		const ctx = await buildContext(binding.workspaceRealPath);
+		const modules = await discoverModules({ catalog: ctx.catalog });
+		let removedModules: string[] = [];
+		if (modules.length > 0) {
+			const plan = planDeployment({
+				intent: "uninstall",
+				modules,
+				uninstallScope: "platform-instance",
+			});
+			await savePlan(ctx.paths, plan);
+			const current = await rebuildCurrentAssumptions(ctx.catalog, plan);
+			const applied = await applyPlan({
+				paths: ctx.paths,
+				planRef: plan.planRef,
+				catalog: ctx.catalog,
+				current,
+				driver: createWorkspacePackageManagerDriver({
+					workspaceRoot: ctx.paths.root,
+				}),
+			});
+			if (applied.outcome !== "COMPLETE") {
+				throw new PlatformError(
+					"UNINSTALL_FAILED",
+					`Platform Instance uninstall stopped with ${applied.outcome}`,
+				);
+			}
+			removedModules = modules.map((module) => module.moduleRef);
+		}
+
+		const refreshed = await buildContext(binding.workspaceRealPath);
+		const remaining = await discoverModules({ catalog: refreshed.catalog });
+		if (remaining.length > 0) {
+			throw new PlatformError(
+				"UNINSTALL_FAILED",
+				`Platform Instance uninstall left managed modules: ${remaining.map((module) => module.moduleRef).join(", ")}`,
+			);
+		}
+
+		// Deployment-owned plans/state/verification/instance identity must not leak
+		// into a future install of the same directory. Business/domain data outside
+		// `.proflow/deployment` is intentionally preserved.
+		await rm(ctx.paths.deployment, { recursive: true, force: true });
+		const completed = binding;
+		await clearGlobalBinding({
+			workspaceInstanceId: binding.workspaceInstanceId,
+			globalRoot: runtime.globalRoot,
+		});
+		binding = undefined;
+		return outcome("uninstall", "SUCCEEDED", {
+			uninstalledWorkspace: completed.workspaceRealPath,
+			removedModules,
+			bindingCleared: true,
+		});
+	} catch (error) {
+		if (binding !== undefined) {
+			await updateGlobalBindingState({
+				workspaceInstanceId: binding.workspaceInstanceId,
+				state: "BROKEN",
+				globalRoot: runtime.globalRoot,
+				failure: {
+					code:
+						error instanceof PlatformError ? error.code : "UNINSTALL_FAILED",
+					message: error instanceof Error ? error.message : String(error),
+				},
+			});
+		}
+		throw error;
+	} finally {
+		await operationLock.release();
+	}
 }
 
 async function handleLifecycle(
@@ -808,8 +1249,16 @@ async function handleManifest(
 	}
 }
 
-async function dispatchCommand(argv: readonly string[]): Promise<CliOutcome> {
-	const args = parseArgs(argv);
+async function dispatchCommand(
+	argv: readonly string[],
+	runtime: CliRuntimeOptions = {},
+): Promise<CliOutcome> {
+	let args: ParsedArgs;
+	try {
+		args = parseArgs(argv);
+	} catch (error) {
+		return failure(argv[0] ?? "", error);
+	}
 	if (!(COMMANDS as readonly string[]).includes(args.command)) {
 		return {
 			command: args.command,
@@ -821,56 +1270,165 @@ async function dispatchCommand(argv: readonly string[]): Promise<CliOutcome> {
 		};
 	}
 	try {
-		const root = args.workspace ?? process.cwd();
-		if (args.command === "search") return await handleSearch(root, args);
+		const cwd = runtime.cwd ?? process.cwd();
+		if (args.command === "search") {
+			const current = await loadGlobalBinding(runtime.globalRoot);
+			const root = args.workspace ?? current?.workspaceRealPath ?? cwd;
+			return await handleSearch(root, args);
+		}
 		if (args.command === "preflight" && args.intent === "install") {
+			const root = await resolveRequestedInstallWorkspace(args, runtime);
+			const current = await loadGlobalBinding(runtime.globalRoot);
+			if (current !== undefined && current.workspaceRealPath !== root) {
+				throw new PlatformError(
+					"WORKSPACE_ALREADY_BOUND",
+					`ProFlow is already bound to ${current.workspaceRealPath}; uninstall it before installing ${root}`,
+				);
+			}
 			return await handleInstallerPreflight(root);
 		}
-		const ctx = await buildContext(args.workspace);
+		if (args.command === "plan") {
+			if (args.intent === "install") {
+				return await handleInstallPlanBeforeBinding(args, runtime);
+			}
+			if (
+				args.intent === undefined ||
+				!["configure", "upgrade", "uninstall", "repair"].includes(args.intent)
+			) {
+				const current = await loadGlobalBinding(runtime.globalRoot);
+				const root =
+					args.workspace ??
+					current?.workspaceRealPath ??
+					runtime.cwd ??
+					process.cwd();
+				return await handlePlan(await buildContext(root), args);
+			}
+		}
+		if (args.command === "apply") {
+			return await handleApplyWithGlobalBinding(args, runtime);
+		}
+		if (args.command === "install") {
+			return await handleInstallWithGlobalBinding(args, runtime);
+		}
+		if (args.command === "status") {
+			const observation = await observeBoundWorkspace(runtime.globalRoot);
+			if (observation === undefined) {
+				return outcome("status", "SUCCEEDED", {
+					installed: false,
+					bindingState: "UNBOUND",
+					boundWorkspace: null,
+					nextAction: "Run platform install [--workspace <path>]",
+				});
+			}
+			if (!observation.workspaceExists) {
+				return withWorkspace(
+					outcome("status", "BLOCKED", {
+						installed: false,
+						code: "BOUND_WORKSPACE_MISSING",
+						boundWorkspace: observation.binding.workspaceRealPath,
+						nextAction:
+							"Restore the Workspace or run platform uninstall --forget to clear only the stale binding",
+					}),
+					observation.binding,
+				);
+			}
+		}
+		if (args.command === "uninstall" && args.forget) {
+			if (args.positional.length > 0 || args.workspace !== undefined) {
+				throw new PlatformError(
+					"INVALID_REQUEST",
+					"platform uninstall --forget only clears the current stale global binding; do not combine it with a module/package or --workspace",
+				);
+			}
+			const operationLock = await acquireGlobalOperationLock(
+				runtime.globalRoot,
+			);
+			try {
+				const forgotten = await forgetMissingWorkspaceBinding({
+					globalRoot: runtime.globalRoot,
+				});
+				return outcome("uninstall", "SUCCEEDED", {
+					forgottenWorkspace: forgotten.workspaceRealPath,
+					bindingCleared: true,
+					resourcesCleaned: false,
+				});
+			} finally {
+				await operationLock.release();
+			}
+		}
+		if (args.command === "uninstall" && args.positional.length === 0) {
+			const current = await loadGlobalBinding(runtime.globalRoot);
+			if (current === undefined) {
+				return outcome("uninstall", "SUCCEEDED", {
+					alreadyUninstalled: true,
+					bindingCleared: true,
+				});
+			}
+			return await handlePlatformInstanceUninstall(args, runtime);
+		}
+		if (
+			args.command === "upgrade" ||
+			(args.command === "uninstall" && args.positional.length > 0) ||
+			args.command === "start" ||
+			args.command === "stop" ||
+			args.command === "restart"
+		) {
+			return await handleBoundMutatingCommand(args, runtime);
+		}
+
+		const { ctx, binding } = await resolveBoundContext(runtime, args.workspace);
+		let result: CliOutcome | undefined;
 		switch (args.command as Command) {
 			case "search":
-				return await handleSearch(root, args);
-			case "modules":
-				return await handleModules(ctx, args);
-			case "docs":
-				return await handleDocs(ctx, args);
 			case "install":
+				throw new PlatformError(
+					"COMMAND_FAILED",
+					"unreachable command routing",
+				);
+			case "modules":
+				result = await handleModules(ctx, args);
+				break;
+			case "docs":
+				result = await handleDocs(ctx, args);
+				break;
 			case "uninstall":
 			case "upgrade":
-				return await handleManagedMutation(
-					ctx,
-					args,
-					args.command as "install" | "uninstall" | "upgrade",
-				);
-			case "preflight":
-				return await handlePreflight(ctx, args);
-			case "plan":
-				return await handlePlan(ctx, args);
-			case "apply":
-				return await handleApply(ctx, args);
 			case "start":
 			case "stop":
 			case "restart":
-			case "status":
-				return await handleLifecycle(
-					ctx,
-					args,
-					args.command as "start" | "stop" | "restart" | "status",
+				throw new PlatformError(
+					"COMMAND_FAILED",
+					"unreachable mutating command routing",
 				);
+			case "preflight":
+				result = await handlePreflight(ctx, args);
+				break;
+			case "plan":
+				result = await handlePlan(ctx, args);
+				break;
+			case "apply":
+				result = await handleApply(ctx, args);
+				break;
+			case "status":
+				result = await handleLifecycle(ctx, args, "status");
+				break;
 			case "verify":
-				return await handleVerify(ctx, args);
+				result = await handleVerify(ctx, args);
+				break;
 			case "doctor":
-				return await handleDoctor(ctx, args);
+				result = await handleDoctor(ctx, args);
+				break;
 			case "manifest":
-				return await handleManifest(ctx, args);
+				result = await handleManifest(ctx, args);
+				break;
 		}
+		if (result === undefined) {
+			throw new PlatformError("COMMAND_FAILED", "unreachable command routing");
+		}
+		return withWorkspace(result, binding);
 	} catch (error) {
 		return failure(args.command, error);
 	}
-	return failure(
-		args.command,
-		new PlatformError("COMMAND_FAILED", "unreachable"),
-	);
 }
 
 function toMachineResult(outcomeResult: CliOutcome): string {
@@ -881,6 +1439,9 @@ function toMachineResult(outcomeResult: CliOutcome): string {
 		status: outcomeResult.status,
 		moduleRef: MODULE_REF,
 		moduleVersion: MODULE_VERSION,
+		...(outcomeResult.workspace !== undefined
+			? { workspace: outcomeResult.workspace }
+			: {}),
 		...(outcomeResult.data !== undefined ? { data: outcomeResult.data } : {}),
 		...(outcomeResult.status === "ACTION_REQUIRED"
 			? {
@@ -902,7 +1463,10 @@ function toMachineResult(outcomeResult: CliOutcome): string {
 	});
 }
 
-export async function runCli(argv: readonly string[]): Promise<string> {
+export async function runCli(
+	argv: readonly string[],
+	runtime: CliRuntimeOptions = {},
+): Promise<string> {
 	if (argv.includes("--help") || argv.includes("-h")) {
 		return JSON.stringify({
 			contract: "deployment.result.v1",
@@ -927,7 +1491,7 @@ export async function runCli(argv: readonly string[]): Promise<string> {
 			moduleVersion: MODULE_VERSION,
 		});
 	}
-	return toMachineResult(await dispatchCommand(filtered));
+	return toMachineResult(await dispatchCommand(filtered, runtime));
 }
 
 if (import.meta.main) {

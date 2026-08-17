@@ -79,6 +79,7 @@ Conformance 若误把结构 PASS 当业务 PASS，或不能拒绝错误 Module�
 - [ ] **CP-DPL-CONF-02** — C2 Package Gate 校验 package metadata/exports/entry/version 与 Module contract 一致。
 - [ ] **CP-DPL-CONF-03** — C3 Behavior Gate 只证明声明的行为合同，不越权证明真实外部资源可用性。
 - [ ] **CP-DPL-CONF-04** — GPT Actions/File Bridge conformance 覆盖 consequential、45s/100k、文件 count/size/aggregate、relay header/token/scope/TTL/SSRF 与 typed errors。
+- [ ] **CP-DPL-CONF-05** — C2 对全部正式非 `platform-cli` 包机械验证 package-owned install 必须委托 Shell-global `platform install <self> --workspace <cwd>`，禁止 transient `npx @tomflow/proflow-platform-cli`，且全局 CLI 缺失时必须 fail-closed。
 
 ## 6. Frozen TODO Coverage
 
@@ -99,6 +100,7 @@ Conformance 若误把结构 PASS 当业务 PASS，或不能拒绝错误 Module�
 - [ ] **RF-DPL-CONF-02** — C2 package metadata/exports/entry/version 与 Module Contract 漂移
 - [ ] **RF-DPL-CONF-03** — C3 把 fake behavior PASS 错判为真实 External Resource 可用
 - [ ] **RF-DPL-CONF-04** — GPT Actions/File Bridge hard-limit/consequential/SSRF/typed-error conformance 失效
+- [ ] **RF-DPL-CONF-05** — 任一正式包重新出现 transient Platform CLI、未转发 Workspace、或缺失 global CLI 时静默成功
 
 
 
@@ -111,6 +113,7 @@ Conformance 若误把结构 PASS 当业务 PASS，或不能拒绝错误 Module�
 - **EV-DPL-CONF-02** — 非法 Contract fixture rejection detail
 - **EV-DPL-CONF-03** — 真实生成 package 的 metadata/exports/entry/version inspection
 - **EV-DPL-CONF-04** — GPT Actions/File Bridge hard-limit/consequential/SSRF conformance result
+- **EV-DPL-CONF-05** — 24-package repository gate + package-owned installer source/bin inspection + obsolete transient installer negative fixture
 
 ## 8.1 Critical Proof → Risk → Layer → Evidence Binding
 
@@ -122,6 +125,8 @@ Conformance 若误把结构 PASS 当业务 PASS，或不能拒绝错误 Module�
 | `CP-DPL-CONF-02` | `Generated Artifact / Package Conformance`<br>`Module Integration` | `RF-DPL-CONF-02` | `EV-DPL-CONF-01`<br>`EV-DPL-CONF-03` |
 | `CP-DPL-CONF-03` | `Module Integration` | `RF-DPL-CONF-03` | `EV-DPL-CONF-01` |
 | `CP-DPL-CONF-04` | `Contract / Runtime Schema`<br>`Module Integration` | `RF-DPL-CONF-04` | `EV-DPL-CONF-04` |
+
+| `CP-DPL-CONF-05` | `Generated Artifact / Package Conformance`<br>`Module Integration` | `RF-DPL-CONF-05` | `EV-DPL-CONF-05` |
 
 ## 8.2 Codex TDD Handoff
 

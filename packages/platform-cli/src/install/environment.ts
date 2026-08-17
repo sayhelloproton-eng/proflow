@@ -11,6 +11,7 @@ import {
 } from "../registry/index.ts";
 import {
 	findExecutable,
+	type PackageManagerSelectionSource,
 	readWorkspacePackageManagerSelection,
 	type SupportedWorkspacePackageManager,
 	systemPackageCommandRunner,
@@ -36,6 +37,7 @@ export interface InstallerEnvironmentPreflightResult {
 	npmVersion?: string;
 	packageManager?: {
 		name: SupportedWorkspacePackageManager;
+		source: PackageManagerSelectionSource;
 		declared?: string;
 		version?: string;
 	};
@@ -92,56 +94,61 @@ export async function preflightInstallerEnvironment(options: {
 		}
 	}
 
-	const packageManager = await readWorkspacePackageManagerSelection(
-		options.workspaceRoot,
-	);
+	let packageManager:
+		| Awaited<ReturnType<typeof readWorkspacePackageManagerSelection>>
+		| undefined;
 	let packageManagerVersion: string | undefined;
-	if (packageManager === undefined) {
-		findings.push({
-			code: "PACKAGE_MANAGER_UNSUPPORTED",
-			severity: "action",
-			message: `unsupported packageManager declaration: ${workspace.packageManager ?? "<unknown>"}`,
-		});
-	} else if (packageManager.name === "pnpm") {
-		if (!findExecutable("pnpm")) {
+	try {
+		packageManager = await readWorkspacePackageManagerSelection(
+			options.workspaceRoot,
+		);
+		if (!findExecutable(packageManager.name)) {
 			findings.push({
-				code: "PNPM_REQUIRED",
+				code: "PACKAGE_MANAGER_UNAVAILABLE",
 				severity: "action",
-				message: `workspace declares ${packageManager.declared}; install/enable pnpm before applying package changes`,
+				message: `workspace selects ${packageManager.name}, but that executable is not available on PATH`,
 			});
+		} else if (packageManager.name === "npm" && npmVersion !== undefined) {
+			packageManagerVersion = npmVersion;
 		} else {
 			try {
-				const result = (
+				packageManagerVersion = (
 					await systemPackageCommandRunner().run(
-						"pnpm",
+						packageManager.name,
 						["--version"],
 						options.workspaceRoot,
 					)
 				).trim();
-				packageManagerVersion = result;
-				findings.push({
-					code: "PNPM_READY",
-					severity: "info",
-					message: `pnpm ${result} is available for this workspace`,
-				});
 			} catch (error) {
 				findings.push({
-					code: "PNPM_REQUIRED",
+					code: "PACKAGE_MANAGER_UNAVAILABLE",
 					severity: "action",
 					message: error instanceof Error ? error.message : String(error),
 				});
 			}
 		}
-	} else if (npmVersion !== undefined) {
-		packageManagerVersion = npmVersion;
-		findings.push({
-			code: "PACKAGE_MANAGER_READY",
-			severity: "info",
-			message:
-				packageManager.declared === undefined
-					? "workspace does not declare packageManager; npm will be used for bootstrap package operations"
-					: `workspace declares ${packageManager.declared}`,
-		});
+		if (packageManagerVersion !== undefined) {
+			findings.push({
+				code: "PACKAGE_MANAGER_READY",
+				severity: "info",
+				message: `${packageManager.name} ${packageManagerVersion} is selected via ${packageManager.source}`,
+			});
+		}
+	} catch (error) {
+		if (error instanceof PlatformError) {
+			findings.push({
+				code: error.code,
+				severity:
+					error.code === "PACKAGE_MANAGER_CONFLICT" ? "error" : "action",
+				message: error.message,
+			});
+		} else {
+			findings.push({
+				code: "PACKAGE_MANAGER_UNAVAILABLE",
+				severity: "action",
+				message: error instanceof Error ? error.message : String(error),
+			});
+		}
 	}
 
 	let registry: string | undefined;

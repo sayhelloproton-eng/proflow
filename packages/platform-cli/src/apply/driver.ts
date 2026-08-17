@@ -4,6 +4,7 @@ import { join } from "node:path";
 import type { ResolvedModule } from "../contracts.ts";
 import { PlatformError } from "../errors.ts";
 import {
+	findExecutable,
 	type PackageCommandRunner,
 	readWorkspacePackageManagerSelection,
 	systemPackageCommandRunner,
@@ -42,14 +43,19 @@ export function workspaceResidentDriver(): PackageManagerDriver {
 export function createWorkspacePackageManagerDriver(options: {
 	workspaceRoot: string;
 	runner?: PackageCommandRunner;
+	executableAvailable?: (command: string) => boolean;
 }): PackageManagerDriver {
 	const runner = options.runner ?? systemPackageCommandRunner();
+	const executableAvailable = options.executableAvailable ?? findExecutable;
 	return {
 		observeInstalledVersion: (module) =>
 			observeInstalledVersion(options.workspaceRoot, module.packageName),
 		install: async (module) => {
 			await ensureWorkspacePackageJson(options.workspaceRoot);
-			const manager = await requirePackageManager(options.workspaceRoot);
+			const manager = await requirePackageManager(
+				options.workspaceRoot,
+				executableAvailable,
+			);
 			await mutatePackage(
 				runner,
 				manager,
@@ -60,7 +66,10 @@ export function createWorkspacePackageManagerDriver(options: {
 		},
 		upgrade: async (module) => {
 			await ensureWorkspacePackageJson(options.workspaceRoot);
-			const manager = await requirePackageManager(options.workspaceRoot);
+			const manager = await requirePackageManager(
+				options.workspaceRoot,
+				executableAvailable,
+			);
 			await mutatePackage(
 				runner,
 				manager,
@@ -70,7 +79,10 @@ export function createWorkspacePackageManagerDriver(options: {
 			);
 		},
 		remove: async (module) => {
-			const manager = await requirePackageManager(options.workspaceRoot);
+			const manager = await requirePackageManager(
+				options.workspaceRoot,
+				executableAvailable,
+			);
 			await mutatePackage(
 				runner,
 				manager,
@@ -89,7 +101,13 @@ async function mutatePackage(
 	operation: "install" | "upgrade" | "remove",
 	packageSpec: string,
 ): Promise<void> {
-	const args = packageManagerArgs(manager.name, operation, packageSpec);
+	const args = await packageManagerArgs(
+		runner,
+		manager,
+		workspaceRoot,
+		operation,
+		packageSpec,
+	);
 	try {
 		await runner.run(manager.name, args, workspaceRoot);
 	} catch (error) {
@@ -100,29 +118,71 @@ async function mutatePackage(
 	}
 }
 
-function packageManagerArgs(
-	manager: WorkspacePackageManagerSelection["name"],
+async function packageManagerArgs(
+	runner: PackageCommandRunner,
+	manager: WorkspacePackageManagerSelection,
+	workspaceRoot: string,
 	operation: "install" | "upgrade" | "remove",
 	packageSpec: string,
-): string[] {
-	if (manager === "pnpm") {
+): Promise<string[]> {
+	if (manager.name === "pnpm") {
 		return operation === "remove"
 			? ["remove", "--ignore-scripts", packageSpec]
 			: ["add", "--save-exact", "--ignore-scripts", packageSpec];
 	}
+	if (manager.name === "npm") {
+		return operation === "remove"
+			? ["uninstall", "--ignore-scripts", packageSpec]
+			: ["install", "--save-exact", "--ignore-scripts", packageSpec];
+	}
+
+	const major = await yarnMajorVersion(runner, manager, workspaceRoot);
+	if (major <= 1) {
+		return operation === "remove"
+			? ["remove", "--ignore-scripts", packageSpec]
+			: ["add", "--exact", "--ignore-scripts", packageSpec];
+	}
 	return operation === "remove"
-		? ["uninstall", "--ignore-scripts", packageSpec]
-		: ["install", "--save-exact", "--ignore-scripts", packageSpec];
+		? ["remove", "--mode=skip-build", packageSpec]
+		: ["add", "--exact", "--mode=skip-build", packageSpec];
+}
+
+async function yarnMajorVersion(
+	runner: PackageCommandRunner,
+	manager: WorkspacePackageManagerSelection,
+	workspaceRoot: string,
+): Promise<number> {
+	const declaredVersion = declaredPackageManagerVersion(manager.declared);
+	const value =
+		declaredVersion ??
+		(await runner.run("yarn", ["--version"], workspaceRoot)).trim();
+	const major = Number.parseInt(value.split(".")[0] ?? "", 10);
+	if (!Number.isInteger(major) || major < 1) {
+		throw new PlatformError(
+			"PACKAGE_MANAGER_UNAVAILABLE",
+			`cannot determine a supported Yarn major version from ${value || "<empty>"}`,
+		);
+	}
+	return major;
+}
+
+function declaredPackageManagerVersion(
+	declared: string | undefined,
+): string | undefined {
+	if (declared === undefined) return undefined;
+	const separator = declared.lastIndexOf("@");
+	return separator > 0 ? declared.slice(separator + 1) : undefined;
 }
 
 async function requirePackageManager(
 	workspaceRoot: string,
+	executableAvailable: (command: string) => boolean,
 ): Promise<WorkspacePackageManagerSelection> {
 	const manager = await readWorkspacePackageManagerSelection(workspaceRoot);
-	if (manager === undefined) {
+	if (!executableAvailable(manager.name)) {
 		throw new PlatformError(
-			"APPLY_FAILED",
-			"workspace packageManager is not supported; expected npm or pnpm",
+			"PACKAGE_MANAGER_UNAVAILABLE",
+			`workspace package manager ${manager.name} is not available on PATH`,
 		);
 	}
 	return manager;

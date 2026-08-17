@@ -86,6 +86,10 @@ CLI 是唯一全局 Deployment Planner/Executor；错误 graph、stale state 或
 - [ ] **CP-DPL-CLI-05** — status/verify/doctor 读取 current reality；persisted history 不能制造 fake READY。
 - [ ] **CP-DPL-CLI-06** — upgrade fail 保留 verification history，STOP + doctor；rollback 通过新 Plan，不做事务式自动 rollback。
 - [ ] **CP-DPL-CLI-07** — same workspace 只允许一个 apply：exclusive workspace lock 生效；repo-local plan/state/config 采用安全原子写，concurrent apply 不破坏 deployment state。
+- [ ] **CP-DPL-CLI-08** — Shell-global `platform` 只允许 0/1 个全局受管 Workspace；canonical workspace identity + cross-process global operation lock 能阻断 A/B 并发双安装，并串行化 `install/apply/start/stop/restart/upgrade/uninstall` 等实例 mutation；binding 持久化 `INSTALLING / INSTALLED / UNINSTALLING / BROKEN`。
+- [ ] **CP-DPL-CLI-09** — 首次 `platform install` 默认以 cwd 为目标，`--workspace <path>` 可供 Agent 显式指定；绑定完成后 `status/start/stop/restart/verify/doctor/modules/upgrade` 均从任意 cwd 操作唯一 bound Workspace，`status` 必须暴露 `boundWorkspace`。
+- [ ] **CP-DPL-CLI-10** — `platform uninstall`（无 module 参数）从任意 cwd 卸载当前 Platform Instance、观察 Managed Modules 归零后清除 binding；A 未卸载前 B install 必须 `WORKSPACE_ALREADY_BOUND`，A 卸载后才允许 bind B；丢失 Workspace 只允许显式 `--forget` 清 stale binding，不伪造资源已清理。
+- [ ] **CP-DPL-CLI-11** — Workspace package mutation 对 npm/yarn/pnpm 一视同仁；选择以 `package.json#packageManager → lockfile → executable` 的确定性事实为准，声明/lockfile 冲突或 executable 缺失必须 typed fail，不猜测。
 - [ ] **CP-DPL-CLI-22** — Platform CLI 不发明 Task worker/conversation/browser identity；worker/c-id 只由 Owner/Execution 产生，Deployment 只连接 lifecycle/status/verify primitive。
 
 ## 6. Frozen TODO Coverage
@@ -113,6 +117,10 @@ CLI 是唯一全局 Deployment Planner/Executor；错误 graph、stale state 或
 - [ ] **RF-DPL-CLI-06** — config/secret materialization 越界，或 raw secret 泄漏到 manifest/JSON/log/evidence/model context
 - [ ] **RF-DPL-CLI-07** — upgrade failure 丢失 verification history 或擅自事务式自动 rollback
 - [ ] **RF-DPL-CLI-08** — same-workspace concurrent apply 绕过 exclusive lock，或 repo-local state/config 原子写失败导致部署状态损坏
+- [ ] **RF-DPL-CLI-09** — global binding 可被第二 Workspace 覆盖/静默切换，或并发 install/apply/lifecycle/upgrade/uninstall 绕过 global operation lock 并同时修改唯一 Platform Instance
+- [ ] **RF-DPL-CLI-10** — instance command 错把当前 cwd 当目标，`status` 不暴露 bound Workspace，或 `--workspace` 被用来绕过唯一 binding
+- [ ] **RF-DPL-CLI-11** — whole-instance uninstall 未确认真实卸载就清 binding，missing Workspace 被伪装成已清理，或 A 未卸载即允许 bind B
+- [ ] **RF-DPL-CLI-12** — package-manager 被硬编码为 pnpm/npm、yarn 无法工作、声明与 lockfile 冲突时仍猜测执行器
 
 
 
@@ -130,6 +138,10 @@ CLI 是唯一全局 Deployment Planner/Executor；错误 graph、stale state 或
 - **EV-DPL-CLI-07** — upgrade failure + STOP/doctor/new-plan recovery record
 - **EV-DPL-CLI-08** — exclusive workspace lock/concurrent apply observation + repo-local state/config atomic-write result
 - **EV-DPL-CLI-09** — lifecycle primitive dispatch observation by Module kind
+- **EV-DPL-CLI-10** — global binding record/state/instanceId/canonical path + concurrent A/B install and bound-instance mutation lock observation
+- **EV-DPL-CLI-11** — cwd vs `--workspace` requested target、cross-directory instance command、`status.boundWorkspace` observation
+- **EV-DPL-CLI-12** — whole-instance uninstall → managed set empty → binding clear / stale `--forget` observation / A→B rebind trace
+- **EV-DPL-CLI-13** — npm/yarn/pnpm selection source、lockfile conflict、executable availability 与 package mutation argv observation
 
 ## 8.1 Critical Proof → Risk → Layer → Evidence Binding
 
@@ -144,6 +156,10 @@ CLI 是唯一全局 Deployment Planner/Executor；错误 graph、stale state 或
 | `CP-DPL-CLI-05` | `Persistence`<br>`Real Local Integration`<br>`Real External E2E`<br>`Failure / Recovery` | `RF-DPL-CLI-05` | `EV-DPL-CLI-04`<br>`EV-DPL-CLI-06` |
 | `CP-DPL-CLI-06` | `Persistence`<br>`Real External E2E`<br>`Failure / Recovery` | `RF-DPL-CLI-07` | `EV-DPL-CLI-06`<br>`EV-DPL-CLI-07` |
 | `CP-DPL-CLI-07` | `Persistence`<br>`Real Local Integration`<br>`Security / Boundary`<br>`Concurrency / Idempotency` | `RF-DPL-CLI-06`<br>`RF-DPL-CLI-08` | `EV-DPL-CLI-05`<br>`EV-DPL-CLI-06`<br>`EV-DPL-CLI-08` |
+| `CP-DPL-CLI-08` | `Persistence`<br>`Real Local Integration`<br>`Concurrency / Idempotency` | `RF-DPL-CLI-09` | `EV-DPL-CLI-10` |
+| `CP-DPL-CLI-09` | `Contract / Runtime Schema`<br>`Real Local Integration` | `RF-DPL-CLI-10` | `EV-DPL-CLI-11` |
+| `CP-DPL-CLI-10` | `Persistence`<br>`Real Local Integration`<br>`Failure / Recovery` | `RF-DPL-CLI-11` | `EV-DPL-CLI-12` |
+| `CP-DPL-CLI-11` | `Contract / Runtime Schema`<br>`Real Local Integration` | `RF-DPL-CLI-12` | `EV-DPL-CLI-13` |
 | `CP-DPL-CLI-22` | `Module Integration` | — | — |
 
 ## 8.2 Codex TDD Handoff

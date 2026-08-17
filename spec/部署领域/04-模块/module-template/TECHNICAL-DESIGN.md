@@ -171,11 +171,11 @@ Template 版本升级不会自动强迫所有 Module 当天迁移；只有出现
 
 ## 8. 当前测试纪律
 
-本轮先闭环模板形式、CLI 和人工真实创建/安装路径；现有正式测试用例/测试计划暂不改写。人工验证通过后再更新自动化用例与 evidence。
+Module Template 的形式、CLI、package-owned install 与真实创建路径必须同时进入正式 Test Plan / executable tests / Deployment Conformance。模板生成的新包必须机械证明其 package-owned `npx <package> install` 委托 Shell-global `platform install <self> --workspace <cwd>`，全局 CLI 缺失时 fail-closed，并在任何模板迁移后重新执行 C1/C2/C3 与 publishability。不得以“后续人工验证”替代当前自动化 evidence。
 
 ### Package-owned npx installation entry
 
-Every generated ProFlow Module publishes one package-name-matching npm `bin` entry for `npx <package> install`. The entry points at a root `self-install.mjs` that is explicitly included in the npm `files` allowlist, so package-self installation does not depend on TypeScript build output. The generated executable is deliberately a thin delegator only: it invokes `@tomflow/proflow-platform-cli install <self-package>` against `process.cwd()`. It MUST support `--help/-h` without mutation so npm publishability/binary discovery can probe it safely. It MUST NOT reimplement Registry discovery, package-manager selection, package mutation, Deployment planning, lifecycle or verification. Therefore both Platform-initiated install and package-initiated npx install converge on the same Workspace `package.json` fact and the same Platform governance path.
+Every generated ProFlow Module publishes one package-name-matching npm `bin` entry for `npx <package> install`. The entry points at a root `self-install.mjs` that is explicitly included in the npm `files` allowlist, so package-self installation does not depend on TypeScript build output. The generated executable is deliberately a thin delegator only: it invokes the Shell-global `platform install <self-package> --workspace process.cwd()` and fails closed with `GLOBAL_PLATFORM_CLI_REQUIRED` when that global command is unavailable. It MUST NOT transiently `npx @tomflow/proflow-platform-cli`, and MUST support `--help/-h` without mutation so npm publishability/binary discovery can probe it safely. It MUST NOT reimplement Registry discovery, single-Workspace binding, package-manager selection, package mutation, Deployment planning, lifecycle or verification. Therefore both Platform-initiated install and package-initiated npx install converge on the same globally bound Workspace and the same Platform governance path.
 
 ### Registry bootstrap index
 

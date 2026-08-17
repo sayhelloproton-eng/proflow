@@ -7,11 +7,11 @@
   },
   "currentMechanicalInventory": {
     "testPlans": 37,
-    "formalCaseIdentities": 314,
-    "criticalProofs": 190,
-    "requiredFailureBoundaries": 124,
-    "executableTestFiles": 126,
-    "executableTestCalls": 668,
+    "formalCaseIdentities": 326,
+    "criticalProofs": 196,
+    "requiredFailureBoundaries": 130,
+    "executableTestFiles": 129,
+    "executableTestCalls": 697,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -1536,6 +1536,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -1581,6 +1582,123 @@
         "packages/platform-cli/src/paths.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/security/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DPL-CLI-08",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/global-binding.test.ts",
+        "packages/platform-cli/tests/global-cli-workspace.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DPL-CLI-09",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/global-cli-workspace.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DPL-CLI-10",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/global-cli-workspace.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DPL-CLI-11",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/package-manager.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/package-manager.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
@@ -1847,6 +1965,33 @@
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
+      "caseId": "CP-DPL-CONF-05",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEPLOYMENT-CONFORMANCE",
+          "path": "spec/部署领域/07-测试计划/modules/deployment-conformance.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/deployment-conformance/tests/deployment-conformance.test.ts"
+      ],
+      "ownerPackages": [
+        "deployment-conformance"
+      ],
+      "implementationRefs": [
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts",
+        "packages/module-template/src/index.ts"
+      ],
+      "proofStrengths": [
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
       "caseId": "CP-DPL-SKILL-01",
       "caseType": "CRITICAL_PROOF",
       "sourcePlans": [
@@ -2033,6 +2178,32 @@
     },
     {
       "caseId": "CP-DPL-TPL-04",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-MODULE-TEMPLATE",
+          "path": "spec/部署领域/07-测试计划/modules/module-template.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/module-template/tests/module-template.test.ts"
+      ],
+      "ownerPackages": [
+        "module-template"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/module-template/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DPL-TPL-05",
       "caseType": "CRITICAL_PROOF",
       "sourcePlans": [
         {
@@ -6046,6 +6217,7 @@
         "packages/module-template/src/index.ts",
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/apply/index.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/catalog.ts",
@@ -6091,6 +6263,118 @@
         "packages/platform-cli/src/paths.ts",
         "packages/platform-cli/src/persistence/index.ts",
         "packages/platform-cli/src/security/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-DPL-CLI-09",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/global-binding.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/errors.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-DPL-CLI-10",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/global-cli-workspace.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-DPL-CLI-11",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/global-cli-workspace.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-DPL-CLI-12",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/package-manager.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/package-manager.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
@@ -6307,6 +6591,33 @@
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
+      "caseId": "RF-DPL-CONF-05",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEPLOYMENT-CONFORMANCE",
+          "path": "spec/部署领域/07-测试计划/modules/deployment-conformance.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/deployment-conformance/tests/deployment-conformance.test.ts"
+      ],
+      "ownerPackages": [
+        "deployment-conformance"
+      ],
+      "implementationRefs": [
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts",
+        "packages/module-template/src/index.ts"
+      ],
+      "proofStrengths": [
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
       "caseId": "RF-DPL-SKILL-01",
       "caseType": "REQUIRED_FAILURE_BOUNDARY",
       "sourcePlans": [
@@ -6501,6 +6812,32 @@
         }
       ],
       "proofClass": "HISTORICAL_TRACE_REVALIDATED",
+      "executableRefs": [
+        "packages/module-template/tests/module-template.test.ts"
+      ],
+      "ownerPackages": [
+        "module-template"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/module-template/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-DPL-TPL-05",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-MODULE-TEMPLATE",
+          "path": "spec/部署领域/07-测试计划/modules/module-template.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
         "packages/module-template/tests/module-template.test.ts"
       ],

@@ -28,6 +28,10 @@ import {
 } from "@tomflow/proflow-module-template";
 import { workspaceResidentDriver } from "../src/apply/driver.ts";
 import { applyPlan } from "../src/apply/index.ts";
+import {
+	claimWorkspaceBinding,
+	updateGlobalBindingState,
+} from "../src/binding/global-binding.ts";
 import { runCli } from "../src/cli.ts";
 import type { ResolvedModule } from "../src/contracts.ts";
 import { WorkspaceModuleCatalog } from "../src/discovery/catalog.ts";
@@ -348,13 +352,20 @@ test("D2 Template + Conformance — module-template passes C1/C2/C3 and material
 			"PASS",
 		);
 
+		const globalRoot = join(paths.root, ".test-global-binding");
+		const { binding: claimed } = await claimWorkspaceBinding({
+			workspace: paths.root,
+			globalRoot,
+		});
+		await updateGlobalBindingState({
+			workspaceInstanceId: claimed.workspaceInstanceId,
+			state: "INSTALLED",
+			globalRoot,
+		});
+		const cliRuntime = { cwd: repoRoot(), globalRoot };
+
 		const modules = JSON.parse(
-			await runCli([
-				"modules",
-				"d2-generated-service",
-				"--workspace",
-				paths.root,
-			]),
+			await runCli(["modules", "d2-generated-service"], cliRuntime),
 		) as { status: string; data?: Array<{ moduleRef: string; kind: string }> };
 		assert.equal(modules.status, "SUCCEEDED");
 		assert.equal(modules.data?.length, 1);
@@ -362,30 +373,20 @@ test("D2 Template + Conformance — module-template passes C1/C2/C3 and material
 		assert.equal(modules.data?.[0]?.kind, "service");
 
 		const docs = JSON.parse(
-			await runCli(["docs", "d2-generated-service", "--workspace", paths.root]),
+			await runCli(["docs", "d2-generated-service"], cliRuntime),
 		) as { status: string; data?: { moduleRef?: string; kind?: string } };
 		assert.equal(docs.status, "SUCCEEDED");
 		assert.equal(docs.data?.moduleRef, "d2-generated-service");
 		assert.equal(docs.data?.kind, "service");
 
 		const status = JSON.parse(
-			await runCli([
-				"status",
-				"d2-generated-service",
-				"--workspace",
-				paths.root,
-			]),
+			await runCli(["status", "d2-generated-service"], cliRuntime),
 		) as { status: string; data?: Array<{ result?: { status?: string } }> };
 		assert.equal(status.status, "ACTION_REQUIRED");
 		assert.equal(status.data?.[0]?.result?.status, "ACTION_REQUIRED");
 
 		const verify = JSON.parse(
-			await runCli([
-				"verify",
-				"d2-generated-service",
-				"--workspace",
-				paths.root,
-			]),
+			await runCli(["verify", "d2-generated-service"], cliRuntime),
 		) as {
 			status: string;
 			data?: Array<{ result?: { status?: string; error?: { code?: string } } }>;

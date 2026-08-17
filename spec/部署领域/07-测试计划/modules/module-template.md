@@ -79,6 +79,7 @@ implementationWave: Wave 0
 - [ ] **CP-DPL-TPL-02** — 生成结果包含最小 metadata/README/verify 骨架，但不生成虚假 lifecycle。
 - [ ] **CP-DPL-TPL-03** — 生成 TypeScript 工程满足 Node 24.19.0 / `tsc --noEmit` / no-`any` 公共边界约束。
 - [ ] **CP-DPL-TPL-04** — Template version 变化可判断 migration requirement；迁移后必须重新 Conformance。
+- [ ] **CP-DPL-TPL-05** — 六种生成 profile 的 package-owned install（Service 包括其公开 CLI）统一委托 Shell-global `platform` 并显式转发 `--workspace`；不得 transient bootstrap Platform CLI，找不到全局 CLI 时必须 `GLOBAL_PLATFORM_CLI_REQUIRED` fail-closed。
 
 ## 6. Frozen TODO Coverage
 
@@ -98,6 +99,7 @@ implementationWave: Wave 0
 - [ ] **RF-DPL-TPL-02** — 模板生成虚假 start/stop/lifecycle 或错误 metadata
 - [ ] **RF-DPL-TPL-03** — 生成 TypeScript 不满足 Node 24.19.0 / typecheck / 公共边界约束
 - [ ] **RF-DPL-TPL-04** — template version 变化未产生正确 migration requirement 或迁移后未重新 Conformance
+- [ ] **RF-DPL-TPL-05** — 新生成 package 重新产生 transient `npx platform-cli` installer、未 forward Workspace 或在 global CLI 缺失时继续安装
 
 
 
@@ -111,6 +113,7 @@ implementationWave: Wave 0
 - **EV-DPL-TPL-03** — `tsc --noEmit` / no-any boundary 结果
 - **EV-DPL-TPL-04** — 生成产物 Conformance result
 - **EV-DPL-TPL-05** — template version → migration requirement 结果
+- **EV-DPL-TPL-06** — generated `self-install.mjs` / Service CLI source inspection + global platform delegation/fail-closed assertion
 
 ## 8.1 Critical Proof → Risk → Layer → Evidence Binding
 
@@ -122,6 +125,8 @@ implementationWave: Wave 0
 | `CP-DPL-TPL-02` | `Unit`<br>`Generated Artifact / Package Conformance`<br>`Real Local Integration` | `RF-DPL-TPL-02` | `EV-DPL-TPL-01`<br>`EV-DPL-TPL-02` |
 | `CP-DPL-TPL-03` | `Generated Artifact / Package Conformance`<br>`Real Local Integration` | `RF-DPL-TPL-03` | `EV-DPL-TPL-03`<br>`EV-DPL-TPL-04` |
 | `CP-DPL-TPL-04` | `Unit`<br>`Generated Artifact / Package Conformance`<br>`Module Integration`<br>`Real Local Integration` | `RF-DPL-TPL-04` | `EV-DPL-TPL-04`<br>`EV-DPL-TPL-05` |
+
+| `CP-DPL-TPL-05` | `Generated Artifact / Package Conformance`<br>`Module Integration`<br>`Real Local Integration` | `RF-DPL-TPL-05` | `EV-DPL-TPL-06` |
 
 ## 8.2 Codex TDD Handoff
 

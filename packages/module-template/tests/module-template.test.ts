@@ -103,7 +103,7 @@ test("CP-DPL-TPL-01 materializes six profiles with only their real responsibilit
 	}
 });
 
-test("CP-DPL-TPL-02 emits minimum metadata and verification without fake lifecycle", async (context) => {
+test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata, honest lifecycle, and global package-owned install delegation", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-template-minimum-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
 	for (const kind of kinds) {
@@ -134,6 +134,28 @@ test("CP-DPL-TPL-02 emits minimum metadata and verification without fake lifecyc
 				true,
 				`${kind}: ${relative}`,
 			);
+		}
+		const selfInstall = await readFile(
+			join(result.packageDirectory, "self-install.mjs"),
+			"utf8",
+		);
+		assert.match(selfInstall, /platform\.cmd/);
+		assert.match(selfInstall, /"platform"/);
+		assert.match(selfInstall, /"--workspace"/);
+		assert.match(selfInstall, /process\.cwd\(\)/);
+		assert.match(selfInstall, /GLOBAL_PLATFORM_CLI_REQUIRED/);
+		assert.doesNotMatch(
+			selfInstall,
+			/process\.platform === "win32" \? "npx\.cmd" : "npx"/,
+		);
+		if (kind === "service") {
+			const serviceCli = await readFile(
+				join(result.packageDirectory, "src/cli.ts"),
+				"utf8",
+			);
+			assert.match(serviceCli, /platform\.cmd/);
+			assert.match(serviceCli, /"--workspace"/);
+			assert.match(serviceCli, /GLOBAL_PLATFORM_CLI_REQUIRED/);
 		}
 		if (kind !== "service") {
 			assert.equal(

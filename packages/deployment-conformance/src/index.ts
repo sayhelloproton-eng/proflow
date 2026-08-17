@@ -432,26 +432,65 @@ export async function runPackageConformance(
 				code: "SELF_INSTALL_BIN_MISSING",
 				message: `package must expose ${packageExecutableName(descriptor.packageName)} so npx <package> install has a stable entry`,
 			});
-		} else if (selfInstallBin === "./self-install.mjs") {
-			const selfInstallPath = join(packageDirectory, "self-install.mjs");
-			if (!(await pathExists(selfInstallPath))) {
-				issues.push({
-					code: "SELF_INSTALL_ENTRY_MISSING",
-					message: "self-install.mjs bin target is missing",
-				});
-			} else if (((await stat(selfInstallPath)).mode & 0o111) === 0) {
-				issues.push({
-					code: "SELF_INSTALL_NOT_EXECUTABLE",
-					message:
-						"self-install.mjs must be executable so package-manager install cannot chmod the source worktree",
-				});
+		} else {
+			if (selfInstallBin === "./self-install.mjs") {
+				const selfInstallPath = join(packageDirectory, "self-install.mjs");
+				if (!(await pathExists(selfInstallPath))) {
+					issues.push({
+						code: "SELF_INSTALL_ENTRY_MISSING",
+						message: "self-install.mjs bin target is missing",
+					});
+				} else if (((await stat(selfInstallPath)).mode & 0o111) === 0) {
+					issues.push({
+						code: "SELF_INSTALL_NOT_EXECUTABLE",
+						message:
+							"self-install.mjs must be executable so package-manager install cannot chmod the source worktree",
+					});
+				}
+				if (!stringArrayIncludes(metadata.files, "self-install.mjs")) {
+					issues.push({
+						code: "SELF_INSTALL_NOT_PUBLISHED",
+						message:
+							"self-install.mjs must be included in the npm files allowlist",
+					});
+				}
 			}
-			if (!stringArrayIncludes(metadata.files, "self-install.mjs")) {
-				issues.push({
-					code: "SELF_INSTALL_NOT_PUBLISHED",
-					message:
-						"self-install.mjs must be included in the npm files allowlist",
-				});
+
+			const sourceCliPath = join(packageDirectory, "src/cli.ts");
+			const publishedBinPath = resolve(packageDirectory, selfInstallBin);
+			const installEntryPath =
+				selfInstallBin === "./self-install.mjs" &&
+				(await pathExists(publishedBinPath))
+					? publishedBinPath
+					: (await pathExists(sourceCliPath))
+						? sourceCliPath
+						: (await pathExists(publishedBinPath))
+							? publishedBinPath
+							: undefined;
+			if (installEntryPath !== undefined) {
+				const installEntrySource = await readFile(installEntryPath, "utf8");
+				if (
+					!installEntrySource.includes('"platform.cmd"') ||
+					!installEntrySource.includes('"platform"') ||
+					!installEntrySource.includes('"--workspace"') ||
+					!installEntrySource.includes("GLOBAL_PLATFORM_CLI_REQUIRED")
+				) {
+					issues.push({
+						code: "PACKAGE_INSTALL_GLOBAL_PLATFORM_DELEGATION_MISSING",
+						message:
+							"package-owned install must delegate to the globally installed platform CLI, forward its workspace, and fail closed when the global CLI is unavailable",
+					});
+				}
+				if (
+					installEntrySource.includes('"npx.cmd"') &&
+					installEntrySource.includes('"@tomflow/proflow-platform-cli"')
+				) {
+					issues.push({
+						code: "PACKAGE_INSTALL_TRANSIENT_PLATFORM_CLI_FORBIDDEN",
+						message:
+							"package-owned install must not bootstrap a transient platform CLI through npx",
+					});
+				}
 			}
 		}
 	}

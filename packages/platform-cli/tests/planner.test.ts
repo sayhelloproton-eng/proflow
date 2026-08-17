@@ -36,7 +36,7 @@ function descriptor(
 		packageName,
 		moduleVersion: "1.0.0",
 		kind: "service",
-		installClass: "optional",
+		installClass: overrides.installClass ?? "optional",
 		identity: {
 			domain: "deployment-governance",
 			summary: "Platform CLI descriptor fixture",
@@ -67,13 +67,14 @@ function moduleFixture(input: {
 	requirements?: ResolvedModule["requirements"];
 	configSlots?: ResolvedModule["configSlots"];
 	lifecycle?: string[];
+	installClass?: ResolvedModule["installClass"];
 }): ResolvedModule {
 	return {
 		moduleRef: input.moduleRef,
 		packageName: `@tomflow/proflow-${input.moduleRef}`,
 		moduleVersion: "1.0.0",
 		kind: input.kind ?? "service",
-		installClass: "optional",
+		installClass: input.installClass ?? "optional",
 		identity: {
 			domain: "deployment-governance",
 			summary: "Platform CLI test fixture",
@@ -142,6 +143,28 @@ test("planDeployment produces an immutable, dependency-ordered plan", () => {
 	assert.throws(() => {
 		(plan as { intent: string }).intent = "repair";
 	}, TypeError);
+});
+
+test("platform-instance uninstall may remove core modules while individual uninstall remains guarded", () => {
+	const core = moduleFixture({
+		moduleRef: "core",
+		installClass: "core",
+		lifecycle: ["describe", "verify", "doctor", "uninstall"],
+	});
+	assert.throws(
+		() => planDeployment({ intent: "uninstall", modules: [core] }),
+		(error: unknown) =>
+			error instanceof Error &&
+			"code" in error &&
+			(error as { code?: string }).code === "CORE_PACKAGE_REQUIRED",
+	);
+	const plan = planDeployment({
+		intent: "uninstall",
+		modules: [core],
+		uninstallScope: "platform-instance",
+	});
+	assert.ok(plan.steps.some((step) => step.kind === "package"));
+	assert.ok(plan.steps.some((step) => step.kind === "lifecycle"));
 });
 
 test("planDeployment covers config/package/human/external-resource/lifecycle kinds", () => {
