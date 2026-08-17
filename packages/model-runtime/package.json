@@ -46,7 +46,8 @@
 		"installClass": "core",
 		"descriptor": "./dist/deployment/descriptor.js",
 		"installRequires": [
-			"@tomflow/proflow-model-contracts"
+			"@tomflow/proflow-model-contracts",
+			"@tomflow/proflow-model-provider-api"
 		],
 		"manifest": "./proflow.module.json"
 	}

@@ -13,7 +13,7 @@ export const descriptor = {
 		summary:
 			"Typed public Execution contracts and runtime validation for the ProFlow real-world effect plane.",
 	},
-	provides: [{ contractRef: "execution", version: "1.0.0" }],
+	provides: [],
 	requires: [],
 	requirements: [
 		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },

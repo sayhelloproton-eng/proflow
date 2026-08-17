@@ -433,10 +433,17 @@ export async function runPackageConformance(
 				message: `package must expose ${packageExecutableName(descriptor.packageName)} so npx <package> install has a stable entry`,
 			});
 		} else if (selfInstallBin === "./self-install.mjs") {
-			if (!(await pathExists(join(packageDirectory, "self-install.mjs")))) {
+			const selfInstallPath = join(packageDirectory, "self-install.mjs");
+			if (!(await pathExists(selfInstallPath))) {
 				issues.push({
 					code: "SELF_INSTALL_ENTRY_MISSING",
 					message: "self-install.mjs bin target is missing",
+				});
+			} else if (((await stat(selfInstallPath)).mode & 0o111) === 0) {
+				issues.push({
+					code: "SELF_INSTALL_NOT_EXECUTABLE",
+					message:
+						"self-install.mjs must be executable so package-manager install cannot chmod the source worktree",
 				});
 			}
 			if (!stringArrayIncludes(metadata.files, "self-install.mjs")) {

@@ -12,12 +12,7 @@
 		"domain": "model-reasoning",
 		"summary": "Typed public Model & Reasoning contracts and runtime validation for ProFlow inference."
 	},
-	"provides": [
-		{
-			"contractRef": "model-inference",
-			"version": "1.0.0"
-		}
-	],
+	"provides": [],
 	"requires": [],
 	"requirements": [
 		{

@@ -1,6 +1,10 @@
 packages:
   - "packages/*"
 
+# Never mutate the source worktree implicitly before pnpm run/exec.
+# Release/install flows invoke pnpm install explicitly when package reality must change.
+verifyDepsBeforeRun: warn
+
 # Pre-1.0 release policy: until all five domains complete first-version real acceptance,
 # published ProFlow packages stay on the 0.1.x line. Remove/relax only by an explicit
 # architecture decision after that acceptance closes.

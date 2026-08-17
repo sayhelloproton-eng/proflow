@@ -328,6 +328,10 @@ External Module：
 
 `installRequires` MUST include every runtime `package.json.dependencies` entry whose package name matches `@tomflow/proflow-*`, plus any additional ProFlow package that must be directly materialized in a Fresh Workspace for the Module's declared contract/production binding to become governable. It MUST NOT mechanically copy devDependencies. This keeps all required ProFlow Modules as direct Workspace installation facts instead of leaving them hidden as npm transitive packages.
 
+For every dependency edge selected by the real Module graph — both non-optional logical `requires` providers and effective `configSlots[type=moduleRef]` bindings — the target Module MUST be reachable from that package's recursive `installRequires` closure. Full-core discovery can never be used to hide a broken single-package bootstrap closure. The repository architecture gate MUST execute the same logical graph semantics used by Platform CLI and fail on unresolved/incompatible/cyclic real Module graphs or bootstrap-closure gaps before publish.
+
+If `package.json.bin` points to `./self-install.mjs`, the source file MUST already be executable (`0755` on POSIX). Package-manager installation is not allowed to be the operation that repairs executable mode, because that mutates a clean source worktree. Generated packages from `module-template` inherit the same invariant.
+
 ### Module identity invariant
 
 For formal packages, `moduleRef` MUST equal the suffix of `packageName` after `@tomflow/proflow-`. Example: `@tomflow/proflow-agent-gateway` maps to `moduleRef = agent-gateway`. Registry bootstrap, Workspace Discovery, static manifest and runtime Descriptor all rely on this one-to-one identity; aliases are not a v1 feature.

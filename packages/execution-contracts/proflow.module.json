@@ -12,12 +12,7 @@
 		"domain": "execution",
 		"summary": "Typed public Execution contracts and runtime validation for the ProFlow real-world effect plane."
 	},
-	"provides": [
-		{
-			"contractRef": "execution",
-			"version": "1.0.0"
-		}
-	],
+	"provides": [],
 	"requires": [],
 	"requirements": [
 		{

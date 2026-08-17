@@ -14,7 +14,7 @@ export const descriptor = {
 			"In-process real local executor for typed ProFlow Execution capabilities.",
 	},
 	provides: [{ contractRef: "execution-local", version: "1.0.0" }],
-	requires: [{ contractRef: "execution", versionRange: ">=1.0.0 <2.0.0" }],
+	requires: [],
 	requirements: [
 		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
 		{ kind: "filesystem", path: ".proflow", access: "read-write" },

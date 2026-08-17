@@ -45,6 +45,8 @@
 		"installClass": "core",
 		"installRequires": [
 			"@tomflow/proflow-agent-runtime",
+			"@tomflow/proflow-chatgpt-carrier",
+			"@tomflow/proflow-chrome-runtime",
 			"@tomflow/proflow-execution-contracts",
 			"@tomflow/proflow-execution-runtime",
 			"@tomflow/proflow-task-orchestration"

@@ -18,12 +18,7 @@
 			"version": "1.0.0"
 		}
 	],
-	"requires": [
-		{
-			"contractRef": "execution",
-			"versionRange": ">=1.0.0 <2.0.0"
-		}
-	],
+	"requires": [],
 	"requirements": [
 		{
 			"kind": "runtime",

@@ -88,3 +88,17 @@ Provider 可是同一个 API，也可以两个不同 API；Deployment 管实例�
 Application Composition Root 是独立 npm package `@tomflow/proflow-platform-host`：只 instantiate / dependency injection / local transport / startup-shutdown / light health aggregation；不拥有任何业务状态。Task Runtime 与 Agent Runtime 各自仍是独立 npm package并由 host in-process 装配；Execution Runtime、Model Runtime、Agent Gateway 保持独立 Process/Deployment Unit。任何领域 package 不得反向依赖 platform-host。
 
 v1 概念运行拓扑：External Resources → model-runtime/execution-runtime → platform-host → agent-gateway → browser-extension/carrier verification；实际并行启动由 Requires/Provides 图计算，不硬编码脚本。
+
+当前正式逻辑能力绑定：
+
+| Module | Provides | Requires |
+|---|---|---|
+| `execution-contracts` | — | — |
+| `execution-local` | `execution-local` | — |
+| `execution-runtime` | `execution` | `execution-local` |
+| `model-contracts` | — | — |
+| `model-provider-api` | `model.provider.api` | — |
+| `model-runtime` | `model-inference` | `model.provider.api` |
+| `platform-host` | `platform-host` | `task-orchestration`, `agent-runtime`, `execution`, `model-inference` |
+
+纯 Contract library 只拥有 typed contract/package surface，不得冒充 Runtime capability provider。`installRequires` 必须能在 Fresh Workspace 中物化每个非 optional logical Require 的 provider；Repository architecture gate 必须对 24 个正式 Module 的真实 Requires/Provides 图执行 unresolved/incompatible/cycle 检查。

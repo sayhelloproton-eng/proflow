@@ -13,7 +13,7 @@ export const descriptor = {
 		summary:
 			"Typed public Model & Reasoning contracts and runtime validation for ProFlow inference.",
 	},
-	provides: [{ contractRef: "model-inference", version: "1.0.0" }],
+	provides: [],
 	requires: [],
 	requirements: [
 		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },

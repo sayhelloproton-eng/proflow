@@ -14,13 +14,13 @@
 	},
 	"provides": [
 		{
-			"contractRef": "model-runtime",
+			"contractRef": "model-inference",
 			"version": "1.0.0"
 		}
 	],
 	"requires": [
 		{
-			"contractRef": "model-inference",
+			"contractRef": "model.provider.api",
 			"versionRange": ">=1.0.0 <2.0.0"
 		}
 	],

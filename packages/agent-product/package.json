@@ -76,7 +76,8 @@
 		"installClass": "core",
 		"installRequires": [
 			"@tomflow/proflow-agent-gateway",
-			"@tomflow/proflow-agent-runtime"
+			"@tomflow/proflow-agent-runtime",
+			"@tomflow/proflow-chatgpt-carrier"
 		],
 		"descriptor": "./dist/deployment/descriptor.js",
 		"manifest": "./proflow.module.json"

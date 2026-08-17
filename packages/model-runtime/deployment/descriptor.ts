@@ -13,9 +13,9 @@ export const descriptor = {
 		summary:
 			"Provides the ProFlow Model Runtime service with FAST/REASON routing, provider capability checks and inference observability.",
 	},
-	provides: [{ contractRef: "model-runtime", version: "1.0.0" }],
+	provides: [{ contractRef: "model-inference", version: "1.0.0" }],
 	requires: [
-		{ contractRef: "model-inference", versionRange: ">=1.0.0 <2.0.0" },
+		{ contractRef: "model.provider.api", versionRange: ">=1.0.0 <2.0.0" },
 	],
 	requirements: [
 		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },

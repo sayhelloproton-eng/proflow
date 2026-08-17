@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -481,6 +481,7 @@ export async function materializeModule(
 			await mkdir(resolve(destination, ".."), { recursive: true });
 			await writeFile(destination, content, { encoding: "utf8", flag: "wx" });
 		}
+		await chmod(join(packageDirectory, "self-install.mjs"), 0o755);
 	} catch (error) {
 		await rm(packageDirectory, { recursive: true, force: true });
 		throw error;
