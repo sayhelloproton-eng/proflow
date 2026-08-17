@@ -158,6 +158,7 @@ export async function preflightInstallerEnvironment(options: {
 			await runner.run(
 				["ping", "--json", "--prefer-online", `--registry=${registry}`],
 				options.workspaceRoot,
+				10_000,
 			);
 			findings.push({
 				code: "REGISTRY_READY",

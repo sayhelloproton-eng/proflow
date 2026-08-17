@@ -80,6 +80,12 @@ test("CP-DPL-CLI-09 Agent workspace options fail closed when missing or misspell
 	) as { status?: string; error?: { code?: string } };
 	assert.equal(misspelled.status, "FAILED");
 	assert.equal(misspelled.error?.code, "INVALID_REQUEST");
+
+	const empty = JSON.parse(
+		await runCli(["install", "--workspace", "", "--json"], { cwd: tmpdir() }),
+	) as { status?: string; error?: { code?: string } };
+	assert.equal(empty.status, "FAILED");
+	assert.equal(empty.error?.code, "INVALID_REQUEST");
 });
 
 test("CP-DPL-CLI-09 instance commands reject a different --workspace instead of bypassing the global binding", async () => {

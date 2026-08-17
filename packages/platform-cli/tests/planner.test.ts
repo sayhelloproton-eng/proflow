@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import {
@@ -7,6 +10,9 @@ import {
 } from "@tomflow/proflow-module-contract";
 
 import type { ResolvedModule } from "../src/contracts.ts";
+import { workspacePaths } from "../src/paths.ts";
+import { isDeploymentPlan } from "../src/persistence/guards.ts";
+import { loadPlan, savePlan } from "../src/persistence/plans.ts";
 import {
 	assessUpgrade,
 	CheckStrategy,
@@ -165,6 +171,36 @@ test("platform-instance uninstall may remove core modules while individual unins
 	});
 	assert.ok(plan.steps.some((step) => step.kind === "package"));
 	assert.ok(plan.steps.some((step) => step.kind === "lifecycle"));
+});
+
+test("uninstall plan passes the persistence guard and round-trips savePlan/loadPlan", async () => {
+	// Regression: the runtime intent guard once omitted "uninstall", so a saved
+	// uninstall plan failed isDeploymentPlan and loadPlan returned undefined,
+	// surfacing as PLAN_NOT_FOUND during whole-instance uninstall.
+	const plan = planDeployment({
+		intent: "uninstall",
+		modules: [
+			moduleFixture({
+				moduleRef: "svc",
+				installClass: "core",
+				lifecycle: ["describe", "verify", "doctor", "uninstall"],
+			}),
+		],
+		uninstallScope: "platform-instance",
+	});
+	assert.equal(isDeploymentPlan(plan), true);
+
+	const base = await mkdtemp(join(tmpdir(), "proflow-plan-roundtrip-"));
+	try {
+		const paths = workspacePaths(base);
+		await savePlan(paths, plan);
+		const loaded = await loadPlan(paths, plan.planRef);
+		assert.notEqual(loaded, undefined);
+		assert.equal(loaded?.intent, "uninstall");
+		assert.equal(loaded?.planRef, plan.planRef);
+	} finally {
+		await rm(base, { recursive: true, force: true });
+	}
 });
 
 test("planDeployment covers config/package/human/external-resource/lifecycle kinds", () => {

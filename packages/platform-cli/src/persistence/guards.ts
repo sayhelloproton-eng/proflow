@@ -36,6 +36,7 @@ function isDeploymentIntent(value: unknown): value is DeploymentIntent {
 		value === "install" ||
 		value === "configure" ||
 		value === "upgrade" ||
+		value === "uninstall" ||
 		value === "repair"
 	);
 }

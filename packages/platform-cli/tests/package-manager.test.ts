@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { createWorkspacePackageManagerDriver } from "../src/apply/driver.ts";
 import type { ResolvedModule } from "../src/contracts.ts";
 import { PlatformError } from "../src/errors.ts";
+import { preflightInstallerEnvironment } from "../src/install/environment.ts";
 import { readWorkspacePackageManagerSelection } from "../src/install/package-manager.ts";
 
 async function workspace() {
@@ -216,6 +217,41 @@ test("CP-DPL-CLI-11 a declared Workspace package manager that is unavailable fai
 			(error: unknown) =>
 				error instanceof PlatformError &&
 				error.code === "PACKAGE_MANAGER_UNAVAILABLE",
+		);
+	} finally {
+		await w.cleanup();
+	}
+});
+
+test("installer preflight bounds the registry ping with a timeout instead of hanging", async () => {
+	const w = await workspace();
+	try {
+		await w.manifest({ private: true });
+		const calls: Array<{ args: readonly string[]; timeoutMs?: number }> = [];
+		const result = await preflightInstallerEnvironment({
+			workspaceRoot: w.root,
+			runner: {
+				async run(args, _cwd, timeoutMs) {
+					calls.push({
+						args: [...args],
+						...(timeoutMs === undefined ? {} : { timeoutMs }),
+					});
+					if (args[0] === "--version") {
+						return { stdout: "11.17.0\n", stderr: "" };
+					}
+					if (args[0] === "config") {
+						return { stdout: "https://registry.npmjs.org/\n", stderr: "" };
+					}
+					return { stdout: "{}", stderr: "" };
+				},
+			},
+		});
+		const ping = calls.find((call) => call.args[0] === "ping");
+		assert.ok(ping, "expected a registry ping call");
+		assert.equal(ping.timeoutMs, 10_000);
+		assert.equal(
+			result.findings.some((finding) => finding.code === "REGISTRY_READY"),
+			true,
 		);
 	} finally {
 		await w.cleanup();

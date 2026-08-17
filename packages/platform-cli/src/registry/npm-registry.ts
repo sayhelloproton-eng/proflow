@@ -26,7 +26,11 @@ export interface NpmCommandResult {
 }
 
 export interface NpmCommandRunner {
-	run(args: readonly string[], cwd: string): Promise<NpmCommandResult>;
+	run(
+		args: readonly string[],
+		cwd: string,
+		timeoutMs?: number,
+	): Promise<NpmCommandResult>;
 }
 
 export interface RegistryModuleCandidate {
@@ -74,12 +78,13 @@ interface NpmViewManifest {
 
 export function systemNpmRunner(): NpmCommandRunner {
 	return {
-		async run(args, cwd) {
+		async run(args, cwd, timeoutMs) {
 			try {
 				const result = await execFileAsync("npm", [...args], {
 					cwd,
 					encoding: "utf8",
 					maxBuffer: 4 * 1024 * 1024,
+					...(timeoutMs === undefined ? {} : { timeout: timeoutMs }),
 				});
 				return { stdout: result.stdout, stderr: result.stderr };
 			} catch (error) {

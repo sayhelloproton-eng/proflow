@@ -151,7 +151,7 @@ function requiredOptionValue(
 	option: string,
 ): string {
 	const value = argv[index + 1];
-	if (value === undefined || value.startsWith("-")) {
+	if (value === undefined || value === "" || value.startsWith("-")) {
 		throw new PlatformError("INVALID_REQUEST", `${option} requires a value`);
 	}
 	return value;
