@@ -74,7 +74,7 @@ Template CLI 与 `materializeModule()` 必须是同一实现；Skill 不维护�
 遇到以下任一情况，立即 STOP，不得猜测补全：
 
 - 缺 Required Owner Facts；
-- `PENDING_DECISION` / `NOT_FROZEN` / `SPEC_GAP` / `PENDING_SPIKE`；
+- `PENDING_DECISION` / `NOT_FROZEN` / `ACCEPTANCE_NOT_FROZEN` / `SPEC_GAP` / `PENDING_SPIKE`；
 - 缺失 dependency / permission / conformance 信息；
 - Template / Contract / Conformance 之间出现正式冲突。
 
