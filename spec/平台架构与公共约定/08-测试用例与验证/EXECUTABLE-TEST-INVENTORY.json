@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 135,
-    "testCalls": 730
+    "testCalls": 731
   },
   "tests": [
     {
@@ -5315,7 +5315,25 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 109,
+      "line": 111,
+      "title": "upgrade effective config carries persisted values forward and overlays explicit config",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/discovery/discover.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/cli.test.ts",
+      "line": 136,
       "title": "--version exposes the published CLI version and human rendering is readable",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5323,15 +5341,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 119,
+      "line": 146,
       "title": "human help explains common install, readiness, configure, and lifecycle flows",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5339,15 +5359,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 131,
+      "line": 158,
       "title": "runCli --json returns the structured machine result contract",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5355,15 +5377,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 137,
+      "line": 164,
       "title": "unknown command returns FAILED with INVALID_REQUEST",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5371,15 +5395,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 144,
+      "line": 171,
       "title": "plan without --intent returns FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5387,15 +5413,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 150,
+      "line": 177,
       "title": "plan with invalid --intent returns FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5403,15 +5431,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 162,
+      "line": 189,
       "title": "plan configure is not gated by runtime or human preflight readiness",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5419,15 +5449,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 227,
+      "line": 254,
       "title": "apply without planRef returns FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5435,15 +5467,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 233,
+      "line": 260,
       "title": "status against a bound real-module workspace returns a structured array and bound path",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5451,15 +5485,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 253,
+      "line": 280,
       "title": "preflight against the bound real-module workspace returns a typed result",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5467,15 +5503,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 284,
+      "line": 311,
       "title": "doctor against the bound real-module workspace returns a structured array",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5483,15 +5521,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 300,
+      "line": 327,
       "title": "manifest materializes .proflow and emits a typed manifest",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5499,15 +5539,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 319,
+      "line": 346,
       "title": "plan --intent install persists a plan with a planRef before binding",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5515,15 +5557,17 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 338,
+      "line": 365,
       "title": "preflight reuses materialized Workspace config after configuration is applied",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5531,9 +5575,11 @@
         "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/discovery/discover.ts",
         "packages/platform-cli/src/paths.ts",
-        "packages/platform-cli/src/persistence/config.ts"
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
       ]
     },
     {

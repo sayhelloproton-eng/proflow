@@ -13,9 +13,11 @@ import {
 	renderHumanResult,
 	runCli,
 } from "../src/cli.ts";
+import type { ResolvedModule } from "../src/contracts.ts";
 import { discoverModules } from "../src/discovery/discover.ts";
 import { workspacePaths } from "../src/paths.ts";
 import { materializeConfig } from "../src/persistence/config.ts";
+import { mergeEffectiveConfig } from "../src/persistence/effective-config.ts";
 
 const WORKSPACE = resolve(import.meta.dirname, "../../..");
 
@@ -105,6 +107,31 @@ async function bindInstalled(workspace: string) {
 		},
 	};
 }
+
+test("upgrade effective config carries persisted values forward and overlays explicit config", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-cli-upgrade-config-"));
+	try {
+		const paths = workspacePaths(root);
+		await materializeConfig(paths, {
+			moduleRef: "dev-tunnel",
+			values: {
+				publicBaseUrl: "https://persisted.example/",
+				tunnelId: "persisted-tunnel",
+			},
+			secretRefs: [],
+		});
+		const modules = [{ moduleRef: "dev-tunnel" }] as ResolvedModule[];
+		const effective = await mergeEffectiveConfig(paths, modules, {
+			"dev-tunnel": { tunnelId: "override-tunnel" },
+		});
+		assert.deepEqual(effective["dev-tunnel"], {
+			publicBaseUrl: "https://persisted.example/",
+			tunnelId: "override-tunnel",
+		});
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
 
 test("--version exposes the published CLI version and human rendering is readable", async () => {
 	const output = await runCli(["--version", "--json"]);

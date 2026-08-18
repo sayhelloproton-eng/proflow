@@ -46,6 +46,7 @@ import type { ModuleCatalog, ModuleSource } from "./modules.ts";
 import { writeDeploymentObserverSummary } from "./observer/deployment-summary.ts";
 import { workspacePaths } from "./paths.ts";
 import { loadConfig } from "./persistence/config.ts";
+import { mergeEffectiveConfig } from "./persistence/effective-config.ts";
 import { loadPlan, savePlan } from "./persistence/plans.ts";
 import type { PlanInput } from "./planner/plan.ts";
 import { planDeployment } from "./planner/plan.ts";
@@ -470,27 +471,11 @@ async function handleInstallerPreflight(root: string): Promise<CliOutcome> {
 }
 
 async function loadEffectiveConfig(
-	ctx: CliContext,
+	paths: ReturnType<typeof workspacePaths>,
 	modules: readonly ResolvedModule[],
 	configFile: string | undefined,
 ): Promise<Record<string, Record<string, string>>> {
-	const effective: Record<string, Record<string, string>> = {};
-	for (const module of modules) {
-		const stored = await loadConfig(ctx.paths, module.moduleRef);
-		if (stored === undefined) continue;
-		effective[module.moduleRef] = {
-			...stored.publicValues,
-			...stored.secretValues,
-		};
-	}
-	const provided = await loadConfigFile(configFile);
-	for (const [moduleRef, values] of Object.entries(provided)) {
-		effective[moduleRef] = {
-			...(effective[moduleRef] ?? {}),
-			...values,
-		};
-	}
-	return effective;
+	return mergeEffectiveConfig(paths, modules, await loadConfigFile(configFile));
 }
 
 async function handlePreflight(
@@ -499,7 +484,11 @@ async function handlePreflight(
 ): Promise<CliOutcome> {
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
-	const config = await loadEffectiveConfig(ctx, selected, args.configFile);
+	const config = await loadEffectiveConfig(
+		ctx.paths,
+		selected,
+		args.configFile,
+	);
 	const result = await runPreflight(selected, {
 		config,
 		catalog: ctx.catalog,
@@ -567,7 +556,10 @@ async function handlePlan(
 
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
-	const config = await loadConfigFile(args.configFile);
+	const config =
+		args.intent === "upgrade"
+			? await loadEffectiveConfig(ctx.paths, selected, args.configFile)
+			: await loadConfigFile(args.configFile);
 	if (intent === "uninstall") {
 		if (args.positional[0] === undefined) {
 			throw new PlatformError(
@@ -1317,7 +1309,11 @@ async function handleManifest(
 ): Promise<CliOutcome> {
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
-	const config = await loadEffectiveConfig(ctx, selected, args.configFile);
+	const config = await loadEffectiveConfig(
+		ctx.paths,
+		selected,
+		args.configFile,
+	);
 	const manifest = await buildManifest({
 		catalog: ctx.catalog,
 		modules: selected,
