@@ -71,6 +71,7 @@ type ChromeTab = { id?: number; windowId?: number; url?: string };
 type ChromeRuntime = {
 	runtime: {
 		id: string;
+		getURL(path: string): string;
 		onMessage: {
 			addListener(
 				listener: (
@@ -153,6 +154,38 @@ function parseConfig(value: unknown): BridgeConfig | null {
 	)
 		return null;
 	return { endpoint: endpoint.replace(/\/$/, ""), token };
+}
+
+type ManagedRuntimeConfig = {
+	proflowRuntimeBridge?: unknown;
+	proflowTaskApplication?: unknown;
+	proflowApprovalApplication?: unknown;
+};
+
+async function bootstrapManagedRuntimeConfig(): Promise<void> {
+	let response: Response;
+	try {
+		response = await fetch(chrome.runtime.getURL("runtime-config.json"), {
+			cache: "no-store",
+		});
+	} catch {
+		return;
+	}
+	if (!response.ok) return;
+	const raw = (await response.json()) as unknown;
+	if (!isRecord(raw)) return;
+	const managed = raw as ManagedRuntimeConfig;
+	const bridge = parseConfig(managed.proflowRuntimeBridge);
+	const task = parseConfig(managed.proflowTaskApplication);
+	const approval = parseConfig(managed.proflowApprovalApplication);
+	if (!bridge || !task || !approval) {
+		throw new Error("MANAGED_RUNTIME_CONFIG_INVALID");
+	}
+	await chrome.storage.local.set({
+		proflowRuntimeBridge: bridge,
+		proflowTaskApplication: task,
+		proflowApprovalApplication: approval,
+	});
 }
 
 async function bridgeConfig(): Promise<BridgeConfig | null> {
@@ -983,17 +1016,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	}
 });
 
-chrome.runtime.onInstalled.addListener(() => {
-	void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+async function startBackgroundRuntime(): Promise<void> {
+	await bootstrapManagedRuntimeConfig();
+	await persistSnapshot();
 	void runBridgeLoop();
 	void runObserverRecovery();
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+	void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+	void bootstrapManagedRuntimeConfig().then(async () => {
+		await persistSnapshot();
+		void runBridgeLoop();
+		void runObserverRecovery();
+	});
 });
 chrome.runtime.onStartup.addListener(() => {
 	sessions.clear();
-	void persistSnapshot();
-	void runBridgeLoop();
-	void runObserverRecovery();
+	void bootstrapManagedRuntimeConfig().then(async () => {
+		await persistSnapshot();
+		void runBridgeLoop();
+		void runObserverRecovery();
+	});
 });
-void persistSnapshot();
-void runBridgeLoop();
-void runObserverRecovery();
+void startBackgroundRuntime();

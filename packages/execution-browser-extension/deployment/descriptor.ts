@@ -36,10 +36,10 @@ export const descriptor = {
 		},
 		{
 			key: "bridge.token",
-			type: "secretRef",
+			type: "path",
 			required: true,
 			sensitive: true,
-			description: "Browser Reality Bridge extension token reference",
+			description: "File containing the Browser Reality Bridge extension token",
 		},
 		{
 			key: "taskApplication.endpoint",
@@ -49,10 +49,10 @@ export const descriptor = {
 		},
 		{
 			key: "taskApplication.token",
-			type: "secretRef",
+			type: "path",
 			required: true,
 			sensitive: true,
-			description: "Platform Host Task application token reference",
+			description: "File containing the Platform Host Task application token",
 		},
 		{
 			key: "approvalApplication.endpoint",
@@ -62,10 +62,18 @@ export const descriptor = {
 		},
 		{
 			key: "approvalApplication.token",
-			type: "secretRef",
+			type: "path",
 			required: true,
 			sensitive: true,
-			description: "Platform Host Approval application token reference",
+			description:
+				"File containing the Platform Host Approval application token",
+		},
+		{
+			key: "verificationEvidenceFile",
+			type: "path",
+			required: true,
+			description:
+				"JSON evidence file written after real Chrome loads the Deployment-managed MV3 extension and its Service Worker runs",
 		},
 		{
 			key: "chromeRuntimeModuleRef",

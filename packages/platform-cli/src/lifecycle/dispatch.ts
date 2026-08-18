@@ -186,12 +186,60 @@ export async function startModules(
 	catalog: ModuleCatalog,
 	modules: readonly ResolvedModule[],
 ): Promise<LifecycleRunResult[]> {
-	return runInOrder(
-		catalog,
-		modules,
-		buildDependencyGraph(modules).order,
-		"start",
-	);
+	const graph = buildDependencyGraph(modules);
+	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
+	const resultByRef = new Map<string, LifecycleRunResult>();
+	const results: LifecycleRunResult[] = [];
+
+	for (const moduleRef of graph.order) {
+		const module = byRef.get(moduleRef);
+		if (module === undefined) continue;
+		if (!module.lifecycle.includes("start")) {
+			const skipped = await runOne(catalog, module, "start");
+			results.push(skipped);
+			resultByRef.set(moduleRef, skipped);
+			continue;
+		}
+
+		const blockingDependency = graph.edges
+			.filter((edge) => edge.from === moduleRef)
+			.map((edge) => edge.to)
+			.find((dependencyRef) => {
+				const dependencyModule = byRef.get(dependencyRef);
+				if (!dependencyModule?.lifecycle.includes("start")) return false;
+				const dependencyResult = resultByRef.get(dependencyRef);
+				return dependencyResult?.result?.status !== "SUCCEEDED";
+			});
+
+		if (blockingDependency !== undefined) {
+			const blocked: LifecycleRunResult = {
+				moduleRef,
+				primitive: "start",
+				status: "EXECUTED",
+				result: {
+					contract: "deployment.result.v1",
+					ok: false,
+					status: "BLOCKED",
+					moduleRef: module.moduleRef,
+					moduleVersion: module.moduleVersion,
+					error: {
+						code: "COMMAND_FAILED",
+						message: `dependency ${blockingDependency} did not start successfully; ${moduleRef} was not started`,
+						retryable: true,
+					},
+				},
+				observedEffects: [],
+			};
+			results.push(blocked);
+			resultByRef.set(moduleRef, blocked);
+			continue;
+		}
+
+		const result = await runOne(catalog, module, "start");
+		results.push(result);
+		resultByRef.set(moduleRef, result);
+	}
+	return results;
 }
 
 /**

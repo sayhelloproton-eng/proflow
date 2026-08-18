@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import type {
 	ChromeRuntimeObservation,
 	ChromeRuntimeProbe,
@@ -202,12 +204,43 @@ export const behaviorAdapter = createBehaviorAdapter();
 export async function createProductionBinding(input: {
 	moduleRef: string;
 	config: Record<string, string>;
+	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
 }): Promise<{ behaviorAdapter: Record<string, unknown> }> {
 	const { probeChromeRuntime } = await import("../src/resource-adapter.ts");
 	const chromeExecutablePath = input.config.chromeExecutablePath;
+	const browserConfig = input.configByModuleRef.get(
+		"execution-browser-extension",
+	);
+	const evidenceFile = browserConfig?.verificationEvidenceFile;
+	const hasVerifiedExtensionEvidence = async (): Promise<boolean> => {
+		if (!evidenceFile) return false;
+		try {
+			const raw = JSON.parse(await readFile(evidenceFile, "utf8")) as Record<
+				string,
+				unknown
+			>;
+			return (
+				raw.contract === "proflow.browser-extension-verification.v1" &&
+				typeof raw.extensionId === "string" &&
+				raw.extensionId.length >= 16 &&
+				raw.serviceWorker === "RUNNING" &&
+				typeof raw.observedAt === "string" &&
+				!Number.isNaN(Date.parse(raw.observedAt))
+			);
+		} catch {
+			return false;
+		}
+	};
 	return {
 		behaviorAdapter: createBehaviorAdapter({
-			probe: () => probeChromeRuntime(chromeExecutablePath),
+			probe: async () => {
+				const observed = await probeChromeRuntime(chromeExecutablePath);
+				return {
+					...observed,
+					extensionLoaded:
+						observed.available && (await hasVerifiedExtensionEvidence()),
+				};
+			},
 		}),
 	};
 }

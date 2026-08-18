@@ -304,6 +304,18 @@ export async function managedServiceStatus(
 	};
 }
 
+async function waitForStartupStability(
+	pid: number,
+	milliseconds = 500,
+): Promise<boolean> {
+	const deadline = Date.now() + milliseconds;
+	while (Date.now() < deadline) {
+		if (!isAlive(pid)) return false;
+		await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+	}
+	return isAlive(pid);
+}
+
 export async function startManagedService(
 	paths: WorkspacePaths,
 	module: ResolvedModule,
@@ -370,13 +382,23 @@ export async function startManagedService(
 				result: failed(module, "service process spawned without pid"),
 				observedEffects: [],
 			};
+		const pid = child.pid;
+		if (!(await waitForStartupStability(pid))) {
+			return {
+				result: failed(
+					module,
+					`service process ${pid} exited during startup stabilization`,
+				),
+				observedEffects: [],
+			};
+		}
 		child.unref();
 		const record: ManagedServiceRecord = {
 			contract: "deployment.service-process-state.v1",
 			moduleRef: module.moduleRef,
 			packageName: module.packageName,
 			moduleVersion: module.moduleVersion,
-			pid: child.pid,
+			pid,
 			startedAt: new Date().toISOString(),
 			binPath,
 			configPath,
@@ -384,8 +406,24 @@ export async function startManagedService(
 			stderrPath,
 		};
 		await writeJsonAtomic(recordPath(paths, module.moduleRef), record, 0o600);
+		const observed = await managedServiceStatus(paths, module);
+		if (observed.result.status !== "SUCCEEDED") {
+			await removeRecord(paths, module.moduleRef);
+			try {
+				process.kill(pid, "SIGTERM");
+			} catch {
+				// process already exited between observations
+			}
+			return {
+				result: failed(
+					module,
+					`service process ${pid} could not be observed as the owned RUNNING process after spawn`,
+				),
+				observedEffects: [],
+			};
+		}
 		return {
-			result: { ...base(module), data: { state: "RUNNING", pid: child.pid } },
+			...observed,
 			observedEffects: ["Manage the declared service process"],
 		};
 	} catch (error) {

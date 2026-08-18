@@ -17,6 +17,7 @@ import { type WorkspacePaths, workspacePaths } from "../src/paths.ts";
 import {
 	loadConfig,
 	loadDeploymentState,
+	materializeConfig,
 	savePlan,
 } from "../src/persistence/index.ts";
 import { type PlanInput, planDeployment } from "../src/planner/index.ts";
@@ -127,6 +128,11 @@ function actionRequired(
 interface FakeAdapterSpec {
 	module: ResolvedModule;
 	primitives: Record<string, () => unknown>;
+	materializeProductionConfig?: (input: {
+		moduleRef: string;
+		config: Record<string, string>;
+		workspaceRoot: string;
+	}) => unknown;
 }
 
 interface Recording {
@@ -156,7 +162,14 @@ function makeCatalog(specs: FakeAdapterSpec[]): Recording {
 					return fn();
 				};
 			}
-			return { behaviorAdapter: wrapped };
+			return {
+				behaviorAdapter: wrapped,
+				...(spec.materializeProductionConfig === undefined
+					? {}
+					: {
+							materializeProductionConfig: spec.materializeProductionConfig,
+						}),
+			};
 		},
 	};
 	return { calls, catalog };
@@ -304,6 +317,97 @@ test("CP-DPL-CLI-02 resume re-observes reality and skips already-satisfied steps
 		assert.equal(second.outcome, "COMPLETE");
 		assert.equal(second.stepResults[0]?.status, "SKIP");
 		assert.equal(fake.installCounts.get("svc"), 1);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("configure failure does not commit authoritative public config before the module materializer succeeds", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({
+			moduleRef: "svc",
+			configSlots: [configSlot("endpoint", { required: true })],
+		});
+		const current: PlanInput = {
+			intent: "configure",
+			modules: [svc],
+			config: { svc: { endpoint: "rejected-target" } },
+		};
+		const plan = planDeployment(current);
+		await savePlan(paths, plan);
+		const { catalog } = makeCatalog([
+			{
+				module: svc,
+				primitives: {},
+				materializeProductionConfig() {
+					throw new Error("module-owned config rejected");
+				},
+			},
+		]);
+
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+			driver: workspaceResidentDriver(),
+		});
+
+		assert.equal(result.outcome, "FAILED");
+		assert.match(result.stepResults[0]?.message ?? "", /config rejected/);
+		assert.equal(await loadConfig(paths, "svc"), undefined);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("configure resume re-executes when every required key exists but persisted values do not match the immutable target", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({
+			moduleRef: "svc",
+			configSlots: [configSlot("endpoint", { required: true })],
+		});
+		const current: PlanInput = {
+			intent: "configure",
+			modules: [svc],
+			config: { svc: { endpoint: "planned-target" } },
+		};
+		const plan = planDeployment(current);
+		await savePlan(paths, plan);
+		await materializeConfig(paths, {
+			moduleRef: "svc",
+			values: { endpoint: "wrong-but-present" },
+			secretRefs: [],
+		});
+		let materializeCalls = 0;
+		const { catalog } = makeCatalog([
+			{
+				module: svc,
+				primitives: {},
+				materializeProductionConfig({ config }) {
+					materializeCalls += 1;
+					assert.equal(config.endpoint, "planned-target");
+				},
+			},
+		]);
+
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			current,
+			driver: workspaceResidentDriver(),
+		});
+
+		assert.equal(result.outcome, "COMPLETE");
+		assert.equal(result.stepResults[0]?.status, "EXECUTED");
+		assert.equal(materializeCalls, 1);
+		assert.equal(
+			(await loadConfig(paths, "svc"))?.publicValues.endpoint,
+			"planned-target",
+		);
 	} finally {
 		await cleanup();
 	}

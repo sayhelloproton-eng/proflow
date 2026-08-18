@@ -32,6 +32,7 @@ function compareRef(a: string, b: string): number {
 
 export async function probeAllRequirements(
 	modules: readonly ResolvedModule[],
+	humanVerifiedModuleRefs: ReadonlySet<string> = new Set(),
 ): Promise<RequirementProbe[]> {
 	const sorted = [...modules].sort((a, b) =>
 		compareRef(a.moduleRef, b.moduleRef),
@@ -40,7 +41,12 @@ export async function probeAllRequirements(
 	for (const module of sorted) {
 		for (const requirement of module.requirements) {
 			results.push(
-				await probeRequirement(module.moduleRef, requirement, modules),
+				await probeRequirement(
+					module.moduleRef,
+					requirement,
+					modules,
+					humanVerifiedModuleRefs,
+				),
 			);
 		}
 	}
@@ -51,6 +57,7 @@ export async function probeRequirement(
 	moduleRef: string,
 	requirement: ModuleRequirement,
 	modules: readonly ResolvedModule[],
+	humanVerifiedModuleRefs: ReadonlySet<string> = new Set(),
 ): Promise<RequirementProbe> {
 	switch (requirement.kind) {
 		case "runtime":
@@ -66,12 +73,19 @@ export async function probeRequirement(
 		case "module-contract":
 			return probeModuleContract(moduleRef, requirement, modules);
 		case "human":
-			return {
-				moduleRef,
-				requirement,
-				status: "ACTION_REQUIRED",
-				message: requirement.action,
-			};
+			return humanVerifiedModuleRefs.has(moduleRef)
+				? {
+						moduleRef,
+						requirement,
+						status: "PASS",
+						message: `human prerequisite verified for ${moduleRef}`,
+					}
+				: {
+						moduleRef,
+						requirement,
+						status: "ACTION_REQUIRED",
+						message: requirement.action,
+					};
 	}
 }
 

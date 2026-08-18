@@ -1,9 +1,12 @@
+import { readFile } from "node:fs/promises";
+
 import {
 	type CarrierProbeInput,
 	type CarrierProbeResult,
 	type CarrierVerificationObservation,
 	observeCarrierVerification,
 	probeCarrier,
+	UNVERIFIED_CARRIER_VERIFICATION,
 	type VerificationState,
 } from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
@@ -272,14 +275,103 @@ export function createBehaviorAdapter(input?: CarrierProbeInput) {
 
 export const behaviorAdapter = createBehaviorAdapter();
 
+type CarrierVerificationEvidenceFile = {
+	contract: "proflow.chatgpt-carrier-verification.v1";
+	carrierUrl: string;
+	observedAt: string;
+	reachable: VerificationState;
+	actionsEnabled: VerificationState;
+	openApiInstalled: VerificationState;
+	actionAuthValid: VerificationState;
+	fileBridge: VerificationState;
+	codeInterpreter: VerificationState;
+	webSearch: VerificationState;
+	appsDisabledWhenRequired: VerificationState;
+	message?: string;
+};
+
+const VERIFICATION_STATES = new Set<VerificationState>([
+	"VERIFIED",
+	"UNVERIFIED",
+	"FAILED",
+	"NOT_REQUIRED",
+]);
+
+async function readProductionVerificationEvidence(
+	file: string | undefined,
+	carrierUrl: string,
+): Promise<CarrierVerificationObservation> {
+	if (!file)
+		return {
+			...UNVERIFIED_CARRIER_VERIFICATION,
+			message: "verificationEvidenceFile is not configured",
+		};
+	try {
+		const raw = JSON.parse(
+			await readFile(file, "utf8"),
+		) as Partial<CarrierVerificationEvidenceFile>;
+		const keys = [
+			"reachable",
+			"actionsEnabled",
+			"openApiInstalled",
+			"actionAuthValid",
+			"fileBridge",
+			"codeInterpreter",
+			"webSearch",
+			"appsDisabledWhenRequired",
+		] as const;
+		if (
+			raw.contract !== "proflow.chatgpt-carrier-verification.v1" ||
+			raw.carrierUrl !== carrierUrl ||
+			typeof raw.observedAt !== "string" ||
+			Number.isNaN(Date.parse(raw.observedAt)) ||
+			!keys.every((key) =>
+				VERIFICATION_STATES.has(raw[key] as VerificationState),
+			)
+		) {
+			return {
+				...UNVERIFIED_CARRIER_VERIFICATION,
+				message:
+					"Custom GPT verification evidence is malformed or bound to a different carrier URL",
+			};
+		}
+		return {
+			reachable: raw.reachable as VerificationState,
+			actionsEnabled: raw.actionsEnabled as VerificationState,
+			openApiInstalled: raw.openApiInstalled as VerificationState,
+			actionAuthValid: raw.actionAuthValid as VerificationState,
+			fileBridge: raw.fileBridge as VerificationState,
+			codeInterpreter: raw.codeInterpreter as VerificationState,
+			webSearch: raw.webSearch as VerificationState,
+			appsDisabledWhenRequired:
+				raw.appsDisabledWhenRequired as VerificationState,
+			...(typeof raw.message === "string" ? { message: raw.message } : {}),
+		};
+	} catch (error) {
+		return {
+			...UNVERIFIED_CARRIER_VERIFICATION,
+			message:
+				error instanceof Error
+					? error.message
+					: "Custom GPT verification evidence could not be read",
+		};
+	}
+}
+
 export function createProductionBinding(input: {
 	moduleRef: string;
 	config: Record<string, string>;
 }): { behaviorAdapter: Record<string, unknown> } {
 	const carrierUrl = input.config.carrierUrl ?? "https://chatgpt.com/";
+	const verificationEvidenceFile = input.config.verificationEvidenceFile;
 	return {
 		behaviorAdapter: createBehaviorAdapter({
 			carrierUrl,
+			observeVerification: () =>
+				readProductionVerificationEvidence(
+					verificationEvidenceFile,
+					carrierUrl,
+				),
 			async observeCarrier() {
 				try {
 					const response = await fetch(carrierUrl, {

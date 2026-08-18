@@ -11,7 +11,7 @@ import type {
 } from "../contracts.ts";
 import { PlatformError } from "../errors.ts";
 import { dispatchLifecycle } from "../lifecycle/index.ts";
-import type { ModuleCatalog } from "../modules.ts";
+import type { ModuleCatalog, ModuleSource } from "../modules.ts";
 import type { WorkspacePaths } from "../paths.ts";
 import { type ModuleConfig, materializeConfig } from "../persistence/index.ts";
 import { ExecuteStrategy } from "../planner/index.ts";
@@ -44,6 +44,44 @@ function moduleOf(
 	return plan.resolvedModules.find(
 		(module) => module.moduleRef === step.moduleRef,
 	);
+}
+
+type ProductionConfigMaterializer = (input: {
+	moduleRef: string;
+	config: Record<string, string>;
+	workspaceRoot: string;
+}) => Promise<unknown> | unknown;
+
+function moduleSourceForMaterialization(module: ResolvedModule): ModuleSource {
+	if (module.source.type === "registry") {
+		throw new PlatformError(
+			"APPLY_FAILED",
+			`registry bootstrap target ${module.packageName} has no local config materializer`,
+		);
+	}
+	return {
+		type: module.source.type,
+		packageName: module.packageName,
+		...(module.source.path === undefined ? {} : { path: module.source.path }),
+	};
+}
+
+async function materializeModuleOwnedConfig(
+	deps: ExecuteDeps,
+	module: ResolvedModule,
+	config: ModuleConfig,
+): Promise<void> {
+	const namespace = await deps.catalog.loadAdapter(
+		moduleSourceForMaterialization(module),
+	);
+	if (typeof namespace !== "object" || namespace === null) return;
+	const materializer = Reflect.get(namespace, "materializeProductionConfig");
+	if (typeof materializer !== "function") return;
+	await (materializer as ProductionConfigMaterializer)({
+		moduleRef: module.moduleRef,
+		config: config.values,
+		workspaceRoot: deps.paths.root,
+	});
 }
 
 function configForStep(
@@ -166,6 +204,11 @@ export async function executeStep(
 					`module ${step.moduleRef} has no config target to materialize`,
 				);
 			}
+			// The Platform-owned public config is authoritative apply reality. Do not
+			// commit it until the module-owned materializer has accepted the target;
+			// otherwise a failed materializer can leave a false-satisfied config step
+			// that a same-plan resume would incorrectly SKIP.
+			await materializeModuleOwnedConfig(deps, module, config);
 			await materializeConfig(deps.paths, config);
 			return { kind: "SUCCEEDED" };
 		}

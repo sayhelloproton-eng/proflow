@@ -136,7 +136,23 @@ function checkConfig(
 			return notSatisfied(`required config ${slot.key} is missing`);
 		}
 	}
-	return satisfied(`required config materialized for ${step.moduleRef}`);
+
+	// A configure step is satisfied only when current persisted reality matches
+	// the immutable target carried by this plan. Required-key presence alone is
+	// insufficient: a failed/partial prior apply can leave every key present but
+	// with values that the module-owned materializer rejected.
+	const target = plan.moduleTargets.find(
+		(entry) => entry.moduleRef === step.moduleRef,
+	)?.config;
+	for (const [key, expected] of Object.entries(target ?? {})) {
+		const observed = reality.configValues[key];
+		if (observed !== expected) {
+			return notSatisfied(
+				`config ${key} for ${step.moduleRef} is ${observed === undefined ? "not observed" : "not at the planned target"}`,
+			);
+		}
+	}
+	return satisfied(`planned config materialized for ${step.moduleRef}`);
 }
 
 function checkVerify(

@@ -500,7 +500,11 @@ async function handlePreflight(
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
 	const config = await loadEffectiveConfig(ctx, selected, args.configFile);
-	const result = await runPreflight(selected, { config, catalog: ctx.catalog });
+	const result = await runPreflight(selected, {
+		config,
+		catalog: ctx.catalog,
+		paths: ctx.paths,
+	});
 	return result.ok
 		? outcome("preflight", "SUCCEEDED", result)
 		: outcome("preflight", "BLOCKED", result);
@@ -666,6 +670,7 @@ async function handlePlan(
 	const preflight = await runPreflight(selected, {
 		config,
 		catalog: ctx.catalog,
+		paths: ctx.paths,
 	});
 	if (
 		preflight.status === "NOT_READY" ||

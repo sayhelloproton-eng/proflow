@@ -1,3 +1,6 @@
+import { constants } from "node:fs";
+import { access, readFile, stat } from "node:fs/promises";
+
 import type { ResolvedModule } from "../contracts.ts";
 import { PlatformError } from "../errors.ts";
 import { isValidSecretRef } from "../security/redact.ts";
@@ -61,6 +64,61 @@ export function checkConfigReadiness(
 				moduleRef: module.moduleRef,
 				message: `missing required config "${key}" for ${module.moduleRef}`,
 			});
+		}
+	}
+	return findings;
+}
+
+function requiresExistingInputFile(
+	key: string,
+	sensitive: boolean | undefined,
+): boolean {
+	return (
+		sensitive === true ||
+		/(?:ConfigPath|ProfilesFile|CredentialFile|TokenFile|tokenFile|credentialFile)$/.test(
+			key,
+		)
+	);
+}
+
+function requiresJsonFile(key: string): boolean {
+	return /(?:ConfigPath|ProfilesFile)$/.test(key);
+}
+
+export async function checkConfigReality(
+	modules: readonly ResolvedModule[],
+	config: Record<string, Record<string, string>> | undefined,
+): Promise<PreflightFinding[]> {
+	const findings: PreflightFinding[] = [];
+	for (const module of [...modules].sort((a, b) =>
+		compareRef(a.moduleRef, b.moduleRef),
+	)) {
+		for (const slot of module.configSlots) {
+			if (slot.type !== "path") continue;
+			const value =
+				config?.[module.moduleRef]?.[slot.key] ??
+				(slot.default === undefined ? undefined : String(slot.default));
+			if (!value || !requiresExistingInputFile(slot.key, slot.sensitive))
+				continue;
+			try {
+				await access(value, constants.R_OK);
+				const info = await stat(value);
+				if (!info.isFile()) throw new Error("not a file");
+				const raw = await readFile(value, "utf8");
+				if (slot.sensitive === true && raw.trim().length < 32) {
+					throw new Error(
+						"credential/token file is shorter than 32 characters",
+					);
+				}
+				if (requiresJsonFile(slot.key)) JSON.parse(raw);
+			} catch (error) {
+				findings.push({
+					code: "CONFIG_INVALID",
+					severity: "error",
+					moduleRef: module.moduleRef,
+					message: `config path "${slot.key}" for ${module.moduleRef} is not runtime-ready: ${error instanceof Error ? error.message : String(error)}`,
+				});
+			}
 		}
 	}
 	return findings;

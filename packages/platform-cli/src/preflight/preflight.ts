@@ -9,7 +9,9 @@ import {
 } from "../graph/graph.ts";
 import { dispatchLifecycle } from "../lifecycle/index.ts";
 import type { ModuleCatalog } from "../modules.ts";
-import { checkConfigReadiness } from "./config.ts";
+import type { WorkspacePaths } from "../paths.ts";
+import { loadLatestVerification } from "../persistence/index.ts";
+import { checkConfigReadiness, checkConfigReality } from "./config.ts";
 import type {
 	ModulePreflightResult,
 	PreflightFinding,
@@ -20,10 +22,29 @@ import { probeAllRequirements } from "./requirements.ts";
 export interface PreflightOptions {
 	config?: Record<string, Record<string, string>>;
 	catalog?: ModuleCatalog;
+	paths?: WorkspacePaths;
 }
 
 function compareRef(a: string, b: string): number {
 	return a < b ? -1 : a > b ? 1 : 0;
+}
+
+async function humanVerifiedModules(
+	modules: readonly ResolvedModule[],
+	paths: WorkspacePaths | undefined,
+): Promise<ReadonlySet<string>> {
+	const verified = new Set<string>();
+	if (paths === undefined) return verified;
+	for (const module of modules) {
+		const latest = await loadLatestVerification(paths, module.moduleRef);
+		if (
+			latest?.result === "PASS" &&
+			latest.moduleVersion === module.moduleVersion
+		) {
+			verified.add(module.moduleRef);
+		}
+	}
+	return verified;
 }
 
 export async function runPreflight(
@@ -58,8 +79,16 @@ export async function runPreflight(
 	}
 
 	findings.push(...checkConfigReadiness(modules, options.config));
+	findings.push(...(await checkConfigReality(modules, options.config)));
 
-	const requirementProbes = await probeAllRequirements(modules);
+	const verifiedHumanModules = await humanVerifiedModules(
+		modules,
+		options.paths,
+	);
+	const requirementProbes = await probeAllRequirements(
+		modules,
+		verifiedHumanModules,
+	);
 	for (const probe of requirementProbes) {
 		if (probe.status === "ACTION_REQUIRED") {
 			findings.push({
