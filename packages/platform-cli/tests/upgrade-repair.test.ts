@@ -273,6 +273,73 @@ test("planUpgrade emits a real package upgrade when current != target", () => {
 	assert.equal(plan.resolvedModules[0]?.moduleVersion, "2.0.0");
 });
 
+test("planUpgrade does not invent a config step for optional/default-only slots without a config target", () => {
+	const slot = {
+		key: "carrierModuleRef",
+		type: "moduleRef" as const,
+		required: false,
+		description: "carrier owner",
+		default: "chatgpt-carrier",
+	};
+	const current = [
+		descriptor({ moduleRef: "chatgpt-carrier", moduleVersion: "1.0.0" }),
+		descriptor({
+			moduleRef: "role",
+			moduleVersion: "1.0.0",
+			configSlots: [slot],
+		}),
+	];
+	const target = [
+		descriptor({ moduleRef: "chatgpt-carrier", moduleVersion: "1.0.0" }),
+		descriptor({
+			moduleRef: "role",
+			moduleVersion: "2.0.0",
+			configSlots: [slot],
+		}),
+	];
+
+	const plan = planUpgrade({
+		intent: "upgrade",
+		currentDescriptors: current,
+		targetDescriptors: target,
+	});
+
+	assert.ok(plan.steps.some((step) => step.kind === "package"));
+	assert.equal(
+		plan.steps.some((step) => step.kind === "config"),
+		false,
+	);
+	assert.equal(
+		plan.moduleTargets.find((target) => target.moduleRef === "role")?.config,
+		undefined,
+	);
+});
+
+test("planUpgrade rejects missing required config before emitting a package mutation plan", () => {
+	const slot = {
+		key: "endpoint",
+		type: "string" as const,
+		required: true,
+		description: "service endpoint",
+	};
+	const current = [
+		descriptor({ moduleRef: "m", moduleVersion: "1.0.0", configSlots: [slot] }),
+	];
+	const target = [
+		descriptor({ moduleRef: "m", moduleVersion: "2.0.0", configSlots: [slot] }),
+	];
+
+	assert.throws(
+		() =>
+			planUpgrade({
+				intent: "upgrade",
+				currentDescriptors: current,
+				targetDescriptors: target,
+			}),
+		/error.*UPGRADE_FAILED|UPGRADE_FAILED|requires configuration before package mutation: endpoint/,
+	);
+});
+
 test("planUpgrade carries supplied config into the immutable target", () => {
 	const slot = {
 		key: "endpoint",

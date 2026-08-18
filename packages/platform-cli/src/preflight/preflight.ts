@@ -170,7 +170,7 @@ function modulePreflightMessage(
 		case "ACTION_REQUIRED": {
 			const action = result.actionRequired;
 			return action !== undefined
-				? `module ${moduleRef} preflight requires action "${action.action}"`
+				? `module ${moduleRef} preflight requires action "${action.action}": ${action.description}`
 				: `module ${moduleRef} preflight requires an unspecified human action`;
 		}
 		case "BLOCKED":

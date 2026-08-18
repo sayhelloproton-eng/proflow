@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 133,
-    "testCalls": 722
+    "files": 135,
+    "testCalls": 729
   },
   "tests": [
     {
@@ -137,10 +137,24 @@
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/module-conformance.test.ts",
-      "line": 14,
+      "line": 20,
       "title": "module contract C1/C2/C3",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/deployment/descriptor.ts",
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-controller-dev",
+      "path": "packages/agent-controller-dev/tests/module-conformance.test.ts",
+      "line": 34,
+      "title": "production binding observes durable Role registration reality",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/deployment/descriptor.ts",
@@ -587,10 +601,24 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/module-conformance.test.ts",
-      "line": 14,
+      "line": 20,
       "title": "module contract C1/C2/C3",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/agent-product/deployment/adapter.ts",
+        "packages/agent-product/deployment/descriptor.ts",
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-product",
+      "path": "packages/agent-product/tests/module-conformance.test.ts",
+      "line": 34,
+      "title": "production binding observes durable Role registration reality",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-product/deployment/adapter.ts",
         "packages/agent-product/deployment/descriptor.ts",
@@ -856,6 +884,17 @@
     },
     {
       "package": "agent-runtime",
+      "path": "packages/agent-runtime/tests/role-deployment-reality.test.ts",
+      "line": 31,
+      "title": "durable Role reality distinguishes missing, ready, drift, and half-state",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/role-management-client.test.ts",
       "line": 29,
       "title": "CP-AGT-RUNTIME-11 role carrier validation parses local OpenAPI and proves Gateway health + role-key recognition without a business side effect",
@@ -996,10 +1035,24 @@
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/module-conformance.test.ts",
-      "line": 14,
+      "line": 20,
       "title": "module contract C1/C2/C3",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/deployment/descriptor.ts",
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-test-ops",
+      "path": "packages/agent-test-ops/tests/module-conformance.test.ts",
+      "line": 34,
+      "title": "production binding observes durable Role registration reality",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/deployment/descriptor.ts",
@@ -5253,6 +5306,7 @@
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5263,11 +5317,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 116,
+      "line": 119,
       "title": "human help explains common install, readiness, configure, and lifecycle flows",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5278,11 +5333,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 128,
+      "line": 131,
       "title": "runCli --json returns the structured machine result contract",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5293,11 +5349,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 134,
+      "line": 137,
       "title": "unknown command returns FAILED with INVALID_REQUEST",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5308,11 +5365,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 141,
+      "line": 144,
       "title": "plan without --intent returns FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5323,11 +5381,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 147,
+      "line": 150,
       "title": "plan with invalid --intent returns FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5338,11 +5397,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 159,
+      "line": 162,
       "title": "plan configure is not gated by runtime or human preflight readiness",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5353,11 +5413,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 224,
+      "line": 227,
       "title": "apply without planRef returns FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5368,11 +5429,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 230,
+      "line": 233,
       "title": "status against a bound real-module workspace returns a structured array and bound path",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5383,11 +5445,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 250,
+      "line": 253,
       "title": "preflight against the bound real-module workspace returns a typed result",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5398,11 +5461,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 281,
+      "line": 284,
       "title": "doctor against the bound real-module workspace returns a structured array",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5413,11 +5477,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 297,
+      "line": 300,
       "title": "manifest materializes .proflow and emits a typed manifest",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5428,11 +5493,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 316,
+      "line": 319,
       "title": "plan --intent install persists a plan with a planRef before binding",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -5443,11 +5509,12 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 335,
+      "line": 338,
       "title": "preflight reuses materialized Workspace config after configuration is applied",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
         "packages/platform-cli/src/binding/global-binding.ts",
         "packages/platform-cli/src/cli.ts",
         "packages/platform-cli/src/discovery/discover.ts",
@@ -8469,7 +8536,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 145,
+      "line": 148,
       "title": "preflight reports BLOCKED as a blocking finding, not a thrown failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8483,7 +8550,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 166,
+      "line": 169,
       "title": "preflight reports FAILED as a blocking finding, not a thrown failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8497,7 +8564,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 187,
+      "line": 190,
       "title": "preflight reports ACTION_REQUIRED when the adapter is unbound, not a failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8511,7 +8578,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 208,
+      "line": 211,
       "title": "preflight skips module preflight dispatch for modules that do not declare it",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8525,7 +8592,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/preflight-gate.test.ts",
-      "line": 218,
+      "line": 221,
       "title": "preflight without a catalog still runs generic checks and skips module preflight",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9181,6 +9248,40 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
       "line": 276,
+      "title": "planUpgrade does not invent a config step for optional/default-only slots without a config target",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/doctor/doctor.ts",
+        "packages/platform-cli/src/planner/repair.ts",
+        "packages/platform-cli/src/planner/steps.ts",
+        "packages/platform-cli/src/planner/target-catalog.ts",
+        "packages/platform-cli/src/planner/upgrade.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
+      "line": 318,
+      "title": "planUpgrade rejects missing required config before emitting a package mutation plan",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/doctor/doctor.ts",
+        "packages/platform-cli/src/planner/repair.ts",
+        "packages/platform-cli/src/planner/steps.ts",
+        "packages/platform-cli/src/planner/target-catalog.ts",
+        "packages/platform-cli/src/planner/upgrade.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
+      "line": 343,
       "title": "planUpgrade carries supplied config into the immutable target",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9197,7 +9298,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 303,
+      "line": 370,
       "title": "planUpgrade plans an upgrade against descriptors resolved from a real target workspace",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9214,7 +9315,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 334,
+      "line": 401,
       "title": "planUpgrade is a no-op when the target workspace already equals current",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9231,7 +9332,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 364,
+      "line": 431,
       "title": "repairFactsFromDoctor maps known error codes to known repair facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9248,7 +9349,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 390,
+      "line": 457,
       "title": "repairFactsFromDoctor emits ACTION_REQUIRED for a human-action next action",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9265,7 +9366,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 411,
+      "line": 478,
       "title": "repairFactsFromDoctor emits no facts for a healthy module",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9282,7 +9383,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 416,
+      "line": 483,
       "title": "repairFactsFromDoctor blocks unknown doctor errors without inventing facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9299,7 +9400,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 432,
+      "line": 499,
       "title": "repairFactsFromDoctor blocks a failed report with no typed error",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9316,7 +9417,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 441,
+      "line": 508,
       "title": "diagnoseRepair combines facts and blocked across reports",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9333,7 +9434,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 471,
+      "line": 538,
       "title": "planRepair emits apply-able steps with preconditions from known facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9350,7 +9451,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 501,
+      "line": 568,
       "title": "planRepair never invents a mutation for a blocked (unknown) diagnosis",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9367,7 +9468,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/upgrade-repair.test.ts",
-      "line": 517,
+      "line": 584,
       "title": "planRepair produces no step for VERIFY_FAILED or DEPENDENCY_UNRESOLVED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -10130,6 +10231,17 @@
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/platform-host/src/index.ts"
+      ]
+    },
+    {
+      "package": "task-migration-runner",
+      "path": "packages/task-migration-runner/tests/cli-symlink-bin.test.ts",
+      "line": 9,
+      "title": "public migration CLI executes when launched through a node_modules/.bin-style symlink",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/task-migration-runner/src/cli.ts"
       ]
     },
     {

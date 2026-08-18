@@ -3,7 +3,7 @@ import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
-
+import { descriptor as cliDescriptor } from "../deployment/descriptor.ts";
 import {
 	claimWorkspaceBinding,
 	updateGlobalBindingState,
@@ -109,8 +109,11 @@ async function bindInstalled(workspace: string) {
 test("--version exposes the published CLI version and human rendering is readable", async () => {
 	const output = await runCli(["--version", "--json"]);
 	const result = JSON.parse(output) as { data?: { version?: string } };
-	assert.equal(result.data?.version, "0.1.2");
-	assert.equal(renderHumanResult(output), "ProFlow Platform CLI 0.1.2");
+	assert.equal(result.data?.version, cliDescriptor.moduleVersion);
+	assert.equal(
+		renderHumanResult(output),
+		`ProFlow Platform CLI ${cliDescriptor.moduleVersion}`,
+	);
 });
 
 test("human help explains common install, readiness, configure, and lifecycle flows", async () => {

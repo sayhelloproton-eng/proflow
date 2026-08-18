@@ -3,7 +3,7 @@ export const descriptor = {
 	contractVersion: "1.0.0",
 	moduleRef: "task-store-sqlite",
 	packageName: "@tomflow/proflow-task-store-sqlite",
-	moduleVersion: "0.1.1",
+	moduleVersion: "0.1.2",
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",

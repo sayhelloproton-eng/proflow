@@ -132,13 +132,16 @@ test("preflight reports ACTION_REQUIRED when the adapter preflight needs a human
 		modulePreflightOf(result.modulePreflight, "m")?.status,
 		"ACTION_REQUIRED",
 	);
-	assert.ok(
-		result.findings.some(
-			(finding) =>
-				finding.code === "MODULE_PREFLIGHT_ACTION_REQUIRED" &&
-				finding.severity === "action" &&
-				finding.moduleRef === "m",
-		),
+	const finding = result.findings.find(
+		(candidate) =>
+			candidate.code === "MODULE_PREFLIGHT_ACTION_REQUIRED" &&
+			candidate.severity === "action" &&
+			candidate.moduleRef === "m",
+	);
+	assert.ok(finding);
+	assert.equal(
+		finding.message,
+		'module m preflight requires action "bind runtime": wire adapter',
 	);
 });
 

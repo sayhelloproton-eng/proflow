@@ -106,6 +106,91 @@ const roleRegistrationSchema = z
 				message: "carrierUrl must exactly bind roleRef",
 			});
 	});
+const registeredRoleSchema = roleRegistrationSchema.safeExtend({
+	carrierType: z.literal("custom-gpt"),
+	registeredAt: z.iso.datetime(),
+});
+
+export type DurableRoleRegistrationReality = {
+	status: "READY" | "MISSING" | "DRIFT" | "BROKEN";
+	role?: RegisteredRole;
+	issues: string[];
+};
+
+export function inspectDurableRoleRegistration(input: {
+	proflowRoot: string;
+	agentPackageRef: string;
+	expectedPackageVersion: string;
+}): DurableRoleRegistrationReality {
+	const agentRoot = join(input.proflowRoot, "agent");
+	const registryPath = join(agentRoot, "roles.json");
+	const credentialPath = join(agentRoot, "secrets", "role-credentials.json");
+	if (!existsSync(registryPath)) {
+		return {
+			status: "MISSING",
+			issues: [`ROLE_NOT_REGISTERED:${input.agentPackageRef}`],
+		};
+	}
+	try {
+		const roles = z
+			.array(registeredRoleSchema)
+			.parse(JSON.parse(readFileSync(registryPath, "utf8")));
+		const matches = roles.filter(
+			(role) => role.agentPackageRef === input.agentPackageRef,
+		);
+		if (matches.length === 0) {
+			return {
+				status: "MISSING",
+				issues: [`ROLE_NOT_REGISTERED:${input.agentPackageRef}`],
+			};
+		}
+		if (matches.length !== 1) {
+			return {
+				status: "BROKEN",
+				issues: [`ROLE_REGISTRATION_DUPLICATE:${input.agentPackageRef}`],
+			};
+		}
+		const role = matches[0];
+		if (!role) {
+			return {
+				status: "BROKEN",
+				issues: [`ROLE_REGISTRATION_UNREADABLE:${input.agentPackageRef}`],
+			};
+		}
+		if (role.registeredPackageVersion !== input.expectedPackageVersion) {
+			return {
+				status: "DRIFT",
+				role,
+				issues: [
+					`ROLE_PACKAGE_VERSION_DRIFT:${role.registeredPackageVersion}->${input.expectedPackageVersion}`,
+				],
+			};
+		}
+		if (!existsSync(credentialPath)) {
+			return {
+				status: "BROKEN",
+				role,
+				issues: [`ROLE_CREDENTIAL_MISSING:${role.roleRef}`],
+			};
+		}
+		const credentials = z
+			.record(identifier, identifier)
+			.parse(JSON.parse(readFileSync(credentialPath, "utf8")));
+		if (!credentials[role.roleRef]) {
+			return {
+				status: "BROKEN",
+				role,
+				issues: [`ROLE_CREDENTIAL_MISSING:${role.roleRef}`],
+			};
+		}
+		return { status: "READY", role, issues: [] };
+	} catch {
+		return {
+			status: "BROKEN",
+			issues: [`ROLE_STORE_UNREADABLE:${input.agentPackageRef}`],
+		};
+	}
+}
 const workerValidationSchema = z
 	.object({
 		authenticatedRoleRef: identifier,

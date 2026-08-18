@@ -124,9 +124,24 @@ export function planUpgrade(input: PlanInput): DeploymentPlan {
 			);
 		}
 		const dependencies = deps.get(ref) ?? [];
+		const configTarget = input.config?.[ref];
+		const missingRequiredConfig = module.configSlots
+			.filter(
+				(slot) =>
+					slot.required &&
+					slot.default === undefined &&
+					configTarget?.[slot.key] === undefined,
+			)
+			.map((slot) => slot.key);
+		if (missingRequiredConfig.length > 0) {
+			throw new PlatformError(
+				"UPGRADE_FAILED",
+				`upgrade ${ref} requires configuration before package mutation: ${missingRequiredConfig.join(", ")}`,
+			);
+		}
 
 		steps.push(packageStep(seq, module, "upgrade", dependencies));
-		if (module.configSlots.length > 0) {
+		if (configTarget !== undefined) {
 			steps.push(configStep(seq, module));
 		}
 		if (assessment?.migrationRequired === true) {
