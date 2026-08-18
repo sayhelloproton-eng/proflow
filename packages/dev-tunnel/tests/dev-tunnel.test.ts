@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -157,6 +157,43 @@ test("status reports UNKNOWN (not STOPPED) when no child is owned", async () => 
 	});
 	const observation = await runtime.status();
 	assert.equal(observation.state, "UNKNOWN");
+});
+
+test("persistent runtime detaches and survives across adapter instances", async () => {
+	if (process.platform === "win32") return;
+	const dir = await mkdtemp(join(tmpdir(), "proflow-dev-tunnel-process-"));
+	try {
+		const command = join(dir, "devtunnel-fixture");
+		const stateFile = join(dir, "state", "process.json");
+		await writeFile(
+			command,
+			"#!/bin/sh\ntrap 'exit 0' TERM INT\nwhile :; do sleep 1; done\n",
+		);
+		await chmod(command, 0o755);
+		const options = {
+			command,
+			tunnelId: "tunnel-persistent-123",
+			publicBaseUrl: "https://tunnel.example.com/",
+			runCommand: loggedInRunner,
+			processStateFile: stateFile,
+		};
+		const first = createDevTunnelRuntime(options);
+		assert.equal((await first.start()).state, "RUNNING");
+		const record = JSON.parse(await readFile(stateFile, "utf8")) as {
+			pid: number;
+		};
+		assert.ok(record.pid > 0);
+
+		const second = createDevTunnelRuntime(options);
+		assert.equal((await second.status()).state, "RUNNING");
+		assert.equal((await second.stop()).state, "STOPPED");
+		assert.equal(
+			(await createDevTunnelRuntime(options).status()).state,
+			"UNKNOWN",
+		);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
 });
 
 test("immediate spawn error does not report RUNNING", async () => {

@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import type { ModuleOperationResult } from "@tomflow/proflow-module-contract";
 import type {
@@ -376,6 +377,7 @@ export const behaviorAdapter = createBehaviorAdapter();
 export async function createProductionBinding(input: {
 	moduleRef: string;
 	config: Record<string, string>;
+	workspaceRoot: string;
 }): Promise<{ behaviorAdapter: Record<string, unknown> } | undefined> {
 	const publicBaseUrl = input.config.publicBaseUrl;
 	if (!publicBaseUrl) return undefined;
@@ -390,6 +392,14 @@ export async function createProductionBinding(input: {
 			runtime: createDevTunnelRuntime({
 				publicBaseUrl,
 				...(input.config.tunnelId ? { tunnelId: input.config.tunnelId } : {}),
+				processStateFile: join(
+					input.workspaceRoot,
+					".proflow",
+					"runtime",
+					"external-resources",
+					"dev-tunnel",
+					"process.json",
+				),
 			}),
 			verifyFileRelay: async () =>
 				(await readEvidence())?.fileRelay ?? {
