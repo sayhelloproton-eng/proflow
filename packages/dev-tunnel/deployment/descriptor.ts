@@ -36,6 +36,13 @@ export const descriptor = {
 			description:
 				"Persistent Microsoft Dev Tunnel identifier used when this adapter owns lifecycle start/stop",
 		},
+		{
+			key: "verificationEvidenceFile",
+			type: "path",
+			required: false,
+			description:
+				"JSON evidence for real file-relay and 429/5xx verification behind the configured public ingress",
+		},
 	],
 	lifecycle: {
 		supported: [

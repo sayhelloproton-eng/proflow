@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { createServer } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { parseModuleDescriptor } from "@tomflow/proflow-module-contract";
 import {
 	behaviorAdapter,
 	createBehaviorAdapter,
+	readDevTunnelVerificationEvidence,
 } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
 import {
@@ -80,6 +84,47 @@ test("start/stop/restart are honest when a runtime is bound but not logged in", 
 test("every supported lifecycle primitive exposes an adapter function", () => {
 	for (const primitive of descriptor.lifecycle.supported) {
 		assert.equal(typeof behaviorAdapter[primitive], "function", primitive);
+	}
+});
+
+test("production verification evidence is version- and ingress-bound", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "proflow-dev-tunnel-evidence-"));
+	try {
+		const file = join(dir, "evidence.json");
+		await writeFile(
+			file,
+			`${JSON.stringify(
+				{
+					contract: "proflow.dev-tunnel-verification.v1",
+					moduleVersion: descriptor.moduleVersion,
+					publicBaseUrl: "https://tunnel.example.com/",
+					observedAt: "2026-08-19T00:00:00.000Z",
+					fileRelay: { verified: true, message: "relay proof" },
+					errorSemantics: {
+						rateLimit429Verified: true,
+						server5xxVerified: true,
+						message: "error semantics proof",
+					},
+				},
+				null,
+				2,
+			)}\n`,
+		);
+		const evidence = await readDevTunnelVerificationEvidence(
+			file,
+			"https://tunnel.example.com/",
+		);
+		assert.equal(evidence?.fileRelay.verified, true);
+		assert.equal(evidence?.errorSemantics.rateLimit429Verified, true);
+		assert.equal(
+			await readDevTunnelVerificationEvidence(
+				file,
+				"https://other.example.com/",
+			),
+			undefined,
+		);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
 	}
 });
 

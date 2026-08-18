@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import type { ModuleOperationResult } from "@tomflow/proflow-module-contract";
 import type {
 	DevTunnelRuntime,
@@ -30,6 +32,47 @@ const actionRequired = (
 });
 
 type CheckStatus = "PASS" | "FAIL" | "WARN" | "SKIP";
+
+type DevTunnelVerificationEvidence = {
+	contract: "proflow.dev-tunnel-verification.v1";
+	moduleVersion: string;
+	publicBaseUrl: string;
+	observedAt: string;
+	fileRelay: FileRelayProof;
+	errorSemantics: ErrorSemanticsProof;
+};
+
+export async function readDevTunnelVerificationEvidence(
+	file: string | undefined,
+	publicBaseUrl: string,
+): Promise<DevTunnelVerificationEvidence | undefined> {
+	if (!file) return undefined;
+	try {
+		const raw = JSON.parse(
+			await readFile(file, "utf8"),
+		) as Partial<DevTunnelVerificationEvidence>;
+		if (
+			raw.contract !== "proflow.dev-tunnel-verification.v1" ||
+			raw.moduleVersion !== descriptor.moduleVersion ||
+			raw.publicBaseUrl !== publicBaseUrl ||
+			typeof raw.observedAt !== "string" ||
+			Number.isNaN(Date.parse(raw.observedAt)) ||
+			typeof raw.fileRelay !== "object" ||
+			raw.fileRelay === null ||
+			typeof raw.fileRelay.verified !== "boolean" ||
+			typeof raw.fileRelay.message !== "string" ||
+			typeof raw.errorSemantics !== "object" ||
+			raw.errorSemantics === null ||
+			typeof raw.errorSemantics.rateLimit429Verified !== "boolean" ||
+			typeof raw.errorSemantics.server5xxVerified !== "boolean" ||
+			typeof raw.errorSemantics.message !== "string"
+		)
+			return undefined;
+		return raw as DevTunnelVerificationEvidence;
+	} catch {
+		return undefined;
+	}
+}
 
 export function createBehaviorAdapter(input?: {
 	runtime: DevTunnelRuntime;
@@ -337,12 +380,30 @@ export async function createProductionBinding(input: {
 	const publicBaseUrl = input.config.publicBaseUrl;
 	if (!publicBaseUrl) return undefined;
 	const { createDevTunnelRuntime } = await import("../src/resource-adapter.ts");
+	const readEvidence = () =>
+		readDevTunnelVerificationEvidence(
+			input.config.verificationEvidenceFile,
+			publicBaseUrl,
+		);
 	return {
 		behaviorAdapter: createBehaviorAdapter({
 			runtime: createDevTunnelRuntime({
 				publicBaseUrl,
 				...(input.config.tunnelId ? { tunnelId: input.config.tunnelId } : {}),
 			}),
+			verifyFileRelay: async () =>
+				(await readEvidence())?.fileRelay ?? {
+					verified: false,
+					message:
+						"dev-tunnel verification evidence is missing, stale, or invalid",
+				},
+			verifyErrorSemantics: async () =>
+				(await readEvidence())?.errorSemantics ?? {
+					rateLimit429Verified: false,
+					server5xxVerified: false,
+					message:
+						"dev-tunnel verification evidence is missing, stale, or invalid",
+				},
 		}),
 	};
 }
