@@ -304,3 +304,26 @@ test("rebuildCurrentAssumptions re-discovers modules from the catalog, not the o
 	assert.equal(staleness.stale, true);
 	assert.ok(staleness.reasons.includes("modules changed"));
 });
+
+test("rebuildCurrentAssumptions preserves whole-instance uninstall semantics for core modules", async () => {
+	const core = {
+		...moduleFixture({ moduleRef: "core-runtime" }),
+		installClass: "core" as const,
+	};
+	const plan = planDeployment({
+		intent: "uninstall",
+		modules: [core],
+		uninstallScope: "platform-instance",
+	});
+	const catalog = installedCatalog([
+		descriptor({
+			moduleRef: "core-runtime",
+			packageName: "@tomflow/proflow-core-runtime",
+			installClass: "core",
+		}),
+	]);
+
+	const current = await rebuildCurrentAssumptions(catalog, plan);
+	assert.equal(current.uninstallScope, "platform-instance");
+	assert.doesNotThrow(() => planDeployment(current));
+});

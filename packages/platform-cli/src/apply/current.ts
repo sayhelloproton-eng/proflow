@@ -86,6 +86,23 @@ export async function rebuildCurrentAssumptions(
 		};
 	}
 
+	if (plan.intent === "uninstall") {
+		// A persisted uninstall plan does not store uninstallScope. Recover the only
+		// legal scope from its module set for the staleness re-plan: any core module
+		// can only have entered the plan through whole-instance uninstall.
+		const uninstallScope = plan.resolvedModules.some(
+			(module) => module.installClass === "core",
+		)
+			? "platform-instance"
+			: "module";
+		return {
+			intent: plan.intent,
+			modules,
+			targets: plan.moduleTargets,
+			uninstallScope,
+		};
+	}
+
 	return {
 		intent: plan.intent,
 		modules,

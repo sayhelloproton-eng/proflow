@@ -117,7 +117,10 @@ export function createBehaviorAdapter(service?: GatewayProcess) {
 		uninstall: async () => {
 			if (service) await service.stop();
 			return {
-				result: service ? base : unbound,
+				// Uninstall is idempotent: an unbound service means there is no
+				// process to stop before package removal. Runtime readiness still
+				// fails closed in status/start/verify.
+				result: base,
 				observedEffects: service ? ["Manage the declared service process"] : [],
 			};
 		},

@@ -252,10 +252,9 @@ export function createBehaviorAdapter(input?: {
 		uninstall: async () => {
 			if (!input) {
 				return {
-					result: actionRequired(
-						"configure-tunnel",
-						"No bound dev-tunnel resource to stop before package removal",
-					),
+					// No bound tunnel means there is no managed external resource to
+					// stop. Whole-instance uninstall must remain idempotent.
+					result: success(),
 					observedEffects: [],
 				};
 			}

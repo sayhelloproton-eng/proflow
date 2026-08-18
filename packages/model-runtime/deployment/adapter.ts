@@ -170,12 +170,9 @@ export function createBehaviorAdapter(input?: {
 		uninstall: async () => {
 			if (input) await input.service.stop();
 			return {
-				result: input
-					? success()
-					: actionRequired(
-							"configure-provider",
-							"No bound runtime to stop before package removal",
-						),
+				// An unbound runtime is already absent for uninstall purposes.
+				// start/status/verify still fail closed until provider config exists.
+				result: success(),
 				observedEffects: input
 					? ["Runs the Model Runtime HTTP service process"]
 					: [],

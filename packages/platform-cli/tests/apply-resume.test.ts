@@ -109,6 +109,21 @@ function failed(moduleRef: string, message: string): ModuleOperationResult {
 	};
 }
 
+function actionRequired(
+	moduleRef: string,
+	action: string,
+	description: string,
+): ModuleOperationResult {
+	return {
+		contract: "deployment.result.v1",
+		ok: false,
+		status: "ACTION_REQUIRED",
+		moduleRef,
+		moduleVersion: "1.0.0",
+		actionRequired: { action, description },
+	};
+}
+
 interface FakeAdapterSpec {
 	module: ResolvedModule;
 	primitives: Record<string, () => unknown>;
@@ -532,6 +547,70 @@ test("a failing lifecycle step stops the apply, records FAILED, and persists not
 		// the failed plan is not recorded as applied
 		const state = await loadDeploymentState(paths);
 		assert.deepEqual(state?.lastAppliedPlans ?? [], []);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("lifecycle uninstall accepts the owner SUCCEEDED result when post-uninstall status is unbound", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({
+			moduleRef: "svc",
+			kind: "service",
+			lifecycle: ["status", "uninstall"],
+		});
+		const plan: DeploymentPlan = planDeployment({
+			intent: "uninstall",
+			modules: [svc],
+		});
+		await savePlan(paths, plan);
+
+		const { calls, catalog } = makeCatalog([
+			{
+				module: svc,
+				primitives: {
+					status: () => ({
+						result: actionRequired(
+							"svc",
+							"bind-runtime",
+							"No service is bound",
+						),
+						observedEffects: [],
+					}),
+					uninstall: () => ({
+						result: ok("svc"),
+						observedEffects: [],
+					}),
+				},
+			},
+		]);
+		const fake = makeFakeDriver();
+		fake.installed.set("svc", "1.0.0");
+
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog,
+			driver: fake.driver,
+			current: { intent: "uninstall", modules: [svc] },
+		});
+
+		assert.equal(result.outcome, "COMPLETE");
+		assert.deepEqual(
+			result.stepResults.map((step) => step.status),
+			["EXECUTED", "EXECUTED"],
+		);
+		assert.equal(
+			calls.filter((call) => call.primitive === "uninstall").length,
+			1,
+		);
+		assert.equal(
+			calls.filter((call) => call.primitive === "status").length,
+			1,
+			"unbound status is observed before the mutation but not reinterpreted after owner-confirmed uninstall",
+		);
+		assert.equal(fake.installed.has("svc"), false);
 	} finally {
 		await cleanup();
 	}

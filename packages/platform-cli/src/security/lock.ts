@@ -70,6 +70,36 @@ function lockedError(existing: LockRecord | undefined): PlatformError {
 	);
 }
 
+function isProvablyDeadPid(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return false;
+	} catch (error) {
+		return errorHasCode(error, "ESRCH");
+	}
+}
+
+async function reclaimProvablyStaleLock(
+	paths: WorkspacePaths,
+	expectedFingerprint: string,
+): Promise<boolean> {
+	const existing = await readWorkspaceLock(paths);
+	if (
+		existing === undefined ||
+		existing.workspaceFingerprint !== expectedFingerprint ||
+		!isProvablyDeadPid(existing.pid)
+	) {
+		return false;
+	}
+	try {
+		await unlink(workspaceLockPath(paths));
+		return true;
+	} catch (error) {
+		if (errorHasCode(error, "ENOENT")) return true;
+		throw error;
+	}
+}
+
 // v1 single-process exclusive lock: O_EXCL create, no distributed coordination,
 // and no reclaim of a lock that cannot be proven stale.
 export async function acquireWorkspaceLock(
@@ -89,10 +119,19 @@ export async function acquireWorkspaceLock(
 	try {
 		handle = await open(file, "wx", 0o644);
 	} catch (error) {
-		if (errorHasCode(error, "EEXIST")) {
+		if (!errorHasCode(error, "EEXIST")) throw error;
+		if (await reclaimProvablyStaleLock(paths, record.workspaceFingerprint)) {
+			try {
+				handle = await open(file, "wx", 0o644);
+			} catch (retryError) {
+				if (errorHasCode(retryError, "EEXIST")) {
+					throw lockedError(await readWorkspaceLock(paths));
+				}
+				throw retryError;
+			}
+		} else {
 			throw lockedError(await readWorkspaceLock(paths));
 		}
-		throw error;
 	}
 	try {
 		await handle.writeFile(`${JSON.stringify(record, null, 2)}\n`, {

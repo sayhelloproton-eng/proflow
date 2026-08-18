@@ -10,6 +10,7 @@ import {
 } from "../persistence/index.ts";
 import {
 	checkPlanStale,
+	ExecuteStrategy,
 	evaluateStepCheck,
 	type PlanInput,
 } from "../planner/index.ts";
@@ -171,6 +172,21 @@ export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 
 			switch (outcome.kind) {
 				case "SUCCEEDED": {
+					if (step.executeStrategy === ExecuteStrategy.lifecycleUninstall) {
+						// A lifecycle uninstall is owned by the module adapter. Its typed
+						// SUCCEEDED result is the authoritative teardown confirmation. An
+						// idempotent uninstall can legitimately leave status UNBOUND/UNKNOWN,
+						// so a second status probe must not reinterpret that successful
+						// teardown as a failed lifecycle:stopped postcondition.
+						stepResults.push({
+							stepRef: step.stepRef,
+							moduleRef: step.moduleRef,
+							status: "EXECUTED",
+							message: `${step.moduleRef} owner confirmed lifecycle uninstall`,
+						});
+						break;
+					}
+
 					// Postcondition re-check: only a genuinely successful mutation is
 					// confirmed; an effect that cannot be confirmed stops the apply
 					// rather than blindly repeating it.

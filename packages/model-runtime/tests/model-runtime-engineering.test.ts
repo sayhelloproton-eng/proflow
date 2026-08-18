@@ -334,3 +334,10 @@ test("MOD-P1-06 HTTP client abort and deployment restart cancel queued/running w
 	assert.equal(runtime.getRuntimeStatus().lastErrorCode, "CANCELLED");
 	await stopService();
 });
+
+test("deployment uninstall is idempotent when no Model Runtime service is bound", async () => {
+	const result = await createBehaviorAdapter().uninstall();
+	assert.equal(result.result.status, "SUCCEEDED");
+	assert.equal(result.result.ok, true);
+	assert.deepEqual(result.observedEffects, []);
+});

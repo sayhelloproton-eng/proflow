@@ -189,3 +189,10 @@ test("restart does not start when stop is UNKNOWN", async () => {
 	assert.equal(restart.result.status, "ACTION_REQUIRED");
 	assert.equal(restart.result.actionRequired?.action, "complete-tunnel-stop");
 });
+
+test("uninstall is idempotent when no dev-tunnel resource is bound", async () => {
+	const result = await behaviorAdapter.uninstall();
+	assert.equal(result.result.status, "SUCCEEDED");
+	assert.equal(result.result.ok, true);
+	assert.deepEqual(result.observedEffects, []);
+});

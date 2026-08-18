@@ -425,6 +425,34 @@ test("lock is released via finally even when the body throws", async () => {
 	}
 });
 
+test("a same-workspace lock owned by a provably dead pid is reclaimed", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const seed = await acquireWorkspaceLock(paths, "seed-plan");
+		const fingerprint = seed.record.workspaceFingerprint;
+		await seed.release();
+
+		await mkdir(paths.runtime, { recursive: true });
+		await writeFile(
+			workspaceLockPath(paths),
+			JSON.stringify({
+				pid: 999_999_999,
+				createdAt: new Date(0).toISOString(),
+				planRef: "dead-plan",
+				workspaceFingerprint: fingerprint,
+			}),
+			"utf8",
+		);
+
+		const lock = await acquireWorkspaceLock(paths, "recovery-plan");
+		assert.equal(lock.record.planRef, "recovery-plan");
+		assert.equal(lock.record.workspaceFingerprint, fingerprint);
+		await lock.release();
+	} finally {
+		await cleanup();
+	}
+});
+
 test("a lock that cannot be proven stale is never reclaimed", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {

@@ -24,3 +24,10 @@ test("module contract C1/C2/C3", async () => {
 		"PASS",
 	);
 });
+
+test("uninstall is idempotent when no Gateway service is bound", async () => {
+	const result = await behaviorAdapter.uninstall();
+	assert.equal(result.result.status, "SUCCEEDED");
+	assert.equal(result.result.ok, true);
+	assert.deepEqual(result.observedEffects, []);
+});
