@@ -611,3 +611,41 @@ test("remediation T06 status is non-mutating and verify detects name and schema 
 		false,
 	);
 });
+
+test("deployment adapter drives real migration status/apply/verify and exposes migrated reality", async (context) => {
+	const databasePath = await fixture(context);
+	const { createProductionBinding } = await import("../deployment/adapter.ts");
+	const binding = createProductionBinding({ config: { databasePath } });
+	const status = binding.behaviorAdapter.status as () => {
+		result: {
+			status: string;
+			data?: { migrated?: boolean; pendingVersions?: number[] };
+		};
+	};
+	const migrate = binding.behaviorAdapter.migrate as () => {
+		result: { status: string };
+	};
+	const verify = binding.behaviorAdapter.verify as () => {
+		result: { status: string; checks?: Array<{ status: string }> };
+	};
+	const doctor = binding.behaviorAdapter.doctor as () => {
+		result: { status: string };
+	};
+
+	const before = status();
+	assert.equal(before.result.status, "SUCCEEDED");
+	assert.equal(before.result.data?.migrated, false);
+	assert.ok((before.result.data?.pendingVersions?.length ?? 0) > 0);
+	assert.equal(doctor().result.status, "BLOCKED");
+
+	assert.equal(migrate().result.status, "SUCCEEDED");
+
+	const after = status();
+	assert.equal(after.result.status, "SUCCEEDED");
+	assert.equal(after.result.data?.migrated, true);
+	assert.deepEqual(after.result.data?.pendingVersions, []);
+	const verified = verify();
+	assert.equal(verified.result.status, "SUCCEEDED");
+	assert.equal(verified.result.checks?.[0]?.status, "PASS");
+	assert.equal(doctor().result.status, "SUCCEEDED");
+});

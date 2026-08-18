@@ -10,8 +10,8 @@
     "formalCaseIdentities": 326,
     "criticalProofs": 196,
     "requiredFailureBoundaries": 130,
-    "executableTestFiles": 129,
-    "executableTestCalls": 697,
+    "executableTestFiles": 133,
+    "executableTestCalls": 722,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -1698,6 +1698,7 @@
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/environment.ts",
         "packages/platform-cli/src/install/package-manager.ts"
       ],
       "proofStrengths": [
@@ -6374,6 +6375,7 @@
         "packages/platform-cli/src/apply/driver.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/environment.ts",
         "packages/platform-cli/src/install/package-manager.ts"
       ],
       "proofStrengths": [

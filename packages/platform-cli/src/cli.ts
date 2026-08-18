@@ -505,9 +505,13 @@ async function handlePreflight(
 		catalog: ctx.catalog,
 		paths: ctx.paths,
 	});
-	return result.ok
-		? outcome("preflight", "SUCCEEDED", result)
-		: outcome("preflight", "BLOCKED", result);
+	const status: CliStatus =
+		result.status === "READY"
+			? "SUCCEEDED"
+			: result.status === "ACTION_REQUIRED"
+				? "ACTION_REQUIRED"
+				: "BLOCKED";
+	return outcome("preflight", status, result);
 }
 
 async function handlePlan(
@@ -653,6 +657,7 @@ async function handlePlan(
 			currentDescriptors,
 			targetDescriptors,
 			targets,
+			config,
 		});
 		await savePlan(ctx.paths, plan);
 		return outcome("plan", "SUCCEEDED", {
@@ -720,6 +725,12 @@ async function handleApply(
 		driver: createWorkspacePackageManagerDriver({
 			workspaceRoot: ctx.paths.root,
 		}),
+		...(plan.intent === "upgrade"
+			? {
+					refreshCatalog: async () =>
+						(await buildContext(ctx.paths.root)).catalog,
+				}
+			: {}),
 	});
 	const status: CliStatus =
 		result.outcome === "COMPLETE"

@@ -254,7 +254,6 @@ test("preflight against the bound real-module workspace returns a typed result",
 			cwd: WORKSPACE,
 			globalRoot: fixture.globalRoot,
 		});
-		assert.ok(result.status === "SUCCEEDED" || result.status === "BLOCKED");
 		const data = result.data as {
 			ok: boolean;
 			status: string;
@@ -266,6 +265,13 @@ test("preflight against the bound real-module workspace returns a typed result",
 				data.status,
 			),
 		);
+		const expectedOuterStatus =
+			data.status === "READY"
+				? "SUCCEEDED"
+				: data.status === "ACTION_REQUIRED"
+					? "ACTION_REQUIRED"
+					: "BLOCKED";
+		assert.equal(result.status, expectedOuterStatus);
 		assert.ok(Array.isArray(data.findings));
 	} finally {
 		await fixture.cleanup();

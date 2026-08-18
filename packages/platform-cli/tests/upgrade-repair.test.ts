@@ -273,6 +273,33 @@ test("planUpgrade emits a real package upgrade when current != target", () => {
 	assert.equal(plan.resolvedModules[0]?.moduleVersion, "2.0.0");
 });
 
+test("planUpgrade carries supplied config into the immutable target", () => {
+	const slot = {
+		key: "endpoint",
+		type: "string" as const,
+		required: true,
+		description: "service endpoint",
+	};
+	const current = [
+		descriptor({ moduleRef: "m", moduleVersion: "1.0.0", configSlots: [slot] }),
+	];
+	const target = [
+		descriptor({ moduleRef: "m", moduleVersion: "2.0.0", configSlots: [slot] }),
+	];
+
+	const plan = planUpgrade({
+		intent: "upgrade",
+		currentDescriptors: current,
+		targetDescriptors: target,
+		config: { m: { endpoint: "http://127.0.0.1:43100" } },
+	});
+
+	assert.deepEqual(plan.moduleTargets[0]?.config, {
+		endpoint: "http://127.0.0.1:43100",
+	});
+	assert.ok(plan.steps.some((step) => step.kind === "config"));
+});
+
 test("planUpgrade plans an upgrade against descriptors resolved from a real target workspace", async () => {
 	const root = await tempWorkspace();
 	try {

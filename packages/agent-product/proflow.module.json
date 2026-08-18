@@ -28,10 +28,6 @@
 		{
 			"kind": "network",
 			"url": "https://chatgpt.com/"
-		},
-		{
-			"kind": "human",
-			"action": "Materialize and verify the Custom GPT carrier"
 		}
 	],
 	"configSlots": [

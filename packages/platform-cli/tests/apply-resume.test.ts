@@ -4,9 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import type {
-	ConfigSlot,
-	ModuleOperationResult,
+import {
+	type ConfigSlot,
+	type ModuleDescriptor,
+	type ModuleOperationResult,
+	parseModuleDescriptor,
 } from "@tomflow/proflow-module-contract";
 import { workspaceResidentDriver } from "../src/apply/driver.ts";
 import { applyPlan, type PackageManagerDriver } from "../src/apply/index.ts";
@@ -86,6 +88,40 @@ function moduleFixture(input: {
 		effects: [],
 		source: { type: "workspace" },
 	};
+}
+
+function descriptorFixture(input: {
+	moduleRef: string;
+	moduleVersion: string;
+	configSlots?: ConfigSlot[];
+}): ModuleDescriptor {
+	return parseModuleDescriptor({
+		contract: "module",
+		contractVersion: "1.0.0",
+		moduleRef: input.moduleRef,
+		packageName: `@tomflow/proflow-${input.moduleRef}`,
+		moduleVersion: input.moduleVersion,
+		kind: "library",
+		installClass: "optional",
+		identity: {
+			domain: "deployment-governance",
+			summary: "Platform CLI apply refresh fixture",
+		},
+		templateVersion: "1.0.0",
+		platformCompatibility: ">=1.0.0 <2.0.0",
+		provides: [],
+		requires: [],
+		requirements: [],
+		configSlots: input.configSlots ?? [],
+		lifecycle: { supported: ["describe", "preflight", "verify", "doctor"] },
+		verification: {
+			checks: [
+				{ id: "health", description: "Observed health", lifecycle: "verify" },
+			],
+		},
+		effects: [],
+		documentation: [],
+	});
 }
 
 function ok(moduleRef: string, data?: unknown): ModuleOperationResult {
@@ -408,6 +444,73 @@ test("configure resume re-executes when every required key exists but persisted 
 			(await loadConfig(paths, "svc"))?.publicValues.endpoint,
 			"planned-target",
 		);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("upgrade refreshes the catalog after package mutation before target config materialization", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const slot = configSlot("endpoint", { required: true });
+		const currentDescriptor = descriptorFixture({
+			moduleRef: "svc",
+			moduleVersion: "1.0.0",
+			configSlots: [slot],
+		});
+		const targetDescriptor = descriptorFixture({
+			moduleRef: "svc",
+			moduleVersion: "2.0.0",
+			configSlots: [slot],
+		});
+		const current: PlanInput = {
+			intent: "upgrade",
+			currentDescriptors: [currentDescriptor],
+			targetDescriptors: [targetDescriptor],
+			config: { svc: { endpoint: "target-endpoint" } },
+		};
+		const plan = planDeployment(current);
+		await savePlan(paths, plan);
+
+		const targetModule = plan.resolvedModules[0];
+		assert.ok(targetModule);
+		let oldMaterializerCalls = 0;
+		let targetMaterializerCalls = 0;
+		const oldCatalog = makeCatalog([
+			{
+				module: targetModule,
+				primitives: {},
+				materializeProductionConfig() {
+					oldMaterializerCalls += 1;
+				},
+			},
+		]).catalog;
+		const targetCatalog = makeCatalog([
+			{
+				module: targetModule,
+				primitives: {},
+				materializeProductionConfig({ config }) {
+					targetMaterializerCalls += 1;
+					assert.equal(config.endpoint, "target-endpoint");
+				},
+			},
+		]).catalog;
+		const fake = makeFakeDriver();
+		fake.installed.set("svc", "1.0.0");
+
+		const result = await applyPlan({
+			paths,
+			planRef: plan.planRef,
+			catalog: oldCatalog,
+			current,
+			driver: fake.driver,
+			refreshCatalog: async () => targetCatalog,
+		});
+
+		assert.equal(result.outcome, "COMPLETE");
+		assert.equal(fake.upgradeCounts.get("svc"), 1);
+		assert.equal(oldMaterializerCalls, 0);
+		assert.equal(targetMaterializerCalls, 1);
 	} finally {
 		await cleanup();
 	}

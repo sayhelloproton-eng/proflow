@@ -28,6 +28,8 @@ export interface ApplyContext {
 	current: PlanInput;
 	driver: PackageManagerDriver;
 	observer?: RealityObserver;
+	/** Rebuilds installed descriptors/bindings after a package mutation. */
+	refreshCatalog?: () => Promise<ModuleCatalog>;
 }
 
 function nowIso(): string {
@@ -48,11 +50,12 @@ function failureMessage(error: unknown): string {
  */
 export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 	const driver = context.driver;
-	const observer =
+	let catalog = context.catalog;
+	let observer =
 		context.observer ??
 		createRealityObserver({
 			paths: context.paths,
-			catalog: context.catalog,
+			catalog,
 			driver,
 		});
 
@@ -149,7 +152,7 @@ export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 			let outcome: ExecuteStepOutcome;
 			try {
 				outcome = await executeStep(
-					{ paths: context.paths, catalog: context.catalog, driver },
+					{ paths: context.paths, catalog, driver },
 					step,
 					plan,
 				);
@@ -230,6 +233,34 @@ export async function applyPlan(context: ApplyContext): Promise<ApplyResult> {
 						status: "EXECUTED",
 						message: post.reason,
 					});
+
+					if (step.kind === "package" && context.refreshCatalog !== undefined) {
+						try {
+							catalog = await context.refreshCatalog();
+							if (context.observer === undefined) {
+								observer = createRealityObserver({
+									paths: context.paths,
+									catalog,
+									driver,
+								});
+							}
+						} catch (error) {
+							stepResults.push({
+								stepRef: step.stepRef,
+								moduleRef: step.moduleRef,
+								status: "FAILED",
+								message: `post-package catalog refresh failed: ${failureMessage(error)}`,
+							});
+							state.updatedAt = nowIso();
+							await saveDeploymentState(context.paths, state);
+							return {
+								planRef: plan.planRef,
+								outcome: "FAILED",
+								stepResults,
+								completedAt: nowIso(),
+							};
+						}
+					}
 					break;
 				}
 				case "ACTION_REQUIRED": {

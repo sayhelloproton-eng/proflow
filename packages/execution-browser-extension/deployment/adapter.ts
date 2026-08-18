@@ -1,5 +1,5 @@
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { descriptor } from "./descriptor.ts";
@@ -80,7 +80,8 @@ async function credential(file: string, key: string): Promise<string> {
 }
 
 function packageRoot(): string {
-	return dirname(dirname(fileURLToPath(import.meta.url)));
+	const candidate = dirname(dirname(fileURLToPath(import.meta.url)));
+	return basename(candidate) === "dist" ? dirname(candidate) : candidate;
 }
 
 export function browserExtensionLoadDir(workspaceRoot: string): string {
