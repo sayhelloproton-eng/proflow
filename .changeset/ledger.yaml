@@ -214,6 +214,10 @@
   dir: packages/platform-cli
   intents:
     - real1-upgrade-persisted-config
+"@tomflow/proflow-platform-cli@0.1.7":
+  dir: packages/platform-cli
+  intents:
+    - real1-upgrade-apply-current-config
 "@tomflow/proflow-platform-host@0.1.1":
   dir: packages/platform-host
   intents:
