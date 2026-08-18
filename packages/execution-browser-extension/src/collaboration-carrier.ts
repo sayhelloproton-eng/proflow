@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import {
 	type ExecuteCapabilityRequest,
 	parseExecutionRecord,
@@ -58,18 +56,23 @@ export type CollaborationCarrierOutcome =
 			executionRef: string | null;
 	  };
 
-function contentFingerprint(message: PendingCollaborationCarrierMessage) {
-	return `sha256:${createHash("sha256")
-		.update(
-			JSON.stringify({
-				messageId: message.messageId,
-				taskId: message.taskId,
-				targetRoleRef: message.targetRoleRef,
-				targetWorkerRef: message.targetWorkerRef,
-				content: message.content,
-			}),
-		)
-		.digest("hex")}`;
+async function contentFingerprint(
+	message: PendingCollaborationCarrierMessage,
+): Promise<string> {
+	const payload = new TextEncoder().encode(
+		JSON.stringify({
+			messageId: message.messageId,
+			taskId: message.taskId,
+			targetRoleRef: message.targetRoleRef,
+			targetWorkerRef: message.targetWorkerRef,
+			content: message.content,
+		}),
+	);
+	const digest = await globalThis.crypto.subtle.digest("SHA-256", payload);
+	const hex = Array.from(new Uint8Array(digest), (byte) =>
+		byte.toString(16).padStart(2, "0"),
+	).join("");
+	return `sha256:${hex}`;
 }
 
 /**
@@ -134,7 +137,7 @@ export function createCollaborationCarrierApplication(options: {
 				roleRef: message.targetRoleRef,
 				workerRef: message.targetWorkerRef,
 				messageRef: message.messageId,
-				contentFingerprint: contentFingerprint(message),
+				contentFingerprint: await contentFingerprint(message),
 			},
 		};
 		const execution = parseExecutionRecord(

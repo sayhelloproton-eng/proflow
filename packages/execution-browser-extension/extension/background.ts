@@ -1,15 +1,17 @@
+import { createCollaborationCarrierApplication } from "../src/collaboration-carrier.js";
 import {
-	createCollaborationCarrierApplication,
 	createSystemObserver,
-	createTaskObserver,
 	type SystemObserverReasonFailure,
 	type SystemObserverReasonRequest,
 	type SystemObserverReasonResult,
 	type SystemObserverView,
+} from "../src/system-observer.js";
+import {
+	createTaskObserver,
 	type TaskDriveProjection,
 	type TaskObserverDiagnosticAssessment,
 	type TaskObserverDiagnosticFailure,
-} from "../src/index.js";
+} from "../src/task-observer.js";
 
 type PageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 type ActivityKind =

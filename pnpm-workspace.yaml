@@ -1,6 +1,9 @@
 packages:
   - "packages/*"
 
+allowBuilds:
+  esbuild: false
+
 # Never mutate the source worktree implicitly before pnpm run/exec.
 # Release/install flows invoke pnpm install explicitly when package reality must change.
 verifyDepsBeforeRun: warn

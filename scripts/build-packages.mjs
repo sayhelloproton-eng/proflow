@@ -30,6 +30,47 @@ try {
 		});
 	}
 
+	// The MV3 background service worker must be a browser-self-contained ESM
+	// bundle. Plain `tsc` output preserves workspace package imports and Node
+	// builtins, which a real Chrome extension service worker cannot resolve.
+	const browserBackground = join(
+		packagesRoot,
+		"execution-browser-extension",
+		"dist",
+		"extension",
+		"background.js",
+	);
+	execFileSync(
+		"pnpm",
+		[
+			"exec",
+			"esbuild",
+			"packages/execution-browser-extension/extension/background.ts",
+			"--bundle",
+			"--platform=browser",
+			"--format=esm",
+			"--target=chrome120",
+			"--tsconfig=tsconfig.build.json",
+			`--outfile=${browserBackground}`,
+			"--log-level=warning",
+		],
+		{ cwd: repositoryRoot, stdio: "inherit" },
+	);
+
+	const backgroundBundle = readFileSync(browserBackground, "utf8");
+	const unresolvedModuleImport =
+		/(?:^|\n)\s*(?:import|export)\s+(?:[^"'\n]*?\sfrom\s*)?["']([^"']+)["']/g;
+	const dynamicModuleImport = /\bimport\(\s*["']([^"']+)["']\s*\)/g;
+	const residualImports = [
+		...backgroundBundle.matchAll(unresolvedModuleImport),
+		...backgroundBundle.matchAll(dynamicModuleImport),
+	].map((match) => match[1]);
+	if (residualImports.length > 0) {
+		throw new Error(
+			`browser background bundle is not self-contained: ${residualImports.join(", ")}`,
+		);
+	}
+
 	// MV3 content scripts are loaded as classic scripts (no `type: module`), so
 	// they must not contain ES module syntax. The monorepo compiles under
 	// `module: NodeNext`, which appends an `export {};` marker to files that have
