@@ -7,6 +7,8 @@ import type { DeploymentPlan, ResolvedModule } from "../contracts.ts";
 import { discoverModules } from "../discovery/index.ts";
 import { doctorModules } from "../doctor/index.ts";
 import type { ModuleCatalog, ModuleSource } from "../modules.ts";
+import type { WorkspacePaths } from "../paths.ts";
+import { mergeEffectiveConfig } from "../persistence/effective-config.ts";
 import type { PlanInput } from "../planner/plan.ts";
 import { diagnoseRepair } from "../planner/repair.ts";
 
@@ -44,6 +46,7 @@ async function loadDescriptors(
 export async function rebuildCurrentAssumptions(
 	catalog: ModuleCatalog,
 	plan: DeploymentPlan,
+	paths: WorkspacePaths,
 ): Promise<PlanInput> {
 	if (
 		(plan.intent === "install" || plan.intent === "upgrade") &&
@@ -65,12 +68,19 @@ export async function rebuildCurrentAssumptions(
 
 	if (plan.intent === "upgrade") {
 		const currentDescriptors = await loadDescriptors(catalog, modules);
+		const config = await mergeEffectiveConfig(paths, modules, {});
 		if (plan.targetDescriptors === undefined)
-			return { intent: plan.intent, modules, targets: plan.moduleTargets };
+			return {
+				intent: plan.intent,
+				modules,
+				targets: plan.moduleTargets,
+				config,
+			};
 		return {
 			intent: plan.intent,
 			modules,
 			targets: plan.moduleTargets,
+			config,
 			currentDescriptors,
 			targetDescriptors: plan.targetDescriptors,
 		};

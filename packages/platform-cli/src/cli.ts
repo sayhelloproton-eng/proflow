@@ -708,7 +708,7 @@ async function handleApply(
 	if (plan === undefined) {
 		throw new PlatformError("PLAN_NOT_FOUND", `plan ${planRef} not found`);
 	}
-	const current = await rebuildCurrentAssumptions(ctx.catalog, plan);
+	const current = await rebuildCurrentAssumptions(ctx.catalog, plan, ctx.paths);
 	const result = await applyPlan({
 		paths: ctx.paths,
 		planRef,
@@ -1160,7 +1160,11 @@ async function handlePlatformInstanceUninstall(
 				uninstallScope: "platform-instance",
 			});
 			await savePlan(ctx.paths, plan);
-			const current = await rebuildCurrentAssumptions(ctx.catalog, plan);
+			const current = await rebuildCurrentAssumptions(
+				ctx.catalog,
+				plan,
+				ctx.paths,
+			);
 			const applied = await applyPlan({
 				paths: ctx.paths,
 				planRef: plan.planRef,

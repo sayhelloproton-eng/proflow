@@ -252,6 +252,66 @@ test("unchanged secretRef reference does not mark the plan stale", () => {
 	assert.equal(staleness.stale, false);
 });
 
+test("upgrade current assumptions preserve persisted config and detect config drift", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const configSlots: ConfigSlot[] = [
+			{
+				key: "publicBaseUrl",
+				type: "url",
+				required: true,
+				description: "public ingress",
+			},
+		];
+		const currentDescriptor = descriptor({
+			moduleRef: "dev-tunnel",
+			packageName: "@tomflow/proflow-dev-tunnel",
+			moduleVersion: "1.0.0",
+			configSlots,
+		});
+		const targetDescriptor = descriptor({
+			moduleRef: "dev-tunnel",
+			packageName: "@tomflow/proflow-dev-tunnel",
+			moduleVersion: "2.0.0",
+			configSlots,
+		});
+		const plan = planDeployment({
+			intent: "upgrade",
+			currentDescriptors: [currentDescriptor],
+			targetDescriptors: [targetDescriptor],
+			targets: [{ moduleRef: "dev-tunnel", targetVersion: "2.0.0" }],
+			config: {
+				"dev-tunnel": { publicBaseUrl: "https://a.example/" },
+			},
+		});
+		const catalog = installedCatalog([currentDescriptor]);
+		await materializeConfig(paths, {
+			moduleRef: "dev-tunnel",
+			values: { publicBaseUrl: "https://a.example/" },
+			secretRefs: [],
+		});
+
+		const same = await rebuildCurrentAssumptions(catalog, plan, paths);
+		assert.equal(
+			same.config?.["dev-tunnel"]?.publicBaseUrl,
+			"https://a.example/",
+		);
+		assert.equal(checkPlanStale(plan, same).stale, false);
+
+		await materializeConfig(paths, {
+			moduleRef: "dev-tunnel",
+			values: { publicBaseUrl: "https://b.example/" },
+			secretRefs: [],
+		});
+		const changed = await rebuildCurrentAssumptions(catalog, plan, paths);
+		const staleness = checkPlanStale(plan, changed);
+		assert.equal(staleness.stale, true);
+		assert.ok(staleness.reasons.includes("targets changed"));
+	} finally {
+		await cleanup();
+	}
+});
+
 // ---------------------------------------------------------------------------
 // raw-secret leak scan (defense-in-depth)
 // ---------------------------------------------------------------------------
@@ -293,7 +353,11 @@ test("rebuildCurrentAssumptions re-discovers modules from the catalog, not the o
 		}),
 	]);
 
-	const current = await rebuildCurrentAssumptions(catalog, plan);
+	const current = await rebuildCurrentAssumptions(
+		catalog,
+		plan,
+		workspacePaths(join(tmpdir(), "proflow-current-unused")),
+	);
 	assert.equal(
 		current.modules?.find((item) => item.moduleRef === "a")?.moduleVersion,
 		"2.0.0",
@@ -323,7 +387,11 @@ test("rebuildCurrentAssumptions preserves whole-instance uninstall semantics for
 		}),
 	]);
 
-	const current = await rebuildCurrentAssumptions(catalog, plan);
+	const current = await rebuildCurrentAssumptions(
+		catalog,
+		plan,
+		workspacePaths(join(tmpdir(), "proflow-current-unused")),
+	);
 	assert.equal(current.uninstallScope, "platform-instance");
 	assert.doesNotThrow(() => planDeployment(current));
 });

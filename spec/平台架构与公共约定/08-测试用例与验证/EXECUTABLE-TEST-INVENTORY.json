@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 135,
-    "testCalls": 731
+    "testCalls": 732
   },
   "tests": [
     {
@@ -9150,7 +9150,25 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 259,
+      "line": 255,
+      "title": "upgrade current assumptions preserve persisted config and detect config drift",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/apply/current.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/modules.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/index.ts",
+        "packages/platform-cli/src/planner/index.ts",
+        "packages/platform-cli/src/security/index.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/stale-secret.test.ts",
+      "line": 319,
       "title": "raw secret sentinel is scrubbed by redactDeep and never survives",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9168,7 +9186,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 273,
+      "line": 333,
       "title": "redactDeep leaves non-secret strings untouched",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9186,7 +9204,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 284,
+      "line": 344,
       "title": "rebuildCurrentAssumptions re-discovers modules from the catalog, not the old plan",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9204,7 +9222,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/stale-secret.test.ts",
-      "line": 308,
+      "line": 372,
       "title": "rebuildCurrentAssumptions preserves whole-instance uninstall semantics for core modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
