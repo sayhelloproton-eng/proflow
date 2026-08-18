@@ -165,6 +165,59 @@ export function renderInstallDoc(input: InstallDocInput): string {
 		lines.push("");
 	}
 
+	const missingRequiredConfig: Record<string, Record<string, string>> = {};
+	for (const module of modules) {
+		const resolved = resolveModuleConfig(
+			module,
+			input.config?.[module.moduleRef],
+		);
+		for (const slot of module.configSlots) {
+			if (!slot.required || resolved.values[slot.key] !== undefined) continue;
+			const placeholder =
+				slot.type === "secretRef"
+					? "secret://provider/name"
+					: slot.type === "url"
+						? "https://example.invalid"
+						: slot.type === "path"
+							? "/absolute/path"
+							: slot.type === "moduleRef"
+								? "module-ref"
+								: "<value>";
+			const moduleConfig = missingRequiredConfig[module.moduleRef] ?? {};
+			moduleConfig[slot.key] = placeholder;
+			missingRequiredConfig[module.moduleRef] = moduleConfig;
+		}
+	}
+
+	lines.push("## Configure Before Start");
+	lines.push("");
+	if (Object.keys(missingRequiredConfig).length === 0) {
+		lines.push(
+			"No required configuration is currently missing. Re-run `platform preflight --intent start` before starting to confirm current runtime readiness.",
+		);
+	} else {
+		lines.push(
+			"Create a JSON config file (for example `./proflow-config.json`) using the required missing slots below. Replace placeholders with real environment-specific values. `secretRef` values must remain opaque references such as `secret://provider/name`; do not place raw secrets in this file.",
+		);
+		lines.push("");
+		lines.push("```json");
+		lines.push(JSON.stringify({ modules: missingRequiredConfig }, null, 2));
+		lines.push("```");
+		lines.push("");
+		lines.push("Apply and re-check the configuration:");
+		lines.push("");
+		lines.push(
+			"1. `platform plan --intent configure --config ./proflow-config.json`",
+		);
+		lines.push("2. Copy the returned `planRef`.");
+		lines.push("3. `platform apply <planRef>`");
+		lines.push("4. `platform preflight --intent start`");
+		lines.push(
+			"5. Resolve any remaining human or external-resource actions reported by preflight, then run the same preflight command again until the Platform reports the expected readiness state.",
+		);
+	}
+	lines.push("");
+
 	lines.push("## Verification Plan");
 	lines.push("");
 	for (const module of modules) {

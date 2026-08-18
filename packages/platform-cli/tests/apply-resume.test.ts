@@ -491,13 +491,11 @@ test("a failing lifecycle step stops the apply, records FAILED, and persists not
 		const svc = moduleFixture({
 			moduleRef: "svc",
 			kind: "service",
-			configSlots: [configSlot("host", { required: true })],
-			lifecycle: ["describe", "verify", "doctor", "start", "restart", "status"],
+			lifecycle: ["describe", "verify", "doctor", "status", "uninstall"],
 		});
 		const plan: DeploymentPlan = planDeployment({
-			intent: "configure",
+			intent: "uninstall",
 			modules: [svc],
-			config: { svc: { host: "example.com" } },
 		});
 		await savePlan(paths, plan);
 
@@ -506,45 +504,38 @@ test("a failing lifecycle step stops the apply, records FAILED, and persists not
 				module: svc,
 				primitives: {
 					status: () => ({
-						result: ok("svc", { state: "STOPPED" }),
+						result: ok("svc", { state: "RUNNING" }),
 						observedEffects: [],
 					}),
-					restart: () => ({
-						result: failed("svc", "restart exploded"),
+					uninstall: () => ({
+						result: failed("svc", "uninstall exploded"),
 						observedEffects: [],
 					}),
 				},
 			},
 		]);
-		const current: PlanInput = {
-			intent: "configure",
-			modules: [svc],
-			config: { svc: { host: "example.com" } },
-		};
+		const fake = makeFakeDriver();
+		fake.installed.set("svc", "1.0.0");
 
 		const result = await applyPlan({
 			paths,
 			planRef: plan.planRef,
 			catalog,
-			driver: workspaceResidentDriver(),
-			current,
+			driver: fake.driver,
+			current: { intent: "uninstall", modules: [svc] },
 		});
 
 		assert.equal(result.outcome, "FAILED");
 		assert.deepEqual(
 			result.stepResults.map((step) => step.status),
-			["EXECUTED", "FAILED"],
+			["FAILED"],
 		);
 		assert.equal(
-			calls.filter((call) => call.primitive === "restart").length,
+			calls.filter((call) => call.primitive === "uninstall").length,
 			1,
 		);
+		assert.equal(fake.installed.has("svc"), true);
 
-		// config was materialized before the failure (real disk integration)
-		const config = await loadConfig(paths, "svc");
-		assert.equal(config?.publicValues.host, "example.com");
-
-		// the failed plan is not recorded as applied
 		const state = await loadDeploymentState(paths);
 		assert.deepEqual(state?.lastAppliedPlans ?? [], []);
 	} finally {

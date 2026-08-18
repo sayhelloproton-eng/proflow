@@ -203,7 +203,7 @@ test("uninstall plan passes the persistence guard and round-trips savePlan/loadP
 	}
 });
 
-test("planDeployment covers config/package/human/external-resource/lifecycle kinds", () => {
+test("install plan covers package/config/human/external-resource kinds", () => {
 	const modules = [
 		moduleFixture({
 			moduleRef: "svc",
@@ -224,18 +224,56 @@ test("planDeployment covers config/package/human/external-resource/lifecycle kin
 	assert.ok(kinds.has("config"));
 	assert.ok(kinds.has("human"));
 	assert.ok(kinds.has("external-resource"));
+});
 
-	// lifecycle coverage via configure + restart declaration
-	const restart = moduleFixture({
-		moduleRef: "svc",
-		configSlots: [configSlot("host", { required: true })],
-		lifecycle: ["describe", "verify", "doctor", "start", "restart"],
-	});
-	const configurePlan = planDeployment({
+test("configure plan only materializes provided config targets and never activates runtime or blocks on human work", () => {
+	const modules = [
+		moduleFixture({
+			moduleRef: "svc",
+			configSlots: [configSlot("host", { required: true })],
+			requirements: [{ kind: "human", action: "grant access" }],
+			lifecycle: ["describe", "verify", "doctor", "start", "restart"],
+		}),
+		moduleFixture({
+			moduleRef: "ext",
+			kind: "external-resource",
+			configSlots: [configSlot("endpoint", { required: true })],
+			requirements: [{ kind: "human", action: "login" }],
+			lifecycle: ["describe", "verify", "doctor", "start"],
+		}),
+		moduleFixture({
+			moduleRef: "optional-only",
+			configSlots: [configSlot("label", { required: false })],
+		}),
+	];
+
+	const plan = planDeployment({
 		intent: "configure",
-		modules: [restart],
+		modules,
+		config: {
+			svc: { host: "127.0.0.1" },
+			ext: { endpoint: "https://example.invalid" },
+		},
 	});
-	assert.ok(configurePlan.steps.some((step) => step.kind === "lifecycle"));
+
+	assert.deepEqual(
+		plan.steps.map((step) => [step.moduleRef, step.kind]),
+		[
+			["ext", "config"],
+			["svc", "config"],
+		],
+	);
+	assert.ok(
+		plan.steps.every(
+			(step) => step.executeStrategy === ExecuteStrategy.configWrite,
+		),
+	);
+	assert.equal(plan.humanActions.length, 0);
+	assert.equal(
+		plan.moduleTargets.find((target) => target.moduleRef === "optional-only")
+			?.config,
+		undefined,
+	);
 });
 
 test("computeFingerprint is stable for the same plan and reacts to intent/targets/modules", () => {

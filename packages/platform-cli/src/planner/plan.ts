@@ -92,14 +92,15 @@ function planInstallOrConfigure(input: PlanInput): DeploymentPlan {
 	const steps =
 		input.intent === "install"
 			? installSteps(modules, graph)
-			: configureSteps(modules, graph);
+			: configureSteps(modules, graph, input.targets ?? [], input.config);
 	return assemblePlan({
 		intent: input.intent,
 		modules,
 		targets: input.targets ?? [],
 		config: input.config,
 		steps,
-		humanActions: humanActionsFromModules(modules),
+		humanActions:
+			input.intent === "install" ? humanActionsFromModules(modules) : [],
 		now: input.now ?? new Date(),
 	});
 }
@@ -136,32 +137,26 @@ function installSteps(
 function configureSteps(
 	modules: readonly ResolvedModule[],
 	graph: DependencyGraph,
+	targets: readonly ModuleTarget[],
+	config: Record<string, Record<string, string>> | undefined,
 ): DeploymentStep[] {
 	const seq = createSequencer();
 	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
+	const targetByRef = new Map(
+		targets.map((target) => [target.moduleRef, target]),
+	);
 	const steps: DeploymentStep[] = [];
 	for (const ref of graph.order) {
 		const module = byRef.get(ref);
-		if (module === undefined) continue;
-		if (module.configSlots.length > 0) {
-			steps.push(configStep(seq, module));
-		}
-		if (module.kind === "external-resource") {
-			const step = externalResourceStep(seq, module);
-			if (step !== undefined) steps.push(step);
-		}
-		if (module.kind === "service") {
-			if (module.lifecycle.includes("restart")) {
-				steps.push(lifecycleStep(seq, module, "restart"));
-			} else if (module.lifecycle.includes("start")) {
-				steps.push(lifecycleStep(seq, module, "start"));
-			}
-		}
-		for (const requirement of module.requirements) {
-			if (requirement.kind === "human") {
-				steps.push(humanStep(seq, module, requirement.action));
-			}
-		}
+		if (module === undefined || module.configSlots.length === 0) continue;
+		const explicitConfig = targetByRef.get(ref)?.config;
+		const providedConfig = config?.[ref];
+		const hasMaterializationTarget =
+			(explicitConfig !== undefined &&
+				Object.keys(explicitConfig).length > 0) ||
+			(providedConfig !== undefined && Object.keys(providedConfig).length > 0);
+		if (!hasMaterializationTarget) continue;
+		steps.push(configStep(seq, module));
 	}
 	return steps;
 }

@@ -156,6 +156,71 @@ test("plan with invalid --intent returns FAILED", async () => {
 	assert.equal(result.error?.code, "INVALID_REQUEST");
 });
 
+test("plan configure is not gated by runtime or human preflight readiness", async () => {
+	const fixture = await boundRealWorkspaceFixture();
+	const configFile = join(fixture.root, "configure.json");
+	try {
+		const modules = await discoverModules({ workspaceRoot: fixture.root });
+		const target = modules.find((module) => module.configSlots.length > 0);
+		assert.ok(target, "fixture must expose at least one config slot");
+		const slot = target.configSlots[0];
+		assert.ok(slot, "target must expose a concrete config slot");
+		const value =
+			slot.type === "secretRef"
+				? "secret://real1/configure-bootstrap"
+				: slot.type === "url"
+					? "http://127.0.0.1:65530"
+					: slot.type === "path"
+						? fixture.root
+						: "real1-configure-bootstrap";
+
+		await writeFile(
+			configFile,
+			`${JSON.stringify(
+				{ modules: { [target.moduleRef]: { [slot.key]: value } } },
+				null,
+				2,
+			)}
+`,
+		);
+
+		const result = await machineResult(
+			["plan", "--intent", "configure", "--config", configFile],
+			{
+				cwd: WORKSPACE,
+				globalRoot: fixture.globalRoot,
+			},
+		);
+
+		assert.equal(result.status, "SUCCEEDED");
+		const data = result.data as {
+			planRef: string;
+			plan: {
+				intent: string;
+				steps: Array<{
+					moduleRef: string;
+					kind: string;
+					executeStrategy: string;
+				}>;
+				humanActions: unknown[];
+			};
+		};
+		assert.equal(typeof data.planRef, "string");
+		assert.equal(data.plan.intent, "configure");
+		assert.deepEqual(
+			data.plan.steps.map((step) => step.moduleRef),
+			[target.moduleRef],
+		);
+		assert.ok(data.plan.steps.every((step) => step.kind === "config"));
+		assert.ok(
+			data.plan.steps.every((step) => step.executeStrategy === "config:write"),
+		);
+		assert.equal(data.plan.humanActions.length, 0);
+	} finally {
+		await fixture.cleanup();
+	}
+});
+
 test("apply without planRef returns FAILED", async () => {
 	const result = await machineResult(["apply", "--workspace", WORKSPACE]);
 	assert.equal(result.status, "FAILED");

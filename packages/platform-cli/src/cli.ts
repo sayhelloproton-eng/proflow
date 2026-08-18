@@ -657,6 +657,12 @@ async function handlePlan(
 			plan,
 		});
 	}
+	if (intent === "configure") {
+		const plan = planDeployment({ intent, modules: selected, config });
+		await savePlan(ctx.paths, plan);
+		return outcome("plan", "SUCCEEDED", { planRef: plan.planRef, plan });
+	}
+
 	const preflight = await runPreflight(selected, {
 		config,
 		catalog: ctx.catalog,

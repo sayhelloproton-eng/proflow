@@ -609,6 +609,44 @@ test("renderInstallDoc includes module set, requirements, config slots, effects,
 	assert.ok(doc.includes("node"));
 	assert.ok(doc.includes("secret://model-provider/default"));
 	assert.ok(doc.includes("us-east"));
+	assert.ok(doc.includes("## Configure Before Start"));
+	assert.ok(doc.includes("platform preflight --intent start"));
+});
+
+test("renderInstallDoc gives an executable configure → apply → preflight loop for missing required config", () => {
+	const svc = moduleFixture({
+		moduleRef: "svc",
+		kind: "service",
+		configSlots: [
+			{
+				key: "endpoint",
+				type: "url",
+				required: true,
+				description: "service endpoint",
+			},
+			{
+				key: "credential",
+				type: "secretRef",
+				required: true,
+				sensitive: true,
+				description: "credential reference",
+			},
+		],
+	});
+
+	const doc = renderInstallDoc({ modules: [svc] });
+
+	assert.ok(doc.includes('"modules"'));
+	assert.ok(doc.includes('"svc"'));
+	assert.ok(doc.includes('"endpoint": "https://example.invalid"'));
+	assert.ok(doc.includes('"credential": "secret://provider/name"'));
+	assert.ok(
+		doc.includes(
+			"platform plan --intent configure --config ./proflow-config.json",
+		),
+	);
+	assert.ok(doc.includes("platform apply <planRef>"));
+	assert.ok(doc.includes("platform preflight --intent start"));
 });
 
 test("renderInstallDoc redacts a non-secretRef sensitive raw value", () => {
