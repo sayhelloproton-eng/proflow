@@ -3993,7 +3993,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 125,
+      "line": 128,
       "title": "adapter exposes no start, stop, or restart lifecycle",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4007,7 +4007,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 135,
+      "line": 138,
       "title": "descriptor declares no process lifecycle primitives",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4021,7 +4021,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 145,
+      "line": 148,
       "title": "low-level probe is honest about an unreachable provider",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4035,7 +4035,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 152,
+      "line": 155,
       "title": "providerCredential is optional (unauthenticated providers allowed)",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4062,7 +4062,7 @@
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/v1-provider-boundary.test.ts",
       "line": 20,
-      "title": "EXT-MODEL-PROVIDER-02 capability verification is delegated to Model Domain before verification can succeed",
+      "title": "EXT-MODEL-PROVIDER-02 provider-owned verification stops at reachability/auth and delegates capability truth to Model Domain",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4073,7 +4073,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/v1-provider-boundary.test.ts",
-      "line": 36,
+      "line": 39,
       "title": "EXT-MODEL-PROVIDER-03 external provider adapter has no process lifecycle or system-assessment truth",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

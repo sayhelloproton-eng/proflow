@@ -17,7 +17,7 @@ test("EXT-MODEL-PROVIDER-01 provider adapter owns reachability/auth, not FAST/RE
 	);
 });
 
-test("EXT-MODEL-PROVIDER-02 capability verification is delegated to Model Domain before verification can succeed", async () => {
+test("EXT-MODEL-PROVIDER-02 provider-owned verification stops at reachability/auth and delegates capability truth to Model Domain", async () => {
 	const reachableOnly = createBehaviorAdapter({
 		probeProvider: async () => ({
 			reachable: true,
@@ -26,11 +26,14 @@ test("EXT-MODEL-PROVIDER-02 capability verification is delegated to Model Domain
 		}),
 	});
 	const result = await reachableOnly.verify();
-	assert.equal(result.result.status, "ACTION_REQUIRED");
-	assert.equal(
-		result.result.actionRequired?.action,
-		"verify-model-domain-capabilities",
+	assert.equal(result.result.status, "SUCCEEDED");
+	assert.deepEqual(
+		result.result.checks?.map((check) => check.id),
+		["provider-reachability", "provider-auth"],
 	);
+	assert.deepEqual(result.result.data, {
+		capabilityVerificationOwner: "model-runtime",
+	});
 });
 
 test("EXT-MODEL-PROVIDER-03 external provider adapter has no process lifecycle or system-assessment truth", () => {

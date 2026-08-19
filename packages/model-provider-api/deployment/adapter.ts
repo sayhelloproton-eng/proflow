@@ -163,10 +163,7 @@ export function createBehaviorAdapter(input?: {
 			if (!verifyCapabilities) {
 				return {
 					result: {
-						...actionRequired(
-							"verify-model-domain-capabilities",
-							"Capability verification belongs to Model Domain (model-runtime), not this external-resource adapter",
-						),
+						...success({ capabilityVerificationOwner: "model-runtime" }),
 						checks: [reachability, auth],
 					},
 					observedEffects: [PROBE_EFFECT],

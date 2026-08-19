@@ -115,11 +115,14 @@ test("configured adapter delegates capability verification to Model Domain", asy
 		}),
 	});
 	const verifyWithoutCapabilities = await reachableOnly.verify();
-	assert.equal(verifyWithoutCapabilities.result.status, "ACTION_REQUIRED");
-	assert.equal(
-		verifyWithoutCapabilities.result.actionRequired?.action,
-		"verify-model-domain-capabilities",
+	assert.equal(verifyWithoutCapabilities.result.status, "SUCCEEDED");
+	assert.deepEqual(
+		verifyWithoutCapabilities.result.checks?.map((check) => check.id),
+		["provider-reachability", "provider-auth"],
 	);
+	assert.deepEqual(verifyWithoutCapabilities.result.data, {
+		capabilityVerificationOwner: "model-runtime",
+	});
 });
 
 test("adapter exposes no start, stop, or restart lifecycle", () => {
