@@ -205,6 +205,44 @@ test("human rendering formats lifecycle arrays instead of emitting object coerci
 	assert.ok(!rendered.includes("[object Object]"));
 });
 
+test("human rendering preserves verify summaries and doctor recovery guidance", () => {
+	const verification = renderHumanResult(
+		JSON.stringify({
+			status: "BLOCKED",
+			data: [
+				{
+					moduleRef: "execution-runtime",
+					record: { summary: "verify failed (1/2 checks passed)" },
+					result: {
+						status: "FAILED",
+						error: { code: "VERIFY_FAILED", message: "runtime not ready" },
+					},
+				},
+			],
+		}),
+	);
+	assert.ok(verification.includes("Verification:"));
+	assert.ok(verification.includes("execution-runtime: FAILED"));
+	assert.ok(verification.includes("VERIFY_FAILED: runtime not ready"));
+
+	const doctor = renderHumanResult(
+		JSON.stringify({
+			status: "BLOCKED",
+			data: [
+				{
+					moduleRef: "platform-host",
+					status: "FAILED",
+					errors: [{ code: "HOST_DOWN", message: "host not running" }],
+					nextAction: { kind: "repair-plan", summary: "restore host runtime" },
+				},
+			],
+		}),
+	);
+	assert.ok(doctor.includes("Doctor:"));
+	assert.ok(doctor.includes("Error: HOST_DOWN: host not running"));
+	assert.ok(doctor.includes("Next: platform plan --intent repair"));
+});
+
 test("runCli --json returns the structured machine result contract", async () => {
 	const result = await machineResult(["--json"]);
 	assert.equal(result.ok, true);
@@ -378,20 +416,22 @@ test("preflight against the bound real-module workspace returns a typed result",
 	}
 });
 
-test("start gates on managed preflight before lifecycle dispatch", async () => {
+test("start and restart gate on managed preflight before lifecycle dispatch", async () => {
 	const fixture = await boundRealWorkspaceFixture();
 	try {
-		const start = await machineResult(["start"], {
-			cwd: WORKSPACE,
-			globalRoot: fixture.globalRoot,
-		});
-		assert.ok(!Array.isArray(start.data));
-		const data = start.data as { findings?: Array<{ code?: string }> };
-		assert.ok(Array.isArray(data.findings));
-		assert.ok(
-			data.findings.some((finding) => finding.code === "CONFIG_MISSING"),
-		);
-		assert.ok(["ACTION_REQUIRED", "BLOCKED"].includes(start.status));
+		for (const command of ["start", "restart"] as const) {
+			const result = await machineResult([command], {
+				cwd: WORKSPACE,
+				globalRoot: fixture.globalRoot,
+			});
+			assert.ok(!Array.isArray(result.data));
+			const data = result.data as { findings?: Array<{ code?: string }> };
+			assert.ok(Array.isArray(data.findings));
+			assert.ok(
+				data.findings.some((finding) => finding.code === "CONFIG_MISSING"),
+			);
+			assert.ok(["ACTION_REQUIRED", "BLOCKED"].includes(result.status));
+		}
 	} finally {
 		await fixture.cleanup();
 	}

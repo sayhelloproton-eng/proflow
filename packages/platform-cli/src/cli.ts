@@ -1260,10 +1260,10 @@ async function handleLifecycle(
 	args: ParsedArgs,
 	primitive: "start" | "stop" | "restart" | "status",
 ): Promise<CliOutcome> {
-	if (primitive === "start") {
+	if (primitive === "start" || primitive === "restart") {
 		const preflight = await handlePreflight(ctx, args);
 		if (preflight.status !== "SUCCEEDED") {
-			return outcome("start", preflight.status, preflight.data);
+			return outcome(primitive, preflight.status, preflight.data);
 		}
 	}
 	const modules = await discoverModules({ catalog: ctx.catalog });
@@ -1590,8 +1590,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function humanLifecycleLines(data: readonly unknown[]): string[] {
-	const lines = ["Lifecycle:"];
+function humanArrayLines(data: readonly unknown[]): string[] {
+	const isVerification = data.some(
+		(item) => isRecord(item) && isRecord(item.record),
+	);
+	const isDoctor = data.some(
+		(item) =>
+			isRecord(item) && Array.isArray(item.errors) && isRecord(item.nextAction),
+	);
+	const lines = [
+		isVerification ? "Verification:" : isDoctor ? "Doctor:" : "Lifecycle:",
+	];
 	let skippedUnsupported = 0;
 	for (const item of data) {
 		if (!isRecord(item)) continue;
@@ -1630,8 +1639,46 @@ function humanLifecycleLines(data: readonly unknown[]): string[] {
 			const message =
 				typeof error.message === "string" ? error.message : "Unknown error";
 			detail = ` — ${code}: ${message}`;
+		} else if (
+			isRecord(item.record) &&
+			typeof item.record.summary === "string"
+		) {
+			detail = ` — ${item.record.summary}`;
 		}
 		lines.push(`- ${moduleRef}: ${resultStatus}${detail}`);
+
+		if (Array.isArray(item.errors)) {
+			for (const doctorError of item.errors) {
+				if (!isRecord(doctorError)) continue;
+				const code =
+					typeof doctorError.code === "string"
+						? doctorError.code
+						: "COMMAND_FAILED";
+				const message =
+					typeof doctorError.message === "string"
+						? doctorError.message
+						: "Unknown error";
+				lines.push(`  Error: ${code}: ${message}`);
+			}
+		}
+		if (isRecord(item.nextAction)) {
+			if (
+				item.nextAction.kind === "human-action" &&
+				typeof item.nextAction.action === "string" &&
+				typeof item.nextAction.description === "string"
+			) {
+				lines.push(
+					`  Next: ${item.nextAction.action} — ${item.nextAction.description}`,
+				);
+			} else if (
+				item.nextAction.kind === "repair-plan" &&
+				typeof item.nextAction.summary === "string"
+			) {
+				lines.push(
+					`  Next: platform plan --intent repair — ${item.nextAction.summary}`,
+				);
+			}
+		}
 	}
 	if (skippedUnsupported > 0)
 		lines.push(`Skipped unsupported: ${skippedUnsupported}`);
@@ -1639,7 +1686,7 @@ function humanLifecycleLines(data: readonly unknown[]): string[] {
 }
 
 function humanDetailLines(data: unknown): string[] {
-	if (Array.isArray(data)) return humanLifecycleLines(data);
+	if (Array.isArray(data)) return humanArrayLines(data);
 	if (!isRecord(data)) {
 		return data === undefined ? [] : [String(data)];
 	}

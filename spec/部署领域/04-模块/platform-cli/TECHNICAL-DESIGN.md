@@ -195,9 +195,9 @@ Plan 不 apply。
 
 ## 9. `start/stop`
 
-`platform start` 在进入 lifecycle dispatch 前必须复用 Managed Module preflight；preflight 非 `READY` 时直接返回对应 Findings，不进入任何 start dispatch。
+`platform start` 与 `platform restart` 在进入 lifecycle dispatch 前必须复用 Managed Module preflight；preflight 非 `READY` 时直接返回对应 Findings，不进入任何 start/restart dispatch。
 
-只对支持该 primitive 的 Deployment Unit 生效。全平台 start/stop 按依赖拓扑顺序执行。
+只对支持该 primitive 的 Deployment Unit 生效。全平台 start/stop/restart 按依赖拓扑顺序执行。
 
 不要求 library/remote API 实现 start/stop。
 
