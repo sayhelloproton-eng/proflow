@@ -170,6 +170,10 @@
   dir: packages/execution-runtime
   intents:
     - real1-execution-readiness-self-heal
+"@tomflow/proflow-execution-runtime@0.1.4":
+  dir: packages/execution-runtime
+  intents:
+    - real1-execution-port-preflight
 "@tomflow/proflow-model-contracts@0.1.1":
   dir: packages/model-contracts
   intents:
