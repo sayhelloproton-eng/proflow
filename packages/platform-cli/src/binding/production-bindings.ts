@@ -13,7 +13,6 @@ type ResolvedSource = ResolvedModule["source"];
 // from being injected into the catalog seam.
 export interface DeploymentAdapterBinding {
 	behaviorAdapter: Record<string, unknown>;
-	materializeProductionConfig?: (...args: unknown[]) => unknown;
 }
 
 // The adapter-side capability a module may expose so the shipped Platform CLI
@@ -89,19 +88,6 @@ export async function importRawAdapter(
  * (ACTION_REQUIRED / NOT_READY). Platform CLI never invents a service or
  * resource reality: it only relays the adapter's own current reality.
  */
-function materializerBinding(
-	namespace: Record<string, unknown>,
-): Pick<DeploymentAdapterBinding, "materializeProductionConfig"> {
-	const materializer = namespace.materializeProductionConfig;
-	return typeof materializer === "function"
-		? {
-				materializeProductionConfig: materializer as (
-					...args: unknown[]
-				) => unknown,
-			}
-		: {};
-}
-
 export async function buildProductionBindings(
 	options: ProductionBindingOptions,
 ): Promise<ReadonlyMap<string, DeploymentAdapterBinding>> {
@@ -140,10 +126,7 @@ export async function buildProductionBindings(
 				typeof binding.behaviorAdapter === "object" &&
 				binding.behaviorAdapter !== null
 			) {
-				bindings.set(module.packageName, {
-					...binding,
-					...materializerBinding(namespace),
-				});
+				bindings.set(module.packageName, binding);
 			}
 		} catch (error) {
 			throw new PlatformError(
