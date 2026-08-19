@@ -27,7 +27,8 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"zod": "4.1.12"
+		"zod": "4.1.12",
+		"@tomflow/proflow-module-contract": "workspace:^"
 	},
 	"devDependencies": {
 		"@tomflow/proflow-agent-runtime": "workspace:^",
@@ -35,7 +36,6 @@
 		"@tomflow/proflow-execution-browser-extension": "workspace:^",
 		"@tomflow/proflow-execution-local": "workspace:^",
 		"@tomflow/proflow-execution-runtime": "workspace:^",
-		"@tomflow/proflow-module-contract": "workspace:^",
 		"@tomflow/proflow-platform-host": "workspace:^",
 		"@tomflow/proflow-task-migration-runner": "workspace:^",
 		"@tomflow/proflow-task-orchestration": "workspace:^",

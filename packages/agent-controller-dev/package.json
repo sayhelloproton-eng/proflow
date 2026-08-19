@@ -61,11 +61,11 @@
 	},
 	"devDependencies": {
 		"@tomflow/proflow-deployment-conformance": "workspace:^",
-		"@tomflow/proflow-module-contract": "workspace:^",
 		"yaml": "2.9.0"
 	},
 	"dependencies": {
-		"@tomflow/proflow-agent-runtime": "workspace:^"
+		"@tomflow/proflow-agent-runtime": "workspace:^",
+		"@tomflow/proflow-module-contract": "workspace:^"
 	},
 	"keywords": [
 		"proflow",
