@@ -26,19 +26,22 @@ importers:
       '@tomflow/proflow-agent-runtime':
         specifier: workspace:^
         version: link:../agent-runtime
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
-      '@tomflow/proflow-module-contract':
-        specifier: workspace:^
-        version: link:../module-contract
       yaml:
         specifier: 2.9.0
         version: 2.9.0
 
   packages/agent-gateway:
     dependencies:
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
       zod:
         specifier: 4.1.12
         version: 4.1.12
@@ -58,9 +61,6 @@ importers:
       '@tomflow/proflow-execution-runtime':
         specifier: workspace:^
         version: link:../execution-runtime
-      '@tomflow/proflow-module-contract':
-        specifier: workspace:^
-        version: link:../module-contract
       '@tomflow/proflow-platform-host':
         specifier: workspace:^
         version: link:../platform-host
@@ -79,13 +79,13 @@ importers:
       '@tomflow/proflow-agent-runtime':
         specifier: workspace:^
         version: link:../agent-runtime
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
-      '@tomflow/proflow-module-contract':
-        specifier: workspace:^
-        version: link:../module-contract
       yaml:
         specifier: 2.9.0
         version: 2.9.0
@@ -111,13 +111,13 @@ importers:
       '@tomflow/proflow-agent-runtime':
         specifier: workspace:^
         version: link:../agent-runtime
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
-      '@tomflow/proflow-module-contract':
-        specifier: workspace:^
-        version: link:../module-contract
       yaml:
         specifier: 2.9.0
         version: 2.9.0
@@ -170,6 +170,9 @@ importers:
       '@tomflow/proflow-execution-contracts':
         specifier: workspace:^
         version: link:../execution-contracts
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
@@ -177,9 +180,6 @@ importers:
       '@tomflow/proflow-execution-runtime':
         specifier: workspace:^
         version: link:../execution-runtime
-      '@tomflow/proflow-module-contract':
-        specifier: workspace:^
-        version: link:../module-contract
 
   packages/execution-contracts:
     dependencies:
@@ -296,6 +296,9 @@ importers:
       '@tomflow/proflow-execution-contracts':
         specifier: workspace:^
         version: link:../execution-contracts
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
       '@tomflow/proflow-task-migration-runner':
         specifier: workspace:^
         version: link:../task-migration-runner
@@ -321,9 +324,6 @@ importers:
       '@tomflow/proflow-model-runtime':
         specifier: workspace:^
         version: link:../model-runtime
-      '@tomflow/proflow-module-contract':
-        specifier: workspace:^
-        version: link:../module-contract
 
   packages/task-migration-runner:
     dependencies:
