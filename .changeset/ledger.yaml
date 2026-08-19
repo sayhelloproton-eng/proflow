@@ -238,6 +238,10 @@
   dir: packages/platform-cli
   intents:
     - real1-corrupted-config-recovery
+"@tomflow/proflow-platform-cli@0.1.11":
+  dir: packages/platform-cli
+  intents:
+    - real1-pnpm-uninstall
 "@tomflow/proflow-platform-cli@0.1.2":
   dir: packages/platform-cli
   intents:
