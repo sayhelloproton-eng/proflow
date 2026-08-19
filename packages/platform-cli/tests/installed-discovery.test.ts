@@ -24,7 +24,6 @@ function descriptorFor({ moduleRef, packageName }: FixtureDescriptor) {
 		packageName,
 		moduleVersion: "1.0.0",
 		kind: "service",
-		installClass: "optional",
 		identity: {
 			domain: "deployment-governance",
 			summary: "Installed discovery test fixture",
@@ -75,10 +74,8 @@ async function writeWorkspacePackage(
 			version: "1.0.0",
 			proflow: {
 				module: true,
-				installClass: "optional",
 				descriptor: "./deployment/descriptor.ts",
 				manifest: "./proflow.module.json",
-				installRequires: [],
 			},
 		}),
 	);
@@ -115,10 +112,8 @@ async function writeInstalledPackage(
 			},
 			proflow: {
 				module: true,
-				installClass: "optional",
 				descriptor: "./deployment/descriptor.js",
 				manifest: "./proflow.module.json",
-				installRequires: [],
 			},
 		}),
 	);
