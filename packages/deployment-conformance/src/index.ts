@@ -307,7 +307,8 @@ export async function runPackageConformance(
 	if (!parsedProflow.success) {
 		issues.push({
 			code: "PROFLOW_PACKAGE_METADATA_INVALID",
-			message: "package.json.proflow must declare module/descriptor/manifest only",
+			message:
+				"package.json.proflow must declare module/descriptor/manifest only",
 		});
 	} else {
 		const manifestPath = resolve(packageDirectory, parsedProflow.data.manifest);
@@ -537,7 +538,8 @@ export async function runPackageConformance(
 			) {
 				issues.push({
 					code: "SERVICE_PRODUCTION_BINDING_MISSING",
-					message: "service adapter must export package-owned createProductionBinding",
+					message:
+						"service adapter must export package-owned createProductionBinding",
 				});
 			}
 		} catch {
