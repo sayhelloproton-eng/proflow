@@ -21,7 +21,9 @@ export const descriptor = {
 		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
 	],
 	configSlots: [],
-	lifecycle: { supported: ["describe", "preflight", "status", "verify", "doctor"] },
+	lifecycle: {
+		supported: ["describe", "preflight", "status", "verify", "doctor"],
+	},
 	verification: {
 		checks: [
 			{
