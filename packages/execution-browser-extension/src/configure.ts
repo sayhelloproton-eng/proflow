@@ -52,7 +52,9 @@ export async function materializeBrowserExtensionConfig(
 async function main(): Promise<void> {
 	const workspaceRoot = workspaceFromArgs(process.argv.slice(2));
 	const result = await materializeBrowserExtensionConfig(workspaceRoot);
-	process.stdout.write(`${JSON.stringify({ status: "MATERIALIZED", ...result })}\n`);
+	process.stdout.write(
+		`${JSON.stringify({ status: "MATERIALIZED", ...result })}\n`,
+	);
 }
 
 if (import.meta.main) await main();
