@@ -1,69 +1,71 @@
 export const descriptor = {
-	"contract": "module",
-	"contractVersion": "1.0.0",
-	"moduleRef": "task-migration-runner",
-	"packageName": "@tomflow/proflow-task-migration-runner",
-	"moduleVersion": "0.1.2",
-	"kind": "cli",
-	"templateVersion": "1.0.0",
-	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"identity": {
-		"domain": "task-orchestration",
-		"summary": "Deterministically discovers, applies and verifies Task Store SQLite schema migrations."
+	contract: "module",
+	contractVersion: "1.0.0",
+	moduleRef: "task-migration-runner",
+	packageName: "@tomflow/proflow-task-migration-runner",
+	moduleVersion: "0.1.2",
+	kind: "cli",
+	templateVersion: "1.0.0",
+	platformCompatibility: ">=1.0.0 <2.0.0",
+	identity: {
+		domain: "task-orchestration",
+		summary:
+			"Deterministically discovers, applies and verifies Task Store SQLite schema migrations.",
 	},
-	"provides": [],
-	"requires": [],
-	"requirements": [
+	provides: [],
+	requires: [],
+	requirements: [
 		{
-			"kind": "runtime",
-			"runtime": "node",
-			"versionRange": ">=24.19.0"
-		}
+			kind: "runtime",
+			runtime: "node",
+			versionRange: ">=24.19.0",
+		},
 	],
-	"configSlots": [
+	configSlots: [
 		{
-			"key": "databasePath",
-			"type": "path",
-			"required": true,
-			"description": "Task SQLite database path"
-		}
+			key: "databasePath",
+			type: "path",
+			required: true,
+			description: "Task SQLite database path",
+		},
 	],
-	"lifecycle": {
-		"supported": [
+	lifecycle: {
+		supported: [
 			"describe",
 			"preflight",
 			"status",
 			"verify",
 			"doctor",
-			"migrate"
-		]
+			"migrate",
+		],
 	},
-	"verification": {
-		"checks": [
+	verification: {
+		checks: [
 			{
-				"id": "migration-state-pass",
-				"description": "Migration state matches the Task schema",
-				"lifecycle": "verify"
-			}
-		]
+				id: "migration-state-pass",
+				description: "Migration state matches the Task schema",
+				lifecycle: "verify",
+			},
+		],
 	},
-	"effects": [
+	effects: [
 		{
-			"kind": "filesystem",
-			"description": "Applies Task Store migration SQL to SQLite",
-			"retention": "preserve"
-		}
+			kind: "filesystem",
+			description: "Applies Task Store migration SQL to SQLite",
+			retention: "preserve",
+		},
 	],
-	"documentation": [
+	documentation: [
 		{
-			"id": "overview",
-			"path": "./README.md",
-			"description": "Package-owned module overview"
+			id: "overview",
+			path: "./README.md",
+			description: "Package-owned module overview",
 		},
 		{
-			"id": "configuration",
-			"path": "./CONFIGURATION.md",
-			"description": "Module configuration fields, sources and materialization instructions"
-		}
-	]
+			id: "configuration",
+			path: "./CONFIGURATION.md",
+			description:
+				"Module configuration fields, sources and materialization instructions",
+		},
+	],
 } as const;
