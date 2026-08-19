@@ -16,20 +16,21 @@ contractRefs: []
 
 # 部署领域｜Module Registry
 
-> 这里建立 **Bounded Context → Module → Package / Service / Process / Deployment Unit** 的工程映射。Module 是治理/实现单元，不自动等于 Service 或 Process。
+> Module 是治理身份，不自动等于 Service 或 Process；Package 自己拥有状态、配置与生命周期真相，Platform 只聚合/分发。
 
-| moduleRef | package | kind | service | process/deployment | technical docs |
-|---|---|---|---|---|---|
-| `module-contract` | `@tomflow/proflow-module-contract` | library | — | — | [module-contract](./module-contract/README.md) |
-| `module-template` | `@tomflow/proflow-module-template` | library | — | — | [module-template](./module-template/README.md) |
-| `deployment-conformance` | `@tomflow/proflow-deployment-conformance` | library/cli | — | — | [deployment-conformance](./deployment-conformance/README.md) |
-| `platform-cli` | `@tomflow/proflow-platform-cli` | cli-app | — | platform-cli | [platform-cli](./platform-cli/README.md) |
-| `module-skill` | `@tomflow/proflow-module-skill` | agent-skill | — | — | [module-skill](./module-skill/README.md) |
+| moduleRef | package | kind | technical docs |
+|---|---|---|---|
+| `module-contract` | `@tomflow/proflow-module-contract` | library | [module-contract](./module-contract/README.md) |
+| `module-template` | `@tomflow/proflow-module-template` | library | [module-template](./module-template/README.md) |
+| `deployment-conformance` | `@tomflow/proflow-deployment-conformance` | library/cli | [deployment-conformance](./deployment-conformance/README.md) |
+| `platform-cli` | `@tomflow/proflow-platform-cli` | cli-app | [platform-cli](./platform-cli/README.md) |
+| `module-skill` | `@tomflow/proflow-module-skill` | agent-skill | [module-skill](./module-skill/README.md) |
 
 ## 规则
 
-- 正式跨域依赖只指向 Module 的 Public Provides/Contract。
-- Library 不伪造 start/stop。
-- Service 只有真实长期 runtime 时才存在。
-- Deployment Unit 的真实生命周期由 Deployment Domain 治理。
-- Module 文档通过链接引用领域级 canonical Contract / Flow / Persistence，不为“模板完整”复制第二套正式事实。
+- Runtime cross-module dependency 只通过 `provides/requires`；npm dependency 由 package manager 负责。
+- Library 不伪造 lifecycle。
+- Service/External Resource 只暴露真实拥有的 status/validate/start/stop。
+- Platform CLI 不实现 Module 私有验证/health/config truth。
+- Config-bearing Module 必须提供足够的静态配置指导。
+- 不存在 Core/installRequires 安装模型，也不存在 package-owned 单包 install 产品入口。

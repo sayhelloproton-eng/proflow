@@ -1,7 +1,7 @@
 ---
 docId: DEPLOYMENT-DOC-03-03
-title: Verify / Doctor / Manifest / Platform READY
-docType: verification
+title: Module 状态事实与 Platform 聚合边界
+docType: observation
 authority: normative
 lifecycle: active
 domain: deployment-governance
@@ -12,155 +12,51 @@ requires: []
 contractRefs: []
 ---
 
-# Verify / Doctor / Manifest / Platform READY
+# Module 状态事实与 Platform 聚合边界
 
-## 1. Verify Ownership
+> 顶层 `verify` / `doctor` / `manifest` / `status` / Platform READY 产品模型已删除。
 
-领域 Owner 定义“什么叫真的可用”；Deployment 调用并记录。
+## 1. Module owns truth
 
-例：
+每个 Module 自己负责其状态与验证逻辑。Platform 不复制领域 health/config/runtime 判断。
 
-- Model Runtime：thinking/no-thinking、Vision、structured output 等真实 capability verification；
-- Execution Browser：Extension/Host/runtime handshake 与业务链验证；
-- Agent Gateway：认证与下游路由可用；
-- Task Store：schema/migration/读写 contract。
-
-Deployment 不复制这些测试逻辑。
-
-## 2. Verification Record
-
-至少：
-
-```ts
-interface VerificationRecord {
-  verificationRef: string;
-  moduleRef: string;
-  moduleVersion: string;
-  resourceIdentity?: string;
-  resourceVersion?: string;
-  result: "PASS" | "FAIL";
-  summary: string;
-  evidenceRefs: string[];
-  verifiedAt: string;
-}
-```
-
-记录按版本/资源身份保留，不覆盖历史。
-
-## 3. 当前 READY
-
-Module 当前 READY 不只看历史 PASS：
+`platform modules` 只聚合最小统一事实：
 
 ```text
-当前版本/资源身份
-+ 当前 live status
-+ 该版本有效 verification
-+ 必要 config/dependency
+moduleRef
+version
+configStatus
+missingConfig?
+runtimeStatus
 ```
 
-## 4. Doctor
-
-Doctor 输出：
-
-- checks；
-- current reality；
-- error codes；
-- evidence refs；
-- recommended next action。
-
-默认无副作用。
-
-## 5. Manifest
-
-Manifest 包含：
-
-- current modules；
-- module/adapter versions；
-- external resource identity/version；
-- deployment unit runtime status；
-- provides/requires；
-- config readiness（不泄漏 secret）；
-- verification history 摘要；
-- pending action required；
-- platform overall status。
-
-## 6. Platform State
+其中：
 
 ```text
-READY
-DEGRADED
-ACTION_REQUIRED
-NOT_READY
+configStatus = READY | INCOMPLETE | INVALID
+runtimeStatus = RUNNING | STOPPED | FAILED | UNKNOWN
 ```
 
-### READY
+`missingConfig` 只在 `INCOMPLETE` 时出现。
 
-所有 required Module、dependency、config、runtime、verify、cross-module checks 都满足。
+## 2. 没有 Platform READY
 
-### DEGRADED
+`platform modules` 不计算整体 readiness，也不输出 `READY/DEGRADED/ACTION_REQUIRED/NOT_READY` 等 Platform 状态。
 
-平台可提供核心能力，但存在非阻断 Module/Optional dependency 问题。
+真正能否启动由 `platform start` 在当次调用中分发各 Module validate/preflight 得到 authoritative result。
 
-### ACTION_REQUIRED
+## 3. 没有 Manifest 命令
 
-有阻断的明确人工步骤。
+Module identity/version/topology/knowledge 分别由真实 package、descriptor 与 `platform docs` 聚合；不再生成第二份 Platform manifest 作为用户事实源。
 
-### NOT_READY
+## 4. 没有 Doctor 命令
 
-required dependency/verify/runtime 失败。
+诊断与 actionable error 属于 owning Module。Module 可在 status/validate/lifecycle result 中返回错误码、message、actionable information；Platform 只保留并透传。
 
-## 7. 禁止假 READY
+## 5. Carrier / Browser / Model 等领域
 
-历史 state、上次 heartbeat、上次 verify 不能替代当前 reality。Manifest/status 必须明确 freshness/observedAt。
+这些领域仍可拥有自己的真实 verification/diagnostic 能力，但不再被包装成顶层 Platform `verify/doctor`。相关知识通过 Module docs 暴露，启动前条件由 Module validate/preflight 判断。
 
----
+## 6. 历史事实
 
-## 当前正式约束：Platform READY
-
-Platform READY = required modules 已安装/配置 + logical dependencies resolved + required runtimes 当前 READY + installed version verify PASS + cross-module verification PASS + blocking ACTION_REQUIRED=0。Deployment state.json/last-online 绝不冒充 current reality；Gateway ONLINE 也不等于 Platform READY。
-
-## 8. ChatGPT Role READY / Doctor
-
-Custom GPT Role/Carrier READY 采用行为验证：
-
-```text
-Role/GPT reachable
-required capabilities configured
-Actions schema current
-Action auth valid
-Gateway/public ingress reachable
-required File Bridge path usable
-Preview/real Action E2E PASS
-```
-
-`recommendedModel` 不作为 READY equality check。
-
-Doctor 在适用场景额外诊断：
-
-```text
-Actions vs Apps conflict
-Code Interpreter/Web Search requirement mismatch
-action-domain allowlist
-public GPT privacy policy requirement
-GPT version restore 后 auth 失效
-File relay/TLS/443 failure
-```
-
-Doctor 默认只报告事实与 repair recommendation；需要改 Web 配置时返回 `ACTION_REQUIRED`（`actionRequired.kind=WEB`）或新的 repair plan。
-
-
-## 15. Carrier doctor 追加检查
-
-Custom GPT/Browser Carrier doctor 至少应能够表达/引导检查：
-
-```text
-roleRef/package mapping
-role-scoped Action credential/auth
-static OpenAPI drift
-required File Bridge / Code Interpreter / Web Search
-routine consequential=false / Always Allow target state
-ChatGPT login/workspace/domain allowlist
-Browser Conversation observation/recovery capability
-```
-
-Role READY 不要求 Task/Worker存在；`workerRef/c-id` 是 J1 Task-scoped runtime fact，不属于 Deployment manifest。System Observer可读取 doctor summary 做系统评估，但不能把 assessment反写 Deployment READY。
+历史记录可以由各领域继续保留，但不能冒充当前 runtime truth。Platform modules 必须以 Module 当前 observation 为准。

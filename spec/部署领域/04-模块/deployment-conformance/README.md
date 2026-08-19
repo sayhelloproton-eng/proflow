@@ -17,46 +17,31 @@ contractRefs:
 
 # `deployment-conformance` Module
 
-## Identity
-
-```text
-Domain: deployment-governance
-Bounded Context: deployment-governance
-moduleRef: deployment-conformance
-package: @tomflow/proflow-deployment-conformance
-kind: cli
-installClass: core
-service: none
-```
-
 ## Purpose
 
-Deployment Conformance 是 Module Governance 强制门。它验证一个 package 是否具备被 Registry/Workspace Discovery、Platform CLI lifecycle 和 AI docs aggregation 稳定消费的真实形式；不替代业务领域测试。
+Conformance 是 Module Governance 的机械门，只验证当前薄 Platform 所依赖的公开事实一致性。
 
-## Gates
+## Current conformance surface
 
-### C1 Static Contract
+- package identity 与 `package.json.proflow.module/descriptor`；
+- static `proflow.module.json` 与 runtime descriptor 一致；
+- `moduleRef/packageName/version/kind`；
+- Runtime `provides/requires`；
+- `configSlots/documentation`；
+- Module status observation shape；
+- 真实适用的 lifecycle declaration/adapter；
+- config-bearing Module 的配置指导。
 
-验证 Descriptor：identity/installClass/Provides/Requires/requirements/config/lifecycle/verification/effects cleanup/documentation。
+明确不再验证：
 
-### C2 Package
+```text
+installClass
+installRequires / install closure
+Core guard
+package-owned self install
+Platform plan/apply/verify/doctor/manifest
+```
 
-验证 package identity/exports、`package.json.proflow`、Descriptor 一致性、package-owned docs、build/public entry 与 secret/publishability 基础。
+## Ownership
 
-### C3 Behavior
-
-验证声明的 lifecycle/Adapter 使用 structured result，且不伪造 unsupported lifecycle 或超出 effect ownership 的 cleanup。
-
-## Canonical technical docs
-
-- [TECHNICAL-DESIGN.md](TECHNICAL-DESIGN.md)
-- [module-contract/TECHNICAL-DESIGN.md](../module-contract/TECHNICAL-DESIGN.md)
-- [module-template/TECHNICAL-DESIGN.md](../module-template/TECHNICAL-DESIGN.md)
-
-## Boundary
-
-Conformance 不查询 Registry 可安装集合、不执行 package manager install/remove、不拥有业务文档内容。它只证明 package 形式与声明行为符合统一 Contract。
-
-## Testing
-
-当前 Real-1 blocker 整改先更新实现和人工真实验证；正式自动化测试用例/evidence 在人工验证通过后再更新。
+Conformance 可以使用 fake resource 验证 adapter contract，但不替代领域业务 E2E。Platform CLI 不因 conformance 增加 module-specific 业务逻辑。

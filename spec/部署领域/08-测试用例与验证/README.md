@@ -1,33 +1,16 @@
-# Deployment Governance 实施验证
+# 部署领域｜测试用例与验证
 
-本目录保存 Wave 0 Module Governance Bootstrap 的开发后验证证据。产品语义仍以 `spec/` 中既有设计与 FINAL FROZEN Test Plan 为准；这里仅记录可执行测试、实际 RED/GREEN 与结项结果。
+## Current truth
 
-## 范围
+Executable test inventory must follow the frozen six-command Platform CLI and current Module Governance contract.
 
-- `modules/module-contract.md`
-- `modules/module-template.md`
-- `modules/deployment-conformance.md`
+R4 rules:
 
-任务治理 ZIP 仅用于施工调度，没有复制或提交到本仓库。
+- tests encoding deleted Plan/Apply/Upgrade/Verify/Doctor/Manifest behavior are deleted or rewritten;
+- tests do not force production code to preserve removed product concepts;
+- generated inventories are regenerated through existing governance tooling after test migration, not hand-edited as product truth;
+- business-domain tests change only when a mechanical descriptor/adapter contract assertion requires it.
 
-## Wave 0 closure
+Primary current tests cover Contract/Template/Skill/Conformance, six Platform commands and the simulated human Golden Path.
 
-```text
-module-contract Critical Proofs          5/5 PASS
-module-template Critical Proofs          4/4 PASS
-deployment-conformance Critical Proofs   4/4 PASS
-Total                                   13/13 PASS
-
-real temporary filesystem               PASS
-six generated profiles                  PASS
-generated TypeScript typecheck           PASS
-generated C1/C2/C3                       PASS
-intentional C1/C2/C3 breakage            FAIL as required
-bootstrap packages reconciliation        PASS
-```
-
-可执行闭环位于 `packages/deployment-conformance/tests/bootstrap-reconciliation.test.ts`。它不使用真实 External Resource，并且不会把 fake resource 的合同测试解释为真实 availability。
-
-## Foundation closure
-
-Wave 0.1 P1 修复、平台公共约定 architecture gate、真实 RED/GREEN 与 future gates 见 `foundation-closure.md`。
+Historical generated inventory `当前全量测试用例目录-20260815.md` remains historical until R4 regeneration and must not be interpreted as current frozen acceptance truth.

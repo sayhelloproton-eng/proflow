@@ -20,26 +20,26 @@ sourceRefs:
 testPlanAuthoringOrder: 1
 ---
 
-# Deployment｜开发前测试计划
+# 部署领域｜测试计划
 
-> Test Plan Authoring Order：**1**  
-> 本目录新增于 FINAL FROZEN DDD/SDD 之后；不修改领域文档，只把已有规范转成开发前验证合同。
+当前测试计划只围绕两层正式事实：
 
-## 阅读顺序
+```text
+Module Governance
++ six-command Platform CLI
+```
 
-1. [00-领域测试总计划](00-领域测试总计划.md)
-2. Module Plans：
-- [module-contract](modules/module-contract.md) — Wave 0
-- [module-template](modules/module-template.md) — Wave 0
-- [deployment-conformance](modules/deployment-conformance.md) — Wave 0
-- [platform-cli](modules/platform-cli.md) — Wave 6
-- [module-skill](modules/module-skill.md) — Wave 6
+## Module governance plans
 
-## Frozen Quality Sources
+- [module-contract](modules/module-contract.md)
+- [module-template](modules/module-template.md)
+- [module-skill](modules/module-skill.md)
+- [deployment-conformance](modules/deployment-conformance.md)
 
-- [`DEPLOYMENT-DOC-05-02`](../05-质量与部署/02-测试门禁与真实验收.md)
-- [`DEPLOYMENT-DOC-05-03`](../05-质量与部署/03-新仓库实施顺序-停止门与非目标.md)
+## Platform CLI plan
 
-## 原则
+- [platform-cli](modules/platform-cli.md)
 
-Domain Test Plan 不重新定义状态/API/DDL/Package；Module Test Plan 也不把 TODO 的 `PENDING_DECISION / NOT_FROZEN / PLANNED` 自动改成实施依赖。测试计划只冻结可从现有规范证明的 Test Objective 与 Gate。
+旧 command/engine 测试只能作为历史参考，不能作为当前产品 acceptance truth。
+
+最终验证路径固定为：`install → modules → docs → configure via Module docs → start → modules → stop → uninstall`。

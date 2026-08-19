@@ -1,6 +1,6 @@
 ---
 docId: DEPLOYMENT-DOC-03-01
-title: Deployment Plan / Apply / ACTION_REQUIRED / 恢复
+title: 六命令编排流与失败边界
 docType: runtime-flow
 authority: normative
 lifecycle: active
@@ -12,146 +12,79 @@ requires: []
 contractRefs: []
 ---
 
-# Deployment Plan / Apply / ACTION_REQUIRED / 恢复
+# 六命令编排流与失败边界
 
-## 1. 为什么需要 Plan
+> 旧 Plan / Apply / Resume 产品流程已退休。本文给出当前薄 Platform CLI 的运行流。
 
-部署包含真实副作用和人工步骤。AI 不能边想边执行全部动作；需要把“准备做什么”先固定成结构化计划。
-
-## 2. Plan 最小合同
-
-```ts
-interface DeploymentPlan {
-  planRef: string;
-  intent: "install" | "configure" | "upgrade" | "uninstall" | "repair";
-  moduleTargets: ModuleTarget[];
-  resolvedModules: ResolvedModule[];
-  steps: DeploymentStep[];
-  effects: DeploymentEffect[];
-  humanActions: HumanAction[];
-  verification: VerificationStep[];
-  fingerprint: string;
-  createdAt: string;
-}
-```
-
-Plan 一旦确认后不可原地改；条件变化需要新 Plan 或明确判定 `PLAN_STALE`。
-
-## 3. Step
-
-每步至少：
+## 1. 总原则
 
 ```text
-stepRef
-moduleRef
-kind
-preconditions
-expectedEffect
-check strategy
-execute strategy（若可自动）
-postcondition
+用户意图 = 六个 CLI 命令
+内部 primitive = 实现细节，不进入用户心智
 ```
 
-不是任意 shell list；Step 由 Platform CLI 的受控 planner 根据 Module primitives 生成。
+Platform 不再生成 `planRef/stepRef/applyRef/resumeRef`，也不维护部署事务状态机。
 
-## 4. 集中确认
-
-AI 向用户汇总：
-
-- 安装/升级哪些 Module；
-- 改哪些实例配置；
-- 哪些外部资源；
-- 哪些服务会 start/stop；
-- 是否 migration；
-- Potential Effects；
-- Human Actions。
-
-一次确认 Plan，避免每个 npm 命令重复确认。
-
-## 5. ACTION_REQUIRED
-
-标准结构：
-
-```json
-{
-  "status": "ACTION_REQUIRED",
-  "planRef": "plan-...",
-  "stepRef": "step-...",
-  "actionRequired": {
-    "kind": "HUMAN",
-    "instruction": "...",
-    "verificationHint": "..."
-  }
-}
-```
-
-场景：
-
-- Chrome 中加载/授权 Extension；
-- ChatGPT 登录；
-- 创建或配置 Custom GPT；
-- Dev Tunnel interactive login；
-- API credential；
-- 购买/账号授权。
-
-## 6. Resume
-
-相同 Plan 再 apply：
+## 2. Install
 
 ```text
-重读 reality
-→ 已满足的人工步骤 SKIP
-→ 继续后续步骤
+Resolve Workspace
+→ 校验已有 Workspace-local metadata
+→ Registry 动态获得完整 ProFlow package/version set
+→ 一次 package-manager transaction 同步
+→ 重新读取真实安装结果
+→ 校验 Module descriptors
+→ Fresh 时初始化最小 .proflow metadata
 ```
 
-无需 Workflow Engine。
+失败即失败；不建立成功 Binding，不进入 Plan/Apply recovery。
 
-## 7. Package bootstrap 与 uninstall recovery
+## 3. Modules / Docs
 
-Fresh install 的 package step 只冻结 Registry 已确认的精确 package/version。Apply 前后都通过 package manager/local resolution 观察安装 reality；中断后再次 apply 时，已真实安装的 package step 必须 SKIP。
+`modules` 只读聚合当前 Module-owned status observation；`docs` 只读聚合 Module-owned knowledge。两者都不修复、不材料化配置、不执行人工动作。
 
-Uninstall 的顺序固定为：
+## 4. Start
 
 ```text
-core/dependency guard
-→ package-owned uninstall lifecycle（若支持）
-→ cleanup owner removable effects
-→ package manager remove
-→ observe package absent
+Discover
+→ Build runtime dependency order
+→ Validate all applicable Modules (fail-fast)
+→ only if all PASS: Start in dependency order (fail-fast)
 ```
 
-若 cleanup reality 或 package removal reality 无法确认，STOP；不得盲重放 destructive cleanup。普通 uninstall 不删除 `preserve`/`explicit-purge` 数据。
+Validate 阶段失败时，本轮不得启动任何 Module。
 
-## 8. Fail/Unknown
+Start 阶段中途失败时：后续 Module 不再启动；已成功启动者保持真实现状；Platform 不自动 rollback/retry/repair。
 
-Deployment 的 package/install/config 操作通常可通过现场重检确定状态。若 effect reality 无法确认，Step 必须停止并由 doctor/repair plan 处理；不能盲目重复副作用动作。
+Module 返回 `ACTION_REQUIRED` 等结构化信息时可原样透传，Platform 不建立 resumable workflow。
 
-## 9. 并发
-
-v1 同 workspace 同时只允许一个 apply。使用简单 file lock；不设计 distributed lock。
-
----
-
-## 当前正式约束：resume / recovery
-
-同一 planRef 重新 apply 时先观察现实，已满足 step 跳过；ACTION_REQUIRED 是正式 resumable boundary，但不演化为 job/lease/worker engine。Upgrade failure = STOP + verify/doctor；rollback 通过新的目标版本 Plan，不做自动事务式 rollback。
-
-## 10. Custom GPT Web-only 配置
-
-Custom GPT create/update 当前仍是 Web 操作。Deployment 不新增第二套状态；继续返回标准：
+## 5. Stop
 
 ```text
-status = ACTION_REQUIRED
-actionRequired.kind = WEB
-→ open GPT editor
-→ apply v1 Instructions + required Capabilities
-→ install static Actions schema
-→ configure role API-key/Bearer auth
-→ Knowledge specialization is deferred; v1 does not require Knowledge upload/verify
-→ save
-→ Preview/real verify
+Discover
+→ Build runtime dependency order
+→ Reverse order
+→ Module stop (fail-fast)
 ```
 
-同一 planRef resume 时先 verify reality，已经满足的 Web step SKIP，不要求用户机械重复。
+Stop 不做 validate，也不隐式执行其它命令。
 
-Agent Carrier setup/verify 应把 routine operation 的 `x-openai-isConsequential:false` 与“一次选择 Always Allow”作为 v1 目标配置步骤，使 permission prompt 退出正常 Task main path。真实目标环境仍必须在 FINAL Carrier E2E 中证明该行为；在证据完成前，verify/doctor 应标明实际验证状态，Browser 保留 unexpected-prompt recovery。该 UI 行为不等于 Execution Effect Approval。
+## 6. Uninstall
+
+```text
+识别 Workspace package.json 中 ProFlow dependencies/devDependencies
+→ package manager 一次 remove transaction
+→ 保留 .proflow
+```
+
+Uninstall 不自动 stop，不执行 cleanup workflow，不删除 Workspace 用户数据。
+
+## 7. 并发与安全
+
+Package manager 自己负责 package mutation 的锁文件/manifest 一致性。Platform 只保留实现六命令所需的最小 Workspace-local 原子 metadata 写入，不保留旧 apply lock/plan state。
+
+## 8. Human / Web 操作
+
+需要登录、浏览器加载、Custom GPT 配置、凭据等动作时，知识和检查归 owning Module。AI 通过 `platform docs` 获取操作说明；真正启动前由 Module validate/preflight 再确认。
+
+不存在 `platform configure/repair/doctor/apply` 作为替代入口。

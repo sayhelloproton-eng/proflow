@@ -16,177 +16,62 @@ contractRefs:
 
 # `module-template` 详细技术方案
 
-## 1. 定位
+## 1. 目标
 
-Template 是所有新 Module 的标准工程起点，也是已有 Module 的持续治理版本基线。
+Template 只负责把当前 Module Contract 机械落成工程骨架，不拥有领域逻辑，也不生成 Platform-specific workflow。
 
-> Template 负责“默认形式正确”，Contract + Conformance 负责“持续必须正确”；领域具体职责、API、依赖与安全语义仍由 Module Owner 填写。
+## 2. Materialize 输入
 
-AI/开发者不得手工复制治理骨架作为新 Module 的标准创建方式。正式 Create Flow 必须通过 `module-skill` 指导并调用 `module-template` 的稳定 CLI/materialize API。
+`MaterializeModuleInput` 不再包含 `installClass`。创建者只提供真实 owner facts：module/package identity、kind、domain/summary、provides/requires、configSlots 与适用 lifecycle facts。
 
-## 2. Module Kind Profile
+CLI 删除 `--install-class` 及 `core|optional` 校验。
 
-v1 一个 Template Package 支持六种 Profile：
+## 3. Generated package metadata
 
-```text
-library
-service
-cli
-browser-extension
-agent-package
-external-resource
-```
-
-不维护六套彼此漂移的独立模板。
-
-## 3. Create 输入事实
-
-创建新 Module 时，以下事实必须显式来自目标领域/模块设计，不由 Template 猜测：
+`package.json.proflow` 只保留：
 
 ```text
-targetDirectory
-moduleRef
-packageName (@tomflow/proflow-*)
-kind
-installClass (core | optional)
-domain
-summary
-moduleVersion (可使用明确默认版本)
-platformCompatibility (可使用明确模板默认范围)
+module: true
+descriptor / manifest index
 ```
 
-`installClass/domain/summary` 不允许通过 package 名自动推断。
+不得生成 `installClass/installRequires`。
 
-## 4. 稳定 CLI 创建入口
+## 4. Descriptor
 
-`module-template` package 必须提供可被 AI/人机械调用的 npm `bin`。第一版命令形态固定为：
+`descriptorFor()` 必须与新 contract 对齐，不包含 install classification；保留 Runtime topology、config、documentation 与真实 lifecycle declaration。
+
+## 5. Status observation
+
+所有可被 `platform modules` 发现的生成 profile 应提供统一 status observation seam：
 
 ```text
-proflow-module-template create \
-  --target <packages-directory> \
-  --module-ref <moduleRef> \
-  --package <@tomflow/proflow-...> \
-  --kind <profile> \
-  --install-class <core|optional> \
-  --domain <domain> \
-  --summary <text>
+configStatus = READY | INCOMPLETE | INVALID
+missingConfig? only when INCOMPLETE
+runtimeStatus = RUNNING | STOPPED | FAILED | UNKNOWN
 ```
 
-通过 `npx @tomflow/proflow-module-template create ...` 调用时必须走同一入口。
+Skeleton 可以 fail-closed，但不得让 Platform 替 Module 猜状态。
 
-CLI 只把显式输入转为 `materializeModule()` 调用并输出 structured JSON result；不能形成第二套模板实现。
+## 6. Lifecycle by kind
 
-## 5. 共同生成内容
+- library：不生成虚假 start/stop；
+- service：生成 package-owned validate/status/start/stop seam，真实 production binding 由 owner 完成；
+- browser-extension / external-resource：生成对应 status/validate seam，不假设可自动删除外部资源；
+- agent-package：生成知识/config/status 入口，不制造 service process。
 
-```text
-package.json
-README.md
-src/
-deployment/
-  descriptor.ts
-  requirements.ts
-  verification.ts
-  adapter.ts
-conformance.json
-```
+Template 不再要求 Platform-owned `createServiceProcessBinding`。
 
-只生成 Kind 真正需要的文件。
+## 7. Documentation
 
-### `package.json`
+所有 Module 至少生成 README / documentation index；configSlots 非空时必须生成 `CONFIGURATION.md`（或等价足量配置指导）。
 
-除 npm 标准字段外，必须天然生成：
+配置指导必须说明字段含义、来源、格式、敏感性、materialization 方法与基础完成判定。
 
-```json
-{
-  "proflow": {
-    "module": true,
-    "installClass": "core | optional",
-    "descriptor": "./dist/deployment/descriptor.js"
-  }
-}
-```
+## 8. Package-owned install surface
 
-并保证发布 `dist`、`README.md`、`conformance.json`，让 Registry Discovery、Workspace Discovery 和 AI docs aggregation 有稳定入口。
+不存在单 package Platform install 产品概念。Template 不再生成 `self-install.mjs` 或 service CLI 的 install delegation branch。
 
-### Descriptor
+## 9. Conformance
 
-新包 Descriptor 必须天然包含：
-
-- `installClass`；
-- `identity.domain / identity.summary`；
-- Provides / Requires 空骨架；
-- requirements/config/lifecycle/verification；
-- effects + cleanup retention；
-- package-owned documentation entry。
-
-Template 只提供合法骨架；Owner 必须把默认占位内容替换为真实领域事实后再通过 Conformance。
-
-### library
-
-无伪造 `start/stop/restart`。普通 npm package remove 不要求 library 虚构 package-owned uninstall lifecycle。
-
-### service
-
-增加 lifecycle adapter、status/start/stop/restart；通用 service process effect 默认为 package-owned `remove`。若 Service 有持久数据/文件，Owner 必须显式补充 effects/retention。
-
-### cli
-
-增加标准 structured JSON CLI entry。
-
-### browser-extension
-
-增加 extension build/package metadata、browser-specific status/verify adapter；外部 Chrome 实例/用户状态不得被模板假定可自动删除。
-
-### agent-package
-
-增加 Agent package deployment descriptor、GPT 创建/注册所需说明与 ACTION_REQUIRED integration；真实 carrier/remote state 不由模板自动 destructive cleanup。
-
-### external-resource
-
-增加 resource adapter、config/status/verify/doctor；Template 不假设远端资源可由 package uninstall 自动删除。
-
-## 6. Template Version
-
-每个 Module 记录 `templateVersion`。
-
-Template 版本升级不会自动强迫所有 Module 当天迁移；只有出现：
-
-- contract incompatibility；
-- platform compatibility 不满足；
-- mandatory security/engineering requirement；
-
-才形成 migration requirement。
-
-迁移后必须重新 Conformance。
-
-## 7. TypeScript 工程基线
-
-- TypeScript first；
-- Node 24.19.0；
-- Node.js 原生 TypeScript 运行；
-- `tsc --noEmit` type gate；
-- public boundary runtime validation；
-- 禁止 `any` 漂移；
-- structured JSON output。
-
-## 8. 当前测试纪律
-
-Module Template 的形式、CLI、package-owned install 与真实创建路径必须同时进入正式 Test Plan / executable tests / Deployment Conformance。模板生成的新包必须机械证明其 package-owned `npx <package> install` 委托 Shell-global `platform install <self> --workspace <cwd>`，全局 CLI 缺失时 fail-closed，并在任何模板迁移后重新执行 C1/C2/C3 与 publishability。不得以“后续人工验证”替代当前自动化 evidence。
-
-### Package-owned npx installation entry
-
-Every generated ProFlow Module publishes one package-name-matching npm `bin` entry for `npx <package> install`. The entry points at a root `self-install.mjs` that is explicitly included in the npm `files` allowlist, so package-self installation does not depend on TypeScript build output. The generated executable is deliberately a thin delegator only: it invokes the Shell-global `platform install <self-package> --workspace process.cwd()` and fails closed with `GLOBAL_PLATFORM_CLI_REQUIRED` when that global command is unavailable. It MUST NOT transiently `npx @tomflow/proflow-platform-cli`, and MUST support `--help/-h` without mutation so npm publishability/binary discovery can probe it safely. It MUST NOT reimplement Registry discovery, single-Workspace binding, package-manager selection, package mutation, Deployment planning, lifecycle or verification. Therefore both Platform-initiated install and package-initiated npx install converge on the same globally bound Workspace and the same Platform governance path.
-
-### Registry bootstrap index
-
-Every newly generated Module starts with `package.json.proflow.installRequires: []`. When the owner later declares package-level bootstrap dependencies, AI must fill exact ProFlow package names there instead of teaching Platform CLI a hard-coded catalog. Template owns the field shape; the Module owner owns the concrete package facts; Conformance rejects malformed/self/duplicate entries.
-## Service process binding
-
-The `service` profile MUST expose the standard `createServiceProcessBinding` seam. The generated skeleton remains fail-closed until the package owner supplies the real package-owned binary configuration and runtime probes. Platform CLI owns detached process supervision, PID/runtime-state persistence, stop/restart, and process logs; a generated service module must not implement cross-CLI lifecycle as an in-memory state variable.
-
-
-### Static Manifest Generation
-
-Template materialize 新 Module 时 MUST 同时生成根级 `proflow.module.json`，并在 `package.json.proflow.manifest` 与 npm `files` allowlist 中声明它。manifest 必须由与 runtime Descriptor 相同的输入事实生成，而不是让 AI 另外维护一份手写合同。
-
-后续 owner 修改 Descriptor 事实时，必须同步更新 static manifest 并重新运行 Conformance；Template/Skill 不允许 AI 省略这一步。
+生成结果必须直接通过当前 deployment-conformance 的 metadata/descriptor/status/docs 检查；不得依赖后续 Platform CLI 特判修补。

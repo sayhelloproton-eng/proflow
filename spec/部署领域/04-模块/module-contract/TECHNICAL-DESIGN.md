@@ -18,320 +18,112 @@ contractRefs:
 
 ## 1. 目标
 
-用最少类型描述“平台如何发现、理解并治理一个 Module”。不承载部署执行逻辑，也不实现 npm Registry 查询本身；Registry Discovery 由 Platform CLI 执行并消费本合同。
-
-合同必须同时支撑：
-
-- npm Registry 中的 ProFlow package 识别与安装分类；
-- Workspace 已安装 Module 识别；
-- Platform lifecycle / verify / doctor / uninstall cleanup；
-- AI 对当前 Module 的领域职责、commands、APIs、Provides/Requires 与 docs 的机器可读发现。
+用最小类型描述“Platform 如何发现、理解、聚合和分发一个 Module”，不承载部署执行或业务逻辑。
 
 ## 2. Package Discovery Metadata
 
-`package.json` 继续优先使用 npm 标准字段：`name/version/description/engines/dependencies/peerDependencies/optionalDependencies/bin/files/publishConfig` 等。
-
-只有 npm 标准字段无法表达的 ProFlow 治理语义放入最小 namespaced metadata：
+`package.json` 优先使用 npm 标准字段。ProFlow namespaced metadata 只保留识别和 descriptor 索引：
 
 ```ts
-export type ModuleInstallClass = "core" | "optional";
-
-export interface ProFlowPackageMetadata {
+interface ProFlowPackageMetadata {
   module: true;
-  installClass: ModuleInstallClass;
   descriptor: string;
+  manifest?: string;
 }
 ```
 
-约束：
+不存在 `installClass` / `installRequires`。
 
-- package 名必须符合 `@tomflow/proflow-*`；
-- `module: true` 才能作为正式 ProFlow Module 被 Registry/Workspace Discovery 接管；
-- `core` 是标准平台默认安装集，当前阶段禁止单包 uninstall；
-- `optional` 只在显式选择时安装，安装后进入与 core 相同的统一管理；
-- deprecated 不维护第二份 ProFlow 状态字段，优先尊重 npm Registry deprecation metadata；
-- `descriptor` 指向随 package 发布的机器可读 Module Descriptor 入口。
-
-## 3. 核心类型
+## 3. Descriptor 最小事实
 
 ```ts
-export type ModuleKind =
-  | "library"
-  | "service"
-  | "cli"
-  | "browser-extension"
-  | "agent-package"
-  | "external-resource";
-
-export interface ModuleIdentity {
-  domain: string;
-  summary: string;
-}
-
-export interface ModuleDocumentationEntry {
-  id: string;
-  path: string;
-  description?: string;
-}
-
-export interface ModuleDescriptor {
+interface ModuleDescriptor {
   contract: "module";
-  contractVersion: "1.0.0";
+  contractVersion: string;
   moduleRef: string;
   packageName: string;
   moduleVersion: string;
   kind: ModuleKind;
   templateVersion: string;
   platformCompatibility: string;
-  installClass: ModuleInstallClass;
   identity: ModuleIdentity;
   provides: ModuleProvide[];
   requires: ModuleRequire[];
   requirements: ModuleRequirement[];
   configSlots: ConfigSlot[];
   lifecycle: LifecycleSupport;
-  verification: VerificationContract;
-  effects: DeploymentEffect[];
   documentation: ModuleDocumentationEntry[];
 }
 ```
 
-`packageName` 对 External Resource Module 指 Module Adapter npm package。
+既有 verification/effects schema 可以为 package-local compatibility 保留，但六命令 Platform 不把它们升级成独立用户工作流。
 
-`installClass` 在 package metadata 和 Descriptor 中必须一致；前者用于 Registry/Workspace 快速发现，后者用于治理真实性与 Conformance。
-
-## 4. Provides / Requires
+## 4. Runtime topology
 
 ```ts
-export interface ModuleProvide {
-  contractRef: string;
-  version: string;
-}
-
-export interface ModuleRequire {
-  contractRef: string;
-  versionRange: string;
-  optional?: boolean;
-}
+interface ModuleProvide { contractRef: string; version: string }
+interface ModuleRequire { contractRef: string; versionRange: string; optional?: boolean }
 ```
 
-Platform CLI 负责版本范围兼容检查，不引入服务发现协议。
+只用于 Runtime topology、docs 和 start/stop ordering；npm dependency 由 package manager 负责。
 
-npm `dependencies` 表达真实 package installation dependency；Module `Provides/Requires` 表达平台逻辑 contract dependency。两者不可混用或互相替代。
-
-## 5. Requirement
-
-v1 采用 discriminated union，类别只保留当前需要：
+## 5. Config
 
 ```ts
-type ModuleRequirement =
-  | RuntimeRequirement
-  | ExecutableRequirement
-  | FileSystemRequirement
-  | PortRequirement
-  | NetworkRequirement
-  | ModuleContractRequirement
-  | HumanRequirement;
-```
-
-Requirement 查询必须零副作用。
-
-## 6. Config Slot
-
-```ts
-type ConfigValueType =
-  | "string"
-  | "number"
-  | "boolean"
-  | "url"
-  | "path"
-  | "enum"
-  | "moduleRef"
-  | "secretRef";
-
 interface ConfigSlot {
   key: string;
   type: ConfigValueType;
   required: boolean;
-  description: string;
   default?: unknown;
-  enumValues?: string[];
   sensitive?: boolean;
+  description: string;
 }
 ```
 
-`default` 只能用于安全、确定性默认值。Secret 只声明 `secretRef`。
+`platform docs` 对外归一为：`key/type/required/default/sensitive/description`，无 default 时输出 `null`，非敏感时输出 `false`。
 
-`moduleRef` 用于引用受 Deployment 管理的 Module，而不是让领域长期保存裸 URL。例如 `fastProviderModuleRef / reasonProviderModuleRef / chromeRuntimeModuleRef / carrierModuleRef / publicIngressModuleRef`。Provides/Requires 仍只表达逻辑 capability，不携带物理 URL/port/process。
+## 6. Status Observation
+
+新增统一 schema：
+
+```ts
+type ModuleConfigStatus = "READY" | "INCOMPLETE" | "INVALID";
+type ModuleRuntimeStatus = "RUNNING" | "STOPPED" | "FAILED" | "UNKNOWN";
+
+interface ModuleStatusObservation {
+  configStatus: ModuleConfigStatus;
+  missingConfig?: string[];
+  runtimeStatus: ModuleRuntimeStatus;
+}
+```
+
+约束：`missingConfig` 只允许在 `configStatus === "INCOMPLETE"` 时存在。值由 Module 自己判断，Platform 只校验 shape 并聚合。
 
 ## 7. Lifecycle
 
-```ts
-type LifecyclePrimitive =
-  | "describe"
-  | "preflight"
-  | "status"
-  | "verify"
-  | "doctor"
-  | "start"
-  | "stop"
-  | "restart"
-  | "migrate"
-  | "uninstall";
-
-interface LifecycleSupport {
-  supported: LifecyclePrimitive[];
-}
-```
-
-禁止因为统一接口而伪造 N/A 生命周期。
-
-- `library` 不得声明 `start/stop/restart`；
-- service 是否支持 process lifecycle 由 Descriptor + Adapter 共同证明；
-- `uninstall` 表示 Module 有 package-owned cleanup/uninstall lifecycle；package manager remove 仍由 Platform CLI 负责；
-- core Module 当前不允许单包 uninstall，因此即使 Adapter 能 cleanup，Platform CLI 也必须先执行 core guard。
-
-## 8. Effects 与卸载清理
-
-```ts
-export type EffectRetention =
-  | "remove"
-  | "preserve"
-  | "explicit-purge";
-
-export interface DeploymentEffect {
-  kind: "filesystem" | "process" | "network" | "external-resource";
-  description: string;
-  path?: string;
-  retention: EffectRetention;
-}
-```
-
-规则：
-
-- `remove`：uninstall 可自动清理的临时/runtime/cache/generated 等 package-owned effect；
-- `preserve`：默认保留，例如业务数据库、用户资产或需要人工保留的状态；
-- `explicit-purge`：只有显式 destructive purge 才允许删除；普通 uninstall 不得盲删。
-
-Descriptor 只声明 effect ownership/cleanup policy；真实 cleanup 由 package-owned Adapter/lifecycle 实现，Platform CLI 负责排序、调用与结果汇总。
-
-## 9. Documentation / AI-readable self-description
-
-每个 Module 自己拥有其领域与能力说明，Platform CLI 只聚合：
-
-```ts
-export interface ModuleDocumentationEntry {
-  id: string;
-  path: string;
-  description?: string;
-}
-```
-
-Descriptor 不复制 npm package surface。AI-readable 聚合时，`package.json.bin` 是真实 CLI executable 真源，`package.json.exports` 是真实 package Public API entry 真源；Descriptor 继续拥有 Domain/职责、逻辑 Provides/Requires、Lifecycle、配置、Effects、Verification 与文档索引。这样 package 发布表面与领域/部署语义各自只有一个 Owner。
-
-Descriptor 至少通过 identity/provides/requires/lifecycle/documentation 让 AI 查询：
-
-- Module 属于哪个 Domain、负责什么；
-- 提供哪些逻辑 contract / capability；
-- 依赖哪些逻辑 contract；
-- 支持哪些 lifecycle；
-- 可进一步读取哪些 package-owned docs。
-
-详细 OpenAPI/schema/README/运行文档仍由 package 自己发布，Descriptor 只保存稳定索引，不复制完整文档正文。
-
-## 10. Structured Result
-
-```ts
-type ModuleOperationStatus =
-  | "SUCCEEDED"
-  | "BLOCKED"
-  | "ACTION_REQUIRED"
-  | "FAILED";
-
-interface ModuleOperationResult<T> {
-  contract: "deployment.result.v1";
-  ok: boolean;
-  status: ModuleOperationStatus;
-  moduleRef: string;
-  moduleVersion: string;
-  data?: T;
-  checks?: DeploymentCheck[];
-  actionRequired?: HumanAction;
-  error?: DeploymentError;
-}
-```
-
-检查项：
+Lifecycle enum 可以保留更广 package-local primitive 以兼容既有 Module，但六命令 Platform 主路径只消费：
 
 ```text
-PASS | FAIL | WARN | SKIP
+status / observe
+preflight / validate
+start
+stop
 ```
 
-## 11. 最小错误语义
+Platform 不拥有 Module health/process/config truth。
 
-```text
-INVALID_REQUEST
-MODULE_NOT_FOUND
-CONTRACT_INVALID
-CONFORMANCE_FAILED
-COMPATIBILITY_MISMATCH
-DEPENDENCY_UNRESOLVED
-REQUIREMENT_UNMET
-CONFIG_REQUIRED
-LIFECYCLE_UNSUPPORTED
-CORE_PACKAGE_REQUIRED
-EXTERNAL_RESOURCE_UNAVAILABLE
-PLAN_INVALID
-PLAN_STALE
-APPLY_FAILED
-VERIFY_FAILED
-DOCTOR_FAILED
-UPGRADE_FAILED
-UNINSTALL_FAILED
-COMMAND_FAILED
-```
+## 8. Operation Result
 
-`ACTION_REQUIRED` 是操作状态，不当作技术错误。
+继续使用结构化 Module result，允许 `SUCCEEDED/BLOCKED/ACTION_REQUIRED/FAILED`，并保留 Module 原始 error/actionable information。Platform 不再创建 `PLAN_STALE/APPLY_FAILED/VERIFY_FAILED/DOCTOR_FAILED/UPGRADE_FAILED` 等用户工作流状态。
 
-## 12. Version
+## 9. Static descriptor
 
-内部 Module：`moduleVersion == package.json version`。
+正式 package 继续发布 `proflow.module.json`，并与 runtime descriptor 保持语义一致；用途是静态 discovery/conformance，不是 Platform manifest 命令。
 
-External Module：
+## 10. Identity invariant
 
-- `moduleVersion` = Adapter Package version；
-- `resourceVersion?` = 动态 status/verify 中观察到的外部资源版本；
-- 无版本资源不伪造，使用 resource identity + config fingerprint + verification record。
+正式 package 的 `moduleRef` 与 `@tomflow/proflow-` 后缀保持一一对应。Aliases 不是当前目标。
 
-## 13. Runtime Validation
+## 11. Security
 
-所有来自 CLI、package metadata、descriptor file、第三方 process、外部 API 的数据先视为 `unknown`，通过 runtime schema 后进入强类型对象。
-
-## 14. Registry bootstrap installation index
-
-`package.json.proflow` is the Registry/Workspace discovery index and now includes `installRequires: string[]`. Each entry is an exact `@tomflow/proflow-*` package name required to materialize this package in a Fresh Workspace before its local Descriptor/Adapter can participate in Platform governance.
-
-`installRequires` is intentionally smaller than the Module Descriptor: it does not duplicate Provides/Requires, config, lifecycle, effects or docs. Runtime/contract truth remains in the Descriptor. The index exists only because Registry bootstrap must resolve a package dependency closure before package code is installed locally. Entries must be unique and must not reference the package itself.
-## Service process binding contract
-
-`deployment.service-process.v1` is the bounded runtime handoff from a package owner to Platform CLI. The package owns the executable name and the fully resolved process configuration; Platform CLI owns detached supervision, PID/runtime-state persistence, stop/restart, and logs. The binding is runtime-only and does not move domain behavior or configuration ownership into Deployment.
-
-
-### Static Module Manifest
-
-每个正式 ProFlow package MUST 发布根级 `proflow.module.json`，其内容必须是该版本完整 `ModuleDescriptor` 的静态 JSON 表达。`package.json.proflow.manifest` 固定为 `./proflow.module.json`，只承担索引，不复制 Descriptor 字段。
-
-静态 manifest 的用途是让 Registry planning 在 package mutation 前读取目标版本的真实 Provides/Requires、platform compatibility、config、lifecycle、verification、effects 与 documentation；安装后的 runtime truth 仍由该 package 的 `deployment/descriptor` 导出。两者必须语义完全一致，禁止出现“Registry manifest 一套、runtime Descriptor 一套”。
-
-### installRequires closure rule
-
-
-`installRequires` MUST include every runtime `package.json.dependencies` entry whose package name matches `@tomflow/proflow-*`, plus any additional ProFlow package that must be directly materialized in a Fresh Workspace for the Module's declared contract/production binding to become governable. It MUST NOT mechanically copy devDependencies. This keeps all required ProFlow Modules as direct Workspace installation facts instead of leaving them hidden as npm transitive packages.
-
-For every dependency edge selected by the real Module graph — both non-optional logical `requires` providers and effective `configSlots[type=moduleRef]` bindings — the target Module MUST be reachable from that package's recursive `installRequires` closure. Full-core discovery can never be used to hide a broken single-package bootstrap closure. The repository architecture gate MUST execute the same logical graph semantics used by Platform CLI and fail on unresolved/incompatible/cyclic real Module graphs or bootstrap-closure gaps before publish.
-
-If `package.json.bin` points to `./self-install.mjs`, the source file MUST already be executable (`0755` on POSIX). Package-manager installation is not allowed to be the operation that repairs executable mode, because that mutates a clean source worktree. Generated packages from `module-template` inherit the same invariant.
-
-### Module identity invariant
-
-For formal packages, `moduleRef` MUST equal the suffix of `packageName` after `@tomflow/proflow-`. Example: `@tomflow/proflow-agent-gateway` maps to `moduleRef = agent-gateway`. Registry bootstrap, Workspace Discovery, static manifest and runtime Descriptor all rely on this one-to-one identity; aliases are not a v1 feature.
+CLI/package metadata/descriptor/外部输入均先按 `unknown` 处理并通过 runtime schema。Raw secret 不进入 status/docs 公共输出。

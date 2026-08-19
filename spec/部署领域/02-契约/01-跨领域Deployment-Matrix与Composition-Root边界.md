@@ -14,82 +14,37 @@ contractRefs: []
 
 # 跨领域 Deployment Matrix 与 Composition Root 边界
 
-> 本表只描述 Deployment 视角，不在 Deployment 文档重新定义其他领域 package identity。具体 npm package 名称以 owning Domain Module Registry 为准。
+> 本文只描述 Deployment 编排边界，不重新定义各领域业务合同。
 
-## 1. Task & Orchestration
+## 1. 统一治理模型
 
-| 能力/包 | Module Kind | Deployment 处理 |
+| Module 类型 | Module 自己拥有 | Platform CLI 只做 |
 |---|---|---|
-| Task Orchestration 业务包 | library/in-process | install/version/conformance/config/verify；不强造 daemon |
-| SQLite Store 包 | library | install/version/config/verify |
-| Migration Runner | cli/migration | upgrade plan 中按需要调用 migrate |
+| library/in-process | config/status truth（适用时） | discovery / docs aggregation |
+| service | validate/status/start/stop | dependency ordering + dispatch |
+| browser-extension | config/materialization/status/validate | aggregation + dispatch |
+| agent-package | carrier/config/status knowledge | aggregation + dispatch |
+| external-resource | config/status/validate/lifecycle（真实支持时） | aggregation + dispatch |
 
-Task schema/migration 逻辑归 Task Owner。
+Platform 不把领域私有 `health/config/verify/doctor` 逻辑复制进自身。
 
-## 2. Agent Runtime & Collaboration
+## 2. Runtime topology
 
-| 能力/包 | Module Kind | Deployment 处理 |
-|---|---|---|
-| Agent runtime libraries | library/in-process | install/conformance/config |
-| Gateway | service | configure/start/stop/status/verify |
-| Product Agent Package | agent-package | GPT 创建/配置/注册所需 Plan + ACTION_REQUIRED |
-| Controller+Dev Agent Package | agent-package | 同上 |
-| Test+Ops Agent Package | agent-package | 同上 |
-| ChatGPT Carrier | external-resource | login/availability/status/verify/doctor |
+`provides/requires` 只表示 Runtime Module contract 与顺序关系：
 
-Role/Worker/Conversation 业务状态归 Agent。
+- `platform docs` 聚合并展示；
+- `platform start` 用于依赖顺序；
+- `platform stop` 用于逆依赖顺序。
 
-## 3. Execution
+它们不参与 npm package 安装 closure；不存在 `installRequires`。
 
-| 能力/包 | Module Kind | Deployment 处理 |
-|---|---|---|
-| execution-contracts | library | conformance/version |
-| execution-local | library/in-process | install/config/verify as library |
-| execution-runtime | service | start/stop/status/verify/doctor |
-| browser extension | browser-extension | package/install/config/status/verify；人工加载时 ACTION_REQUIRED |
-| Chrome Runtime | external-resource | version/status/verify/doctor |
+## 3. Application Composition Root
 
-Execution effect/policy/evidence 不归 Deployment。
+`@tomflow/proflow-platform-host` 仍是 Application Composition Root / Local Platform Host：负责 instantiate、dependency injection、local transport 与自身生命周期；不拥有其它领域业务状态。
 
-## 4. Model & Reasoning
+Task Runtime、Agent Runtime 保持独立 npm package并由 host in-process 装配；Execution Runtime、Model Runtime、Agent Gateway 保持独立运行型 Module。任何领域 package 不得反向依赖 platform-host。
 
-| 能力/包 | Module Kind | Deployment 处理 |
-|---|---|---|
-| model-contracts | library | conformance/version |
-| model-runtime | service | config/start/stop/status/verify |
-| FAST Provider | external-resource | API config/credential/model id/capability verify |
-| REASON Provider | external-resource | API config/credential/model id/capability verify |
-
-Provider 可是同一个 API，也可以两个不同 API；Deployment 管实例映射，Model Domain 定义逻辑能力。
-
-## 5. Cross-cutting external
-
-| Resource | Module Kind | 处理 |
-|---|---|---|
-| Microsoft Dev Tunnel | external-resource | install/config/start/stop/status/verify/doctor/ACTION_REQUIRED |
-
-其他进入平台运行链的外部资源也必须按同规则成为 Module。
-
-## 6. Application Composition Root
-
-正式结论：
-
-- `@tomflow/proflow-platform-host` = Application Composition Root / Local Platform Host；
-- 不为方便自动创建 `task-service / agent-service`；
-- Task Runtime、Agent Runtime 等仍是独立 npm package，由 host in-process 装配；
-- platform-host 作为普通 service Module/Deployment Unit 被 Deployment 治理；
-- Execution Runtime、Model Runtime、Agent Gateway 保持独立 Process/Deployment Unit；
-- library Module 继续保持 library 身份，不伪造 start/stop。
-
----
-
-## 7. Composition Root Runtime Topology
-
-Application Composition Root 是独立 npm package `@tomflow/proflow-platform-host`：只 instantiate / dependency injection / local transport / startup-shutdown / light health aggregation；不拥有任何业务状态。Task Runtime 与 Agent Runtime 各自仍是独立 npm package并由 host in-process 装配；Execution Runtime、Model Runtime、Agent Gateway 保持独立 Process/Deployment Unit。任何领域 package 不得反向依赖 platform-host。
-
-v1 概念运行拓扑：External Resources → model-runtime/execution-runtime → platform-host → agent-gateway → browser-extension/carrier verification；实际并行启动由 Requires/Provides 图计算，不硬编码脚本。
-
-当前正式逻辑能力绑定：
+## 4. 当前关键逻辑能力绑定
 
 | Module | Provides | Requires |
 |---|---|---|
@@ -101,4 +56,12 @@ v1 概念运行拓扑：External Resources → model-runtime/execution-runtime �
 | `model-runtime` | `model-inference` | `model.provider.api` |
 | `platform-host` | `platform-host` | `task-orchestration`, `agent-runtime`, `execution`, `model-inference` |
 
-纯 Contract library 只拥有 typed contract/package surface，不得冒充 Runtime capability provider。`installRequires` 必须能在 Fresh Workspace 中物化每个非 optional logical Require 的 provider；Repository architecture gate 必须对 24 个正式 Module 的真实 Requires/Provides 图执行 unresolved/incompatible/cycle 检查。
+纯 Contract library 不冒充 Runtime provider。Repository architecture gate 只验证 Runtime `provides/requires` 的 unresolved/incompatible/cycle 等一致性，不再验证 install closure。
+
+## 5. 外部资源
+
+Chrome Runtime、ChatGPT Carrier、Dev Tunnel、Model Provider 等由对应 Module/Adapter 自描述。需要人工动作时由 Module 自己返回可执行信息；Platform 不建立独立 Human Action workflow engine。
+
+## 6. Composition boundary
+
+新增符合 Module Contract 的 package 后，应自动进入 discovery/docs/status/lifecycle dispatch，不允许为了某个领域再向 Platform CLI 添加 module-specific if/else。

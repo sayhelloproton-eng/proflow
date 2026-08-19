@@ -15,227 +15,44 @@ contractRefs:
 - DEPLOYMENT-PLATFORM-CLI-TECH-DESIGN
 - DEPLOYMENT-DOC-02-01
 ---
+
 # `platform-cli` TODO
 
-> 本文件是该 Module 的当前实施 backlog。`Status: READY` 保留原任务事实，表示任务已进入当前 backlog；`implementationReadiness: PLANNED` 表示**尚未冻结自动施工顺序**。Priority、dependsOn、逐任务 acceptance/verification 不允许由文档整理工具推断；没有可直接追溯的冻结依据时，分别保持 `PENDING_DECISION`、`NOT_FROZEN`、`ACCEPTANCE_NOT_FROZEN` / `verification: []`。
+> 当前唯一实施计划是 CLI Surface Simplification R1 → R2 → R3 → R4；完成后 STOP。
 
-## Implementation Tasks
-### DPL-CLI-001
+## R1 — Docs
 
-```yaml
-id: DPL-CLI-001
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: deployment-governance
-  boundedContext: deployment-governance
-  moduleRef: platform-cli
-sourceRefs:
-- DEPLOYMENT-PLATFORM-CLI-TECH-DESIGN
-- DEPLOYMENT-DOC-02-01
-qualityRefs:
-- DEPLOYMENT-DOC-05-02
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 实现 module discovery/materialization 与 dependency graph preflight
-scope:
-  allow:
-  - packages/platform-cli/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
+- [ ] 所有权威文档切到六命令与 thin ownership。
+
+## R2 — Module resources
+
+- [ ] Contract 删除 installClass/installRequires，增加 typed status observation。
+- [ ] Template/Skill/Conformance 对齐。
+- [ ] 24/24 governed package metadata/descriptor/status/docs 对齐。
+
+## R3 — CLI refactor
+
+- [ ] package-manager primitive extraction。
+- [ ] full-set install / package-only uninstall。
+- [ ] workspace-local metadata。
+- [ ] modules/docs aggregation。
+- [ ] package-owned lifecycle dispatch。
+- [ ] exactly six routable commands。
+- [ ] zero-caller old engine deletion。
+
+## R4 — Tests / acceptance
+
+- [ ] 删除旧产品行为测试。
+- [ ] 建六命令 targeted tests。
+- [ ] 跑 narrow full gates。
+- [ ] 跑 simulated human Golden Path。
+
+## Final stop
+
+```text
+SIMULATED_HUMAN_E2E = PASS
+READY_FOR_HUMAN_ACCEPTANCE = YES
+→ STOP
 ```
 
-### DPL-CLI-002
-
-```yaml
-id: DPL-CLI-002
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: deployment-governance
-  boundedContext: deployment-governance
-  moduleRef: platform-cli
-sourceRefs:
-- DEPLOYMENT-PLATFORM-CLI-TECH-DESIGN
-- DEPLOYMENT-DOC-02-01
-qualityRefs:
-- DEPLOYMENT-DOC-05-02
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 实现 plan/apply、ACTION_REQUIRED resume、satisfied-step skip
-scope:
-  allow:
-  - packages/platform-cli/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-### DPL-CLI-003
-
-```yaml
-id: DPL-CLI-003
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: deployment-governance
-  boundedContext: deployment-governance
-  moduleRef: platform-cli
-sourceRefs:
-- DEPLOYMENT-PLATFORM-CLI-TECH-DESIGN
-- DEPLOYMENT-DOC-02-01
-qualityRefs:
-- DEPLOYMENT-DOC-05-02
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 实现 start/stop/status/verify/doctor/manifest/upgrade/repair intents
-scope:
-  allow:
-  - packages/platform-cli/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-### DPL-CLI-004
-
-```yaml
-id: DPL-CLI-004
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: deployment-governance
-  boundedContext: deployment-governance
-  moduleRef: platform-cli
-sourceRefs:
-- DEPLOYMENT-PLATFORM-CLI-TECH-DESIGN
-- DEPLOYMENT-DOC-02-01
-qualityRefs:
-- DEPLOYMENT-DOC-05-02
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 实现 repo-local deployment state/version verification records
-scope:
-  allow:
-  - packages/platform-cli/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-### DPL-CLI-005
-
-```yaml
-id: DPL-CLI-005
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: deployment-governance
-  boundedContext: deployment-governance
-  moduleRef: platform-cli
-sourceRefs:
-- DEPLOYMENT-PLATFORM-CLI-TECH-DESIGN
-- DEPLOYMENT-DOC-02-01
-qualityRefs:
-- DEPLOYMENT-DOC-05-02
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 实现 Platform READY aggregation 与 typed blocking diagnostics
-scope:
-  allow:
-  - packages/platform-cli/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-### DPL-CLI-006
-
-```yaml
-id: DPL-CLI-006
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: VALIDATION
-owner:
-  domain: deployment-governance
-  boundedContext: deployment-governance
-  moduleRef: platform-cli
-sourceRefs:
-- DEPLOYMENT-PLATFORM-CLI-TECH-DESIGN
-- DEPLOYMENT-DOC-02-01
-qualityRefs:
-- DEPLOYMENT-DOC-05-02
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 完成 interrupted apply/upgrade/external-action resume E2E
-scope:
-  allow:
-  - packages/platform-cli/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-## Stop Rules
-
-- `implementationReadiness != READY_TO_IMPLEMENT` 时，Codex/Agent 不得把 TODO 当作自动施工队列；先完成实施编排。
-- 不得通过 TODO 创造新 Domain/Bounded Context/Service。
-- 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
-- `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
-- 发现正式文档内部冲突时停止实现，先修 Contract/Design。
-
-## 2026-08-16 Real-1 Fresh Workspace Closure
-
-当前人工 Real-1 前置验证确认：既有 CLI 只能从源码 Workspace/已安装 dependencies 发现 Module，且默认 package driver 不产生真实安装事实，因此 Fresh Workspace 首次安装链未闭环。当前整改按既有 Deployment Domain 边界补齐：
-
-- Registry Discovery：动态查询 `@tomflow/proflow-*`，不内置固定 package catalog；
-- Installer environment preflight：Fresh Workspace 无 Module 时也可执行；
-- Workspace Discovery：`package.json` + 本地 resolution 是 Managed Module reality；
-- 真实 package install/remove/upgrade：必须更新 Workspace package manifest/lockfile/node_modules；
-- 高级 `install/uninstall/upgrade` 必须复用 Planner/Apply；
-- package-owned `npx <package> install` 统一委托 Platform CLI，不复制安装器；
-- AI 自描述由 `platform docs` 从当前安装包 Descriptor、npm `bin/exports` 与 package-owned docs 机械聚合；
-- npm 发布准备必须保证 Descriptor/README/bin/self-install 等声明发布表面进入 tarball；
-- 正式测试用例与 evidence 暂不在本轮更新，待人工真实安装链通过后补齐。
+任何非 Gate blocker 记录 `OUT_OF_SCOPE_DOMAIN`，不扩散。

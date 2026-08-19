@@ -1,24 +1,27 @@
 # @tomflow/proflow-module-contract
 
-- Module: `module-contract`
-- Kind: `library`
-- Install class: `core`
-- Owner: `deployment-governance`
+Runtime schemas shared by ProFlow Module packages, Template, Conformance and Platform CLI.
 
-Exports the canonical ProFlow Module runtime schemas and inferred TypeScript contracts used by Module Template, Deployment Conformance, Platform CLI and AI-facing module discovery.
+## Current contract
 
-The contract covers:
+The active governance contract contains Module identity/version/kind, lightweight package discovery metadata, Runtime `provides/requires`, config slots, documentation, lifecycle declarations/results and Module-owned status observation.
 
-- ProFlow package discovery metadata (`module`, `installClass`, `descriptor`);
-- module identity/kind/version/platform compatibility;
-- Provides / Requires and deployment requirements;
-- config slots;
-- lifecycle capabilities, including package-owned uninstall cleanup;
-- verification;
-- deployment effects and cleanup retention;
-- package-owned documentation entries;
-- structured deployment result/error and compatibility assessment.
+Package-install classification is not part of the contract: `installClass` and `installRequires` are removed.
 
-This package defines governance shape only. It does not query npm Registry, install packages, start services or own another Module's business documentation.
+## Status observation
 
-Normative design: `spec/部署领域/04-模块/module-contract/TECHNICAL-DESIGN.md`.
+```text
+configStatus = READY | INCOMPLETE | INVALID
+missingConfig? = required keys, only when INCOMPLETE
+runtimeStatus = RUNNING | STOPPED | FAILED | UNKNOWN
+```
+
+The Module produces these facts; Platform validates/aggregates the shape only.
+
+## Dependency boundary
+
+`provides/requires` describe Runtime Module topology. npm/pnpm/yarn own package dependency resolution and mutation.
+
+## Lifecycle boundary
+
+Modules expose only real capabilities. Libraries do not fabricate service lifecycle; running Modules own their own validation/status/start/stop behavior.

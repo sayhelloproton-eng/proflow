@@ -1,6 +1,6 @@
 ---
 docId: DEPLOYMENT-DOC-03-04
-title: 部署状态、目录、Secret 与安全
+title: Workspace 元数据、目录、Secret 与安全
 docType: persistence-security
 authority: normative
 lifecycle: active
@@ -12,108 +12,58 @@ requires: []
 contractRefs: []
 ---
 
-# 部署状态、目录、Secret 与安全
+# Workspace 元数据、目录、Secret 与安全
 
 ## 1. Workspace 模型
 
-统一工作区，不区分普通用户模式/开发者模式两套目录。
+Workspace 根继续承载真实 package manifest/lockfile、用户源码和 `.proflow`：
 
 ```text
-product-repo/
+workspace/
 ├── package.json
-├── package-lock.json
+├── <package-manager lockfile>
 ├── src/
 ├── docs/
-├── tests/
 └── .proflow/
 ```
 
-根目录承担：平台 npm 依赖声明 + 用户产品源码/业务文档/产品产物。
+`.proflow` 属于 Workspace / 用户数据，不等同于“当前已安装”。
 
-平台自身工作数据进入 `.proflow`。
+## 2. `.proflow` 的保留语义
 
-## 2. Deployment Layout
+它可以包含：
 
 ```text
-.proflow/
-├── config/
-├── data/
-├── logs/
-│   └── deployment/
-├── runtime/
-├── cache/
-├── tmp/
-└── deployment/
-    ├── state.json
-    ├── plans/
-    ├── verification/
-    └── generated/
-        └── INSTALL.md
+Workspace-local identity / binding metadata
+Module config
+runtime-local data / logs / cache
+用户历史记录
+凭据引用
 ```
 
-不要求把 logs 再嵌套一份到 deployment；统一日志根可以保持跨领域一致。
+因此 `platform uninstall` 永远不自动删除 `.proflow`。历史 `.proflow` 可以在 reinstall 时继续存在并被校验/复用。
 
-## 3. 不使用 SQLite
+旧 `.proflow/deployment/plans`、verification index、generated `INSTALL.md`、apply state 不再是当前 Platform CLI 必需状态。
 
-理由：
+## 3. Binding
 
-- 部署低频；
-- apply v1 单 workspace 串行；
-- 查询量小；
-- 主要数据天然是 Plan/Record 文档；
-- 使用原子文件写 + exclusive apply lock 足够。
+Binding 只是 Workspace-local identity metadata，不再存在 global binding lifecycle、tombstone 或 `INSTALLING/UNINSTALLING/BROKEN` 状态机。
 
-未来只有出现真实并发、复杂查询、事务一致性需求再评估 SQLite。
+Install 只在成功同步 package + descriptor 后初始化/复用最小 metadata；metadata 与当前 Workspace 明显冲突时 fail-closed。
 
-## 4. `state.json`
+## 4. Config ownership
 
-保存：
+Module owns config semantics。Platform 只允许保存/读取通用 Workspace config 载体，不理解 Browser/Model/Gateway 私有字段。
 
-- selected/current Module Set；
-- last applied plan refs；
-- install/config facts；
-- verification index；
-- observed metadata cache。
-
-不保存：
-
-- 伪造 current runtime READY；
-- secret raw values；
-- 大型 logs/evidence。
+特殊物理材料化必须由 owning Module 显式提供能力，不得把领域文件逻辑重新搬进 Platform。
 
 ## 5. Secret
 
-Deployment 不建 Vault Service。
+- raw secret 不进入 CLI JSON、日志、docs 聚合或通用 evidence；
+- Module 只读取自己声明的敏感 config slot；
+- 受控文件需限制权限；
+- Platform 不建立新的 Vault Service，也不复制领域 credential 语义。
 
-只规定：
+## 6. 原子性
 
-- Config 使用 `secretRef`；
-- secret 原值写入 `.proflow` 的受控位置或系统已有安全机制；
-- 文件权限限制；
-- CLI JSON/日志/Manifest 脱敏；
-- Module 只能读取其明确配置槽位；
-- 不把 token/password/cookie/private key 输出给 AI 日志。
-
-## 6. Logs
-
-记录 plan/apply/step/lifecycle/verify/doctor 关联：
-
-```text
-planRef
-stepRef
-moduleRef
-moduleVersion
-operation
-status
-errorCode
-timestamps
-summary/evidenceRef
-```
-
-不建设独立 Logging Domain。
-
----
-
-## 当前正式约束：配置与 Secret
-
-配置材料化统一进入 `.proflow/config/`（第三方工具强制格式由对应 External Resource Module Adapter materialize）。raw secret 不进入 manifest/Public DTO/log/evidence/model context；Deployment 负责安全材料化，但 secret 的业务语义归使用领域。Deployment 不拥有其他领域 `.proflow` 业务数据。
+只为六命令所需的最小 Workspace-local metadata 使用安全原子写。旧 Plan/Apply persistence 与 exclusive apply lock 在零 caller 后删除。

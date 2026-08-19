@@ -17,61 +17,32 @@ contractRefs:
 
 # `module-skill` Module
 
-## Identity
-
-```text
-Domain: deployment-governance
-Bounded Context: deployment-governance
-moduleRef: module-skill
-package: @tomflow/proflow-module-skill
-runtime kind: library
-product/document taxonomy: agent-skill
-installClass: core
-service: none
-process/deployment: none
-```
-
-`agent-skill` 是产品/文档 taxonomy；runtime `ModuleDescriptor.kind` 继续使用既有 `library`。当前不为 Skill 新增第二种 runtime ModuleKind。
-
 ## Purpose
 
-Module Skill 是 AI 创建/维护 ProFlow Module 的标准操作方法：读取 Owner frozen facts，调用 Module Template 稳定 CLI 创建 profile 骨架，填写领域真实内容，再通过 Deployment Conformance。
+`module-skill` 是 AI 创建/维护 ProFlow Module 的治理技能。它只消费当前 Contract/Template/Conformance 与六命令产品真源，不复制 Platform 或领域知识。
 
-它不维护 package scaffold、不拥有业务知识、不执行平台生命周期。
-
-## Canonical technical docs
-
-- [TECHNICAL-DESIGN.md](TECHNICAL-DESIGN.md)
-- [module-template/TECHNICAL-DESIGN.md](../module-template/TECHNICAL-DESIGN.md)
-- [00-五包架构与Module治理模型.md](../00-五包架构与Module治理模型.md)
-
-## Standard create boundary
-
-Skill 创建新 Module 前必须得到：
+## Frozen ownership
 
 ```text
-moduleRef
-packageName
-kind
-installClass
-domain
-summary
+Module = config/status/validate/lifecycle truth
+Platform CLI = discovery/aggregation/dispatch/ordering
+Package manager = npm dependency mutation
 ```
 
-然后机械调用：
+Skill 不再指导 AI 创建 `installClass/installRequires`、Plan/Apply/Verify/Doctor 或 package-owned 单包 install。
+
+## Creation flow
 
 ```text
-npx @tomflow/proflow-module-template create ...
+read owner facts
+→ use module-template
+→ fill Module-owned descriptor/adapter/docs
+→ run deployment-conformance
+→ release package
 ```
 
-Template 负责形式；Owner 负责 Provides/Requires/API/config/lifecycle/effects/docs；Conformance 负责验收。
+configSlots 非空时必须提供足够 `CONFIGURATION.md` 指导，确保 AI 能通过 `platform docs` 理解并完成配置。
 
-缺 Owner facts 时 STOP，不允许 AI 通过名字或相邻 Module 推断。
+## Boundary
 
-## Runtime / Lifecycle
-
-Skill runtime descriptor 为 library；不伪造 start/stop。Platform install/start/stop/status/docs 等由 Platform CLI 统一治理。
-
-## Testing
-
-当前先人工验证真实 Skill → Template CLI → 新包创建路径；正式自动化测试用例与 evidence 在人工验证通过后再更新。
+不得 invent capability/dependency/permission/owner/domain/lifecycle；缺少 owner fact 时 fail-closed，而不是让 Platform CLI 补业务逻辑。
