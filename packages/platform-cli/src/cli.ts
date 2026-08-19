@@ -188,14 +188,17 @@ async function loadConfigMap(
 	modules: Awaited<ReturnType<typeof discoverModules>>,
 ) {
 	const paths = workspacePaths(root);
-	const configByModuleRef = new Map<string, Record<string, string>>();
+	const configByModuleRef = new Map<
+		string,
+		{
+			publicValues: Record<string, string>;
+			secretValues: Record<string, string>;
+		}
+	>();
 	for (const module of modules) {
 		const config = await loadConfig(paths, module.moduleRef);
 		if (config === undefined) continue;
-		configByModuleRef.set(module.moduleRef, {
-			...config.publicValues,
-			...config.secretValues,
-		});
+		configByModuleRef.set(module.moduleRef, config);
 	}
 	return configByModuleRef;
 }

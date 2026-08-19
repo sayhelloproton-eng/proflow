@@ -34,8 +34,15 @@ export type ProductionBindingFactory = (input: {
 export interface ProductionBindingOptions {
 	workspaceRoot: string;
 	modules: readonly ResolvedModule[];
-	// materialized public+secret config by moduleRef (already loaded by the CLI)
-	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
+	// Raw secrets stay scoped to their owner Module. Cross-module composition may
+	// inspect only public materialized config.
+	configByModuleRef: ReadonlyMap<
+		string,
+		{
+			publicValues: Record<string, string>;
+			secretValues: Record<string, string>;
+		}
+	>;
 	// dynamic adapter importer. The shipped CLI supplies a real filesystem
 	// importer; tests supply a temp-workspace importer. It must return the raw
 	// `deployment/adapter.ts` namespace (not a bound adapter).
@@ -99,13 +106,23 @@ export async function buildProductionBindings(
 	options: ProductionBindingOptions,
 ): Promise<ReadonlyMap<string, DeploymentAdapterBinding>> {
 	const bindings = new Map<string, DeploymentAdapterBinding>();
+	const publicConfigByModuleRef = new Map(
+		[...options.configByModuleRef].map(([moduleRef, config]) => [
+			moduleRef,
+			{ ...config.publicValues },
+		]),
+	);
 	for (const module of options.modules) {
 		try {
 			const namespace = await options.importAdapter(
 				module.packageName,
 				module.source,
 			);
-			const config = options.configByModuleRef.get(module.moduleRef) ?? {};
+			const materialized = options.configByModuleRef.get(module.moduleRef);
+			const config =
+				materialized === undefined
+					? {}
+					: { ...materialized.publicValues, ...materialized.secretValues };
 			const factory = (namespace as { createProductionBinding?: unknown })
 				.createProductionBinding;
 			if (typeof factory !== "function") continue;
@@ -114,7 +131,7 @@ export async function buildProductionBindings(
 				config,
 				workspaceRoot: options.workspaceRoot,
 				modules: options.modules,
-				configByModuleRef: options.configByModuleRef,
+				configByModuleRef: publicConfigByModuleRef,
 			});
 			if (
 				binding !== undefined &&
