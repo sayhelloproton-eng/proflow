@@ -172,7 +172,7 @@ test("CP-DPL-CLI-11 npm and pnpm receive exact script-safe install/remove argv",
 				"--ignore-scripts",
 				"@tomflow/proflow-fixture@1.2.3",
 			],
-			["remove", "--ignore-scripts", "@tomflow/proflow-fixture"],
+			["--config.ignore-scripts=true", "remove", "@tomflow/proflow-fixture"],
 		],
 	] as const) {
 		const w = await workspace();

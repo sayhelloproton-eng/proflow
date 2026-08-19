@@ -127,7 +127,7 @@ async function packageManagerArgs(
 ): Promise<string[]> {
 	if (manager.name === "pnpm") {
 		return operation === "remove"
-			? ["remove", "--ignore-scripts", packageSpec]
+			? ["--config.ignore-scripts=true", "remove", packageSpec]
 			: ["add", "--save-exact", "--ignore-scripts", packageSpec];
 	}
 	if (manager.name === "npm") {
