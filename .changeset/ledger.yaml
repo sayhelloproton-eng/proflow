@@ -250,6 +250,10 @@
   dir: packages/platform-cli
   intents:
     - real1-uninstall-final-cleanup
+"@tomflow/proflow-platform-cli@0.1.14":
+  dir: packages/platform-cli
+  intents:
+    - real1-start-preflight-gate
 "@tomflow/proflow-platform-cli@0.1.2":
   dir: packages/platform-cli
   intents:
