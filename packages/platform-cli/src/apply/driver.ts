@@ -40,6 +40,27 @@ export function workspaceResidentDriver(): PackageManagerDriver {
 	};
 }
 
+export async function cleanupWorkspacePackageManagerArtifacts(options: {
+	workspaceRoot: string;
+	removedModules: readonly ResolvedModule[];
+}): Promise<void> {
+	const manager = await readWorkspacePackageManagerSelection(
+		options.workspaceRoot,
+	);
+	if (manager.name !== "pnpm") return;
+
+	const removedPackageSpecs = new Set(
+		options.removedModules.map(
+			(module) => `${module.packageName}@${module.moduleVersion}`,
+		),
+	);
+	await cleanupPnpmReleaseAgeExcludes(
+		options.workspaceRoot,
+		removedPackageSpecs,
+	);
+	await normalizeEmptyPnpmRootImporter(options.workspaceRoot);
+}
+
 export function createWorkspacePackageManagerDriver(options: {
 	workspaceRoot: string;
 	runner?: PackageCommandRunner;
@@ -271,6 +292,75 @@ async function readWorkspaceManifest(
 	} catch {
 		return undefined;
 	}
+}
+
+async function cleanupPnpmReleaseAgeExcludes(
+	workspaceRoot: string,
+	removedPackageSpecs: ReadonlySet<string>,
+): Promise<void> {
+	const path = join(workspaceRoot, "pnpm-workspace.yaml");
+	let raw: string;
+	try {
+		raw = await readFile(path, "utf8");
+	} catch (error) {
+		if (isMissingFile(error)) return;
+		throw error;
+	}
+
+	const lines = raw.split("\n");
+	const keyIndex = lines.indexOf("minimumReleaseAgeExclude:");
+	if (keyIndex < 0) return;
+	let endIndex = keyIndex + 1;
+	while (
+		endIndex < lines.length &&
+		(lines[endIndex]?.trim() === "" || /^\s/.test(lines[endIndex] ?? ""))
+	) {
+		endIndex += 1;
+	}
+
+	const retained = lines.slice(keyIndex + 1, endIndex).filter((line) => {
+		const match = /^\s*-\s+(.+?)\s*$/.exec(line);
+		if (match === null) return true;
+		const value = stripYamlQuotes(match[1] ?? "");
+		return !removedPackageSpecs.has(value);
+	});
+	const hasListItem = retained.some((line) => /^\s*-\s+/.test(line));
+	const replacement = hasListItem ? [lines[keyIndex] ?? "", ...retained] : [];
+	let next = [
+		...lines.slice(0, keyIndex),
+		...replacement,
+		...lines.slice(endIndex),
+	].join("\n");
+	if (raw.endsWith("\n") && !next.endsWith("\n")) next += "\n";
+	if (next !== raw) await atomicWrite(path, next);
+}
+
+async function normalizeEmptyPnpmRootImporter(
+	workspaceRoot: string,
+): Promise<void> {
+	const path = join(workspaceRoot, "pnpm-lock.yaml");
+	let raw: string;
+	try {
+		raw = await readFile(path, "utf8");
+	} catch (error) {
+		if (isMissingFile(error)) return;
+		throw error;
+	}
+	const next = raw.replace(
+		"\nimporters:\n\n  .: {}\n",
+		"\nimporters:\n  .: {}\n",
+	);
+	if (next !== raw) await atomicWrite(path, next);
+}
+
+function stripYamlQuotes(value: string): string {
+	if (
+		(value.startsWith("'") && value.endsWith("'")) ||
+		(value.startsWith('"') && value.endsWith('"'))
+	) {
+		return value.slice(1, -1);
+	}
+	return value;
 }
 
 function hasOwn(

@@ -9,7 +9,10 @@ import {
 import { descriptor as platformCliDescriptor } from "../deployment/descriptor.ts";
 import { applyPlan } from "./apply/apply.ts";
 import { rebuildCurrentAssumptions } from "./apply/current.ts";
-import { createWorkspacePackageManagerDriver } from "./apply/driver.ts";
+import {
+	cleanupWorkspacePackageManagerArtifacts,
+	createWorkspacePackageManagerDriver,
+} from "./apply/driver.ts";
 import {
 	acquireGlobalOperationLock,
 	canonicalizeWorkspace,
@@ -1190,6 +1193,12 @@ async function handlePlatformInstanceUninstall(
 				"UNINSTALL_FAILED",
 				`Platform Instance uninstall left managed modules: ${remaining.map((module) => module.moduleRef).join(", ")}`,
 			);
+		}
+		if (modules.length > 0) {
+			await cleanupWorkspacePackageManagerArtifacts({
+				workspaceRoot: binding.workspaceRealPath,
+				removedModules: modules,
+			});
 		}
 
 		// Deployment-owned plans/state/verification/instance identity must not leak

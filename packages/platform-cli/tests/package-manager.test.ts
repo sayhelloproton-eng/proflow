@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { createWorkspacePackageManagerDriver } from "../src/apply/driver.ts";
+import {
+	cleanupWorkspacePackageManagerArtifacts,
+	createWorkspacePackageManagerDriver,
+} from "../src/apply/driver.ts";
 import type { ResolvedModule } from "../src/contracts.ts";
 import { PlatformError } from "../src/errors.ts";
 import { preflightInstallerEnvironment } from "../src/install/environment.ts";
@@ -196,6 +199,50 @@ test("CP-DPL-CLI-11 npm and pnpm receive exact script-safe install/remove argv",
 		} finally {
 			await w.cleanup();
 		}
+	}
+});
+
+test("CP-DPL-CLI-11 whole uninstall cleanup removes only ProFlow pnpm workspace artifacts", async () => {
+	const w = await workspace();
+	try {
+		await w.manifest({ private: true, packageManager: "pnpm@11.21.0" });
+		await writeFile(
+			join(w.root, "pnpm-workspace.yaml"),
+			"packages: []\nminimumReleaseAgeExclude:\n  - '@tomflow/proflow-fixture@1.2.3'\n  - 'user-package@9.9.9'\nonlyBuiltDependencies:\n  - user-native\n",
+		);
+		await writeFile(
+			join(w.root, "pnpm-lock.yaml"),
+			"lockfileVersion: '9.0'\n\nimporters:\n\n  .: {}\n",
+		);
+
+		await cleanupWorkspacePackageManagerArtifacts({
+			workspaceRoot: w.root,
+			removedModules: [moduleFixture()],
+		});
+
+		assert.equal(
+			await readFile(join(w.root, "pnpm-workspace.yaml"), "utf8"),
+			"packages: []\nminimumReleaseAgeExclude:\n  - 'user-package@9.9.9'\nonlyBuiltDependencies:\n  - user-native\n",
+		);
+		assert.equal(
+			await readFile(join(w.root, "pnpm-lock.yaml"), "utf8"),
+			"lockfileVersion: '9.0'\n\nimporters:\n  .: {}\n",
+		);
+
+		await writeFile(
+			join(w.root, "pnpm-workspace.yaml"),
+			"packages: []\nminimumReleaseAgeExclude:\n  - '@tomflow/proflow-fixture@1.2.3'\nonlyBuiltDependencies:\n  - user-native\n",
+		);
+		await cleanupWorkspacePackageManagerArtifacts({
+			workspaceRoot: w.root,
+			removedModules: [moduleFixture()],
+		});
+		assert.equal(
+			await readFile(join(w.root, "pnpm-workspace.yaml"), "utf8"),
+			"packages: []\nonlyBuiltDependencies:\n  - user-native\n",
+		);
+	} finally {
+		await w.cleanup();
 	}
 });
 

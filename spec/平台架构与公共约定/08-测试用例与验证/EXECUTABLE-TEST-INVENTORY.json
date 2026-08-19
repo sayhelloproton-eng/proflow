@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 136,
-    "testCalls": 740
+    "testCalls": 741
   },
   "tests": [
     {
@@ -7934,7 +7934,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/package-manager.test.ts",
-      "line": 51,
+      "line": 54,
       "title": "CP-DPL-CLI-11 packageManager declaration supports npm, yarn, and pnpm",
       "ids": [
         "CP-DPL-CLI-11"
@@ -7951,7 +7951,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/package-manager.test.ts",
-      "line": 69,
+      "line": 72,
       "title": "CP-DPL-CLI-11 a single lockfile selects yarn/pnpm/npm when packageManager is absent",
       "ids": [
         "CP-DPL-CLI-11"
@@ -7968,7 +7968,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/package-manager.test.ts",
-      "line": 88,
+      "line": 91,
       "title": "CP-DPL-CLI-11 + RF-DPL-CLI-12 conflicting declaration/lockfile and multiple lockfiles fail closed",
       "ids": [
         "CP-DPL-CLI-11",
@@ -7986,7 +7986,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/package-manager.test.ts",
-      "line": 104,
+      "line": 107,
       "title": "CP-DPL-CLI-11 Fresh Workspace with no declaration or lockfile deterministically defaults to npm",
       "ids": [
         "CP-DPL-CLI-11"
@@ -8003,7 +8003,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/package-manager.test.ts",
-      "line": 114,
+      "line": 117,
       "title": "CP-DPL-CLI-11 Yarn Classic and modern Yarn receive script-safe exact mutation argv",
       "ids": [
         "CP-DPL-CLI-11"
@@ -8020,7 +8020,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/package-manager.test.ts",
-      "line": 153,
+      "line": 156,
       "title": "CP-DPL-CLI-11 npm and pnpm receive exact script-safe install/remove argv",
       "ids": [
         "CP-DPL-CLI-11"
@@ -8037,7 +8037,24 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/package-manager.test.ts",
-      "line": 202,
+      "line": 205,
+      "title": "CP-DPL-CLI-11 whole uninstall cleanup removes only ProFlow pnpm workspace artifacts",
+      "ids": [
+        "CP-DPL-CLI-11"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/apply/driver.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/errors.ts",
+        "packages/platform-cli/src/install/environment.ts",
+        "packages/platform-cli/src/install/package-manager.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/package-manager.test.ts",
+      "line": 249,
       "title": "CP-DPL-CLI-11 a declared Workspace package manager that is unavailable fails closed",
       "ids": [
         "CP-DPL-CLI-11"
@@ -8054,7 +8071,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/package-manager.test.ts",
-      "line": 226,
+      "line": 273,
       "title": "installer preflight bounds the registry ping with a timeout instead of hanging",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
