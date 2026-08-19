@@ -300,7 +300,7 @@ export function createDevTunnelRuntime(input: {
 			if (!pid || !processAlive(pid)) {
 				if (processStateFile) await rm(processStateFile, { force: true });
 				child = undefined;
-				return observe("UNKNOWN");
+				return observe("STOPPED");
 			}
 			try {
 				process.kill(pid, "SIGTERM");

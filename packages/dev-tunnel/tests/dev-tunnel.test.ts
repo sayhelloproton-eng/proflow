@@ -15,6 +15,7 @@ import {
 import { descriptor } from "../deployment/descriptor.ts";
 import {
 	createDevTunnelRuntime,
+	type DevTunnelRuntime,
 	probeTlsProtocol,
 	readResponseChars,
 	verifyPublicIngress,
@@ -30,6 +31,19 @@ const notLoggedInRunner = async () => ({
 	exitCode: 1,
 	stdout: "",
 	stderr: "not logged in",
+});
+
+const unknownStopRuntime = (onStart?: () => void): DevTunnelRuntime => ({
+	command: "devtunnel",
+	status: async () => ({ state: "UNKNOWN", login: "LOGGED_IN" }),
+	loginStatus: async () => "LOGGED_IN",
+	publicBaseUrl: () => "https://tunnel.example.com/",
+	start: async () => {
+		onStart?.();
+		return { state: "RUNNING", login: "LOGGED_IN" };
+	},
+	stop: async () => ({ state: "UNKNOWN", login: "LOGGED_IN" }),
+	restart: async () => ({ state: "UNKNOWN", login: "LOGGED_IN" }),
 });
 
 test("dev-tunnel descriptor parses against moduleDescriptorSchema", () => {
@@ -187,10 +201,9 @@ test("persistent runtime detaches and survives across adapter instances", async 
 		const second = createDevTunnelRuntime(options);
 		assert.equal((await second.status()).state, "RUNNING");
 		assert.equal((await second.stop()).state, "STOPPED");
-		assert.equal(
-			(await createDevTunnelRuntime(options).status()).state,
-			"UNKNOWN",
-		);
+		const stoppedAgain = createDevTunnelRuntime(options);
+		assert.equal((await stoppedAgain.stop()).state, "STOPPED");
+		assert.equal((await stoppedAgain.status()).state, "UNKNOWN");
 	} finally {
 		await rm(dir, { recursive: true, force: true });
 	}
@@ -249,12 +262,8 @@ test("doctor reads current login/state/publicUrl reality, not just adapter-bound
 	assert.equal(loginCheck?.status, "FAIL");
 });
 
-test("stop returns ACTION_REQUIRED when stop state is UNKNOWN", async () => {
-	const runtime = createDevTunnelRuntime({
-		runCommand: loggedInRunner,
-		tunnelId: "tunnel-123",
-	});
-	const adapter = createBehaviorAdapter({ runtime });
+test("stop returns ACTION_REQUIRED when stop state is genuinely UNKNOWN", async () => {
+	const adapter = createBehaviorAdapter({ runtime: unknownStopRuntime() });
 	const stop = await adapter.stop();
 	assert.equal(stop.result.status, "ACTION_REQUIRED");
 	assert.equal(stop.result.ok, false);
@@ -262,14 +271,16 @@ test("stop returns ACTION_REQUIRED when stop state is UNKNOWN", async () => {
 });
 
 test("restart does not start when stop is UNKNOWN", async () => {
-	const runtime = createDevTunnelRuntime({
-		runCommand: loggedInRunner,
-		tunnelId: "tunnel-123",
+	let started = false;
+	const adapter = createBehaviorAdapter({
+		runtime: unknownStopRuntime(() => {
+			started = true;
+		}),
 	});
-	const adapter = createBehaviorAdapter({ runtime });
 	const restart = await adapter.restart();
 	assert.equal(restart.result.status, "ACTION_REQUIRED");
 	assert.equal(restart.result.actionRequired?.action, "complete-tunnel-stop");
+	assert.equal(started, false);
 });
 
 test("uninstall is idempotent when no dev-tunnel resource is bound", async () => {
