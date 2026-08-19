@@ -26,9 +26,6 @@ export interface AggregatedModuleDocs {
 }
 
 function sourceOf(module: ResolvedModule): ModuleSource {
-	if (module.source.type === "registry") {
-		throw new TypeError("registry modules do not have local documentation");
-	}
 	return module.source.path === undefined
 		? { type: module.source.type, packageName: module.packageName }
 		: {

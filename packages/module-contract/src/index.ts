@@ -273,14 +273,6 @@ export const lifecycleSupportSchema = z.strictObject({
 });
 export type LifecycleSupport = z.infer<typeof lifecycleSupportSchema>;
 
-export const serviceProcessBindingSchema = z.strictObject({
-	contract: z.literal("deployment.service-process.v1"),
-	bin: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/),
-	startCommand: z.literal("start"),
-	config: z.record(z.string(), z.unknown()),
-});
-export type ServiceProcessBinding = z.infer<typeof serviceProcessBindingSchema>;
-
 export const verificationCheckSchema = z.strictObject({
 	id: identifier,
 	description: z.string().min(1),
