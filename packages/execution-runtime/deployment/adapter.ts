@@ -1,3 +1,5 @@
+import { createServer } from "node:net";
+
 import { descriptor } from "./descriptor.ts";
 
 type ProcessService = {
@@ -24,6 +26,85 @@ const unbound = {
 		description: "Bind a configured Execution Runtime service",
 	},
 } as const;
+
+async function listenerPreflight(listener: URL) {
+	const port = listener.port === "" ? 80 : Number(listener.port);
+	const host = listener.hostname.replace(/^\[(.*)\]$/, "$1");
+	const address = `${host}:${port}`;
+	try {
+		const response = await fetch(new URL("/ready", listener), {
+			signal: AbortSignal.timeout(500),
+		});
+		if (response.ok)
+			return {
+				result: {
+					...base,
+					checks: [
+						{
+							id: "execution-runtime-listener",
+							status: "PASS" as const,
+							message: `Execution Runtime listener ${address} is already READY`,
+						},
+					],
+				},
+				observedEffects: [],
+			};
+	} catch {
+		// A stopped runtime is expected here; continue with a bind-only port probe.
+	}
+	const probe = await new Promise<{ available: boolean; message: string }>(
+		(resolve) => {
+			const server = createServer();
+			server.once("error", (error) =>
+				resolve({
+					available: false,
+					message: error instanceof Error ? error.message : String(error),
+				}),
+			);
+			server.listen({ host, port, exclusive: true }, () =>
+				server.close(() =>
+					resolve({
+						available: true,
+						message: `Execution Runtime listener ${address} is available`,
+					}),
+				),
+			);
+		},
+	);
+	return probe.available
+		? {
+				result: {
+					...base,
+					checks: [
+						{
+							id: "execution-runtime-listener",
+							status: "PASS" as const,
+							message: probe.message,
+						},
+					],
+				},
+				observedEffects: [],
+			}
+		: {
+				result: {
+					...base,
+					ok: false as const,
+					status: "ACTION_REQUIRED" as const,
+					actionRequired: {
+						action: "free-execution-runtime-port",
+						description: `Execution Runtime listener ${address} is unavailable (${probe.message}); stop the conflicting process or configure a different endpoint before platform start`,
+					},
+					checks: [
+						{
+							id: "execution-runtime-listener",
+							status: "FAIL" as const,
+							message: probe.message,
+						},
+					],
+				},
+				observedEffects: [],
+			};
+}
 
 export function createBehaviorAdapter(service?: ProcessService) {
 	return {
@@ -190,7 +271,7 @@ export async function createServiceProcessBinding(input: {
 	});
 	const probeAdapter = {
 		describe: behaviorAdapter.describe,
-		preflight: behaviorAdapter.preflight,
+		preflight: () => listenerPreflight(listener),
 		verify: async () => {
 			let ready = false;
 			try {
@@ -293,5 +374,10 @@ export async function createProductionBinding(input: {
 			},
 		}),
 	});
-	return { behaviorAdapter: createBehaviorAdapter(service) };
+	return {
+		behaviorAdapter: {
+			...createBehaviorAdapter(service),
+			preflight: () => listenerPreflight(listener),
+		},
+	};
 }

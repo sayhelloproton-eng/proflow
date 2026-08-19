@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 135,
-    "testCalls": 739
+    "files": 136,
+    "testCalls": 740
   },
   "tests": [
     {
@@ -3112,6 +3112,17 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/execution-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-runtime",
+      "path": "packages/execution-runtime/tests/deployment-preflight-port.test.ts",
+      "line": 24,
+      "title": "FJ-07 preflight reports an occupied Execution Runtime listener before start",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-runtime/deployment/adapter.ts"
       ]
     },
     {
