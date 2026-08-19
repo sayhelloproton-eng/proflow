@@ -1260,6 +1260,12 @@ async function handleLifecycle(
 	args: ParsedArgs,
 	primitive: "start" | "stop" | "restart" | "status",
 ): Promise<CliOutcome> {
+	if (primitive === "start") {
+		const preflight = await handlePreflight(ctx, args);
+		if (preflight.status !== "SUCCEEDED") {
+			return outcome("start", preflight.status, preflight.data);
+		}
+	}
 	const modules = await discoverModules({ catalog: ctx.catalog });
 	const selected = selectModules(modules, args.positional[0]);
 	const result =
@@ -1584,7 +1590,56 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function humanLifecycleLines(data: readonly unknown[]): string[] {
+	const lines = ["Lifecycle:"];
+	let skippedUnsupported = 0;
+	for (const item of data) {
+		if (!isRecord(item)) continue;
+		const moduleRef =
+			typeof item.moduleRef === "string" ? item.moduleRef : "unknown";
+		const runStatus = typeof item.status === "string" ? item.status : "UNKNOWN";
+		if (runStatus === "SKIP_UNSUPPORTED") {
+			skippedUnsupported += 1;
+			continue;
+		}
+		const result = isRecord(item.result) ? item.result : undefined;
+		const resultStatus =
+			result !== undefined && typeof result.status === "string"
+				? result.status
+				: runStatus;
+		let detail = "";
+		const actionRequired =
+			result !== undefined && isRecord(result.actionRequired)
+				? result.actionRequired
+				: undefined;
+		const error =
+			result !== undefined && isRecord(result.error) ? result.error : undefined;
+		if (actionRequired !== undefined) {
+			const action =
+				typeof actionRequired.action === "string"
+					? actionRequired.action
+					: "action-required";
+			const description =
+				typeof actionRequired.description === "string"
+					? actionRequired.description
+					: "human action required";
+			detail = ` — ${action}: ${description}`;
+		} else if (error !== undefined) {
+			const code =
+				typeof error.code === "string" ? error.code : "COMMAND_FAILED";
+			const message =
+				typeof error.message === "string" ? error.message : "Unknown error";
+			detail = ` — ${code}: ${message}`;
+		}
+		lines.push(`- ${moduleRef}: ${resultStatus}${detail}`);
+	}
+	if (skippedUnsupported > 0)
+		lines.push(`Skipped unsupported: ${skippedUnsupported}`);
+	return lines;
+}
+
 function humanDetailLines(data: unknown): string[] {
+	if (Array.isArray(data)) return humanLifecycleLines(data);
 	if (!isRecord(data)) {
 		return data === undefined ? [] : [String(data)];
 	}

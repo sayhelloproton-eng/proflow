@@ -165,6 +165,46 @@ test("human help explains common flows and whole-uninstall preservation boundari
 	assert.ok(!rendered.trimStart().startsWith("{"));
 });
 
+test("human rendering formats lifecycle arrays instead of emitting object coercions", () => {
+	const rendered = renderHumanResult(
+		JSON.stringify({
+			status: "BLOCKED",
+			workspace: { boundWorkspace: WORKSPACE },
+			data: [
+				{
+					moduleRef: "dev-tunnel",
+					status: "EXECUTED",
+					result: {
+						status: "ACTION_REQUIRED",
+						actionRequired: {
+							action: "configure-tunnel",
+							description: "Cannot start without a bound dev-tunnel resource",
+						},
+					},
+				},
+				{ moduleRef: "module-contract", status: "SKIP_UNSUPPORTED" },
+				{
+					moduleRef: "agent-gateway",
+					status: "EXECUTED",
+					result: {
+						status: "BLOCKED",
+						error: {
+							code: "COMMAND_FAILED",
+							message: "dependency dev-tunnel did not start successfully",
+						},
+					},
+				},
+			],
+		}),
+	);
+	assert.ok(rendered.includes("Lifecycle:"));
+	assert.ok(rendered.includes("dev-tunnel: ACTION_REQUIRED"));
+	assert.ok(rendered.includes("configure-tunnel"));
+	assert.ok(rendered.includes("agent-gateway: BLOCKED"));
+	assert.ok(rendered.includes("Skipped unsupported: 1"));
+	assert.ok(!rendered.includes("[object Object]"));
+});
+
 test("runCli --json returns the structured machine result contract", async () => {
 	const result = await machineResult(["--json"]);
 	assert.equal(result.ok, true);
@@ -333,6 +373,25 @@ test("preflight against the bound real-module workspace returns a typed result",
 					: "BLOCKED";
 		assert.equal(result.status, expectedOuterStatus);
 		assert.ok(Array.isArray(data.findings));
+	} finally {
+		await fixture.cleanup();
+	}
+});
+
+test("start gates on managed preflight before lifecycle dispatch", async () => {
+	const fixture = await boundRealWorkspaceFixture();
+	try {
+		const start = await machineResult(["start"], {
+			cwd: WORKSPACE,
+			globalRoot: fixture.globalRoot,
+		});
+		assert.ok(!Array.isArray(start.data));
+		const data = start.data as { findings?: Array<{ code?: string }> };
+		assert.ok(Array.isArray(data.findings));
+		assert.ok(
+			data.findings.some((finding) => finding.code === "CONFIG_MISSING"),
+		);
+		assert.ok(["ACTION_REQUIRED", "BLOCKED"].includes(start.status));
 	} finally {
 		await fixture.cleanup();
 	}
