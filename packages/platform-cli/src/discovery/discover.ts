@@ -136,7 +136,6 @@ function toResolvedModule(
 		packageName: descriptor.packageName,
 		moduleVersion: descriptor.moduleVersion,
 		kind: descriptor.kind,
-		installClass: descriptor.installClass,
 		identity: descriptor.identity,
 		documentation: descriptor.documentation,
 		provides: descriptor.provides,

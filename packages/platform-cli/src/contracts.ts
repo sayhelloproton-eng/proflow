@@ -24,7 +24,6 @@ export interface ResolvedModule {
 	packageName: string;
 	moduleVersion: string;
 	kind: ModuleDescriptor["kind"] | "registry-package";
-	installClass: ModuleDescriptor["installClass"];
 	identity?: ModuleDescriptor["identity"];
 	documentation: ModuleDescriptor["documentation"];
 	provides: ModuleDescriptor["provides"];

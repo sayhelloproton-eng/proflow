@@ -7,7 +7,6 @@ import { gunzipSync } from "node:zlib";
 
 import {
 	type ModuleDescriptor,
-	type ModuleInstallClass,
 	parseModuleDescriptor,
 	proflowPackageMetadataSchema,
 } from "@tomflow/proflow-module-contract";
@@ -37,10 +36,8 @@ export interface RegistryModuleCandidate {
 	packageName: string;
 	moduleVersion: string;
 	description?: string;
-	installClass: ModuleInstallClass;
 	descriptor: string;
 	manifest: "./proflow.module.json";
-	installRequires: string[];
 	nodeVersionRange?: string;
 	registry: string;
 }
@@ -278,62 +275,6 @@ function tarString(header: Buffer, start: number, length: number): string {
 	return field.subarray(0, end < 0 ? field.length : end).toString("utf8");
 }
 
-export async function discoverRegistryInstallClosure(options: {
-	workspaceRoot: string;
-	packageName: string;
-	runner?: NpmCommandRunner;
-	nodeVersion?: string;
-}): Promise<RegistryDiscoveryResult> {
-	const runner = options.runner ?? systemNpmRunner();
-	const queue = [validateRequestedPackageName(options.packageName)];
-	const seen = new Set<string>();
-	const candidates = new Map<string, RegistryModuleCandidate>();
-	const rejected = new Map<string, RegistryRejectedPackage>();
-	let registry: string | undefined;
-
-	while (queue.length > 0) {
-		const packageName = queue.shift();
-		if (!packageName) continue;
-		if (seen.has(packageName)) continue;
-		seen.add(packageName);
-		const discovered = await discoverRegistryModules({
-			workspaceRoot: options.workspaceRoot,
-			packageName,
-			runner,
-			...(options.nodeVersion === undefined
-				? {}
-				: { nodeVersion: options.nodeVersion }),
-		});
-		registry ??= discovered.registry;
-		for (const item of discovered.rejected)
-			rejected.set(item.packageName, item);
-		const candidate = discovered.candidates[0];
-		if (candidate === undefined) {
-			throw new PlatformError(
-				"PACKAGE_NOT_PROFLOW",
-				`package ${packageName} is not an installable ProFlow module`,
-			);
-		}
-		candidates.set(candidate.packageName, candidate);
-		for (const dependency of candidate.installRequires) {
-			if (!seen.has(dependency)) queue.push(dependency);
-		}
-	}
-
-	if (registry === undefined) {
-		registry = await resolveScopeRegistry(options.workspaceRoot, runner);
-	}
-	return {
-		registry,
-		candidates: [...candidates.values()].sort((a, b) =>
-			a.packageName.localeCompare(b.packageName),
-		),
-		rejected: [...rejected.values()].sort((a, b) =>
-			a.packageName.localeCompare(b.packageName),
-		),
-	};
-}
-
 async function searchPackageNames(
 	workspaceRoot: string,
 	registry: string,
@@ -465,10 +406,8 @@ function assessManifest(
 			...(typeof manifest.description === "string"
 				? { description: manifest.description }
 				: {}),
-			installClass: metadata.data.installClass,
 			descriptor: metadata.data.descriptor,
 			manifest: metadata.data.manifest,
-			installRequires: [...metadata.data.installRequires],
 			...(nodeVersionRange === undefined ? {} : { nodeVersionRange }),
 			registry,
 		},

@@ -29,7 +29,6 @@ export interface ModuleDocsView {
 	packageName: string;
 	moduleVersion: string;
 	kind: ModuleDescriptor["kind"];
-	installClass: ModuleDescriptor["installClass"];
 	identity: ModuleDescriptor["identity"];
 	commands: PublishedCommand[];
 	publicApiEntries: PublicApiEntry[];
@@ -169,7 +168,6 @@ export async function describeModule(input: {
 		packageName: input.descriptor.packageName,
 		moduleVersion: input.descriptor.moduleVersion,
 		kind: input.descriptor.kind,
-		installClass: input.descriptor.installClass,
 		identity: input.descriptor.identity,
 		commands: commandsFrom(manifest, input.descriptor.packageName),
 		publicApiEntries: publicApiEntriesFrom(manifest),
