@@ -94,6 +94,10 @@
   dir: packages/chrome-runtime
   intents:
     - real1-chrome-release-rebuild
+"@tomflow/proflow-chrome-runtime@0.1.5":
+  dir: packages/chrome-runtime
+  intents:
+    - real1-chrome-resource-version
 "@tomflow/proflow-deployment-conformance@0.1.1":
   dir: packages/deployment-conformance
   intents:
