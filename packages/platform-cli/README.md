@@ -55,4 +55,5 @@ platform manifest [module]
 - Requested Workspace paths are canonicalized before binding comparison. A second distinct Workspace is rejected with `WORKSPACE_ALREADY_BOUND` until the current Platform Instance is uninstalled.
 - `status/start/stop/restart/modules/docs/verify/doctor/upgrade/uninstall` resolve the durable global binding rather than the caller's cwd. `platform status` exposes the bound Workspace path.
 - `platform uninstall` without a module/package removes the current Platform Instance and clears its binding; it does not uninstall the global CLI package.
+- Whole-instance uninstall removes managed ProFlow modules plus Deployment-owned `.proflow/deployment` state (plans, deployment state, verification, and instance identity). Business/domain data outside `.proflow/deployment` is intentionally preserved. v1 has no purge mode, so ordinary uninstall never claims to delete preserved domain data.
 - Workspace package mutation is package-manager agnostic for v1: `npm`, `yarn`, and `pnpm` are supported. The CLI installation manager and the bound Workspace manager are independent facts.

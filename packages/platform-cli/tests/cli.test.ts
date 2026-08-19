@@ -143,7 +143,7 @@ test("--version exposes the published CLI version and human rendering is readabl
 	);
 });
 
-test("human help explains common install, readiness, configure, and lifecycle flows", async () => {
+test("human help explains common flows and whole-uninstall preservation boundaries", async () => {
 	const output = await runCli(["--help"]);
 	const rendered = renderHumanResult(output);
 	assert.ok(rendered.includes("Usage:"));
@@ -151,6 +151,16 @@ test("human help explains common install, readiness, configure, and lifecycle fl
 	assert.ok(
 		rendered.includes("platform plan --intent configure --config <file>"),
 	);
+	assert.ok(
+		rendered.includes("remove managed modules and .proflow/deployment state"),
+	);
+	assert.ok(
+		rendered.includes(
+			"preserve business/domain data outside .proflow/deployment",
+		),
+	);
+	assert.ok(rendered.includes("keep the global CLI"));
+	assert.ok(rendered.includes("v1 has no purge mode"));
 	assert.ok(rendered.includes("append --json"));
 	assert.ok(!rendered.trimStart().startsWith("{"));
 });

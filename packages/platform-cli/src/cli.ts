@@ -1704,7 +1704,7 @@ export async function runCli(
 					"platform plan --intent configure --config <file>",
 					"platform apply <planRef>",
 					"platform start | status | verify | doctor | stop | restart",
-					"platform uninstall  # uninstall the bound Platform Instance, not the global CLI",
+					"platform uninstall  # remove managed modules and .proflow/deployment state; preserve business/domain data outside .proflow/deployment; clear binding; keep the global CLI; v1 has no purge mode",
 					"append --json for the stable machine-readable contract",
 				],
 			},
