@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 135,
-    "testCalls": 734
+    "testCalls": 735
   },
   "tests": [
     {
@@ -3606,6 +3606,18 @@
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
       "line": 112,
+      "title": "REAL1 execution /ready re-probes recoverable identity and model dependencies",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-runtime/deployment/descriptor.ts",
+        "packages/execution-runtime/src/service.ts"
+      ]
+    },
+    {
+      "package": "execution-runtime",
+      "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+      "line": 164,
       "title": "CP-EXE-RT-14 specialised Context Pack/Patch APIs return durable executionRef and reuse idempotent Execution truth",
       "ids": [
         "CP-EXE-RT-14"
@@ -3619,7 +3631,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 177,
+      "line": 229,
       "title": "PRESMOKE-B4-RUNTIME-02 formal readiness can require the Model Decision port without faking Batch 5 wiring",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3631,7 +3643,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 203,
+      "line": 255,
       "title": "CP-EXE-RT-20 shipped execution-runtime descriptor and binary require the formal Browser/security/model composition",
       "ids": [
         "CP-EXE-RT-20"
@@ -3645,7 +3657,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 263,
+      "line": 315,
       "title": "PRESMOKE-B5-RUNTIME-04 modelDecision readiness reflects the consumer-specific dependency probe",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3657,7 +3669,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 285,
+      "line": 337,
       "title": "PRESMOKE-B5-RUNTIME-05 modelDecision config is loopback-only",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
