@@ -486,9 +486,14 @@ test("REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality withou
 	assert.equal(browser.submitCount, 0);
 });
 
-test("REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remains ACTION_REQUIRED locally", async () => {
+test("REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remain explicitly incomplete locally", async () => {
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
-	assert.equal(behaviorAdapter.status().result.status, "ACTION_REQUIRED");
+	const status = behaviorAdapter.status().result;
+	assert.equal(status.status, "SUCCEEDED");
+	assert.equal(status.data.configStatus, "INCOMPLETE");
+	assert.equal(status.data.runtimeStatus, "UNKNOWN");
+	assert.ok(status.data.missingConfig?.includes("bridge.endpoint"));
+	assert.ok(status.data.missingConfig?.includes("verificationEvidenceFile"));
 });
 
 type VisionInspectInput = Parameters<BrowserVisionPort["inspect"]>[0];

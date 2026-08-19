@@ -55,7 +55,7 @@ test("every lifecycle result satisfies the structured result contract", async ()
 	}
 });
 
-test("unconfigured adapter reports ACTION_REQUIRED for observable primitives", async () => {
+test("unconfigured adapter reports Module facts while actionable primitives remain blocked", async () => {
 	const describe = await behaviorAdapter.describe();
 	assert.equal(describe.result.status, "SUCCEEDED");
 
@@ -63,7 +63,12 @@ test("unconfigured adapter reports ACTION_REQUIRED for observable primitives", a
 	assert.equal(preflight.result.status, "ACTION_REQUIRED");
 
 	const status = await behaviorAdapter.status();
-	assert.equal(status.result.status, "ACTION_REQUIRED");
+	assert.equal(status.result.status, "SUCCEEDED");
+	assert.deepEqual(status.result.data, {
+		configStatus: "INCOMPLETE",
+		missingConfig: ["providerBaseUrl"],
+		runtimeStatus: "UNKNOWN",
+	});
 
 	const verify = await behaviorAdapter.verify();
 	assert.equal(verify.result.status, "ACTION_REQUIRED");

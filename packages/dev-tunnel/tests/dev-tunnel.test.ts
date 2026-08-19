@@ -61,8 +61,14 @@ test("dev-tunnel descriptor parses against moduleDescriptorSchema", () => {
 
 test("default behaviorAdapter is honest when no tunnel is bound", async () => {
 	const status = await behaviorAdapter.status();
-	assert.equal(status.result.status, "ACTION_REQUIRED");
-	assert.equal(status.result.ok, false);
+	assert.equal(status.result.status, "SUCCEEDED");
+	assert.equal(status.result.ok, true);
+	assert.deepEqual(status.result.data, {
+		configStatus: "INCOMPLETE",
+		missingConfig: ["publicBaseUrl"],
+		runtimeStatus: "UNKNOWN",
+	});
+	assert.equal(behaviorAdapter.preflight().result.status, "ACTION_REQUIRED");
 
 	const verify = await behaviorAdapter.verify();
 	assert.equal(verify.result.status, "ACTION_REQUIRED");
