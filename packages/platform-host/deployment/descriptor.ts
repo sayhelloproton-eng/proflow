@@ -1,96 +1,100 @@
 export const descriptor = {
-	"contract": "module",
-	"contractVersion": "1.0.0",
-	"moduleRef": "platform-host",
-	"packageName": "@tomflow/proflow-platform-host",
-	"moduleVersion": "0.1.3",
-	"kind": "service",
-	"templateVersion": "1.0.0",
-	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"identity": {
-		"domain": "platform-architecture",
-		"summary": "Provides the ProFlow local application composition root that binds Task, Agent, Execution and Model owner transports."
+	contract: "module",
+	contractVersion: "1.0.0",
+	moduleRef: "platform-host",
+	packageName: "@tomflow/proflow-platform-host",
+	moduleVersion: "0.1.3",
+	kind: "service",
+	templateVersion: "1.0.0",
+	platformCompatibility: ">=1.0.0 <2.0.0",
+	identity: {
+		domain: "platform-architecture",
+		summary:
+			"Provides the ProFlow local application composition root that binds Task, Agent, Execution and Model owner transports.",
 	},
-	"provides": [
+	provides: [
 		{
-			"contractRef": "platform-host",
-			"version": "1.0.0"
-		}
+			contractRef: "platform-host",
+			version: "1.0.0",
+		},
 	],
-	"requires": [
+	requires: [
 		{
-			"contractRef": "task-orchestration",
-			"versionRange": ">=1.0.0 <2.0.0"
+			contractRef: "task-orchestration",
+			versionRange: ">=1.0.0 <2.0.0",
 		},
 		{
-			"contractRef": "agent-runtime",
-			"versionRange": ">=1.0.0 <2.0.0"
+			contractRef: "agent-runtime",
+			versionRange: ">=1.0.0 <2.0.0",
 		},
 		{
-			"contractRef": "execution",
-			"versionRange": ">=1.0.0 <2.0.0"
+			contractRef: "execution",
+			versionRange: ">=1.0.0 <2.0.0",
 		},
 		{
-			"contractRef": "model-inference",
-			"versionRange": ">=1.0.0 <2.0.0"
-		}
+			contractRef: "model-inference",
+			versionRange: ">=1.0.0 <2.0.0",
+		},
 	],
-	"requirements": [
+	requirements: [
 		{
-			"kind": "runtime",
-			"runtime": "node",
-			"versionRange": ">=24.19.0"
-		}
+			kind: "runtime",
+			runtime: "node",
+			versionRange: ">=24.19.0",
+		},
 	],
-	"configSlots": [
+	configSlots: [
 		{
-			"key": "stateRoot",
-			"type": "path",
-			"required": true,
-			"description": "Absolute .proflow owner state root"
+			key: "stateRoot",
+			type: "path",
+			required: true,
+			description: "Absolute .proflow owner state root",
 		},
 		{
-			"key": "workspaceRoot",
-			"type": "path",
-			"required": true,
-			"description": "Absolute Task document workspace root"
+			key: "workspaceRoot",
+			type: "path",
+			required: true,
+			description: "Absolute Task document workspace root",
 		},
 		{
-			"key": "gatewayTransportCredentialFile",
-			"type": "path",
-			"required": true,
-			"sensitive": true,
-			"description": "File containing the dedicated credential accepted from agent-gateway"
+			key: "gatewayTransportCredentialFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description:
+				"File containing the dedicated credential accepted from agent-gateway",
 		},
 		{
-			"key": "executionBaseUrl",
-			"type": "url",
-			"required": true,
-			"description": "Loopback Execution Runtime public transport"
+			key: "executionBaseUrl",
+			type: "url",
+			required: true,
+			description: "Loopback Execution Runtime public transport",
 		},
 		{
-			"key": "executionTransportCredentialFile",
-			"type": "path",
-			"required": true,
-			"sensitive": true,
-			"description": "File containing the credential used for Platform Host calls to Execution Runtime"
+			key: "executionTransportCredentialFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description:
+				"File containing the credential used for Platform Host calls to Execution Runtime",
 		},
 		{
-			"key": "modelTransportCredentialFile",
-			"type": "path",
-			"required": true,
-			"sensitive": true,
-			"description": "File containing the credential used for Platform Host calls to Model Runtime"
+			key: "modelTransportCredentialFile",
+			type: "path",
+			required: true,
+			sensitive: true,
+			description:
+				"File containing the credential used for Platform Host calls to Model Runtime",
 		},
 		{
-			"key": "modelBaseUrl",
-			"type": "url",
-			"required": true,
-			"description": "Loopback Model Runtime public transport"
-		}
+			key: "modelBaseUrl",
+			type: "url",
+			required: true,
+			description: "Loopback Model Runtime public transport",
+		},
 	],
-	"lifecycle": {
-		"supported": [
+	lifecycle: {
+		supported: [
 			"describe",
 			"preflight",
 			"status",
@@ -99,35 +103,36 @@ export const descriptor = {
 			"start",
 			"stop",
 			"restart",
-			"uninstall"
-		]
+			"uninstall",
+		],
 	},
-	"verification": {
-		"checks": [
+	verification: {
+		checks: [
 			{
-				"id": "platform-host-readiness",
-				"description": "Host transport and current owner dependencies are ready",
-				"lifecycle": "verify"
-			}
-		]
+				id: "platform-host-readiness",
+				description: "Host transport and current owner dependencies are ready",
+				lifecycle: "verify",
+			},
+		],
 	},
-	"effects": [
+	effects: [
 		{
-			"kind": "process",
-			"description": "Manage the platform-host process",
-			"retention": "remove"
-		}
+			kind: "process",
+			description: "Manage the platform-host process",
+			retention: "remove",
+		},
 	],
-	"documentation": [
+	documentation: [
 		{
-			"id": "overview",
-			"path": "./README.md",
-			"description": "Platform Host package overview"
+			id: "overview",
+			path: "./README.md",
+			description: "Platform Host package overview",
 		},
 		{
-			"id": "configuration",
-			"path": "./CONFIGURATION.md",
-			"description": "Module configuration fields, sources and materialization instructions"
-		}
-	]
+			id: "configuration",
+			path: "./CONFIGURATION.md",
+			description:
+				"Module configuration fields, sources and materialization instructions",
+		},
+	],
 } as const;
