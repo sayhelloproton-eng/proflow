@@ -41,10 +41,12 @@ export async function preflightAndStartModules(
 	catalog: ModuleCatalog,
 	modules: readonly ResolvedModule[],
 ): Promise<ThinLifecycleResult> {
+	const graph = buildDependencyGraph(modules);
+	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
 	const preflight: LifecycleDispatchResult[] = [];
-	for (const module of [...modules].sort((a, b) =>
-		a.moduleRef.localeCompare(b.moduleRef),
-	)) {
+	for (const moduleRef of graph.order) {
+		const module = byRef.get(moduleRef);
+		if (module === undefined) continue;
 		const result = await dispatchIfSupported(catalog, module, "preflight");
 		if (result === undefined) continue;
 		preflight.push(result);
@@ -52,8 +54,6 @@ export async function preflightAndStartModules(
 			return { phase: "preflight", results: preflight, completed: false };
 		}
 	}
-	const graph = buildDependencyGraph(modules);
-	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
 	const started: LifecycleDispatchResult[] = [];
 	for (const moduleRef of graph.order) {
 		const module = byRef.get(moduleRef);
