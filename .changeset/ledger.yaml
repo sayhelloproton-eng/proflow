@@ -258,6 +258,10 @@
   dir: packages/platform-cli
   intents:
     - real1-human-current-reality
+"@tomflow/proflow-platform-cli@0.1.9":
+  dir: packages/platform-cli
+  intents:
+    - real1-platform-uninstall-preservation
 "@tomflow/proflow-platform-host@0.1.1":
   dir: packages/platform-host
   intents:
