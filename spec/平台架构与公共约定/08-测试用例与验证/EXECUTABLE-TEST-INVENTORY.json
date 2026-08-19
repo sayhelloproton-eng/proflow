@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 135,
-    "testCalls": 735
+    "testCalls": 736
   },
   "tests": [
     {
@@ -4300,6 +4300,21 @@
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
       "line": 211,
+      "title": "REAL1 /ready and /status refresh stale model capabilities in the same request",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-contracts/src/index.ts",
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/src/index.ts",
+        "packages/model-runtime/src/provider.ts",
+        "packages/model-runtime/src/service.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
+      "line": 265,
       "title": "deployment adapter drives real service start/restart/status/stop lifecycle",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4314,7 +4329,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 240,
+      "line": 294,
       "title": "MOD-P1-06 HTTP client abort and deployment restart cancel queued/running work without late success",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4329,7 +4344,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 338,
+      "line": 392,
       "title": "deployment uninstall is idempotent when no Model Runtime service is bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",

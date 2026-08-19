@@ -12,6 +12,7 @@ type RuntimePublicApi = {
 		options?: { signal?: AbortSignal },
 	): Promise<InferenceResult>;
 	getRuntimeStatus(): ModelRuntimeStatus;
+	refreshCapabilities?(): Promise<void>;
 };
 
 export type ModelRuntimeService = {
@@ -68,6 +69,21 @@ export function createModelRuntimeService(input: {
 	let lifecycle: "STOPPED" | "RUNNING" | "DRAINING" = "STOPPED";
 	let accepting = false;
 	const inferenceControllers = new Set<AbortController>();
+	const currentDependency = async (): Promise<ModelRuntimeStatus> => {
+		let dependency = input.runtime.getRuntimeStatus();
+		if (
+			dependency.runtime === "UNAVAILABLE" &&
+			input.runtime.refreshCapabilities
+		) {
+			try {
+				await input.runtime.refreshCapabilities();
+			} catch {
+				// Keep readiness/status fail-closed when live capability refresh fails.
+			}
+			dependency = input.runtime.getRuntimeStatus();
+		}
+		return dependency;
+	};
 	return {
 		async start() {
 			if (server) throw new Error("model runtime service is already running");
@@ -99,7 +115,7 @@ export function createModelRuntimeService(input: {
 						return;
 					}
 					if (request.method === "GET" && request.url === "/ready") {
-						const dependency = input.runtime.getRuntimeStatus();
+						const dependency = await currentDependency();
 						const ready = accepting && dependency.runtime !== "UNAVAILABLE";
 						response.statusCode = ready ? 200 : 503;
 						response.end(
@@ -116,7 +132,7 @@ export function createModelRuntimeService(input: {
 						return;
 					}
 					if (request.method === "GET" && request.url === "/status") {
-						response.end(JSON.stringify(input.runtime.getRuntimeStatus()));
+						response.end(JSON.stringify(await currentDependency()));
 						return;
 					}
 					if (request.method === "POST" && request.url === "/infer") {

@@ -208,6 +208,60 @@ test("HTTP service owns real start/status/infer/stop lifecycle", async () => {
 	assert.equal(service.status(), "STOPPED");
 });
 
+test("REAL1 /ready and /status refresh stale model capabilities in the same request", async () => {
+	let runtimeState: "READY" | "UNAVAILABLE" = "UNAVAILABLE";
+	let refreshCount = 0;
+	const runtime = {
+		async infer(): Promise<never> {
+			throw new Error("inference is not part of this readiness proof");
+		},
+		getRuntimeStatus() {
+			return {
+				runtime: runtimeState,
+				lane: "IDLE" as const,
+				fast:
+					runtimeState === "READY"
+						? ("READY" as const)
+						: ("UNAVAILABLE" as const),
+				reason:
+					runtimeState === "READY"
+						? ("READY" as const)
+						: ("UNAVAILABLE" as const),
+				businessQueueDepth: 0,
+				backgroundQueueDepth: 0,
+			};
+		},
+		async refreshCapabilities() {
+			refreshCount += 1;
+			runtimeState = "READY";
+		},
+	};
+	const service = createModelRuntimeService({ runtime });
+	const address = await service.start();
+	try {
+		const ready = await fetch(`http://${address.host}:${address.port}/ready`);
+		assert.equal(ready.status, 200);
+		assert.equal(refreshCount, 1);
+		const readyBody = (await ready.json()) as {
+			status: string;
+			dependency: { runtime: string; fast: string; reason: string };
+		};
+		assert.equal(readyBody.status, "READY");
+		assert.equal(readyBody.dependency.runtime, "READY");
+		assert.equal(readyBody.dependency.fast, "READY");
+		assert.equal(readyBody.dependency.reason, "READY");
+
+		runtimeState = "UNAVAILABLE";
+		const status = (await fetch(
+			`http://${address.host}:${address.port}/status`,
+		).then((response) => response.json())) as { runtime: string };
+		assert.equal(status.runtime, "READY");
+		assert.equal(refreshCount, 2);
+	} finally {
+		await service.stop();
+	}
+});
+
 test("deployment adapter drives real service start/restart/status/stop lifecycle", async () => {
 	const runtime = createModelRuntime({
 		specs: [spec],
