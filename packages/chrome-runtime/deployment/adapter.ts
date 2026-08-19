@@ -221,15 +221,18 @@ export async function createProductionBinding(input: {
 		}
 	};
 	return {
-		behaviorAdapter: createBehaviorAdapter({
-			probe: async () => {
-				const observed = await probeChromeRuntime(chromeExecutablePath);
-				return {
-					...observed,
-					extensionLoaded:
-						observed.available && (await hasVerifiedExtensionEvidence()),
-				};
+		behaviorAdapter: createBehaviorAdapter(
+			{
+				probe: async () => {
+					const observed = await probeChromeRuntime(chromeExecutablePath);
+					return {
+						...observed,
+						extensionLoaded:
+							observed.available && (await hasVerifiedExtensionEvidence()),
+					};
+				},
 			},
-		}, input.config),
+			input.config,
+		),
 	};
 }
