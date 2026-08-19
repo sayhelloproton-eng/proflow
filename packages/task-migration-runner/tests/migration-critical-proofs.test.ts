@@ -619,14 +619,18 @@ test("deployment adapter drives real migration status/apply/verify and exposes m
 	const status = binding.behaviorAdapter.status as () => {
 		result: {
 			status: string;
-			data?: { migrated?: boolean; pendingVersions?: number[] };
+			data?: { configStatus?: string; runtimeStatus?: string };
 		};
 	};
 	const migrate = binding.behaviorAdapter.migrate as () => {
 		result: { status: string };
 	};
 	const verify = binding.behaviorAdapter.verify as () => {
-		result: { status: string; checks?: Array<{ status: string }> };
+		result: {
+			status: string;
+			data?: { migrated?: boolean; pendingVersions?: number[] };
+			checks?: Array<{ status: string }>;
+		};
 	};
 	const doctor = binding.behaviorAdapter.doctor as () => {
 		result: { status: string };
@@ -634,17 +638,27 @@ test("deployment adapter drives real migration status/apply/verify and exposes m
 
 	const before = status();
 	assert.equal(before.result.status, "SUCCEEDED");
-	assert.equal(before.result.data?.migrated, false);
-	assert.ok((before.result.data?.pendingVersions?.length ?? 0) > 0);
+	assert.deepEqual(before.result.data, {
+		configStatus: "READY",
+		runtimeStatus: "STOPPED",
+	});
+	const beforeVerification = verify();
+	assert.equal(beforeVerification.result.status, "FAILED");
+	assert.equal(beforeVerification.result.data?.migrated, false);
+	assert.ok((beforeVerification.result.data?.pendingVersions?.length ?? 0) > 0);
 	assert.equal(doctor().result.status, "BLOCKED");
 
 	assert.equal(migrate().result.status, "SUCCEEDED");
 
 	const after = status();
 	assert.equal(after.result.status, "SUCCEEDED");
-	assert.equal(after.result.data?.migrated, true);
-	assert.deepEqual(after.result.data?.pendingVersions, []);
+	assert.deepEqual(after.result.data, {
+		configStatus: "READY",
+		runtimeStatus: "STOPPED",
+	});
 	const verified = verify();
+	assert.equal(verified.result.data?.migrated, true);
+	assert.deepEqual(verified.result.data?.pendingVersions, []);
 	assert.equal(verified.result.status, "SUCCEEDED");
 	assert.equal(verified.result.checks?.[0]?.status, "PASS");
 	assert.equal(doctor().result.status, "SUCCEEDED");
