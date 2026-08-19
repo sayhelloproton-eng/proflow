@@ -35,6 +35,7 @@ test("production binding observes durable Role registration reality", async () =
 	const stateRoot = await mkdtemp(join(tmpdir(), "proflow-role-binding-"));
 	try {
 		const binding = createProductionBinding({
+			config: {},
 			configByModuleRef: new Map([["platform-host", { stateRoot }]]),
 		});
 		assert.ok(binding);
