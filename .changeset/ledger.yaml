@@ -230,6 +230,10 @@
   dir: packages/platform-cli
   intents:
     - platform-cli-installed-version-observation
+"@tomflow/proflow-platform-cli@0.1.10":
+  dir: packages/platform-cli
+  intents:
+    - real1-corrupted-config-recovery
 "@tomflow/proflow-platform-cli@0.1.2":
   dir: packages/platform-cli
   intents:
