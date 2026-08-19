@@ -29,12 +29,12 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@tomflow/proflow-execution-contracts": "workspace:^"
+		"@tomflow/proflow-execution-contracts": "workspace:^",
+		"@tomflow/proflow-module-contract": "workspace:^"
 	},
 	"devDependencies": {
 		"@tomflow/proflow-deployment-conformance": "workspace:^",
-		"@tomflow/proflow-execution-runtime": "workspace:^",
-		"@tomflow/proflow-module-contract": "workspace:^"
+		"@tomflow/proflow-execution-runtime": "workspace:^"
 	},
 	"keywords": [
 		"proflow",
