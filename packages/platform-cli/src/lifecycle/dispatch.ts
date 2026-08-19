@@ -255,20 +255,21 @@ export async function stopModules(
 }
 
 /**
- * Restarts a module set in forward dependency topological order, dispatching
- * `restart` only to modules that explicitly declare it. Dependencies are
- * settled before the modules that consume them.
+ * Restarts a module set as a platform-level stop → start sequence. Stop runs in
+ * reverse dependency order; only after every executed stop succeeds does start
+ * run in forward dependency order with the same dependency blocking rules as a
+ * normal start. Module-native `restart` primitives are not used here.
  */
 export async function restartModules(
 	catalog: ModuleCatalog,
 	modules: readonly ResolvedModule[],
 ): Promise<LifecycleRunResult[]> {
-	return runInOrder(
-		catalog,
-		modules,
-		buildDependencyGraph(modules).order,
-		"restart",
+	const stopped = await stopModules(catalog, modules);
+	const stopBlocked = stopped.some(
+		(item) => item.result !== undefined && item.result.status !== "SUCCEEDED",
 	);
+	if (stopBlocked) return stopped;
+	return startModules(catalog, modules);
 }
 
 /**

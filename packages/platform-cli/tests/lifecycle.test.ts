@@ -11,6 +11,7 @@ import type { ResolvedModule } from "../src/contracts.ts";
 import { PlatformError } from "../src/errors.ts";
 import {
 	dispatchLifecycle,
+	restartModules,
 	startModules,
 	statusModules,
 	stopModules,
@@ -335,6 +336,55 @@ test("stopModules follows reverse dependency topological order", async () => {
 	assert.deepEqual(
 		calls.map((call) => call.moduleRef),
 		["consumer", "provider"],
+	);
+});
+
+test("restartModules is stop reverse-order then start forward-order and never dispatches native restart", async () => {
+	const provider = moduleFixture({
+		moduleRef: "provider",
+		kind: "service",
+		lifecycle: ["status", "start", "stop", "restart"],
+		provides: [{ contractRef: "cap", version: "1.0.0" }],
+	});
+	const consumer = moduleFixture({
+		moduleRef: "consumer",
+		kind: "service",
+		lifecycle: ["status", "start", "stop", "restart"],
+		requires: [{ contractRef: "cap", versionRange: ">=1.0.0 <2.0.0" }],
+	});
+	const { calls, catalog } = makeCatalog([
+		{
+			module: provider,
+			primitives: {
+				stop: () => ok("provider"),
+				start: () => ok("provider"),
+				restart: () => ok("provider"),
+			},
+		},
+		{
+			module: consumer,
+			primitives: {
+				stop: () => ok("consumer"),
+				start: () => ok("consumer"),
+				restart: () => ok("consumer"),
+			},
+		},
+	]);
+
+	const results = await restartModules(catalog, [consumer, provider]);
+
+	assert.deepEqual(calls, [
+		{ moduleRef: "consumer", primitive: "stop" },
+		{ moduleRef: "provider", primitive: "stop" },
+		{ moduleRef: "provider", primitive: "start" },
+		{ moduleRef: "consumer", primitive: "start" },
+	]);
+	assert.ok(calls.every((call) => call.primitive !== "restart"));
+	assert.deepEqual(
+		results
+			.filter((result) => result.status === "EXECUTED")
+			.map((result) => result.moduleRef),
+		["provider", "consumer"],
 	);
 });
 
