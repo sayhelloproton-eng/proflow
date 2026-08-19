@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 135,
-    "testCalls": 738
+    "testCalls": 739
   },
   "tests": [
     {
@@ -5510,6 +5510,24 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
       "line": 199,
+      "title": "corrupted persisted module config fails closed with CONFIG_INVALID",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/discovery/discover.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/cli.test.ts",
+      "line": 219,
       "title": "plan configure is not gated by runtime or human preflight readiness",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5527,7 +5545,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 264,
+      "line": 284,
       "title": "apply without planRef returns FAILED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5545,7 +5563,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 270,
+      "line": 290,
       "title": "status against a bound real-module workspace returns a structured array and bound path",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5563,7 +5581,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 290,
+      "line": 310,
       "title": "preflight against the bound real-module workspace returns a typed result",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5581,7 +5599,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 321,
+      "line": 341,
       "title": "doctor against the bound real-module workspace returns a structured array",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5599,7 +5617,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 337,
+      "line": 357,
       "title": "manifest materializes .proflow and emits a typed manifest",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5617,7 +5635,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 356,
+      "line": 376,
       "title": "plan --intent install persists a plan with a planRef before binding",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5635,7 +5653,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 375,
+      "line": 395,
       "title": "preflight reuses materialized Workspace config after configuration is applied",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

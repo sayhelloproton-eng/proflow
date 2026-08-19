@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -194,6 +194,26 @@ test("plan with invalid --intent returns FAILED", async () => {
 	]);
 	assert.equal(result.status, "FAILED");
 	assert.equal(result.error?.code, "INVALID_REQUEST");
+});
+
+test("corrupted persisted module config fails closed with CONFIG_INVALID", async () => {
+	const fixture = await boundRealWorkspaceFixture();
+	try {
+		const configDir = join(fixture.root, ".proflow", "config");
+		await mkdir(configDir, { recursive: true });
+		await writeFile(
+			join(configDir, "execution-local.json"),
+			'{"projectRoot": ',
+		);
+		const result = await machineResult(["verify", "execution-local"], {
+			cwd: fixture.root,
+			globalRoot: fixture.globalRoot,
+		});
+		assert.equal(result.status, "FAILED");
+		assert.equal(result.error?.code, "CONFIG_INVALID");
+	} finally {
+		await fixture.cleanup();
+	}
 });
 
 test("plan configure is not gated by runtime or human preflight readiness", async () => {

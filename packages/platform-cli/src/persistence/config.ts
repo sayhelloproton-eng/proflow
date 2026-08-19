@@ -1,5 +1,7 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { readJson, type WorkspacePaths } from "../paths.ts";
+import { PlatformError } from "../errors.ts";
+import type { WorkspacePaths } from "../paths.ts";
 import { writeJsonAtomic } from "./atomic.ts";
 import { assertSafeFileName } from "./guards.ts";
 
@@ -31,6 +33,43 @@ function isStringMap(value: unknown): value is Record<string, string> {
 	return Object.values(value).every((item) => typeof item === "string");
 }
 
+function isMissingFile(error: unknown): boolean {
+	return (
+		typeof error === "object" &&
+		error !== null &&
+		"code" in error &&
+		(error as { code?: unknown }).code === "ENOENT"
+	);
+}
+
+async function readConfigValues(
+	file: string,
+	moduleRef: string,
+	kind: "public" | "secret",
+): Promise<Record<string, string> | undefined> {
+	let raw: string;
+	try {
+		raw = await readFile(file, "utf8");
+	} catch (error) {
+		if (isMissingFile(error)) return undefined;
+		throw new PlatformError(
+			"CONFIG_INVALID",
+			`cannot read ${kind} config for ${moduleRef}: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		if (!isStringMap(parsed))
+			throw new TypeError("expected a JSON object whose values are strings");
+		return parsed;
+	} catch (error) {
+		throw new PlatformError(
+			"CONFIG_INVALID",
+			`${kind} config for ${moduleRef} is invalid JSON/config: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
+}
+
 // secretRef config values are opaque reference identities (e.g.
 // `secret://model-provider/default`), not raw secrets, so they materialize to
 // the public config file verbatim. A raw secret would go to the separate 0o600
@@ -56,10 +95,16 @@ export async function loadConfig(
 	paths: WorkspacePaths,
 	moduleRef: string,
 ): Promise<MaterializedConfig | undefined> {
-	const publicRaw = await readJson<unknown>(configFilePath(paths, moduleRef));
-	const secretRaw = await readJson<unknown>(secretsFilePath(paths, moduleRef));
-	const publicValues = isStringMap(publicRaw) ? publicRaw : undefined;
-	const secretValues = isStringMap(secretRaw) ? secretRaw : undefined;
+	const publicValues = await readConfigValues(
+		configFilePath(paths, moduleRef),
+		moduleRef,
+		"public",
+	);
+	const secretValues = await readConfigValues(
+		secretsFilePath(paths, moduleRef),
+		moduleRef,
+		"secret",
+	);
 	if (publicValues === undefined && secretValues === undefined)
 		return undefined;
 	return {
