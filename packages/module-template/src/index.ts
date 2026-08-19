@@ -42,7 +42,7 @@ export interface GeneratedPackageMetadata {
 	bin: Record<string, string>;
 	proflow: {
 		module: true;
-			descriptor: "./dist/deployment/descriptor.js";
+		descriptor: "./dist/deployment/descriptor.js";
 		manifest: "./proflow.module.json";
 	};
 }
@@ -209,12 +209,7 @@ function packageJson(descriptor: ModuleDescriptor): string {
 	return `${JSON.stringify(
 		{
 			...packageMetadata(descriptor),
-			files: [
-				"dist",
-				"conformance.json",
-				"README.md",
-				"proflow.module.json",
-			],
+			files: ["dist", "conformance.json", "README.md", "proflow.module.json"],
 			engines: { node: "24.19.0" },
 			scripts: {
 				build: "tsc -p tsconfig.build.json",
@@ -243,10 +238,7 @@ function operationSource(
 				: `{ configStatus: "READY", runtimeStatus: "UNKNOWN" }`;
 		return `() => ({ result: { ...baseResult, data: ${status} }, observedEffects: [] })`;
 	}
-	if (
-		descriptor.kind === "service" &&
-		["start", "stop"].includes(primitive)
-	) {
+	if (descriptor.kind === "service" && ["start", "stop"].includes(primitive)) {
 		return `() => ({ result: { ...baseResult, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "implement-service-lifecycle", description: "Owner must implement the package-owned production lifecycle before this operation is available" } }, observedEffects: [] })`;
 	}
 	return `() => ({ result: baseResult, observedEffects: [] })`;
@@ -276,7 +268,7 @@ ${operations}
 
 function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
 	switch (descriptor.kind) {
-\t\tcase "service":
+		case "service":
 			return {
 				"src/cli.ts": `#!/usr/bin/env node
 function main(): void {
