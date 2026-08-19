@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 136,
-    "testCalls": 741
+    "testCalls": 742
   },
   "tests": [
     {
@@ -6985,7 +6985,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 53,
+      "line": 61,
       "title": "CP-DPL-CLI-09 status without a binding reports UNBOUND instead of guessing cwd",
       "ids": [
         "CP-DPL-CLI-09"
@@ -7002,7 +7002,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 71,
+      "line": 79,
       "title": "CP-DPL-CLI-09 Agent workspace options fail closed when missing or misspelled",
       "ids": [
         "CP-DPL-CLI-09"
@@ -7019,7 +7019,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 91,
+      "line": 99,
       "title": "CP-DPL-CLI-09 instance commands reject a different --workspace instead of bypassing the global binding",
       "ids": [
         "CP-DPL-CLI-09"
@@ -7036,7 +7036,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 111,
+      "line": 119,
       "title": "CP-DPL-CLI-08 mutating instance commands share the global operation lock",
       "ids": [
         "CP-DPL-CLI-08"
@@ -7053,7 +7053,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 144,
+      "line": 152,
       "title": "CP-DPL-CLI-09 + RF-DPL-CLI-10 status from another cwd resolves the bound Workspace and exposes it",
       "ids": [
         "CP-DPL-CLI-09",
@@ -7071,7 +7071,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 161,
+      "line": 169,
       "title": "CP-DPL-CLI-09 status reports a missing bound Workspace without silently switching to cwd",
       "ids": [
         "CP-DPL-CLI-09"
@@ -7088,7 +7088,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 183,
+      "line": 191,
       "title": "CP-DPL-CLI-10 uninstall --forget rejects module/package and --workspace arguments instead of ignoring them",
       "ids": [
         "CP-DPL-CLI-10"
@@ -7105,7 +7105,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 211,
+      "line": 219,
       "title": "CP-DPL-CLI-10 uninstall --forget clears only a missing Workspace binding",
       "ids": [
         "CP-DPL-CLI-10"
@@ -7122,7 +7122,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 239,
+      "line": 247,
       "title": "CP-DPL-CLI-09 an install plan can establish the first binding only when apply begins",
       "ids": [
         "CP-DPL-CLI-09"
@@ -7139,7 +7139,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 277,
+      "line": 285,
       "title": "CP-DPL-CLI-09 an unbound Workspace cannot apply a non-install plan",
       "ids": [
         "CP-DPL-CLI-09"
@@ -7156,7 +7156,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 298,
+      "line": 306,
       "title": "CP-DPL-CLI-10 same-Workspace install is idempotent but a second Workspace is blocked",
       "ids": [
         "CP-DPL-CLI-10"
@@ -7173,7 +7173,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 331,
+      "line": 339,
       "title": "CP-DPL-CLI-10 whole-instance uninstall rejects an explicit different Workspace instead of silently uninstalling the bound one",
       "ids": [
         "CP-DPL-CLI-10"
@@ -7190,7 +7190,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 355,
+      "line": 363,
       "title": "CP-DPL-CLI-10 + RF-DPL-CLI-11 whole-instance uninstall works from another cwd and only then allows rebind to B",
       "ids": [
         "CP-DPL-CLI-10",
@@ -7208,7 +7208,22 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 403,
+      "line": 418,
+      "title": "whole-instance uninstall removes an empty .proflow root but preserves non-deployment data",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/plans.ts",
+        "packages/platform-cli/src/planner/plan.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
+      "line": 453,
       "title": "fresh install preflight failure does not claim a global binding",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

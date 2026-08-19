@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFile, rm } from "node:fs/promises";
+import { readFile, rm, rmdir } from "node:fs/promises";
 
 import {
 	type ModuleDescriptor,
@@ -1205,6 +1205,15 @@ async function handlePlatformInstanceUninstall(
 		// into a future install of the same directory. Business/domain data outside
 		// `.proflow/deployment` is intentionally preserved.
 		await rm(ctx.paths.deployment, { recursive: true, force: true });
+		try {
+			await rmdir(ctx.paths.proflow);
+		} catch (error) {
+			const code =
+				typeof error === "object" && error !== null
+					? Reflect.get(error, "code")
+					: undefined;
+			if (code !== "ENOENT" && code !== "ENOTEMPTY") throw error;
+		}
 		const completed = binding;
 		await clearGlobalBinding({
 			workspaceInstanceId: binding.workspaceInstanceId,

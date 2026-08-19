@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import {
+	access,
+	mkdir,
+	mkdtemp,
+	readFile,
+	realpath,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -371,6 +379,13 @@ test("CP-DPL-CLI-10 + RF-DPL-CLI-11 whole-instance uninstall works from another 
 			(removed.data as { bindingCleared?: boolean }).bindingCleared,
 			true,
 		);
+		await assert.rejects(
+			access(join(f.workspaceA, ".proflow")),
+			(error: unknown) =>
+				typeof error === "object" &&
+				error !== null &&
+				Reflect.get(error, "code") === "ENOENT",
+		);
 		const unbound = parse(
 			await runCli(["status"], {
 				cwd: f.workspaceB,
@@ -394,6 +409,41 @@ test("CP-DPL-CLI-10 + RF-DPL-CLI-11 whole-instance uninstall works from another 
 		assert.equal(
 			(rebound.workspace as { boundWorkspace?: string }).boundWorkspace,
 			await realpath(f.workspaceB),
+		);
+	} finally {
+		await f.cleanup();
+	}
+});
+
+test("whole-instance uninstall removes an empty .proflow root but preserves non-deployment data", async () => {
+	const f = await fixture();
+	try {
+		await f.bindInstalled();
+		await mkdir(join(f.workspaceA, ".proflow", "data"), { recursive: true });
+		await writeFile(
+			join(f.workspaceA, ".proflow", "data", "keep.txt"),
+			"keep\n",
+		);
+		const removed = parse(
+			await runCli(["uninstall", "--workspace", f.workspaceA], {
+				cwd: f.workspaceA,
+				globalRoot: f.globalRoot,
+			}),
+		);
+		assert.equal(removed.status, "SUCCEEDED");
+		assert.equal(
+			await readFile(
+				join(f.workspaceA, ".proflow", "data", "keep.txt"),
+				"utf8",
+			),
+			"keep\n",
+		);
+		await assert.rejects(
+			access(join(f.workspaceA, ".proflow", "deployment")),
+			(error: unknown) =>
+				typeof error === "object" &&
+				error !== null &&
+				Reflect.get(error, "code") === "ENOENT",
 		);
 	} finally {
 		await f.cleanup();
