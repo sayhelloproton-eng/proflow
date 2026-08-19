@@ -1547,7 +1547,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 35,
+      "line": 49,
       "title": "dev-tunnel descriptor parses against moduleDescriptorSchema",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1561,7 +1561,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 48,
+      "line": 62,
       "title": "default behaviorAdapter is honest when no tunnel is bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1575,7 +1575,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 66,
+      "line": 80,
       "title": "start/stop/restart are honest when a runtime is bound but not logged in",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1589,7 +1589,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 84,
+      "line": 98,
       "title": "every supported lifecycle primitive exposes an adapter function",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1603,7 +1603,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 90,
+      "line": 104,
       "title": "production verification evidence is version- and ingress-bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1617,7 +1617,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 131,
+      "line": 145,
       "title": "missing file relay and 429/5xx proof are FAIL, never SKIP/WARN",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1631,7 +1631,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 148,
+      "line": 162,
       "title": "start cannot SUCCEED without a configured tunnelId",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1645,7 +1645,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 153,
+      "line": 167,
       "title": "status reports UNKNOWN (not STOPPED) when no child is owned",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1659,7 +1659,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 162,
+      "line": 176,
       "title": "persistent runtime detaches and survives across adapter instances",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1673,7 +1673,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 199,
+      "line": 212,
       "title": "immediate spawn error does not report RUNNING",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1687,7 +1687,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 208,
+      "line": 221,
       "title": "TLS probe times out instead of hanging",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1701,7 +1701,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 225,
+      "line": 238,
       "title": "streaming read aborts after the size ceiling",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1715,7 +1715,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 240,
+      "line": 253,
       "title": "doctor reads current login/state/publicUrl reality, not just adapter-bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1729,8 +1729,8 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 252,
-      "title": "stop returns ACTION_REQUIRED when stop state is UNKNOWN",
+      "line": 265,
+      "title": "stop returns ACTION_REQUIRED when stop state is genuinely UNKNOWN",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
@@ -1743,7 +1743,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 264,
+      "line": 273,
       "title": "restart does not start when stop is UNKNOWN",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1757,7 +1757,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 275,
+      "line": 286,
       "title": "uninstall is idempotent when no dev-tunnel resource is bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
