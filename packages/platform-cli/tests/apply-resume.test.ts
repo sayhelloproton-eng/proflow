@@ -17,6 +17,7 @@ import { PlatformError } from "../src/errors.ts";
 import type { ModuleCatalog, ModuleSource } from "../src/modules.ts";
 import { type WorkspacePaths, workspacePaths } from "../src/paths.ts";
 import {
+	appendVerification,
 	loadConfig,
 	loadDeploymentState,
 	materializeConfig,
@@ -643,13 +644,12 @@ test("resume after ACTION_REQUIRED skips the now-verified human step and complet
 		});
 		await savePlan(paths, plan);
 
-		let humanVerified = false;
 		const { catalog } = makeCatalog([
 			{
 				module: first,
 				primitives: {
 					status: () => ({
-						result: ok("first", { humanActionVerified: humanVerified }),
+						result: ok("first"),
 						observedEffects: [],
 					}),
 				},
@@ -666,8 +666,18 @@ test("resume after ACTION_REQUIRED skips the now-verified human step and complet
 		});
 		assert.equal(interrupted.outcome, "ACTION_REQUIRED");
 
-		// the human action is now verified in reality → resume skips it
-		humanVerified = true;
+		// The production verification record is the durable current-reality proof
+		// that the human prerequisite was completed; status need not expose a
+		// package-specific humanActionVerified boolean.
+		await appendVerification(paths, {
+			verificationRef: "verify-first-human-pass",
+			moduleRef: "first",
+			moduleVersion: "1.0.0",
+			result: "PASS",
+			summary: "human prerequisite verified",
+			evidenceRefs: ["check:human-prerequisite:PASS"],
+			verifiedAt: new Date().toISOString(),
+		});
 		const resumed = await applyPlan({
 			paths,
 			planRef: plan.planRef,

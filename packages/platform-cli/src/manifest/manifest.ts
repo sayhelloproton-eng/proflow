@@ -123,6 +123,7 @@ export async function buildManifest(
 	const pendingActions: ManifestPendingAction[] = [];
 	const blockingActions: BlockingAction[] = [];
 	const resources: ResourceReality[] = [];
+	const currentVerifiedModuleRefs = new Set<string>();
 	const materializedConfig: Record<string, Record<string, string>> = {};
 
 	for (const module of modules) {
@@ -203,6 +204,12 @@ export async function buildManifest(
 		const history = await loadVerificationHistory(deps.paths, module.moduleRef);
 		allRecords.push(...history);
 		const latest = history[history.length - 1];
+		if (
+			latest?.result === "PASS" &&
+			latest.moduleVersion === module.moduleVersion
+		) {
+			currentVerifiedModuleRefs.add(module.moduleRef);
+		}
 		const lastPassAt = lastVerifiedAt(history, "PASS");
 		const lastFailAt = lastVerifiedAt(history, "FAIL");
 		verification.push({
@@ -231,6 +238,7 @@ export async function buildManifest(
 	if (deploymentState !== undefined) {
 		for (const pending of clearCompletedPendingActions(deploymentState)
 			.pendingActions) {
+			if (currentVerifiedModuleRefs.has(pending.moduleRef)) continue;
 			const action: BlockingAction = {
 				moduleRef: pending.moduleRef,
 				action: pending.action,

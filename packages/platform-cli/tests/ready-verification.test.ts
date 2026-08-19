@@ -337,7 +337,7 @@ test("configFingerprint includes secretRef reference identity without raw secret
 
 // ---- pending ACTION_REQUIRED blocks READY ----
 
-test("a persisted pending action blocks READY as a BLOCKING_ACTION", async () => {
+test("a current-version PASS resolves a persisted human pending action in manifest current reality", async () => {
 	const { paths, cleanup } = await tmpWorkspace();
 	try {
 		const svc = moduleFixture({ moduleRef: "svc", kind: "service" });
@@ -355,11 +355,29 @@ test("a persisted pending action blocks READY as a BLOCKING_ACTION", async () =>
 			paths,
 		});
 
-		assert.equal(manifest.status, "ACTION_REQUIRED");
-		assert.ok(
-			manifest.pendingActions.some(
-				(action) => action.action === "approve-external-resource",
-			),
+		assert.equal(manifest.status, "READY");
+		assert.deepEqual(manifest.pendingActions, []);
+	} finally {
+		await cleanup();
+	}
+});
+
+test("a latest FAIL does not clear a persisted human pending action", async () => {
+	const { paths, cleanup } = await tmpWorkspace();
+	try {
+		const svc = moduleFixture({ moduleRef: "svc", kind: "service" });
+		const state = emptyDeploymentState();
+		state.pendingActions = [pendingAction()];
+		await saveDeploymentState(paths, state);
+		await appendVerification(paths, verificationRecord("svc", "1.0.0", "FAIL"));
+		const { catalog } = makeCatalog([
+			{ module: svc, primitives: { status: () => ok("svc", "1.0.0") } },
+		]);
+		const manifest = await buildManifest({ catalog, modules: [svc], paths });
+		assert.equal(manifest.pendingActions.length, 1);
+		assert.equal(
+			manifest.pendingActions[0]?.action,
+			"approve-external-resource",
 		);
 	} finally {
 		await cleanup();

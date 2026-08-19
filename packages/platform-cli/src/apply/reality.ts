@@ -6,7 +6,7 @@ import type {
 import { dispatchLifecycle } from "../lifecycle/index.ts";
 import type { ModuleCatalog } from "../modules.ts";
 import type { WorkspacePaths } from "../paths.ts";
-import { loadConfig } from "../persistence/index.ts";
+import { loadConfig, loadLatestVerification } from "../persistence/index.ts";
 import type { StepReality } from "../planner/index.ts";
 import type { PackageManagerDriver } from "./driver.ts";
 
@@ -129,7 +129,18 @@ async function observeStep(
 		}
 		case "lifecycle":
 		case "external-resource":
-		case "human":
 			return observeViaStatus(deps.catalog, module);
+		case "human": {
+			const statusReality = await observeViaStatus(deps.catalog, module);
+			if (statusReality === undefined) return undefined;
+			if (statusReality.humanActionVerified === true) return statusReality;
+			const latest = await loadLatestVerification(deps.paths, module.moduleRef);
+			return {
+				...statusReality,
+				humanActionVerified:
+					latest?.result === "PASS" &&
+					latest.moduleVersion === module.moduleVersion,
+			};
+		}
 	}
 }
