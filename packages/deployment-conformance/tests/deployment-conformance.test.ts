@@ -99,6 +99,25 @@ async function generatedExternal(context: TestContext) {
 	return generated;
 }
 
+async function generatedCli(context: TestContext) {
+	const root = await generatedRoot("proflow-conformance-cli-");
+	context.after(() => rm(root, { recursive: true, force: true }));
+	const generated = await materializeModule({
+		targetDirectory: root,
+		moduleRef: "fixture-cli",
+		packageName: "@tomflow/proflow-fixture-cli",
+		kind: "cli",
+		domain: "deployment-governance",
+		summary: "Generated CLI test fixture",
+	});
+	await execFileAsync(process.execPath, [
+		tsc,
+		"-p",
+		join(generated.packageDirectory, "tsconfig.build.json"),
+	]);
+	return generated;
+}
+
 test("CP-DPL-CONF-01 C1 rejects missing, version, config, lifecycle, and verification defects", async (context) => {
 	const generated = await generatedExternal(context);
 	assert.equal(runStaticConformance(generated.descriptor).status, "PASS");
@@ -222,6 +241,32 @@ test("CP-DPL-CONF-02 + CP-DPL-CONF-05 + RF-DPL-CONF-05 C2 inspects package form 
 	);
 
 	await writeFile(conformancePath, `${JSON.stringify(conformance, null, 2)}\n`);
+});
+
+test("C2 accepts CLI-specific structured machine JSON and rejects non-object output", async (context) => {
+	const generated = await generatedCli(context);
+	const cliPath = join(generated.packageDirectory, "dist/src/cli.js");
+	await writeFile(
+		cliPath,
+		'export async function runCli() { return JSON.stringify({ command: "help", status: "SUCCEEDED", data: { usage: "fixture" } }); }\n',
+	);
+	let result = await runPackageConformance(
+		generated.packageDirectory,
+		generated.descriptor,
+	);
+	assert.equal(result.status, "PASS");
+
+	await writeFile(
+		cliPath,
+		"export async function runCli() { return JSON.stringify([]); }\n",
+	);
+	result = await runPackageConformance(
+		generated.packageDirectory,
+		generated.descriptor,
+	);
+	assert.ok(
+		result.issues.some((issue) => issue.code === "MACHINE_RESULT_INVALID"),
+	);
 });
 
 test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability without invoking undeclared lifecycle", async (context) => {

@@ -580,10 +580,16 @@ export async function runPackageConformance(
 				const output: unknown = await runCli(["--json"]);
 				const parsedOutput: unknown =
 					typeof output === "string" ? JSON.parse(output) : undefined;
-				if (!moduleOperationResultSchema.safeParse(parsedOutput).success) {
+				const structured =
+					typeof parsedOutput === "object" &&
+					parsedOutput !== null &&
+					!Array.isArray(parsedOutput) &&
+					typeof Reflect.get(parsedOutput, "status") === "string";
+				if (!structured) {
 					issues.push({
 						code: "MACHINE_RESULT_INVALID",
-						message: "CLI JSON output must use the structured result contract",
+						message:
+							"CLI JSON output must be a structured machine object with status",
 					});
 				}
 			}
