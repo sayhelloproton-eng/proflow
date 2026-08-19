@@ -166,6 +166,10 @@
   dir: packages/model-provider-api
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-model-provider-api@0.1.2":
+  dir: packages/model-provider-api
+  intents:
+    - real1-provider-owned-verify
 "@tomflow/proflow-model-runtime@0.1.1":
   dir: packages/model-runtime
   intents:
