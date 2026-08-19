@@ -150,6 +150,10 @@
   dir: packages/execution-runtime
   intents:
     - modern-humans-flash
+"@tomflow/proflow-execution-runtime@0.1.3":
+  dir: packages/execution-runtime
+  intents:
+    - real1-execution-readiness-self-heal
 "@tomflow/proflow-model-contracts@0.1.1":
   dir: packages/model-contracts
   intents:
@@ -174,6 +178,10 @@
   dir: packages/model-runtime
   intents:
     - modern-humans-flash
+"@tomflow/proflow-model-runtime@0.1.4":
+  dir: packages/model-runtime
+  intents:
+    - real1-model-readiness-self-heal
 "@tomflow/proflow-module-contract@0.1.1":
   dir: packages/module-contract
   intents:
