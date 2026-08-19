@@ -101,7 +101,13 @@ test("CP-AGT-PROD-03 + CP-AGT-PROD-04 Extension-first Task ownership is reflecte
 		/聊天.*(?:完成|确认).*Task.*(?:READY|ACTIVE)|自然语言.*Task.*状态/i,
 	);
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
-	assert.equal(behaviorAdapter.status().result.status, "ACTION_REQUIRED");
+	const status = behaviorAdapter.status().result;
+	assert.equal(status.status, "SUCCEEDED");
+	assert.deepEqual(status.data, {
+		configStatus: "READY",
+		runtimeStatus: "UNKNOWN",
+	});
+	assert.equal(behaviorAdapter.preflight().result.status, "ACTION_REQUIRED");
 });
 
 test("CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browser continue protocol", async () => {
@@ -119,6 +125,10 @@ test("CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browse
 test("CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked by package-local fixtures", async () => {
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
 	const status = behaviorAdapter.status().result;
-	assert.equal(status.status, "ACTION_REQUIRED");
-	assert.match(JSON.stringify(status), /ACTION_REQUIRED|web|Custom GPT|GPT/i);
+	assert.equal(status.status, "SUCCEEDED");
+	assert.deepEqual(status.data, {
+		configStatus: "READY",
+		runtimeStatus: "UNKNOWN",
+	});
+	assert.equal(behaviorAdapter.preflight().result.status, "ACTION_REQUIRED");
 });

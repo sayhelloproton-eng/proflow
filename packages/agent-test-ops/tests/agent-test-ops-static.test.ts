@@ -57,6 +57,12 @@ test("CP-AGT-TEST-03 doctor verify recovery keep Deployment and Execution owners
 });
 test("CP-AGT-TEST-04 provisioning/reopen real evidence remains external ACTION_REQUIRED", async () => {
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
-	assert.equal(behaviorAdapter.status().result.status, "ACTION_REQUIRED");
+	const status = behaviorAdapter.status().result;
+	assert.equal(status.status, "SUCCEEDED");
+	assert.deepEqual(status.data, {
+		configStatus: "READY",
+		runtimeStatus: "UNKNOWN",
+	});
+	assert.equal(behaviorAdapter.preflight().result.status, "ACTION_REQUIRED");
 	assert.match(metadata.proflowAgent.instructions, /REOPEN 必须复用原 worker/);
 });
