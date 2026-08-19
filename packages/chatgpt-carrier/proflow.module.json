@@ -3,7 +3,7 @@
 	"contractVersion": "1.0.0",
 	"moduleRef": "chatgpt-carrier",
 	"packageName": "@tomflow/proflow-chatgpt-carrier",
-	"moduleVersion": "0.1.2",
+	"moduleVersion": "0.1.3",
 	"kind": "external-resource",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
@@ -45,7 +45,13 @@
 		}
 	],
 	"lifecycle": {
-		"supported": ["describe", "preflight", "status", "verify", "doctor"]
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
 	},
 	"verification": {
 		"checks": [

@@ -74,6 +74,10 @@
   dir: packages/chatgpt-carrier
   intents:
     - modern-humans-flash
+"@tomflow/proflow-chatgpt-carrier@0.1.3":
+  dir: packages/chatgpt-carrier
+  intents:
+    - real1-carrier-protected-status
 "@tomflow/proflow-chrome-runtime@0.1.1":
   dir: packages/chrome-runtime
   intents:
