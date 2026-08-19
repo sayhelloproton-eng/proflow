@@ -80,8 +80,8 @@ export async function readDevTunnelVerificationEvidence(
 
 export function createBehaviorAdapter(
 	input?: {
-	runtime: DevTunnelRuntime;
-	verifyErrorSemantics?: () => Promise<ErrorSemanticsProof>;
+		runtime: DevTunnelRuntime;
+		verifyErrorSemantics?: () => Promise<ErrorSemanticsProof>;
 		verifyFileRelay?: () => Promise<FileRelayProof>;
 	},
 	config?: Record<string, string>,
@@ -383,32 +383,35 @@ export async function createProductionBinding(input: {
 			publicBaseUrl,
 		);
 	return {
-		behaviorAdapter: createBehaviorAdapter({
-			runtime: createDevTunnelRuntime({
-				publicBaseUrl,
-				...(input.config.tunnelId ? { tunnelId: input.config.tunnelId } : {}),
-				processStateFile: join(
-					input.workspaceRoot,
-					".proflow",
-					"runtime",
-					"external-resources",
-					"dev-tunnel",
-					"process.json",
-				),
-			}),
-			verifyFileRelay: async () =>
-				(await readEvidence())?.fileRelay ?? {
-					verified: false,
-					message:
-						"dev-tunnel verification evidence is missing, stale, or invalid",
-				},
-			verifyErrorSemantics: async () =>
-				(await readEvidence())?.errorSemantics ?? {
-					rateLimit429Verified: false,
-					server5xxVerified: false,
-					message:
-						"dev-tunnel verification evidence is missing, stale, or invalid",
-				},
-		}, input.config),
+		behaviorAdapter: createBehaviorAdapter(
+			{
+				runtime: createDevTunnelRuntime({
+					publicBaseUrl,
+					...(input.config.tunnelId ? { tunnelId: input.config.tunnelId } : {}),
+					processStateFile: join(
+						input.workspaceRoot,
+						".proflow",
+						"runtime",
+						"external-resources",
+						"dev-tunnel",
+						"process.json",
+					),
+				}),
+				verifyFileRelay: async () =>
+					(await readEvidence())?.fileRelay ?? {
+						verified: false,
+						message:
+							"dev-tunnel verification evidence is missing, stale, or invalid",
+					},
+				verifyErrorSemantics: async () =>
+					(await readEvidence())?.errorSemantics ?? {
+						rateLimit429Verified: false,
+						server5xxVerified: false,
+						message:
+							"dev-tunnel verification evidence is missing, stale, or invalid",
+					},
+			},
+			input.config,
+		),
 	};
 }
