@@ -17,7 +17,6 @@ function descriptor(
 		packageName: "@tomflow/proflow-compatibility-fixture",
 		moduleVersion: "1.0.0",
 		kind: "service",
-		installClass: "optional",
 		identity: {
 			domain: "deployment-governance",
 			summary: "Compatibility hardening fixture",
