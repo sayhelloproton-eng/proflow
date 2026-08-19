@@ -1,18 +1,8 @@
-export type {
-	LifecycleDispatchResult,
-	LifecycleRunResult,
-	LifecycleRunStatus,
-} from "./dispatch.ts";
+export type { LifecycleDispatchResult } from "./dispatch.ts";
+export { dispatchLifecycle } from "./dispatch.ts";
+export type { ThinLifecycleResult } from "./thin.ts";
 export {
-	dispatchLifecycle,
-	restartModules,
-	startModules,
-	statusModules,
-	stopModules,
-} from "./dispatch.ts";
-export {
-	managedServiceStatus,
-	restartManagedService,
-	startManagedService,
-	stopManagedService,
-} from "./service-process.ts";
+	observeStatuses,
+	preflightAndStartModules,
+	stopModulesThin,
+} from "./thin.ts";

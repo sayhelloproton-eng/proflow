@@ -17,10 +17,6 @@ export interface DependencyGraph {
 	order: string[];
 }
 
-export interface GraphOptions {
-	config?: Record<string, Record<string, string>>;
-}
-
 export class ModuleRefUnresolvedError extends Error {
 	readonly code = "MODULE_REF_UNRESOLVED" as const;
 	readonly from: string;
@@ -40,12 +36,10 @@ function compareRef(a: string, b: string): number {
 
 export function buildDependencyGraph(
 	modules: readonly ResolvedModule[],
-	options: GraphOptions = {},
 ): DependencyGraph {
 	const nodes = [...new Set(modules.map((module) => module.moduleRef))].sort(
 		compareRef,
 	);
-	const nodeSet = new Set(nodes);
 
 	const providersByContract = new Map<
 		string,
@@ -80,21 +74,6 @@ export function buildDependencyGraph(
 	);
 
 	for (const module of sorted) {
-		for (const slot of module.configSlots) {
-			if (slot.type !== "moduleRef") continue;
-			const effective =
-				options.config?.[module.moduleRef]?.[slot.key] ?? slot.default;
-			if (typeof effective !== "string") continue;
-			if (!nodeSet.has(effective)) {
-				throw new ModuleRefUnresolvedError(
-					module.moduleRef,
-					effective,
-					`moduleRef binding ${slot.key}=${effective} for ${module.moduleRef} does not resolve to a selected module`,
-				);
-			}
-			addEdge(module.moduleRef, effective, "moduleRef");
-		}
-
 		for (const requirement of module.requires) {
 			const candidates = providersByContract.get(requirement.contractRef) ?? [];
 			const matching = candidates
