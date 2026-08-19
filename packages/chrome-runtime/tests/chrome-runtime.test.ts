@@ -39,19 +39,25 @@ test("parseModuleDescriptor accepts the chrome-runtime descriptor", () => {
 	assert.deepEqual(parsed.provides, []);
 });
 
-test("adapter returns ACTION_REQUIRED, not SUCCEEDED, when no real Chrome or extension is present", async () => {
+test("adapter status reports Module facts while verify remains actionable without real Chrome/extension readiness", async () => {
 	const unboundStatus = await behaviorAdapter.status();
-	assert.equal(unboundStatus.result.status, "ACTION_REQUIRED");
+	assert.equal(unboundStatus.result.status, "SUCCEEDED");
+	assert.deepEqual(unboundStatus.result.data, {
+		configStatus: "READY",
+		runtimeStatus: "UNKNOWN",
+	});
 	const unboundVerify = await behaviorAdapter.verify();
 	assert.equal(unboundVerify.result.status, "ACTION_REQUIRED");
 
 	const unavailableAdapter = createBehaviorAdapter({
 		probe: async () => unavailable,
 	});
-	assert.equal(
-		(await unavailableAdapter.status()).result.status,
-		"ACTION_REQUIRED",
-	);
+	const unavailableStatus = await unavailableAdapter.status();
+	assert.equal(unavailableStatus.result.status, "SUCCEEDED");
+	assert.deepEqual(unavailableStatus.result.data, {
+		configStatus: "READY",
+		runtimeStatus: "FAILED",
+	});
 	assert.equal(
 		(await unavailableAdapter.verify()).result.status,
 		"ACTION_REQUIRED",
@@ -62,10 +68,10 @@ test("adapter returns ACTION_REQUIRED, not SUCCEEDED, when no real Chrome or ext
 	});
 	const withoutExtensionStatus = await withoutExtensionAdapter.status();
 	assert.equal(withoutExtensionStatus.result.status, "SUCCEEDED");
-	assert.equal(
-		withoutExtensionStatus.result.resourceVersion,
-		"Chrome 150.0.0.0",
-	);
+	assert.deepEqual(withoutExtensionStatus.result.data, {
+		configStatus: "READY",
+		runtimeStatus: "RUNNING",
+	});
 	const withoutExtensionVerify = await withoutExtensionAdapter.verify();
 	assert.equal(withoutExtensionVerify.result.status, "ACTION_REQUIRED");
 	assert.ok("resourceVersion" in withoutExtensionVerify.result);

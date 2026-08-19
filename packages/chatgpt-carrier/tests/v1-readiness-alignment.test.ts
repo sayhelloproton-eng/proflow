@@ -35,7 +35,9 @@ test("EXT-CHATGPT-02 Knowledge specialization is deferred and is not a v1 readin
 });
 
 test("EXT-CHATGPT-03 real Action auth/OpenAPI/File Bridge/native capabilities are independently verifiable", async () => {
-	const ids = new Set(descriptor.verification.checks.map((check) => check.id));
+	const ids = new Set<string>(
+		descriptor.verification.checks.map((check) => check.id),
+	);
 	for (const id of [
 		"carrier-actions-schema",
 		"carrier-openapi",

@@ -20,15 +20,19 @@ test("parseModuleDescriptor accepts the chatgpt-carrier descriptor", () => {
 	assert.equal(parsed.lifecycle.supported.includes("start"), false);
 });
 
-test("adapter reports ACTION_REQUIRED instead of SUCCEEDED without a real carrier", async () => {
+test("adapter gates mutation while status reports current Module facts without a real carrier", async () => {
 	const preflight = await behaviorAdapter.preflight();
 	assert.equal(preflight.result.status, "ACTION_REQUIRED");
 	assert.equal(preflight.result.ok, false);
 
 	const status = await behaviorAdapter.status();
-	assert.equal(status.result.status, "ACTION_REQUIRED");
-	assert.equal(status.result.ok, false);
-	assert.ok(status.result.actionRequired !== undefined);
+	assert.equal(status.result.status, "SUCCEEDED");
+	assert.equal(status.result.ok, true);
+	assert.deepEqual(status.result.data, {
+		configStatus: "INCOMPLETE",
+		missingConfig: ["verificationEvidenceFile"],
+		runtimeStatus: "UNKNOWN",
+	});
 	assert.equal(status.readinessClaim, "NOT_READY");
 	assert.equal(status.externalAvailabilityClaim, "UNKNOWN");
 
@@ -172,20 +176,33 @@ test("production status accepts protected 401/403 only with healthy Web verifica
 			config: { carrierUrl, verificationEvidenceFile: evidenceFile },
 		});
 		const status = binding.behaviorAdapter.status as () => Promise<{
-			result: { status: string; checks?: { message: string }[] };
+			result: {
+				status: string;
+				data?: { configStatus: string; runtimeStatus: string };
+			};
+			readinessClaim: string;
+			externalAvailabilityClaim: string;
 		}>;
 
 		globalThis.fetch = async () => new Response(null, { status: 403 });
 		const protectedStatus = await status();
 		assert.equal(protectedStatus.result.status, "SUCCEEDED");
-		assert.match(
-			protectedStatus.result.checks?.[0]?.message ?? "",
-			/protected.*403/i,
-		);
+		assert.deepEqual(protectedStatus.result.data, {
+			configStatus: "READY",
+			runtimeStatus: "RUNNING",
+		});
+		assert.equal(protectedStatus.readinessClaim, "READY");
+		assert.equal(protectedStatus.externalAvailabilityClaim, "AVAILABLE");
 
 		globalThis.fetch = async () => new Response(null, { status: 404 });
 		const missingStatus = await status();
-		assert.equal(missingStatus.result.status, "ACTION_REQUIRED");
+		assert.equal(missingStatus.result.status, "SUCCEEDED");
+		assert.deepEqual(missingStatus.result.data, {
+			configStatus: "READY",
+			runtimeStatus: "FAILED",
+		});
+		assert.equal(missingStatus.readinessClaim, "NOT_READY");
+		assert.equal(missingStatus.externalAvailabilityClaim, "UNAVAILABLE");
 	} finally {
 		globalThis.fetch = originalFetch;
 		await rm(root, { recursive: true, force: true });
