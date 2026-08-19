@@ -28,7 +28,10 @@ export const behaviorAdapter = {
 			status: "SUCCEEDED" as const,
 			moduleRef: descriptor.moduleRef,
 			moduleVersion: descriptor.moduleVersion,
-			data: { configStatus: "READY" as const, runtimeStatus: "UNKNOWN" as const },
+			data: {
+				configStatus: "READY" as const,
+				runtimeStatus: "UNKNOWN" as const,
+			},
 		},
 		observedEffects: [],
 	}),

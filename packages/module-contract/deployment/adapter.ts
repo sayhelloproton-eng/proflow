@@ -11,7 +11,16 @@ const baseResult = {
 export const behaviorAdapter = {
 	describe: () => ({ result: baseResult, observedEffects: [] }),
 	preflight: () => ({ result: baseResult, observedEffects: [] }),
-	status: () => ({ result: { ...baseResult, data: { configStatus: "READY" as const, runtimeStatus: "UNKNOWN" as const } }, observedEffects: [] }),
+	status: () => ({
+		result: {
+			...baseResult,
+			data: {
+				configStatus: "READY" as const,
+				runtimeStatus: "UNKNOWN" as const,
+			},
+		},
+		observedEffects: [],
+	}),
 	verify: () => ({
 		result: {
 			...baseResult,

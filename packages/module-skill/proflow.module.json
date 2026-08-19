@@ -22,10 +22,7 @@
 	],
 	"configSlots": [],
 	"lifecycle": {
-		"supported": [
-			"verify",
-			"status"
-		]
+		"supported": ["verify", "status"]
 	},
 	"verification": {
 		"checks": [
