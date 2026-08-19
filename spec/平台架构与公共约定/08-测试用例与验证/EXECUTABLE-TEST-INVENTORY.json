@@ -1251,7 +1251,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 29,
+      "line": 35,
       "title": "parseModuleDescriptor accepts the chrome-runtime descriptor",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1265,7 +1265,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 36,
+      "line": 42,
       "title": "adapter returns ACTION_REQUIRED, not SUCCEEDED, when no real Chrome or extension is present",
       "ids": [],
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
@@ -1279,7 +1279,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 67,
+      "line": 85,
       "title": "explicit Chrome probe tolerates a slow but healthy version response beyond five seconds",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1293,7 +1293,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 85,
+      "line": 103,
       "title": "adapter exposes no start/stop/restart lifecycle",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
