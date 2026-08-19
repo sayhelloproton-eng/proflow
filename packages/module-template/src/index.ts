@@ -170,6 +170,15 @@ function descriptorFor(input: MaterializeModuleInput): ModuleDescriptor {
 				path: "./README.md",
 				description: "Package-owned module overview",
 			},
+			...(input.kind === "external-resource"
+				? [
+						{
+							id: "configuration",
+							path: "./CONFIGURATION.md",
+							description: "Package-owned configuration guide",
+						},
+					]
+				: []),
 		],
 	});
 }
@@ -209,7 +218,13 @@ function packageJson(descriptor: ModuleDescriptor): string {
 	return `${JSON.stringify(
 		{
 			...packageMetadata(descriptor),
-			files: ["dist", "conformance.json", "README.md", "proflow.module.json"],
+			files: [
+				"dist",
+				"conformance.json",
+				"README.md",
+				"proflow.module.json",
+				...(descriptor.configSlots.length > 0 ? ["CONFIGURATION.md"] : []),
+			],
 			engines: { node: "24.19.0" },
 			scripts: {
 				build: "tsc -p tsconfig.build.json",
@@ -263,7 +278,7 @@ function adapterSource(descriptor: ModuleDescriptor): string {
 export const behaviorAdapter = {
 ${operations}
 } as const;
-`;
+${descriptor.kind === "service" ? `\nexport async function createProductionBinding() {\n\treturn { behaviorAdapter };\n}\n` : ""}`;
 }
 
 function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
@@ -317,6 +332,11 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 	return {
 		"package.json": packageJson(descriptor),
 		"README.md": `# ${descriptor.packageName}\n\nModule: \`${descriptor.moduleRef}\`  \nDomain: \`${descriptor.identity.domain}\`  \nKind: \`${descriptor.kind}\`  \nTemplate: \`${descriptor.templateVersion}\`\n\n${descriptor.identity.summary}\n`,
+		...(descriptor.configSlots.length > 0
+			? {
+					"CONFIGURATION.md": `# Configuration\n\nConfigure this Module through the Workspace-owned .proflow/config/${descriptor.moduleRef}.json file.\n\n${descriptor.configSlots.map((slot) => `- \`${slot.key}\`: ${slot.description}`).join("\n")}\n`,
+				}
+			: {}),
 		"tsconfig.json": `${JSON.stringify(
 			{
 				compilerOptions: {

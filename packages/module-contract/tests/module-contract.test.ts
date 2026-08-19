@@ -16,7 +16,6 @@ const libraryDescriptor = {
 	packageName: "@tomflow/proflow-example-library",
 	moduleVersion: "1.0.0",
 	kind: "library",
-	installClass: "optional",
 	identity: {
 		domain: "deployment-governance",
 		summary: "Module contract test fixture",

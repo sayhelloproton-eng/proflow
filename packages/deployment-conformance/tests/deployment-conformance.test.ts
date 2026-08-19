@@ -42,6 +42,7 @@ async function generatedRoot(prefix: string): Promise<string> {
 function result(
 	moduleRef: string,
 	moduleVersion: string,
+	data?: unknown,
 ): ModuleOperationResult<unknown> {
 	return {
 		contract: "deployment.result.v1",
@@ -49,6 +50,7 @@ function result(
 		status: "SUCCEEDED",
 		moduleRef,
 		moduleVersion,
+		...(data === undefined ? {} : { data }),
 		checks: [{ id: "contract-check", status: "PASS", message: "observed" }],
 	};
 }
@@ -57,7 +59,13 @@ function adapterFor(descriptor: ModuleDescriptor): BehaviorAdapter {
 	const adapter: BehaviorAdapter = {};
 	for (const primitive of descriptor.lifecycle.supported) {
 		adapter[primitive] = (): BehaviorObservation => ({
-			result: result(descriptor.moduleRef, descriptor.moduleVersion),
+			result: result(
+				descriptor.moduleRef,
+				descriptor.moduleVersion,
+				primitive === "status"
+					? { configStatus: "READY", runtimeStatus: "UNKNOWN" }
+					: undefined,
+			),
 			observedEffects: [],
 			...(primitive === "status" && descriptor.kind === "external-resource"
 				? {
@@ -80,7 +88,6 @@ async function generatedExternal(context: TestContext) {
 		moduleRef: "fixture-external-resource",
 		packageName: "@tomflow/proflow-fixture-external-resource",
 		kind: "external-resource",
-		installClass: "optional",
 		domain: "deployment-governance",
 		summary: "Generated test fixture",
 	});
@@ -145,7 +152,7 @@ test("CP-DPL-CONF-01 C1 rejects missing, version, config, lifecycle, and verific
 		assert.equal(runStaticConformance(fixture).status, "FAIL");
 });
 
-test("CP-DPL-CONF-02 + CP-DPL-CONF-05 + RF-DPL-CONF-05 C2 inspects package form and enforces global package-owned install delegation", async (context) => {
+test("CP-DPL-CONF-02 + CP-DPL-CONF-05 + RF-DPL-CONF-05 C2 inspects package form and generated truth", async (context) => {
 	const generated = await generatedExternal(context);
 	assert.equal(
 		(
@@ -215,24 +222,6 @@ test("CP-DPL-CONF-02 + CP-DPL-CONF-05 + RF-DPL-CONF-05 C2 inspects package form 
 	);
 
 	await writeFile(conformancePath, `${JSON.stringify(conformance, null, 2)}\n`);
-	const selfInstallPath = join(generated.packageDirectory, "self-install.mjs");
-	const selfInstall = await readFile(selfInstallPath, "utf8");
-	await writeFile(
-		selfInstallPath,
-		selfInstall
-			.replace('"platform.cmd"', '"npx.cmd"')
-			.replace('"platform"', '"npx"'),
-	);
-	result = await runPackageConformance(
-		generated.packageDirectory,
-		generated.descriptor,
-	);
-	assert.ok(
-		result.issues.some(
-			(issue) =>
-				issue.code === "PACKAGE_INSTALL_GLOBAL_PLATFORM_DELEGATION_MISSING",
-		),
-	);
 });
 
 test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability without invoking undeclared lifecycle", async (context) => {
@@ -272,8 +261,8 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 		"FAIL",
 	);
 
-	const mutatingDoctor = adapterFor(generated.descriptor);
-	mutatingDoctor.doctor = () => ({
+	const mutatingPreflight = adapterFor(generated.descriptor);
+	mutatingPreflight.preflight = () => ({
 		result: result(
 			generated.descriptor.moduleRef,
 			generated.descriptor.moduleVersion,
@@ -281,7 +270,8 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 		observedEffects: ["wrote config"],
 	});
 	assert.equal(
-		(await runBehaviorConformance(generated.descriptor, mutatingDoctor)).status,
+		(await runBehaviorConformance(generated.descriptor, mutatingPreflight))
+			.status,
 		"FAIL",
 	);
 
@@ -293,6 +283,11 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 			status: "ACTION_REQUIRED",
 			moduleRef: generated.descriptor.moduleRef,
 			moduleVersion: generated.descriptor.moduleVersion,
+			data: {
+				configStatus: "INCOMPLETE",
+				missingConfig: ["resourceUrl"],
+				runtimeStatus: "UNKNOWN",
+			},
 			actionRequired: {
 				action: "authenticate",
 				description: "Authenticate the external resource",
@@ -331,7 +326,6 @@ test("remediation C3 rejects result identity drift and effects outside the descr
 		moduleRef: "identity-service",
 		packageName: "@tomflow/proflow-identity-service",
 		kind: "service",
-		installClass: "optional",
 		domain: "deployment-governance",
 		summary: "Generated test fixture",
 	});

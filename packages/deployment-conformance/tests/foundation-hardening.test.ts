@@ -54,7 +54,6 @@ test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the o
 			moduleRef: `closure-${kind}`,
 			packageName: `@tomflow/proflow-closure-${kind}`,
 			kind,
-			installClass: "optional",
 			domain: "deployment-governance",
 			summary: "Generated test fixture",
 		});
@@ -73,7 +72,6 @@ test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the o
 		moduleRef: "broken-c1",
 		packageName: "@tomflow/proflow-broken-c1",
 		kind: "library",
-		installClass: "optional",
 		domain: "deployment-governance",
 		summary: "Generated test fixture",
 	});
@@ -88,7 +86,6 @@ test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the o
 		moduleRef: "broken-c2",
 		packageName: "@tomflow/proflow-broken-c2",
 		kind: "library",
-		installClass: "optional",
 		domain: "deployment-governance",
 		summary: "Generated test fixture",
 	});
@@ -111,7 +108,6 @@ test("P1-1..P1-5 generated package own adapters pass C1/C2/C3 and break at the o
 		moduleRef: "broken-c3",
 		packageName: "@tomflow/proflow-broken-c3",
 		kind: "service",
-		installClass: "optional",
 		domain: "deployment-governance",
 		summary: "Generated test fixture",
 	});

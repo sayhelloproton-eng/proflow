@@ -50,7 +50,6 @@ test("Bootstrap closure generates, typechecks, validates, and conforms all six p
 			moduleRef,
 			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
-			installClass: "optional",
 			domain: "deployment-governance",
 			summary: "Generated test fixture",
 		});
@@ -82,7 +81,6 @@ test("Bootstrap closure deterministically rejects intentional C1, C2, and C3 bre
 		moduleRef: "bootstrap-broken",
 		packageName: "@tomflow/proflow-bootstrap-broken",
 		kind: "service",
-		installClass: "optional",
 		domain: "deployment-governance",
 		summary: "Generated test fixture",
 	});
@@ -116,7 +114,6 @@ test("Bootstrap closure deterministically rejects intentional C1, C2, and C3 bre
 		moduleRef: "bootstrap-broken-behavior",
 		packageName: "@tomflow/proflow-bootstrap-broken-behavior",
 		kind: "service",
-		installClass: "optional",
 		domain: "deployment-governance",
 		summary: "Generated test fixture",
 	});
