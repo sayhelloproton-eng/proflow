@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 119,
-    "testCalls": 494
+    "testCalls": 495
   },
   "tests": [
     {
@@ -1449,7 +1449,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 102,
+      "line": 121,
       "title": "CP-DPL-CONF-01 C1 rejects missing, version, config, lifecycle, and verification defects",
       "ids": [
         "CP-DPL-CONF-01"
@@ -1464,7 +1464,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 155,
+      "line": 174,
       "title": "CP-DPL-CONF-02 + CP-DPL-CONF-05 + RF-DPL-CONF-05 C2 inspects package form and generated truth",
       "ids": [
         "CP-DPL-CONF-02",
@@ -1481,7 +1481,20 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 227,
+      "line": 246,
+      "title": "C2 accepts CLI-specific structured machine JSON and rejects non-object output",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts",
+        "packages/module-template/src/index.ts"
+      ]
+    },
+    {
+      "package": "deployment-conformance",
+      "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
+      "line": 272,
       "title": "CP-DPL-CONF-03 C3 rejects side effects and fake external availability without invoking undeclared lifecycle",
       "ids": [
         "CP-DPL-CONF-03"
@@ -1496,7 +1509,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 321,
+      "line": 366,
       "title": "remediation C3 rejects result identity drift and effects outside the descriptor",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1509,7 +1522,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 452,
+      "line": 497,
       "title": "CP-DPL-CONF-04 enforces GPT Actions and File Bridge frozen limits",
       "ids": [
         "CP-DPL-CONF-04"
