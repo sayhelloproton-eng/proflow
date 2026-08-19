@@ -5,6 +5,7 @@ import { delimiter, join } from "node:path";
 import { promisify } from "node:util";
 
 import { PlatformError } from "../errors.ts";
+import { atomicWrite } from "../paths.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -160,4 +161,198 @@ function isMissingFile(error: unknown): boolean {
 
 function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
+}
+
+
+export interface WorkspacePackageTarget {
+	packageName: string;
+	version: string;
+}
+
+export interface WorkspacePackageMutationResult {
+	packageManager: SupportedWorkspacePackageManager;
+	packages: string[];
+}
+
+export async function syncWorkspacePackages(options: {
+	workspaceRoot: string;
+	packages: readonly WorkspacePackageTarget[];
+	runner?: PackageCommandRunner;
+	executableAvailable?: (command: string) => boolean;
+}): Promise<WorkspacePackageMutationResult> {
+	if (options.packages.length === 0) {
+		return { packageManager: "npm", packages: [] };
+	}
+	await ensureWorkspaceManifest(options.workspaceRoot);
+	const runner = options.runner ?? systemPackageCommandRunner();
+	const manager = await requireWorkspacePackageManager(
+		options.workspaceRoot,
+		options.executableAvailable ?? findExecutable,
+	);
+	const specs = [...options.packages]
+		.sort((a, b) => a.packageName.localeCompare(b.packageName))
+		.map((item) => `${item.packageName}@${item.version}`);
+	const args = await batchPackageManagerArgs(
+		runner,
+		manager,
+		options.workspaceRoot,
+		"sync",
+		specs,
+	);
+	try {
+		await runner.run(manager.name, args, options.workspaceRoot);
+	} catch (error) {
+		throw new PlatformError(
+			"APPLY_FAILED",
+			`${manager.name} install failed: ${packageMutationError(error)}`,
+		);
+	}
+	return { packageManager: manager.name, packages: specs };
+}
+
+export async function removeWorkspacePackages(options: {
+	workspaceRoot: string;
+	packageNames: readonly string[];
+	runner?: PackageCommandRunner;
+	executableAvailable?: (command: string) => boolean;
+}): Promise<WorkspacePackageMutationResult> {
+	const packageNames = [...new Set(options.packageNames)].sort();
+	if (packageNames.length === 0) {
+		return { packageManager: "npm", packages: [] };
+	}
+	const runner = options.runner ?? systemPackageCommandRunner();
+	const manager = await requireWorkspacePackageManager(
+		options.workspaceRoot,
+		options.executableAvailable ?? findExecutable,
+	);
+	const args = await batchPackageManagerArgs(
+		runner,
+		manager,
+		options.workspaceRoot,
+		"remove",
+		packageNames,
+	);
+	try {
+		await runner.run(manager.name, args, options.workspaceRoot);
+	} catch (error) {
+		throw new PlatformError(
+			"UNINSTALL_FAILED",
+			`${manager.name} remove failed: ${packageMutationError(error)}`,
+		);
+	}
+	return { packageManager: manager.name, packages: packageNames };
+}
+
+export async function observeWorkspaceInstalledVersion(
+	workspaceRoot: string,
+	packageName: string,
+): Promise<string | undefined> {
+	try {
+		const raw = await readFile(
+			join(workspaceRoot, "node_modules", ...packageName.split("/"), "package.json"),
+			"utf8",
+		);
+		const parsed: unknown = JSON.parse(raw);
+		if (
+			!isRecord(parsed) ||
+			parsed.name !== packageName ||
+			typeof parsed.version !== "string"
+		) {
+			return undefined;
+		}
+		return parsed.version;
+	} catch {
+		return undefined;
+	}
+}
+
+async function ensureWorkspaceManifest(workspaceRoot: string): Promise<void> {
+	const path = join(workspaceRoot, "package.json");
+	try {
+		const raw = await readFile(path, "utf8");
+		const parsed: unknown = JSON.parse(raw);
+		if (!isRecord(parsed)) throw new Error("package.json root must be an object");
+		return;
+	} catch (error) {
+		if (!isMissingFile(error)) {
+			throw new PlatformError(
+				"INVALID_REQUEST",
+				`workspace package.json is invalid: ${errorMessage(error)}`,
+			);
+		}
+	}
+	await atomicWrite(path, `${JSON.stringify({ private: true }, null, 2)}\n`);
+}
+
+async function requireWorkspacePackageManager(
+	workspaceRoot: string,
+	executableAvailable: (command: string) => boolean,
+): Promise<WorkspacePackageManagerSelection> {
+	const manager = await readWorkspacePackageManagerSelection(workspaceRoot);
+	if (!executableAvailable(manager.name)) {
+		throw new PlatformError(
+			"PACKAGE_MANAGER_UNAVAILABLE",
+			`workspace package manager ${manager.name} is not available on PATH`,
+		);
+	}
+	return manager;
+}
+
+async function batchPackageManagerArgs(
+	runner: PackageCommandRunner,
+	manager: WorkspacePackageManagerSelection,
+	workspaceRoot: string,
+	operation: "sync" | "remove",
+	packages: readonly string[],
+): Promise<string[]> {
+	if (manager.name === "pnpm") {
+		return operation === "remove"
+			? ["--config.ignore-scripts=true", "remove", ...packages]
+			: ["add", "--save-exact", "--ignore-scripts", ...packages];
+	}
+	if (manager.name === "npm") {
+		return operation === "remove"
+			? ["uninstall", "--ignore-scripts", ...packages]
+			: ["install", "--save-exact", "--ignore-scripts", ...packages];
+	}
+	const major = await batchYarnMajorVersion(runner, manager, workspaceRoot);
+	if (major <= 1) {
+		return operation === "remove"
+			? ["remove", "--ignore-scripts", ...packages]
+			: ["add", "--exact", "--ignore-scripts", ...packages];
+	}
+	return operation === "remove"
+		? ["remove", "--mode=skip-build", ...packages]
+		: ["add", "--exact", "--mode=skip-build", ...packages];
+}
+
+async function batchYarnMajorVersion(
+	runner: PackageCommandRunner,
+	manager: WorkspacePackageManagerSelection,
+	workspaceRoot: string,
+): Promise<number> {
+	const declared = manager.declared;
+	const separator = declared?.lastIndexOf("@") ?? -1;
+	const declaredVersion =
+		declared !== undefined && separator > 0
+			? declared.slice(separator + 1)
+			: undefined;
+	const value =
+		declaredVersion ??
+		(await runner.run("yarn", ["--version"], workspaceRoot)).trim();
+	const major = Number.parseInt(value.split(".")[0] ?? "", 10);
+	if (!Number.isInteger(major) || major < 1) {
+		throw new PlatformError(
+			"PACKAGE_MANAGER_UNAVAILABLE",
+			`cannot determine a supported Yarn major version from ${value || "<empty>"}`,
+		);
+	}
+	return major;
+}
+
+function packageMutationError(error: unknown): string {
+	if (isRecord(error) && typeof error.stderr === "string" && error.stderr.trim() !== "") {
+		return error.stderr.trim();
+	}
+	return errorMessage(error);
 }
