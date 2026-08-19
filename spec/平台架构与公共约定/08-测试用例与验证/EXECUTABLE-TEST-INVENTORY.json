@@ -564,7 +564,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 107,
+      "line": 113,
       "title": "CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browser continue protocol",
       "ids": [
         "CP-AGT-PROD-05"
@@ -577,7 +577,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 119,
+      "line": 125,
       "title": "CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked by package-local fixtures",
       "ids": [
         "CP-AGT-PROD-06"
@@ -1588,7 +1588,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 80,
+      "line": 86,
       "title": "start/stop/restart are honest when a runtime is bound but not logged in",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1602,7 +1602,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 98,
+      "line": 104,
       "title": "every supported lifecycle primitive exposes an adapter function",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1616,7 +1616,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 104,
+      "line": 110,
       "title": "production verification evidence is version- and ingress-bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1630,7 +1630,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 145,
+      "line": 151,
       "title": "missing file relay and 429/5xx proof are FAIL, never SKIP/WARN",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1644,7 +1644,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 162,
+      "line": 168,
       "title": "start cannot SUCCEED without a configured tunnelId",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1658,7 +1658,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 167,
+      "line": 173,
       "title": "status reports UNKNOWN (not STOPPED) when no child is owned",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1672,7 +1672,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 176,
+      "line": 182,
       "title": "persistent runtime detaches and survives across adapter instances",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1686,7 +1686,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 212,
+      "line": 218,
       "title": "immediate spawn error does not report RUNNING",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1700,7 +1700,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 221,
+      "line": 227,
       "title": "TLS probe times out instead of hanging",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1714,7 +1714,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 238,
+      "line": 244,
       "title": "streaming read aborts after the size ceiling",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1728,7 +1728,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 253,
+      "line": 259,
       "title": "doctor reads current login/state/publicUrl reality, not just adapter-bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1742,7 +1742,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 265,
+      "line": 271,
       "title": "stop returns ACTION_REQUIRED when stop state is genuinely UNKNOWN",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1756,7 +1756,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 273,
+      "line": 279,
       "title": "restart does not start when stop is UNKNOWN",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1770,7 +1770,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 286,
+      "line": 292,
       "title": "uninstall is idempotent when no dev-tunnel resource is bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2287,7 +2287,7 @@
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
       "line": 489,
-      "title": "REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remains ACTION_REQUIRED locally",
+      "title": "REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remain explicitly incomplete locally",
       "ids": [],
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
       "implementationRefs": [
@@ -2298,7 +2298,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 518,
+      "line": 523,
       "title": "REG-EXE-BR-09 deterministic DOM observation makes zero Vision calls",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2310,7 +2310,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 550,
+      "line": 555,
       "title": "REG-EXE-BR-10 screenshot → Vision receives the exact captured image and returns a typed observation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2322,7 +2322,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 634,
+      "line": 639,
       "title": "REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fabricated success",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2334,7 +2334,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 684,
+      "line": 689,
       "title": "REG-EXE-BR-12 screenshot boundary rejects unsupported MIME and mismatched dataUrl",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2346,7 +2346,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 717,
+      "line": 722,
       "title": "REG-EXE-BR-13 Vision verification requires deterministic confidence and no human escalation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3990,7 +3990,7 @@
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
       "line": 58,
-      "title": "unconfigured adapter reports ACTION_REQUIRED for observable primitives",
+      "title": "unconfigured adapter reports Module facts while actionable primitives remain blocked",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4003,7 +4003,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 75,
+      "line": 80,
       "title": "unconfigured verify returns FAIL reachability and auth checks, never a fake pass",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4017,7 +4017,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 88,
+      "line": 93,
       "title": "configured adapter delegates capability verification to Model Domain",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4031,7 +4031,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 128,
+      "line": 133,
       "title": "adapter exposes no start, stop, or restart lifecycle",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4045,7 +4045,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 138,
+      "line": 143,
       "title": "descriptor declares no process lifecycle primitives",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4059,7 +4059,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 148,
+      "line": 153,
       "title": "low-level probe is honest about an unreachable provider",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4073,7 +4073,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 155,
+      "line": 160,
       "title": "providerCredential is optional (unauthenticated providers allowed)",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4698,7 +4698,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/compatibility-hardening.test.ts",
-      "line": 55,
+      "line": 54,
       "title": "P1-6 compatibility covers all mechanically decidable breaking dimensions",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4841,7 +4841,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 104,
+      "line": 103,
       "title": "CP-DPL-SKILL-03 SKILL.md declares the required STOP / NOT_FROZEN stop rules",
       "ids": [
         "CP-DPL-SKILL-03"
@@ -4856,7 +4856,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 115,
+      "line": 114,
       "title": "RF-DPL-SKILL-01 the skill invents no capability, dependency, or permission",
       "ids": [
         "RF-DPL-SKILL-01"
@@ -4871,7 +4871,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 123,
+      "line": 122,
       "title": "RF-DPL-SKILL-02 real static conformance rejects a skill promoted to a process runtime",
       "ids": [
         "RF-DPL-SKILL-02"
@@ -4886,7 +4886,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 148,
+      "line": 147,
       "title": "RF-DPL-SKILL-03 SKILL.md stop rules cover missing dependency/permission/conformance before guessing",
       "ids": [
         "RF-DPL-SKILL-03"
