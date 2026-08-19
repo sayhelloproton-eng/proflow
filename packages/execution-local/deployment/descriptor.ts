@@ -1,54 +1,78 @@
 export const descriptor = {
-	contract: "module",
-	contractVersion: "1.0.0",
-	moduleRef: "execution-local",
-	packageName: "@tomflow/proflow-execution-local",
-	moduleVersion: "0.1.3",
-	kind: "library",
-	templateVersion: "1.0.0",
-	platformCompatibility: ">=1.0.0 <2.0.0",
-	installClass: "core",
-	identity: {
-		domain: "execution",
-		summary:
-			"In-process real local executor for typed ProFlow Execution capabilities.",
+	"contract": "module",
+	"contractVersion": "1.0.0",
+	"moduleRef": "execution-local",
+	"packageName": "@tomflow/proflow-execution-local",
+	"moduleVersion": "0.1.3",
+	"kind": "library",
+	"templateVersion": "1.0.0",
+	"platformCompatibility": ">=1.0.0 <2.0.0",
+	"identity": {
+		"domain": "execution",
+		"summary": "In-process real local executor for typed ProFlow Execution capabilities."
 	},
-	provides: [{ contractRef: "execution-local", version: "1.0.0" }],
-	requires: [],
-	requirements: [
-		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
-		{ kind: "filesystem", path: ".proflow", access: "read-write" },
-	],
-	configSlots: [
+	"provides": [
 		{
-			key: "projectRoot",
-			type: "path",
-			required: true,
-			description: "Canonical project boundary",
+			"contractRef": "execution-local",
+			"version": "1.0.0"
+		}
+	],
+	"requires": [],
+	"requirements": [
+		{
+			"kind": "runtime",
+			"runtime": "node",
+			"versionRange": ">=24.19.0"
 		},
 		{
-			key: "artifactRoot",
-			type: "path",
-			required: true,
-			description: "Execution-owned output and evidence directory",
-		},
+			"kind": "filesystem",
+			"path": ".proflow",
+			"access": "read-write"
+		}
 	],
-	lifecycle: { supported: ["describe", "preflight", "verify", "doctor"] },
-	verification: {
-		checks: [
+	"configSlots": [
+		{
+			"key": "projectRoot",
+			"type": "path",
+			"required": true,
+			"description": "Canonical project boundary"
+		},
+		{
+			"key": "artifactRoot",
+			"type": "path",
+			"required": true,
+			"description": "Execution-owned output and evidence directory"
+		}
+	],
+	"lifecycle": {
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
+	},
+	"verification": {
+		"checks": [
 			{
-				id: "local-real-gate",
-				description: "Typed local executor passes real project boundary proofs",
-				lifecycle: "verify",
-			},
-		],
+				"id": "local-real-gate",
+				"description": "Typed local executor passes real project boundary proofs",
+				"lifecycle": "verify"
+			}
+		]
 	},
-	effects: [],
-	documentation: [
+	"effects": [],
+	"documentation": [
 		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
+			"id": "overview",
+			"path": "./README.md",
+			"description": "Package-owned module overview"
 		},
-	],
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
+		}
+	]
 } as const;

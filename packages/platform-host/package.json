@@ -18,7 +18,8 @@
 		"dist",
 		"proflow.module.json",
 		"conformance.json",
-		"README.md"
+		"README.md",
+		"CONFIGURATION.md"
 	],
 	"scripts": {
 		"test": "node --conditions=development --test tests/**/*.test.ts",
@@ -48,19 +49,7 @@
 	],
 	"proflow": {
 		"module": true,
-		"installClass": "core",
 		"descriptor": "./dist/deployment/descriptor.js",
-		"installRequires": [
-			"@tomflow/proflow-agent-runtime",
-			"@tomflow/proflow-execution-browser-extension",
-			"@tomflow/proflow-execution-contracts",
-			"@tomflow/proflow-execution-runtime",
-			"@tomflow/proflow-model-contracts",
-			"@tomflow/proflow-model-runtime",
-			"@tomflow/proflow-task-migration-runner",
-			"@tomflow/proflow-task-orchestration",
-			"@tomflow/proflow-task-store-sqlite"
-		],
 		"manifest": "./proflow.module.json"
 	}
 }

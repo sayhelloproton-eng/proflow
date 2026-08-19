@@ -16,7 +16,7 @@
 		"proflow.module.json",
 		"conformance.json",
 		"README.md",
-		"self-install.mjs"
+		"CONFIGURATION.md"
 	],
 	"scripts": {
 		"test": "node --test tests/**/*.test.ts",
@@ -37,15 +37,7 @@
 	],
 	"proflow": {
 		"module": true,
-		"installClass": "core",
-		"installRequires": [
-			"@tomflow/proflow-module-contract",
-			"@tomflow/proflow-task-orchestration"
-		],
 		"descriptor": "./dist/deployment/descriptor.js",
 		"manifest": "./proflow.module.json"
-	},
-	"bin": {
-		"proflow-task-store-sqlite": "./self-install.mjs"
 	}
 }

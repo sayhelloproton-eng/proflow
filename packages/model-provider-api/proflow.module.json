@@ -7,7 +7,6 @@
 	"kind": "external-resource",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "deployment-governance",
 		"summary": "Governs and probes the configured OpenAI-compatible model provider API as an external resource."
@@ -42,7 +41,13 @@
 		}
 	],
 	"lifecycle": {
-		"supported": ["describe", "preflight", "status", "verify", "doctor"]
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
 	},
 	"verification": {
 		"checks": [
@@ -80,6 +85,11 @@
 			"id": "overview",
 			"path": "./README.md",
 			"description": "Package-owned module overview"
+		},
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
 		}
 	]
 }

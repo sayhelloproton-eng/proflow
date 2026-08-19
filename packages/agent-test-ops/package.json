@@ -22,7 +22,8 @@
 		"knowledge",
 		"proflow.module.json",
 		"conformance.json",
-		"README.md"
+		"README.md",
+		"CONFIGURATION.md"
 	],
 	"proflowAgent": {
 		"kind": "agent-package",
@@ -73,12 +74,6 @@
 	],
 	"proflow": {
 		"module": true,
-		"installClass": "core",
-		"installRequires": [
-			"@tomflow/proflow-agent-gateway",
-			"@tomflow/proflow-agent-runtime",
-			"@tomflow/proflow-chatgpt-carrier"
-		],
 		"descriptor": "./dist/deployment/descriptor.js",
 		"manifest": "./proflow.module.json"
 	}

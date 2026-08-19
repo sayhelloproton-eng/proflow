@@ -115,6 +115,32 @@ export function createBehaviorAdapter(config: Record<string, string> = {}) {
 			const reality = inspect(config.databasePath);
 			return { result: resultForReality(reality), observedEffects: [] };
 		},
+		status: () => {
+			if (!config.databasePath) {
+				return {
+					result: {
+						...success(),
+						data: {
+							configStatus: "INCOMPLETE" as const,
+							missingConfig: ["databasePath"],
+							runtimeStatus: "UNKNOWN" as const,
+						},
+					},
+					observedEffects: [],
+				};
+			}
+			const reality = inspect(config.databasePath);
+			return {
+				result: {
+					...success(),
+					data: {
+						configStatus: reality.ok ? ("READY" as const) : ("INVALID" as const),
+						runtimeStatus: "UNKNOWN" as const,
+					},
+				},
+				observedEffects: [],
+			};
+		},
 		verify: () => {
 			const reality = inspect(config.databasePath);
 			const check = {

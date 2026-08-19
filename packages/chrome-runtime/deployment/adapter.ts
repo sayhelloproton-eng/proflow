@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 import type {
 	ChromeRuntimeObservation,
 	ChromeRuntimeProbe,
@@ -27,7 +28,10 @@ const actionRequired = (action: string, description: string) => ({
 const observedEffect =
 	"Observes the Chrome runtime and MV3 extension prerequisite";
 
-export function createBehaviorAdapter(input?: { probe: ChromeRuntimeProbe }) {
+export function createBehaviorAdapter(
+	input?: { probe: ChromeRuntimeProbe },
+	config?: Record<string, string>,
+) {
 	const observe = async (): Promise<ChromeRuntimeObservation> => {
 		if (!input) return { available: false, extensionLoaded: false };
 		return input.probe();
@@ -51,37 +55,16 @@ export function createBehaviorAdapter(input?: { probe: ChromeRuntimeProbe }) {
 			observedEffects: [],
 		}),
 		status: async () => {
-			if (!input) {
-				return {
-					result: actionRequired(
-						"bind-chrome-probe",
-						"No Chrome runtime probe is bound",
-					),
-					observedEffects: [],
-				};
-			}
 			const observation = await observe();
-			const message = observation.available
-				? `Chrome runtime observed: ${observation.resourceVersion ?? "unknown version"}`
-				: "Chrome runtime is not available on this host";
 			return {
-				result: observation.available
-					? {
-							...success(),
-							...(observation.resourceVersion === undefined
-								? {}
-								: { resourceVersion: observation.resourceVersion }),
-							checks: [
-								{ id: "chrome-status", status: "PASS" as const, message },
-							],
-						}
-					: {
-							...actionRequired("install-or-expose-chrome", message),
-							checks: [
-								{ id: "chrome-status", status: "FAIL" as const, message },
-							],
-						},
-				observedEffects: [observedEffect],
+				result: success(
+					observeDeclaredModuleStatus(
+						descriptor,
+						config,
+						observation.available ? "RUNNING" : input ? "FAILED" : "UNKNOWN",
+					),
+				),
+				observedEffects: input ? [observedEffect] : [],
 			};
 		},
 		verify: async () => {
@@ -247,6 +230,6 @@ export async function createProductionBinding(input: {
 						observed.available && (await hasVerifiedExtensionEvidence()),
 				};
 			},
-		}),
+		}, input.config),
 	};
 }

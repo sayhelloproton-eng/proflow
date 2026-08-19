@@ -7,7 +7,6 @@
 	"kind": "library",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "agent-runtime-collaboration",
 		"summary": "Agent-owned Role Registry, credential binding and Collaboration durable runtime."
@@ -37,7 +36,13 @@
 	],
 	"configSlots": [],
 	"lifecycle": {
-		"supported": ["describe", "preflight", "verify", "doctor"]
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
 	},
 	"verification": {
 		"checks": [

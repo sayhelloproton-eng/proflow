@@ -1,3 +1,4 @@
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 import { descriptor } from "./descriptor.ts";
 
 type PlatformHostService = {
@@ -24,37 +25,23 @@ const unbound = {
 	},
 } as const;
 
-export function createBehaviorAdapter(service?: PlatformHostService) {
+export function createBehaviorAdapter(
+	service?: PlatformHostService,
+	config?: Record<string, string>,
+) {
 	return {
 		describe: () => ({ result: base, observedEffects: [] }),
 		preflight: () => ({ result: base, observedEffects: [] }),
 		status: async () => {
 			const status = service ? await service.status() : undefined;
 			const ready = status?.readiness === "READY";
+			const data = observeDeclaredModuleStatus(
+				descriptor,
+				config,
+				ready ? "RUNNING" : service ? "FAILED" : "UNKNOWN",
+			);
 			return {
-				result: service
-					? {
-							...(ready
-								? base
-								: {
-										...base,
-										ok: false as const,
-										status: "ACTION_REQUIRED" as const,
-										actionRequired: {
-											action: "repair-platform-host",
-											description: "Platform Host is not READY",
-										},
-									}),
-							data: status,
-							checks: [
-								{
-									id: "platform-host-readiness",
-									status: ready ? ("PASS" as const) : ("FAIL" as const),
-									message: `Platform Host readiness is ${status?.readiness ?? "NOT_READY"}`,
-								},
-							],
-						}
-					: unbound,
+				result: { ...base, data },
 				observedEffects: [],
 			};
 		},
@@ -272,5 +259,5 @@ export async function createProductionBinding(input: {
 		restart: () => host.restart(),
 		status: async () => ({ readiness: (await host.status()).readiness }),
 	};
-	return { behaviorAdapter: createBehaviorAdapter(service) };
+	return { behaviorAdapter: createBehaviorAdapter(service, input.config) };
 }

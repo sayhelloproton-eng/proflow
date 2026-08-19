@@ -35,10 +35,6 @@
 	],
 	"proflow": {
 		"module": true,
-		"installClass": "core",
-		"installRequires": [
-			"@tomflow/proflow-module-contract"
-		],
 		"manifest": "./proflow.module.json",
 		"descriptor": "./dist/deployment/descriptor.js"
 	}

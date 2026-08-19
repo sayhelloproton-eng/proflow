@@ -7,7 +7,6 @@
 	"kind": "service",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "model-reasoning",
 		"summary": "Provides the ProFlow Model Runtime service with FAST/REASON routing, provider capability checks and inference observability."
@@ -133,6 +132,11 @@
 			"id": "overview",
 			"path": "./README.md",
 			"description": "Model Runtime package overview"
+		},
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
 		}
 	]
 }

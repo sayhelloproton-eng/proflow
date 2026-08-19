@@ -22,7 +22,8 @@
 		"dist",
 		"proflow.module.json",
 		"conformance.json",
-		"README.md"
+		"README.md",
+		"CONFIGURATION.md"
 	],
 	"scripts": {
 		"test": "node --test tests/**/*.test.ts",
@@ -43,12 +44,7 @@
 	],
 	"proflow": {
 		"module": true,
-		"installClass": "core",
 		"descriptor": "./dist/deployment/descriptor.js",
-		"installRequires": [
-			"@tomflow/proflow-model-contracts",
-			"@tomflow/proflow-model-provider-api"
-		],
 		"manifest": "./proflow.module.json"
 	}
 }

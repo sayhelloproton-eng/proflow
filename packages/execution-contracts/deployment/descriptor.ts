@@ -7,7 +7,6 @@ export const descriptor = {
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
-	installClass: "core",
 	identity: {
 		domain: "execution",
 		summary:
@@ -19,7 +18,7 @@ export const descriptor = {
 		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
 	],
 	configSlots: [],
-	lifecycle: { supported: ["describe", "preflight", "verify", "doctor"] },
+	lifecycle: { supported: ["describe", "preflight", "status", "verify", "doctor"] },
 	verification: {
 		checks: [
 			{

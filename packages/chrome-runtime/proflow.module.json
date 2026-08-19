@@ -7,7 +7,6 @@
 	"kind": "external-resource",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "deployment-governance",
 		"summary": "Observes the real Chrome runtime and MV3 extension load prerequisite."
@@ -34,7 +33,13 @@
 		}
 	],
 	"lifecycle": {
-		"supported": ["describe", "preflight", "status", "verify", "doctor"]
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
 	},
 	"verification": {
 		"checks": [
@@ -72,6 +77,11 @@
 			"id": "overview",
 			"path": "./README.md",
 			"description": "Package-owned module overview"
+		},
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
 		}
 	]
 }

@@ -86,6 +86,35 @@ export function createBehaviorAdapter(config: Record<string, string> = {}) {
 				observedEffects: [],
 			};
 		},
+		status: async () => {
+			const missingConfig = ["projectRoot", "artifactRoot"].filter(
+				(key) => !config[key],
+			);
+			if (missingConfig.length > 0) {
+				return {
+					result: {
+						...success(),
+						data: {
+							configStatus: "INCOMPLETE" as const,
+							missingConfig,
+							runtimeStatus: "UNKNOWN" as const,
+						},
+					},
+					observedEffects: [],
+				};
+			}
+			const reality = await inspect(config);
+			return {
+				result: {
+					...success(),
+					data: {
+						configStatus: reality.ok ? ("READY" as const) : ("INVALID" as const),
+						runtimeStatus: "UNKNOWN" as const,
+					},
+				},
+				observedEffects: [],
+			};
+		},
 		verify: async () => {
 			const reality = await inspect(config);
 			const check = {

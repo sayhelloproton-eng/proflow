@@ -1,3 +1,4 @@
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 import { taskMigrations } from "@tomflow/proflow-task-store-sqlite/migrations";
 import {
 	applyMigrations,
@@ -88,18 +89,12 @@ export function createBehaviorAdapter(config: Record<string, string> = {}) {
 					: success(),
 			observedEffects: [],
 		}),
-		status: () => {
-			const data = statusData(config);
-			return {
-				result:
-					data === undefined
-						? actionRequired(
-								"databasePath is required for Task migration status",
-							)
-						: success(data),
-				observedEffects: [],
-			};
-		},
+		status: () => ({
+			result: success(
+				observeDeclaredModuleStatus(descriptor, config, "STOPPED"),
+			),
+			observedEffects: [],
+		}),
 		verify: () => {
 			const input = migrationInput(config);
 			if (input === undefined) {

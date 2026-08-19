@@ -1,3 +1,4 @@
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 import type { ModelRuntimeService } from "../src/service.ts";
 import { descriptor } from "./descriptor.ts";
 
@@ -21,10 +22,10 @@ const actionRequired = (action: string, description: string) => ({
 	actionRequired: { action, description },
 });
 
-export function createBehaviorAdapter(input?: {
-	service: ModelRuntimeService;
-	verifyProvider: LiveVerification;
-}) {
+export function createBehaviorAdapter(
+	input?: { service: ModelRuntimeService; verifyProvider: LiveVerification },
+	config?: Record<string, string>,
+) {
 	return {
 		describe: () => ({
 			result: success({ publicApi: ["infer", "getRuntimeStatus"] }),
@@ -40,55 +41,19 @@ export function createBehaviorAdapter(input?: {
 			observedEffects: [],
 		}),
 		status: () => {
-			const inspection = input ? input.service.inspect() : undefined;
-			if (!inspection)
-				return {
-					result: actionRequired(
-						"configure-provider",
-						"No Model Runtime service is bound",
-					),
-					observedEffects: [],
-				};
-			const dependency = inspection.dependency;
-			const ready =
-				inspection.readiness === "READY" &&
-				dependency.fast === "READY" &&
-				dependency.reason === "READY";
+			const inspection = input?.service.inspect();
+			const running =
+				inspection?.readiness === "READY" &&
+				inspection.dependency.fast === "READY" &&
+				inspection.dependency.reason === "READY";
 			return {
-				result: {
-					...(ready
-						? success()
-						: actionRequired(
-								"repair-model-runtime",
-								"Model Runtime process is not fully READY (roles/lane/provider unavailable)",
-							)),
-					checks: [
-						{
-							id: "runtime-status-fresh",
-							status:
-								inspection.readiness === "READY"
-									? ("PASS" as const)
-									: ("FAIL" as const),
-							message: `Model Runtime readiness is ${inspection.readiness}`,
-						},
-						{
-							id: "fast-role-available",
-							status:
-								dependency.fast === "READY"
-									? ("PASS" as const)
-									: ("FAIL" as const),
-							message: `FAST role is ${dependency.fast}`,
-						},
-						{
-							id: "reason-role-available",
-							status:
-								dependency.reason === "READY"
-									? ("PASS" as const)
-									: ("FAIL" as const),
-							message: `REASON role is ${dependency.reason}`,
-						},
-					],
-				},
+				result: success(
+					observeDeclaredModuleStatus(
+						descriptor,
+						config,
+						running ? "RUNNING" : input ? "FAILED" : "UNKNOWN",
+					),
+				),
 				observedEffects: [],
 			};
 		},
@@ -440,20 +405,23 @@ export async function createProductionBinding(input: {
 		}),
 	});
 	return {
-		behaviorAdapter: createBehaviorAdapter({
-			service,
-			verifyProvider: async () => {
-				const inspection = service.inspect();
-				const ok =
-					inspection.dependency.fast === "READY" &&
-					inspection.dependency.reason === "READY";
-				return {
-					ok,
-					message: ok
-						? "Fresh production binding capability probe accepted FAST and REASON"
-						: "Fresh production binding capability probe did not accept both model roles",
-				};
+		behaviorAdapter: createBehaviorAdapter(
+			{
+				service,
+				verifyProvider: async () => {
+					const inspection = service.inspect();
+					const ok =
+						inspection.dependency.fast === "READY" &&
+						inspection.dependency.reason === "READY";
+					return {
+						ok,
+						message: ok
+							? "Fresh production binding capability probe accepted FAST and REASON"
+							: "Fresh production binding capability probe did not accept both model roles",
+					};
+				},
 			},
-		}),
+			input.config,
+		),
 	};
 }

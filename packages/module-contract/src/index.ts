@@ -21,15 +21,10 @@ export const moduleKindSchema = z.enum([
 ]);
 export type ModuleKind = z.infer<typeof moduleKindSchema>;
 
-export const moduleInstallClassSchema = z.enum(["core", "optional"]);
-export type ModuleInstallClass = z.infer<typeof moduleInstallClassSchema>;
-
 export const proflowPackageMetadataSchema = z.strictObject({
 	module: z.literal(true),
-	installClass: moduleInstallClassSchema,
 	descriptor: z.string().min(1),
 	manifest: z.literal("./proflow.module.json"),
-	installRequires: z.array(packageName).default([]),
 });
 export type ProFlowPackageMetadata = z.infer<
 	typeof proflowPackageMetadataSchema
@@ -175,6 +170,80 @@ export const configSlotSchema = z
 	});
 export type ConfigSlot = z.infer<typeof configSlotSchema>;
 
+export const moduleConfigStatusSchema = z.enum([
+	"READY",
+	"INCOMPLETE",
+	"INVALID",
+]);
+export type ModuleConfigStatus = z.infer<typeof moduleConfigStatusSchema>;
+
+export const moduleRuntimeStatusSchema = z.enum([
+	"RUNNING",
+	"STOPPED",
+	"FAILED",
+	"UNKNOWN",
+]);
+export type ModuleRuntimeStatus = z.infer<typeof moduleRuntimeStatusSchema>;
+
+export const moduleStatusObservationSchema = z
+	.strictObject({
+		configStatus: moduleConfigStatusSchema,
+		missingConfig: z.array(identifier).min(1).optional(),
+		runtimeStatus: moduleRuntimeStatusSchema,
+	})
+	.superRefine((observation, context) => {
+		if (
+			observation.configStatus === "INCOMPLETE" &&
+			observation.missingConfig === undefined
+		) {
+			context.addIssue({
+				code: "custom",
+				message: "INCOMPLETE config status requires missingConfig",
+				path: ["missingConfig"],
+			});
+		}
+		if (
+			observation.configStatus !== "INCOMPLETE" &&
+			observation.missingConfig !== undefined
+		) {
+			context.addIssue({
+				code: "custom",
+				message: "missingConfig is only valid for INCOMPLETE config status",
+				path: ["missingConfig"],
+			});
+		}
+	});
+export type ModuleStatusObservation = z.infer<
+	typeof moduleStatusObservationSchema
+>;
+
+export function observeDeclaredModuleStatus(
+	descriptor: Pick<ModuleDescriptor, "configSlots">,
+	config: Readonly<Record<string, string>> | undefined,
+	runtimeStatus: ModuleRuntimeStatus,
+	configValid = true,
+): ModuleStatusObservation {
+	const missingConfig = descriptor.configSlots
+		.filter(
+			(slot) =>
+				slot.required &&
+				config?.[slot.key] === undefined &&
+				slot.default === undefined,
+		)
+		.map((slot) => slot.key);
+	if (missingConfig.length > 0) {
+		return {
+			configStatus: "INCOMPLETE",
+			missingConfig,
+			runtimeStatus,
+		};
+	}
+	return {
+		configStatus: configValid ? "READY" : "INVALID",
+		runtimeStatus,
+	};
+}
+
 export const lifecyclePrimitiveSchema = z.enum([
 	"describe",
 	"preflight",
@@ -247,7 +316,6 @@ export const moduleDescriptorSchema = z
 		kind: moduleKindSchema,
 		templateVersion: semver,
 		platformCompatibility: versionRange,
-		installClass: moduleInstallClassSchema,
 		identity: moduleIdentitySchema,
 		provides: z.array(moduleProvideSchema),
 		requires: z.array(moduleRequireSchema),
@@ -502,9 +570,6 @@ export function assessModuleCompatibility(
 		current.kind !== target.kind
 	) {
 		breakingChanges.push("module identity or kind changed");
-	}
-	if (current.installClass !== target.installClass) {
-		breakingChanges.push("module install class changed");
 	}
 	if (
 		current.identity.domain !== target.identity.domain ||

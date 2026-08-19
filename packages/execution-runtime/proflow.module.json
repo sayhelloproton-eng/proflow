@@ -7,7 +7,6 @@
 	"kind": "service",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "execution",
 		"summary": "Durable, policy-controlled Execution Core orchestration over SQLite and controlled executor ports."
@@ -134,6 +133,11 @@
 			"id": "overview",
 			"path": "./README.md",
 			"description": "Execution Runtime package overview"
+		},
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
 		}
 	]
 }

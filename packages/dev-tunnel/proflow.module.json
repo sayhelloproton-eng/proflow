@@ -7,7 +7,6 @@
 	"kind": "external-resource",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "deployment-governance",
 		"summary": "Governs the Microsoft Dev Tunnel public HTTPS ingress resource and its managed local host process."
@@ -103,6 +102,11 @@
 			"id": "overview",
 			"path": "./README.md",
 			"description": "Dev Tunnel module overview"
+		},
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
 		}
 	]
 }

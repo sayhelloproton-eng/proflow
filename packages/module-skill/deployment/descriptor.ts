@@ -9,7 +9,6 @@ export const descriptor = parseModuleDescriptor({
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
-	installClass: "core",
 	identity: {
 		domain: "deployment-governance",
 		summary:
@@ -21,7 +20,7 @@ export const descriptor = parseModuleDescriptor({
 		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
 	],
 	configSlots: [],
-	lifecycle: { supported: ["verify"] },
+	lifecycle: { supported: ["verify", "status"] },
 	verification: {
 		checks: [
 			{

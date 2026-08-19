@@ -18,6 +18,7 @@ export const behaviorAdapter = {
 		observedEffects: [],
 	}),
 	preflight: () => ({ result: base, observedEffects: [] }),
+	status: () => ({ result: { ...base, data: { configStatus: "READY" as const, runtimeStatus: "UNKNOWN" as const } }, observedEffects: [] }),
 	verify: () => {
 		const valid = inferenceRequestSchema.safeParse({
 			contractVersion: "1.0.0",

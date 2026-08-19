@@ -10,6 +10,7 @@ const base = {
 export const behaviorAdapter = {
 	describe: () => ({ result: base, observedEffects: [] }),
 	preflight: () => ({ result: base, observedEffects: [] }),
+	status: () => ({ result: { ...base, data: { configStatus: "READY" as const, runtimeStatus: "UNKNOWN" as const } }, observedEffects: [] }),
 	verify: () => ({
 		result: {
 			...base,

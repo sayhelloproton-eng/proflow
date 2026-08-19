@@ -7,7 +7,6 @@
 	"kind": "service",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "platform-architecture",
 		"summary": "Provides the ProFlow local application composition root that binds Task, Agent, Execution and Model owner transports."
@@ -124,6 +123,11 @@
 			"id": "overview",
 			"path": "./README.md",
 			"description": "Platform Host package overview"
+		},
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
 		}
 	]
 }

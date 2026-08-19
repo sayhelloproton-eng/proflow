@@ -19,7 +19,8 @@
 		"dist",
 		"proflow.module.json",
 		"conformance.json",
-		"README.md"
+		"README.md",
+		"CONFIGURATION.md"
 	],
 	"scripts": {
 		"test": "node --conditions=development --test tests/**/*.test.ts",
@@ -42,15 +43,7 @@
 	],
 	"proflow": {
 		"module": true,
-		"installClass": "core",
 		"descriptor": "./dist/deployment/descriptor.js",
-		"installRequires": [
-			"@tomflow/proflow-execution-browser-extension",
-			"@tomflow/proflow-execution-contracts",
-			"@tomflow/proflow-execution-local",
-			"@tomflow/proflow-model-contracts",
-			"@tomflow/proflow-platform-host"
-		],
 		"manifest": "./proflow.module.json"
 	}
 }

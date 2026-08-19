@@ -7,7 +7,6 @@
 	"kind": "library",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "task-orchestration",
 		"summary": "Provides the node:sqlite store and repository adapters for Task-owned structured facts."
@@ -35,7 +34,13 @@
 		}
 	],
 	"lifecycle": {
-		"supported": ["describe", "preflight", "verify", "doctor"]
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
 	},
 	"verification": {
 		"checks": [
@@ -58,6 +63,11 @@
 			"id": "overview",
 			"path": "./README.md",
 			"description": "Package-owned module overview"
+		},
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
 		}
 	]
 }

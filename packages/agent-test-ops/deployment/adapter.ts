@@ -1,3 +1,4 @@
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 import { inspectDurableRoleRegistration } from "@tomflow/proflow-agent-runtime";
 
 import { descriptor } from "./descriptor.ts";
@@ -10,7 +11,10 @@ const base = {
 	moduleVersion: descriptor.moduleVersion,
 } as const;
 
-function createBehaviorAdapter(stateRoot?: string) {
+function createBehaviorAdapter(
+	stateRoot?: string,
+	config?: Record<string, string>,
+) {
 	const currentReality = () => {
 		if (!stateRoot) {
 			return {
@@ -51,7 +55,13 @@ function createBehaviorAdapter(stateRoot?: string) {
 	return {
 		describe: () => ({ result: base, observedEffects: [] }),
 		preflight: () => ({ result: currentReality(), observedEffects: [] }),
-		status: () => ({ result: currentReality(), observedEffects: [] }),
+		status: () => ({
+			result: {
+				...base,
+				data: observeDeclaredModuleStatus(descriptor, config, "UNKNOWN"),
+			},
+			observedEffects: [],
+		}),
 		verify: () => ({
 			result: {
 				...base,
@@ -72,9 +82,10 @@ function createBehaviorAdapter(stateRoot?: string) {
 export const behaviorAdapter = createBehaviorAdapter();
 
 export function createProductionBinding(input: {
+	config: Record<string, string>;
 	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
 }) {
 	const stateRoot = input.configByModuleRef.get("platform-host")?.stateRoot;
 	if (!stateRoot) return undefined;
-	return { behaviorAdapter: createBehaviorAdapter(stateRoot) };
+	return { behaviorAdapter: createBehaviorAdapter(stateRoot, input.config) };
 }

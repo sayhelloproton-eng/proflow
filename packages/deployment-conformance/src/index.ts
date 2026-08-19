@@ -7,6 +7,7 @@ import {
 	type ModuleDescriptor,
 	moduleDescriptorSchema,
 	moduleOperationResultSchema,
+	moduleStatusObservationSchema,
 	proflowPackageMetadataSchema,
 } from "@tomflow/proflow-module-contract";
 
@@ -95,13 +96,13 @@ export function runStaticConformance(input: unknown): ConformanceGateResult {
 	const lifecycle = new Set(descriptor.lifecycle.supported);
 	if (
 		descriptor.kind === "service" &&
-		!["status", "start", "stop", "restart", "verify"].every((item) =>
+		!["status", "preflight", "start", "stop"].every((item) =>
 			lifecycle.has(item as LifecyclePrimitive),
 		)
 	) {
 		issues.push({
 			code: "SERVICE_LIFECYCLE_INCOMPLETE",
-			message: "service requires status/start/stop/restart/verify",
+			message: "service requires status/preflight/start/stop",
 		});
 	}
 	if (
@@ -113,17 +114,10 @@ export function runStaticConformance(input: unknown): ConformanceGateResult {
 			message: "service must declare its process effect",
 		});
 	}
-	if (
-		["browser-extension", "agent-package", "external-resource"].includes(
-			descriptor.kind,
-		) &&
-		!["status", "verify"].every((item) =>
-			lifecycle.has(item as LifecyclePrimitive),
-		)
-	) {
+	if (!lifecycle.has("status")) {
 		issues.push({
-			code: "PROFILE_OBSERVABILITY_INCOMPLETE",
-			message: `${descriptor.kind} requires status and verify`,
+			code: "MODULE_STATUS_MISSING",
+			message: `${descriptor.kind} must expose Module-owned status observation`,
 		});
 	}
 	if (
@@ -160,16 +154,6 @@ export function runStaticConformance(input: unknown): ConformanceGateResult {
 				message: `documentation ${entry.id} must use a package-relative path`,
 			});
 		}
-	}
-	if (
-		descriptor.effects.some((effect) => effect.retention === "remove") &&
-		!lifecycle.has("uninstall")
-	) {
-		issues.push({
-			code: "UNINSTALL_LIFECYCLE_REQUIRED",
-			message:
-				"effects with remove retention require package-owned uninstall lifecycle",
-		});
 	}
 	return gate("C1", issues);
 }
@@ -323,49 +307,9 @@ export async function runPackageConformance(
 	if (!parsedProflow.success) {
 		issues.push({
 			code: "PROFLOW_PACKAGE_METADATA_INVALID",
-			message:
-				"package.json.proflow must declare module/installClass/descriptor/manifest/installRequires",
+			message: "package.json.proflow must declare module/descriptor/manifest only",
 		});
 	} else {
-		if (parsedProflow.data.installClass !== descriptor.installClass) {
-			issues.push({
-				code: "INSTALL_CLASS_MISMATCH",
-				message: "package.json.proflow.installClass differs from descriptor",
-			});
-		}
-		if (
-			new Set(parsedProflow.data.installRequires).size !==
-			parsedProflow.data.installRequires.length
-		) {
-			issues.push({
-				code: "INSTALL_REQUIRES_DUPLICATE",
-				message:
-					"package.json.proflow.installRequires must not contain duplicates",
-			});
-		}
-		if (parsedProflow.data.installRequires.includes(descriptor.packageName)) {
-			issues.push({
-				code: "INSTALL_REQUIRES_SELF",
-				message:
-					"package.json.proflow.installRequires must not contain the package itself",
-			});
-		}
-		if (
-			typeof metadata.dependencies === "object" &&
-			metadata.dependencies !== null
-		) {
-			for (const dependencyName of Object.keys(metadata.dependencies)) {
-				if (
-					dependencyName.startsWith("@tomflow/proflow-") &&
-					!parsedProflow.data.installRequires.includes(dependencyName)
-				) {
-					issues.push({
-						code: "INSTALL_REQUIRES_RUNTIME_DEPENDENCY_MISSING",
-						message: `ProFlow runtime dependency ${dependencyName} must be included in package.json.proflow.installRequires`,
-					});
-				}
-			}
-		}
 		const manifestPath = resolve(packageDirectory, parsedProflow.data.manifest);
 		if (!(await pathExists(manifestPath))) {
 			issues.push({
@@ -421,79 +365,12 @@ export async function runPackageConformance(
 				: undefined;
 		if (typeof platformBin !== "string") {
 			issues.push({
-				code: "PLATFORM_INSTALL_BIN_MISSING",
+				code: "PLATFORM_BIN_MISSING",
 				message: "platform-cli must expose the platform executable",
 			});
 		}
-	} else {
-		const selfInstallBin = packageBinEntry(metadata, descriptor.packageName);
-		if (selfInstallBin === undefined) {
-			issues.push({
-				code: "SELF_INSTALL_BIN_MISSING",
-				message: `package must expose ${packageExecutableName(descriptor.packageName)} so npx <package> install has a stable entry`,
-			});
-		} else {
-			if (selfInstallBin === "./self-install.mjs") {
-				const selfInstallPath = join(packageDirectory, "self-install.mjs");
-				if (!(await pathExists(selfInstallPath))) {
-					issues.push({
-						code: "SELF_INSTALL_ENTRY_MISSING",
-						message: "self-install.mjs bin target is missing",
-					});
-				} else if (((await stat(selfInstallPath)).mode & 0o111) === 0) {
-					issues.push({
-						code: "SELF_INSTALL_NOT_EXECUTABLE",
-						message:
-							"self-install.mjs must be executable so package-manager install cannot chmod the source worktree",
-					});
-				}
-				if (!stringArrayIncludes(metadata.files, "self-install.mjs")) {
-					issues.push({
-						code: "SELF_INSTALL_NOT_PUBLISHED",
-						message:
-							"self-install.mjs must be included in the npm files allowlist",
-					});
-				}
-			}
-
-			const sourceCliPath = join(packageDirectory, "src/cli.ts");
-			const publishedBinPath = resolve(packageDirectory, selfInstallBin);
-			const installEntryPath =
-				selfInstallBin === "./self-install.mjs" &&
-				(await pathExists(publishedBinPath))
-					? publishedBinPath
-					: (await pathExists(sourceCliPath))
-						? sourceCliPath
-						: (await pathExists(publishedBinPath))
-							? publishedBinPath
-							: undefined;
-			if (installEntryPath !== undefined) {
-				const installEntrySource = await readFile(installEntryPath, "utf8");
-				if (
-					!installEntrySource.includes('"platform.cmd"') ||
-					!installEntrySource.includes('"platform"') ||
-					!installEntrySource.includes('"--workspace"') ||
-					!installEntrySource.includes("GLOBAL_PLATFORM_CLI_REQUIRED")
-				) {
-					issues.push({
-						code: "PACKAGE_INSTALL_GLOBAL_PLATFORM_DELEGATION_MISSING",
-						message:
-							"package-owned install must delegate to the globally installed platform CLI, forward its workspace, and fail closed when the global CLI is unavailable",
-					});
-				}
-				if (
-					installEntrySource.includes('"npx.cmd"') &&
-					installEntrySource.includes('"@tomflow/proflow-platform-cli"')
-				) {
-					issues.push({
-						code: "PACKAGE_INSTALL_TRANSIENT_PLATFORM_CLI_FORBIDDEN",
-						message:
-							"package-owned install must not bootstrap a transient platform CLI through npx",
-					});
-				}
-			}
-		}
 	}
+
 	if (
 		typeof metadata.publishConfig !== "object" ||
 		metadata.publishConfig === null ||
@@ -615,6 +492,15 @@ export async function runPackageConformance(
 			});
 		}
 	}
+	if (
+		descriptor.configSlots.length > 0 &&
+		!(await pathExists(join(packageDirectory, "CONFIGURATION.md")))
+	) {
+		issues.push({
+			code: "CONFIGURATION_GUIDE_MISSING",
+			message: "config-bearing Module must publish root CONFIGURATION.md",
+		});
+	}
 	const cliEntry = exportEntry(metadata, "./cli");
 	if (descriptor.kind === "service") {
 		const serviceBin = packageBinEntry(metadata, descriptor.packageName);
@@ -645,18 +531,18 @@ export async function runPackageConformance(
 				"utf8",
 			);
 			if (
-				!/export\s+(?:async\s+)?function\s+createServiceProcessBinding\b/.test(
+				!/export\s+(?:async\s+)?function\s+createProductionBinding\b/.test(
 					adapterSource,
 				)
 			) {
 				issues.push({
-					code: "SERVICE_PROCESS_BINDING_MISSING",
-					message: "service adapter must export createServiceProcessBinding",
+					code: "SERVICE_PRODUCTION_BINDING_MISSING",
+					message: "service adapter must export package-owned createProductionBinding",
 				});
 			}
 		} catch {
 			issues.push({
-				code: "SERVICE_PROCESS_BINDING_MISSING",
+				code: "SERVICE_PRODUCTION_BINDING_MISSING",
 				message: "service adapter source cannot be read",
 			});
 		}
@@ -796,6 +682,16 @@ export async function runBehaviorConformance(
 			issues.push({
 				code: "RESULT_INVALID",
 				message: `${primitive} returned an invalid result contract`,
+			});
+		}
+		if (
+			primitive === "status" &&
+			parsedResult.success &&
+			!moduleStatusObservationSchema.safeParse(parsedResult.data.data).success
+		) {
+			issues.push({
+				code: "STATUS_OBSERVATION_INVALID",
+				message: "status must return ModuleStatusObservation in result.data",
 			});
 		}
 		if (

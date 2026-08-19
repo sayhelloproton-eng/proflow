@@ -1,3 +1,4 @@
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 import { descriptor } from "./descriptor.ts";
 
 type GatewayProcess = {
@@ -24,38 +25,23 @@ const unbound = {
 		description: "Provide owner ports and process configuration",
 	},
 } as const;
-export function createBehaviorAdapter(service?: GatewayProcess) {
+export function createBehaviorAdapter(
+	service?: GatewayProcess,
+	config?: Record<string, string>,
+) {
 	return {
 		describe: () => ({ result: base, observedEffects: [] }),
 		preflight: () => ({ result: base, observedEffects: [] }),
 		status: async () => {
-			const processStatus = service?.status();
 			const readiness = service ? await service.readiness() : undefined;
 			const ready = readiness?.status === "READY";
+			const data = observeDeclaredModuleStatus(
+				descriptor,
+				config,
+				ready ? "RUNNING" : service ? "FAILED" : "UNKNOWN",
+			);
 			return {
-				result: service
-					? {
-							...(ready
-								? base
-								: {
-										...base,
-										ok: false as const,
-										status: "ACTION_REQUIRED" as const,
-										actionRequired: {
-											action: "repair-gateway",
-											description: "Gateway is not READY",
-										},
-									}),
-							data: processStatus,
-							checks: [
-								{
-									id: "gateway-readiness",
-									status: ready ? ("PASS" as const) : ("FAIL" as const),
-									message: `Gateway readiness is ${readiness?.status ?? "NOT_READY"}`,
-								},
-							],
-						}
-					: unbound,
+				result: { ...base, data },
 				observedEffects: [],
 			};
 		},
@@ -236,7 +222,7 @@ export async function createServiceProcessBinding(input: {
 			startCommand: "start",
 			config: processConfig as unknown as Record<string, unknown>,
 		},
-		behaviorAdapter: createBehaviorAdapter(probeService),
+		behaviorAdapter: createBehaviorAdapter(probeService, input.config),
 	};
 }
 
@@ -293,5 +279,5 @@ export async function createProductionBinding(input: {
 			downstreamCredentialFile,
 		}),
 	});
-	return { behaviorAdapter: createBehaviorAdapter(service) };
+	return { behaviorAdapter: createBehaviorAdapter(service, input.config) };
 }

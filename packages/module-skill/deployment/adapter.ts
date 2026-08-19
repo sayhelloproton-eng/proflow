@@ -21,6 +21,17 @@ function stopRulesPresent(content: string): boolean {
 }
 
 export const behaviorAdapter = {
+	status: () => ({
+		result: {
+			contract: "deployment.result.v1" as const,
+			ok: true,
+			status: "SUCCEEDED" as const,
+			moduleRef: descriptor.moduleRef,
+			moduleVersion: descriptor.moduleVersion,
+			data: { configStatus: "READY" as const, runtimeStatus: "UNKNOWN" as const },
+		},
+		observedEffects: [],
+	}),
 	verify: async () => {
 		const content = await readSkillPolicy();
 		const present = stopRulesPresent(content);

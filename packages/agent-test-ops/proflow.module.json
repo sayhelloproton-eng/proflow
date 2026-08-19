@@ -7,7 +7,6 @@
 	"kind": "agent-package",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "agent-runtime-collaboration",
 		"summary": "Versioned Test/Operations Custom GPT materialization package for the fixed Test-Ops role."
@@ -40,7 +39,13 @@
 		}
 	],
 	"lifecycle": {
-		"supported": ["describe", "preflight", "status", "verify", "doctor"]
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
 	},
 	"verification": {
 		"checks": [
@@ -63,6 +68,11 @@
 			"id": "overview",
 			"path": "./README.md",
 			"description": "Package-owned module overview"
+		},
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
 		}
 	]
 }

@@ -1,120 +1,143 @@
 export const descriptor = {
-	contract: "module",
-	contractVersion: "1.0.0",
-	moduleRef: "execution-browser-extension",
-	packageName: "@tomflow/proflow-execution-browser-extension",
-	moduleVersion: "0.1.3",
-	kind: "browser-extension",
-	templateVersion: "1.0.0",
-	platformCompatibility: ">=1.0.0 <2.0.0",
-	installClass: "core",
-	identity: {
-		domain: "execution",
-		summary:
-			"Execution-owned MV3 Browser executor, evidence provider and browser application surface.",
+	"contract": "module",
+	"contractVersion": "1.0.0",
+	"moduleRef": "execution-browser-extension",
+	"packageName": "@tomflow/proflow-execution-browser-extension",
+	"moduleVersion": "0.1.3",
+	"kind": "browser-extension",
+	"templateVersion": "1.0.0",
+	"platformCompatibility": ">=1.0.0 <2.0.0",
+	"identity": {
+		"domain": "execution",
+		"summary": "Execution-owned MV3 Browser executor, evidence provider and browser application surface."
 	},
-	provides: [{ contractRef: "execution-browser-executor", version: "1.0.0" }],
-	requires: [
-		{ contractRef: "execution", versionRange: ">=1.0.0 <2.0.0" },
-		{ contractRef: "task-orchestration", versionRange: ">=1.0.0 <2.0.0" },
-		{ contractRef: "agent-runtime", versionRange: ">=1.0.0 <2.0.0" },
+	"provides": [
+		{
+			"contractRef": "execution-browser-executor",
+			"version": "1.0.0"
+		}
 	],
-	requirements: [
-		{ kind: "runtime", runtime: "browser", versionRange: ">=1" },
+	"requires": [
 		{
-			kind: "human",
-			action:
-				"Load and verify the unpacked MV3 extension in the real Chrome profile",
+			"contractRef": "execution",
+			"versionRange": ">=1.0.0 <2.0.0"
 		},
+		{
+			"contractRef": "task-orchestration",
+			"versionRange": ">=1.0.0 <2.0.0"
+		},
+		{
+			"contractRef": "agent-runtime",
+			"versionRange": ">=1.0.0 <2.0.0"
+		}
 	],
-	configSlots: [
+	"requirements": [
 		{
-			key: "bridge.endpoint",
-			type: "url",
-			required: true,
-			description: "Loopback Browser Reality Bridge endpoint",
+			"kind": "runtime",
+			"runtime": "browser",
+			"versionRange": ">=1"
 		},
 		{
-			key: "bridge.token",
-			type: "path",
-			required: true,
-			sensitive: true,
-			description: "File containing the Browser Reality Bridge extension token",
-		},
-		{
-			key: "taskApplication.endpoint",
-			type: "url",
-			required: true,
-			description: "Loopback Platform Host Task application endpoint",
-		},
-		{
-			key: "taskApplication.token",
-			type: "path",
-			required: true,
-			sensitive: true,
-			description: "File containing the Platform Host Task application token",
-		},
-		{
-			key: "approvalApplication.endpoint",
-			type: "url",
-			required: true,
-			description: "Loopback Platform Host Approval application endpoint",
-		},
-		{
-			key: "approvalApplication.token",
-			type: "path",
-			required: true,
-			sensitive: true,
-			description:
-				"File containing the Platform Host Approval application token",
-		},
-		{
-			key: "verificationEvidenceFile",
-			type: "path",
-			required: true,
-			description:
-				"JSON evidence file written after real Chrome loads the Deployment-managed MV3 extension and its Service Worker runs",
-		},
-		{
-			key: "chromeRuntimeModuleRef",
-			type: "moduleRef",
-			required: false,
-			description: "External resource module governing the Chrome runtime",
-			default: "chrome-runtime",
-		},
-		{
-			key: "carrierModuleRef",
-			type: "moduleRef",
-			required: false,
-			description: "External resource module governing the Custom GPT carrier",
-			default: "chatgpt-carrier",
-		},
+			"kind": "human",
+			"action": "Load and verify the unpacked MV3 extension in the real Chrome profile"
+		}
 	],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
+	"configSlots": [
+		{
+			"key": "bridge.endpoint",
+			"type": "url",
+			"required": true,
+			"description": "Loopback Browser Reality Bridge endpoint"
+		},
+		{
+			"key": "bridge.token",
+			"type": "path",
+			"required": true,
+			"sensitive": true,
+			"description": "File containing the Browser Reality Bridge extension token"
+		},
+		{
+			"key": "taskApplication.endpoint",
+			"type": "url",
+			"required": true,
+			"description": "Loopback Platform Host Task application endpoint"
+		},
+		{
+			"key": "taskApplication.token",
+			"type": "path",
+			"required": true,
+			"sensitive": true,
+			"description": "File containing the Platform Host Task application token"
+		},
+		{
+			"key": "approvalApplication.endpoint",
+			"type": "url",
+			"required": true,
+			"description": "Loopback Platform Host Approval application endpoint"
+		},
+		{
+			"key": "approvalApplication.token",
+			"type": "path",
+			"required": true,
+			"sensitive": true,
+			"description": "File containing the Platform Host Approval application token"
+		},
+		{
+			"key": "verificationEvidenceFile",
+			"type": "path",
+			"required": true,
+			"description": "JSON evidence file written after real Chrome loads the Deployment-managed MV3 extension and its Service Worker runs"
+		},
+		{
+			"key": "chromeRuntimeModuleRef",
+			"type": "moduleRef",
+			"required": false,
+			"description": "External resource module governing the Chrome runtime",
+			"default": "chrome-runtime"
+		},
+		{
+			"key": "carrierModuleRef",
+			"type": "moduleRef",
+			"required": false,
+			"description": "External resource module governing the Custom GPT carrier",
+			"default": "chatgpt-carrier"
+		}
+	],
+	"lifecycle": {
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
 	},
-	verification: {
-		checks: [
+	"verification": {
+		"checks": [
 			{
-				id: "real-carrier-e3-e4",
-				description: "Real Chrome and ChatGPT E3/E4 evidence is present",
-				lifecycle: "verify",
-			},
-		],
+				"id": "real-carrier-e3-e4",
+				"description": "Real Chrome and ChatGPT E3/E4 evidence is present",
+				"lifecycle": "verify"
+			}
+		]
 	},
-	effects: [
+	"effects": [
 		{
-			kind: "external-resource",
-			description:
-				"Package an MV3 extension that performs Execution-authorized Browser effects",
-			retention: "preserve",
-		},
+			"kind": "external-resource",
+			"description": "Package an MV3 extension that performs Execution-authorized Browser effects",
+			"retention": "preserve"
+		}
 	],
-	documentation: [
+	"documentation": [
 		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
+			"id": "overview",
+			"path": "./README.md",
+			"description": "Package-owned module overview"
 		},
-	],
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
+		}
+	]
 } as const;

@@ -15,8 +15,7 @@
 		"dist",
 		"proflow.module.json",
 		"conformance.json",
-		"README.md",
-		"self-install.mjs"
+		"README.md"
 	],
 	"scripts": {
 		"test": "node --test tests/**/*.test.ts",
@@ -38,15 +37,7 @@
 	],
 	"proflow": {
 		"module": true,
-		"installClass": "core",
 		"descriptor": "./dist/deployment/descriptor.js",
-		"installRequires": [
-			"@tomflow/proflow-task-orchestration",
-			"@tomflow/proflow-execution-runtime"
-		],
 		"manifest": "./proflow.module.json"
-	},
-	"bin": {
-		"proflow-agent-runtime": "./self-install.mjs"
 	}
 }

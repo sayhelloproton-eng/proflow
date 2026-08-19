@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-import { spawnSync } from "node:child_process";
-
 import { descriptor } from "../deployment/descriptor.ts";
 import { materializeModule } from "./index.ts";
 
@@ -18,7 +16,6 @@ interface ParsedCreateArgs {
 		| "browser-extension"
 		| "agent-package"
 		| "external-resource";
-	installClass: "core" | "optional";
 	domain: string;
 	summary: string;
 	moduleVersion?: string;
@@ -58,17 +55,11 @@ function parseCreateArgs(argv: readonly string[]): ParsedCreateArgs {
 	]);
 	if (!allowedKinds.has(kind)) throw new TypeError(`unsupported kind ${kind}`);
 
-	const installClass = required(values, "--install-class");
-	if (installClass !== "core" && installClass !== "optional") {
-		throw new TypeError(`unsupported install class ${installClass}`);
-	}
-
 	return {
 		targetDirectory: required(values, "--target"),
 		moduleRef: required(values, "--module-ref"),
 		packageName: required(values, "--package"),
 		kind: kind as ParsedCreateArgs["kind"],
-		installClass,
 		domain: required(values, "--domain"),
 		summary: required(values, "--summary"),
 		...(values.has("--module-version")
@@ -82,42 +73,14 @@ function parseCreateArgs(argv: readonly string[]): ParsedCreateArgs {
 	};
 }
 
-function installSelf(): never {
-	const executable = process.platform === "win32" ? "platform.cmd" : "platform";
-	const result = spawnSync(
-		executable,
-		[
-			"install",
-			"@tomflow/proflow-module-template",
-			"--workspace",
-			process.cwd(),
-		],
-		{ cwd: process.cwd(), env: process.env, stdio: "inherit" },
-	);
-	if (result.error) {
-		if ((result.error as NodeJS.ErrnoException).code === "ENOENT") {
-			process.stderr.write(
-				"GLOBAL_PLATFORM_CLI_REQUIRED: install @tomflow/proflow-platform-cli globally before package-owned install\n",
-			);
-			process.exit(127);
-		}
-		throw result.error;
-	}
-	process.exit(result.status ?? 1);
-}
-
 async function main(): Promise<void> {
 	try {
 		const argv = process.argv.slice(2);
 		if (argv[0] === "--help" || argv[0] === "-h") {
 			process.stdout.write(
-				"Usage: proflow-module-template create --target <directory> --module-ref <ref> --package <@tomflow/proflow-name> --kind <profile> --install-class <core|optional> --domain <domain> --summary <text> [--module-version <semver>] [--platform-compatibility <range>]\n",
+				"Usage: proflow-module-template create --target <directory> --module-ref <ref> --package <@tomflow/proflow-name> --kind <profile> --domain <domain> --summary <text> [--module-version <semver>] [--platform-compatibility <range>]\n",
 			);
 			return;
-		}
-		if (argv[0] === "install") {
-			if (argv.length !== 1) throw new TypeError("Usage: install");
-			installSelf();
 		}
 		const input = parseCreateArgs(argv);
 		const created = await materializeModule(input);

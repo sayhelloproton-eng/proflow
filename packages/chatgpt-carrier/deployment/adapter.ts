@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 import {
 	type CarrierProbeInput,
 	type CarrierProbeResult,
@@ -156,7 +157,10 @@ function reachable(probe: CarrierProbeResult): boolean {
 	return probe.availability === "AVAILABLE" && probe.evidence === "real";
 }
 
-export function createBehaviorAdapter(input?: CarrierProbeInput) {
+export function createBehaviorAdapter(
+	input?: CarrierProbeInput,
+	config?: Record<string, string>,
+) {
 	return {
 		describe: () => ({
 			result: success({
@@ -185,30 +189,13 @@ export function createBehaviorAdapter(input?: CarrierProbeInput) {
 			const probe = await probeCarrier(input);
 			const isReachable = reachable(probe);
 			return {
-				result: isReachable
-					? {
-							...success(),
-							checks: [
-								{
-									id: "carrier-status",
-									status: "PASS" as const,
-									message: probe.message,
-								},
-							],
-						}
-					: {
-							...actionRequired(
-								"materialize-custom-gpt-carrier",
-								probe.message,
-							),
-							checks: [
-								{
-									id: "carrier-status",
-									status: "WARN" as const,
-									message: probe.message,
-								},
-							],
-						},
+				result: success(
+					observeDeclaredModuleStatus(
+						descriptor,
+						config,
+						isReachable ? "RUNNING" : input ? "FAILED" : "UNKNOWN",
+					),
+				),
 				observedEffects: isReachable ? [OBSERVED_EFFECT] : [],
 				...claimsFrom(probe),
 			};
@@ -365,56 +352,59 @@ export function createProductionBinding(input: {
 	const carrierUrl = input.config.carrierUrl ?? "https://chatgpt.com/";
 	const verificationEvidenceFile = input.config.verificationEvidenceFile;
 	return {
-		behaviorAdapter: createBehaviorAdapter({
-			carrierUrl,
-			observeVerification: () =>
-				readProductionVerificationEvidence(
-					verificationEvidenceFile,
-					carrierUrl,
-				),
-			async observeCarrier() {
-				try {
-					const response = await fetch(carrierUrl, {
-						method: "HEAD",
-						redirect: "follow",
-						signal: AbortSignal.timeout(5_000),
-					});
-					if (response.ok) {
-						return {
-							availability: "AVAILABLE" as const,
-							evidence: "real" as const,
-							message: "Configured Custom GPT carrier URL is reachable",
-						};
-					}
-					if (response.status === 401 || response.status === 403) {
-						const verification = await readProductionVerificationEvidence(
-							verificationEvidenceFile,
-							carrierUrl,
-						);
-						if (evaluateCarrierObservation(verification) === "HEALTHY") {
+		behaviorAdapter: createBehaviorAdapter(
+			{
+				carrierUrl,
+				observeVerification: () =>
+					readProductionVerificationEvidence(
+						verificationEvidenceFile,
+						carrierUrl,
+					),
+				async observeCarrier() {
+					try {
+						const response = await fetch(carrierUrl, {
+							method: "HEAD",
+							redirect: "follow",
+							signal: AbortSignal.timeout(5_000),
+						});
+						if (response.ok) {
 							return {
 								availability: "AVAILABLE" as const,
 								evidence: "real" as const,
-								message: `Carrier URL is protected (HTTP ${response.status}) and verified Web carrier evidence is healthy`,
+								message: "Configured Custom GPT carrier URL is reachable",
 							};
 						}
+						if (response.status === 401 || response.status === 403) {
+							const verification = await readProductionVerificationEvidence(
+								verificationEvidenceFile,
+								carrierUrl,
+							);
+							if (evaluateCarrierObservation(verification) === "HEALTHY") {
+								return {
+									availability: "AVAILABLE" as const,
+									evidence: "real" as const,
+									message: `Carrier URL is protected (HTTP ${response.status}) and verified Web carrier evidence is healthy`,
+								};
+							}
+						}
+						return {
+							availability: "UNAVAILABLE" as const,
+							evidence: "real" as const,
+							message: `Carrier URL returned HTTP ${response.status}`,
+						};
+					} catch (error) {
+						return {
+							availability: "UNKNOWN" as const,
+							evidence: "real" as const,
+							message:
+								error instanceof Error
+									? error.message
+									: "Carrier reachability observation failed",
+						};
 					}
-					return {
-						availability: "UNAVAILABLE" as const,
-						evidence: "real" as const,
-						message: `Carrier URL returned HTTP ${response.status}`,
-					};
-				} catch (error) {
-					return {
-						availability: "UNKNOWN" as const,
-						evidence: "real" as const,
-						message:
-							error instanceof Error
-								? error.message
-								: "Carrier reachability observation failed",
-					};
-				}
+				},
 			},
-		}),
+			input.config,
+		),
 	};
 }

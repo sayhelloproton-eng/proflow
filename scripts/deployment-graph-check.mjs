@@ -36,49 +36,6 @@ for (const entry of entries) {
 
 try {
 	const graph = buildDependencyGraph(descriptors);
-	const byPackageName = new Map(
-		[...packages.entries()].map(([moduleRef, metadata]) => [
-			metadata.name,
-			moduleRef,
-		]),
-	);
-	const edgesByConsumer = new Map();
-	for (const edge of graph.edges) {
-		const list = edgesByConsumer.get(edge.from) ?? [];
-		list.push(edge.to);
-		edgesByConsumer.set(edge.from, list);
-	}
-	const closureErrors = [];
-	for (const [moduleRef, metadata] of packages) {
-		const installRequires = metadata.proflow?.installRequires;
-		if (!Array.isArray(installRequires)) continue;
-		const closure = new Set();
-		const queue = [...installRequires];
-		while (queue.length > 0) {
-			const packageName = queue.shift();
-			if (typeof packageName !== "string" || closure.has(packageName)) continue;
-			closure.add(packageName);
-			const dependencyRef = byPackageName.get(packageName);
-			if (dependencyRef === undefined) continue;
-			const dependencyMetadata = packages.get(dependencyRef);
-			const nested = dependencyMetadata?.proflow?.installRequires;
-			if (Array.isArray(nested)) queue.push(...nested);
-		}
-		for (const providerRef of edgesByConsumer.get(moduleRef) ?? []) {
-			const providerPackage = packages.get(providerRef)?.name;
-			if (
-				typeof providerPackage === "string" &&
-				!closure.has(providerPackage)
-			) {
-				closureErrors.push(
-					`${moduleRef} requires provider ${providerRef} (${providerPackage}) outside installRequires closure`,
-				);
-			}
-		}
-	}
-	if (closureErrors.length > 0) {
-		throw new Error(closureErrors.join("; "));
-	}
 	process.stdout.write(
 		`${JSON.stringify({
 			status: "PASS",

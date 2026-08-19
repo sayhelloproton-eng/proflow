@@ -1,6 +1,7 @@
-import type {
-	DeploymentCheck,
-	ModuleOperationResult,
+import {
+	type DeploymentCheck,
+	type ModuleOperationResult,
+	observeDeclaredModuleStatus,
 } from "@tomflow/proflow-module-contract";
 import type { ProviderProbeResult } from "../src/resource-adapter.ts";
 import { createProviderProbe } from "../src/resource-adapter.ts";
@@ -60,10 +61,13 @@ const authCheck = (
 	message,
 });
 
-export function createBehaviorAdapter(input?: {
-	probeProvider?: ProviderProbe;
-	verifyCapabilities?: CapabilityVerification;
-}) {
+export function createBehaviorAdapter(
+	input?: {
+		probeProvider?: ProviderProbe;
+		verifyCapabilities?: CapabilityVerification;
+	},
+	config?: Record<string, string>,
+) {
 	const probe = input?.probeProvider;
 	const verifyCapabilities = input?.verifyCapabilities;
 	return {
@@ -85,48 +89,16 @@ export function createBehaviorAdapter(input?: {
 			observedEffects: [],
 		}),
 		status: async (): Promise<AdapterObservation> => {
-			if (!probe) {
-				return {
-					result: {
-						...actionRequired(
-							"configure-provider",
-							"No model provider API is configured",
-						),
-						checks: [
-							{
-								id: "provider-status",
-								status: "FAIL",
-								message: "provider base URL is not configured",
-							},
-						],
-					},
-					observedEffects: [],
-				};
-			}
-			const observation = await probe();
+			const observation = probe ? await probe() : undefined;
 			return {
-				result: observation.reachable
-					? {
-							...success(),
-							checks: [
-								{
-									id: "provider-status",
-									status: "PASS",
-									message: observation.message,
-								},
-							],
-						}
-					: {
-							...actionRequired("repair-provider", observation.message),
-							checks: [
-								{
-									id: "provider-status",
-									status: "FAIL",
-									message: observation.message,
-								},
-							],
-						},
-				observedEffects: [],
+				result: success(
+					observeDeclaredModuleStatus(
+						descriptor,
+						config,
+						observation?.reachable ? "RUNNING" : probe ? "STOPPED" : "UNKNOWN",
+					),
+				),
+				observedEffects: observation ? [PROBE_EFFECT] : [],
 			};
 		},
 		verify: async (): Promise<AdapterObservation> => {
@@ -259,8 +231,9 @@ export function createProductionBinding(input: {
 	const baseUrl = input.config.providerBaseUrl;
 	if (baseUrl === undefined || baseUrl === "") return undefined;
 	return {
-		behaviorAdapter: createBehaviorAdapter({
-			probeProvider: createProviderProbe({ baseUrl }),
-		}),
+		behaviorAdapter: createBehaviorAdapter(
+			{ probeProvider: createProviderProbe({ baseUrl }) },
+			input.config,
+		),
 	};
 }

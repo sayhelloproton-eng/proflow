@@ -1,40 +1,16 @@
 #!/usr/bin/env node
-import { spawnSync } from "node:child_process";
 import {
 	createAgentGatewayProcess,
 	loadAgentGatewayProcessConfig,
 } from "./process.ts";
 
-function installSelf(): never {
-	const executable = process.platform === "win32" ? "platform.cmd" : "platform";
-	const result = spawnSync(
-		executable,
-		["install", "@tomflow/proflow-agent-gateway", "--workspace", process.cwd()],
-		{ cwd: process.cwd(), env: process.env, stdio: "inherit" },
-	);
-	if (result.error) {
-		if ((result.error as NodeJS.ErrnoException).code === "ENOENT") {
-			process.stderr.write(
-				"GLOBAL_PLATFORM_CLI_REQUIRED: install @tomflow/proflow-platform-cli globally before package-owned install\n",
-			);
-			process.exit(127);
-		}
-		throw result.error;
-	}
-	process.exit(result.status ?? 1);
-}
-
 async function main(): Promise<void> {
 	const [command, configPath] = process.argv.slice(2);
 	if (command === "--help" || command === "-h") {
 		process.stdout.write(
-			"Usage: proflow-agent-gateway install | start /absolute/config.json\\n",
+			"Usage: proflow-agent-gateway start /absolute/config.json\\n",
 		);
 		process.exit(0);
-	}
-	if (command === "install") {
-		if (configPath) throw new Error("Usage: proflow-agent-gateway install");
-		installSelf();
 	}
 	if (command !== "start" || !configPath)
 		throw new Error("Usage: proflow-agent-gateway start /absolute/config.json");

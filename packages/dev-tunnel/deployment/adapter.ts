@@ -1,7 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { ModuleOperationResult } from "@tomflow/proflow-module-contract";
+import {
+	type ModuleOperationResult,
+	observeDeclaredModuleStatus,
+} from "@tomflow/proflow-module-contract";
 import type {
 	DevTunnelRuntime,
 	ErrorSemanticsProof,
@@ -75,11 +78,14 @@ export async function readDevTunnelVerificationEvidence(
 	}
 }
 
-export function createBehaviorAdapter(input?: {
+export function createBehaviorAdapter(
+	input?: {
 	runtime: DevTunnelRuntime;
 	verifyErrorSemantics?: () => Promise<ErrorSemanticsProof>;
-	verifyFileRelay?: () => Promise<FileRelayProof>;
-}) {
+		verifyFileRelay?: () => Promise<FileRelayProof>;
+	},
+	config?: Record<string, string>,
+) {
 	return {
 		describe: () => ({
 			result: success({
@@ -97,30 +103,19 @@ export function createBehaviorAdapter(input?: {
 			observedEffects: [],
 		}),
 		status: async () => {
-			if (!input) {
-				return {
-					result: actionRequired(
-						"configure-tunnel",
-						"No dev-tunnel resource is bound",
-					),
-					observedEffects: [],
-				};
-			}
-			const observation = await input.runtime.status();
+			const observation = input ? await input.runtime.status() : undefined;
+			const runtimeStatus =
+				observation?.state === "RUNNING"
+					? "RUNNING"
+					: observation?.state === "STOPPED"
+						? "STOPPED"
+						: input
+							? "FAILED"
+							: "UNKNOWN";
 			return {
-				result: {
-					...success(),
-					checks: [
-						{
-							id: "tunnel-status",
-							status:
-								observation.state === "RUNNING"
-									? ("PASS" as const)
-									: ("WARN" as const),
-							message: `dev-tunnel state is ${observation.state}`,
-						},
-					],
-				},
+				result: success(
+					observeDeclaredModuleStatus(descriptor, config, runtimeStatus),
+				),
 				observedEffects: [],
 			};
 		},
@@ -414,6 +409,6 @@ export async function createProductionBinding(input: {
 					message:
 						"dev-tunnel verification evidence is missing, stale, or invalid",
 				},
-		}),
+		}, input.config),
 	};
 }

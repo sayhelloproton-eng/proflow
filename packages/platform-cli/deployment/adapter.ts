@@ -1,3 +1,5 @@
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
+
 import { descriptor } from "./descriptor.ts";
 
 const success = (data?: unknown) => ({
@@ -16,7 +18,9 @@ export const behaviorAdapter = {
 	}),
 	preflight: () => ({ result: success(), observedEffects: [] }),
 	status: () => ({
-		result: success({ runnable: true }),
+		result: success(
+			observeDeclaredModuleStatus(descriptor, undefined, "UNKNOWN"),
+		),
 		observedEffects: [],
 	}),
 	verify: () => ({

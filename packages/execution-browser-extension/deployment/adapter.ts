@@ -2,6 +2,7 @@ import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 import { descriptor } from "./descriptor.ts";
 
 const base = {
@@ -21,12 +22,9 @@ export const behaviorAdapter = {
 	status: () => ({
 		result: {
 			...base,
-			ok: false,
-			status: "ACTION_REQUIRED",
-			actionRequired: {
-				action: "verify-real-carrier",
-				description: "Load in real Chrome and collect ChatGPT E3/E4 evidence",
-			},
+			ok: true,
+			status: "SUCCEEDED",
+			data: observeDeclaredModuleStatus(descriptor, undefined, "UNKNOWN"),
 		},
 		observedEffects: [],
 	}),
@@ -245,26 +243,29 @@ export function createProductionBinding(input: {
 						},
 				observedEffects: [],
 			}),
-			status: async () => ({
-				result: (await configured())
-					? {
-							...boundBase,
-							ok: true,
-							status: "SUCCEEDED" as const,
-							data: { loadDir, configMaterialized: true },
-						}
-					: {
-							...boundBase,
-							ok: false,
-							status: "ACTION_REQUIRED" as const,
-							actionRequired: {
-								action: "configure-browser-extension",
-								description:
-									"Browser Extension runtime config is not materialized",
-							},
-						},
-				observedEffects: [],
-			}),
+			status: async () => {
+				const isConfigured = await configured();
+				const evidence = await readBrowserVerificationEvidence(
+					verificationEvidenceFile,
+					loadDir,
+				);
+				return {
+					result: {
+						...boundBase,
+						ok: true,
+						status: "SUCCEEDED" as const,
+						data: observeDeclaredModuleStatus(
+							descriptor,
+							input.config,
+							evidence ? "RUNNING" : "STOPPED",
+							isConfigured,
+						),
+					},
+					observedEffects: evidence
+						? ["Observes real Chrome MV3 load evidence"]
+						: [],
+				};
+			},
 			verify: async () => {
 				const evidence = await readBrowserVerificationEvidence(
 					verificationEvidenceFile,

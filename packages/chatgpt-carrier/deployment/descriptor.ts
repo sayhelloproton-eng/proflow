@@ -1,110 +1,128 @@
 export const descriptor = {
-	contract: "module",
-	contractVersion: "1.0.0",
-	moduleRef: "chatgpt-carrier",
-	packageName: "@tomflow/proflow-chatgpt-carrier",
-	moduleVersion: "0.1.3",
-	kind: "external-resource",
-	templateVersion: "1.0.0",
-	platformCompatibility: ">=1.0.0 <2.0.0",
-	installClass: "core",
-	identity: {
-		domain: "deployment-governance",
-		summary:
-			"Governs and verifies the real-world ChatGPT Custom GPT carrier without faking readiness.",
+	"contract": "module",
+	"contractVersion": "1.0.0",
+	"moduleRef": "chatgpt-carrier",
+	"packageName": "@tomflow/proflow-chatgpt-carrier",
+	"moduleVersion": "0.1.3",
+	"kind": "external-resource",
+	"templateVersion": "1.0.0",
+	"platformCompatibility": ">=1.0.0 <2.0.0",
+	"identity": {
+		"domain": "deployment-governance",
+		"summary": "Governs and verifies the real-world ChatGPT Custom GPT carrier without faking readiness."
 	},
-	provides: [],
-	requires: [],
-	requirements: [
-		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
-		{ kind: "network", url: "https://chatgpt.com/" },
-		{ kind: "human", action: "Materialize and verify the Custom GPT carrier" },
-	],
-	configSlots: [
+	"provides": [],
+	"requires": [],
+	"requirements": [
 		{
-			key: "carrierUrl",
-			type: "url",
-			required: false,
-			description: "ChatGPT Custom GPT carrier entry URL",
-			default: "https://chatgpt.com/",
+			"kind": "runtime",
+			"runtime": "node",
+			"versionRange": ">=24.19.0"
 		},
 		{
-			key: "verificationEvidenceFile",
-			type: "path",
-			required: true,
-			description:
-				"JSON evidence file produced by the real Custom GPT verification workflow",
+			"kind": "network",
+			"url": "https://chatgpt.com/"
 		},
+		{
+			"kind": "human",
+			"action": "Materialize and verify the Custom GPT carrier"
+		}
 	],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
+	"configSlots": [
+		{
+			"key": "carrierUrl",
+			"type": "url",
+			"required": false,
+			"description": "ChatGPT Custom GPT carrier entry URL",
+			"default": "https://chatgpt.com/"
+		},
+		{
+			"key": "verificationEvidenceFile",
+			"type": "path",
+			"required": true,
+			"description": "JSON evidence file produced by the real Custom GPT verification workflow"
+		}
+	],
+	"lifecycle": {
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
 	},
-	verification: {
-		checks: [
+	"verification": {
+		"checks": [
 			{
-				id: "carrier-status",
-				description: "Carrier status reports real observed reachability",
-				lifecycle: "status",
+				"id": "carrier-status",
+				"description": "Carrier status reports real observed reachability",
+				"lifecycle": "status"
 			},
 			{
-				id: "carrier-role-reachable",
-				description: "Custom GPT role/carrier is reachable",
-				lifecycle: "verify",
+				"id": "carrier-role-reachable",
+				"description": "Custom GPT role/carrier is reachable",
+				"lifecycle": "verify"
 			},
 			{
-				id: "carrier-actions-schema",
-				description: "Static Actions OpenAPI schema is current",
-				lifecycle: "verify",
+				"id": "carrier-actions-schema",
+				"description": "Static Actions OpenAPI schema is current",
+				"lifecycle": "verify"
 			},
 			{
-				id: "carrier-openapi",
-				description: "OpenAPI schema is installed on the carrier",
-				lifecycle: "verify",
+				"id": "carrier-openapi",
+				"description": "OpenAPI schema is installed on the carrier",
+				"lifecycle": "verify"
 			},
 			{
-				id: "carrier-auth",
-				description: "Action auth is valid",
-				lifecycle: "verify",
+				"id": "carrier-auth",
+				"description": "Action auth is valid",
+				"lifecycle": "verify"
 			},
 			{
-				id: "carrier-file-bridge",
-				description: "File Bridge is usable",
-				lifecycle: "verify",
+				"id": "carrier-file-bridge",
+				"description": "File Bridge is usable",
+				"lifecycle": "verify"
 			},
 			{
-				id: "carrier-code-interpreter",
-				description: "Code interpreter is available when required",
-				lifecycle: "verify",
+				"id": "carrier-code-interpreter",
+				"description": "Code interpreter is available when required",
+				"lifecycle": "verify"
 			},
 			{
-				id: "carrier-web-search",
-				description: "Web search is available when required",
-				lifecycle: "verify",
+				"id": "carrier-web-search",
+				"description": "Web search is available when required",
+				"lifecycle": "verify"
 			},
 			{
-				id: "carrier-apps-disabled",
-				description: "Apps are disabled when required",
-				lifecycle: "verify",
+				"id": "carrier-apps-disabled",
+				"description": "Apps are disabled when required",
+				"lifecycle": "verify"
 			},
 			{
-				id: "carrier-diagnostics",
-				description: "Carrier configuration has actionable diagnostics",
-				lifecycle: "doctor",
-			},
-		],
+				"id": "carrier-diagnostics",
+				"description": "Carrier configuration has actionable diagnostics",
+				"lifecycle": "doctor"
+			}
+		]
 	},
-	effects: [
+	"effects": [
 		{
-			kind: "external-resource",
-			description: "Observes the ChatGPT Custom GPT carrier",
-			retention: "preserve",
-		},
+			"kind": "external-resource",
+			"description": "Observes the ChatGPT Custom GPT carrier",
+			"retention": "preserve"
+		}
 	],
-	documentation: [
+	"documentation": [
 		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
+			"id": "overview",
+			"path": "./README.md",
+			"description": "Package-owned module overview"
 		},
-	],
-};
+		{
+			"id": "configuration",
+			"path": "./CONFIGURATION.md",
+			"description": "Module configuration fields, sources and materialization instructions"
+		}
+	]
+} as const;

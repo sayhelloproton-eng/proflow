@@ -1,4 +1,4 @@
-import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -16,7 +16,6 @@ export interface MaterializeModuleInput {
 	moduleRef: string;
 	packageName: string;
 	kind: ModuleKind;
-	installClass: ModuleDescriptor["installClass"];
 	domain: string;
 	summary: string;
 	moduleVersion?: string;
@@ -43,10 +42,8 @@ export interface GeneratedPackageMetadata {
 	bin: Record<string, string>;
 	proflow: {
 		module: true;
-		installClass: ModuleDescriptor["installClass"];
-		descriptor: "./dist/deployment/descriptor.js";
+			descriptor: "./dist/deployment/descriptor.js";
 		manifest: "./proflow.module.json";
-		installRequires: string[];
 	};
 }
 
@@ -68,22 +65,12 @@ const lifecycleByKind: Record<
 	ModuleKind,
 	ModuleDescriptor["lifecycle"]["supported"]
 > = {
-	library: ["describe", "preflight", "verify", "doctor"],
-	service: [
-		"describe",
-		"preflight",
-		"status",
-		"verify",
-		"doctor",
-		"start",
-		"stop",
-		"restart",
-		"uninstall",
-	],
-	cli: ["describe", "preflight", "verify", "doctor"],
-	"browser-extension": ["describe", "preflight", "status", "verify", "doctor"],
-	"agent-package": ["describe", "preflight", "status", "verify", "doctor"],
-	"external-resource": ["describe", "preflight", "status", "verify", "doctor"],
+	library: ["describe", "preflight", "status"],
+	service: ["describe", "preflight", "status", "start", "stop"],
+	cli: ["describe", "preflight", "status"],
+	"browser-extension": ["describe", "preflight", "status"],
+	"agent-package": ["describe", "preflight", "status"],
+	"external-resource": ["describe", "preflight", "status"],
 };
 
 function effectsFor(kind: ModuleKind): ModuleDescriptor["effects"] {
@@ -147,7 +134,6 @@ function descriptorFor(input: MaterializeModuleInput): ModuleDescriptor {
 		kind: input.kind,
 		templateVersion: CURRENT_TEMPLATE_VERSION,
 		platformCompatibility: input.platformCompatibility ?? ">=1.0.0 <2.0.0",
-		installClass: input.installClass,
 		identity: {
 			domain: input.domain,
 			summary: input.summary,
@@ -173,7 +159,7 @@ function descriptorFor(input: MaterializeModuleInput): ModuleDescriptor {
 				{
 					id: "module-loads",
 					description: "The generated module entry loads",
-					lifecycle: "verify",
+					lifecycle: "status",
 				},
 			],
 		},
@@ -207,18 +193,14 @@ function packageMetadata(
 		keywords: ["proflow", "proflow-module", descriptor.identity.domain],
 		publishConfig: { access: "public" },
 		exports,
-		bin: {
-			[unscopedName]:
-				descriptor.kind === "service"
-					? "./dist/src/cli.js"
-					: "./self-install.mjs",
-		},
+		bin:
+			descriptor.kind === "service" || descriptor.kind === "cli"
+				? { [unscopedName]: "./dist/src/cli.js" }
+				: {},
 		proflow: {
 			module: true,
-			installClass: descriptor.installClass,
 			descriptor: "./dist/deployment/descriptor.js",
 			manifest: "./proflow.module.json",
-			installRequires: [],
 		},
 	};
 }
@@ -232,7 +214,6 @@ function packageJson(descriptor: ModuleDescriptor): string {
 				"conformance.json",
 				"README.md",
 				"proflow.module.json",
-				"self-install.mjs",
 			],
 			engines: { node: "24.19.0" },
 			scripts: {
@@ -255,23 +236,18 @@ function operationSource(
 	descriptor: ModuleDescriptor,
 	primitive: ModuleDescriptor["lifecycle"]["supported"][number],
 ): string {
-	if (descriptor.kind === "agent-package" && primitive === "status") {
-		return `() => ({ result: { ...baseResult, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "register-agent-package", description: "Register the generated Agent Package through the authorized carrier" } }, observedEffects: [] })`;
-	}
-	if (descriptor.kind === "external-resource" && primitive === "status") {
-		return `() => ({ result: baseResult, observedEffects: [], externalAvailabilityClaim: "UNKNOWN", externalAvailabilityEvidence: "fake" })`;
-	}
-	if (descriptor.kind === "browser-extension" && primitive === "status") {
-		return `() => ({ result: { ...baseResult, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "load-browser-extension", description: "Load the built MV3 extension in a browser to observe its real status and availability" } }, observedEffects: [], externalAvailabilityClaim: "UNKNOWN", externalAvailabilityEvidence: "none" })`;
-	}
-	if (primitive === "verify") {
-		return `() => ({ result: { ...baseResult, ok: false, status: "FAILED", checks: [{ id: "owner-verification-required", status: "FAIL", message: "Owner-specific verification is not implemented" }], error: { code: "VERIFY_FAILED", message: "Owner-specific verification is not implemented", retryable: false } }, observedEffects: [] })`;
+	if (primitive === "status") {
+		const status =
+			descriptor.configSlots.length > 0
+				? `{ configStatus: "INCOMPLETE", missingConfig: ${JSON.stringify(descriptor.configSlots.filter((slot) => slot.required).map((slot) => slot.key))}, runtimeStatus: "UNKNOWN" }`
+				: `{ configStatus: "READY", runtimeStatus: "UNKNOWN" }`;
+		return `() => ({ result: { ...baseResult, data: ${status} }, observedEffects: [] })`;
 	}
 	if (
 		descriptor.kind === "service" &&
-		["status", "start", "stop", "restart", "uninstall"].includes(primitive)
+		["start", "stop"].includes(primitive)
 	) {
-		return `() => ({ result: { ...baseResult, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "implement-service-process", description: "Owner must implement createServiceProcessBinding and the package-owned service process before lifecycle operations are available" } }, observedEffects: [] })`;
+		return `() => ({ result: { ...baseResult, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "implement-service-lifecycle", description: "Owner must implement the package-owned production lifecycle before this operation is available" } }, observedEffects: [] })`;
 	}
 	return `() => ({ result: baseResult, observedEffects: [] })`;
 }
@@ -284,10 +260,6 @@ function adapterSource(descriptor: ModuleDescriptor): string {
 				`\t${JSON.stringify(primitive)}: ${operationSource(descriptor, primitive)},`,
 		)
 		.join("\n");
-	const serviceBinding =
-		descriptor.kind === "service"
-			? `\nexport function createServiceProcessBinding() {\n\t// Owner must replace this fail-closed skeleton with the real package-owned process config and probes.\n\treturn undefined;\n}\n`
-			: "";
 	return `${imports}const baseResult = {
 \tcontract: "deployment.result.v1",
 \tok: true,
@@ -299,66 +271,30 @@ function adapterSource(descriptor: ModuleDescriptor): string {
 export const behaviorAdapter = {
 ${operations}
 } as const;
-${serviceBinding}`;
+`;
 }
 
 function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
 	switch (descriptor.kind) {
-		case "service":
+\t\tcase "service":
 			return {
 				"src/cli.ts": `#!/usr/bin/env node
-import { spawnSync } from "node:child_process";
-
 function main(): void {
 	const [command, configPath, ...rest] = process.argv.slice(2);
-	const usage = "Usage: ${descriptor.packageName} install | start /absolute/config.json\\n";
-
+	const usage = "Usage: ${descriptor.packageName} start /absolute/config.json\\n";
 	if (command === "--help" || command === "-h") {
 		process.stdout.write(usage);
 		return;
 	}
-
-	if (command === "install") {
-		if (configPath !== undefined || rest.length > 0) {
-			process.stderr.write(usage);
-			process.exit(2);
-		}
-		const executable = process.platform === "win32" ? "platform.cmd" : "platform";
-		const result = spawnSync(
-			executable,
-			[
-				"install",
-				${JSON.stringify(descriptor.packageName)},
-				"--workspace",
-				process.cwd(),
-			],
-			{ cwd: process.cwd(), env: process.env, stdio: "inherit" },
-		);
-		if (result.error) {
-			if ((result.error as NodeJS.ErrnoException).code === "ENOENT") {
-				process.stderr.write(
-					"GLOBAL_PLATFORM_CLI_REQUIRED: install @tomflow/proflow-platform-cli globally before package-owned install\\n",
-				);
-				process.exit(127);
-			}
-			throw result.error;
-		}
-		process.exit(result.status ?? 1);
-	}
-
 	if (command !== "start" || configPath === undefined || rest.length > 0) {
 		process.stderr.write(usage);
 		process.exit(2);
 	}
-
 	throw new Error(
 		"OWNER_IMPLEMENTATION_REQUIRED: implement the package-owned service process entrypoint before start is allowed",
 	);
 }
-
-if (import.meta.main) {
-	main();
-}
+if (import.meta.main) main();
 `,
 			};
 
@@ -385,43 +321,10 @@ if (import.meta.main) {
 	}
 }
 
-function selfInstallSource(descriptor: ModuleDescriptor): string {
-	return `#!/usr/bin/env node
-import { spawnSync } from "node:child_process";
-
-const [command, ...rest] = process.argv.slice(2);
-const usage = "Usage: npx ${descriptor.packageName} install\n";
-if (command === "--help" || command === "-h") {
-	process.stdout.write(usage);
-	process.exit(0);
-}
-if (command !== "install" || rest.length > 0) {
-	process.stderr.write(usage);
-	process.exit(2);
-}
-const executable = process.platform === "win32" ? "platform.cmd" : "platform";
-const result = spawnSync(
-	executable,
-	["install", ${JSON.stringify(descriptor.packageName)}, "--workspace", process.cwd()],
-	{ cwd: process.cwd(), env: process.env, stdio: "inherit" },
-);
-if (result.error) {
-	if (result.error.code === "ENOENT") {
-		process.stderr.write(
-			"GLOBAL_PLATFORM_CLI_REQUIRED: install @tomflow/proflow-platform-cli globally before package-owned install\\n",
-		);
-		process.exit(127);
-	}
-	throw result.error;
-}
-process.exit(result.status ?? 1);
-`;
-}
-
 function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 	return {
 		"package.json": packageJson(descriptor),
-		"README.md": `# ${descriptor.packageName}\n\nModule: \`${descriptor.moduleRef}\`  \nDomain: \`${descriptor.identity.domain}\`  \nKind: \`${descriptor.kind}\`  \nInstall class: \`${descriptor.installClass}\`  \nTemplate: \`${descriptor.templateVersion}\`\n\n${descriptor.identity.summary}\n`,
+		"README.md": `# ${descriptor.packageName}\n\nModule: \`${descriptor.moduleRef}\`  \nDomain: \`${descriptor.identity.domain}\`  \nKind: \`${descriptor.kind}\`  \nTemplate: \`${descriptor.templateVersion}\`\n\n${descriptor.identity.summary}\n`,
 		"tsconfig.json": `${JSON.stringify(
 			{
 				compilerOptions: {
@@ -465,7 +368,6 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 		"deployment/requirements.ts": `import { descriptor } from "./descriptor.ts";\n\nexport const requirements = descriptor.requirements;\n`,
 		"deployment/verification.ts": `import { descriptor } from "./descriptor.ts";\n\nexport const verification = descriptor.verification;\n`,
 		"deployment/adapter.ts": adapterSource(descriptor),
-		"self-install.mjs": selfInstallSource(descriptor),
 		"conformance.json": `${JSON.stringify(
 			{
 				contract: "proflow.conformance.v1",
@@ -498,7 +400,6 @@ export async function materializeModule(
 			await mkdir(resolve(destination, ".."), { recursive: true });
 			await writeFile(destination, content, { encoding: "utf8", flag: "wx" });
 		}
-		await chmod(join(packageDirectory, "self-install.mjs"), 0o755);
 	} catch (error) {
 		await rm(packageDirectory, { recursive: true, force: true });
 		throw error;

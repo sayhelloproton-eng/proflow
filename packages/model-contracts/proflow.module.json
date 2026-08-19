@@ -7,7 +7,6 @@
 	"kind": "library",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "model-reasoning",
 		"summary": "Typed public Model & Reasoning contracts and runtime validation for ProFlow inference."
@@ -23,7 +22,13 @@
 	],
 	"configSlots": [],
 	"lifecycle": {
-		"supported": ["describe", "preflight", "verify", "doctor"]
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
 	},
 	"verification": {
 		"checks": [

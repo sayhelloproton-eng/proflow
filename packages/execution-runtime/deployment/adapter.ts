@@ -1,5 +1,6 @@
 import { createServer } from "node:net";
 
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 import { descriptor } from "./descriptor.ts";
 
 type ProcessService = {
@@ -106,37 +107,23 @@ async function listenerPreflight(listener: URL) {
 			};
 }
 
-export function createBehaviorAdapter(service?: ProcessService) {
+export function createBehaviorAdapter(
+	service?: ProcessService,
+	config?: Record<string, string>,
+) {
 	return {
 		describe: () => ({ result: base, observedEffects: [] }),
 		preflight: () => ({ result: base, observedEffects: [] }),
 		status: () => {
 			const status = service?.status();
 			const ready = status?.readiness === "READY";
+			const data = observeDeclaredModuleStatus(
+				descriptor,
+				config,
+				ready ? "RUNNING" : service ? "FAILED" : "UNKNOWN",
+			);
 			return {
-				result: service
-					? {
-							...(ready
-								? base
-								: {
-										...base,
-										ok: false as const,
-										status: "ACTION_REQUIRED" as const,
-										actionRequired: {
-											action: "repair-execution-runtime",
-											description: "Execution Runtime is not READY",
-										},
-									}),
-							data: status,
-							checks: [
-								{
-									id: "execution-runtime-readiness",
-									status: ready ? ("PASS" as const) : ("FAIL" as const),
-									message: `Execution Runtime readiness is ${status?.readiness ?? "NOT_READY"}`,
-								},
-							],
-						}
-					: unbound,
+				result: { ...base, data },
 				observedEffects: [],
 			};
 		},
@@ -376,7 +363,7 @@ export async function createProductionBinding(input: {
 	});
 	return {
 		behaviorAdapter: {
-			...createBehaviorAdapter(service),
+			...createBehaviorAdapter(service, input.config),
 			preflight: () => listenerPreflight(listener),
 		},
 	};

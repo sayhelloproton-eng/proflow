@@ -7,7 +7,6 @@
 	"kind": "library",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"installClass": "core",
 	"identity": {
 		"domain": "execution",
 		"summary": "Typed public Execution contracts and runtime validation for the ProFlow real-world effect plane."
@@ -23,7 +22,13 @@
 	],
 	"configSlots": [],
 	"lifecycle": {
-		"supported": ["describe", "preflight", "verify", "doctor"]
+		"supported": [
+			"describe",
+			"preflight",
+			"status",
+			"verify",
+			"doctor"
+		]
 	},
 	"verification": {
 		"checks": [

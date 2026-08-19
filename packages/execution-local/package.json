@@ -15,7 +15,7 @@
 		"proflow.module.json",
 		"conformance.json",
 		"README.md",
-		"self-install.mjs"
+		"CONFIGURATION.md"
 	],
 	"scripts": {
 		"test": "node --test tests/**/*.test.ts",
@@ -32,14 +32,7 @@
 	],
 	"proflow": {
 		"module": true,
-		"installClass": "core",
 		"descriptor": "./dist/deployment/descriptor.js",
-		"installRequires": [
-			"@tomflow/proflow-execution-contracts"
-		],
 		"manifest": "./proflow.module.json"
-	},
-	"bin": {
-		"proflow-execution-local": "./self-install.mjs"
 	}
 }
