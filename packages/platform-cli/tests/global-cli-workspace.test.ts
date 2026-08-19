@@ -19,7 +19,7 @@ import {
 	updateGlobalBindingState,
 } from "../src/binding/global-binding.ts";
 import { runCli } from "../src/cli.ts";
-import { workspacePaths } from "../src/paths.ts";
+import { ensureLayout, workspacePaths } from "../src/paths.ts";
 import { savePlan } from "../src/persistence/plans.ts";
 import { planDeployment } from "../src/planner/plan.ts";
 
@@ -364,6 +364,7 @@ test("CP-DPL-CLI-10 + RF-DPL-CLI-11 whole-instance uninstall works from another 
 	const f = await fixture();
 	try {
 		await f.bindInstalled();
+		await ensureLayout(workspacePaths(f.workspaceA));
 		const removed = parse(
 			await runCli(["uninstall"], {
 				cwd: f.workspaceB,
@@ -419,6 +420,7 @@ test("whole-instance uninstall removes an empty .proflow root but preserves non-
 	const f = await fixture();
 	try {
 		await f.bindInstalled();
+		await ensureLayout(workspacePaths(f.workspaceA));
 		await mkdir(join(f.workspaceA, ".proflow", "data"), { recursive: true });
 		await writeFile(
 			join(f.workspaceA, ".proflow", "data", "keep.txt"),

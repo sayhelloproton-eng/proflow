@@ -49,14 +49,12 @@ export async function cleanupWorkspacePackageManagerArtifacts(options: {
 	);
 	if (manager.name !== "pnpm") return;
 
-	const removedPackageSpecs = new Set(
-		options.removedModules.map(
-			(module) => `${module.packageName}@${module.moduleVersion}`,
-		),
+	const removedPackageNames = new Set(
+		options.removedModules.map((module) => module.packageName),
 	);
 	await cleanupPnpmReleaseAgeExcludes(
 		options.workspaceRoot,
-		removedPackageSpecs,
+		removedPackageNames,
 	);
 	await normalizeEmptyPnpmRootImporter(options.workspaceRoot);
 }
@@ -296,7 +294,7 @@ async function readWorkspaceManifest(
 
 async function cleanupPnpmReleaseAgeExcludes(
 	workspaceRoot: string,
-	removedPackageSpecs: ReadonlySet<string>,
+	removedPackageNames: ReadonlySet<string>,
 ): Promise<void> {
 	const path = join(workspaceRoot, "pnpm-workspace.yaml");
 	let raw: string;
@@ -322,7 +320,11 @@ async function cleanupPnpmReleaseAgeExcludes(
 		const match = /^\s*-\s+(.+?)\s*$/.exec(line);
 		if (match === null) return true;
 		const value = stripYamlQuotes(match[1] ?? "");
-		return !removedPackageSpecs.has(value);
+		for (const packageName of removedPackageNames) {
+			if (value === packageName || value.startsWith(`${packageName}@`))
+				return false;
+		}
+		return true;
 	});
 	const hasListItem = retained.some((line) => /^\s*-\s+/.test(line));
 	const replacement = hasListItem ? [lines[keyIndex] ?? "", ...retained] : [];

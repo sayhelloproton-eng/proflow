@@ -208,7 +208,7 @@ test("CP-DPL-CLI-11 whole uninstall cleanup removes only ProFlow pnpm workspace 
 		await w.manifest({ private: true, packageManager: "pnpm@11.21.0" });
 		await writeFile(
 			join(w.root, "pnpm-workspace.yaml"),
-			"packages: []\nminimumReleaseAgeExclude:\n  - '@tomflow/proflow-fixture@1.2.3'\n  - 'user-package@9.9.9'\nonlyBuiltDependencies:\n  - user-native\n",
+			"packages: []\nminimumReleaseAgeExclude:\n  - '@tomflow/proflow-fixture@0.9.0'\n  - '@tomflow/proflow-fixture@1.2.3'\n  - 'user-package@9.9.9'\nonlyBuiltDependencies:\n  - user-native\n",
 		);
 		await writeFile(
 			join(w.root, "pnpm-lock.yaml"),

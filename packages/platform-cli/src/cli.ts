@@ -1205,14 +1205,25 @@ async function handlePlatformInstanceUninstall(
 		// into a future install of the same directory. Business/domain data outside
 		// `.proflow/deployment` is intentionally preserved.
 		await rm(ctx.paths.deployment, { recursive: true, force: true });
-		try {
-			await rmdir(ctx.paths.proflow);
-		} catch (error) {
-			const code =
-				typeof error === "object" && error !== null
-					? Reflect.get(error, "code")
-					: undefined;
-			if (code !== "ENOENT" && code !== "ENOTEMPTY") throw error;
+		for (const path of [
+			ctx.paths.logsDeployment,
+			ctx.paths.logs,
+			ctx.paths.config,
+			ctx.paths.data,
+			ctx.paths.runtime,
+			ctx.paths.cache,
+			ctx.paths.tmp,
+			ctx.paths.proflow,
+		]) {
+			try {
+				await rmdir(path);
+			} catch (error) {
+				const code =
+					typeof error === "object" && error !== null
+						? Reflect.get(error, "code")
+						: undefined;
+				if (code !== "ENOENT" && code !== "ENOTEMPTY") throw error;
+			}
 		}
 		const completed = binding;
 		await clearGlobalBinding({

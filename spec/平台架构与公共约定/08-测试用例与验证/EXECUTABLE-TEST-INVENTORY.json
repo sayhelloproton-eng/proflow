@@ -7208,7 +7208,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 418,
+      "line": 419,
       "title": "whole-instance uninstall removes an empty .proflow root but preserves non-deployment data",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7223,7 +7223,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/global-cli-workspace.test.ts",
-      "line": 453,
+      "line": 455,
       "title": "fresh install preflight failure does not claim a global binding",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
