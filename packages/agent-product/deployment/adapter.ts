@@ -1,5 +1,5 @@
-import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 import { inspectDurableRoleRegistration } from "@tomflow/proflow-agent-runtime";
+import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
 
 import { descriptor } from "./descriptor.ts";
 
