@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 135,
-    "testCalls": 737
+    "testCalls": 738
   },
   "tests": [
     {
@@ -1251,7 +1251,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 23,
+      "line": 29,
       "title": "parseModuleDescriptor accepts the chrome-runtime descriptor",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1265,7 +1265,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 30,
+      "line": 36,
       "title": "adapter returns ACTION_REQUIRED, not SUCCEEDED, when no real Chrome or extension is present",
       "ids": [],
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
@@ -1279,7 +1279,21 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 61,
+      "line": 67,
+      "title": "explicit Chrome probe tolerates a slow but healthy version response beyond five seconds",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/chrome-runtime/deployment/adapter.ts",
+        "packages/chrome-runtime/deployment/descriptor.ts",
+        "packages/chrome-runtime/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "chrome-runtime",
+      "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
+      "line": 85,
       "title": "adapter exposes no start/stop/restart lifecycle",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
