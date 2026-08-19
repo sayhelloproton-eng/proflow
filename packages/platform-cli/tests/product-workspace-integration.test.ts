@@ -1,308 +1,169 @@
 import assert from "node:assert/strict";
-import {
-	mkdir,
-	mkdtemp,
-	readFile,
-	rm,
-	symlink,
-	writeFile,
-} from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { readFile, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
-import { workspaceResidentDriver } from "../src/apply/driver.ts";
-import { applyPlan } from "../src/apply/index.ts";
-import type { ResolvedModule } from "../src/contracts.ts";
-import {
-	discoverModules,
-	InstalledModuleCatalog,
-} from "../src/discovery/index.ts";
-import { generateInstallDoc } from "../src/install/index.ts";
-import { buildManifest } from "../src/manifest/index.ts";
-import type { ModuleCatalog } from "../src/modules.ts";
-import { type WorkspacePaths, workspacePaths } from "../src/paths.ts";
-import { loadPlan, savePlan } from "../src/persistence/index.ts";
-import { type PlanInput, planDeployment } from "../src/planner/index.ts";
-import { runPreflight } from "../src/preflight/preflight.ts";
-import { verifyModules } from "../src/verification/index.ts";
 
-// ---------------------------------------------------------------------------
-// A real, local-only product workspace: a bare temp repo whose package.json
-// declares a governed installed dependency resolved through real Node package
-// resolution (a symlink to this repository's built module-contract), plus a
-// synthetic governed module with a required config slot so the full
-// preflight/plan/apply/verify/manifest/INSTALL flow is exercised with no
-// network access.
-// ---------------------------------------------------------------------------
+import { runCli } from "../src/cli.ts";
+import { tempWorkspace, writeInstalledModule } from "./test-helpers.ts";
 
-const FIXTURE_PRODUCT_REF = "fixture-product";
-const FIXTURE_PRODUCT_PACKAGE = "@tomflow/proflow-fixture-product";
-const PRODUCT_CONFIG = { endpoint: "https://product.example" };
+const MODULE = {
+	moduleRef: "fixture-service",
+	packageName: "@tomflow/proflow-fixture-service",
+	version: "1.0.0",
+} as const;
 
-function syntheticDescriptor(): Record<string, unknown> {
-	return {
-		contract: "module",
-		contractVersion: "1.0.0",
-		moduleRef: FIXTURE_PRODUCT_REF,
-		packageName: FIXTURE_PRODUCT_PACKAGE,
-		moduleVersion: "1.0.0",
-		kind: "service",
-		installClass: "optional",
-		identity: {
-			domain: "deployment-governance",
-			summary: "Product workspace synthetic service",
-		},
-		templateVersion: "1.0.0",
-		platformCompatibility: ">=1.0.0 <2.0.0",
-		provides: [],
-		requires: [],
-		requirements: [],
-		configSlots: [
-			{
-				key: "endpoint",
-				type: "url",
-				required: true,
-				description: "service endpoint",
-			},
-		],
-		lifecycle: {
-			supported: ["describe", "preflight", "status", "verify", "doctor"],
-		},
-		verification: {
-			checks: [
-				{ id: "health", description: "Observed health", lifecycle: "verify" },
-			],
-		},
-		effects: [],
-		documentation: [],
-	};
-}
-
-function syntheticAdapter(): string {
-	const result = (data?: unknown): string =>
-		`{ contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${JSON.stringify(FIXTURE_PRODUCT_REF)}, moduleVersion: "1.0.0"${data === undefined ? "" : `, data: ${JSON.stringify(data)}`} }`;
-	return `export const behaviorAdapter = {
-	preflight: () => ({ result: ${result()}, observedEffects: [] }),
-	status: () => ({ result: ${result({ processRunning: true })}, observedEffects: [] }),
-	verify: () => ({ result: { contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${JSON.stringify(FIXTURE_PRODUCT_REF)}, moduleVersion: "1.0.0", checks: [{ id: "health", status: "PASS", message: "ok" }] }, observedEffects: [] }),
-	doctor: () => ({ result: ${result()}, observedEffects: [] }),
+const adapterSource = `
+let running = false;
+const result = (data) => ({
+  contract: "deployment.result.v1",
+  ok: true,
+  status: "SUCCEEDED",
+  moduleRef: "fixture-service",
+  moduleVersion: "1.0.0",
+  ...(data === undefined ? {} : { data }),
+});
+export const behaviorAdapter = {
+  status: async () => ({ result: result({ configStatus: "READY", runtimeStatus: running ? "RUNNING" : "STOPPED" }), observedEffects: [] }),
+  preflight: async () => ({ result: result(), observedEffects: [] }),
+  start: async () => { running = true; return { result: result(), observedEffects: [] }; },
+  stop: async () => { running = false; return { result: result(), observedEffects: [] }; },
 };
 `;
-}
-
-async function writeSyntheticInstalledPackage(root: string): Promise<void> {
-	const pkgDir = join(
-		root,
-		"node_modules",
-		"@tomflow",
-		FIXTURE_PRODUCT_PACKAGE.slice("@tomflow/".length),
-	);
-	await mkdir(join(pkgDir, "deployment"), { recursive: true });
-	await mkdir(join(pkgDir, "node_modules"), { recursive: true });
-	await writeFile(
-		join(pkgDir, "package.json"),
-		JSON.stringify({
-			name: FIXTURE_PRODUCT_PACKAGE,
-			version: "1.0.0",
-			type: "module",
-			exports: {
-				"./deployment/descriptor": "./deployment/descriptor.js",
-				"./deployment/adapter": "./deployment/adapter.js",
-			},
-			proflow: {
-				module: true,
-				installClass: "optional",
-				descriptor: "./deployment/descriptor.js",
-				manifest: "./proflow.module.json",
-				installRequires: [],
-			},
-		}),
-	);
-	await writeFile(
-		join(pkgDir, "deployment", "descriptor.js"),
-		`export const descriptor = ${JSON.stringify(syntheticDescriptor())};\n`,
-	);
-	await writeFile(join(pkgDir, "deployment", "adapter.js"), syntheticAdapter());
-}
-
-async function setupProductRepo(): Promise<{
-	root: string;
-	paths: WorkspacePaths;
-	catalog: ModuleCatalog;
-	modules: ResolvedModule[];
-	config: Record<string, Record<string, string>>;
-	cleanup(): Promise<void>;
-}> {
-	const here = dirname(fileURLToPath(import.meta.url));
-	const moduleContractDir = resolve(here, "../../module-contract");
-
-	const root = await mkdtemp(join(tmpdir(), "proflow-product-"));
-	await writeFile(
-		join(root, "package.json"),
-		JSON.stringify({
-			name: "product-repo",
-			private: true,
-			dependencies: {
-				"@tomflow/proflow-module-contract": "0.1.0",
-				[FIXTURE_PRODUCT_PACKAGE]: "1.0.0",
-			},
-		}),
-	);
-	await mkdir(join(root, "node_modules", "@tomflow"), { recursive: true });
-	await symlink(
-		moduleContractDir,
-		join(root, "node_modules", "@tomflow", "proflow-module-contract"),
-		"dir",
-	);
-	await writeSyntheticInstalledPackage(root);
-
-	const catalog = new InstalledModuleCatalog(root);
-	const modules = await discoverModules({ catalog });
-	const config: Record<string, Record<string, string>> = {
-		[FIXTURE_PRODUCT_REF]: PRODUCT_CONFIG,
-	};
-
+function registryRunner() {
 	return {
-		root,
-		paths: workspacePaths(root),
-		catalog,
-		modules,
-		config,
-		async cleanup() {
-			await rm(root, { recursive: true, force: true });
+		async run(args: readonly string[]) {
+			if (args[0] === "config") {
+				return { stdout: "https://registry.example.test\n", stderr: "" };
+			}
+			if (args[0] === "search") {
+				return {
+					stdout: JSON.stringify([{ name: MODULE.packageName }]),
+					stderr: "",
+				};
+			}
+			if (args[0] === "view") {
+				return {
+					stdout: JSON.stringify({
+						name: MODULE.packageName,
+						version: MODULE.version,
+						proflow: {
+							module: true,
+							descriptor: "./deployment/descriptor.js",
+							manifest: "./proflow.module.json",
+						},
+					}),
+					stderr: "",
+				};
+			}
+			throw new Error(`unexpected registry args: ${args.join(" ")}`);
+		},
+	};
+}
+async function manifest(root: string): Promise<Record<string, unknown>> {
+	return JSON.parse(
+		await readFile(join(root, "package.json"), "utf8"),
+	) as Record<string, unknown>;
+}
+
+function packageRunner(root: string, calls: string[][]) {
+	return {
+		async run(command: string, args: readonly string[]) {
+			calls.push([command, ...args]);
+			if (args.includes("install")) {
+				await writeFile(
+					join(root, "package.json"),
+					JSON.stringify({
+						...(await manifest(root)),
+						dependencies: { [MODULE.packageName]: MODULE.version },
+					}),
+				);
+				await writeInstalledModule(root, {
+					...MODULE,
+					kind: "service",
+					lifecycle: ["status", "preflight", "start", "stop"],
+					adapterSource,
+					documents: [
+						{
+							id: "configuration",
+							path: "CONFIGURATION.md",
+							content: "# Fixture Service\n\nNo configuration required.\n",
+						},
+					],
+				});
+				return "";
+			}
+			if (args.includes("uninstall")) {
+				await writeFile(
+					join(root, "package.json"),
+					JSON.stringify({ ...(await manifest(root)), dependencies: {} }),
+				);
+				return "";
+			}
+			throw new Error(
+				`unexpected package-manager call: ${command} ${args.join(" ")}`,
+			);
 		},
 	};
 }
 
-// ---------------------------------------------------------------------------
+function parse(output: string) {
+	return JSON.parse(output) as {
+		status: string;
+		data?: { modules?: Array<Record<string, unknown>> } & Record<
+			string,
+			unknown
+		>;
+	};
+}
 
-test("product workspace — installed discovery resolves real + synthetic governed modules", async () => {
-	const { modules, cleanup } = await setupProductRepo();
+test("simulated human Golden Path runs install → modules → docs → start → modules → stop → uninstall", async () => {
+	const root = await tempWorkspace();
+	const calls: string[][] = [];
+	const runtime = {
+		cwd: root,
+		registryRunner: registryRunner(),
+		packageRunner: packageRunner(root, calls),
+		executableAvailable: () => true,
+	};
 	try {
-		const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
-		assert.equal(byRef.has("module-contract"), true);
-		assert.equal(byRef.has(FIXTURE_PRODUCT_REF), true);
-		for (const module of modules) {
-			assert.equal(module.source.type, "installed");
-		}
-	} finally {
-		await cleanup();
-	}
-});
-
-test("product workspace — preflight is READY when required config is provided", async () => {
-	const { catalog, modules, config, cleanup } = await setupProductRepo();
-	try {
-		const result = await runPreflight(modules, { catalog, config });
-		assert.equal(result.status, "READY");
-		assert.equal(result.findings.length, 0);
-	} finally {
-		await cleanup();
-	}
-});
-
-test("product workspace — preflight flags a missing required config slot", async () => {
-	const { catalog, modules, cleanup } = await setupProductRepo();
-	try {
-		const result = await runPreflight(modules, { catalog });
-		assert.equal(result.status, "NOT_READY");
-		assert.ok(
-			result.findings.some(
-				(finding) =>
-					finding.code === "CONFIG_MISSING" &&
-					finding.moduleRef === FIXTURE_PRODUCT_REF,
-			),
+		const installed = parse(await runCli(["install", "--json"], runtime));
+		assert.equal(installed.status, "SUCCEEDED");
+		const before = parse(await runCli(["modules", "--json"], { cwd: root }));
+		assert.equal(before.status, "SUCCEEDED");
+		assert.equal(before.data?.modules?.[0]?.runtimeStatus, "STOPPED");
+		const docs = parse(await runCli(["docs", "--json"], { cwd: root }));
+		assert.equal(docs.status, "SUCCEEDED");
+		assert.match(
+			JSON.stringify(docs.data?.modules?.[0]?.documents ?? []),
+			/Fixture Service|configuration/i,
 		);
-	} finally {
-		await cleanup();
-	}
-});
 
-test("product workspace — plan persists and round-trips through savePlan/loadPlan", async () => {
-	const { paths, modules, config, cleanup } = await setupProductRepo();
-	try {
-		const plan = planDeployment({ intent: "install", modules, config });
-		await savePlan(paths, plan);
-		const loaded = await loadPlan(paths, plan.planRef);
-		assert.ok(loaded !== undefined);
-		assert.equal(loaded.planRef, plan.planRef);
-		assert.equal(loaded.fingerprint, plan.fingerprint);
-		assert.deepEqual(
-			loaded.resolvedModules.map((module) => module.moduleRef).sort(),
-			[FIXTURE_PRODUCT_REF, "module-contract"],
+		const started = parse(await runCli(["start", "--json"], { cwd: root }));
+		assert.equal(started.status, "SUCCEEDED");
+		const running = parse(await runCli(["modules", "--json"], { cwd: root }));
+		assert.equal(running.data?.modules?.[0]?.runtimeStatus, "RUNNING");
+
+		const stopped = parse(await runCli(["stop", "--json"], { cwd: root }));
+		assert.equal(stopped.status, "SUCCEEDED");
+		const afterStop = parse(await runCli(["modules", "--json"], { cwd: root }));
+		assert.equal(afterStop.data?.modules?.[0]?.runtimeStatus, "STOPPED");
+
+		const uninstalled = parse(
+			await runCli(["uninstall", "--json"], {
+				cwd: root,
+				packageRunner: runtime.packageRunner,
+				executableAvailable: () => true,
+			}),
 		);
-	} finally {
-		await cleanup();
-	}
-});
-
-test("product workspace — apply safe gate blocks a stale plan and records no applied plan", async () => {
-	const { paths, catalog, modules, config, cleanup } = await setupProductRepo();
-	try {
-		const plan = planDeployment({ intent: "install", modules, config });
-		await savePlan(paths, plan);
-
-		const stale: PlanInput = {
-			intent: "install",
-			modules,
-			config: {
-				[FIXTURE_PRODUCT_REF]: { endpoint: "https://stale.example" },
-			},
-		};
-		const result = await applyPlan({
-			paths,
-			planRef: plan.planRef,
-			catalog,
-			driver: workspaceResidentDriver(),
-			current: stale,
-		});
-		assert.equal(result.outcome, "BLOCKED");
-	} finally {
-		await cleanup();
-	}
-});
-
-test("product workspace — apply materializes config, verifies, and composes a READY manifest + INSTALL", async () => {
-	const { paths, catalog, modules, config, cleanup } = await setupProductRepo();
-	try {
-		const plan = planDeployment({ intent: "install", modules, config });
-		await savePlan(paths, plan);
-		const current: PlanInput = { intent: "install", modules, config };
-
-		const applied = await applyPlan({
-			paths,
-			planRef: plan.planRef,
-			catalog,
-			driver: workspaceResidentDriver(),
-			current,
-		});
-		assert.equal(applied.outcome, "COMPLETE");
-
-		// config materialized to the public config file
-		const publicConfig = await readFile(
-			join(paths.config, `${FIXTURE_PRODUCT_REF}.json`),
-			"utf8",
+		assert.equal(uninstalled.status, "SUCCEEDED");
+		assert.deepEqual((await manifest(root)).dependencies, {});
+		assert.match(
+			await readFile(join(root, ".proflow", "workspace.json"), "utf8"),
+			/proflow\.workspace\.v1/,
 		);
-		assert.ok(publicConfig.includes(PRODUCT_CONFIG.endpoint));
-
-		// verification history appended
-		const verified = await verifyModules(catalog, modules, paths);
-		assert.equal(verified.length, 2);
-		for (const result of verified) {
-			assert.equal(result.record.result, "PASS");
-		}
-
-		// manifest reflects live reality → READY
-		const manifest = await buildManifest({ catalog, modules, paths, config });
-		assert.equal(manifest.status, "READY");
-
-		// generated INSTALL names the governed module set
-		await generateInstallDoc({ paths, modules, config });
-		const installDoc = await readFile(paths.installMd, "utf8");
-		assert.ok(installDoc.includes(FIXTURE_PRODUCT_REF));
-		assert.ok(installDoc.includes("module-contract"));
+		assert.equal(calls.filter((call) => call.includes("install")).length, 1);
+		assert.equal(calls.filter((call) => call.includes("uninstall")).length, 1);
 	} finally {
-		await cleanup();
+		await rm(root, { recursive: true, force: true });
 	}
 });
