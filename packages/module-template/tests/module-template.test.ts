@@ -52,7 +52,6 @@ test("CP-DPL-TPL-01 materializes six profiles with only their real responsibilit
 			moduleRef,
 			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
-			installClass: "optional",
 			domain: "deployment-governance",
 			summary: "Generated test fixture",
 		});
@@ -70,17 +69,18 @@ test("CP-DPL-TPL-01 materializes six profiles with only their real responsibilit
 				join(result.packageDirectory, "deployment/adapter.ts"),
 				"utf8",
 			);
-			assert.match(adapter, /createServiceProcessBinding/);
-			for (const primitive of [
-				"status",
-				"start",
-				"stop",
-				"restart",
-				"uninstall",
-			] as const) {
+			assert.match(adapter, /createProductionBinding/);
+			assert.doesNotMatch(adapter, /createServiceProcessBinding/);
+			for (const primitive of ["status", "start", "stop"] as const) {
 				assert.equal(
 					result.descriptor.lifecycle.supported.includes(primitive),
 					true,
+				);
+			}
+			for (const primitive of ["restart", "uninstall"] as const) {
+				assert.equal(
+					result.descriptor.lifecycle.supported.includes(primitive),
+					false,
 				);
 			}
 		}
@@ -103,7 +103,7 @@ test("CP-DPL-TPL-01 materializes six profiles with only their real responsibilit
 	}
 });
 
-test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata, honest lifecycle, and global package-owned install delegation", async (context) => {
+test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata and honest package-owned lifecycle", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-template-minimum-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
 	for (const kind of kinds) {
@@ -113,7 +113,6 @@ test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata, hone
 			moduleRef,
 			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
-			installClass: "optional",
 			domain: "deployment-governance",
 			summary: "Generated test fixture",
 		});
@@ -126,7 +125,6 @@ test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata, hone
 			"deployment/requirements.ts",
 			"deployment/verification.ts",
 			"proflow.module.json",
-			"self-install.mjs",
 			"conformance.json",
 		]) {
 			assert.equal(
@@ -135,27 +133,24 @@ test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata, hone
 				`${kind}: ${relative}`,
 			);
 		}
-		const selfInstall = await readFile(
-			join(result.packageDirectory, "self-install.mjs"),
-			"utf8",
+		assert.equal(
+			await exists(join(result.packageDirectory, "self-install.mjs")),
+			false,
 		);
-		assert.match(selfInstall, /platform\.cmd/);
-		assert.match(selfInstall, /"platform"/);
-		assert.match(selfInstall, /"--workspace"/);
-		assert.match(selfInstall, /process\.cwd\(\)/);
-		assert.match(selfInstall, /GLOBAL_PLATFORM_CLI_REQUIRED/);
-		assert.doesNotMatch(
-			selfInstall,
-			/process\.platform === "win32" \? "npx\.cmd" : "npx"/,
+		assert.equal(
+			await exists(join(result.packageDirectory, "CONFIGURATION.md")),
+			kind === "external-resource",
 		);
 		if (kind === "service") {
 			const serviceCli = await readFile(
 				join(result.packageDirectory, "src/cli.ts"),
 				"utf8",
 			);
-			assert.match(serviceCli, /platform\.cmd/);
-			assert.match(serviceCli, /"--workspace"/);
-			assert.match(serviceCli, /GLOBAL_PLATFORM_CLI_REQUIRED/);
+			assert.match(serviceCli, /OWNER_IMPLEMENTATION_REQUIRED/);
+			assert.doesNotMatch(
+				serviceCli,
+				/platform\.cmd|GLOBAL_PLATFORM_CLI_REQUIRED/,
+			);
 		}
 		if (kind !== "service") {
 			assert.equal(
@@ -184,7 +179,6 @@ test("CP-DPL-TPL-03 generated TypeScript packages pass strict tsc with typed pub
 			moduleRef,
 			packageName: `@tomflow/proflow-${moduleRef}`,
 			kind,
-			installClass: "optional",
 			domain: "deployment-governance",
 			summary: "Generated test fixture",
 		});

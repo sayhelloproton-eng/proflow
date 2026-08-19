@@ -50,7 +50,6 @@ test("P1-1/P1-2 all six profiles load and execute their own generated adapter", 
 			moduleRef: `own-adapter-${kind}`,
 			packageName: `@tomflow/proflow-own-adapter-${kind}`,
 			kind,
-			installClass: "optional",
 			domain: "deployment-governance",
 			summary: "Generated test fixture",
 		});
@@ -66,22 +65,24 @@ test("P1-1/P1-2 all six profiles load and execute their own generated adapter", 
 			const observation = await adapter[primitive]?.();
 			assert.equal(observation?.result.contract, "deployment.result.v1");
 		}
-		if (kind === "service") assert.equal(typeof adapter.restart, "function");
-		const verification = await adapter.verify?.();
-		assert.equal(
-			verification?.result.checks?.some(
-				(check) => check.id === "generated-adapter" && check.status === "PASS",
-			),
-			false,
-		);
+		if (kind === "service") {
+			assert.equal(typeof adapter.start, "function");
+			assert.equal(typeof adapter.stop, "function");
+			assert.equal(typeof adapter.restart, "undefined");
+		}
+		assert.equal(adapter.verify, undefined);
 		if (kind === "cli") assert.equal(generated.machineEntry, "dist/src/cli.js");
 		if (kind === "agent-package") {
 			const status = await adapter.status?.();
-			assert.equal(status?.result.status, "ACTION_REQUIRED");
+			assert.equal(status?.result.status, "SUCCEEDED");
 		}
 		if (kind === "external-resource") {
 			const status = await adapter.status?.();
-			assert.equal(status?.externalAvailabilityClaim, "UNKNOWN");
+			assert.deepEqual(status?.result.data, {
+				configStatus: "INCOMPLETE",
+				missingConfig: ["resourceUrl"],
+				runtimeStatus: "UNKNOWN",
+			});
 		}
 	}
 });
@@ -95,7 +96,6 @@ test("P1-4/P1-5 template enforces formal names and creates publishable public pa
 			moduleRef: "invalid-name",
 			packageName: "@tomflow/invalid-name",
 			kind: "library",
-			installClass: "optional",
 			domain: "deployment-governance",
 			summary: "Generated test fixture",
 		}),
@@ -105,7 +105,6 @@ test("P1-4/P1-5 template enforces formal names and creates publishable public pa
 		moduleRef: "publishable",
 		packageName: "@tomflow/proflow-publishable",
 		kind: "library",
-		installClass: "optional",
 		domain: "deployment-governance",
 		summary: "Generated test fixture",
 	});
@@ -123,7 +122,6 @@ test("FND-P1-01 generated Module builds JS and declarations, packs, and imports 
 		moduleRef: "published-module",
 		packageName: "@tomflow/proflow-published-module",
 		kind: "library",
-		installClass: "optional",
 		domain: "deployment-governance",
 		summary: "Generated test fixture",
 	});
@@ -139,7 +137,6 @@ test("FND-P1-01 generated Module builds JS and declarations, packs, and imports 
 		"conformance.json",
 		"README.md",
 		"proflow.module.json",
-		"self-install.mjs",
 	]);
 	assert.equal(
 		Object.values(metadata.exports).some((entry) => entry.endsWith(".ts")),
