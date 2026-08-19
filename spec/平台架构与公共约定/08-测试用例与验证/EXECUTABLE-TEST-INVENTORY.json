@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 136,
-    "testCalls": 746
+    "testCalls": 747
   },
   "tests": [
     {
@@ -5647,7 +5647,7 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
       "line": 419,
-      "title": "start and restart gate on managed preflight before lifecycle dispatch",
+      "title": "start gates on managed preflight before lifecycle dispatch",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5664,7 +5664,25 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 440,
+      "line": 438,
+      "title": "restart bypasses managed preflight and reaches stop-start lifecycle",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/deployment/descriptor.ts",
+        "packages/platform-cli/src/binding/global-binding.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/discovery/discover.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/config.ts",
+        "packages/platform-cli/src/persistence/effective-config.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/cli.test.ts",
+      "line": 451,
       "title": "doctor against the bound real-module workspace returns a structured array",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5682,7 +5700,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 456,
+      "line": 467,
       "title": "manifest materializes .proflow and emits a typed manifest",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5700,7 +5718,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 475,
+      "line": 486,
       "title": "plan --intent install persists a plan with a planRef before binding",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5718,7 +5736,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cli.test.ts",
-      "line": 494,
+      "line": 505,
       "title": "preflight reuses materialized Workspace config after configuration is applied",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

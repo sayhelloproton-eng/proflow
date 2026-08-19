@@ -1260,10 +1260,10 @@ async function handleLifecycle(
 	args: ParsedArgs,
 	primitive: "start" | "stop" | "restart" | "status",
 ): Promise<CliOutcome> {
-	if (primitive === "start" || primitive === "restart") {
+	if (primitive === "start") {
 		const preflight = await handlePreflight(ctx, args);
 		if (preflight.status !== "SUCCEEDED") {
-			return outcome(primitive, preflight.status, preflight.data);
+			return outcome("start", preflight.status, preflight.data);
 		}
 	}
 	const modules = await discoverModules({ catalog: ctx.catalog });

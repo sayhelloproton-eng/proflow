@@ -416,22 +416,33 @@ test("preflight against the bound real-module workspace returns a typed result",
 	}
 });
 
-test("start and restart gate on managed preflight before lifecycle dispatch", async () => {
+test("start gates on managed preflight before lifecycle dispatch", async () => {
 	const fixture = await boundRealWorkspaceFixture();
 	try {
-		for (const command of ["start", "restart"] as const) {
-			const result = await machineResult([command], {
-				cwd: WORKSPACE,
-				globalRoot: fixture.globalRoot,
-			});
-			assert.ok(!Array.isArray(result.data));
-			const data = result.data as { findings?: Array<{ code?: string }> };
-			assert.ok(Array.isArray(data.findings));
-			assert.ok(
-				data.findings.some((finding) => finding.code === "CONFIG_MISSING"),
-			);
-			assert.ok(["ACTION_REQUIRED", "BLOCKED"].includes(result.status));
-		}
+		const result = await machineResult(["start"], {
+			cwd: WORKSPACE,
+			globalRoot: fixture.globalRoot,
+		});
+		assert.ok(!Array.isArray(result.data));
+		const data = result.data as { findings?: Array<{ code?: string }> };
+		assert.ok(Array.isArray(data.findings));
+		assert.ok(
+			data.findings.some((finding) => finding.code === "CONFIG_MISSING"),
+		);
+		assert.ok(["ACTION_REQUIRED", "BLOCKED"].includes(result.status));
+	} finally {
+		await fixture.cleanup();
+	}
+});
+
+test("restart bypasses managed preflight and reaches stop-start lifecycle", async () => {
+	const fixture = await boundRealWorkspaceFixture();
+	try {
+		const result = await machineResult(["restart"], {
+			cwd: WORKSPACE,
+			globalRoot: fixture.globalRoot,
+		});
+		assert.ok(Array.isArray(result.data));
 	} finally {
 		await fixture.cleanup();
 	}
