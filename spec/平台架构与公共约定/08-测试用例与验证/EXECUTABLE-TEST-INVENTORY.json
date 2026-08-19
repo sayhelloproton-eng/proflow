@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 135,
-    "testCalls": 736
+    "testCalls": 737
   },
   "tests": [
     {
@@ -5041,7 +5041,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 254,
+      "line": 255,
       "title": "apply completes when every step is satisfied and records the applied plan",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5060,7 +5060,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 292,
+      "line": 293,
       "title": "apply executes a package step and re-checks the postcondition",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5079,7 +5079,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 321,
+      "line": 322,
       "title": "CP-DPL-CLI-02 resume re-observes reality and skips already-satisfied steps without re-execution",
       "ids": [
         "CP-DPL-CLI-02"
@@ -5100,7 +5100,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 361,
+      "line": 362,
       "title": "configure failure does not commit authoritative public config before the module materializer succeeds",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5119,7 +5119,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 401,
+      "line": 402,
       "title": "configure resume re-executes when every required key exists but persisted values do not match the immutable target",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5138,7 +5138,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 452,
+      "line": 453,
       "title": "upgrade refreshes the catalog after package mutation before target config materialization",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5157,7 +5157,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 519,
+      "line": 520,
       "title": "CP-DPL-CLI-02 a stale plan is BLOCKED and never applied",
       "ids": [
         "CP-DPL-CLI-02"
@@ -5178,7 +5178,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 553,
+      "line": 554,
       "title": "a missing plan throws PLAN_NOT_FOUND",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5197,7 +5197,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 576,
+      "line": 577,
       "title": "a human step persists a pendingAction, returns ACTION_REQUIRED, and stops",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5216,7 +5216,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 630,
+      "line": 631,
       "title": "resume after ACTION_REQUIRED skips the now-verified human step and completes",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5235,7 +5235,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 695,
+      "line": 705,
       "title": "a failing lifecycle step stops the apply, records FAILED, and persists nothing as applied",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5254,7 +5254,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 753,
+      "line": 763,
       "title": "lifecycle uninstall accepts the owner SUCCEEDED result when post-uninstall status is unbound",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5273,7 +5273,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 817,
+      "line": 827,
       "title": "historical success with missing reality is re-executed, not faked as skip",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5292,7 +5292,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 858,
+      "line": 868,
       "title": "config step materializes real config and its postcondition reads from disk",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5311,7 +5311,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/apply-resume.test.ts",
-      "line": 900,
+      "line": 910,
       "title": "external-resource configure dispatches the start primitive and observes resourceConfigured",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9007,7 +9007,7 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
       "line": 340,
-      "title": "a persisted pending action blocks READY as a BLOCKING_ACTION",
+      "title": "a current-version PASS resolves a persisted human pending action in manifest current reality",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -9027,7 +9027,28 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 369,
+      "line": 365,
+      "title": "a latest FAIL does not clear a persisted human pending action",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/manifest/index.ts",
+        "packages/platform-cli/src/modules.ts",
+        "packages/platform-cli/src/paths.ts",
+        "packages/platform-cli/src/persistence/guards.ts",
+        "packages/platform-cli/src/persistence/index.ts",
+        "packages/platform-cli/src/persistence/state.ts",
+        "packages/platform-cli/src/ready/index.ts",
+        "packages/platform-cli/src/verification/index.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/ready-verification.test.ts",
+      "line": 387,
       "title": "a pending action whose plan is COMPLETE no longer blocks READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9048,7 +9069,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 397,
+      "line": 415,
       "title": "clearCompletedPendingActions removes only COMPLETE-plan actions",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9069,7 +9090,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 417,
+      "line": 435,
       "title": "clearPendingActions removes only actions matched by the resolver",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9090,7 +9111,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 437,
+      "line": 455,
       "title": "isDeploymentState validates the new PendingActionRecord structure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -9111,7 +9132,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/ready-verification.test.ts",
-      "line": 474,
+      "line": 492,
       "title": "assessPlatformReady yields ACTION_REQUIRED for a blocking action",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
