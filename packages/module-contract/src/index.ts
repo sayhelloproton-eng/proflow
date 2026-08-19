@@ -218,7 +218,7 @@ export type ModuleStatusObservation = z.infer<
 >;
 
 export function observeDeclaredModuleStatus(
-	descriptor: Pick<ModuleDescriptor, "configSlots">,
+	descriptor: { readonly configSlots: readonly ConfigSlot[] },
 	config: Readonly<Record<string, string>> | undefined,
 	runtimeStatus: ModuleRuntimeStatus,
 	configValid = true,
