@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 119,
-    "testCalls": 495
+    "testCalls": 497
   },
   "tests": [
     {
@@ -5100,6 +5100,17 @@
     },
     {
       "package": "platform-cli",
+      "path": "packages/platform-cli/tests/docs.test.ts",
+      "line": 61,
+      "title": "production binding failures are surfaced instead of downgraded to unbound state",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
       "line": 102,
       "title": "install synchronizes the complete Registry package set in one transaction",
@@ -5267,8 +5278,19 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 8,
+      "line": 9,
       "title": "platform modules reports only Module-owned status facts",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/modules.test.ts",
+      "line": 59,
+      "title": "production bindings keep raw secrets owner-scoped while sharing public config",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
