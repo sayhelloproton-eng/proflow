@@ -108,7 +108,9 @@ export function createBehaviorAdapter(config: Record<string, string> = {}) {
 				result: {
 					...success(),
 					data: {
-						configStatus: reality.ok ? ("READY" as const) : ("INVALID" as const),
+						configStatus: reality.ok
+							? ("READY" as const)
+							: ("INVALID" as const),
 						runtimeStatus: "UNKNOWN" as const,
 					},
 				},
