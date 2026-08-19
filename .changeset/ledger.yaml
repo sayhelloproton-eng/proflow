@@ -122,6 +122,10 @@
   dir: packages/dev-tunnel
   intents:
     - real1-dev-tunnel-detached-lifecycle
+"@tomflow/proflow-dev-tunnel@0.1.5":
+  dir: packages/dev-tunnel
+  intents:
+    - real1-dev-tunnel-idempotent-stop
 "@tomflow/proflow-execution-browser-extension@0.1.1":
   dir: packages/execution-browser-extension
   intents:
