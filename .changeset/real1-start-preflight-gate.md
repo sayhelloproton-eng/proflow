@@ -2,4 +2,4 @@
 "@tomflow/proflow-platform-cli": patch
 ---
 
-Gate `platform start` on managed preflight and return readable preflight findings before lifecycle dispatch.
+Gate `platform start` on managed preflight, make platform-level `restart` a stop-then-start sequence without an extra preflight, and render lifecycle / verify / doctor results clearly for human users.
