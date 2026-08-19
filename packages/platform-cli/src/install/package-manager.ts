@@ -163,7 +163,6 @@ function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
 
-
 export interface WorkspacePackageTarget {
 	packageName: string;
 	version: string;
@@ -203,7 +202,7 @@ export async function syncWorkspacePackages(options: {
 		await runner.run(manager.name, args, options.workspaceRoot);
 	} catch (error) {
 		throw new PlatformError(
-			"APPLY_FAILED",
+			"COMMAND_FAILED",
 			`${manager.name} install failed: ${packageMutationError(error)}`,
 		);
 	}
@@ -249,7 +248,12 @@ export async function observeWorkspaceInstalledVersion(
 ): Promise<string | undefined> {
 	try {
 		const raw = await readFile(
-			join(workspaceRoot, "node_modules", ...packageName.split("/"), "package.json"),
+			join(
+				workspaceRoot,
+				"node_modules",
+				...packageName.split("/"),
+				"package.json",
+			),
 			"utf8",
 		);
 		const parsed: unknown = JSON.parse(raw);
@@ -271,7 +275,8 @@ async function ensureWorkspaceManifest(workspaceRoot: string): Promise<void> {
 	try {
 		const raw = await readFile(path, "utf8");
 		const parsed: unknown = JSON.parse(raw);
-		if (!isRecord(parsed)) throw new Error("package.json root must be an object");
+		if (!isRecord(parsed))
+			throw new Error("package.json root must be an object");
 		return;
 	} catch (error) {
 		if (!isMissingFile(error)) {
@@ -351,7 +356,11 @@ async function batchYarnMajorVersion(
 }
 
 function packageMutationError(error: unknown): string {
-	if (isRecord(error) && typeof error.stderr === "string" && error.stderr.trim() !== "") {
+	if (
+		isRecord(error) &&
+		typeof error.stderr === "string" &&
+		error.stderr.trim() !== ""
+	) {
 		return error.stderr.trim();
 	}
 	return errorMessage(error);

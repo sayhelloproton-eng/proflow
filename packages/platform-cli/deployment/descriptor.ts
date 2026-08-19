@@ -10,7 +10,7 @@ export const descriptor = {
 	identity: {
 		domain: "deployment-governance",
 		summary:
-			"Deterministic platform-level deployment discovery, planning, lifecycle and verification CLI.",
+			"Thin Platform CLI for Module discovery, documentation, package synchronization and lifecycle orchestration.",
 	},
 	provides: [],
 	requires: [],
