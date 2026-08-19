@@ -1,15 +1,7 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { promisify } from "node:util";
-import { gunzipSync } from "node:zlib";
 
-import {
-	type ModuleDescriptor,
-	parseModuleDescriptor,
-	proflowPackageMetadataSchema,
-} from "@tomflow/proflow-module-contract";
+import { proflowPackageMetadataSchema } from "@tomflow/proflow-module-contract";
 
 import { PlatformError } from "../errors.ts";
 import { versionSatisfies } from "../modules.ts";
@@ -151,128 +143,6 @@ export async function discoverRegistryModules(options: {
 		left.packageName.localeCompare(right.packageName),
 	);
 	return { registry, candidates, rejected };
-}
-
-export async function loadRegistryModuleDescriptor(options: {
-	workspaceRoot: string;
-	candidate: RegistryModuleCandidate;
-	runner?: NpmCommandRunner;
-}): Promise<ModuleDescriptor> {
-	const runner = options.runner ?? systemNpmRunner();
-	const tempRoot = await mkdtemp(join(tmpdir(), "proflow-registry-manifest-"));
-	try {
-		const packed = await runner.run(
-			[
-				"pack",
-				`${options.candidate.packageName}@${options.candidate.moduleVersion}`,
-				"--json",
-				"--ignore-scripts",
-				`--pack-destination=${tempRoot}`,
-				`--registry=${options.candidate.registry}`,
-			],
-			options.workspaceRoot,
-		);
-		const filename = packFilename(packed.stdout, options.candidate.packageName);
-		const archive = await readFile(join(tempRoot, filename));
-		const manifestPath = `package/${options.candidate.manifest.replace(/^\.\//, "")}`;
-		const rawManifest = readTarEntry(archive, manifestPath);
-		const descriptor = parseModuleDescriptor(
-			parseJson(
-				rawManifest.toString("utf8"),
-				`${options.candidate.packageName} module manifest`,
-			),
-		);
-		if (
-			descriptor.packageName !== options.candidate.packageName ||
-			descriptor.moduleVersion !== options.candidate.moduleVersion
-		) {
-			throw new PlatformError(
-				"REGISTRY_RESPONSE_INVALID",
-				`Registry manifest identity/version mismatch for ${options.candidate.packageName}@${options.candidate.moduleVersion}`,
-			);
-		}
-		return descriptor;
-	} finally {
-		await rm(tempRoot, { recursive: true, force: true });
-	}
-}
-
-function packFilename(stdout: string, packageName: string): string {
-	const parsed = parseJson(stdout, `npm pack ${packageName}`);
-	if (!Array.isArray(parsed) || parsed.length !== 1 || !isRecord(parsed[0])) {
-		throw new PlatformError(
-			"REGISTRY_RESPONSE_INVALID",
-			`npm pack response is invalid for ${packageName}`,
-		);
-	}
-	const filename = parsed[0].filename;
-	if (
-		typeof filename !== "string" ||
-		filename === "" ||
-		filename.includes("/") ||
-		filename.includes("\\")
-	) {
-		throw new PlatformError(
-			"REGISTRY_RESPONSE_INVALID",
-			`npm pack filename is invalid for ${packageName}`,
-		);
-	}
-	return filename;
-}
-
-function readTarEntry(tgz: Buffer, targetName: string): Buffer {
-	let tar: Buffer;
-	try {
-		tar = gunzipSync(tgz);
-	} catch {
-		throw new PlatformError(
-			"REGISTRY_RESPONSE_INVALID",
-			"npm package tarball is not valid gzip",
-		);
-	}
-	for (let offset = 0; offset + 512 <= tar.length; ) {
-		const header = tar.subarray(offset, offset + 512);
-		if (header.every((byte) => byte === 0)) break;
-		const name = tarString(header, 0, 100);
-		const prefix = tarString(header, 345, 155);
-		const entryName = prefix === "" ? name : `${prefix}/${name}`;
-		const sizeRaw = tarString(header, 124, 12).trim();
-		const size = sizeRaw === "" ? 0 : Number.parseInt(sizeRaw, 8);
-		if (!Number.isSafeInteger(size) || size < 0) {
-			throw new PlatformError(
-				"REGISTRY_RESPONSE_INVALID",
-				"npm package tarball has an invalid entry size",
-			);
-		}
-		const dataStart = offset + 512;
-		const dataEnd = dataStart + size;
-		if (dataEnd > tar.length) {
-			throw new PlatformError(
-				"REGISTRY_RESPONSE_INVALID",
-				"npm package tarball is truncated",
-			);
-		}
-		if (entryName === targetName) {
-			if (size > 1024 * 1024) {
-				throw new PlatformError(
-					"REGISTRY_RESPONSE_INVALID",
-					"ProFlow module manifest exceeds 1 MiB",
-				);
-			}
-			return tar.subarray(dataStart, dataEnd);
-		}
-		offset = dataStart + Math.ceil(size / 512) * 512;
-	}
-	throw new PlatformError(
-		"REGISTRY_RESPONSE_INVALID",
-		`npm package tarball does not contain ${targetName}`,
-	);
-}
-
-function tarString(header: Buffer, start: number, length: number): string {
-	const field = header.subarray(start, start + length);
-	const end = field.indexOf(0);
-	return field.subarray(0, end < 0 ? field.length : end).toString("utf8");
 }
 
 async function searchPackageNames(

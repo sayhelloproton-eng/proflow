@@ -7,7 +7,6 @@ export type {
 } from "./npm-registry.ts";
 export {
 	discoverRegistryModules,
-	loadRegistryModuleDescriptor,
 	PRO_FLOW_PACKAGE_PREFIX,
 	PRO_FLOW_SCOPE,
 	resolveScopeRegistry,
