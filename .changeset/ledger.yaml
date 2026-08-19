@@ -242,6 +242,10 @@
   dir: packages/platform-cli
   intents:
     - real1-pnpm-uninstall
+"@tomflow/proflow-platform-cli@0.1.12":
+  dir: packages/platform-cli
+  intents:
+    - real1-pnpm-uninstall-cleanup
 "@tomflow/proflow-platform-cli@0.1.2":
   dir: packages/platform-cli
   intents:
