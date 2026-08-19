@@ -238,6 +238,10 @@
   dir: packages/platform-cli
   intents:
     - real1-upgrade-apply-current-config
+"@tomflow/proflow-platform-cli@0.1.8":
+  dir: packages/platform-cli
+  intents:
+    - real1-human-current-reality
 "@tomflow/proflow-platform-host@0.1.1":
   dir: packages/platform-host
   intents:
