@@ -118,6 +118,9 @@ export function createBehaviorAdapter(input?: { probe: ChromeRuntimeProbe }) {
 				return {
 					result: {
 						...success(),
+						...(observation.resourceVersion === undefined
+							? {}
+							: { resourceVersion: observation.resourceVersion }),
 						checks: [
 							{
 								id: "chrome-version",
@@ -140,6 +143,9 @@ export function createBehaviorAdapter(input?: { probe: ChromeRuntimeProbe }) {
 						"load-and-verify-extension",
 						"Load and verify the unpacked MV3 extension in the real Chrome profile",
 					),
+					...(observation.resourceVersion === undefined
+						? {}
+						: { resourceVersion: observation.resourceVersion }),
 					checks: [
 						{
 							id: "chrome-version",

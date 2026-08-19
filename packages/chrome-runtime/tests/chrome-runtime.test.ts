@@ -26,6 +26,12 @@ const availableWithoutExtension: ChromeRuntimeObservation = {
 	extensionLoaded: false,
 };
 
+const availableWithExtension: ChromeRuntimeObservation = {
+	available: true,
+	resourceVersion: "Chrome 150.0.0.0",
+	extensionLoaded: true,
+};
+
 test("parseModuleDescriptor accepts the chrome-runtime descriptor", () => {
 	const parsed = parseModuleDescriptor(descriptor);
 	assert.equal(parsed.moduleRef, "chrome-runtime");
@@ -54,14 +60,26 @@ test("adapter returns ACTION_REQUIRED, not SUCCEEDED, when no real Chrome or ext
 	const withoutExtensionAdapter = createBehaviorAdapter({
 		probe: async () => availableWithoutExtension,
 	});
+	const withoutExtensionStatus = await withoutExtensionAdapter.status();
+	assert.equal(withoutExtensionStatus.result.status, "SUCCEEDED");
 	assert.equal(
-		(await withoutExtensionAdapter.status()).result.status,
-		"SUCCEEDED",
+		withoutExtensionStatus.result.resourceVersion,
+		"Chrome 150.0.0.0",
 	);
+	const withoutExtensionVerify = await withoutExtensionAdapter.verify();
+	assert.equal(withoutExtensionVerify.result.status, "ACTION_REQUIRED");
+	assert.ok("resourceVersion" in withoutExtensionVerify.result);
 	assert.equal(
-		(await withoutExtensionAdapter.verify()).result.status,
-		"ACTION_REQUIRED",
+		withoutExtensionVerify.result.resourceVersion,
+		"Chrome 150.0.0.0",
 	);
+
+	const withExtensionAdapter = createBehaviorAdapter({
+		probe: async () => availableWithExtension,
+	});
+	const withExtensionVerify = await withExtensionAdapter.verify();
+	assert.equal(withExtensionVerify.result.status, "SUCCEEDED");
+	assert.equal(withExtensionVerify.result.resourceVersion, "Chrome 150.0.0.0");
 });
 
 test("explicit Chrome probe tolerates a slow but healthy version response beyond five seconds", async () => {
