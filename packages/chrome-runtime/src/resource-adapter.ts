@@ -9,16 +9,23 @@ export interface ChromeRuntimeObservation {
 
 export type ChromeRuntimeProbe = () => Promise<ChromeRuntimeObservation>;
 
+const CHROME_VERSION_PROBE_TIMEOUT_MS = 15_000;
+
 function readVersion(command: string): Promise<string | undefined> {
 	return new Promise<string | undefined>((resolve) => {
-		execFile(command, ["--version"], { timeout: 5_000 }, (error, stdout) => {
-			if (error) {
-				resolve(undefined);
-				return;
-			}
-			const version = stdout.trim();
-			resolve(version.length > 0 ? version : undefined);
-		});
+		execFile(
+			command,
+			["--version"],
+			{ timeout: CHROME_VERSION_PROBE_TIMEOUT_MS },
+			(error, stdout) => {
+				if (error) {
+					resolve(undefined);
+					return;
+				}
+				const version = stdout.trim();
+				resolve(version.length > 0 ? version : undefined);
+			},
+		);
 	});
 }
 

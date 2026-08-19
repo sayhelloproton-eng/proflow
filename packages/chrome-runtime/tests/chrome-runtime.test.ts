@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { parseModuleDescriptor } from "@tomflow/proflow-module-contract";
@@ -7,7 +10,10 @@ import {
 	createBehaviorAdapter,
 } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
-import type { ChromeRuntimeObservation } from "../src/resource-adapter.ts";
+import {
+	type ChromeRuntimeObservation,
+	probeChromeRuntime,
+} from "../src/resource-adapter.ts";
 
 const unavailable: ChromeRuntimeObservation = {
 	available: false,
@@ -56,6 +62,24 @@ test("adapter returns ACTION_REQUIRED, not SUCCEEDED, when no real Chrome or ext
 		(await withoutExtensionAdapter.verify()).result.status,
 		"ACTION_REQUIRED",
 	);
+});
+
+test("explicit Chrome probe tolerates a slow but healthy version response beyond five seconds", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-chrome-slow-probe-"));
+	const executable = join(root, "slow-chrome");
+	try {
+		await writeFile(
+			executable,
+			"#!/bin/sh\nsleep 5.5\nprintf 'Slow Chrome 1.0.0\\n'\n",
+			"utf8",
+		);
+		await chmod(executable, 0o755);
+		const observation = await probeChromeRuntime(executable);
+		assert.equal(observation.available, true);
+		assert.equal(observation.resourceVersion, "Slow Chrome 1.0.0");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
 });
 
 test("adapter exposes no start/stop/restart lifecycle", () => {
