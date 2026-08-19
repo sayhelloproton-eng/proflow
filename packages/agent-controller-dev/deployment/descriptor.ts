@@ -1,78 +1,74 @@
 export const descriptor = {
-	"contract": "module",
-	"contractVersion": "1.0.0",
-	"moduleRef": "agent-controller-dev",
-	"packageName": "@tomflow/proflow-agent-controller-dev",
-	"moduleVersion": "0.1.4",
-	"kind": "agent-package",
-	"templateVersion": "1.0.0",
-	"platformCompatibility": ">=1.0.0 <2.0.0",
-	"identity": {
-		"domain": "agent-runtime-collaboration",
-		"summary": "Versioned Controller/Development Custom GPT materialization package for the fixed Controller-Dev role."
+	contract: "module",
+	contractVersion: "1.0.0",
+	moduleRef: "agent-controller-dev",
+	packageName: "@tomflow/proflow-agent-controller-dev",
+	moduleVersion: "0.1.4",
+	kind: "agent-package",
+	templateVersion: "1.0.0",
+	platformCompatibility: ">=1.0.0 <2.0.0",
+	identity: {
+		domain: "agent-runtime-collaboration",
+		summary:
+			"Versioned Controller/Development Custom GPT materialization package for the fixed Controller-Dev role.",
 	},
-	"provides": [],
-	"requires": [
+	provides: [],
+	requires: [
 		{
-			"contractRef": "custom-gpt-actions-gateway",
-			"versionRange": ">=1.0.0 <2.0.0"
-		}
+			contractRef: "custom-gpt-actions-gateway",
+			versionRange: ">=1.0.0 <2.0.0",
+		},
 	],
-	"requirements": [
+	requirements: [
 		{
-			"kind": "runtime",
-			"runtime": "node",
-			"versionRange": ">=24.19.0"
+			kind: "runtime",
+			runtime: "node",
+			versionRange: ">=24.19.0",
 		},
 		{
-			"kind": "network",
-			"url": "https://chatgpt.com/"
-		}
+			kind: "network",
+			url: "https://chatgpt.com/",
+		},
 	],
-	"configSlots": [
+	configSlots: [
 		{
-			"key": "carrierModuleRef",
-			"type": "moduleRef",
-			"required": false,
-			"description": "External resource module governing the Custom GPT carrier",
-			"default": "chatgpt-carrier"
-		}
+			key: "carrierModuleRef",
+			type: "moduleRef",
+			required: false,
+			description: "External resource module governing the Custom GPT carrier",
+			default: "chatgpt-carrier",
+		},
 	],
-	"lifecycle": {
-		"supported": [
-			"describe",
-			"preflight",
-			"status",
-			"verify",
-			"doctor"
-		]
+	lifecycle: {
+		supported: ["describe", "preflight", "status", "verify", "doctor"],
 	},
-	"verification": {
-		"checks": [
+	verification: {
+		checks: [
 			{
-				"id": "agent-package-material",
-				"description": "Static Custom GPT package material is complete",
-				"lifecycle": "verify"
-			}
-		]
+				id: "agent-package-material",
+				description: "Static Custom GPT package material is complete",
+				lifecycle: "verify",
+			},
+		],
 	},
-	"effects": [
+	effects: [
 		{
-			"kind": "external-resource",
-			"description": "Register an agent package through an explicit action",
-			"retention": "preserve"
-		}
+			kind: "external-resource",
+			description: "Register an agent package through an explicit action",
+			retention: "preserve",
+		},
 	],
-	"documentation": [
+	documentation: [
 		{
-			"id": "overview",
-			"path": "./README.md",
-			"description": "Package-owned module overview"
+			id: "overview",
+			path: "./README.md",
+			description: "Package-owned module overview",
 		},
 		{
-			"id": "configuration",
-			"path": "./CONFIGURATION.md",
-			"description": "Module configuration fields, sources and materialization instructions"
-		}
-	]
+			id: "configuration",
+			path: "./CONFIGURATION.md",
+			description:
+				"Module configuration fields, sources and materialization instructions",
+		},
+	],
 } as const;
