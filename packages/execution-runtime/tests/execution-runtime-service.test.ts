@@ -109,6 +109,58 @@ test("PRESMOKE-B4-RUNTIME-01 configured identity and transport dependencies part
 	}
 });
 
+test("REAL1 execution /ready re-probes recoverable identity and model dependencies", async () => {
+	const { config } = await fixture();
+	let identityReady = false;
+	let modelReady = false;
+	let refreshCount = 0;
+	const transportCredential = "execution-ready-refresh-credential-0123456789";
+	const service = await createExecutionRuntimeProcess({
+		config: {
+			...config,
+			transportCredentialFile: "/tmp/execution-transport.token",
+			identity: {
+				endpoint: "http://127.0.0.1:47830",
+				tokenFile: "/tmp/execution-identity.token",
+			},
+			modelDecision: {
+				endpoint: "http://127.0.0.1:47831",
+				credentialFile: "/tmp/execution-model.token",
+			},
+		},
+		transportCredential,
+		identity: { authorize: async () => true },
+		identityReadiness: () => identityReady,
+		modelDecision: {
+			decide: async () => ({ decision: "ALLOW", decisionPath: "fast" }),
+		},
+		modelDecisionReadiness: () => modelReady,
+		requireModelDecision: true,
+		refreshDependencies: async () => {
+			refreshCount += 1;
+			identityReady = true;
+			modelReady = true;
+		},
+	});
+	const address = await service.start();
+	try {
+		assert.equal(service.status().readiness, "NOT_READY");
+		const response = await fetch(
+			`http://${address.host}:${address.port}/ready`,
+			{
+				headers: { authorization: `Bearer ${transportCredential}` },
+			},
+		);
+		assert.equal(response.status, 200);
+		assert.equal(refreshCount, 1);
+		assert.equal(service.status().identity, "READY");
+		assert.equal(service.status().modelDecision, "READY");
+		assert.equal(service.status().readiness, "READY");
+	} finally {
+		await service.stop();
+	}
+});
+
 test("CP-EXE-RT-14 specialised Context Pack/Patch APIs return durable executionRef and reuse idempotent Execution truth", async () => {
 	const { config } = await fixture();
 	const service = await createExecutionRuntimeProcess({ config });

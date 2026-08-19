@@ -185,6 +185,7 @@ export async function createExecutionRuntimeProcess(input: {
 	policy?: ExecutionRuntimeOptions["policy"];
 	modelDecision?: ExecutionRuntimeOptions["modelDecision"];
 	modelDecisionReadiness?: () => boolean;
+	refreshDependencies?: () => Promise<void>;
 	approval?: ExecutionRuntimeOptions["approval"];
 	log?: (entry: Record<string, unknown>) => void;
 	transportCredential?: string;
@@ -292,7 +293,15 @@ export async function createExecutionRuntimeProcess(input: {
 					if (request.method === "GET" && url.pathname === "/health")
 						return respond(response, 200, { status: "UP" });
 					if (request.method === "GET" && url.pathname === "/ready") {
-						const current = status();
+						let current = status();
+						if (current.readiness !== "READY" && input.refreshDependencies) {
+							try {
+								await input.refreshDependencies();
+							} catch {
+								// Keep readiness fail-closed when the bounded dependency re-probe fails.
+							}
+							current = status();
+						}
 						return respond(
 							response,
 							current.readiness === "READY" ? 200 : 503,

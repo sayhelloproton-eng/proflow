@@ -45,13 +45,7 @@
 		}
 	],
 	"lifecycle": {
-		"supported": [
-			"describe",
-			"preflight",
-			"status",
-			"verify",
-			"doctor"
-		]
+		"supported": ["describe", "preflight", "status", "verify", "doctor"]
 	},
 	"verification": {
 		"checks": [

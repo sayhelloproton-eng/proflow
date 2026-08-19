@@ -28,16 +28,20 @@ async function createIdentityClient(config: {
 	const token = await readSecret(config.tokenFile, "execution identity token");
 	let ready = false;
 	const headers = { authorization: `Bearer ${token}` };
-	try {
-		ready = (
-			await fetch(`${config.endpoint}/internal/execution/identity/ready`, {
-				headers,
-				signal: AbortSignal.timeout(2_000),
-			})
-		).ok;
-	} catch {
-		ready = false;
-	}
+	const probe = async () => {
+		try {
+			ready = (
+				await fetch(`${config.endpoint}/internal/execution/identity/ready`, {
+					headers,
+					signal: AbortSignal.timeout(2_000),
+				})
+			).ok;
+		} catch {
+			ready = false;
+		}
+		return ready;
+	};
+	await probe();
 	return {
 		port: {
 			async authorize(request: unknown) {
@@ -61,6 +65,7 @@ async function createIdentityClient(config: {
 				}
 			},
 		},
+		probe,
 		readiness: () => ready,
 	};
 }
@@ -125,7 +130,19 @@ export function createFormalExecutionRuntimeLifecycle(input: {
 				: { timeoutMs: required.modelDecision.timeoutMs }),
 			credential: modelDecisionCredential,
 		});
-		await modelDecisionClient.probe();
+		let dependencyRefresh: Promise<void> | undefined;
+		const refreshDependencies = () => {
+			dependencyRefresh ??= Promise.allSettled([
+				identityClient.probe(),
+				modelDecisionClient.probe(),
+			])
+				.then(() => undefined)
+				.finally(() => {
+					dependencyRefresh = undefined;
+				});
+			return dependencyRefresh;
+		};
+		await refreshDependencies();
 		const browserVisionClient = createExecutionBrowserVisionClient({
 			endpoint: required.modelDecision.endpoint,
 			...(required.modelDecision.timeoutMs === undefined
@@ -148,6 +165,7 @@ export function createFormalExecutionRuntimeLifecycle(input: {
 				requireModelDecision: true,
 				modelDecision: modelDecisionClient.port,
 				modelDecisionReadiness: modelDecisionClient.readiness,
+				refreshDependencies,
 				browserExecutor: browserComposition.browserExecutor,
 				browserReadiness: () => browserComposition.bridgeStatus().online,
 				carrierSummary: () => browserComposition.bridgeStatus(),
