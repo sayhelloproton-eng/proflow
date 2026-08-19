@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 135,
-    "testCalls": 733
+    "testCalls": 734
   },
   "tests": [
     {
@@ -1063,7 +1063,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 11,
+      "line": 15,
       "title": "parseModuleDescriptor accepts the chatgpt-carrier descriptor",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1076,7 +1076,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 19,
+      "line": 23,
       "title": "adapter reports ACTION_REQUIRED instead of SUCCEEDED without a real carrier",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1089,7 +1089,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 37,
+      "line": 41,
       "title": "external-resource adapter exposes no start/stop/restart",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1102,7 +1102,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 51,
+      "line": 55,
       "title": "reachability alone never passes schema/auth checks",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1115,7 +1115,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 76,
+      "line": 80,
       "title": "preflight can SUCCEED when all required checks are VERIFIED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1128,7 +1128,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 93,
+      "line": 97,
       "title": "preflight returns ACTION_REQUIRED when required checks are UNVERIFIED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1141,7 +1141,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 110,
+      "line": 114,
       "title": "reachable-only observation cannot make doctor SUCCEED",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1154,8 +1154,21 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 127,
+      "line": 131,
       "title": "doctor can SUCCEED when all required checks are VERIFIED",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/chatgpt-carrier/deployment/adapter.ts",
+        "packages/chatgpt-carrier/deployment/descriptor.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "chatgpt-carrier",
+      "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
+      "line": 148,
+      "title": "production status accepts protected 401/403 only with healthy Web verification evidence",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [

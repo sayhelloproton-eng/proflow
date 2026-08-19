@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { parseModuleDescriptor } from "@tomflow/proflow-module-contract";
 import {
 	behaviorAdapter,
 	createBehaviorAdapter,
+	createProductionBinding,
 } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
 
@@ -139,4 +143,51 @@ test("doctor can SUCCEED when all required checks are VERIFIED", async () => {
 	});
 	const doctor = await adapter.doctor();
 	assert.equal(doctor.result.status, "SUCCEEDED");
+});
+
+test("production status accepts protected 401/403 only with healthy Web verification evidence", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-chatgpt-carrier-status-"));
+	const carrierUrl = "https://chatgpt.com/";
+	const evidenceFile = join(root, "carrier-evidence.json");
+	const originalFetch = globalThis.fetch;
+	try {
+		await writeFile(
+			evidenceFile,
+			JSON.stringify({
+				contract: "proflow.chatgpt-carrier-verification.v1",
+				carrierUrl,
+				observedAt: "2026-08-19T00:00:00.000Z",
+				reachable: "VERIFIED",
+				actionsEnabled: "VERIFIED",
+				openApiInstalled: "VERIFIED",
+				actionAuthValid: "VERIFIED",
+				fileBridge: "VERIFIED",
+				codeInterpreter: "VERIFIED",
+				webSearch: "VERIFIED",
+				appsDisabledWhenRequired: "VERIFIED",
+			}),
+		);
+		const binding = createProductionBinding({
+			moduleRef: "chatgpt-carrier",
+			config: { carrierUrl, verificationEvidenceFile: evidenceFile },
+		});
+		const status = binding.behaviorAdapter.status as () => Promise<{
+			result: { status: string; checks?: { message: string }[] };
+		}>;
+
+		globalThis.fetch = async () => new Response(null, { status: 403 });
+		const protectedStatus = await status();
+		assert.equal(protectedStatus.result.status, "SUCCEEDED");
+		assert.match(
+			protectedStatus.result.checks?.[0]?.message ?? "",
+			/protected.*403/i,
+		);
+
+		globalThis.fetch = async () => new Response(null, { status: 404 });
+		const missingStatus = await status();
+		assert.equal(missingStatus.result.status, "ACTION_REQUIRED");
+	} finally {
+		globalThis.fetch = originalFetch;
+		await rm(root, { recursive: true, force: true });
+	}
 });

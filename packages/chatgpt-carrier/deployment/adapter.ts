@@ -379,17 +379,31 @@ export function createProductionBinding(input: {
 						redirect: "follow",
 						signal: AbortSignal.timeout(5_000),
 					});
-					return response.ok
-						? {
+					if (response.ok) {
+						return {
+							availability: "AVAILABLE" as const,
+							evidence: "real" as const,
+							message: "Configured Custom GPT carrier URL is reachable",
+						};
+					}
+					if (response.status === 401 || response.status === 403) {
+						const verification = await readProductionVerificationEvidence(
+							verificationEvidenceFile,
+							carrierUrl,
+						);
+						if (evaluateCarrierObservation(verification) === "HEALTHY") {
+							return {
 								availability: "AVAILABLE" as const,
 								evidence: "real" as const,
-								message: "Configured Custom GPT carrier URL is reachable",
-							}
-						: {
-								availability: "UNAVAILABLE" as const,
-								evidence: "real" as const,
-								message: `Carrier URL returned HTTP ${response.status}`,
+								message: `Carrier URL is protected (HTTP ${response.status}) and verified Web carrier evidence is healthy`,
 							};
+						}
+					}
+					return {
+						availability: "UNAVAILABLE" as const,
+						evidence: "real" as const,
+						message: `Carrier URL returned HTTP ${response.status}`,
+					};
 				} catch (error) {
 					return {
 						availability: "UNKNOWN" as const,
