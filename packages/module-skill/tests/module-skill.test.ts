@@ -15,7 +15,7 @@ import {
 
 const SKILL_SECTIONS = [
 	"Source Order",
-	"Required Owner Facts For Create",
+	"Required Frozen Owner Facts",
 	"Create Flow",
 	"Modify Flow",
 	"Forbidden",
@@ -26,8 +26,8 @@ const SKILL_SECTIONS = [
 const REQUIRED_OWNER_FACTS = [
 	"moduleRef",
 	"packageName",
+	"moduleVersion",
 	"kind",
-	"installClass",
 	"domain",
 	"summary",
 ] as const;
@@ -41,7 +41,7 @@ const OWNER_CONTENT_FACTS = [
 	"lifecycle",
 	"verification",
 	"effects",
-	"docs",
+	"documentation",
 ] as const;
 
 async function readSkill(): Promise<string> {
@@ -91,11 +91,10 @@ test("CP-DPL-SKILL-01 SKILL.md references only the frozen fact vocabulary", asyn
 
 test("CP-DPL-SKILL-02 package and descriptor carry no process lifecycle, persistence, service, or business store", async () => {
 	const pkg = await readPackageJson();
-	assert.deepEqual(pkg.bin, {
-		"proflow-module-skill": "./self-install.mjs",
-	});
+	assert.equal(pkg.bin, undefined);
+	assert.doesNotMatch(JSON.stringify(pkg), /self-install\.mjs/);
 	assert.equal(kind, "library");
-	assert.deepEqual(descriptor.lifecycle.supported, ["verify"]);
+	assert.deepEqual(descriptor.lifecycle.supported, ["verify", "status"]);
 	assert.deepEqual(descriptor.effects, []);
 	assert.equal(descriptor.requirements.length, 1);
 	assert.equal(descriptor.requirements[0]?.kind, "runtime");
