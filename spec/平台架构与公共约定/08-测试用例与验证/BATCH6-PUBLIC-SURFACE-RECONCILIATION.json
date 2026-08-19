@@ -155,24 +155,19 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-agent-runtime",
-          "target": "./self-install.mjs",
-          "source": "packages/agent-runtime/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "AGENT_CONTRACT_VERSION",
         "AgentRuntimeError",
         "AgentRuntimeOptions",
         "CollaborationMessage",
         "CollaborationThread",
+        "DurableRoleRegistrationReality",
         "RegisteredRole",
         "TaskFacts",
         "TaskPublicPort",
-        "createAgentRuntime"
+        "createAgentRuntime",
+        "inspectDurableRoleRegistration"
       ],
       "classification": "CLASSIFIED"
     },
@@ -234,14 +229,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-chatgpt-carrier",
-          "target": "./self-install.mjs",
-          "source": "packages/chatgpt-carrier/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "behaviorAdapter",
         "createBehaviorAdapter",
@@ -271,14 +259,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-chrome-runtime",
-          "target": "./self-install.mjs",
-          "source": "packages/chrome-runtime/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "behaviorAdapter",
         "createBehaviorAdapter",
@@ -332,12 +313,6 @@
           "target": "./dist/src/cli.js",
           "source": "packages/deployment-conformance/src/cli.ts",
           "classification": "SHIPPED_BINARY"
-        },
-        {
-          "name": "proflow-deployment-conformance",
-          "target": "./self-install.mjs",
-          "source": "packages/deployment-conformance/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
         }
       ],
       "publicIndexSymbols": [
@@ -379,14 +354,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-dev-tunnel",
-          "target": "./self-install.mjs",
-          "source": "packages/dev-tunnel/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "behaviorAdapter",
         "createBehaviorAdapter",
@@ -426,13 +394,19 @@
           "target": "./dist/src/runtime-composition.js",
           "source": "packages/execution-browser-extension/src/runtime-composition.ts",
           "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./configure",
+          "target": "./dist/src/configure.js",
+          "source": "packages/execution-browser-extension/src/configure.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
       "binaries": [
         {
           "name": "proflow-execution-browser-extension",
-          "target": "./self-install.mjs",
-          "source": "packages/execution-browser-extension/self-install.mjs",
+          "target": "./dist/src/configure.js",
+          "source": "packages/execution-browser-extension/src/configure.ts",
           "classification": "SHIPPED_BINARY"
         }
       ],
@@ -503,14 +477,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-execution-contracts",
-          "target": "./self-install.mjs",
-          "source": "packages/execution-contracts/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "ArtifactMaterializationResponse",
         "ArtifactRef",
@@ -617,14 +584,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-execution-local",
-          "target": "./self-install.mjs",
-          "source": "packages/execution-local/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "ContextPackEntryInput",
         "ContextPackManifestEntry",
@@ -729,14 +689,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-model-contracts",
-          "target": "./self-install.mjs",
-          "source": "packages/model-contracts/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "BrowserPageVisionInput",
         "BrowserPageVisionObservation",
@@ -788,14 +741,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-model-provider-api",
-          "target": "./self-install.mjs",
-          "source": "packages/model-provider-api/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "RESOURCE_IDENTITY",
         "RESOURCE_IDENTITY_VERSION",
@@ -899,14 +845,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-module-contract",
-          "target": "./self-install.mjs",
-          "source": "packages/module-contract/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "CompatibilityAssessment",
         "ConfigSlot",
@@ -918,17 +857,18 @@
         "HumanAction",
         "LifecyclePrimitive",
         "LifecycleSupport",
+        "ModuleConfigStatus",
         "ModuleDescriptor",
         "ModuleDocumentationEntry",
         "ModuleIdentity",
-        "ModuleInstallClass",
         "ModuleKind",
         "ModuleOperationResult",
         "ModuleProvide",
         "ModuleRequire",
         "ModuleRequirement",
+        "ModuleRuntimeStatus",
+        "ModuleStatusObservation",
         "ProFlowPackageMetadata",
-        "ServiceProcessBinding",
         "VerificationContract",
         "assessModuleCompatibility",
         "configSlotSchema",
@@ -941,19 +881,21 @@
         "humanActionSchema",
         "lifecyclePrimitiveSchema",
         "lifecycleSupportSchema",
+        "moduleConfigStatusSchema",
         "moduleDescriptorSchema",
         "moduleDocumentationEntrySchema",
         "moduleIdentitySchema",
-        "moduleInstallClassSchema",
         "moduleKindSchema",
         "moduleOperationResultSchema",
         "moduleProvideSchema",
         "moduleRequireSchema",
         "moduleRequirementSchema",
+        "moduleRuntimeStatusSchema",
+        "moduleStatusObservationSchema",
+        "observeDeclaredModuleStatus",
         "parseModuleDescriptor",
         "proflowPackageMetadataSchema",
         "queryRequirements",
-        "serviceProcessBindingSchema",
         "verificationCheckSchema",
         "verificationContractSchema"
       ],
@@ -981,14 +923,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-module-skill",
-          "target": "./self-install.mjs",
-          "source": "packages/module-skill/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "FROZEN_FACT_CATEGORIES",
         "STOP_RULE_TOKENS",
@@ -1094,62 +1029,11 @@
       ],
       "publicIndexSymbols": [
         "AutoModuleCatalog",
-        "CheckStrategy",
-        "ExecuteStrategy",
-        "MANIFEST_CONTRACT",
         "PlatformError",
-        "SECRET_REDACTED",
-        "acquireWorkspaceLock",
-        "appendVerification",
-        "applyPlan",
-        "assessPlatformReady",
-        "assessUpgrade",
-        "atomicWrite",
-        "buildManifest",
-        "checkPlanStale",
-        "computeFingerprint",
-        "createWorkspacePackageManagerDriver",
-        "describeModule",
+        "aggregateModuleDocs",
         "discoverModules",
-        "discoverRegistryModules",
-        "dispatchLifecycle",
-        "doctorModule",
-        "doctorModules",
-        "emptyDeploymentState",
-        "evaluateStepCheck",
-        "generateInstallDoc",
-        "listPlans",
-        "loadConfig",
-        "loadDeploymentState",
-        "loadLatestVerification",
-        "loadPlan",
-        "loadVerificationHistory",
-        "materializeConfig",
-        "planDeployment",
-        "planRepair",
-        "planUpgrade",
-        "preflightInstallerEnvironment",
-        "readModuleDocument",
-        "readWorkspaceLock",
-        "redactDeep",
-        "redactPlanSecrets",
-        "redactSecretValues",
-        "renderInstallDoc",
-        "repairFactCodes",
-        "restartModules",
-        "runCli",
-        "runPreflight",
-        "saveDeploymentState",
-        "savePlan",
-        "startModules",
-        "statusModules",
-        "stopModules",
-        "verifyModule",
-        "verifyModules",
-        "versionSatisfies",
-        "workspaceLockPath",
-        "workspacePaths",
-        "writeInstallDoc"
+        "renderHumanResult",
+        "runCli"
       ],
       "classification": "CLASSIFIED"
     },
@@ -1238,12 +1122,6 @@
           "target": "./dist/src/cli.js",
           "source": "packages/task-migration-runner/src/cli.ts",
           "classification": "SHIPPED_BINARY"
-        },
-        {
-          "name": "proflow-task-migration-runner",
-          "target": "./self-install.mjs",
-          "source": "packages/task-migration-runner/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
         }
       ],
       "publicIndexSymbols": [
@@ -1280,14 +1158,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-task-orchestration",
-          "target": "./self-install.mjs",
-          "source": "packages/task-orchestration/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "DocumentResult",
         "NodeResult",
@@ -1331,14 +1202,7 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-task-store-sqlite",
-          "target": "./self-install.mjs",
-          "source": "packages/task-store-sqlite/self-install.mjs",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "SqliteTaskStore",
         "TaskMigration",
