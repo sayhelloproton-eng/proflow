@@ -69,6 +69,7 @@ interface ParsedArgs {
 function parseArgs(argv: readonly string[]): ParsedArgs {
 	let json = false;
 	let workspace: string | undefined;
+	let special: "help" | "version" | undefined;
 	const positional: string[] = [];
 	for (let index = 0; index < argv.length; index += 1) {
 		const value = argv[index];
@@ -89,40 +90,58 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 			index += 1;
 			continue;
 		}
-		if (value === "--help" || value === "-h") positional.push("help");
-		else if (value === "--version" || value === "-v")
-			positional.push("version");
-		else if (value.startsWith("-")) {
+		if (value === "--help" || value === "-h") {
+			if (special !== undefined && special !== "help")
+				throw new PlatformError(
+					"INVALID_REQUEST",
+					"help and version flags cannot be combined",
+				);
+			special = "help";
+			continue;
+		}
+		if (value === "--version" || value === "-v") {
+			if (special !== undefined && special !== "version")
+				throw new PlatformError(
+					"INVALID_REQUEST",
+					"help and version flags cannot be combined",
+				);
+			special = "version";
+			continue;
+		}
+		if (value.startsWith("-"))
 			throw new PlatformError("INVALID_REQUEST", `unknown option ${value}`);
-		} else positional.push(value);
+		positional.push(value);
 	}
-	if (positional.length === 0) return { command: "help", json };
-	if (positional.length !== 1) {
-		throw new PlatformError(
-			"INVALID_REQUEST",
-			"commands accept no positional arguments",
-		);
+	if (special !== undefined) {
+		if (workspace !== undefined || positional.length > 0)
+			throw new PlatformError(
+				"INVALID_REQUEST",
+				`${special} flag cannot be combined with a command or --workspace`,
+			);
+		return { command: special, json };
 	}
-	const raw = positional[0] ?? "help";
-	if (raw === "help" || raw === "version") {
-		if (workspace !== undefined) {
+	if (positional.length === 0) {
+		if (workspace !== undefined)
 			throw new PlatformError(
 				"INVALID_REQUEST",
 				"--workspace is only valid with install",
 			);
-		}
-		return { command: raw, json };
+		return { command: "help", json };
 	}
-	if (!COMMANDS.includes(raw as Command)) {
+	if (positional.length !== 1)
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			"commands accept no positional arguments",
+		);
+	const raw = positional[0] ?? "";
+	if (!COMMANDS.includes(raw as Command))
 		throw new PlatformError("INVALID_REQUEST", `unknown command ${raw}`);
-	}
 	const command = raw as Command;
-	if (workspace !== undefined && command !== "install") {
+	if (workspace !== undefined && command !== "install")
 		throw new PlatformError(
 			"INVALID_REQUEST",
 			"--workspace is only valid with install",
 		);
-	}
 	return workspace === undefined
 		? { command, json }
 		: { command, workspace, json };
@@ -253,7 +272,8 @@ async function handleModules(root: string): Promise<CliOutcome> {
 	return outcome("modules", "SUCCEEDED", root, { modules: output });
 }
 async function handleDocs(root: string): Promise<CliOutcome> {
-	const { catalog, modules } = await buildContext(root);
+	const catalog = new AutoModuleCatalog(root);
+	const modules = await discoverModules({ workspaceRoot: root, catalog });
 	const docs = await aggregateModuleDocs(root, catalog, modules);
 	return outcome("docs", "SUCCEEDED", root, { modules: docs });
 }

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import type { ResolvedModule } from "../contracts.ts";
+import { PlatformError } from "../errors.ts";
 
 type ResolvedSource = ResolvedModule["source"];
 
@@ -73,9 +74,11 @@ export async function importRawAdapter(
  * module it imports the module's own `deployment/adapter.ts` and, when that
  * adapter exposes a `createProductionBinding` factory, invokes it with the
  * module's materialized config to obtain a real bound adapter. A module without
- * a production factory — or whose import/factory fails, or which has no
- * materialized config the adapter accepts — is left out of the map, so the
- * catalog falls back to the module's unbound default, which must fail-closed
+ * a production factory, or whose materialized config the adapter does not accept,
+ * is left out of the map. Import/factory exceptions are surfaced with module
+ * identity instead of being mistaken for ordinary unconfigured state. The
+ * catalog falls back to the module's unbound default only for explicit undefined
+ * bindings, which must fail-closed
  * (ACTION_REQUIRED / NOT_READY). Platform CLI never invents a service or
  * resource reality: it only relays the adapter's own current reality.
  */
@@ -125,9 +128,11 @@ export async function buildProductionBindings(
 					...materializerBinding(namespace),
 				});
 			}
-		} catch {
-			// Import/factory failure for one module must not break the rest of the
-			// CLI; that module simply remains unbound and fails closed when used.
+		} catch (error) {
+			throw new PlatformError(
+				"COMMAND_FAILED",
+				`production binding failed for ${module.moduleRef}: ${error instanceof Error ? error.message : String(error)}`,
+			);
 		}
 	}
 	return bindings;

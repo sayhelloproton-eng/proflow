@@ -10,6 +10,8 @@ test("platform docs aggregates Module-owned contracts and documents", async () =
 	try {
 		await writeWorkspaceModule(root, {
 			moduleRef: "docs-fixture",
+			adapterSource:
+				'export function createProductionBinding() { throw new Error("DOCS_MUST_NOT_BIND_RUNTIME"); }\nexport const behaviorAdapter = {};\n',
 			provides: [{ contractRef: "fixture.api", version: "1.0.0" }],
 			requires: [{ contractRef: "fixture.base", versionRange: ">=1.0.0" }],
 			configSlots: [
@@ -51,6 +53,26 @@ test("platform docs aggregates Module-owned contracts and documents", async () =
 			["overview", "configuration"],
 		);
 		assert.match(String(documents[1]?.content), /Set endpoint before start/);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("production binding failures are surfaced instead of downgraded to unbound state", async () => {
+	const root = await tempWorkspace();
+	try {
+		await writeWorkspaceModule(root, {
+			moduleRef: "broken-binding",
+			lifecycle: ["status"],
+			adapterSource:
+				'export function createProductionBinding() { throw new Error("BINDING_BROKEN"); }\nexport const behaviorAdapter = {};\n',
+		});
+		const output = JSON.parse(
+			await runCli(["modules", "--json"], { cwd: root }),
+		) as { status: string; error?: { code: string; message: string } };
+		assert.equal(output.status, "FAILED");
+		assert.equal(output.error?.code, "COMMAND_FAILED");
+		assert.match(output.error?.message ?? "", /broken-binding.*BINDING_BROKEN/);
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

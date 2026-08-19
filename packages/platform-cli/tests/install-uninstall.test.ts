@@ -180,6 +180,23 @@ test("only install accepts --workspace and all commands reject positional module
 		) as { status: string; error?: { code: string } };
 		assert.equal(positional.status, "FAILED");
 		assert.equal(positional.error?.code, "INVALID_REQUEST");
+
+		for (const legacyBare of ["help", "version"] as const) {
+			const result = JSON.parse(
+				await runCli([legacyBare, "--json"], { cwd: root }),
+			) as { status: string; error?: { code: string } };
+			assert.equal(result.status, "FAILED");
+			assert.equal(result.error?.code, "INVALID_REQUEST");
+		}
+
+		for (const flag of ["--help", "--version"] as const) {
+			const result = JSON.parse(
+				await runCli([flag, "--json"], { cwd: root }),
+			) as {
+				status: string;
+			};
+			assert.equal(result.status, "SUCCEEDED");
+		}
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
