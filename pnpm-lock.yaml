@@ -207,6 +207,9 @@ importers:
       '@tomflow/proflow-model-contracts':
         specifier: workspace:^
         version: link:../model-contracts
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
     devDependencies:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
@@ -233,6 +236,9 @@ importers:
       '@tomflow/proflow-model-contracts':
         specifier: workspace:^
         version: link:../model-contracts
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
       zod:
         specifier: 4.1.12
         version: 4.1.12

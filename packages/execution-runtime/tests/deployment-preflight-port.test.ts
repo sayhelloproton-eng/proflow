@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 
-import { createServiceProcessBinding } from "../deployment/adapter.ts";
+import { createProductionBinding } from "../deployment/adapter.ts";
 
 function close(server: ReturnType<typeof createServer>) {
 	return new Promise<void>((resolve, reject) =>
@@ -25,9 +25,8 @@ test("FJ-07 preflight reports an occupied Execution Runtime listener before star
 	const occupied = await occupiedPort();
 	try {
 		const endpoint = `http://127.0.0.1:${occupied.port}/`;
-		const binding = await createServiceProcessBinding({
+		const binding = await createProductionBinding({
 			moduleRef: "execution-runtime",
-			workspaceRoot: "/tmp/proflow-fj07",
 			config: {
 				databasePath: "/tmp/proflow-fj07/execution.sqlite",
 				projectRoot: "/tmp/proflow-fj07/project",

@@ -31,6 +31,7 @@
 	},
 	"dependencies": {
 		"@tomflow/proflow-model-contracts": "workspace:^",
+		"@tomflow/proflow-module-contract": "workspace:^",
 		"zod": "4.1.12"
 	},
 	"devDependencies": {
