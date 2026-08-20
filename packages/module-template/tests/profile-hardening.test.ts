@@ -79,9 +79,8 @@ test("P1-1/P1-2 all six profiles load and execute their own generated adapter", 
 		if (kind === "external-resource") {
 			const status = await adapter.status?.();
 			assert.deepEqual(status?.result.data, {
-				configStatus: "INCOMPLETE",
-				missingConfig: ["resourceUrl"],
-				runtimeStatus: "UNKNOWN",
+				setupStatus: "READY",
+				runtimeStatus: "NOT_APPLICABLE",
 			});
 		}
 	}
@@ -136,6 +135,8 @@ test("FND-P1-01 generated Module builds JS and declarations, packs, and imports 
 		"dist",
 		"conformance.json",
 		"README.md",
+		"DOCS.md",
+		"SETUP.md",
 		"proflow.module.json",
 	]);
 	assert.equal(

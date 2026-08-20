@@ -240,6 +240,20 @@ test("CP-DPL-CONF-02 + CP-DPL-CONF-05 + RF-DPL-CONF-05 C2 inspects package form 
 	);
 
 	await writeFile(conformancePath, `${JSON.stringify(conformance, null, 2)}\n`);
+	const setupPath = join(generated.packageDirectory, "SETUP.md");
+	const setupOriginal = await readFile(setupPath, "utf8");
+	await writeFile(
+		setupPath,
+		"# Setup\n\nPlease configure this module and retry.\n\nCompletion: setupStatus=READY\n",
+	);
+	result = await runPackageConformance(
+		generated.packageDirectory,
+		generated.descriptor,
+	);
+	assert.ok(
+		result.issues.some((issue) => issue.code === "SETUP_GUIDE_NOT_EXECUTABLE"),
+	);
+	await writeFile(setupPath, setupOriginal);
 });
 
 test("C2 accepts CLI-specific structured machine JSON and rejects non-object output", async (context) => {

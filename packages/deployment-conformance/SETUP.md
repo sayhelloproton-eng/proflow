@@ -1,7 +1,19 @@
 # @tomflow/proflow-deployment-conformance — Module Setup
 
-No user or external setup is required by the current frozen Module contract. `Module.install` completes deterministic preparation; `Module.setup` only re-observes current reality and must not ask the user to supply private paths, loopback endpoints, tokens or cross-Module facts.
+## Goal
 
-## Completion
+Reach `setupStatus=READY` without user configuration.
 
-Setup is complete only when the Module's own `status` reports `setupStatus=READY`. Re-running setup must re-observe reality; it must not resume from a blind historical step index.
+## Step 1 — Materialize deterministic state
+
+**Type:** automatic
+**Executable:** `platform install`
+**What happens:** the Module install seam completes deterministic preparation; no private path, endpoint, token or shared fact is requested from the user.
+
+## Step 2 — Verify completion
+
+**Type:** automatic verification
+**Verify:** `platform status`
+**Success condition:** `deployment-conformance.setupStatus=READY`.
+
+No human or external setup action is required.

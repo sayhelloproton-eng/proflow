@@ -329,6 +329,48 @@ export async function runPackageConformance(
 			message: "deployment descriptor entry is missing",
 		});
 	}
+	for (const knowledgeFile of ["DOCS.md", "SETUP.md"] as const) {
+		const path = join(packageDirectory, knowledgeFile);
+		if (!(await pathExists(path))) {
+			issues.push({
+				code: `${knowledgeFile === "SETUP.md" ? "SETUP" : "DOCS"}_MISSING`,
+				message: `${knowledgeFile} is required`,
+			});
+		}
+		if (!stringArrayIncludes(metadata.files, knowledgeFile)) {
+			issues.push({
+				code: `${knowledgeFile === "SETUP.md" ? "SETUP" : "DOCS"}_NOT_PUBLISHED`,
+				message: `${knowledgeFile} must be included in the npm files allowlist`,
+			});
+		}
+	}
+	const setupPath = join(packageDirectory, "SETUP.md");
+	if (await pathExists(setupPath)) {
+		const setupGuide = await readFile(setupPath, "utf8");
+		if (!setupGuide.includes("setupStatus=READY")) {
+			issues.push({
+				code: "SETUP_SUCCESS_CONDITION_MISSING",
+				message:
+					"SETUP.md must state setupStatus=READY as the completion condition",
+			});
+		}
+		const steps = setupGuide.split(/^## Step[^\n]*$/m).slice(1);
+		if (steps.length === 0) {
+			issues.push({
+				code: "SETUP_GUIDE_NOT_EXECUTABLE",
+				message: "SETUP.md must describe ordered ## Step sections",
+			});
+		} else {
+			steps.forEach((step, index) => {
+				if (!/(?:\*\*)?(?:Executable|Verify)(?:\*\*)?:/i.test(step)) {
+					issues.push({
+						code: "SETUP_STEP_EXECUTABLE_MISSING",
+						message: `SETUP.md Step ${index + 1} must name an Executable or Verify command`,
+					});
+				}
+			});
+		}
+	}
 	if (!(await pathExists(join(packageDirectory, "conformance.json")))) {
 		issues.push({
 			code: "CONFORMANCE_CONFIG_MISSING",
