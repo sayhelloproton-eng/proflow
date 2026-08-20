@@ -15,7 +15,9 @@
 		"dist",
 		"proflow.module.json",
 		"conformance.json",
-		"README.md"
+		"README.md",
+		"DOCS.md",
+		"SETUP.md"
 	],
 	"scripts": {
 		"test": "node --test tests/**/*.test.ts",

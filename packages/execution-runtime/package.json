@@ -20,7 +20,8 @@
 		"proflow.module.json",
 		"conformance.json",
 		"README.md",
-		"CONFIGURATION.md"
+		"DOCS.md",
+		"SETUP.md"
 	],
 	"scripts": {
 		"test": "node --conditions=development --test tests/**/*.test.ts",
