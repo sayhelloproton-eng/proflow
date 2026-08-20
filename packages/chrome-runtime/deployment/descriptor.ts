@@ -3,7 +3,7 @@ export const descriptor = {
 	contractVersion: "1.0.0",
 	moduleRef: "chrome-runtime",
 	packageName: "@tomflow/proflow-chrome-runtime",
-	moduleVersion: "0.1.5",
+	moduleVersion: "0.1.6",
 	kind: "external-resource",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
