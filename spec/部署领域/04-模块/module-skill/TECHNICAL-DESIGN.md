@@ -19,29 +19,34 @@ contractRefs:
 
 ## 1. 角色
 
-Skill 负责把已经冻结的 Module owner facts 落到标准 package 结构，并调用 Template/Conformance；不负责重新设计 Platform CLI。
+Skill 负责把已经冻结的 Module owner facts 落到标准 package 结构，并调用 Template/Conformance；不负责重新设计 Platform CLI 或领域业务。
 
 ## 2. 必须使用的当前合同
 
-- package discovery metadata 不含 `installClass/installRequires`；
-- `provides/requires` 只表示 Runtime topology；
-- configSlots 与 documentation 由 Module owner 维护；
-- status observation 由 Module 实现；
-- validate/start/stop 只在真实适用时实现。
+- 所有 governed Module 提供 `install/uninstall/status/setup/docs/start/stop`；
+- `provides/requires` 表示 Module topology / Contract dependency；
+- deterministic private config 由 `Module.install` 自闭环；
+- Producer-owned shared fact 不经 Platform config bus；
+- 用户选择/外部现实由 `Module.setup` 引导；
+- `Module.status` 是唯一 management state truth；
+- 标准知识文档只有 `DOCS.md` 与 `SETUP.md`。
 
 ## 3. 禁止生成
 
 ```text
-platform plan/apply/upgrade/verify/doctor/manifest
-platform preflight CLI
-package-local platform install <self>
+platform modules / plan / apply / upgrade / preflight / verify / doctor / manifest
+CONFIGURATION.md as standard guidance
+configStatus / missingConfig management status
+createProductionBinding(configByModuleRef)
 Platform-owned business health/config checks
 ```
 
-## 4. Config-bearing Module
+## 4. Extra capability
 
-Skill 必须确保配置文档说明值来源、格式、敏感性、materialization 和完成判定；不能只列字段名。
+Module-specific extra command 允许存在；Skill 只要求它属于 Module 自身业务或稳定 Contract，Platform 不代理、不理解。
 
 ## 5. Maintenance
 
-Owner 修改 descriptor/status/lifecycle 后，同步 static descriptor 与 docs，并重新运行 conformance。任何需要改变领域 Contract 的问题退出本 Skill 范围。
+Owner 修改 descriptor/adapter/status/setup/docs 后，同步 root manifest 与标准文档并重新运行 conformance。
+
+若适配七能力必须修改领域业务 API、状态机、service 算法，立即退出 Skill 范围并返回 `OUT_OF_SCOPE_DOMAIN`；若缺 Producer-owned shared fact，返回 `SHARED_FACT_CONTRACT_MISSING`，不得让 Platform 代传私有配置。

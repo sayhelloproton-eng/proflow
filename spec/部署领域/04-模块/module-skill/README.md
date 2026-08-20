@@ -19,30 +19,53 @@ contractRefs:
 
 ## Purpose
 
-`module-skill` 是 AI 创建/维护 ProFlow Module 的治理技能。它只消费当前 Contract/Template/Conformance 与六命令产品真源，不复制 Platform 或领域知识。
+`module-skill` 是 AI 创建/维护 ProFlow Module 的治理技能，只消费当前 Contract、Template、Conformance 与七命令真源，不复制 Platform 或领域业务知识。
 
 ## Frozen ownership
 
 ```text
-Module = config/status/validate/lifecycle truth
-Platform CLI = discovery/aggregation/dispatch/ordering
+Module = install/setup/status/docs/start/stop/uninstall truth
+Platform = discovery / ordering / forwarding / aggregation
 Package manager = npm dependency mutation
 ```
 
-Skill 不再指导 AI 创建 `installClass/installRequires`、Plan/Apply/Verify/Doctor 或 package-owned 单包 install。
+## Setup/config rule
 
-## Creation flow
+```text
+Module 能唯一确定 → install
+跨 Module 事实 → Producer-owned Contract/shared fact
+用户选择或外部现实 → setup
+```
+
+标准知识文档只保留 `DOCS.md` 与 `SETUP.md`。缺少 owner fact 时 fail-closed；不得让 Platform CLI 补业务逻辑或充当 config bus。
+
+## Boundary
+
+不得 invent capability/dependency/permission/owner/domain；Module-specific extra command 可以存在，但必须由 owner 自己定义和维护。
+## Creation / maintenance flow
 
 ```text
 read owner facts
 → use module-template
-→ fill Module-owned descriptor/adapter/docs
+→ fill descriptor / adapter / DOCS / SETUP
 → run deployment-conformance
 → release package
 ```
 
-configSlots 非空时必须提供足够 `CONFIGURATION.md` 指导，确保 AI 能通过 `platform docs` 理解并完成配置。
+Skill 必须按三类配置事实处理：
+
+- Module 可唯一确定 → `install` 自闭环；
+- Producer Module 提供 → shared fact / public Contract；
+- 用户选择或外部现实 → `setup`。
+
+## Standard knowledge
+
+每个 governed Module 标准知识文件只保留：`DOCS.md` 与 `SETUP.md`。Skill 不再生成或要求 `CONFIGURATION.md`。
+
+## Extra capability
+
+Module-specific extra command 可以存在；Skill 只要求它属于 Module 自身业务或稳定 Contract。Platform 不代理、不解释。
 
 ## Boundary
 
-不得 invent capability/dependency/permission/owner/domain/lifecycle；缺少 owner fact 时 fail-closed，而不是让 Platform CLI 补业务逻辑。
+不得 invent capability/dependency/permission/owner/domain。缺 shared fact contract 时返回 `SHARED_FACT_CONTRACT_MISSING`；若适配七能力必须修改领域业务 API/状态机/service 算法，返回 `OUT_OF_SCOPE_DOMAIN`，禁止把问题塞进 Platform。
