@@ -1,4 +1,6 @@
-import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
+import { join, resolve } from "node:path";
+
+import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
 import { taskMigrations } from "@tomflow/proflow-task-store-sqlite/migrations";
 import {
 	applyMigrations,
@@ -8,65 +10,20 @@ import {
 import { descriptor } from "./descriptor.ts";
 
 const base = {
-	contract: "deployment.result.v1" as const,
+	contract: "deployment.result.v1",
+	ok: true,
+	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
-};
-
-const success = (data?: unknown, checks?: unknown[]) => ({
-	...base,
-	ok: true,
-	status: "SUCCEEDED" as const,
-	...(data === undefined ? {} : { data }),
-	...(checks === undefined ? {} : { checks }),
+} as const;
+const input = (context: ModuleCommandContext) => ({
+	databasePath: join(resolve(context.workspaceRoot), ".proflow", "task.sqlite"),
+	migrations: taskMigrations,
 });
-
-const actionRequired = (
-	description: string,
-	data?: unknown,
-	checks?: unknown[],
-) => ({
-	...base,
-	ok: false,
-	status: "ACTION_REQUIRED" as const,
-	actionRequired: { action: "configure-task-migrations", description },
-	...(data === undefined ? {} : { data }),
-	...(checks === undefined ? {} : { checks }),
-});
-
-const failed = (
-	message: string,
-	data?: unknown,
-	checks?: unknown[],
-	code: "APPLY_FAILED" | "VERIFY_FAILED" = "APPLY_FAILED",
-) => ({
-	...base,
-	ok: false,
-	status: "FAILED" as const,
-	error: { code, message, retryable: false },
-	...(data === undefined ? {} : { data }),
-	...(checks === undefined ? {} : { checks }),
-});
-
-const blocked = (message: string, data?: unknown) => ({
-	...base,
-	ok: false,
-	status: "BLOCKED" as const,
-	error: { code: "VERIFY_FAILED" as const, message, retryable: true },
-	...(data === undefined ? {} : { data }),
-});
-
-function migrationInput(config: Record<string, string>) {
-	const databasePath = config.databasePath;
-	if (!databasePath) return undefined;
-	return { databasePath, migrations: taskMigrations };
-}
-
-function statusData(config: Record<string, string>) {
-	const input = migrationInput(config);
-	if (input === undefined) return undefined;
-	const status = getMigrationStatus(input);
-	const verification = verifyMigrations(input);
+const data = (context: ModuleCommandContext) => {
+	const i = input(context);
+	const status = getMigrationStatus(i);
+	const verification = verifyMigrations(i);
 	return {
 		migrated: verification.ok,
 		appliedVersions: status.appliedVersions,
@@ -77,104 +34,104 @@ function statusData(config: Record<string, string>) {
 		missingTables: status.missingTables,
 		schemaDrift: status.schemaDrift,
 	};
-}
-
-export function createBehaviorAdapter(config: Record<string, string> = {}) {
-	return {
-		describe: () => ({ result: success(), observedEffects: [] }),
-		preflight: () => ({
-			result:
-				migrationInput(config) === undefined
-					? actionRequired("databasePath is required for Task migrations")
-					: success(),
-			observedEffects: [],
-		}),
-		status: () => ({
-			result: success(
-				observeDeclaredModuleStatus(descriptor, config, "STOPPED"),
-			),
-			observedEffects: [],
-		}),
-		verify: () => {
-			const input = migrationInput(config);
-			if (input === undefined) {
-				const check = {
-					id: "migration-state-pass",
-					status: "FAIL" as const,
-					message: "databasePath is required for Task migration verification",
-				};
-				return {
-					result: actionRequired(check.message, undefined, [check]),
-					observedEffects: [],
-				};
-			}
-			const verification = verifyMigrations(input);
-			const data = statusData(config);
-			const check = {
-				id: "migration-state-pass",
-				status: verification.ok ? ("PASS" as const) : ("FAIL" as const),
-				message: verification.ok
-					? "Task migration state and SQLite integrity match the current schema"
-					: (verification.error?.message ??
-						"Task migration verification failed"),
-			};
+};
+export const behaviorAdapter = {
+	install: async (context: ModuleCommandContext) => {
+		const migration = applyMigrations(input(context));
+		if (!migration.ok)
 			return {
-				result: verification.ok
-					? success(data, [check])
-					: failed(check.message, data, [check], "VERIFY_FAILED"),
+				result: {
+					...base,
+					ok: false as const,
+					status: "FAILED" as const,
+					error: {
+						code: "APPLY_FAILED" as const,
+						message: migration.error?.message ?? "Task migration failed",
+						retryable: false,
+					},
+				},
 				observedEffects: [],
 			};
-		},
-		doctor: () => {
-			const data = statusData(config);
-			if (data === undefined) {
-				return {
-					result: actionRequired(
-						"databasePath is required for Task migration diagnostics",
-					),
-					observedEffects: [],
-				};
-			}
-			return {
-				result: data.migrated
-					? success(data)
-					: blocked(
-							"Task migration state requires a repair/migration plan before readiness",
-							data,
-						),
-				observedEffects: [],
-			};
-		},
-		migrate: () => {
-			const input = migrationInput(config);
-			if (input === undefined) {
-				return {
-					result: actionRequired(
-						"databasePath is required before Task migrations can run",
-					),
-					observedEffects: [],
-				};
-			}
-			const migration = applyMigrations(input);
-			return {
-				result: migration.ok
-					? success({ applied: migration.applied, pending: migration.pending })
-					: failed(migration.error?.message ?? "Task migration failed", {
-							applied: migration.applied,
-							pending: migration.pending,
-						}),
-				observedEffects: migration.ok
-					? ["Applies Task Store migration SQL to SQLite"]
-					: [],
-			};
-		},
-	};
-}
-
-export const behaviorAdapter = createBehaviorAdapter();
-
-export function createProductionBinding(input: {
-	config: Record<string, string>;
-}): { behaviorAdapter: Record<string, unknown> } {
-	return { behaviorAdapter: createBehaviorAdapter(input.config) };
-}
+		return {
+			result: {
+				...base,
+				data: { applied: migration.applied, pending: migration.pending },
+			},
+			observedEffects: ["Applies Task Store migration SQL to SQLite"],
+		};
+	},
+	uninstall: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+	status: async (context: ModuleCommandContext) => {
+		const v = verifyMigrations(input(context));
+		return {
+			result: {
+				...base,
+				data: {
+					setupStatus: v.ok ? ("READY" as const) : ("FAILED" as const),
+					runtimeStatus: "NOT_APPLICABLE" as const,
+				},
+			},
+			observedEffects: [],
+		};
+	},
+	setup: async (context: ModuleCommandContext) => {
+		const v = verifyMigrations(input(context));
+		return {
+			result: v.ok
+				? base
+				: {
+						...base,
+						ok: false as const,
+						status: "FAILED" as const,
+						error: {
+							code: "SETUP_FAILED" as const,
+							message: v.error?.message ?? "Task migration state is not ready",
+							retryable: true,
+						},
+					},
+			observedEffects: [],
+		};
+	},
+	docs: async (_context: ModuleCommandContext) => ({
+		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		observedEffects: [],
+	}),
+	start: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+	stop: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+	migrate: async (context: ModuleCommandContext) => {
+		const migration = applyMigrations(input(context));
+		return {
+			result: migration.ok
+				? {
+						...base,
+						data: { applied: migration.applied, pending: migration.pending },
+					}
+				: {
+						...base,
+						ok: false as const,
+						status: "FAILED" as const,
+						error: {
+							code: "APPLY_FAILED" as const,
+							message: migration.error?.message ?? "Task migration failed",
+							retryable: false,
+						},
+					},
+			observedEffects: migration.ok
+				? ["Applies Task Store migration SQL to SQLite"]
+				: [],
+		};
+	},
+	migrationStatus: async (context: ModuleCommandContext) => ({
+		result: { ...base, data: data(context) },
+		observedEffects: [],
+	}),
+} as const;

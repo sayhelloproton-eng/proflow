@@ -1,6 +1,9 @@
 import { existsSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
 import { descriptor } from "./descriptor.ts";
 
 const REQUIRED_TABLES = [
@@ -15,157 +18,95 @@ const REQUIRED_TABLES = [
 	"task_events",
 	"idempotency_records",
 ] as const;
-
-const success = (checks?: unknown[]) => ({
-	contract: "deployment.result.v1" as const,
+const base = {
+	contract: "deployment.result.v1",
 	ok: true,
-	status: "SUCCEEDED" as const,
+	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
-	...(checks === undefined ? {} : { checks }),
-});
-
-const actionRequired = (description: string, checks?: unknown[]) => ({
-	contract: "deployment.result.v1" as const,
-	ok: false,
-	status: "ACTION_REQUIRED" as const,
-	moduleRef: descriptor.moduleRef,
-	moduleVersion: descriptor.moduleVersion,
-	actionRequired: { action: "configure-task-store", description },
-	...(checks === undefined ? {} : { checks }),
-});
-
-const blocked = (message: string, checks?: unknown[]) => ({
-	contract: "deployment.result.v1" as const,
-	ok: false,
-	status: "BLOCKED" as const,
-	moduleRef: descriptor.moduleRef,
-	moduleVersion: descriptor.moduleVersion,
-	error: { code: "VERIFY_FAILED" as const, message, retryable: true },
-	...(checks === undefined ? {} : { checks }),
-});
-
-function inspect(databasePath: string | undefined): {
-	ok: boolean;
-	message: string;
-} {
-	if (!databasePath) return { ok: false, message: "databasePath is required" };
-	if (!existsSync(databasePath)) {
-		return {
-			ok: false,
-			message: `Task SQLite database does not exist at ${databasePath}`,
-		};
-	}
-	let database: DatabaseSync | undefined;
+} as const;
+export const taskDatabasePath = (context: ModuleCommandContext) =>
+	join(resolve(context.workspaceRoot), ".proflow", "task.sqlite");
+function inspect(path: string): boolean {
+	if (!existsSync(path)) return false;
+	let db: DatabaseSync | undefined;
 	try {
-		database = new DatabaseSync(databasePath, { readOnly: true });
-		const integrity = database.prepare("PRAGMA integrity_check").get() as
+		db = new DatabaseSync(path, { readOnly: true });
+		const integrity = db.prepare("PRAGMA integrity_check").get() as
 			| { integrity_check?: string }
 			| undefined;
 		const tables = new Set(
 			(
-				database
+				db
 					.prepare("SELECT name FROM sqlite_master WHERE type='table'")
 					.all() as Array<{ name: string }>
 			).map((row) => row.name),
 		);
-		const missing = REQUIRED_TABLES.filter((table) => !tables.has(table));
-		if (integrity?.integrity_check !== "ok") {
-			return {
-				ok: false,
-				message: `SQLite integrity_check returned ${integrity?.integrity_check ?? "unknown"}`,
-			};
-		}
-		if (missing.length > 0) {
-			return {
-				ok: false,
-				message: `Task SQLite schema is missing tables: ${missing.join(", ")}`,
-			};
-		}
-		return {
-			ok: true,
-			message: "Task SQLite schema is present and integrity_check is ok",
-		};
-	} catch (error) {
-		return {
-			ok: false,
-			message:
-				error instanceof Error
-					? error.message
-					: "Task SQLite reality could not be read",
-		};
+		return (
+			integrity?.integrity_check === "ok" &&
+			REQUIRED_TABLES.every((table) => tables.has(table))
+		);
+	} catch {
+		return false;
 	} finally {
-		database?.close();
+		db?.close();
 	}
 }
-
-export function createBehaviorAdapter(config: Record<string, string> = {}) {
-	const resultForReality = (
-		reality: { ok: boolean; message: string },
-		checks?: unknown[],
-	) =>
-		reality.ok
-			? success(checks)
-			: config.databasePath
-				? blocked(reality.message, checks)
-				: actionRequired(reality.message, checks);
-	return {
-		describe: () => ({ result: success(), observedEffects: [] }),
-		preflight: () => {
-			const reality = inspect(config.databasePath);
-			return { result: resultForReality(reality), observedEffects: [] };
+export const behaviorAdapter = {
+	install: async (context: ModuleCommandContext) => {
+		const path = taskDatabasePath(context);
+		await mkdir(resolve(path, ".."), { recursive: true, mode: 0o700 });
+		if (!existsSync(path)) {
+			const db = new DatabaseSync(path);
+			db.close();
+		}
+		return {
+			result: { ...base, data: { databasePath: path } },
+			observedEffects: [],
+		};
+	},
+	uninstall: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+	status: async (context: ModuleCommandContext) => ({
+		result: {
+			...base,
+			data: {
+				setupStatus: inspect(taskDatabasePath(context))
+					? ("READY" as const)
+					: ("FAILED" as const),
+				runtimeStatus: "NOT_APPLICABLE" as const,
+			},
 		},
-		status: () => {
-			if (!config.databasePath) {
-				return {
-					result: {
-						...success(),
-						data: {
-							configStatus: "INCOMPLETE" as const,
-							missingConfig: ["databasePath"],
-							runtimeStatus: "UNKNOWN" as const,
-						},
-					},
-					observedEffects: [],
-				};
-			}
-			const reality = inspect(config.databasePath);
-			return {
-				result: {
-					...success(),
-					data: {
-						configStatus: reality.ok
-							? ("READY" as const)
-							: ("INVALID" as const),
-						runtimeStatus: "UNKNOWN" as const,
+		observedEffects: [],
+	}),
+	setup: async (context: ModuleCommandContext) => ({
+		result: inspect(taskDatabasePath(context))
+			? base
+			: {
+					...base,
+					ok: false as const,
+					status: "FAILED" as const,
+					error: {
+						code: "SETUP_FAILED" as const,
+						message:
+							"Task SQLite schema is not materialized; task-migration-runner must complete deterministic install",
+						retryable: true,
 					},
 				},
-				observedEffects: [],
-			};
-		},
-		verify: () => {
-			const reality = inspect(config.databasePath);
-			const check = {
-				id: "sqlite-integrity-pass",
-				status: reality.ok ? ("PASS" as const) : ("FAIL" as const),
-				message: reality.message,
-			};
-			return {
-				result: resultForReality(reality, [check]),
-				observedEffects: [],
-			};
-		},
-		doctor: () => {
-			const reality = inspect(config.databasePath);
-			return { result: resultForReality(reality), observedEffects: [] };
-		},
-	};
-}
-
-export const behaviorAdapter = createBehaviorAdapter();
-
-export function createProductionBinding(input: {
-	config: Record<string, string>;
-}): { behaviorAdapter: Record<string, unknown> } {
-	return { behaviorAdapter: createBehaviorAdapter(input.config) };
-}
+		observedEffects: [],
+	}),
+	docs: async (_context: ModuleCommandContext) => ({
+		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		observedEffects: [],
+	}),
+	start: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+	stop: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+} as const;
