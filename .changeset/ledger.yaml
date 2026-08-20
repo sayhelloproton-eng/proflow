@@ -334,6 +334,10 @@
   dir: packages/platform-cli
   intents:
     - kind-files-speak
+"@tomflow/proflow-platform-cli@0.1.19":
+  dir: packages/platform-cli
+  intents:
+    - tired-taxes-mix
 "@tomflow/proflow-platform-cli@0.1.2":
   dir: packages/platform-cli
   intents:
