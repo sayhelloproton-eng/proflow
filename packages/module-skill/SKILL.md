@@ -21,16 +21,16 @@ Package manager owns npm dependency operations.
 
 Before create or modify, confirm `moduleRef`, `packageName`, `moduleVersion`, `kind`, `domain` and `summary` from owner truth.
 
-Owner-controlled content includes `provides`, `requires`, `requirements`, config slots, lifecycle, verification, effects and documentation. commands / APIs / permissions may be represented only when explicitly frozen by the owning Domain.
+Owner-controlled content includes `provides`, `requires`, `requirements`, genuine public/user setup config slots, effects, DOCS/SETUP content and module-specific business commands. The seven standard management capabilities are fixed by the platform contract and are not optional owner choices.
 
 Do not create or preserve `installClass` or `installRequires`.
 
 ## Create Flow
 
 1. Materialize the correct Module profile from the template.
-2. Populate only frozen owner facts and package-owned status/config/lifecycle behavior.
-3. For config-bearing Modules, document source, format, sensitivity, materialization and basic completion checks.
-4. Run conformance and fix only governance-surface failures.
+2. Populate only frozen owner facts and the Module-owned seven-command management seam.
+3. Deterministic/private values belong to `Module.install`; cross-Module facts come from producer contracts/shared facts; only genuine user choice or external reality belongs to `Module.setup`.
+4. Publish exactly `DOCS.md` and `SETUP.md` as the standard knowledge surface, then run conformance and fix only governance-surface failures.
 
 ## Modify Flow
 
@@ -40,11 +40,11 @@ Do not create or preserve `installClass` or `installRequires`.
 
 ## Forbidden
 
-Do not invent capability, dependency, permission, owner, domain, lifecycle, service/process, config semantics or external-resource behavior.
+Do not invent capability, dependency, permission, owner, domain, service/process, config semantics, setup steps or external-resource behavior.
 
 Do not generate package-owned `platform install <self>` wrappers. Platform installation is Workspace/instance-level only.
 
-Do not teach or expose removed top-level Platform commands: `search`, `plan`, `apply`, `upgrade`, `preflight`, `restart`, `status`, `verify`, `doctor`, `manifest`.
+Do not teach or expose removed top-level Platform commands: `modules`, `search`, `plan`, `apply`, `upgrade`, `preflight`, `restart`, `verify`, `doctor`, `manifest`. `platform status` is a valid frozen command and only aggregates `Module.status`.
 
 ## Stop Rules
 
@@ -61,8 +61,8 @@ A missing dependency, permission or conformance prerequisite is never permission
 
 ## Deployment Use
 
-The user-facing Platform CLI remains only `modules`, `docs`, `install`, `uninstall`, `start`, and `stop`.
+The user-facing Platform CLI is exactly: `install`, `uninstall`, `status`, `setup`, `docs`, `start`, `stop`.
 
-Platform may discover packages, aggregate docs/status, dispatch Module validate/start/stop and order runtime dependencies. `platform start` may run Module preflight internally; internal Deployment primitives are not user commands.
+Every governed Module exposes the same seven standard management capabilities. Platform only discovers Modules, orders dependencies, forwards these capabilities and aggregates results. It must not read/interpret Module-private config or recreate `preflight`/`verify`/`doctor` as a second truth source.
 
-Use `platform modules` to observe current Module facts and `platform docs` for package-owned setup guidance. Package installation/version synchronization remains whole-instance `platform install`; npm dependency mutation belongs to the package manager.
+Use `platform status` to aggregate Module-owned status, `platform setup` to forward current human/external setup actions, and `platform docs` to aggregate Module-owned knowledge. `platform start` gates only on current `Module.status.setupStatus`, then calls `Module.start` in dependency order. Package installation/version synchronization remains `platform install`; npm dependency mutation belongs to the package manager, while capability materialization belongs to `Module.install`.

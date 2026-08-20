@@ -5,8 +5,10 @@ import { pathToFileURL } from "node:url";
 import {
 	type ModuleDescriptor,
 	type ModuleKind,
+	type ModuleManagementCommand,
 	type ModuleOperationResult,
 	parseModuleDescriptor,
+	standardModuleManagementCommands,
 } from "@tomflow/proflow-module-contract";
 
 export const CURRENT_TEMPLATE_VERSION = "1.0.0";
@@ -54,24 +56,10 @@ export interface GeneratedBehaviorObservation {
 	externalAvailabilityEvidence?: "none" | "fake" | "real";
 }
 
-export type GeneratedBehaviorAdapter = Partial<
-	Record<
-		ModuleDescriptor["lifecycle"]["supported"][number],
-		() => GeneratedBehaviorObservation | Promise<GeneratedBehaviorObservation>
-	>
+export type GeneratedBehaviorAdapter = Record<
+	ModuleManagementCommand,
+	() => GeneratedBehaviorObservation | Promise<GeneratedBehaviorObservation>
 >;
-
-const lifecycleByKind: Record<
-	ModuleKind,
-	ModuleDescriptor["lifecycle"]["supported"]
-> = {
-	library: ["describe", "preflight", "status"],
-	service: ["describe", "preflight", "status", "start", "stop"],
-	cli: ["describe", "preflight", "status"],
-	"browser-extension": ["describe", "preflight", "status"],
-	"agent-package": ["describe", "preflight", "status"],
-	"external-resource": ["describe", "preflight", "status"],
-};
 
 function effectsFor(kind: ModuleKind): ModuleDescriptor["effects"] {
 	switch (kind) {
@@ -141,45 +129,9 @@ function descriptorFor(input: MaterializeModuleInput): ModuleDescriptor {
 		provides: [],
 		requires: [],
 		requirements: requirementsFor(input.kind),
-		configSlots:
-			input.kind === "external-resource"
-				? [
-						{
-							key: "resourceUrl",
-							type: "url",
-							required: true,
-							description:
-								"External resource endpoint configured at deployment time",
-						},
-					]
-				: [],
-		lifecycle: { supported: lifecycleByKind[input.kind] },
-		verification: {
-			checks: [
-				{
-					id: "module-loads",
-					description: "The generated module entry loads",
-					lifecycle: "status",
-				},
-			],
-		},
+		configSlots: [],
 		effects: effectsFor(input.kind),
-		documentation: [
-			{
-				id: "overview",
-				path: "./README.md",
-				description: "Package-owned module overview",
-			},
-			...(input.kind === "external-resource"
-				? [
-						{
-							id: "configuration",
-							path: "./CONFIGURATION.md",
-							description: "Package-owned configuration guide",
-						},
-					]
-				: []),
-		],
+		documentation: { docs: "DOCS.md", setup: "SETUP.md" },
 	});
 }
 
@@ -191,8 +143,7 @@ function packageMetadata(
 		"./deployment/adapter": "./dist/deployment/adapter.js",
 		"./deployment/descriptor": "./dist/deployment/descriptor.js",
 	};
-	if (descriptor.kind === "cli" || descriptor.kind === "service")
-		exports["./cli"] = "./dist/src/cli.js";
+	if (descriptor.kind === "cli") exports["./cli"] = "./dist/src/cli.js";
 	const unscopedName = descriptor.packageName.slice("@tomflow/".length);
 	return {
 		name: descriptor.packageName,
@@ -203,9 +154,7 @@ function packageMetadata(
 		publishConfig: { access: "public" },
 		exports,
 		bin:
-			descriptor.kind === "service" || descriptor.kind === "cli"
-				? { [unscopedName]: "./dist/src/cli.js" }
-				: {},
+			descriptor.kind === "cli" ? { [unscopedName]: "./dist/src/cli.js" } : {},
 		proflow: {
 			module: true,
 			descriptor: "./dist/deployment/descriptor.js",
@@ -222,8 +171,9 @@ function packageJson(descriptor: ModuleDescriptor): string {
 				"dist",
 				"conformance.json",
 				"README.md",
+				"DOCS.md",
+				"SETUP.md",
 				"proflow.module.json",
-				...(descriptor.configSlots.length > 0 ? ["CONFIGURATION.md"] : []),
 			],
 			engines: { node: "24.19.0" },
 			scripts: {
@@ -244,30 +194,30 @@ function descriptorSource(descriptor: ModuleDescriptor): string {
 
 function operationSource(
 	descriptor: ModuleDescriptor,
-	primitive: ModuleDescriptor["lifecycle"]["supported"][number],
+	command: ModuleManagementCommand,
 ): string {
-	if (primitive === "status") {
-		const status =
-			descriptor.configSlots.length > 0
-				? `{ configStatus: "INCOMPLETE", missingConfig: ${JSON.stringify(descriptor.configSlots.filter((slot) => slot.required).map((slot) => slot.key))}, runtimeStatus: "UNKNOWN" }`
-				: `{ configStatus: "READY", runtimeStatus: "UNKNOWN" }`;
-		return `() => ({ result: { ...baseResult, data: ${status} }, observedEffects: [] })`;
+	if (command === "status") {
+		const runtimeStatus =
+			descriptor.kind === "service" ? "STOPPED" : "NOT_APPLICABLE";
+		return `() => ({ result: { ...baseResult, data: { setupStatus: "READY", runtimeStatus: ${JSON.stringify(runtimeStatus)} } }, observedEffects: [] })`;
 	}
-	if (descriptor.kind === "service" && ["start", "stop"].includes(primitive)) {
-		return `() => ({ result: { ...baseResult, ok: false, status: "ACTION_REQUIRED", actionRequired: { action: "implement-service-lifecycle", description: "Owner must implement the package-owned production lifecycle before this operation is available" } }, observedEffects: [] })`;
+	if (descriptor.kind === "service" && command === "start") {
+		return `() => ({ result: { ...baseResult, ok: false, status: "FAILED", error: { code: "START_FAILED", message: "Owner must implement the package-owned runtime start behavior", retryable: false } }, observedEffects: [] })`;
+	}
+	if (descriptor.kind === "service" && command === "stop") {
+		return `() => ({ result: { ...baseResult, ok: false, status: "FAILED", error: { code: "STOP_FAILED", message: "Owner must implement the package-owned runtime stop behavior", retryable: false } }, observedEffects: [] })`;
 	}
 	return `() => ({ result: baseResult, observedEffects: [] })`;
 }
 
 function adapterSource(descriptor: ModuleDescriptor): string {
-	const imports = "";
-	const operations = descriptor.lifecycle.supported
+	const operations = standardModuleManagementCommands
 		.map(
-			(primitive) =>
-				`\t${JSON.stringify(primitive)}: ${operationSource(descriptor, primitive)},`,
+			(command) =>
+				`\t${JSON.stringify(command)}: ${operationSource(descriptor, command)},`,
 		)
 		.join("\n");
-	return `${imports}const baseResult = {
+	return `const baseResult = {
 \tcontract: "deployment.result.v1",
 \tok: true,
 \tstatus: "SUCCEEDED",
@@ -278,32 +228,13 @@ function adapterSource(descriptor: ModuleDescriptor): string {
 export const behaviorAdapter = {
 ${operations}
 } as const;
-${descriptor.kind === "service" ? `\nexport async function createProductionBinding() {\n\treturn { behaviorAdapter };\n}\n` : ""}`;
+`;
 }
 
 function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
 	switch (descriptor.kind) {
 		case "service":
-			return {
-				"src/cli.ts": `#!/usr/bin/env node
-function main(): void {
-	const [command, configPath, ...rest] = process.argv.slice(2);
-	const usage = "Usage: ${descriptor.packageName} start /absolute/config.json\\n";
-	if (command === "--help" || command === "-h") {
-		process.stdout.write(usage);
-		return;
-	}
-	if (command !== "start" || configPath === undefined || rest.length > 0) {
-		process.stderr.write(usage);
-		process.exit(2);
-	}
-	throw new Error(
-		"OWNER_IMPLEMENTATION_REQUIRED: implement the package-owned service process entrypoint before start is allowed",
-	);
-}
-if (import.meta.main) main();
-`,
-			};
+			return {};
 
 		case "cli":
 			return {
@@ -311,7 +242,7 @@ if (import.meta.main) main();
 			};
 		case "browser-extension":
 			return {
-				"deployment/browser-extension.json": `${JSON.stringify({ manifestVersion: 3, statusAdapter: "deployment/adapter.ts", verificationAdapter: "deployment/adapter.ts" }, null, 2)}\n`,
+				"deployment/browser-extension.json": `${JSON.stringify({ manifestVersion: 3, managementAdapter: "deployment/adapter.ts" }, null, 2)}\n`,
 			};
 		case "agent-package":
 			return {
@@ -332,11 +263,8 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 	return {
 		"package.json": packageJson(descriptor),
 		"README.md": `# ${descriptor.packageName}\n\nModule: \`${descriptor.moduleRef}\`  \nDomain: \`${descriptor.identity.domain}\`  \nKind: \`${descriptor.kind}\`  \nTemplate: \`${descriptor.templateVersion}\`\n\n${descriptor.identity.summary}\n`,
-		...(descriptor.configSlots.length > 0
-			? {
-					"CONFIGURATION.md": `# Configuration\n\nConfigure this Module through the Workspace-owned .proflow/config/${descriptor.moduleRef}.json file.\n\n${descriptor.configSlots.map((slot) => `- \`${slot.key}\`: ${slot.description}`).join("\n")}\n`,
-				}
-			: {}),
+		"DOCS.md": `# Module Docs\n\n${descriptor.identity.summary}\n\nDocument the Module purpose, public contracts, capabilities, usage, errors and limitations here.\n`,
+		"SETUP.md": `# Module Setup\n\nNo user or external setup is required by the generated scaffold. Module.install completes deterministic preparation. Add only owner-frozen human or external setup steps.\n`,
 		"tsconfig.json": `${JSON.stringify(
 			{
 				compilerOptions: {
@@ -378,7 +306,6 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 		"proflow.module.json": `${JSON.stringify(descriptor, null, 2)}\n`,
 		"deployment/descriptor.ts": descriptorSource(descriptor),
 		"deployment/requirements.ts": `import { descriptor } from "./descriptor.ts";\n\nexport const requirements = descriptor.requirements;\n`,
-		"deployment/verification.ts": `import { descriptor } from "./descriptor.ts";\n\nexport const verification = descriptor.verification;\n`,
 		"deployment/adapter.ts": adapterSource(descriptor),
 		"conformance.json": `${JSON.stringify(
 			{

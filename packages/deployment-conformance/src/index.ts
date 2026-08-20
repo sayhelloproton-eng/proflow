@@ -1,14 +1,15 @@
 import { readdir, readFile, stat } from "node:fs/promises";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
-	type LifecyclePrimitive,
 	type ModuleDescriptor,
+	type ModuleManagementCommand,
 	moduleDescriptorSchema,
 	moduleOperationResultSchema,
 	moduleStatusObservationSchema,
 	proflowPackageMetadataSchema,
+	standardModuleManagementCommands,
 } from "@tomflow/proflow-module-contract";
 
 export type GateStatus = "PASS" | "FAIL";
@@ -29,15 +30,6 @@ function gate(
 	issues: ConformanceIssue[],
 ): ConformanceGateResult {
 	return { gate: name, status: issues.length === 0 ? "PASS" : "FAIL", issues };
-}
-
-function isPackageRelativePath(value: string): boolean {
-	return (
-		value.startsWith("./") &&
-		!isAbsolute(value) &&
-		!value.split(/[\\/]/).includes("..") &&
-		!value.includes("://")
-	);
 }
 
 export function runStaticConformance(input: unknown): ConformanceGateResult {
@@ -93,33 +85,6 @@ export function runStaticConformance(input: unknown): ConformanceGateResult {
 		}
 		required.add(item.contractRef);
 	}
-	const lifecycle = new Set(descriptor.lifecycle.supported);
-	if (
-		descriptor.kind === "service" &&
-		!["status", "preflight", "start", "stop"].every((item) =>
-			lifecycle.has(item as LifecyclePrimitive),
-		)
-	) {
-		issues.push({
-			code: "SERVICE_LIFECYCLE_INCOMPLETE",
-			message: "service requires status/preflight/start/stop",
-		});
-	}
-	if (
-		descriptor.kind === "service" &&
-		!descriptor.effects.some((effect) => effect.kind === "process")
-	) {
-		issues.push({
-			code: "SERVICE_PROCESS_EFFECT_MISSING",
-			message: "service must declare its process effect",
-		});
-	}
-	if (!lifecycle.has("status")) {
-		issues.push({
-			code: "MODULE_STATUS_MISSING",
-			message: `${descriptor.kind} must expose Module-owned status observation`,
-		});
-	}
 	if (
 		descriptor.kind === "library" &&
 		descriptor.effects.some((effect) => effect.kind === "process")
@@ -128,32 +93,6 @@ export function runStaticConformance(input: unknown): ConformanceGateResult {
 			code: "LIBRARY_PROCESS_EFFECT_INVALID",
 			message: "library cannot be a daemon process",
 		});
-	}
-	if (
-		new Set(descriptor.verification.checks.map((check) => check.id)).size !==
-		descriptor.verification.checks.length
-	) {
-		issues.push({
-			code: "VERIFICATION_DUPLICATE",
-			message: "verification check ids must be unique",
-		});
-	}
-	if (
-		new Set(descriptor.documentation.map((entry) => entry.id)).size !==
-		descriptor.documentation.length
-	) {
-		issues.push({
-			code: "DOCUMENTATION_DUPLICATE",
-			message: "documentation entry ids must be unique",
-		});
-	}
-	for (const entry of descriptor.documentation) {
-		if (!isPackageRelativePath(entry.path)) {
-			issues.push({
-				code: "DOCUMENTATION_PATH_INVALID",
-				message: `documentation ${entry.id} must use a package-relative path`,
-			});
-		}
 	}
 	return gate("C1", issues);
 }
@@ -236,21 +175,6 @@ function exportEntry(
 
 function exportedEntry(metadata: PackageMetadata): string | undefined {
 	return exportEntry(metadata, ".");
-}
-
-function packageExecutableName(packageName: string): string {
-	return packageName.split("/").pop() ?? packageName;
-}
-
-function packageBinEntry(
-	metadata: PackageMetadata,
-	packageName: string,
-): string | undefined {
-	if (typeof metadata.bin === "string") return metadata.bin;
-	if (typeof metadata.bin !== "object" || metadata.bin === null)
-		return undefined;
-	const value = Reflect.get(metadata.bin, packageExecutableName(packageName));
-	return typeof value === "string" ? value : undefined;
 }
 
 function stringArrayIncludes(input: unknown, value: string): boolean {
@@ -482,73 +406,24 @@ export async function runPackageConformance(
 				"package.json.proflow.descriptor must match the public descriptor export",
 		});
 	}
-	for (const entry of descriptor.documentation) {
-		if (
-			isPackageRelativePath(entry.path) &&
-			!(await pathExists(resolve(packageDirectory, entry.path)))
-		) {
+	for (const documentationFile of [
+		descriptor.documentation.docs,
+		descriptor.documentation.setup,
+	]) {
+		if (!(await pathExists(join(packageDirectory, documentationFile)))) {
 			issues.push({
-				code: "DOCUMENTATION_ENTRY_MISSING",
-				message: `documentation ${entry.id} does not resolve to a package file`,
+				code: "STANDARD_DOCUMENT_MISSING",
+				message: `${documentationFile} must exist at the package root`,
 			});
 		}
-	}
-	if (
-		descriptor.configSlots.length > 0 &&
-		!(await pathExists(join(packageDirectory, "CONFIGURATION.md")))
-	) {
-		issues.push({
-			code: "CONFIGURATION_GUIDE_MISSING",
-			message: "config-bearing Module must publish root CONFIGURATION.md",
-		});
+		if (!stringArrayIncludes(metadata.files, documentationFile)) {
+			issues.push({
+				code: "STANDARD_DOCUMENT_NOT_PUBLISHED",
+				message: `${documentationFile} must be included in the npm files allowlist`,
+			});
+		}
 	}
 	const cliEntry = exportEntry(metadata, "./cli");
-	if (descriptor.kind === "service") {
-		const serviceBin = packageBinEntry(metadata, descriptor.packageName);
-		if (
-			cliEntry === undefined ||
-			!(await pathExists(resolve(packageDirectory, cliEntry)))
-		) {
-			issues.push({
-				code: "SERVICE_CLI_MISSING",
-				message:
-					"service package must publish its package-owned CLI through ./cli",
-			});
-		}
-		if (
-			serviceBin === undefined ||
-			cliEntry === undefined ||
-			serviceBin !== cliEntry
-		) {
-			issues.push({
-				code: "SERVICE_BIN_MISMATCH",
-				message:
-					"service package bin must point to the same package-owned CLI exported as ./cli",
-			});
-		}
-		try {
-			const adapterSource = await readFile(
-				join(packageDirectory, "deployment/adapter.ts"),
-				"utf8",
-			);
-			if (
-				!/export\s+(?:async\s+)?function\s+createProductionBinding\b/.test(
-					adapterSource,
-				)
-			) {
-				issues.push({
-					code: "SERVICE_PRODUCTION_BINDING_MISSING",
-					message:
-						"service adapter must export package-owned createProductionBinding",
-				});
-			}
-		} catch {
-			issues.push({
-				code: "SERVICE_PRODUCTION_BINDING_MISSING",
-				message: "service adapter source cannot be read",
-			});
-		}
-	}
 	if (
 		descriptor.kind === "cli" &&
 		(cliEntry === undefined ||
@@ -656,7 +531,7 @@ type BehaviorOperation = () =>
 	| BehaviorObservation
 	| Promise<BehaviorObservation>;
 export type BehaviorAdapter = Partial<
-	Record<LifecyclePrimitive, BehaviorOperation>
+	Record<ModuleManagementCommand, BehaviorOperation>
 >;
 
 export async function runBehaviorConformance(
@@ -664,12 +539,12 @@ export async function runBehaviorConformance(
 	adapter: BehaviorAdapter,
 ): Promise<ConformanceGateResult> {
 	const issues: ConformanceIssue[] = [];
-	for (const primitive of descriptor.lifecycle.supported) {
-		const operation = adapter[primitive];
+	for (const command of standardModuleManagementCommands) {
+		const operation = adapter[command];
 		if (operation === undefined) {
 			issues.push({
 				code: "DECLARED_BEHAVIOR_MISSING",
-				message: `${primitive} is declared but unavailable`,
+				message: `${command} is a required standard Module command but is unavailable`,
 			});
 			continue;
 		}
@@ -679,7 +554,7 @@ export async function runBehaviorConformance(
 		} catch {
 			issues.push({
 				code: "BEHAVIOR_THREW",
-				message: `${primitive} threw instead of returning a structured result`,
+				message: `${command} threw instead of returning a structured result`,
 			});
 			continue;
 		}
@@ -689,11 +564,21 @@ export async function runBehaviorConformance(
 		if (!parsedResult.success) {
 			issues.push({
 				code: "RESULT_INVALID",
-				message: `${primitive} returned an invalid result contract`,
+				message: `${command} returned an invalid result contract`,
 			});
 		}
 		if (
-			primitive === "status" &&
+			parsedResult.success &&
+			parsedResult.data.status === "ACTION_REQUIRED" &&
+			command !== "setup"
+		) {
+			issues.push({
+				code: "ACTION_REQUIRED_SCOPE_INVALID",
+				message: "only Module.setup may require human or external action",
+			});
+		}
+		if (
+			command === "status" &&
 			parsedResult.success &&
 			!moduleStatusObservationSchema.safeParse(parsedResult.data.data).success
 		) {
@@ -708,7 +593,7 @@ export async function runBehaviorConformance(
 		) {
 			issues.push({
 				code: "RESULT_MODULE_MISMATCH",
-				message: `${primitive} result.moduleRef differs from descriptor`,
+				message: `${command} result.moduleRef differs from descriptor`,
 			});
 		}
 		if (
@@ -717,38 +602,17 @@ export async function runBehaviorConformance(
 		) {
 			issues.push({
 				code: "RESULT_VERSION_MISMATCH",
-				message: `${primitive} result.moduleVersion differs from descriptor`,
+				message: `${command} result.moduleVersion differs from descriptor`,
 			});
 		}
 		if (
-			primitive === "verify" &&
-			parsedResult.success &&
-			!parsedResult.data.checks?.some(
-				(check) => check.status === "PASS" || check.status === "FAIL",
-			)
-		) {
-			issues.push({
-				code: "VERIFY_NOT_OBSERVED",
-				message: "verify must contain an observed PASS or FAIL check",
-			});
-		}
-		if (
-			primitive === "status" &&
+			command === "status" &&
 			observation.readinessClaim === "READY" &&
 			observation.readinessEvidence !== "real"
 		) {
 			issues.push({
 				code: "FAKE_READY",
 				message: "READY requires real current evidence",
-			});
-		}
-		if (
-			["preflight", "doctor"].includes(primitive) &&
-			observation.observedEffects.length > 0
-		) {
-			issues.push({
-				code: "UNDECLARED_EFFECT",
-				message: `${primitive} produced effects by default`,
 			});
 		}
 		const declaredEffects = new Set(
@@ -758,12 +622,12 @@ export async function runBehaviorConformance(
 			if (!declaredEffects.has(effect))
 				issues.push({
 					code: "EFFECT_NOT_DECLARED",
-					message: `${primitive} observed effect is not bound to descriptor: ${effect}`,
+					message: `${command} observed effect is not bound to descriptor: ${effect}`,
 				});
 		}
 		if (
 			descriptor.kind === "external-resource" &&
-			primitive === "status" &&
+			command === "status" &&
 			observation.externalAvailabilityClaim === "AVAILABLE" &&
 			observation.externalAvailabilityEvidence !== "real"
 		) {
