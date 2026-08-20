@@ -4,18 +4,15 @@ import {
 	type ModuleRequire,
 	parseModuleDescriptor,
 } from "@tomflow/proflow-module-contract";
-
 import type { ResolvedModule } from "../contracts.ts";
 import type { ModuleCatalog, ModuleSource } from "../modules.ts";
-import { readModuleDocument } from "./docs.ts";
+import { type ModuleDocumentId, readModuleDocument } from "./docs.ts";
 
 export interface AggregatedDocument {
-	id: string;
+	id: ModuleDocumentId;
 	path: string;
-	description?: string;
 	content: string;
 }
-
 export interface AggregatedModuleDocs {
 	moduleRef: string;
 	version: string;
@@ -24,7 +21,6 @@ export interface AggregatedModuleDocs {
 	configSlots: ConfigSlot[];
 	documents: AggregatedDocument[];
 }
-
 function sourceOf(module: ResolvedModule): ModuleSource {
 	return module.source.path === undefined
 		? { type: module.source.type, packageName: module.packageName }
@@ -34,7 +30,6 @@ function sourceOf(module: ResolvedModule): ModuleSource {
 				path: module.source.path,
 			};
 }
-
 export async function aggregateModuleDocs(
 	workspaceRoot: string,
 	catalog: ModuleCatalog,
@@ -49,21 +44,14 @@ export async function aggregateModuleDocs(
 			await catalog.loadDescriptor(source),
 		);
 		const documents: AggregatedDocument[] = [];
-		for (const entry of descriptor.documentation) {
+		for (const id of ["docs", "setup"] as const) {
 			const document = await readModuleDocument({
 				workspaceRoot,
 				source,
 				descriptor,
-				documentId: entry.id,
+				documentId: id,
 			});
-			documents.push({
-				id: document.documentId,
-				path: document.path,
-				...(document.description === undefined
-					? {}
-					: { description: document.description }),
-				content: document.content,
-			});
+			documents.push({ id, path: document.path, content: document.content });
 		}
 		output.push({
 			moduleRef: module.moduleRef,

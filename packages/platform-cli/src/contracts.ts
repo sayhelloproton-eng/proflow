@@ -16,8 +16,6 @@ export interface ResolvedModule {
 	requires: ModuleDescriptor["requires"];
 	requirements: ModuleRequirement[];
 	configSlots: ConfigSlot[];
-	lifecycle: string[];
-	verification: ModuleDescriptor["verification"];
 	effects: DeploymentEffect[];
 	source: { type: "workspace" | "installed"; path?: string };
 }

@@ -2,7 +2,6 @@ import {
 	type ModuleDescriptor,
 	parseModuleDescriptor,
 } from "@tomflow/proflow-module-contract";
-import type { DeploymentAdapterBinding } from "../binding/production-bindings.ts";
 import type { ResolvedModule } from "../contracts.ts";
 import { PlatformError } from "../errors.ts";
 import type { ModuleCatalog, ModuleSource } from "../modules.ts";
@@ -20,15 +19,9 @@ export interface DiscoverOptions {
 export class AutoModuleCatalog implements ModuleCatalog {
 	private readonly workspace: WorkspaceModuleCatalog;
 	private readonly installed: InstalledModuleCatalog;
-	private readonly bindings: ReadonlyMap<string, DeploymentAdapterBinding>;
-
-	constructor(
-		root?: string,
-		bindings?: ReadonlyMap<string, DeploymentAdapterBinding>,
-	) {
+	constructor(root?: string) {
 		this.workspace = new WorkspaceModuleCatalog(root);
 		this.installed = new InstalledModuleCatalog(root);
-		this.bindings = bindings ?? new Map();
 	}
 
 	async sources(): Promise<ModuleSource[]> {
@@ -51,10 +44,6 @@ export class AutoModuleCatalog implements ModuleCatalog {
 	}
 
 	async loadAdapter(source: ModuleSource): Promise<unknown> {
-		// A production binder may supply a bound adapter for a service module
-		// (createBehaviorAdapter(realService)); it wins over the unbound default.
-		const binding = this.bindings.get(source.packageName);
-		if (binding !== undefined) return binding;
 		return source.type === "workspace"
 			? this.workspace.loadAdapter(source)
 			: this.installed.loadAdapter(source);
@@ -142,8 +131,6 @@ function toResolvedModule(
 		requires: descriptor.requires,
 		requirements: descriptor.requirements,
 		configSlots: descriptor.configSlots,
-		lifecycle: descriptor.lifecycle.supported,
-		verification: descriptor.verification,
 		effects: descriptor.effects,
 		source: resolvedSource,
 	};
