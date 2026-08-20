@@ -1,7 +1,19 @@
 # @tomflow/proflow-agent-runtime — Module Setup
 
-No user or external setup is required by the current frozen Module contract. `Module.install` completes deterministic preparation; `Module.setup` only re-observes current reality and must not ask the user to supply private paths, loopback endpoints, tokens or cross-Module facts.
+## Goal
 
-## Completion
+Reach `setupStatus=READY` without user configuration.
 
-Setup is complete only when the Module's own `status` reports `setupStatus=READY`. Re-running setup must re-observe reality; it must not resume from a blind historical step index.
+## Step 1 — Complete machine-owned preparation
+
+**Type:** automatic
+**Executable:** `platform install`
+**What happens:** No user input is required. Agent durable state is internal and is materialized/used by owning runtime paths.
+
+## Step 2 — Re-observe dependency and setup state
+
+**Type:** automatic verification
+**Verify:** `platform status`
+**Success condition:** `agent-runtime.setupStatus=READY`.
+
+There is no human setup action. A missing machine-owned artifact or producer-owned dependency is a `FAILED` condition to fix in the owning package/dependency; it must never be converted into a request for path/token/endpoint input.
