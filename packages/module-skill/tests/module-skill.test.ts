@@ -38,10 +38,12 @@ const OWNER_CONTENT_FACTS = [
 	"requirements",
 	"config slots",
 	"commands / APIs / permissions",
-	"lifecycle",
-	"verification",
+	"install",
+	"setup",
+	"status",
 	"effects",
-	"documentation",
+	"DOCS.md",
+	"SETUP.md",
 ] as const;
 
 async function readSkill(): Promise<string> {
@@ -94,7 +96,10 @@ test("CP-DPL-SKILL-02 package and descriptor carry no process lifecycle, persist
 	assert.equal(pkg.bin, undefined);
 	assert.doesNotMatch(JSON.stringify(pkg), /self-install\.mjs/);
 	assert.equal(kind, "library");
-	assert.deepEqual(descriptor.lifecycle.supported, ["verify", "status"]);
+	assert.deepEqual(descriptor.documentation, {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	});
 	assert.deepEqual(descriptor.effects, []);
 	assert.equal(descriptor.requirements.length, 1);
 	assert.equal(descriptor.requirements[0]?.kind, "runtime");

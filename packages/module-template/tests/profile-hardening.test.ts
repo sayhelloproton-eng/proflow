@@ -13,8 +13,8 @@ import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
-
 import type { ModuleKind } from "@tomflow/proflow-module-contract";
+import { standardModuleManagementCommands } from "@tomflow/proflow-module-contract";
 import {
 	loadGeneratedBehaviorAdapter,
 	materializeModule,
@@ -56,7 +56,7 @@ test("P1-1/P1-2 all six profiles load and execute their own generated adapter", 
 		const adapter = await loadGeneratedBehaviorAdapter(
 			generated.packageDirectory,
 		);
-		for (const primitive of generated.descriptor.lifecycle.supported) {
+		for (const primitive of standardModuleManagementCommands) {
 			assert.equal(
 				typeof adapter[primitive],
 				"function",
@@ -68,9 +68,9 @@ test("P1-1/P1-2 all six profiles load and execute their own generated adapter", 
 		if (kind === "service") {
 			assert.equal(typeof adapter.start, "function");
 			assert.equal(typeof adapter.stop, "function");
-			assert.equal(typeof adapter.restart, "undefined");
+			assert.equal(Reflect.get(adapter, "restart"), undefined);
 		}
-		assert.equal(adapter.verify, undefined);
+		assert.equal(Reflect.get(adapter, "verify"), undefined);
 		if (kind === "cli") assert.equal(generated.machineEntry, "dist/src/cli.js");
 		if (kind === "agent-package") {
 			const status = await adapter.status?.();

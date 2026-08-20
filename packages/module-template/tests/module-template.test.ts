@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import {
 	type ModuleKind,
 	parseModuleDescriptor,
+	standardModuleManagementCommands,
 } from "@tomflow/proflow-module-contract";
 import { assessTemplateMigration, materializeModule } from "../src/index.ts";
 
@@ -62,28 +63,18 @@ test("CP-DPL-TPL-01 materializes six profiles with only their real responsibilit
 		);
 		assert.equal(
 			await exists(join(result.packageDirectory, "src/cli.ts")),
-			kind === "cli" || kind === "service",
+			kind === "cli",
 		);
-		if (kind === "service") {
-			const adapter = await readFile(
-				join(result.packageDirectory, "deployment/adapter.ts"),
-				"utf8",
-			);
-			assert.match(adapter, /createProductionBinding/);
-			assert.doesNotMatch(adapter, /createServiceProcessBinding/);
-			for (const primitive of ["status", "start", "stop"] as const) {
-				assert.equal(
-					result.descriptor.lifecycle.supported.includes(primitive),
-					true,
-				);
-			}
-			for (const primitive of ["restart", "uninstall"] as const) {
-				assert.equal(
-					result.descriptor.lifecycle.supported.includes(primitive),
-					false,
-				);
-			}
-		}
+		const adapter = await readFile(
+			join(result.packageDirectory, "deployment/adapter.ts"),
+			"utf8",
+		);
+		assert.doesNotMatch(
+			adapter,
+			/createProductionBinding|createServiceProcessBinding/,
+		);
+		for (const command of standardModuleManagementCommands)
+			assert.match(adapter, new RegExp(`\\b${command}\\s*:`));
 		assert.equal(
 			await exists(
 				join(result.packageDirectory, "deployment/browser-extension.json"),
@@ -103,7 +94,7 @@ test("CP-DPL-TPL-01 materializes six profiles with only their real responsibilit
 	}
 });
 
-test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata and honest package-owned lifecycle", async (context) => {
+test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata and honest package-owned management surface", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-template-minimum-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
 	for (const kind of kinds) {
@@ -119,11 +110,12 @@ test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata and h
 		for (const relative of [
 			"package.json",
 			"README.md",
+			"DOCS.md",
+			"SETUP.md",
 			"src/index.ts",
 			"tests/smoke.test.ts",
 			"deployment/descriptor.ts",
 			"deployment/requirements.ts",
-			"deployment/verification.ts",
 			"proflow.module.json",
 			"conformance.json",
 		]) {
@@ -139,29 +131,12 @@ test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata and h
 		);
 		assert.equal(
 			await exists(join(result.packageDirectory, "CONFIGURATION.md")),
-			kind === "external-resource",
+			false,
 		);
-		if (kind === "service") {
-			const serviceCli = await readFile(
-				join(result.packageDirectory, "src/cli.ts"),
-				"utf8",
-			);
-			assert.match(serviceCli, /OWNER_IMPLEMENTATION_REQUIRED/);
-			assert.doesNotMatch(
-				serviceCli,
-				/platform\.cmd|GLOBAL_PLATFORM_CLI_REQUIRED/,
-			);
-		}
-		if (kind !== "service") {
-			assert.equal(
-				result.descriptor.lifecycle.supported.includes("start"),
-				false,
-			);
-			assert.equal(
-				result.descriptor.lifecycle.supported.includes("stop"),
-				false,
-			);
-		}
+		assert.deepEqual(result.descriptor.documentation, {
+			docs: "DOCS.md",
+			setup: "SETUP.md",
+		});
 	}
 });
 

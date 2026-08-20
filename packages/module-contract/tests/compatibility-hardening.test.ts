@@ -31,14 +31,6 @@ function descriptor(
 			{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
 		],
 		configSlots: [],
-		lifecycle: {
-			supported: ["describe", "preflight", "status", "verify", "doctor"],
-		},
-		verification: {
-			checks: [
-				{ id: "health", description: "Observed health", lifecycle: "verify" },
-			],
-		},
 		effects: [
 			{
 				kind: "network",
@@ -46,7 +38,7 @@ function descriptor(
 				retention: "preserve",
 			},
 		],
-		documentation: [],
+		documentation: { docs: "DOCS.md", setup: "SETUP.md" },
 		...overrides,
 	});
 }
@@ -72,20 +64,6 @@ test("P1-6 compatibility covers all mechanically decidable breaking dimensions",
 					description: "Required value",
 				},
 			],
-		}),
-		descriptor({
-			lifecycle: { supported: ["describe", "preflight", "verify", "doctor"] },
-		}),
-		descriptor({
-			verification: {
-				checks: [
-					{
-						id: "replacement",
-						description: "Different proof",
-						lifecycle: "verify",
-					},
-				],
-			},
 		}),
 		descriptor({ effects: [] }),
 		descriptor({ platformCompatibility: ">=1.5.0 <2.0.0" }),

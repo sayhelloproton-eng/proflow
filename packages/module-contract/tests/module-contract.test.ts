@@ -7,6 +7,7 @@ import {
 	moduleDescriptorSchema,
 	parseModuleDescriptor,
 	queryRequirements,
+	standardModuleManagementCommands,
 } from "../src/index.ts";
 
 const libraryDescriptor = {
@@ -28,18 +29,8 @@ const libraryDescriptor = {
 		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
 	],
 	configSlots: [],
-	lifecycle: { supported: ["describe", "preflight", "verify", "doctor"] },
-	verification: {
-		checks: [
-			{
-				id: "module-loads",
-				description: "The module entry can be loaded",
-				lifecycle: "verify",
-			},
-		],
-	},
 	effects: [],
-	documentation: [],
+	documentation: { docs: "DOCS.md", setup: "SETUP.md" },
 } as const satisfies ModuleDescriptor;
 
 test("CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete boundary", () => {
@@ -48,7 +39,7 @@ test("CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete bound
 	assert.equal(
 		moduleDescriptorSchema.safeParse({
 			...libraryDescriptor,
-			verification: undefined,
+			documentation: undefined,
 		}).success,
 		false,
 	);
@@ -125,11 +116,20 @@ test("CP-DPL-CON-03 requirement queries are deterministic and side-effect free",
 	assert.notEqual(first, descriptor.requirements);
 });
 
-test("CP-DPL-CON-04 libraries and uncontrollable external resources do not fake start/stop", () => {
+test("CP-DPL-CON-04 standard management is fixed at seven commands and legacy lifecycle fields are rejected", () => {
+	assert.deepEqual(standardModuleManagementCommands, [
+		"install",
+		"uninstall",
+		"status",
+		"setup",
+		"docs",
+		"start",
+		"stop",
+	]);
 	assert.equal(
 		moduleDescriptorSchema.safeParse({
 			...libraryDescriptor,
-			lifecycle: { supported: ["describe", "start", "stop"] },
+			lifecycle: { supported: ["start", "stop"] },
 		}).success,
 		false,
 	);
@@ -138,11 +138,11 @@ test("CP-DPL-CON-04 libraries and uncontrollable external resources do not fake 
 		moduleRef: "external-provider",
 		packageName: "@tomflow/proflow-external-provider",
 		kind: "external-resource",
-		lifecycle: {
-			supported: ["describe", "preflight", "status", "verify", "doctor"],
-		},
 	});
-	assert.equal(external.lifecycle.supported.includes("start"), false);
+	assert.deepEqual(external.documentation, {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	});
 });
 
 test("CP-DPL-CON-05 compatibility distinguishes additive and breaking changes", () => {
