@@ -1,14 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { createReasoningSpec } from "@tomflow/proflow-model-contracts";
 import { z } from "zod";
-import {
-	createBehaviorAdapter,
-	createProductionBinding,
-} from "../deployment/adapter.ts";
+import { behaviorAdapter } from "../deployment/adapter.ts";
+import { descriptor as modelRuntimeDescriptor } from "../deployment/descriptor.ts";
 import { createModelRuntime, renderPrompt } from "../src/index.ts";
 import { createOpenAICompatibleProvider } from "../src/provider.ts";
 import { createModelRuntimeService } from "../src/service.ts";
@@ -268,36 +266,22 @@ test("REAL1 /ready and /status refresh stale model capabilities in the same requ
 	}
 });
 
-test("deployment adapter drives real service start/restart/status/stop lifecycle", async () => {
-	const runtime = createModelRuntime({
-		specs: [spec],
-		roles: verifiedTestRoles(),
-		provider: fakeProvider(async () => '{"decision":"ALLOW"}'),
-	});
-	const service = createModelRuntimeService({ runtime });
-	const adapter = createBehaviorAdapter({
-		service,
-		verifyProvider: async () => ({
-			ok: true,
-			message: "test provider capability probe passed",
-		}),
-	});
-	const started = await adapter.start();
-	assert.equal(started.result.status, "SUCCEEDED");
-	assert.deepEqual(started.observedEffects, [
-		"Runs the Model Runtime HTTP service process",
+test("deployment adapter exposes the fixed seven-command management surface without restart/verify/preflight", () => {
+	assert.deepEqual(Object.keys(behaviorAdapter).sort(), [
+		"docs",
+		"install",
+		"setup",
+		"start",
+		"status",
+		"stop",
+		"uninstall",
 	]);
-	assert.equal(adapter.status().result.status, "SUCCEEDED");
-	assert.equal((await adapter.verify()).result.status, "SUCCEEDED");
-	const restarted = await adapter.restart();
-	assert.equal(restarted.result.status, "SUCCEEDED");
-	assert.equal(service.status(), "RUNNING");
-	const stopped = await adapter.stop();
-	assert.equal(stopped.result.status, "SUCCEEDED");
-	assert.equal(service.status(), "STOPPED");
+	assert.equal("restart" in behaviorAdapter, false);
+	assert.equal("verify" in behaviorAdapter, false);
+	assert.equal("preflight" in behaviorAdapter, false);
 });
 
-test("MOD-P1-06 HTTP client abort and deployment restart cancel queued/running work without late success", async (context) => {
+test("MOD-P1-06 HTTP client abort and explicit service restart cancel queued/running work without late success", async (context) => {
 	const releases: Array<() => void> = [];
 	const runtime = createModelRuntime({
 		specs: [spec],
@@ -311,10 +295,6 @@ test("MOD-P1-06 HTTP client abort and deployment restart cancel queued/running w
 	});
 	const service = createModelRuntimeService({ runtime });
 	let serviceRunning = false;
-	const adapter = createBehaviorAdapter({
-		service,
-		verifyProvider: async () => ({ ok: true, message: "verified" }),
-	});
 	const started = await service.start();
 	serviceRunning = true;
 	const stopService = async () => {
@@ -353,13 +333,10 @@ test("MOD-P1-06 HTTP client abort and deployment restart cancel queued/running w
 		await new Promise<void>((resolve) => setImmediate(resolve));
 	}
 	assert.equal(runtime.getRuntimeStatus().businessQueueDepth, 1);
-	const restarted = await adapter.restart();
-	if (!("data" in restarted.result))
-		throw new Error("restart did not return a service address");
-	const restartedAddress = restarted.result.data as {
-		host: string;
-		port: number;
-	};
+	await service.stop();
+	serviceRunning = false;
+	const restartedAddress = await service.start();
+	serviceRunning = true;
 	assert.deepEqual(
 		(await Promise.all([running, queued])).map((result) => result.error?.code),
 		["INFERENCE_FAILED", "INFERENCE_FAILED"],
@@ -395,74 +372,34 @@ test("MOD-P1-06 HTTP client abort and deployment restart cancel queued/running w
 	await stopService();
 });
 
-test("deployment uninstall is idempotent when no Model Runtime service is bound", async () => {
-	const result = await createBehaviorAdapter().uninstall();
+test("deployment uninstall is idempotent when no Model Runtime service is bound", async (context) => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-model-uninstall-"),
+	);
+	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const result = await behaviorAdapter.uninstall({ workspaceRoot });
 	assert.equal(result.result.status, "SUCCEEDED");
 	assert.equal(result.result.ok, true);
 	assert.deepEqual(result.observedEffects, []);
 });
 
-test("production binding preserves Model Runtime own config truth while dependencies are unavailable", async () => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-model-binding-status-"));
-	try {
-		const capabilityProfilesFile = join(root, "profiles.json");
-		const common = {
-			inputModalities: ["text"],
-			structuredOutput: "native",
-			contextWindow: 32_000,
-			maxOutputTokens: 2_048,
-		};
-		await writeFile(
-			capabilityProfilesFile,
-			JSON.stringify({
-				fast: {
-					...common,
-					modelRef: "fast-model",
-					reasoningModes: ["no-thinking"],
-				},
-				reason: {
-					...common,
-					modelRef: "reason-model",
-					reasoningModes: ["thinking"],
-				},
-			}),
-		);
-		const config = {
-			stateRoot: root,
-			transportCredentialFile: join(root, "transport.token"),
-			providerBaseUrl: "http://127.0.0.1:4400/v1/",
-			fastModel: "fast-model",
-			reasonModel: "reason-model",
-			capabilityProfilesFile,
-		};
-		const unbound = await createProductionBinding({
-			moduleRef: "model-runtime",
-			config,
-			configByModuleRef: new Map(),
-		});
-		const status = unbound.behaviorAdapter.status;
-		assert.equal(typeof status, "function");
-		const observed = (status as () => { result: { data: unknown } })();
-		assert.deepEqual(observed.result.data, {
-			configStatus: "READY",
-			runtimeStatus: "UNKNOWN",
-		});
-
-		const invalid = await createProductionBinding({
-			moduleRef: "model-runtime",
-			config: { ...config, providerBaseUrl: "not-a-url" },
-			configByModuleRef: new Map(),
-		});
-		const invalidStatus = invalid.behaviorAdapter.status;
-		assert.equal(typeof invalidStatus, "function");
-		const invalidObserved = (
-			invalidStatus as () => { result: { data: unknown } }
-		)();
-		assert.deepEqual(invalidObserved.result.data, {
-			configStatus: "INVALID",
-			runtimeStatus: "UNKNOWN",
-		});
-	} finally {
-		await rm(root, { recursive: true, force: true });
-	}
+test("model-runtime public setup surface is only fastModel/reasonModel and never asks the user for capabilityProfilesFile", async (context) => {
+	assert.deepEqual(
+		modelRuntimeDescriptor.configSlots.map((slot) => slot.key).sort(),
+		["fastModel", "reasonModel"],
+	);
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-model-setup-boundary-"),
+	);
+	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const setup = await behaviorAdapter.setup({
+		workspaceRoot,
+		input: { fastModel: "fast-model", reasonModel: "reason-model" },
+	});
+	assert.doesNotMatch(JSON.stringify(setup.result), /capabilityProfilesFile/);
+	assert.equal(
+		setup.result.status,
+		"FAILED",
+		"missing producer-owned capability facts must fail as a machine dependency, not become new user configuration",
+	);
 });
