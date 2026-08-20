@@ -1,7 +1,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
-import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
+import {
+	type ModuleCommandContext,
+	writeModuleSharedFacts,
+} from "@tomflow/proflow-module-contract";
 import type { ProviderProbeResult } from "../src/resource-adapter.ts";
 import { createProviderProbe } from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
@@ -75,6 +78,9 @@ async function probe(
 export const behaviorAdapter = {
 	install: async (context: ModuleCommandContext) => {
 		await mkdir(dirname(configPath(context)), { recursive: true, mode: 0o700 });
+		const config = await readConfig(context);
+		if (config)
+			await writeModuleSharedFacts(context, descriptor.moduleRef, config);
 		return { result: base, observedEffects: [] };
 	},
 	uninstall: async (_context: ModuleCommandContext) => ({
@@ -148,6 +154,7 @@ export const behaviorAdapter = {
 				},
 				observedEffects: [],
 			};
+		await writeModuleSharedFacts(context, descriptor.moduleRef, config);
 		const observation = await probe(config);
 		if (observation.reachable && observation.authenticated)
 			return { result: base, observedEffects: [effect] };

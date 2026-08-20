@@ -1,7 +1,10 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
+import {
+	type ModuleCommandContext,
+	writeModuleSharedFacts,
+} from "@tomflow/proflow-module-contract";
 import { createDevTunnelRuntime } from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
 
@@ -92,6 +95,12 @@ function runtime(context: ModuleCommandContext, state?: SetupState) {
 export const behaviorAdapter = {
 	install: async (context: ModuleCommandContext) => {
 		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+		const state = await readState(context);
+		if (state)
+			await writeModuleSharedFacts(context, descriptor.moduleRef, {
+				tunnelId: state.tunnelId,
+				publicBaseUrl: state.publicBaseUrl,
+			});
 		return { result: base, observedEffects: [] };
 	},
 	uninstall: async (context: ModuleCommandContext) => {
@@ -147,6 +156,10 @@ export const behaviorAdapter = {
 				observedEffects: [],
 			};
 		}
+		await writeModuleSharedFacts(context, descriptor.moduleRef, {
+			tunnelId: state.tunnelId,
+			publicBaseUrl: state.publicBaseUrl,
+		});
 		const rt = runtime(context, state);
 		const login = await rt.loginStatus();
 		const observed = await rt.status();
@@ -220,6 +233,10 @@ export const behaviorAdapter = {
 				publicBaseUrl: url.href,
 			};
 			await writeState(context, state);
+			await writeModuleSharedFacts(context, descriptor.moduleRef, {
+				tunnelId: state.tunnelId,
+				publicBaseUrl: state.publicBaseUrl,
+			});
 			return { result: base, observedEffects: [] };
 		} catch (error) {
 			return {
