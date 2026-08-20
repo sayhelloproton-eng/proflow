@@ -323,24 +323,31 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 
 	const actionRequired = adapterFor(generated.descriptor);
 	actionRequired.status = () => ({
+		result: result(
+			generated.descriptor.moduleRef,
+			generated.descriptor.moduleVersion,
+			{
+				setupStatus: "ACTION_REQUIRED",
+				runtimeStatus: "NOT_APPLICABLE",
+			},
+		),
+		observedEffects: [],
+		externalAvailabilityClaim: "UNKNOWN",
+		externalAvailabilityEvidence: "fake",
+	});
+	actionRequired.setup = () => ({
 		result: {
 			contract: "deployment.result.v1",
 			ok: false,
 			status: "ACTION_REQUIRED",
 			moduleRef: generated.descriptor.moduleRef,
 			moduleVersion: generated.descriptor.moduleVersion,
-			data: {
-				setupStatus: "ACTION_REQUIRED",
-				runtimeStatus: "NOT_APPLICABLE",
-			},
 			actionRequired: {
 				action: "authenticate",
 				description: "Authenticate the external resource",
 			},
 		},
 		observedEffects: [],
-		externalAvailabilityClaim: "UNKNOWN",
-		externalAvailabilityEvidence: "fake",
 	});
 	assert.equal(
 		(await runBehaviorConformance(generated.descriptor, actionRequired)).status,

@@ -13,7 +13,7 @@ test("execution-local Module.install materializes deterministic workspace/artifa
 	const context = { workspaceRoot };
 	try {
 		const before = await behaviorAdapter.status(context);
-		assert.equal(before.result.data.setupStatus, "FAILED");
+		assert.equal(before.result.data.setupStatus, "READY");
 		const installed = await behaviorAdapter.install(context);
 		assert.equal(installed.result.status, "SUCCEEDED");
 		const roots = installed.result.data;

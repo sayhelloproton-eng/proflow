@@ -192,6 +192,9 @@ importers:
       '@tomflow/proflow-execution-contracts':
         specifier: workspace:^
         version: link:../execution-contracts
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
 
   packages/execution-runtime:
     dependencies:
