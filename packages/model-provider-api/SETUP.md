@@ -1,7 +1,15 @@
 # @tomflow/proflow-model-provider-api — Module Setup
 
-Provide the real OpenAI-compatible provider endpoint through `providerBaseUrl` and, when required, the `providerCredential` secret reference. Module.setup must probe/re-observe the external provider rather than trusting configuration presence alone.
+## Goal
+Reach `setupStatus=READY` by selecting the real OpenAI-compatible provider endpoint; never expose Module-private paths or copy provider facts through Platform config.
 
-## Completion
+## Step 1 — Configure the provider endpoint
+**Type:** human/external choice
+**Human action:** Choose the provider API base URL. Provide a credential reference only when the provider requires authentication.
+**Verify/commit executable:** `platform setup --module model-provider-api --workspace <workspace> --input '{"providerBaseUrl":"<base-url>"}'`
+The Module probes the real `/models` endpoint before declaring READY.
 
-Setup is complete only when the Module's own `status` reports `setupStatus=READY`. Re-running setup must re-observe reality; it must not resume from a blind historical step index.
+## Step 2 — Verify completion
+**Type:** automatic verification
+**Executable:** `platform status --workspace <workspace>`
+**Success condition:** `model-provider-api.setupStatus=READY`. If a credential is required but no producer-owned credential resolver contract exists, the Module returns machine `FAILED`; do not ask the user to paste internal credential files or bypass the contract.

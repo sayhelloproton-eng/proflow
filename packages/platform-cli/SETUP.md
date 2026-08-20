@@ -4,24 +4,24 @@ The Platform CLI owns orchestration only. It never interprets another Module's s
 
 ## Step 1 — Verify the Platform CLI Module
 
-**Executable**
+**Executable:**
 
 ```bash
 platform setup --module platform-cli
 ```
 
-**Success condition**
+**Success condition:**
 
 `platform status` reports `platform-cli setup=READY`. No user/private path, token, loopback endpoint, or cross-Module fact is requested.
 
 ## Step 2 — Run the full workspace setup guide
 
-**Executable**
+**Executable:**
 
 ```bash
 platform setup
 ```
 
-**Success condition**
+**Success condition:**
 
 All automatically solvable Module setup work is completed in the same run, and every remaining human/external action is listed together. Re-running the command re-observes reality and continues until all required Modules report `setupStatus=READY`.

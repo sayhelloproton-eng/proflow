@@ -1,7 +1,15 @@
 # @tomflow/proflow-model-runtime — Module Setup
 
-Choose the provider model identifiers for `fastModel` and `reasonModel`. Provider endpoint/credential and capability facts come from the provider contract or Module-owned probing; they must not be manually copied through Platform config. Module.setup completes only after the selected FAST/REASON roles can be re-observed against the provider.
+## Goal
+Reach `setupStatus=READY` after the user selects only the FAST and REASON model identifiers. Provider endpoint/credential and capability facts must come from producer-owned contracts or Module-owned probes.
 
-## Completion
+## Step 1 — Select FAST and REASON models
+**Type:** human product choice
+**Human action:** Choose the provider model IDs for the FAST and REASON roles.
+**Verify/commit executable:** `platform setup --module model-runtime --workspace <workspace> --input '{"fastModel":"<fast-model-id>","reasonModel":"<reason-model-id>"}'`
+Do not provide `capabilityProfilesFile`, token paths, provider URLs or other system-owned facts.
 
-Setup is complete only when the Module's own `status` reports `setupStatus=READY`. Re-running setup must re-observe reality; it must not resume from a blind historical step index.
+## Step 2 — Verify completion
+**Type:** automatic verification
+**Executable:** `platform status --workspace <workspace>`
+**Success condition:** `model-runtime.setupStatus=READY` after provider-owned capability profile/facts are available and validated. If that producer contract is absent, the Module returns machine `FAILED`; this is not a user configuration action.
