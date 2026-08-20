@@ -1,7 +1,14 @@
 # @tomflow/proflow-agent-gateway — Module Setup
 
-No user or external setup is required by the current frozen Module contract. `Module.install` completes deterministic preparation; `Module.setup` only re-observes current reality and must not ask the user to supply private paths, loopback endpoints, tokens or cross-Module facts.
+## Goal
+Reach `setupStatus=READY` with zero user configuration.
 
-## Completion
+## Step 1 — Resolve producer-owned dependencies
+**Type:** automatic
+**Executable:** `platform setup --module agent-gateway --workspace <workspace>`
+The Module reads the Dev Tunnel public URL and Platform Host endpoint/credentials from producer-owned shared facts. No path, token, endpoint or credential is copied by the user.
 
-Setup is complete only when the Module's own `status` reports `setupStatus=READY`. Re-running setup must re-observe reality; it must not resume from a blind historical step index.
+## Step 2 — Verify completion
+**Type:** automatic verification
+**Executable:** `platform status --workspace <workspace>`
+**Success condition:** `agent-gateway.setupStatus=READY`. If a producer is not READY, the full `platform setup` output must expose that producer's own setup action instead of asking the user to configure Agent Gateway internals.

@@ -92,6 +92,9 @@ importers:
 
   packages/agent-runtime:
     dependencies:
+      '@tomflow/proflow-module-contract':
+        specifier: workspace:^
+        version: link:../module-contract
       yaml:
         specifier: 2.9.0
         version: 2.9.0
@@ -102,9 +105,6 @@ importers:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
-      '@tomflow/proflow-module-contract':
-        specifier: workspace:^
-        version: link:../module-contract
 
   packages/agent-test-ops:
     dependencies:

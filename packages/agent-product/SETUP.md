@@ -1,7 +1,20 @@
 # @tomflow/proflow-agent-product — Module Setup
 
-This Agent Package requires real Custom GPT / role setup. Use the package-owned role/custom-gpt capabilities to prepare the product role, complete any ChatGPT Builder / Action / authentication steps, then rerun Module.setup so the Module re-observes the real carrier/role state. Do not copy carrier facts through Platform config.
+## Goal
+Reach `setupStatus=READY` with one unavoidable human action: create/select the real Product Custom GPT.
 
-## Completion
+## Step 1 — Prepare the Custom GPT bundle
+**Type:** automatic
+**Executable:** `proflow-agent-product custom-gpt setup --workspace <workspace>`
+This prints the package-owned Instructions, knowledge files, capabilities and Action schema using the Gateway URL discovered from Workspace shared facts. Do not copy internal endpoints or token paths manually.
 
-Setup is complete only when the Module's own `status` reports `setupStatus=READY`. Re-running setup must re-observe reality; it must not resume from a blind historical step index.
+## Step 2 — Create or update the Custom GPT
+**Type:** human
+**Human action:** Apply the prepared bundle in ChatGPT Web and obtain the real `https://chatgpt.com/g/g-...` URL.
+**Verify/commit executable:** `proflow-agent-product role register <gpt-url> --workspace <workspace>`
+This uses Agent Runtime's durable role API directly; Platform Host does not need to be running.
+
+## Step 3 — Re-observe completion
+**Type:** automatic verification
+**Executable:** `platform setup --module agent-product --workspace <workspace>`
+**Success condition:** `platform status --workspace <workspace>` reports `agent-product.setupStatus=READY`.
