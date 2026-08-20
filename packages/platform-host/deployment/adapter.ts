@@ -28,6 +28,7 @@ const unbound = {
 export function createBehaviorAdapter(
 	service?: PlatformHostService,
 	config?: Record<string, string>,
+	configValid = true,
 ) {
 	return {
 		describe: () => ({ result: base, observedEffects: [] }),
@@ -39,6 +40,7 @@ export function createBehaviorAdapter(
 				descriptor,
 				config,
 				ready ? "RUNNING" : service ? "FAILED" : "UNKNOWN",
+				configValid,
 			);
 			return {
 				result: { ...base, data },
@@ -117,17 +119,21 @@ const REQUIRED_CONFIG = [
 	"modelTransportCredentialFile",
 ] as const;
 
-// Binds the real Host process only when the materialized config is complete;
-// otherwise stays unbound so the CLI's catalog falls back to the fail-closed
-// default. The heavy src import is deferred until a real binding is requested.
+// Binds the real Host process only when materialized owner config and required
+// dependency composition are available. Unbound bindings still carry owner
+// config so status remains authoritative. The heavy src import is deferred
+// until a real binding is requested.
 export async function createProductionBinding(input: {
 	moduleRef: string;
 	config: Record<string, string>;
 	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
-}): Promise<{ behaviorAdapter: Record<string, unknown> } | undefined> {
+}): Promise<{ behaviorAdapter: Record<string, unknown> }> {
 	const config = input.config;
+	const unboundBinding = (configValid = true) => ({
+		behaviorAdapter: createBehaviorAdapter(undefined, config, configValid),
+	});
 	if (!REQUIRED_CONFIG.every((key) => config[key] !== undefined))
-		return undefined;
+		return unboundBinding();
 
 	// The Platform Host's public loopback endpoint is already a cross-module
 	// contract: Execution calls it through identity.endpoint. Reuse that
@@ -135,28 +141,39 @@ export async function createProductionBinding(input: {
 	// that no dependent module could discover after `start`.
 	const executionRuntime = input.configByModuleRef.get("execution-runtime");
 	const advertised = executionRuntime?.["identity.endpoint"];
-	if (!advertised) return undefined;
-	const listener = new URL(advertised);
+	if (!advertised) return unboundBinding();
+	let listener: URL;
+	try {
+		listener = new URL(advertised);
+	} catch {
+		return unboundBinding();
+	}
 	if (listener.protocol !== "http:" || listener.pathname !== "/")
-		return undefined;
+		return unboundBinding();
 	const port = listener.port === "" ? 80 : Number(listener.port);
-	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
+	if (!Number.isInteger(port) || port <= 0 || port > 65_535)
+		return unboundBinding();
 
 	const { createPlatformHost, parsePlatformHostConfig } = await import(
 		"../src/index.ts"
 	);
-	const hostConfig = parsePlatformHostConfig({
-		stateRoot: config.stateRoot,
-		workspaceRoot: config.workspaceRoot,
-		host: listener.hostname,
-		port,
-		executionBaseUrl: config.executionBaseUrl,
-		executionTransportCredentialFile: config.executionTransportCredentialFile,
-		modelBaseUrl: config.modelBaseUrl,
-		modelTransportCredentialFile: config.modelTransportCredentialFile,
-		gatewayTransportCredentialFile: config.gatewayTransportCredentialFile,
-		roles: [],
-	});
+	let hostConfig: ReturnType<typeof parsePlatformHostConfig>;
+	try {
+		hostConfig = parsePlatformHostConfig({
+			stateRoot: config.stateRoot,
+			workspaceRoot: config.workspaceRoot,
+			host: listener.hostname,
+			port,
+			executionBaseUrl: config.executionBaseUrl,
+			executionTransportCredentialFile: config.executionTransportCredentialFile,
+			modelBaseUrl: config.modelBaseUrl,
+			modelTransportCredentialFile: config.modelTransportCredentialFile,
+			gatewayTransportCredentialFile: config.gatewayTransportCredentialFile,
+			roles: [],
+		});
+	} catch {
+		return unboundBinding(false);
+	}
 	const host = createPlatformHost({ config: hostConfig });
 	const service: PlatformHostService = {
 		start: () => host.start(),

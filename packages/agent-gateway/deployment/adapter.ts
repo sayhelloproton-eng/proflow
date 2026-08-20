@@ -28,6 +28,7 @@ const unbound = {
 export function createBehaviorAdapter(
 	service?: GatewayProcess,
 	config?: Record<string, string>,
+	configValid = true,
 ) {
 	return {
 		describe: () => ({ result: base, observedEffects: [] }),
@@ -39,6 +40,7 @@ export function createBehaviorAdapter(
 				descriptor,
 				config,
 				ready ? "RUNNING" : service ? "FAILED" : "UNKNOWN",
+				configValid,
 			);
 			return {
 				result: { ...base, data },
@@ -136,41 +138,64 @@ export async function createProductionBinding(input: {
 	config: Record<string, string>;
 	workspaceRoot: string;
 	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
-}): Promise<{ behaviorAdapter: Record<string, unknown> } | undefined> {
+}): Promise<{ behaviorAdapter: Record<string, unknown> }> {
+	const unboundBinding = (configValid = true) => ({
+		behaviorAdapter: createBehaviorAdapter(
+			undefined,
+			input.config,
+			configValid,
+		),
+	});
 	const localBaseUrl = input.config.localBaseUrl;
 	const publicBaseUrl = input.config.publicBaseUrl;
 	const downstreamCredentialFile = input.config.downstreamCredentialFile;
-	const platformHost = input.configByModuleRef.get("platform-host");
-	const executionRuntime = input.configByModuleRef.get("execution-runtime");
-	const stateRoot = platformHost?.stateRoot;
-	const downstreamBaseUrl = executionRuntime?.["identity.endpoint"];
-	if (
-		!localBaseUrl ||
-		!publicBaseUrl ||
-		!downstreamCredentialFile ||
-		!stateRoot ||
-		!downstreamBaseUrl
-	) {
-		return undefined;
+	if (!localBaseUrl || !publicBaseUrl || !downstreamCredentialFile)
+		return unboundBinding();
+
+	let listener: URL;
+	let publicUrl: URL;
+	try {
+		listener = new URL(localBaseUrl);
+		publicUrl = new URL(publicBaseUrl);
+	} catch {
+		return unboundBinding(false);
 	}
-	const listener = new URL(localBaseUrl);
 	if (
 		listener.protocol !== "http:" ||
 		!new Set(["127.0.0.1", "localhost", "::1", "[::1]"]).has(
 			listener.hostname,
 		) ||
-		listener.pathname !== "/"
+		listener.pathname !== "/" ||
+		publicUrl.protocol !== "https:"
 	)
-		return undefined;
+		return unboundBinding(false);
 	const port = listener.port === "" ? 80 : Number(listener.port);
-	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
+	if (!Number.isInteger(port) || port <= 0 || port > 65_535)
+		return unboundBinding(false);
+
+	const platformHost = input.configByModuleRef.get("platform-host");
+	const executionRuntime = input.configByModuleRef.get("execution-runtime");
+	const stateRoot = platformHost?.stateRoot;
+	const downstreamBaseUrl = executionRuntime?.["identity.endpoint"];
+	if (!stateRoot || !downstreamBaseUrl) return unboundBinding();
+	try {
+		const downstream = new URL(downstreamBaseUrl);
+		if (
+			downstream.protocol !== "http:" ||
+			!["localhost", "127.0.0.1", "::1"].includes(downstream.hostname)
+		)
+			return unboundBinding();
+	} catch {
+		return unboundBinding();
+	}
 
 	const [
 		{ join },
 		{ createAgentGatewayProcess, parseAgentGatewayProcessConfig },
 	] = await Promise.all([import("node:path"), import("../src/process.ts")]);
-	const service = await createAgentGatewayProcess({
-		config: parseAgentGatewayProcessConfig({
+	let processConfig: ReturnType<typeof parseAgentGatewayProcessConfig>;
+	try {
+		processConfig = parseAgentGatewayProcessConfig({
 			host: listener.hostname,
 			port,
 			publicBaseUrl,
@@ -182,7 +207,10 @@ export async function createProductionBinding(input: {
 				"role-credentials.json",
 			),
 			downstreamCredentialFile,
-		}),
-	});
+		});
+	} catch {
+		return unboundBinding(false);
+	}
+	const service = await createAgentGatewayProcess({ config: processConfig });
 	return { behaviorAdapter: createBehaviorAdapter(service, input.config) };
 }
