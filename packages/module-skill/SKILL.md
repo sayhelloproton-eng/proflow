@@ -21,7 +21,7 @@ Package manager owns npm dependency operations.
 
 Before create or modify, confirm `moduleRef`, `packageName`, `moduleVersion`, `kind`, `domain` and `summary` from owner truth.
 
-Owner-controlled content includes `provides`, `requires`, `requirements`, genuine public/user setup config slots, effects, DOCS/SETUP content and module-specific business commands. The seven standard management capabilities are fixed by the platform contract and are not optional owner choices.
+Owner-controlled content includes `provides`, `requires`, `requirements`, genuine public/user setup config slots, effects, DOCS/SETUP content, and frozen business commands / APIs / permissions. Module-specific business commands remain package-owned. The seven standard management capabilities are fixed by the platform contract and are not optional owner choices.
 
 Do not create or preserve `installClass` or `installRequires`.
 
@@ -30,7 +30,9 @@ Do not create or preserve `installClass` or `installRequires`.
 1. Materialize the correct Module profile from the template.
 2. Populate only frozen owner facts and the Module-owned seven-command management seam.
 3. Deterministic/private values belong to `Module.install`; cross-Module facts come from producer contracts/shared facts; only genuine user choice or external reality belongs to `Module.setup`.
-4. Publish exactly `DOCS.md` and `SETUP.md` as the standard knowledge surface, then run conformance and fix only governance-surface failures.
+4. Design setup for the shortest path to `Module.status.setupStatus=READY`: automatically complete every machine-solvable step, batch independent preparation when safe, and ask the user only for genuinely unavoidable human/external input.
+5. `SETUP.md` must describe the ordered closure steps. Every step that advances setup must name a package-owned executable command or verification command; a human step must include the exact minimum human action plus the package-owned command that verifies it. Do not create ceremonial steps when one executable can close several actions safely.
+6. Publish exactly `DOCS.md` and `SETUP.md` as the standard knowledge surface, then run conformance and fix only governance-surface failures.
 
 ## Modify Flow
 
@@ -65,4 +67,4 @@ The user-facing Platform CLI is exactly: `install`, `uninstall`, `status`, `setu
 
 Every governed Module exposes the same seven standard management capabilities. Platform only discovers Modules, orders dependencies, forwards these capabilities and aggregates results. It must not read/interpret Module-private config or recreate `preflight`/`verify`/`doctor` as a second truth source.
 
-Use `platform status` to aggregate Module-owned status, `platform setup` to forward current human/external setup actions, and `platform docs` to aggregate Module-owned knowledge. `platform start` gates only on current `Module.status.setupStatus`, then calls `Module.start` in dependency order. Package installation/version synchronization remains `platform install`; npm dependency mutation belongs to the package manager, while capability materialization belongs to `Module.install`.
+Use `platform status` to aggregate Module-owned status, `platform setup` to aggregate the full current set of human/external setup actions, and `platform docs` to aggregate Module-owned knowledge. `platform start` gates only on current `Module.status.setupStatus`, then calls `Module.start` in dependency order. Package installation/version synchronization remains `platform install`; npm dependency mutation belongs to the package manager, while capability materialization belongs to `Module.install`.

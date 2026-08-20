@@ -264,7 +264,7 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 		"package.json": packageJson(descriptor),
 		"README.md": `# ${descriptor.packageName}\n\nModule: \`${descriptor.moduleRef}\`  \nDomain: \`${descriptor.identity.domain}\`  \nKind: \`${descriptor.kind}\`  \nTemplate: \`${descriptor.templateVersion}\`\n\n${descriptor.identity.summary}\n`,
 		"DOCS.md": `# Module Docs\n\n${descriptor.identity.summary}\n\nDocument the Module purpose, public contracts, capabilities, usage, errors and limitations here.\n`,
-		"SETUP.md": `# Module Setup\n\nNo user or external setup is required by the generated scaffold. Module.install completes deterministic preparation. Add only owner-frozen human or external setup steps.\n`,
+		"SETUP.md": `# Module Setup\n\n## Goal\n\nReach \`Module.status.setupStatus=READY\` with the fewest user actions.\n\n## Automatic path\n\n\`Module.install\` owns all deterministic/private preparation. The generated scaffold requires no user or external setup. Owners must keep every machine-solvable step automatic.\n\n## Human/external steps\n\nNone in the generated scaffold. If the owning Module later requires a real human or external action, add the shortest ordered steps here. Every advancing step must name a package-owned executable command or verification command; ask the user only for information the Module cannot determine itself.\n\n## Completion\n\nSetup is complete only when the Module's own \`status\` reports \`setupStatus=READY\`. Re-running setup must re-observe reality rather than resume from a blind historical step index.\n`,
 		"tsconfig.json": `${JSON.stringify(
 			{
 				compilerOptions: {

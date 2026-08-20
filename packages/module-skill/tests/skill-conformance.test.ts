@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { type TestContext, test } from "node:test";
@@ -155,4 +155,24 @@ test("RF-DPL-SKILL-04 a modified artifact that skips re-conformance is rejected 
 	const after = await runGeneratedPackageConformance(fixture.packageDirectory);
 	assert.equal(after[2]?.status, "FAIL");
 	assert.equal(flowDecision(after), "STOP_CONFORMANCE_FAILED");
+});
+
+test("SETUP-CLOSURE module-skill requires the shortest executable setup path", async () => {
+	const skill = await readFile(
+		fileURLToPath(new URL("../SKILL.md", import.meta.url)),
+		"utf8",
+	);
+	assert.match(skill, /shortest path to `Module\.status\.setupStatus=READY`/);
+	assert.match(
+		skill,
+		/package-owned executable command or verification command/,
+	);
+	assert.match(
+		skill,
+		/ask the user only for genuinely unavoidable human\/external input/,
+	);
+	assert.match(
+		skill,
+		/aggregate the full current set of human\/external setup actions/,
+	);
 });

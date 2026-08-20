@@ -74,7 +74,10 @@ test("CP-DPL-TPL-01 materializes six profiles with only their real responsibilit
 			/createProductionBinding|createServiceProcessBinding/,
 		);
 		for (const command of standardModuleManagementCommands)
-			assert.match(adapter, new RegExp(`\\b${command}\\s*:`));
+			assert.match(
+				adapter,
+				new RegExp(`(?:\\b${command}\\s*:|"${command}"\\s*:)`),
+			);
 		assert.equal(
 			await exists(
 				join(result.packageDirectory, "deployment/browser-extension.json"),
@@ -137,6 +140,16 @@ test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata and h
 			docs: "DOCS.md",
 			setup: "SETUP.md",
 		});
+		const setupGuide = await readFile(
+			join(result.packageDirectory, "SETUP.md"),
+			"utf8",
+		);
+		assert.match(setupGuide, /fewest user actions/);
+		assert.match(
+			setupGuide,
+			/package-owned executable command or verification command/,
+		);
+		assert.match(setupGuide, /setupStatus=READY/);
 	}
 });
 
