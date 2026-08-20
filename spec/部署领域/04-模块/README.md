@@ -34,3 +34,6 @@ contractRefs: []
 - `Module.install` 自动闭环 deterministic materialization；Producer-owned shared fact 不要求用户搬运。
 - `Module.setup` 只保留真实用户/外部动作，并以最少交互尽快到 READY。每个 `SETUP.md` Step 都必须有 package-owned executable/verify；纯人工步骤至少具备 prepare/verify 命令。
 - 不存在 Core/installRequires 安装模型，也不存在 package-owned 单包 install 产品入口。
+## Setup 加速不变量
+
+`platform setup` 每次都必须扫描全部 discovered Module：`READY` 跳过，非 READY 继续调用 owning `Module.setup`；遇到 `ACTION_REQUIRED` 或 `FAILED` 也不得提前停止，最后一次性聚合完整清单。具体配置知识与步骤只属于各 Module。每个需要推进 setup 状态的 Module 必须以最短路径闭环：能自动就自动，真正人工动作才返回 `ACTION_REQUIRED`；对应 `SETUP.md` Step 必须提供 package-owned executable/verify 与 Success Condition，目标是最少用户操作、最少往返、最快达到 `setupStatus=READY` 并可启动。

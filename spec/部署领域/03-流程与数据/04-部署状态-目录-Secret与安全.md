@@ -67,3 +67,6 @@ Module 能唯一确定的路径、端口、token、artifact/config 文件由 `Mo
 ## 6. 原子性
 
 只为七命令所需的最小 Workspace-local metadata 使用安全原子写。旧 Plan/Apply persistence 与 exclusive apply lock 在零 caller 后删除。
+## Setup 加速不变量
+
+`platform setup` 每次都必须扫描全部 discovered Module：`READY` 跳过，非 READY 继续调用 owning `Module.setup`；遇到 `ACTION_REQUIRED` 或 `FAILED` 也不得提前停止，最后一次性聚合完整清单。具体配置知识与步骤只属于各 Module。每个需要推进 setup 状态的 Module 必须以最短路径闭环：能自动就自动，真正人工动作才返回 `ACTION_REQUIRED`；对应 `SETUP.md` Step 必须提供 package-owned executable/verify 与 Success Condition，目标是最少用户操作、最少往返、最快达到 `setupStatus=READY` 并可启动。
