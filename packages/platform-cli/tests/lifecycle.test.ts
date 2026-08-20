@@ -2,16 +2,23 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { ModuleOperationResult } from "@tomflow/proflow-module-contract";
-
 import type { ResolvedModule } from "../src/contracts.ts";
 import {
-	preflightAndStartModules,
+	setupModulesThin,
+	startModulesThin,
 	stopModulesThin,
 } from "../src/lifecycle/index.ts";
 import type { ModuleCatalog, ModuleSource } from "../src/modules.ts";
 
-type Primitive = "preflight" | "start" | "stop";
-type ResultStatus = ModuleOperationResult["status"];
+type Command =
+	| "install"
+	| "uninstall"
+	| "status"
+	| "setup"
+	| "docs"
+	| "start"
+	| "stop";
+const workspaceRoot = "/fixture/workspace";
 
 function moduleFixture(input: {
 	moduleRef: string;
@@ -24,60 +31,33 @@ function moduleFixture(input: {
 		moduleVersion: "1.0.0",
 		kind: "service",
 		identity: { domain: "deployment-governance", summary: "Lifecycle fixture" },
-		documentation: [],
+		documentation: { docs: "DOCS.md", setup: "SETUP.md" },
 		provides: input.provides ?? [],
 		requires: input.requires ?? [],
 		requirements: [],
 		configSlots: [],
-		lifecycle: ["preflight", "start", "stop"],
-		verification: { checks: [] },
 		effects: [],
 		source: { type: "workspace", path: `/fixture/${input.moduleRef}` },
 	};
 }
 
-function operationResult(
-	moduleRef: string,
-	status: ResultStatus,
-): ModuleOperationResult {
-	if (status === "ACTION_REQUIRED") {
-		return {
-			contract: "deployment.result.v1",
-			ok: false,
-			status,
-			moduleRef,
-			moduleVersion: "1.0.0",
-			actionRequired: {
-				action: "fixture-action",
-				description: "fixture action required",
-			},
-		};
-	}
-	if (status === "FAILED") {
-		return {
-			contract: "deployment.result.v1",
-			ok: false,
-			status,
-			moduleRef,
-			moduleVersion: "1.0.0",
-			error: {
-				code: "COMMAND_FAILED",
-				message: `${moduleRef} failed`,
-				retryable: false,
-			},
-		};
-	}
+function success(moduleRef: string, data?: unknown): ModuleOperationResult {
 	return {
 		contract: "deployment.result.v1",
-		ok: status === "SUCCEEDED",
-		status,
+		ok: true,
+		status: "SUCCEEDED",
 		moduleRef,
 		moduleVersion: "1.0.0",
+		...(data === undefined ? {} : { data }),
 	};
 }
 
-function recordingCatalog(statuses: Readonly<Record<string, ResultStatus>>) {
-	const calls: string[] = [];
+function recordingCatalog(
+	setupByRef: Readonly<
+		Record<string, "READY" | "ACTION_REQUIRED" | "FAILED">
+	> = {},
+) {
+	const calls: Array<{ call: string; input?: unknown }> = [];
 	const catalog: ModuleCatalog = {
 		async sources() {
 			return [];
@@ -87,21 +67,29 @@ function recordingCatalog(statuses: Readonly<Record<string, ResultStatus>>) {
 		},
 		async loadAdapter(source: ModuleSource) {
 			const moduleRef = source.packageName.replace("@tomflow/proflow-", "");
-			const operation = (primitive: Primitive) => async () => {
-				calls.push(`${moduleRef}:${primitive}`);
-				return {
-					result: operationResult(
-						moduleRef,
-						statuses[`${moduleRef}:${primitive}`] ?? "SUCCEEDED",
-					),
-					observedEffects: [],
-				};
+			const op = (command: Command) => async (context: { input?: unknown }) => {
+				calls.push({
+					call: `${moduleRef}:${command}`,
+					...(context.input === undefined ? {} : { input: context.input }),
+				});
+				const data =
+					command === "status"
+						? {
+								setupStatus: setupByRef[moduleRef] ?? "READY",
+								runtimeStatus: "STOPPED" as const,
+							}
+						: undefined;
+				return { result: success(moduleRef, data), observedEffects: [] };
 			};
 			return {
 				behaviorAdapter: {
-					preflight: operation("preflight"),
-					start: operation("start"),
-					stop: operation("stop"),
+					install: op("install"),
+					uninstall: op("uninstall"),
+					status: op("status"),
+					setup: op("setup"),
+					docs: op("docs"),
+					start: op("start"),
+					stop: op("stop"),
 				},
 			};
 		},
@@ -124,67 +112,66 @@ const leaf = moduleFixture({
 });
 const modules = [leaf, consumer, provider];
 
-test("start completes every preflight before any start and leaves zero starts on preflight failure", async () => {
-	const { catalog, calls } = recordingCatalog({
-		"consumer:preflight": "ACTION_REQUIRED",
+test("start gates on Module.status setup READY and never runs preflight", async () => {
+	const { catalog, calls } = recordingCatalog({ consumer: "ACTION_REQUIRED" });
+	const result = await startModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(result.completed, false);
+	assert.deepEqual(result.blockedBy, {
+		moduleRef: "consumer",
+		setupStatus: "ACTION_REQUIRED",
 	});
-	const outcome = await preflightAndStartModules(catalog, modules);
-	assert.equal(outcome.phase, "preflight");
-	assert.equal(outcome.completed, false);
-	assert.deepEqual(calls, ["provider:preflight", "consumer:preflight"]);
-	assert.equal(
-		calls.some((call) => call.endsWith(":start")),
-		false,
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		["provider:status", "provider:start", "consumer:status"],
 	);
 });
 
-test("start is dependency ordered and fail-fast without rollback or later starts", async () => {
-	const { catalog, calls } = recordingCatalog({
-		"consumer:start": "FAILED",
-	});
-	const outcome = await preflightAndStartModules(catalog, modules);
-	assert.equal(outcome.phase, "start");
-	assert.equal(outcome.completed, false);
-	assert.deepEqual(calls, [
-		"provider:preflight",
-		"consumer:preflight",
-		"leaf:preflight",
-		"provider:start",
-		"consumer:start",
-	]);
-	assert.equal(calls.includes("leaf:start"), false);
+test("successful start and stop preserve dependency and reverse dependency order", async () => {
+	const { catalog, calls } = recordingCatalog();
 	assert.equal(
-		calls.some((call) => call.endsWith(":stop")),
-		false,
+		(await startModulesThin(catalog, modules, workspaceRoot)).completed,
+		true,
+	);
+	assert.equal(
+		(await stopModulesThin(catalog, modules, workspaceRoot)).completed,
+		true,
+	);
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		[
+			"provider:status",
+			"provider:start",
+			"consumer:status",
+			"consumer:start",
+			"leaf:status",
+			"leaf:start",
+			"leaf:stop",
+			"consumer:stop",
+			"provider:stop",
+		],
 	);
 });
 
-test("stop is reverse dependency ordered and fail-fast", async () => {
-	const { catalog, calls } = recordingCatalog({
-		"consumer:stop": "FAILED",
-	});
-	const outcome = await stopModulesThin(catalog, modules);
-	assert.equal(outcome.phase, "stop");
-	assert.equal(outcome.completed, false);
-	assert.deepEqual(calls, ["leaf:stop", "consumer:stop"]);
-	assert.equal(calls.includes("provider:stop"), false);
+test("setup skips READY modules and invokes only ACTION_REQUIRED module", async () => {
+	const { catalog, calls } = recordingCatalog({ consumer: "ACTION_REQUIRED" });
+	const result = await setupModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(result.completed, true);
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		["provider:status", "consumer:status", "consumer:setup", "leaf:status"],
+	);
 });
 
-test("successful start and stop preserve dependency order", async () => {
-	const { catalog, calls } = recordingCatalog({});
-	const started = await preflightAndStartModules(catalog, modules);
-	assert.equal(started.completed, true);
-	const stopped = await stopModulesThin(catalog, modules);
-	assert.equal(stopped.completed, true);
+test("targeted setup forwards opaque input without Platform interpretation", async () => {
+	const { catalog, calls } = recordingCatalog({ consumer: "ACTION_REQUIRED" });
+	const input = { externalToken: "opaque-value" };
+	const result = await setupModulesThin(catalog, modules, workspaceRoot, {
+		moduleRef: "consumer",
+		input,
+	});
+	assert.equal(result.completed, true);
 	assert.deepEqual(calls, [
-		"provider:preflight",
-		"consumer:preflight",
-		"leaf:preflight",
-		"provider:start",
-		"consumer:start",
-		"leaf:start",
-		"leaf:stop",
-		"consumer:stop",
-		"provider:stop",
+		{ call: "consumer:status" },
+		{ call: "consumer:setup", input },
 	]);
 });

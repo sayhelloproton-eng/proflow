@@ -46,19 +46,16 @@ function descriptorFor({ moduleRef, packageName }: FixtureDescriptor) {
 }
 
 function adapterSource(moduleRef: string): string {
+	const base = `{ contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${JSON.stringify(moduleRef)}, moduleVersion: "1.0.0" }`;
 	return `export const behaviorAdapter = {
-	preflight: () => ({
-		result: {
-			contract: "deployment.result.v1",
-			ok: true,
-			status: "SUCCEEDED",
-			moduleRef: ${JSON.stringify(moduleRef)},
-			moduleVersion: "1.0.0",
-		},
-		observedEffects: [],
-	}),
-};
-`;
+install: async () => ({ result: ${base}, observedEffects: [] }),
+uninstall: async () => ({ result: ${base}, observedEffects: [] }),
+status: async () => ({ result: { ...${base}, data: { setupStatus: "READY", runtimeStatus: "NOT_APPLICABLE" } }, observedEffects: [] }),
+setup: async () => ({ result: ${base}, observedEffects: [] }),
+docs: async () => ({ result: { ...${base}, data: { docs: "DOCS.md", setup: "SETUP.md" } }, observedEffects: [] }),
+start: async () => ({ result: ${base}, observedEffects: [] }),
+stop: async () => ({ result: ${base}, observedEffects: [] }),
+};\n`;
 }
 
 async function writeWorkspacePackage(

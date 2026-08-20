@@ -1,78 +1,37 @@
 import assert from "node:assert/strict";
-import { rm } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { runCli } from "../src/cli.ts";
 import { tempWorkspace, writeWorkspaceModule } from "./test-helpers.ts";
 
-test("platform docs aggregates Module-owned contracts and documents", async () => {
+test("platform docs forwards Module.docs result instead of reading package prose itself", async () => {
 	const root = await tempWorkspace();
 	try {
 		await writeWorkspaceModule(root, {
 			moduleRef: "docs-fixture",
-			adapterSource:
-				'export function createProductionBinding() { throw new Error("DOCS_MUST_NOT_BIND_RUNTIME"); }\nexport const behaviorAdapter = {};\n',
-			provides: [{ contractRef: "fixture.api", version: "1.0.0" }],
-			requires: [{ contractRef: "fixture.base", versionRange: ">=1.0.0" }],
-			configSlots: [
-				{
-					key: "endpoint",
-					type: "url",
-					required: true,
-					description: "Fixture endpoint",
-				},
-			],
-			documents: [
-				{ id: "overview", path: "README.md", content: "# Docs fixture\n" },
-				{
-					id: "configuration",
-					path: "CONFIGURATION.md",
-					content: "# Configuration\nSet endpoint before start.\n",
-				},
-			],
+			docsData: { docs: "MODULE_OWNED_DOCS", setup: "MODULE_OWNED_SETUP" },
 		});
+		await writeFile(
+			join(root, "packages", "docs-fixture", "DOCS.md"),
+			"PLATFORM_MUST_NOT_READ_THIS\n",
+		);
 		const output = JSON.parse(
 			await runCli(["docs", "--json"], { cwd: root }),
-		) as {
-			status: string;
-			data: { modules: Array<Record<string, unknown>> };
-		};
+		) as { status: string; data: { modules: Array<Record<string, unknown>> } };
 		assert.equal(output.status, "SUCCEEDED");
-		assert.equal(output.data.modules.length, 1);
-		const module = output.data.modules[0];
-		assert.equal(module?.moduleRef, "docs-fixture");
-		assert.deepEqual(module?.provides, [
-			{ contractRef: "fixture.api", version: "1.0.0" },
+		assert.deepEqual(output.data.modules, [
+			{
+				moduleRef: "docs-fixture",
+				version: "1.0.0",
+				docs: { docs: "MODULE_OWNED_DOCS", setup: "MODULE_OWNED_SETUP" },
+			},
 		]);
-		assert.deepEqual(module?.requires, [
-			{ contractRef: "fixture.base", versionRange: ">=1.0.0" },
-		]);
-		const documents = module?.documents as Array<Record<string, unknown>>;
-		assert.deepEqual(
-			documents.map((document) => document.id),
-			["overview", "configuration"],
+		assert.equal(
+			JSON.stringify(output).includes("PLATFORM_MUST_NOT_READ_THIS"),
+			false,
 		);
-		assert.match(String(documents[1]?.content), /Set endpoint before start/);
-	} finally {
-		await rm(root, { recursive: true, force: true });
-	}
-});
-
-test("production binding failures are surfaced instead of downgraded to unbound state", async () => {
-	const root = await tempWorkspace();
-	try {
-		await writeWorkspaceModule(root, {
-			moduleRef: "broken-binding",
-			lifecycle: ["status"],
-			adapterSource:
-				'export function createProductionBinding() { throw new Error("BINDING_BROKEN"); }\nexport const behaviorAdapter = {};\n',
-		});
-		const output = JSON.parse(
-			await runCli(["modules", "--json"], { cwd: root }),
-		) as { status: string; error?: { code: string; message: string } };
-		assert.equal(output.status, "FAILED");
-		assert.equal(output.error?.code, "COMMAND_FAILED");
-		assert.match(output.error?.message ?? "", /broken-binding.*BINDING_BROKEN/);
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

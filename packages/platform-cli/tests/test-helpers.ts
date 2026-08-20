@@ -20,14 +20,15 @@ export interface FixtureModuleInput {
 		optional?: boolean;
 	}>;
 	configSlots?: Array<Record<string, unknown>>;
-	lifecycle?: string[];
 	statusData?: {
-		configStatus: "READY" | "INCOMPLETE" | "INVALID";
-		missingConfig?: string[];
-		runtimeStatus: "RUNNING" | "STOPPED" | "FAILED" | "UNKNOWN";
+		setupStatus: "READY" | "ACTION_REQUIRED" | "FAILED";
+		runtimeStatus: "RUNNING" | "STOPPED" | "FAILED" | "NOT_APPLICABLE";
 	};
+	docsData?: unknown;
 	documents?: Array<{ id: string; path: string; content: string }>;
 	adapterSource?: string;
+	/** Transitional test input only; standard management is always the fixed seven-command surface. */
+	lifecycle?: string[];
 }
 
 export async function tempWorkspace(): Promise<string> {
@@ -42,20 +43,14 @@ export async function tempWorkspace(): Promise<string> {
 	);
 	return root;
 }
+
 function descriptorFor(input: FixtureModuleInput) {
-	const version = input.version ?? "1.0.0";
-	const lifecycle = input.lifecycle ?? ["status"];
-	const checkLifecycle = lifecycle.includes("status")
-		? "status"
-		: lifecycle.includes("verify")
-			? "verify"
-			: "doctor";
 	return {
 		contract: "module",
 		contractVersion: "1.0.0",
 		moduleRef: input.moduleRef,
 		packageName: input.packageName ?? `@tomflow/proflow-${input.moduleRef}`,
-		moduleVersion: version,
+		moduleVersion: input.version ?? "1.0.0",
 		kind: input.kind ?? "library",
 		templateVersion: "1.0.0",
 		platformCompatibility: ">=1.0.0 <2.0.0",
@@ -67,49 +62,51 @@ function descriptorFor(input: FixtureModuleInput) {
 		requires: input.requires ?? [],
 		requirements: [],
 		configSlots: input.configSlots ?? [],
-		lifecycle: { supported: lifecycle },
-		verification: {
-			checks: [
-				{
-					id: "fixture-check",
-					description: "Fixture observation",
-					lifecycle: checkLifecycle,
-				},
-			],
-		},
 		effects: [],
-		documentation: (input.documents ?? []).map((document) => ({
-			id: document.id,
-			path: document.path,
-			description: `Fixture document ${document.id}`,
-		})),
+		documentation: { docs: "DOCS.md", setup: "SETUP.md" },
 	};
 }
 
 function defaultAdapterSource(input: FixtureModuleInput): string {
-	const moduleRef = input.moduleRef;
-	const version = input.version ?? "1.0.0";
-	const statusData = input.statusData ?? {
-		configStatus: "READY",
-		runtimeStatus: "UNKNOWN",
-	};
-	const lifecycle = input.lifecycle ?? ["status"];
-	const operations = lifecycle.map((primitive) => {
-		const data =
-			primitive === "status" ? `, data: ${JSON.stringify(statusData)}` : "";
-		return `${JSON.stringify(primitive)}: async () => ({ result: { contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${JSON.stringify(moduleRef)}, moduleVersion: ${JSON.stringify(version)}${data} }, observedEffects: [] })`;
-	});
-	return `export const behaviorAdapter = { ${operations.join(",\n")} };\n`;
+	const moduleRef = JSON.stringify(input.moduleRef);
+	const version = JSON.stringify(input.version ?? "1.0.0");
+	const status = JSON.stringify(
+		input.statusData ?? {
+			setupStatus: "READY",
+			runtimeStatus: "NOT_APPLICABLE",
+		},
+	);
+	const docs = JSON.stringify(
+		input.docsData ?? { docs: "DOCS.md", setup: "SETUP.md" },
+	);
+	const base = `{ contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${moduleRef}, moduleVersion: ${version} }`;
+	return `export const behaviorAdapter = {
+install: async () => ({ result: ${base}, observedEffects: [] }),
+uninstall: async () => ({ result: ${base}, observedEffects: [] }),
+status: async () => ({ result: { ...${base}, data: ${status} }, observedEffects: [] }),
+setup: async () => ({ result: ${base}, observedEffects: [] }),
+docs: async () => ({ result: { ...${base}, data: ${docs} }, observedEffects: [] }),
+start: async () => ({ result: ${base}, observedEffects: [] }),
+stop: async () => ({ result: ${base}, observedEffects: [] }),
+};\n`;
 }
 
-export async function writeWorkspaceModule(
+async function writeModule(
 	root: string,
 	input: FixtureModuleInput,
+	installed: boolean,
 ): Promise<void> {
 	const packageName =
 		input.packageName ?? `@tomflow/proflow-${input.moduleRef}`;
 	const version = input.version ?? "1.0.0";
-	const packageRoot = join(root, "packages", input.moduleRef);
+	const packageRoot = installed
+		? join(
+				root,
+				"node_modules",
+				"@tomflow",
+				packageName.slice("@tomflow/".length),
+			)
+		: join(root, "packages", input.moduleRef);
 	await mkdir(join(packageRoot, "deployment"), { recursive: true });
 	await writeFile(
 		join(packageRoot, "package.json"),
@@ -117,66 +114,39 @@ export async function writeWorkspaceModule(
 			name: packageName,
 			version,
 			type: "module",
+			...(installed
+				? {
+						exports: {
+							"./deployment/descriptor": "./deployment/descriptor.js",
+							"./deployment/adapter": "./deployment/adapter.js",
+						},
+					}
+				: {}),
 			proflow: {
 				module: true,
-				descriptor: "./deployment/descriptor.ts",
+				descriptor: installed
+					? "./deployment/descriptor.js"
+					: "./deployment/descriptor.ts",
 				manifest: "./proflow.module.json",
 			},
 		}),
 	);
+	const extension = installed ? "js" : "ts";
 	await writeFile(
-		join(packageRoot, "deployment", "descriptor.ts"),
-		`export const descriptor = ${JSON.stringify(descriptorFor(input))} as const;\n`,
-	);
-	await writeFile(
-		join(packageRoot, "deployment", "adapter.ts"),
-		input.adapterSource ?? defaultAdapterSource(input),
-	);
-	for (const document of input.documents ?? []) {
-		await writeFile(join(packageRoot, document.path), document.content);
-	}
-}
-
-export async function writeInstalledModule(
-	root: string,
-	input: FixtureModuleInput,
-): Promise<void> {
-	const packageName =
-		input.packageName ?? `@tomflow/proflow-${input.moduleRef}`;
-	const version = input.version ?? "1.0.0";
-	const packageRoot = join(
-		root,
-		"node_modules",
-		"@tomflow",
-		packageName.slice("@tomflow/".length),
-	);
-	await mkdir(join(packageRoot, "deployment"), { recursive: true });
-	await writeFile(
-		join(packageRoot, "package.json"),
-		JSON.stringify({
-			name: packageName,
-			version,
-			type: "module",
-			exports: {
-				"./deployment/descriptor": "./deployment/descriptor.js",
-				"./deployment/adapter": "./deployment/adapter.js",
-			},
-			proflow: {
-				module: true,
-				descriptor: "./deployment/descriptor.js",
-				manifest: "./proflow.module.json",
-			},
-		}),
-	);
-	await writeFile(
-		join(packageRoot, "deployment", "descriptor.js"),
+		join(packageRoot, "deployment", `descriptor.${extension}`),
 		`export const descriptor = ${JSON.stringify(descriptorFor(input))};\n`,
 	);
 	await writeFile(
-		join(packageRoot, "deployment", "adapter.js"),
+		join(packageRoot, "deployment", `adapter.${extension}`),
 		input.adapterSource ?? defaultAdapterSource(input),
 	);
-	for (const document of input.documents ?? []) {
+	await writeFile(join(packageRoot, "DOCS.md"), "# Fixture docs\n");
+	await writeFile(join(packageRoot, "SETUP.md"), "# Fixture setup\n");
+	for (const document of input.documents ?? [])
 		await writeFile(join(packageRoot, document.path), document.content);
-	}
 }
+
+export const writeWorkspaceModule = (root: string, input: FixtureModuleInput) =>
+	writeModule(root, input, false);
+export const writeInstalledModule = (root: string, input: FixtureModuleInput) =>
+	writeModule(root, input, true);

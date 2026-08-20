@@ -6,101 +6,49 @@ import { test } from "node:test";
 import { runCli } from "../src/cli.ts";
 import { tempWorkspace, writeWorkspaceModule } from "./test-helpers.ts";
 
-test("platform modules reports only Module-owned status facts", async () => {
+test("platform status aggregates only Module-owned setup/runtime status", async () => {
 	const root = await tempWorkspace();
 	try {
 		await writeWorkspaceModule(root, {
 			moduleRef: "fixture-module",
-			configSlots: [
-				{
-					key: "apiUrl",
-					type: "url",
-					required: true,
-					description: "Fixture API URL",
-				},
-			],
-			statusData: {
-				configStatus: "INCOMPLETE",
-				missingConfig: ["apiUrl"],
-				runtimeStatus: "STOPPED",
-			},
+			statusData: { setupStatus: "ACTION_REQUIRED", runtimeStatus: "STOPPED" },
 		});
 		const output = JSON.parse(
-			await runCli(["modules", "--json"], { cwd: root }),
-		) as {
-			status: string;
-			data: { modules: Array<Record<string, unknown>> };
-		};
+			await runCli(["status", "--json"], { cwd: root }),
+		) as { status: string; data: { modules: unknown[] } };
 		assert.equal(output.status, "SUCCEEDED");
 		assert.deepEqual(output.data.modules, [
 			{
 				moduleRef: "fixture-module",
 				version: "1.0.0",
-				configStatus: "INCOMPLETE",
-				missingConfig: ["apiUrl"],
+				setupStatus: "ACTION_REQUIRED",
 				runtimeStatus: "STOPPED",
 			},
 		]);
 		const serialized = JSON.stringify(output.data.modules[0]);
-		for (const forbidden of [
-			"planRef",
-			"manifestRef",
-			"verificationRef",
-			"installClass",
-			"installRequires",
-		]) {
-			assert.equal(serialized.includes(forbidden), false);
-		}
+		assert.equal(serialized.includes("configStatus"), false);
+		assert.equal(serialized.includes("missingConfig"), false);
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
 });
 
-test("production bindings keep raw secrets owner-scoped while sharing public config", async () => {
+test("platform status ignores obsolete Platform-side config files", async () => {
 	const root = await tempWorkspace();
 	try {
-		const status = (moduleRef: string) =>
-			`{ contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${JSON.stringify(moduleRef)}, moduleVersion: "1.0.0", data: { configStatus: "READY", runtimeStatus: "UNKNOWN" } }`;
-		await writeWorkspaceModule(root, {
-			moduleRef: "secret-owner",
-			adapterSource: `export function createProductionBinding(input) {
-	if (input.config.publicValue !== "visible" || input.config.rawSecret !== "owner-only") throw new Error("OWNER_CONFIG_SCOPE_BROKEN");
-	return { behaviorAdapter: { status: async () => ({ result: ${status("secret-owner")}, observedEffects: [] }) } };
-}
-export const behaviorAdapter = {};
-`,
-		});
-		await writeWorkspaceModule(root, {
-			moduleRef: "config-consumer",
-			adapterSource: `export function createProductionBinding(input) {
-	const peer = input.configByModuleRef.get("secret-owner");
-	if (peer?.publicValue !== "visible" || "rawSecret" in (peer ?? {})) throw new Error("CROSS_MODULE_SECRET_EXPOSED");
-	return { behaviorAdapter: { status: async () => ({ result: ${status("config-consumer")}, observedEffects: [] }) } };
-}
-export const behaviorAdapter = {};
-`,
-		});
+		await writeWorkspaceModule(root, { moduleRef: "fixture-module" });
 		const configRoot = join(root, ".proflow", "config");
 		await mkdir(configRoot, { recursive: true });
-		await writeFile(
-			join(configRoot, "secret-owner.json"),
-			JSON.stringify({ publicValue: "visible" }),
-		);
-		await writeFile(
-			join(configRoot, "secret-owner.secrets.json"),
-			JSON.stringify({ rawSecret: "owner-only" }),
-		);
+		await writeFile(join(configRoot, "fixture-module.json"), "{not-json");
 		const output = JSON.parse(
-			await runCli(["modules", "--json"], { cwd: root }),
-		) as {
-			status: string;
-			data?: { modules: Array<{ moduleRef: string }> };
-		};
+			await runCli(["status", "--json"], { cwd: root }),
+		) as { status: string };
 		assert.equal(output.status, "SUCCEEDED");
-		assert.deepEqual(
-			output.data?.modules.map((module) => module.moduleRef),
-			["config-consumer", "secret-owner"],
-		);
+		const old = JSON.parse(
+			await runCli(["modules", "--json"], { cwd: root }),
+		) as { status: string; error?: { code: string } };
+		assert.equal(old.status, "FAILED");
+		assert.equal(old.error?.code, "INVALID_REQUEST");
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
