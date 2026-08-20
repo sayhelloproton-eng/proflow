@@ -1,7 +1,19 @@
 # @tomflow/proflow-dev-tunnel — Module Setup
 
-Authenticate with Microsoft Dev Tunnels when requested, create or select the required tunnel, and allow the Module to establish and verify the public HTTPS ingress. The resulting tunnel id/public URL/evidence are Module-owned state or shared facts, not values to copy into Platform config.
+## Goal
+Reach `setupStatus=READY` with one Microsoft Dev Tunnel login and one persistent tunnel selection; public URL/state remain Module-owned shared facts.
 
-## Completion
+## Step 1 — Complete Microsoft Dev Tunnel login
+**Type:** human/external
+**Executable:** `platform setup --module dev-tunnel --workspace <workspace>`
+If login is required, complete the Microsoft Dev Tunnel authentication requested by the Module, then rerun the same command.
 
-Setup is complete only when the Module's own `status` reports `setupStatus=READY`. Re-running setup must re-observe reality; it must not resume from a blind historical step index.
+## Step 2 — Create or select the persistent tunnel
+**Type:** human/external
+**Human action:** Create/select the tunnel and obtain its `tunnelId` and HTTPS public base URL.
+**Verify/commit executable:** `platform setup --module dev-tunnel --workspace <workspace> --input '{"tunnelId":"<id>","publicBaseUrl":"https://<host>"}'`
+
+## Step 3 — Verify completion
+**Type:** automatic verification
+**Executable:** `platform status --workspace <workspace>`
+**Success condition:** `dev-tunnel.setupStatus=READY`. Other Modules consume the resulting public URL through shared facts; the user does not copy it into their configs.

@@ -1,7 +1,14 @@
 # @tomflow/proflow-execution-runtime — Module Setup
 
-No user or external setup is required by the current frozen Module contract. `Module.install` completes deterministic preparation; `Module.setup` only re-observes current reality and must not ask the user to supply private paths, loopback endpoints, tokens or cross-Module facts.
+## Goal
+Reach `setupStatus=READY` with zero user configuration.
 
-## Completion
+## Step 1 — Resolve producer-owned runtime facts
+**Type:** automatic
+**Executable:** `platform setup --module execution-runtime --workspace <workspace>`
+The Module consumes Platform Host, Model Runtime and Browser Executor shared facts. No database path, endpoint, token or artifact path is user input.
 
-Setup is complete only when the Module's own `status` reports `setupStatus=READY`. Re-running setup must re-observe reality; it must not resume from a blind historical step index.
+## Step 2 — Verify completion
+**Type:** automatic verification
+**Executable:** `platform status --workspace <workspace>`
+**Success condition:** `execution-runtime.setupStatus=READY`. If a producer is not ready, the full `platform setup` result must expose that producer's own setup action or machine failure.
