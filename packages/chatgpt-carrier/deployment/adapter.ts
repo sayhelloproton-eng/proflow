@@ -1,410 +1,346 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 
-import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
-import {
-	type CarrierProbeInput,
-	type CarrierProbeResult,
-	type CarrierVerificationObservation,
-	observeCarrierVerification,
-	probeCarrier,
-	UNVERIFIED_CARRIER_VERIFICATION,
-	type VerificationState,
+import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
+import type {
+	CarrierVerificationObservation,
+	VerificationState,
 } from "../src/resource-adapter.ts";
+import { UNVERIFIED_CARRIER_VERIFICATION } from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
 
-const OBSERVED_EFFECT = "Observes the ChatGPT Custom GPT carrier";
-
-const success = (data?: unknown) => ({
-	contract: "deployment.result.v1" as const,
+const base = {
+	contract: "deployment.result.v1",
 	ok: true,
-	status: "SUCCEEDED" as const,
+	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
-	...(data === undefined ? {} : { data }),
-});
-
-// Custom GPT create/edit is Web-only; the frozen runtime flow references
-// `actionRequired.kind = WEB` but the frozen `humanActionSchema` only carries
-// `action` + `description`, so Web-only is encoded in the action id/description.
-const actionRequired = (action: string, description: string) => ({
-	contract: "deployment.result.v1" as const,
-	ok: false,
-	status: "ACTION_REQUIRED" as const,
-	moduleRef: descriptor.moduleRef,
-	moduleVersion: descriptor.moduleVersion,
-	actionRequired: { action, description },
-});
-
-type CheckStatus = "PASS" | "FAIL" | "WARN" | "SKIP";
-
-function checkStatus(state: VerificationState): CheckStatus {
-	switch (state) {
-		case "VERIFIED":
-			return "PASS";
-		case "FAILED":
-			return "FAIL";
-		case "NOT_REQUIRED":
-			return "SKIP";
-		case "UNVERIFIED":
-			return "WARN";
-	}
-}
-
-type CarrierVerificationKey = Exclude<
-	keyof CarrierVerificationObservation,
-	"message"
->;
-
-const VERIFY_CHECKS: {
-	key: CarrierVerificationKey;
-	id: string;
-	description: string;
-}[] = [
-	{
-		key: "reachable",
-		id: "carrier-role-reachable",
-		description: "Custom GPT role/carrier is reachable",
-	},
-	{
-		key: "actionsEnabled",
-		id: "carrier-actions-schema",
-		description: "Static Actions OpenAPI schema is current",
-	},
-	{
-		key: "openApiInstalled",
-		id: "carrier-openapi",
-		description: "OpenAPI schema is installed on the carrier",
-	},
-	{
-		key: "actionAuthValid",
-		id: "carrier-auth",
-		description: "Action auth is valid",
-	},
-	{
-		key: "fileBridge",
-		id: "carrier-file-bridge",
-		description: "File Bridge is usable",
-	},
-	{
-		key: "codeInterpreter",
-		id: "carrier-code-interpreter",
-		description: "Code interpreter is available when required",
-	},
-	{
-		key: "webSearch",
-		id: "carrier-web-search",
-		description: "Web search is available when required",
-	},
-	{
-		key: "appsDisabledWhenRequired",
-		id: "carrier-apps-disabled",
-		description: "Apps are disabled when required",
-	},
-];
-
-const REQUIRED_KEYS = new Set<CarrierVerificationKey>([
-	"reachable",
-	"actionsEnabled",
-	"openApiInstalled",
-	"actionAuthValid",
-]);
-
-type CarrierHealth = "HEALTHY" | "UNVERIFIED" | "FAILED";
-
-// Single shared reality evaluator used by preflight / verify / doctor so they
-// never diverge on what "healthy" means. Reachability alone can never be HEALTHY.
-function evaluateCarrierObservation(
-	observation: CarrierVerificationObservation,
-): CarrierHealth {
-	const anyFailed = VERIFY_CHECKS.some(
-		(check) => observation[check.key] === "FAILED",
-	);
-	if (anyFailed) return "FAILED";
-	const requiredOk = [...REQUIRED_KEYS].every(
-		(key) => observation[key] === "VERIFIED",
-	);
-	if (!requiredOk) return "UNVERIFIED";
-	const conditionalOk = VERIFY_CHECKS.filter(
-		(check) => !REQUIRED_KEYS.has(check.key),
-	).every(
-		(check) =>
-			observation[check.key] === "VERIFIED" ||
-			observation[check.key] === "NOT_REQUIRED",
-	);
-	return conditionalOk ? "HEALTHY" : "UNVERIFIED";
-}
-
-function buildVerificationChecks(observation: CarrierVerificationObservation) {
-	return VERIFY_CHECKS.map((check) => ({
-		id: check.id,
-		status: checkStatus(observation[check.key]),
-		message: check.description,
-	}));
-}
-
-function claimsFrom(probe: CarrierProbeResult) {
-	const isReachable =
-		probe.availability === "AVAILABLE" && probe.evidence === "real";
-	return {
-		readinessClaim: isReachable ? ("READY" as const) : ("NOT_READY" as const),
-		readinessEvidence: probe.evidence,
-		externalAvailabilityClaim: probe.availability,
-		externalAvailabilityEvidence: probe.evidence,
-	};
-}
-
-function reachable(probe: CarrierProbeResult): boolean {
-	return probe.availability === "AVAILABLE" && probe.evidence === "real";
-}
-
-export function createBehaviorAdapter(
-	input?: CarrierProbeInput,
-	config?: Record<string, string>,
-) {
-	return {
-		describe: () => ({
-			result: success({
-				resourceIdentity: descriptor.moduleRef,
-				carrierKind: "custom-gpt",
-				observableLifecycle: ["status", "verify", "doctor"],
-			}),
-			observedEffects: [],
-		}),
-		preflight: async () => {
-			const observation = await observeCarrierVerification(input);
-			const health = evaluateCarrierObservation(observation);
-			return {
-				result:
-					health === "HEALTHY"
-						? success()
-						: actionRequired(
-								"materialize-custom-gpt-carrier",
-								observation.message ??
-									"Custom GPT carrier prerequisites are not yet verified",
-							),
-				observedEffects: [],
-			};
-		},
-		status: async () => {
-			const probe = await probeCarrier(input);
-			const isReachable = reachable(probe);
-			return {
-				result: success(
-					observeDeclaredModuleStatus(
-						descriptor,
-						config,
-						isReachable ? "RUNNING" : input ? "FAILED" : "UNKNOWN",
-					),
-				),
-				observedEffects: isReachable ? [OBSERVED_EFFECT] : [],
-				...claimsFrom(probe),
-			};
-		},
-		verify: async () => {
-			const observation = await observeCarrierVerification(input);
-			const checks = buildVerificationChecks(observation);
-			const health = evaluateCarrierObservation(observation);
-			return {
-				result:
-					health === "HEALTHY"
-						? { ...success(), checks }
-						: {
-								...actionRequired(
-									"verify-carrier",
-									observation.message ??
-										"Carrier verification is incomplete: reachability alone does not prove schema/auth/File Bridge correctness",
-								),
-								checks,
-							},
-				observedEffects:
-					observation.reachable === "VERIFIED" ? [OBSERVED_EFFECT] : [],
-				readinessClaim:
-					health === "HEALTHY" ? ("READY" as const) : ("NOT_READY" as const),
-			};
-		},
-		doctor: async () => {
-			const observation = await observeCarrierVerification(input);
-			const health = evaluateCarrierObservation(observation);
-			return {
-				result:
-					health === "HEALTHY"
-						? {
-								...success(),
-								checks: [
-									{
-										id: "carrier-diagnostics",
-										status: "PASS" as const,
-										message:
-											"Carrier observation satisfies required and conditional prerequisites",
-									},
-								],
-							}
-						: {
-								...actionRequired(
-									"verify-carrier",
-									observation.message ??
-										"Carrier prerequisites are not fully verified",
-								),
-								checks: [
-									{
-										id: "carrier-diagnostics",
-										status: "FAIL" as const,
-										message:
-											"Carrier observation does not satisfy required prerequisites",
-									},
-								],
-							},
-				observedEffects: [],
-			};
-		},
-	};
-}
-
-export const behaviorAdapter = createBehaviorAdapter();
-
-type CarrierVerificationEvidenceFile = {
+} as const;
+const effect = "Observes the ChatGPT Custom GPT carrier";
+type CarrierState = {
+	contract: "proflow.chatgpt-carrier-state.v1";
+	carrierUrl: string;
+};
+type EvidenceFile = CarrierVerificationObservation & {
 	contract: "proflow.chatgpt-carrier-verification.v1";
 	carrierUrl: string;
 	observedAt: string;
-	reachable: VerificationState;
-	actionsEnabled: VerificationState;
-	openApiInstalled: VerificationState;
-	actionAuthValid: VerificationState;
-	fileBridge: VerificationState;
-	codeInterpreter: VerificationState;
-	webSearch: VerificationState;
-	appsDisabledWhenRequired: VerificationState;
-	message?: string;
 };
-
-const VERIFICATION_STATES = new Set<VerificationState>([
+const verificationStates = new Set<VerificationState>([
 	"VERIFIED",
 	"UNVERIFIED",
 	"FAILED",
 	"NOT_REQUIRED",
 ]);
-
-async function readProductionVerificationEvidence(
-	file: string | undefined,
-	carrierUrl: string,
-): Promise<CarrierVerificationObservation> {
-	if (!file)
-		return {
-			...UNVERIFIED_CARRIER_VERIFICATION,
-			message: "verificationEvidenceFile is not configured",
-		};
+const keys = [
+	"reachable",
+	"actionsEnabled",
+	"openApiInstalled",
+	"actionAuthValid",
+	"fileBridge",
+	"codeInterpreter",
+	"webSearch",
+	"appsDisabledWhenRequired",
+] as const;
+const required = new Set<(typeof keys)[number]>([
+	"reachable",
+	"actionsEnabled",
+	"openApiInstalled",
+	"actionAuthValid",
+]);
+const stateDir = (context: ModuleCommandContext) =>
+	join(
+		resolve(context.workspaceRoot),
+		".proflow",
+		"runtime",
+		"external-resources",
+		"chatgpt-carrier",
+	);
+const stateFile = (context: ModuleCommandContext) =>
+	join(stateDir(context), "setup.json");
+const evidenceFile = (context: ModuleCommandContext) =>
+	join(stateDir(context), "verification.json");
+async function readState(
+	context: ModuleCommandContext,
+): Promise<CarrierState | undefined> {
 	try {
 		const raw = JSON.parse(
-			await readFile(file, "utf8"),
-		) as Partial<CarrierVerificationEvidenceFile>;
-		const keys = [
-			"reachable",
-			"actionsEnabled",
-			"openApiInstalled",
-			"actionAuthValid",
-			"fileBridge",
-			"codeInterpreter",
-			"webSearch",
-			"appsDisabledWhenRequired",
-		] as const;
+			await readFile(stateFile(context), "utf8"),
+		) as Partial<CarrierState>;
+		if (
+			raw.contract !== "proflow.chatgpt-carrier-state.v1" ||
+			typeof raw.carrierUrl !== "string" ||
+			!raw.carrierUrl.startsWith("https://chatgpt.com/g/")
+		)
+			return undefined;
+		return raw as CarrierState;
+	} catch {
+		return undefined;
+	}
+}
+async function atomicJson(path: string, value: unknown) {
+	await mkdir(resolve(path, ".."), { recursive: true, mode: 0o700 });
+	const tmp = `${path}.${process.pid}.tmp`;
+	await writeFile(
+		tmp,
+		`${JSON.stringify(value, null, 2)}
+`,
+		{ encoding: "utf8", mode: 0o600 },
+	);
+	await rename(tmp, path);
+}
+async function readVerification(
+	context: ModuleCommandContext,
+	state: CarrierState,
+): Promise<CarrierVerificationObservation> {
+	try {
+		const raw = JSON.parse(
+			await readFile(evidenceFile(context), "utf8"),
+		) as Partial<EvidenceFile>;
 		if (
 			raw.contract !== "proflow.chatgpt-carrier-verification.v1" ||
-			raw.carrierUrl !== carrierUrl ||
+			raw.carrierUrl !== state.carrierUrl ||
 			typeof raw.observedAt !== "string" ||
 			Number.isNaN(Date.parse(raw.observedAt)) ||
 			!keys.every((key) =>
-				VERIFICATION_STATES.has(raw[key] as VerificationState),
+				verificationStates.has(raw[key] as VerificationState),
 			)
-		) {
+		)
 			return {
 				...UNVERIFIED_CARRIER_VERIFICATION,
-				message:
-					"Custom GPT verification evidence is malformed or bound to a different carrier URL",
+				message: "Carrier verification evidence is missing, stale, or invalid",
 			};
-		}
+		return Object.fromEntries(
+			keys.map((key) => [key, raw[key]]),
+		) as unknown as CarrierVerificationObservation;
+	} catch {
+		return UNVERIFIED_CARRIER_VERIFICATION;
+	}
+}
+function healthy(observation: CarrierVerificationObservation): boolean {
+	if (keys.some((key) => observation[key] === "FAILED")) return false;
+	if (![...required].every((key) => observation[key] === "VERIFIED"))
+		return false;
+	return keys
+		.filter((key) => !required.has(key))
+		.every(
+			(key) =>
+				observation[key] === "VERIFIED" || observation[key] === "NOT_REQUIRED",
+		);
+}
+async function probe(state: CarrierState) {
+	try {
+		const response = await fetch(state.carrierUrl, {
+			method: "HEAD",
+			redirect: "follow",
+			signal: AbortSignal.timeout(5000),
+		});
 		return {
-			reachable: raw.reachable as VerificationState,
-			actionsEnabled: raw.actionsEnabled as VerificationState,
-			openApiInstalled: raw.openApiInstalled as VerificationState,
-			actionAuthValid: raw.actionAuthValid as VerificationState,
-			fileBridge: raw.fileBridge as VerificationState,
-			codeInterpreter: raw.codeInterpreter as VerificationState,
-			webSearch: raw.webSearch as VerificationState,
-			appsDisabledWhenRequired:
-				raw.appsDisabledWhenRequired as VerificationState,
-			...(typeof raw.message === "string" ? { message: raw.message } : {}),
+			available:
+				response.ok || response.status === 401 || response.status === 403,
+			message: `Carrier URL returned HTTP ${response.status}`,
 		};
 	} catch (error) {
 		return {
-			...UNVERIFIED_CARRIER_VERIFICATION,
+			available: false,
 			message:
 				error instanceof Error
 					? error.message
-					: "Custom GPT verification evidence could not be read",
+					: "Carrier reachability observation failed",
 		};
 	}
 }
-
-export function createProductionBinding(input: {
-	moduleRef: string;
-	config: Record<string, string>;
-}): { behaviorAdapter: Record<string, unknown> } {
-	const carrierUrl = input.config.carrierUrl ?? "https://chatgpt.com/";
-	const verificationEvidenceFile = input.config.verificationEvidenceFile;
-	return {
-		behaviorAdapter: createBehaviorAdapter(
-			{
-				carrierUrl,
-				observeVerification: () =>
-					readProductionVerificationEvidence(
-						verificationEvidenceFile,
-						carrierUrl,
-					),
-				async observeCarrier() {
-					try {
-						const response = await fetch(carrierUrl, {
-							method: "HEAD",
-							redirect: "follow",
-							signal: AbortSignal.timeout(5_000),
-						});
-						if (response.ok) {
-							return {
-								availability: "AVAILABLE" as const,
-								evidence: "real" as const,
-								message: "Configured Custom GPT carrier URL is reachable",
-							};
-						}
-						if (response.status === 401 || response.status === 403) {
-							const verification = await readProductionVerificationEvidence(
-								verificationEvidenceFile,
-								carrierUrl,
-							);
-							if (evaluateCarrierObservation(verification) === "HEALTHY") {
-								return {
-									availability: "AVAILABLE" as const,
-									evidence: "real" as const,
-									message: `Carrier URL is protected (HTTP ${response.status}) and verified Web carrier evidence is healthy`,
-								};
-							}
-						}
-						return {
-							availability: "UNAVAILABLE" as const,
-							evidence: "real" as const,
-							message: `Carrier URL returned HTTP ${response.status}`,
-						};
-					} catch (error) {
-						return {
-							availability: "UNKNOWN" as const,
-							evidence: "real" as const,
-							message:
-								error instanceof Error
-									? error.message
-									: "Carrier reachability observation failed",
-						};
-					}
+function inputRecord(context: ModuleCommandContext): Record<string, unknown> {
+	return typeof context.input === "object" &&
+		context.input !== null &&
+		!Array.isArray(context.input)
+		? (context.input as Record<string, unknown>)
+		: {};
+}
+export const behaviorAdapter = {
+	install: async (context: ModuleCommandContext) => {
+		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+		return { result: base, observedEffects: [] };
+	},
+	uninstall: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+	status: async (context: ModuleCommandContext) => {
+		const state = await readState(context);
+		if (!state)
+			return {
+				result: {
+					...base,
+					data: {
+						setupStatus: "ACTION_REQUIRED" as const,
+						runtimeStatus: "STOPPED" as const,
+					},
+				},
+				observedEffects: [],
+				externalAvailabilityClaim: "UNKNOWN" as const,
+				externalAvailabilityEvidence: "none" as const,
+			};
+		const [verification, carrier] = await Promise.all([
+			readVerification(context, state),
+			probe(state),
+		]);
+		return {
+			result: {
+				...base,
+				data: {
+					setupStatus: healthy(verification)
+						? ("READY" as const)
+						: ("ACTION_REQUIRED" as const),
+					runtimeStatus: carrier.available
+						? ("RUNNING" as const)
+						: ("FAILED" as const),
 				},
 			},
-			input.config,
-		),
-	};
-}
+			observedEffects: [effect],
+			externalAvailabilityClaim: carrier.available
+				? ("AVAILABLE" as const)
+				: ("UNAVAILABLE" as const),
+			externalAvailabilityEvidence: "real" as const,
+		};
+	},
+	setup: async (context: ModuleCommandContext) => {
+		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+		const supplied = inputRecord(context);
+		const previous = await readState(context);
+		const carrierUrl =
+			typeof supplied.carrierUrl === "string"
+				? supplied.carrierUrl
+				: previous?.carrierUrl;
+		if (!carrierUrl)
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "ACTION_REQUIRED" as const,
+					actionRequired: {
+						action: "materialize-custom-gpt-carrier",
+						description:
+							"Create or select the real Custom GPT and provide its https://chatgpt.com/g/... URL to this setup step.",
+					},
+				},
+				observedEffects: [],
+			};
+		if (!carrierUrl.startsWith("https://chatgpt.com/g/"))
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "ACTION_REQUIRED" as const,
+					actionRequired: {
+						action: "correct-carrier-url",
+						description:
+							"carrierUrl must be a real https://chatgpt.com/g/... Custom GPT URL.",
+					},
+				},
+				observedEffects: [],
+			};
+		const state: CarrierState = {
+			contract: "proflow.chatgpt-carrier-state.v1",
+			carrierUrl,
+		};
+		await atomicJson(stateFile(context), state);
+		const suppliedVerification = supplied.verification;
+		if (
+			typeof suppliedVerification === "object" &&
+			suppliedVerification !== null &&
+			!Array.isArray(suppliedVerification)
+		) {
+			const record = suppliedVerification as Record<string, unknown>;
+			if (
+				keys.every((key) =>
+					verificationStates.has(record[key] as VerificationState),
+				)
+			) {
+				const evidence = {
+					contract: "proflow.chatgpt-carrier-verification.v1",
+					carrierUrl,
+					observedAt: new Date().toISOString(),
+					...Object.fromEntries(keys.map((key) => [key, record[key]])),
+				};
+				await atomicJson(evidenceFile(context), evidence);
+			}
+		}
+		const verification = await readVerification(context, state);
+		if (!healthy(verification))
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "ACTION_REQUIRED" as const,
+					actionRequired: {
+						action: "verify-carrier",
+						description:
+							verification.message ??
+							"Complete real Custom GPT Actions/auth/File Bridge verification, then rerun setup.",
+					},
+				},
+				observedEffects: [],
+			};
+		const carrier = await probe(state);
+		return {
+			result: carrier.available
+				? base
+				: {
+						...base,
+						ok: false as const,
+						status: "ACTION_REQUIRED" as const,
+						actionRequired: {
+							action: "repair-carrier",
+							description: carrier.message,
+						},
+					},
+			observedEffects: [effect],
+		};
+	},
+	docs: async (_context: ModuleCommandContext) => ({
+		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		observedEffects: [],
+	}),
+	start: async (context: ModuleCommandContext) => {
+		const state = await readState(context);
+		if (!state)
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "FAILED" as const,
+					error: {
+						code: "START_FAILED" as const,
+						message: "ChatGPT carrier setup is not READY",
+						retryable: true,
+					},
+				},
+				observedEffects: [],
+			};
+		const verification = await readVerification(context, state);
+		const carrier = await probe(state);
+		return {
+			result:
+				healthy(verification) && carrier.available
+					? base
+					: {
+							...base,
+							ok: false as const,
+							status: "FAILED" as const,
+							error: {
+								code: "START_FAILED" as const,
+								message: carrier.available
+									? "ChatGPT carrier verification is incomplete"
+									: carrier.message,
+								retryable: true,
+							},
+						},
+			observedEffects: [effect],
+		};
+	},
+	stop: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+} as const;

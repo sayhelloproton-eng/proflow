@@ -1,417 +1,355 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 
-import {
-	type ModuleOperationResult,
-	observeDeclaredModuleStatus,
-} from "@tomflow/proflow-module-contract";
-import type {
-	DevTunnelRuntime,
-	ErrorSemanticsProof,
-	FileRelayProof,
-	PublicIngressVerification,
-} from "../src/resource-adapter.ts";
-import { verifyPublicIngress } from "../src/resource-adapter.ts";
+import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
+import { createDevTunnelRuntime } from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
 
-const success = (data?: unknown): ModuleOperationResult => ({
-	contract: "deployment.result.v1" as const,
+const base = {
+	contract: "deployment.result.v1",
 	ok: true,
-	status: "SUCCEEDED" as const,
+	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
-	...(data === undefined ? {} : { data }),
-});
-
-const actionRequired = (
-	action: string,
-	description: string,
-): ModuleOperationResult => ({
-	contract: "deployment.result.v1" as const,
-	ok: false,
-	status: "ACTION_REQUIRED" as const,
-	moduleRef: descriptor.moduleRef,
-	moduleVersion: descriptor.moduleVersion,
-	actionRequired: { action, description },
-});
-
-type CheckStatus = "PASS" | "FAIL" | "WARN" | "SKIP";
-
-type DevTunnelVerificationEvidence = {
-	contract: "proflow.dev-tunnel-verification.v1";
-	moduleVersion: string;
+} as const;
+const processEffect = "Manage the dev-tunnel public ingress process";
+type SetupState = {
+	contract: "proflow.dev-tunnel-setup.v1";
+	tunnelId: string;
 	publicBaseUrl: string;
-	observedAt: string;
-	fileRelay: FileRelayProof;
-	errorSemantics: ErrorSemanticsProof;
 };
-
-export async function readDevTunnelVerificationEvidence(
-	file: string | undefined,
-	publicBaseUrl: string,
-): Promise<DevTunnelVerificationEvidence | undefined> {
-	if (!file) return undefined;
+const stateDir = (context: ModuleCommandContext) =>
+	join(
+		resolve(context.workspaceRoot),
+		".proflow",
+		"runtime",
+		"external-resources",
+		"dev-tunnel",
+	);
+const stateFile = (context: ModuleCommandContext) =>
+	join(stateDir(context), "setup.json");
+const processFile = (context: ModuleCommandContext) =>
+	join(stateDir(context), "process.json");
+async function readState(
+	context: ModuleCommandContext,
+): Promise<SetupState | undefined> {
 	try {
 		const raw = JSON.parse(
-			await readFile(file, "utf8"),
-		) as Partial<DevTunnelVerificationEvidence>;
+			await readFile(stateFile(context), "utf8"),
+		) as Partial<SetupState>;
 		if (
-			raw.contract !== "proflow.dev-tunnel-verification.v1" ||
-			raw.moduleVersion !== descriptor.moduleVersion ||
-			raw.publicBaseUrl !== publicBaseUrl ||
-			typeof raw.observedAt !== "string" ||
-			Number.isNaN(Date.parse(raw.observedAt)) ||
-			typeof raw.fileRelay !== "object" ||
-			raw.fileRelay === null ||
-			typeof raw.fileRelay.verified !== "boolean" ||
-			typeof raw.fileRelay.message !== "string" ||
-			typeof raw.errorSemantics !== "object" ||
-			raw.errorSemantics === null ||
-			typeof raw.errorSemantics.rateLimit429Verified !== "boolean" ||
-			typeof raw.errorSemantics.server5xxVerified !== "boolean" ||
-			typeof raw.errorSemantics.message !== "string"
+			raw.contract !== "proflow.dev-tunnel-setup.v1" ||
+			typeof raw.tunnelId !== "string" ||
+			!raw.tunnelId ||
+			typeof raw.publicBaseUrl !== "string"
 		)
 			return undefined;
-		return raw as DevTunnelVerificationEvidence;
+		const url = new URL(raw.publicBaseUrl);
+		if (url.protocol !== "https:") return undefined;
+		return raw as SetupState;
 	} catch {
 		return undefined;
 	}
 }
-
-export function createBehaviorAdapter(
-	input?: {
-		runtime: DevTunnelRuntime;
-		verifyErrorSemantics?: () => Promise<ErrorSemanticsProof>;
-		verifyFileRelay?: () => Promise<FileRelayProof>;
+async function writeState(
+	context: ModuleCommandContext,
+	state: SetupState,
+): Promise<void> {
+	await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+	const tmp = `${stateFile(context)}.${process.pid}.tmp`;
+	await writeFile(
+		tmp,
+		`${JSON.stringify(state, null, 2)}
+`,
+		{ encoding: "utf8", mode: 0o600 },
+	);
+	await rename(tmp, stateFile(context));
+}
+function setupInput(context: ModuleCommandContext): Partial<SetupState> {
+	if (
+		typeof context.input !== "object" ||
+		context.input === null ||
+		Array.isArray(context.input)
+	)
+		return {};
+	const tunnelId = Reflect.get(context.input, "tunnelId");
+	const publicBaseUrl = Reflect.get(context.input, "publicBaseUrl");
+	return {
+		...(typeof tunnelId === "string" && tunnelId ? { tunnelId } : {}),
+		...(typeof publicBaseUrl === "string" && publicBaseUrl
+			? { publicBaseUrl }
+			: {}),
+	};
+}
+function runtime(context: ModuleCommandContext, state?: SetupState) {
+	return createDevTunnelRuntime({
+		...(state
+			? { tunnelId: state.tunnelId, publicBaseUrl: state.publicBaseUrl }
+			: {}),
+		processStateFile: processFile(context),
+	});
+}
+export const behaviorAdapter = {
+	install: async (context: ModuleCommandContext) => {
+		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+		return { result: base, observedEffects: [] };
 	},
-	config?: Record<string, string>,
-) {
-	return {
-		describe: () => ({
-			result: success({
-				publicApi: ["status", "verify", "doctor", "start", "stop", "restart"],
-			}),
-			observedEffects: [],
-		}),
-		preflight: () => ({
-			result: input
-				? success()
-				: actionRequired(
-						"configure-tunnel",
-						"Bind a dev-tunnel resource with login status and a public HTTPS ingress",
-					),
-			observedEffects: [],
-		}),
-		status: async () => {
-			const observation = input ? await input.runtime.status() : undefined;
-			const runtimeStatus =
-				observation?.state === "RUNNING"
-					? "RUNNING"
-					: observation?.state === "STOPPED"
-						? "STOPPED"
-						: input
-							? "FAILED"
-							: "UNKNOWN";
-			return {
-				result: success(
-					observeDeclaredModuleStatus(descriptor, config, runtimeStatus),
-				),
-				observedEffects: [],
-			};
-		},
-		verify: async () => {
-			if (!input) {
-				return {
-					result: actionRequired(
-						"configure-tunnel",
-						"A live dev-tunnel resource is required for public ingress verification",
-					),
-					observedEffects: [],
-				};
-			}
-			if ((await input.runtime.loginStatus()) !== "LOGGED_IN") {
-				return {
-					result: actionRequired(
-						"complete-tunnel-login",
-						"Complete the interactive dev-tunnel login before verifying public ingress",
-					),
-					observedEffects: [],
-				};
-			}
-			const publicBaseUrl = input.runtime.publicBaseUrl();
-			if (publicBaseUrl === undefined) {
-				return {
-					result: actionRequired(
-						"configure-tunnel",
-						"publicBaseUrl must be configured before public ingress verification",
-					),
-					observedEffects: [],
-				};
-			}
-			const verification = await verifyPublicIngress(publicBaseUrl, {
-				...(input.verifyErrorSemantics === undefined
-					? {}
-					: { verifyErrorSemantics: input.verifyErrorSemantics }),
-				...(input.verifyFileRelay === undefined
-					? {}
-					: { verifyFileRelay: input.verifyFileRelay }),
-			});
-			return {
-				result: verification.ok
-					? { ...success(), checks: verification.checks }
-					: {
-							...actionRequired(
-								"repair-tunnel-ingress",
-								failureReason(verification),
-							),
-							checks: verification.checks,
+	uninstall: async (context: ModuleCommandContext) => {
+		const state = await readState(context);
+		if (!state) return { result: base, observedEffects: [] };
+		try {
+			const stopped = await runtime(context, state).stop();
+			return stopped.state === "STOPPED"
+				? { result: base, observedEffects: [processEffect] }
+				: {
+						result: {
+							...base,
+							ok: false as const,
+							status: "FAILED" as const,
+							error: {
+								code: "UNINSTALL_FAILED" as const,
+								message: "dev-tunnel stop state is UNKNOWN",
+								retryable: true,
+							},
 						},
-				observedEffects: verification.reachable
-					? ["Probes the dev-tunnel public HTTPS ingress"]
-					: [],
-			};
-		},
-		doctor: async () => {
-			if (!input) {
-				return {
-					result: actionRequired(
-						"configure-tunnel",
-						"dev-tunnel login and public ingress configuration are required for diagnostics",
-					),
-					observedEffects: [],
-				};
-			}
-			const login = await input.runtime.loginStatus();
-			const status = await input.runtime.status();
-			const publicBaseUrl = input.runtime.publicBaseUrl();
-			const checks: { id: string; status: CheckStatus; message: string }[] = [
-				{
-					id: "tunnel-login",
-					status: login === "LOGGED_IN" ? "PASS" : "FAIL",
-					message: `login status is ${login}`,
-				},
-				{
-					id: "tunnel-state",
-					status:
-						status.state === "RUNNING"
-							? "PASS"
-							: status.state === "STOPPED"
-								? "WARN"
-								: "FAIL",
-					message: `tunnel state is ${status.state}`,
-				},
-				{
-					id: "tunnel-public-url",
-					status: publicBaseUrl === undefined ? "FAIL" : "PASS",
-					message:
-						publicBaseUrl === undefined
-							? "publicBaseUrl is not configured"
-							: `publicBaseUrl is ${publicBaseUrl}`,
-				},
-			];
-			const healthy =
-				login === "LOGGED_IN" &&
-				status.state === "RUNNING" &&
-				publicBaseUrl !== undefined;
+						observedEffects: [],
+					};
+		} catch (error) {
 			return {
-				result: healthy
-					? { ...success(), checks }
-					: {
-							...actionRequired(
-								"repair-tunnel",
-								"dev-tunnel resource is not healthy",
-							),
-							checks,
-						},
-				observedEffects: [],
-			};
-		},
-		start: async () => {
-			if (!input) {
-				return {
-					result: actionRequired(
-						"configure-tunnel",
-						"Cannot start without a bound dev-tunnel resource",
-					),
-					observedEffects: [],
-				};
-			}
-			if ((await input.runtime.loginStatus()) !== "LOGGED_IN") {
-				return {
-					result: actionRequired(
-						"complete-tunnel-login",
-						"Complete the interactive dev-tunnel login before starting the tunnel",
-					),
-					observedEffects: [],
-				};
-			}
-			try {
-				const observation = await input.runtime.start();
-				return {
-					result: success(observation),
-					observedEffects: ["Manage the dev-tunnel public ingress process"],
-				};
-			} catch (error) {
-				return {
-					result: actionRequired(
-						"start-tunnel",
-						error instanceof Error
-							? error.message
-							: "failed to start the dev-tunnel process",
-					),
-					observedEffects: [],
-				};
-			}
-		},
-		stop: async () => {
-			if (!input) {
-				return {
-					result: actionRequired(
-						"configure-tunnel",
-						"No bound dev-tunnel resource to stop",
-					),
-					observedEffects: [],
-				};
-			}
-			const stopped = await input.runtime.stop();
-			if (stopped.state === "STOPPED") {
-				return {
-					result: success(),
-					observedEffects: ["Manage the dev-tunnel public ingress process"],
-				};
-			}
-			return {
-				result: actionRequired(
-					"complete-tunnel-stop",
-					"dev-tunnel stop state is UNKNOWN; cannot confirm the tunnel stopped",
-				),
-				observedEffects: [],
-			};
-		},
-		uninstall: async () => {
-			if (!input) {
-				return {
-					// No bound tunnel means there is no managed external resource to
-					// stop. Whole-instance uninstall must remain idempotent.
-					result: success(),
-					observedEffects: [],
-				};
-			}
-			const stopped = await input.runtime.stop();
-			if (stopped.state === "STOPPED") {
-				return {
-					result: success(),
-					observedEffects: ["Manage the dev-tunnel public ingress process"],
-				};
-			}
-			return {
-				result: actionRequired(
-					"complete-tunnel-stop",
-					"dev-tunnel stop state is UNKNOWN; package removal cannot continue",
-				),
-				observedEffects: [],
-			};
-		},
-		restart: async () => {
-			if (!input) {
-				return {
-					result: actionRequired(
-						"configure-tunnel",
-						"No bound dev-tunnel resource to restart",
-					),
-					observedEffects: [],
-				};
-			}
-			if ((await input.runtime.loginStatus()) !== "LOGGED_IN") {
-				return {
-					result: actionRequired(
-						"complete-tunnel-login",
-						"Complete the interactive dev-tunnel login before restarting the tunnel",
-					),
-					observedEffects: [],
-				};
-			}
-			const stopped = await input.runtime.stop();
-			if (stopped.state !== "STOPPED") {
-				return {
-					result: actionRequired(
-						"complete-tunnel-stop",
-						"Cannot restart: dev-tunnel stop state is UNKNOWN",
-					),
-					observedEffects: [],
-				};
-			}
-			try {
-				const observation = await input.runtime.start();
-				return {
-					result: success(observation),
-					observedEffects: ["Manage the dev-tunnel public ingress process"],
-				};
-			} catch (error) {
-				return {
-					result: actionRequired(
-						"start-tunnel",
-						error instanceof Error
-							? error.message
-							: "failed to start the dev-tunnel process",
-					),
-					observedEffects: [],
-				};
-			}
-		},
-	};
-}
-
-function failureReason(verification: PublicIngressVerification): string {
-	const failed = verification.checks.find((check) => check.status === "FAIL");
-	return failed?.message ?? "public ingress verification did not pass";
-}
-
-export const behaviorAdapter = createBehaviorAdapter();
-
-export async function createProductionBinding(input: {
-	moduleRef: string;
-	config: Record<string, string>;
-	workspaceRoot: string;
-}): Promise<{ behaviorAdapter: Record<string, unknown> } | undefined> {
-	const publicBaseUrl = input.config.publicBaseUrl;
-	if (!publicBaseUrl) return undefined;
-	const { createDevTunnelRuntime } = await import("../src/resource-adapter.ts");
-	const readEvidence = () =>
-		readDevTunnelVerificationEvidence(
-			input.config.verificationEvidenceFile,
-			publicBaseUrl,
-		);
-	return {
-		behaviorAdapter: createBehaviorAdapter(
-			{
-				runtime: createDevTunnelRuntime({
-					publicBaseUrl,
-					...(input.config.tunnelId ? { tunnelId: input.config.tunnelId } : {}),
-					processStateFile: join(
-						input.workspaceRoot,
-						".proflow",
-						"runtime",
-						"external-resources",
-						"dev-tunnel",
-						"process.json",
-					),
-				}),
-				verifyFileRelay: async () =>
-					(await readEvidence())?.fileRelay ?? {
-						verified: false,
+				result: {
+					...base,
+					ok: false as const,
+					status: "FAILED" as const,
+					error: {
+						code: "UNINSTALL_FAILED" as const,
 						message:
-							"dev-tunnel verification evidence is missing, stale, or invalid",
+							error instanceof Error
+								? error.message
+								: "failed to stop dev-tunnel",
+						retryable: true,
 					},
-				verifyErrorSemantics: async () =>
-					(await readEvidence())?.errorSemantics ?? {
-						rateLimit429Verified: false,
-						server5xxVerified: false,
-						message:
-							"dev-tunnel verification evidence is missing, stale, or invalid",
+				},
+				observedEffects: [],
+			};
+		}
+	},
+	status: async (context: ModuleCommandContext) => {
+		const state = await readState(context);
+		if (!state) {
+			return {
+				result: {
+					...base,
+					data: {
+						setupStatus: "ACTION_REQUIRED" as const,
+						runtimeStatus: "STOPPED" as const,
 					},
+				},
+				observedEffects: [],
+			};
+		}
+		const rt = runtime(context, state);
+		const login = await rt.loginStatus();
+		const observed = await rt.status();
+		const configured = state !== undefined && login === "LOGGED_IN";
+		const runtimeStatus =
+			observed.state === "RUNNING"
+				? ("RUNNING" as const)
+				: observed.state === "STOPPED"
+					? ("STOPPED" as const)
+					: configured
+						? ("FAILED" as const)
+						: ("STOPPED" as const);
+		return {
+			result: {
+				...base,
+				data: {
+					setupStatus: configured
+						? ("READY" as const)
+						: ("ACTION_REQUIRED" as const),
+					runtimeStatus,
+				},
 			},
-			input.config,
-		),
-	};
-}
+			observedEffects: [],
+		};
+	},
+	setup: async (context: ModuleCommandContext) => {
+		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+		const previous = await readState(context);
+		const supplied = setupInput(context);
+		const candidate = { ...(previous ?? {}), ...supplied };
+		const rt = runtime(context, previous);
+		const login = await rt.loginStatus();
+		if (login !== "LOGGED_IN")
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "ACTION_REQUIRED" as const,
+					actionRequired: {
+						action: "complete-tunnel-login",
+						description:
+							"Complete Microsoft Dev Tunnel login, then rerun setup.",
+					},
+				},
+				observedEffects: [],
+			};
+		if (
+			typeof candidate.tunnelId !== "string" ||
+			typeof candidate.publicBaseUrl !== "string"
+		)
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "ACTION_REQUIRED" as const,
+					actionRequired: {
+						action: "select-or-create-tunnel",
+						description:
+							"Create or select the persistent Dev Tunnel and provide tunnelId plus publicBaseUrl to this setup step.",
+					},
+				},
+				observedEffects: [],
+			};
+		try {
+			const url = new URL(candidate.publicBaseUrl);
+			if (url.protocol !== "https:")
+				throw new TypeError("publicBaseUrl must be HTTPS");
+			const state: SetupState = {
+				contract: "proflow.dev-tunnel-setup.v1",
+				tunnelId: candidate.tunnelId,
+				publicBaseUrl: url.href,
+			};
+			await writeState(context, state);
+			return { result: base, observedEffects: [] };
+		} catch (error) {
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "ACTION_REQUIRED" as const,
+					actionRequired: {
+						action: "correct-tunnel-facts",
+						description:
+							error instanceof Error
+								? error.message
+								: "Tunnel setup facts are invalid",
+					},
+				},
+				observedEffects: [],
+			};
+		}
+	},
+	docs: async (_context: ModuleCommandContext) => ({
+		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		observedEffects: [],
+	}),
+	start: async (context: ModuleCommandContext) => {
+		const state = await readState(context);
+		if (!state)
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "FAILED" as const,
+					error: {
+						code: "START_FAILED" as const,
+						message: "dev-tunnel setup is not READY",
+						retryable: true,
+					},
+				},
+				observedEffects: [],
+			};
+		const rt = runtime(context, state);
+		if ((await rt.loginStatus()) !== "LOGGED_IN")
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "FAILED" as const,
+					error: {
+						code: "START_FAILED" as const,
+						message: "Microsoft Dev Tunnel login is not ready",
+						retryable: true,
+					},
+				},
+				observedEffects: [],
+			};
+		try {
+			const observed = await rt.start();
+			return observed.state === "RUNNING"
+				? {
+						result: { ...base, data: observed },
+						observedEffects: [processEffect],
+					}
+				: {
+						result: {
+							...base,
+							ok: false as const,
+							status: "FAILED" as const,
+							error: {
+								code: "START_FAILED" as const,
+								message: "dev-tunnel did not reach RUNNING",
+								retryable: true,
+							},
+						},
+						observedEffects: [],
+					};
+		} catch (error) {
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "FAILED" as const,
+					error: {
+						code: "START_FAILED" as const,
+						message:
+							error instanceof Error
+								? error.message
+								: "failed to start dev-tunnel",
+						retryable: true,
+					},
+				},
+				observedEffects: [],
+			};
+		}
+	},
+	stop: async (context: ModuleCommandContext) => {
+		const state = await readState(context);
+		if (!state) return { result: base, observedEffects: [] };
+		try {
+			const observed = await runtime(context, state).stop();
+			return observed.state === "STOPPED"
+				? { result: base, observedEffects: [processEffect] }
+				: {
+						result: {
+							...base,
+							ok: false as const,
+							status: "FAILED" as const,
+							error: {
+								code: "STOP_FAILED" as const,
+								message: "dev-tunnel stop state is UNKNOWN",
+								retryable: true,
+							},
+						},
+						observedEffects: [],
+					};
+		} catch (error) {
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "FAILED" as const,
+					error: {
+						code: "STOP_FAILED" as const,
+						message:
+							error instanceof Error
+								? error.message
+								: "failed to stop dev-tunnel",
+						retryable: true,
+					},
+				},
+				observedEffects: [],
+			};
+		}
+	},
+} as const;
