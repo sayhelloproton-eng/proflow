@@ -1,238 +1,134 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 
-import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
-import type {
-	ChromeRuntimeObservation,
-	ChromeRuntimeProbe,
-} from "../src/resource-adapter.ts";
+import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
+import type { ChromeRuntimeProbe } from "../src/resource-adapter.ts";
+import { probeChromeRuntime } from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
 
-const success = (data?: unknown) => ({
-	contract: "deployment.result.v1" as const,
+const base = {
+	contract: "deployment.result.v1",
 	ok: true,
-	status: "SUCCEEDED" as const,
+	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
-	...(data === undefined ? {} : { data }),
-});
-
-const actionRequired = (action: string, description: string) => ({
-	contract: "deployment.result.v1" as const,
-	ok: false,
-	status: "ACTION_REQUIRED" as const,
-	moduleRef: descriptor.moduleRef,
-	moduleVersion: descriptor.moduleVersion,
-	actionRequired: { action, description },
-});
-
+} as const;
 const observedEffect =
 	"Observes the Chrome runtime and MV3 extension prerequisite";
-
+const configPath = (context: ModuleCommandContext) =>
+	join(
+		resolve(context.workspaceRoot),
+		".proflow",
+		"config",
+		"chrome-runtime.json",
+	);
+async function readOverride(
+	context: ModuleCommandContext,
+): Promise<string | undefined> {
+	try {
+		const raw: unknown = JSON.parse(
+			await readFile(configPath(context), "utf8"),
+		);
+		if (typeof raw !== "object" || raw === null || Array.isArray(raw))
+			return undefined;
+		const value = Reflect.get(raw, "chromeExecutablePath");
+		return typeof value === "string" && value.length > 0 ? value : undefined;
+	} catch {
+		return undefined;
+	}
+}
+function setupInput(context: ModuleCommandContext): string | undefined {
+	const input = context.input;
+	if (typeof input !== "object" || input === null || Array.isArray(input))
+		return undefined;
+	const value = Reflect.get(input, "chromeExecutablePath");
+	return typeof value === "string" && value.length > 0 ? value : undefined;
+}
 export function createBehaviorAdapter(
-	input?: { probe: ChromeRuntimeProbe },
-	config?: Record<string, string>,
+	probe: ChromeRuntimeProbe = () => probeChromeRuntime(),
 ) {
-	const observe = async (): Promise<ChromeRuntimeObservation> => {
-		if (!input) return { available: false, extensionLoaded: false };
-		return input.probe();
+	const observe = async (context: ModuleCommandContext) => {
+		const override = await readOverride(context);
+		return override ? probeChromeRuntime(override) : probe();
 	};
-
 	return {
-		describe: () => ({
-			result: success({
-				observes:
-					"Chrome runtime availability, version, and MV3 extension prerequisite",
-			}),
+		install: async (context: ModuleCommandContext) => {
+			await mkdir(dirname(configPath(context)), {
+				recursive: true,
+				mode: 0o700,
+			});
+			return { result: base, observedEffects: [] };
+		},
+		uninstall: async (_context: ModuleCommandContext) => ({
+			result: base,
 			observedEffects: [],
 		}),
-		preflight: () => ({
-			result: input
-				? success()
-				: actionRequired(
-						"bind-chrome-probe",
-						"Bind a real Chrome runtime probe before observing availability",
-					),
-			observedEffects: [],
-		}),
-		status: async () => {
-			const observation = await observe();
+		status: async (context: ModuleCommandContext) => {
+			const observation = await observe(context);
 			return {
-				result: success(
-					observeDeclaredModuleStatus(
-						descriptor,
-						config,
-						observation.available ? "RUNNING" : input ? "FAILED" : "UNKNOWN",
-					),
-				),
-				observedEffects: input ? [observedEffect] : [],
+				result: {
+					...base,
+					data: {
+						setupStatus: observation.available
+							? ("READY" as const)
+							: ("ACTION_REQUIRED" as const),
+						runtimeStatus: observation.available
+							? ("RUNNING" as const)
+							: ("STOPPED" as const),
+					},
+				},
+				observedEffects: [observedEffect],
+				externalAvailabilityClaim: observation.available
+					? ("AVAILABLE" as const)
+					: ("UNAVAILABLE" as const),
+				externalAvailabilityEvidence: "real" as const,
 			};
 		},
-		verify: async () => {
-			if (!input) {
-				return {
-					result: actionRequired(
-						"bind-chrome-probe",
-						"Real Chrome verification requires a bound probe",
-					),
-					observedEffects: [],
-				};
-			}
-			const observation = await observe();
-			if (!observation.available) {
-				const message = "Chrome runtime is not available on this host";
-				return {
-					result: {
-						...actionRequired("install-or-expose-chrome", message),
-						checks: [
-							{ id: "chrome-version", status: "FAIL" as const, message },
-							{
-								id: "chrome-extension-prerequisite",
-								status: "FAIL" as const,
-								message:
-									"MV3 extension prerequisite cannot be verified without Chrome",
-							},
-						],
-					},
-					observedEffects: [observedEffect],
-				};
-			}
-			const versionMessage = `Chrome runtime version observed: ${observation.resourceVersion ?? "unknown version"}`;
-			if (observation.extensionLoaded) {
-				return {
-					result: {
-						...success(),
-						...(observation.resourceVersion === undefined
-							? {}
-							: { resourceVersion: observation.resourceVersion }),
-						checks: [
-							{
-								id: "chrome-version",
-								status: "PASS" as const,
-								message: versionMessage,
-							},
-							{
-								id: "chrome-extension-prerequisite",
-								status: "PASS" as const,
-								message: "MV3 extension load and authorization are verified",
-							},
-						],
-					},
-					observedEffects: [observedEffect],
-				};
+		setup: async (context: ModuleCommandContext) => {
+			let observation = await observe(context);
+			if (observation.available)
+				return { result: base, observedEffects: [observedEffect] };
+			const explicit = setupInput(context);
+			if (explicit) {
+				await mkdir(dirname(configPath(context)), {
+					recursive: true,
+					mode: 0o700,
+				});
+				await writeFile(
+					configPath(context),
+					`${JSON.stringify({ chromeExecutablePath: explicit }, null, 2)}\n`,
+					{ encoding: "utf8", mode: 0o600 },
+				);
+				observation = await probeChromeRuntime(explicit);
+				if (observation.available)
+					return { result: base, observedEffects: [observedEffect] };
 			}
 			return {
 				result: {
-					...actionRequired(
-						"load-and-verify-extension",
-						"Load and verify the unpacked MV3 extension in the real Chrome profile",
-					),
-					...(observation.resourceVersion === undefined
-						? {}
-						: { resourceVersion: observation.resourceVersion }),
-					checks: [
-						{
-							id: "chrome-version",
-							status: "PASS" as const,
-							message: versionMessage,
-						},
-						{
-							id: "chrome-extension-prerequisite",
-							status: "FAIL" as const,
-							message:
-								"MV3 extension load and authorization cannot be automated and have not been verified",
-						},
-					],
+					...base,
+					ok: false as const,
+					status: "ACTION_REQUIRED" as const,
+					actionRequired: {
+						action: "install-or-expose-chrome",
+						description:
+							"Install a supported Chrome/Chromium runtime, or provide chromeExecutablePath to Module.setup.",
+					},
 				},
 				observedEffects: [observedEffect],
 			};
 		},
-		doctor: async () => {
-			if (!input) {
-				return {
-					result: actionRequired(
-						"bind-chrome-probe",
-						"Chrome diagnostics require a bound probe",
-					),
-					observedEffects: [],
-				};
-			}
-			const observation = await observe();
-			const message = observation.available
-				? "Chrome runtime is reachable; extension load remains a manual prerequisite"
-				: "Chrome runtime is not available on this host";
-			return {
-				result: observation.available
-					? {
-							...success(),
-							checks: [
-								{
-									id: "chrome-diagnostics",
-									status: "PASS" as const,
-									message,
-								},
-							],
-						}
-					: {
-							...actionRequired("install-or-expose-chrome", message),
-							checks: [
-								{
-									id: "chrome-diagnostics",
-									status: "FAIL" as const,
-									message,
-								},
-							],
-						},
-				observedEffects: [observedEffect],
-			};
-		},
+		docs: async (_context: ModuleCommandContext) => ({
+			result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+			observedEffects: [],
+		}),
+		start: async (_context: ModuleCommandContext) => ({
+			result: base,
+			observedEffects: [],
+		}),
+		stop: async (_context: ModuleCommandContext) => ({
+			result: base,
+			observedEffects: [],
+		}),
 	};
 }
-
 export const behaviorAdapter = createBehaviorAdapter();
-
-export async function createProductionBinding(input: {
-	moduleRef: string;
-	config: Record<string, string>;
-	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
-}): Promise<{ behaviorAdapter: Record<string, unknown> }> {
-	const { probeChromeRuntime } = await import("../src/resource-adapter.ts");
-	const chromeExecutablePath = input.config.chromeExecutablePath;
-	const browserConfig = input.configByModuleRef.get(
-		"execution-browser-extension",
-	);
-	const evidenceFile = browserConfig?.verificationEvidenceFile;
-	const hasVerifiedExtensionEvidence = async (): Promise<boolean> => {
-		if (!evidenceFile) return false;
-		try {
-			const raw = JSON.parse(await readFile(evidenceFile, "utf8")) as Record<
-				string,
-				unknown
-			>;
-			return (
-				raw.contract === "proflow.browser-extension-verification.v1" &&
-				typeof raw.extensionId === "string" &&
-				raw.extensionId.length >= 16 &&
-				raw.serviceWorker === "RUNNING" &&
-				typeof raw.observedAt === "string" &&
-				!Number.isNaN(Date.parse(raw.observedAt))
-			);
-		} catch {
-			return false;
-		}
-	};
-	return {
-		behaviorAdapter: createBehaviorAdapter(
-			{
-				probe: async () => {
-					const observed = await probeChromeRuntime(chromeExecutablePath);
-					return {
-						...observed,
-						extensionLoaded:
-							observed.available && (await hasVerifiedExtensionEvidence()),
-					};
-				},
-			},
-			input.config,
-		),
-	};
-}
