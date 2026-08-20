@@ -34,14 +34,8 @@ function descriptorFor({ moduleRef, packageName }: FixtureDescriptor) {
 		requires: [],
 		requirements: [],
 		configSlots: [],
-		lifecycle: { supported: ["describe", "preflight", "verify"] },
-		verification: {
-			checks: [
-				{ id: "health", description: "observed health", lifecycle: "verify" },
-			],
-		},
 		effects: [],
-		documentation: [],
+		documentation: { docs: "DOCS.md", setup: "SETUP.md" },
 	};
 }
 

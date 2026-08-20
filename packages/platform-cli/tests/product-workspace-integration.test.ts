@@ -14,6 +14,7 @@ const MODULE = {
 
 const adapterSource = `
 let running = false;
+let ready = false;
 const result = (data) => ({
   contract: "deployment.result.v1",
   ok: true,
@@ -23,8 +24,11 @@ const result = (data) => ({
   ...(data === undefined ? {} : { data }),
 });
 export const behaviorAdapter = {
-  status: async () => ({ result: result({ configStatus: "READY", runtimeStatus: running ? "RUNNING" : "STOPPED" }), observedEffects: [] }),
-  preflight: async () => ({ result: result(), observedEffects: [] }),
+  install: async () => ({ result: result(), observedEffects: [] }),
+  uninstall: async () => ({ result: result(), observedEffects: [] }),
+  status: async () => ({ result: result({ setupStatus: ready ? "READY" : "ACTION_REQUIRED", runtimeStatus: running ? "RUNNING" : "STOPPED" }), observedEffects: [] }),
+  setup: async () => { ready = true; return { result: result(), observedEffects: [] }; },
+  docs: async () => ({ result: result({ docs: "Fixture Service", setup: "No configuration required." }), observedEffects: [] }),
   start: async () => { running = true; return { result: result(), observedEffects: [] }; },
   stop: async () => { running = false; return { result: result(), observedEffects: [] }; },
 };
@@ -80,15 +84,7 @@ function packageRunner(root: string, calls: string[][]) {
 				await writeInstalledModule(root, {
 					...MODULE,
 					kind: "service",
-					lifecycle: ["status", "preflight", "start", "stop"],
 					adapterSource,
-					documents: [
-						{
-							id: "configuration",
-							path: "CONFIGURATION.md",
-							content: "# Fixture Service\n\nNo configuration required.\n",
-						},
-					],
 				});
 				return "";
 			}
@@ -116,7 +112,7 @@ function parse(output: string) {
 	};
 }
 
-test("simulated human Golden Path runs install → modules → docs → start → modules → stop → uninstall", async () => {
+test("simulated human Golden Path runs install → status → setup → docs → start → status → stop → uninstall", async () => {
 	const root = await tempWorkspace();
 	const calls: string[][] = [];
 	const runtime = {
@@ -128,24 +124,32 @@ test("simulated human Golden Path runs install → modules → docs → start �
 	try {
 		const installed = parse(await runCli(["install", "--json"], runtime));
 		assert.equal(installed.status, "SUCCEEDED");
-		const before = parse(await runCli(["modules", "--json"], { cwd: root }));
+
+		const before = parse(await runCli(["status", "--json"], { cwd: root }));
 		assert.equal(before.status, "SUCCEEDED");
+		assert.equal(before.data?.modules?.[0]?.setupStatus, "ACTION_REQUIRED");
 		assert.equal(before.data?.modules?.[0]?.runtimeStatus, "STOPPED");
+
+		const setup = parse(await runCli(["setup", "--json"], { cwd: root }));
+		assert.equal(setup.status, "SUCCEEDED");
+		const ready = parse(await runCli(["status", "--json"], { cwd: root }));
+		assert.equal(ready.data?.modules?.[0]?.setupStatus, "READY");
+
 		const docs = parse(await runCli(["docs", "--json"], { cwd: root }));
 		assert.equal(docs.status, "SUCCEEDED");
 		assert.match(
-			JSON.stringify(docs.data?.modules?.[0]?.documents ?? []),
-			/Fixture Service|configuration/i,
+			JSON.stringify(docs.data?.modules?.[0]?.docs ?? {}),
+			/Fixture Service/,
 		);
 
 		const started = parse(await runCli(["start", "--json"], { cwd: root }));
 		assert.equal(started.status, "SUCCEEDED");
-		const running = parse(await runCli(["modules", "--json"], { cwd: root }));
+		const running = parse(await runCli(["status", "--json"], { cwd: root }));
 		assert.equal(running.data?.modules?.[0]?.runtimeStatus, "RUNNING");
 
 		const stopped = parse(await runCli(["stop", "--json"], { cwd: root }));
 		assert.equal(stopped.status, "SUCCEEDED");
-		const afterStop = parse(await runCli(["modules", "--json"], { cwd: root }));
+		const afterStop = parse(await runCli(["status", "--json"], { cwd: root }));
 		assert.equal(afterStop.data?.modules?.[0]?.runtimeStatus, "STOPPED");
 
 		const uninstalled = parse(

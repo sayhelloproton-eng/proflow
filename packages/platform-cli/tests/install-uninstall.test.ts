@@ -132,7 +132,7 @@ test("install synchronizes the complete Registry package set in one transaction"
 			}),
 		) as { status: string; data: Record<string, unknown> };
 		assert.equal(output.status, "SUCCEEDED");
-		assert.equal(output.data.next, "platform modules");
+		assert.equal(output.data.next, "platform status");
 		assert.equal(
 			calls.length,
 			1,
@@ -201,7 +201,7 @@ test("only install accepts --workspace and all commands reject positional module
 	const root = await tempWorkspace();
 	try {
 		const wrongWorkspace = JSON.parse(
-			await runCli(["modules", "--workspace", root, "--json"], { cwd: root }),
+			await runCli(["status", "--workspace", root, "--json"], { cwd: root }),
 		) as { status: string; error?: { code: string } };
 		assert.equal(wrongWorkspace.status, "FAILED");
 		assert.equal(wrongWorkspace.error?.code, "INVALID_REQUEST");
