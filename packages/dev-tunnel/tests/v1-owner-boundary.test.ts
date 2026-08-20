@@ -20,24 +20,19 @@ test("EXT-TUNNEL-01 dev-tunnel owns ingress lifecycle only, never Gateway routin
 	);
 });
 
-test("EXT-TUNNEL-02 only the real managed tunnel resource declares start/stop/restart", () => {
-	for (const primitive of ["start", "stop", "restart"])
-		assert.equal(
-			descriptor.lifecycle.supported.includes(primitive as never),
-			true,
-		);
+test("EXT-TUNNEL-02 managed tunnel remains process-owning while standard lifecycle metadata is removed", () => {
+	assert.equal("lifecycle" in descriptor, false);
 	assert.equal(
 		descriptor.effects.some((effect) => effect.kind === "process"),
 		true,
 	);
+	assert.equal(descriptor.provides[0]?.contractRef, "public-ingress");
 });
 
-test("EXT-TUNNEL-03 tunnel verification remains bounded to ingress/file-relay diagnostics", () => {
-	const checks = descriptor.verification.checks.map((check) => check.id).sort();
-	assert.deepEqual(checks, [
-		"tunnel-diagnostics",
-		"tunnel-file-relay",
-		"tunnel-public-ingress",
-		"tunnel-status",
-	]);
+test("EXT-TUNNEL-03 ingress diagnostics remain Module-owned instead of descriptor verification metadata", () => {
+	assert.equal("verification" in descriptor, false);
+	assert.equal(
+		descriptor.effects.some((effect) => effect.kind === "network"),
+		true,
+	);
 });

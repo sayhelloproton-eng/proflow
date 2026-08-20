@@ -7,11 +7,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { parseModuleDescriptor } from "@tomflow/proflow-module-contract";
-import {
-	behaviorAdapter,
-	createBehaviorAdapter,
-	readDevTunnelVerificationEvidence,
-} from "../deployment/adapter.ts";
+import { behaviorAdapter } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
 import {
 	createDevTunnelRuntime,
@@ -33,119 +29,40 @@ const notLoggedInRunner = async () => ({
 	stderr: "not logged in",
 });
 
-const unknownStopRuntime = (onStart?: () => void): DevTunnelRuntime => ({
-	command: "devtunnel",
-	status: async () => ({ state: "UNKNOWN", login: "LOGGED_IN" }),
-	loginStatus: async () => "LOGGED_IN",
-	publicBaseUrl: () => "https://tunnel.example.com/",
-	start: async () => {
-		onStart?.();
-		return { state: "RUNNING", login: "LOGGED_IN" };
-	},
-	stop: async () => ({ state: "UNKNOWN", login: "LOGGED_IN" }),
-	restart: async () => ({ state: "UNKNOWN", login: "LOGGED_IN" }),
-});
-
-test("dev-tunnel descriptor parses against moduleDescriptorSchema", () => {
+test("dev-tunnel descriptor parses with public-ingress ownership and no legacy lifecycle metadata", () => {
 	const parsed = parseModuleDescriptor(descriptor);
 	assert.equal(parsed.moduleRef, "dev-tunnel");
 	assert.equal(parsed.kind, "external-resource");
-	assert.equal(parsed.contractVersion, "1.0.0");
 	assert.equal(parsed.packageName, "@tomflow/proflow-dev-tunnel");
-	assert.deepEqual(parsed.provides, []);
+	assert.equal(parsed.provides[0]?.contractRef, "public-ingress");
 	assert.deepEqual(parsed.requires, []);
-	assert.ok(parsed.lifecycle.supported.includes("start"));
-	assert.ok(parsed.lifecycle.supported.includes("stop"));
-	assert.ok(parsed.lifecycle.supported.includes("restart"));
+	assert.equal("lifecycle" in parsed, false);
+	assert.equal("verification" in parsed, false);
 });
 
-test("default behaviorAdapter is honest when no tunnel is bound", async () => {
-	const status = await behaviorAdapter.status();
+test("default behaviorAdapter reports setup truth without fabricating a tunnel", async (context) => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-dev-tunnel-status-"),
+	);
+	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const status = await behaviorAdapter.status({ workspaceRoot });
 	assert.equal(status.result.status, "SUCCEEDED");
-	assert.equal(status.result.ok, true);
 	assert.deepEqual(status.result.data, {
-		configStatus: "INCOMPLETE",
-		missingConfig: ["publicBaseUrl"],
-		runtimeStatus: "UNKNOWN",
+		setupStatus: "ACTION_REQUIRED",
+		runtimeStatus: "STOPPED",
 	});
-	assert.equal(behaviorAdapter.preflight().result.status, "ACTION_REQUIRED");
-
-	const verify = await behaviorAdapter.verify();
-	assert.equal(verify.result.status, "ACTION_REQUIRED");
-
-	const start = await behaviorAdapter.start();
-	assert.equal(start.result.status, "ACTION_REQUIRED");
-
-	const stop = await behaviorAdapter.stop();
-	assert.equal(stop.result.status, "ACTION_REQUIRED");
-
-	const restart = await behaviorAdapter.restart();
-	assert.equal(restart.result.status, "ACTION_REQUIRED");
 });
 
-test("start/stop/restart are honest when a runtime is bound but not logged in", async () => {
-	const runtime = createDevTunnelRuntime({
-		publicBaseUrl: "https://tunnel.example.com/",
-		runCommand: notLoggedInRunner,
-	});
-	const adapter = createBehaviorAdapter({ runtime });
-
-	const start = await adapter.start();
-	assert.equal(start.result.status, "ACTION_REQUIRED");
-	assert.equal(start.result.actionRequired?.action, "complete-tunnel-login");
-
-	const restart = await adapter.restart();
-	assert.equal(restart.result.status, "ACTION_REQUIRED");
-
-	const verify = await adapter.verify();
-	assert.equal(verify.result.status, "ACTION_REQUIRED");
-});
-
-test("every supported lifecycle primitive exposes an adapter function", () => {
-	for (const primitive of descriptor.lifecycle.supported) {
-		assert.equal(typeof behaviorAdapter[primitive], "function", primitive);
-	}
-});
-
-test("production verification evidence is version- and ingress-bound", async () => {
-	const dir = await mkdtemp(join(tmpdir(), "proflow-dev-tunnel-evidence-"));
-	try {
-		const file = join(dir, "evidence.json");
-		await writeFile(
-			file,
-			`${JSON.stringify(
-				{
-					contract: "proflow.dev-tunnel-verification.v1",
-					moduleVersion: descriptor.moduleVersion,
-					publicBaseUrl: "https://tunnel.example.com/",
-					observedAt: "2026-08-19T00:00:00.000Z",
-					fileRelay: { verified: true, message: "relay proof" },
-					errorSemantics: {
-						rateLimit429Verified: true,
-						server5xxVerified: true,
-						message: "error semantics proof",
-					},
-				},
-				null,
-				2,
-			)}\n`,
-		);
-		const evidence = await readDevTunnelVerificationEvidence(
-			file,
-			"https://tunnel.example.com/",
-		);
-		assert.equal(evidence?.fileRelay.verified, true);
-		assert.equal(evidence?.errorSemantics.rateLimit429Verified, true);
-		assert.equal(
-			await readDevTunnelVerificationEvidence(
-				file,
-				"https://other.example.com/",
-			),
-			undefined,
-		);
-	} finally {
-		await rm(dir, { recursive: true, force: true });
-	}
+test("dev-tunnel exposes the fixed seven-command management surface", () => {
+	assert.deepEqual(Object.keys(behaviorAdapter).sort(), [
+		"docs",
+		"install",
+		"setup",
+		"start",
+		"status",
+		"stop",
+		"uninstall",
+	]);
 });
 
 test("missing file relay and 429/5xx proof are FAIL, never SKIP/WARN", async () => {
@@ -256,41 +173,12 @@ test("streaming read aborts after the size ceiling", async () => {
 	assert.ok(chunksRead < 10, `read ${chunksRead} chunks instead of aborting`);
 });
 
-test("doctor reads current login/state/publicUrl reality, not just adapter-bound", async () => {
-	const runtime = createDevTunnelRuntime({
-		runCommand: notLoggedInRunner,
-		publicBaseUrl: "https://tunnel.example.com/",
-	});
-	const adapter = createBehaviorAdapter({ runtime });
-	const doctor = await adapter.doctor();
-	assert.equal(doctor.result.status, "ACTION_REQUIRED");
-	const loginCheck = doctor.result.checks?.find((c) => c.id === "tunnel-login");
-	assert.equal(loginCheck?.status, "FAIL");
-});
-
-test("stop returns ACTION_REQUIRED when stop state is genuinely UNKNOWN", async () => {
-	const adapter = createBehaviorAdapter({ runtime: unknownStopRuntime() });
-	const stop = await adapter.stop();
-	assert.equal(stop.result.status, "ACTION_REQUIRED");
-	assert.equal(stop.result.ok, false);
-	assert.equal(stop.result.actionRequired?.action, "complete-tunnel-stop");
-});
-
-test("restart does not start when stop is UNKNOWN", async () => {
-	let started = false;
-	const adapter = createBehaviorAdapter({
-		runtime: unknownStopRuntime(() => {
-			started = true;
-		}),
-	});
-	const restart = await adapter.restart();
-	assert.equal(restart.result.status, "ACTION_REQUIRED");
-	assert.equal(restart.result.actionRequired?.action, "complete-tunnel-stop");
-	assert.equal(started, false);
-});
-
-test("uninstall is idempotent when no dev-tunnel resource is bound", async () => {
-	const result = await behaviorAdapter.uninstall();
+test("uninstall is idempotent when no dev-tunnel resource is bound", async (context) => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-dev-tunnel-uninstall-"),
+	);
+	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const result = await behaviorAdapter.uninstall({ workspaceRoot });
 	assert.equal(result.result.status, "SUCCEEDED");
 	assert.equal(result.result.ok, true);
 	assert.deepEqual(result.observedEffects, []);

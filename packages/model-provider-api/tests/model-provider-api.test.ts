@@ -1,24 +1,25 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import {
 	moduleOperationResultSchema,
 	parseModuleDescriptor,
 } from "@tomflow/proflow-module-contract";
-import {
-	behaviorAdapter,
-	createBehaviorAdapter,
-} from "../deployment/adapter.ts";
-import { descriptor, RESOURCE_IDENTITY } from "../deployment/descriptor.ts";
+import { behaviorAdapter } from "../deployment/adapter.ts";
+import { descriptor } from "../deployment/descriptor.ts";
 import { createProviderProbe } from "../src/resource-adapter.ts";
 
-const EXPECTED_LIFECYCLE = [
-	"describe",
-	"preflight",
-	"status",
-	"verify",
-	"doctor",
-] as const;
+async function workspace(
+	context: { after(fn: () => unknown): void },
+	prefix: string,
+) {
+	const root = await mkdtemp(join(tmpdir(), prefix));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	return root;
+}
 
 test("parseModuleDescriptor accepts the frozen external-resource descriptor", () => {
 	const parsed = parseModuleDescriptor(descriptor);
@@ -26,28 +27,25 @@ test("parseModuleDescriptor accepts the frozen external-resource descriptor", ()
 	assert.equal(parsed.moduleRef, "model-provider-api");
 	assert.equal(parsed.kind, "external-resource");
 	assert.equal(parsed.provides[0]?.contractRef, "model.provider.api");
-	assert.deepEqual(
-		[...parsed.lifecycle.supported].sort(),
-		[...EXPECTED_LIFECYCLE].sort(),
-	);
 	assert.deepEqual(parsed.requires, []);
+	assert.equal("lifecycle" in parsed, false);
+	assert.equal("verification" in parsed, false);
 });
 
-test("resource identity constant matches the frozen registry contract", () => {
-	assert.equal(RESOURCE_IDENTITY, "model.provider.api");
-});
-
-test("every lifecycle result satisfies the structured result contract", async () => {
+test("all seven management command results satisfy the structured result contract", async (context) => {
+	const workspaceRoot = await workspace(context, "proflow-provider-contract-");
 	const observations = [
-		await behaviorAdapter.describe(),
-		await behaviorAdapter.preflight(),
-		await behaviorAdapter.status(),
-		await behaviorAdapter.verify(),
-		await behaviorAdapter.doctor(),
+		await behaviorAdapter.install({ workspaceRoot }),
+		await behaviorAdapter.uninstall({ workspaceRoot }),
+		await behaviorAdapter.status({ workspaceRoot }),
+		await behaviorAdapter.setup({ workspaceRoot }),
+		await behaviorAdapter.docs({ workspaceRoot }),
+		await behaviorAdapter.start({ workspaceRoot }),
+		await behaviorAdapter.stop({ workspaceRoot }),
 	];
 	for (const observation of observations) {
 		const parsed = moduleOperationResultSchema.safeParse(observation.result);
-		assert.equal(parsed.success, true, "result must match the contract");
+		assert.equal(parsed.success, true);
 		if (parsed.success) {
 			assert.equal(parsed.data.moduleRef, descriptor.moduleRef);
 			assert.equal(parsed.data.moduleVersion, descriptor.moduleVersion);
@@ -55,99 +53,58 @@ test("every lifecycle result satisfies the structured result contract", async ()
 	}
 });
 
-test("unconfigured adapter reports Module facts while actionable primitives remain blocked", async () => {
-	const describe = await behaviorAdapter.describe();
-	assert.equal(describe.result.status, "SUCCEEDED");
-
-	const preflight = await behaviorAdapter.preflight();
-	assert.equal(preflight.result.status, "ACTION_REQUIRED");
-
-	const status = await behaviorAdapter.status();
-	assert.equal(status.result.status, "SUCCEEDED");
-	assert.deepEqual(status.result.data, {
-		configStatus: "INCOMPLETE",
-		missingConfig: ["providerBaseUrl"],
-		runtimeStatus: "UNKNOWN",
-	});
-
-	const verify = await behaviorAdapter.verify();
-	assert.equal(verify.result.status, "ACTION_REQUIRED");
-
-	const doctor = await behaviorAdapter.doctor();
-	assert.equal(doctor.result.status, "ACTION_REQUIRED");
-});
-
-test("unconfigured verify returns FAIL reachability and auth checks, never a fake pass", async () => {
-	const verify = await behaviorAdapter.verify();
-	const reachability = verify.result.checks?.find(
-		(check) => check.id === "provider-reachability",
+test("unconfigured adapter reports ACTION_REQUIRED through status/setup, not missingConfig", async (context) => {
+	const workspaceRoot = await workspace(
+		context,
+		"proflow-provider-unconfigured-",
 	);
-	const auth = verify.result.checks?.find(
-		(check) => check.id === "provider-auth",
-	);
-	assert.equal(reachability?.status, "FAIL");
-	assert.equal(auth?.status, "FAIL");
-	assert.ok(verify.result.actionRequired !== undefined);
-});
-
-test("configured adapter delegates capability verification to Model Domain", async () => {
-	const configured = createBehaviorAdapter({
-		probeProvider: async () => ({
-			reachable: true,
-			authenticated: true,
-			message: "provider API reachable and credential accepted",
-		}),
-		verifyCapabilities: async () => ({
-			ok: true,
-			message: "capabilities verified",
-		}),
-	});
-	const verify = await configured.verify();
-	assert.equal(verify.result.status, "SUCCEEDED");
-	assert.equal(
-		verify.result.checks?.some(
-			(check) =>
-				check.id === "provider-capabilities" && check.status === "PASS",
-		),
-		true,
-	);
-
-	const reachableOnly = createBehaviorAdapter({
-		probeProvider: async () => ({
-			reachable: true,
-			authenticated: true,
-			message: "provider API reachable and credential accepted",
-		}),
-	});
-	const verifyWithoutCapabilities = await reachableOnly.verify();
-	assert.equal(verifyWithoutCapabilities.result.status, "SUCCEEDED");
 	assert.deepEqual(
-		verifyWithoutCapabilities.result.checks?.map((check) => check.id),
-		["provider-reachability", "provider-auth"],
+		(await behaviorAdapter.status({ workspaceRoot })).result.data,
+		{
+			setupStatus: "ACTION_REQUIRED",
+			runtimeStatus: "STOPPED",
+		},
 	);
-	assert.deepEqual(verifyWithoutCapabilities.result.data, {
-		capabilityVerificationOwner: "model-runtime",
-	});
+	const setup = await behaviorAdapter.setup({ workspaceRoot });
+	assert.equal(setup.result.status, "ACTION_REQUIRED");
+	assert.equal(setup.result.actionRequired?.action, "configure-provider");
 });
 
-test("adapter exposes no start, stop, or restart lifecycle", () => {
-	for (const forbidden of ["start", "stop", "restart"]) {
-		assert.ok(!(forbidden in behaviorAdapter), `${forbidden} must not exist`);
-	}
-	assert.deepEqual(
-		Object.keys(behaviorAdapter).sort(),
-		[...EXPECTED_LIFECYCLE].sort(),
-	);
-});
-
-test("descriptor declares no process lifecycle primitives", () => {
-	const supported = descriptor.lifecycle.supported as readonly string[];
-	for (const forbidden of ["start", "stop", "restart"]) {
-		assert.ok(
-			!supported.includes(forbidden),
-			`${forbidden} must not be declared`,
+test("configured adapter owns reachability/auth only and publishes READY provider truth", async (context) => {
+	const workspaceRoot = await workspace(context, "proflow-provider-ready-");
+	const originalFetch = globalThis.fetch;
+	try {
+		globalThis.fetch = async () => new Response("{}", { status: 200 });
+		const setup = await behaviorAdapter.setup({
+			workspaceRoot,
+			input: { providerBaseUrl: "http://127.0.0.1:4400/v1/" },
+		});
+		assert.equal(setup.result.status, "SUCCEEDED");
+		const status = await behaviorAdapter.status({ workspaceRoot });
+		assert.deepEqual(status.result.data, {
+			setupStatus: "READY",
+			runtimeStatus: "RUNNING",
+		});
+		assert.equal(status.externalAvailabilityClaim, "AVAILABLE");
+		assert.doesNotMatch(
+			JSON.stringify(status.result.data),
+			/fast|reason|capability/i,
 		);
+	} finally {
+		globalThis.fetch = originalFetch;
 	}
+});
+
+test("adapter exposes exactly the fixed seven management commands", () => {
+	assert.deepEqual(Object.keys(behaviorAdapter).sort(), [
+		"docs",
+		"install",
+		"setup",
+		"start",
+		"status",
+		"stop",
+		"uninstall",
+	]);
 });
 
 test("low-level probe is honest about an unreachable provider", async () => {
