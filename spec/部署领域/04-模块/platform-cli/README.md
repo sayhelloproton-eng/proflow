@@ -29,25 +29,42 @@ kind: cli
 ## Frozen product surface
 
 ```bash
-platform modules
-platform docs
 platform install
 platform uninstall
+platform status
+platform setup
+platform docs
 platform start
 platform stop
 ```
 
-Platform CLI 是薄 orchestration layer：discovery、aggregation、dispatch、Runtime dependency ordering 与 package-manager transaction orchestration。
+Platform CLI 是薄 orchestration layer：discovery、dependency ordering、forwarding/dispatch、aggregation 与 package-manager transaction orchestration。
 
-它不拥有 Module config/status/health/lifecycle truth，不维护 Plan/Apply/Verify/Doctor/Manifest/Repair/Upgrade 用户工作流。
+它不拥有 Module config/status/setup/docs/start/stop 的业务 truth，不维护 Plan/Apply/Preflight/Verify/Doctor/Manifest/Repair/Upgrade 用户工作流。
+
+## Standard forwarding
+
+```text
+platform install   → package sync + Module.install
+platform uninstall → Module.uninstall + package remove
+platform status    → Module.status
+platform setup     → Module.setup
+platform docs      → Module.docs
+platform start     → status gate + Module.start
+platform stop      → Module.stop
+```
 
 ## Workspace semantics
 
-Install 使用 `--workspace` 或 cwd；其它命令以 cwd 为 Platform Instance。`.proflow` 是 Workspace/user data，uninstall 不删除。
+`--workspace` 显式覆盖 cwd；不传时使用当前 Workspace。`.proflow` 是 Workspace/user data，具体 Module-owned artifact 的清理由 `Module.uninstall` 决定。
 
 ## Dependency semantics
 
-npm dependency 由 package manager 负责；`provides/requires` 只用于 Runtime topology、docs 与 start/stop ordering。
+npm dependency 由 package manager 负责；`provides/requires` 只用于 Module topology、Contract 发现与 start/stop ordering。Platform 不用跨 Module 私有 config 拼装 dependency value。
+
+## Boundary
+
+Module-specific extra commands 可以存在并由 Module 自己维护。Platform 不代理、不理解、不代管。
 
 ## Technical docs
 

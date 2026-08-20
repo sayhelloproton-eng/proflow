@@ -18,53 +18,55 @@ contractRefs: []
 
 ```text
 platform install
-→ platform modules
-→ platform docs（如需理解/配置）
-→ AI/人按 Module docs 完成配置或外部动作
-→ platform modules 再观察
+→ platform status
+→ platform docs（AI 理解 Module）
+→ platform setup（按 Module 当前事实逐步引导）
+→ platform status
 → platform start
+→ platform status
+→ platform stop
 ```
 
-不存在生成 `INSTALL.md`、Plan/Apply、独立 configure/verify/doctor/manifest 用户流程。
+不存在 `platform modules`、INSTALL.md、Plan/Apply、独立 configure/preflight/verify/doctor/manifest 用户流程。
 
 ## 2. Install
 
-Install 是 Platform Instance 级完整 package set 同步：
+Install 分两层，不能混为一谈：
 
 ```text
---workspace 或 cwd
-→ 校验已有 Workspace-local metadata
-→ Registry 动态发现完整 ProFlow package/version set
-→ package manager 一次 transaction 同步
-→ 重新读取真实安装结果
-→ descriptor validation
-→ Fresh 时初始化最小 .proflow metadata
+package install
+→ Registry discovery + package-manager sync
+
+Module install
+→ discover/order → Module.install
 ```
 
-删除 Core package、`installRequires`、单包 install closure。重复 install 同时承担 update/no-op，因此无 `platform upgrade`。
+`Module.install` 自己 materialize 所有可确定的 Module-owned state/config/artifact。Platform 不替 Module 创建私有配置，也不把 deterministic 值暴露给用户。
+
+重复 `platform install` 必须可重入；无独立 `platform upgrade`。
 
 ## 3. Install success
 
-只证明：目标 package set 已同步、真实 packages 可读取、descriptors 合法、Workspace metadata 无冲突且 Fresh 初始化成功。
+只证明 package set 已同步且每个 `Module.install` 成功完成；不等于 setup READY，也不等于 runtime RUNNING。
 
-不证明 runtime READY。
+## 4. Status / Docs / Setup
 
-## 4. Modules / Docs
+`status` 聚合 Module-owned `setupStatus/runtimeStatus`；`docs` 聚合 `Module.docs`；`setup` 转发 `Module.setup`。
 
-`modules` 聚合 Module-owned `configStatus/missingConfig?/runtimeStatus`；`docs` 聚合 provides/requires/configSlots/documents。AI 根据这两者理解当前现实与配置方法。
+AI 通过 `DOCS.md` 理解能力，通过 `SETUP.md + Module.setup` 知道完整路线与当前下一步。Platform 不再读取 configSlots 后自行解释“缺什么配置”。
 
-## 5. Config
+## 5. Config ownership
 
-Platform 不新增 `configure`。一般配置由文档明确载体；特殊物理 materialization 必须由 owning Module 显式能力完成。
+Module 能唯一确定的配置由 `Module.install` 自闭环；跨 Module 值走 Producer-owned Contract/shared fact；只有真实用户选择或外部现实才进入 `Module.setup`。
 
 ## 6. Start
 
-真正启动前条件由每个 Module 自己 validate/preflight；Platform 只分发且 fail-fast。全部验证通过后才按 Runtime dependency order start。
+`platform start` 只使用 `Module.status` 作为 readiness gate：需要启动的 Module 必须 `setupStatus=READY`，然后按 Runtime dependency order 调用 `Module.start`。没有独立 preflight/validate。
 
 ## 7. Uninstall
 
-只删除 Workspace 中 ProFlow dependencies/devDependencies；不自动 stop，不删除 `.proflow`，不清理用户配置/历史/外部资源。
+`platform uninstall` 先按逆依赖顺序调用 `Module.uninstall`，再移除 Workspace package dependencies。Module 决定自己的 owned artifact 保留/清理规则；Platform 不自动删除整个 `.proflow`。
 
 ## 8. Workspace identity
 
-不依赖 global current Workspace。Binding 是 Workspace-local metadata，可跨 uninstall/reinstall 保留。
+不依赖 global current Workspace。Workspace identity 只作为 Platform-local metadata，不成为 Module lifecycle/config truth。

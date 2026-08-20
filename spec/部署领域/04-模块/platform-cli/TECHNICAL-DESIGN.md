@@ -19,81 +19,94 @@ contractRefs:
 
 ## 1. Surface
 
-唯一一级命令：`modules/docs/install/uninstall/start/stop`。所有 removed command 必须不可 routable，也不可通过别名/隐藏 positional route 复活。
+唯一一级命令：`install/uninstall/status/setup/docs/start/stop`。所有 removed Platform command 必须不可 routable，也不可通过别名/隐藏 positional route 复活。
 
-## 2. Install
+## 2. Core rule
+
+```text
+Platform knows who to call and in what order.
+Module knows how it works.
+```
+
+Platform 允许 discovery、dependency ordering、generic forwarding、aggregation、package-manager orchestration；禁止读取/解释 Module private config，禁止 moduleRef-specific branch，禁止构建 `configByModuleRef` 中间配置总线。
+
+## 3. Install
 
 ```text
 resolve workspace
 → validate Workspace-local metadata
-→ discover complete ProFlow package/version set from private scope
-→ one package-manager sync transaction where possible
-→ re-observe actual installed versions
-→ discover/validate Module descriptors
-→ initialize/reuse minimal .proflow metadata
+→ Registry discover complete ProFlow package/version set
+→ package-manager sync
+→ re-observe installed packages
+→ discover/validate descriptors
+→ dependency order
+→ Module.install
 ```
 
-Install 幂等并承担版本同步；不执行 runtime config/readiness/human action，不生成 INSTALL.md，不走 Plan/Apply。
+Package sync 只把代码包放入 Workspace；真正 capability materialization 由 Module.install 完成。Install 不做 setup 人工动作。
 
-## 3. Uninstall
-
-识别当前 Workspace `package.json` 中 ProFlow dependencies/devDependencies，一次 package-manager remove；不隐式 stop，不清理 `.proflow`。
-
-## 4. Modules
-
-调用各 installed Module 自己的 status/observe seam，校验并聚合：
+## 4. Uninstall
 
 ```text
-moduleRef
-version
-configStatus
-missingConfig?
-runtimeStatus
+discover/order
+→ reverse order Module.uninstall
+→ package-manager remove
 ```
 
-无整体 Platform readiness、manifest 或 verification state。
+Platform 不猜 Module-owned state/artifact cleanup。
 
-## 5. Docs
+## 5. Status
 
-一次聚合所有 Module：
+调用每个 installed Module 的 `status`，校验统一结果并聚合：
 
 ```text
-moduleRef
-provides
-requires
-configSlots
-documents
+moduleRef/version = discovery metadata
+setupStatus = READY | ACTION_REQUIRED | FAILED
+runtimeStatus = RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 ```
 
-无 positional module/document 参数。
+没有 `configStatus`、`missingConfig`、整体 Platform readiness 或 verification state。
 
-## 6. Start
+## 6. Setup
+
+按 dependency order 观察 status；对 `setupStatus != READY` 的 Module 调用 `Module.setup`，原样转发 `ACTION_REQUIRED/FAILED/SUCCEEDED`。Platform 不理解 Microsoft、Chrome、Custom GPT、Tunnel、Model 等具体步骤。
+
+## 7. Docs
+
+`platform docs` 调用 `Module.docs` 并聚合。Platform 不读取 Module 私有 config，也不根据 configSlots 拼配置指南。
+
+标准知识文档为 `DOCS.md` 与 `SETUP.md`；Module-specific 其它业务文档可以存在，但不形成新的 Platform 标准管理面。
+
+## 8. Start
 
 ```text
 Discover
 → build provides/requires order
-→ dispatch all applicable validate/preflight in order (fail-fast)
-→ only if all PASS: dispatch start in order (fail-fast)
+→ Module.status
+→ require setupStatus=READY for applicable runtime Modules
+→ Module.start in order (fail-fast)
 ```
 
-Platform 不实现 Module 私有检查；start 中途失败不自动 rollback。
+没有 Platform preflight/validate 第二阶段。start 中途失败不自动 rollback。
 
-## 7. Stop
+## 9. Stop
 
-逆依赖顺序分发 Module stop，fail-fast；不做 validate/verify/repair。
+逆依赖顺序调用 `Module.stop`，fail-fast。Platform 不做 verify/repair。
 
-## 8. Package manager primitive
+## 10. Package manager primitive
 
-从旧 Apply driver 提取 npm/pnpm/yarn selection、exact-version args、safe argv、manifest preparation、installed-version observation 与 cleanup helper，形成薄 batch `syncPackages/removePackages`。迁完 caller 后才删除旧 Apply engine。
+Platform 继续拥有 npm/pnpm/yarn selection、safe argv、package synchronization/removal 与 installed-version observation；这些只能服务 package graph，不能变成 Module config owner。
 
-## 9. Lifecycle binding
+## 11. Module command binding
 
-运行型 package 自己提供 production binding。Platform composition 直接消费 package-owned binding；不再创建通用 Platform service-process owner。
+Platform 直接加载/调用 package-owned 标准 command adapter。允许 generic schema validation，不允许 `createProductionBinding(configByModuleRef)` 或任何 Module-specific composition。
 
-## 10. Workspace metadata
+运行型 Module 的内部 process entrypoint 可以存在，但只由 Module.start/stop 的实现拥有；不得成为 Platform 第二套 lifecycle。
 
-仅保留 canonical workspace 与最小 local identity/binding metadata。删除 global binding lifecycle state machine，但不得删除/覆盖用户 `.proflow` 数据。
+## 12. Workspace metadata
 
-## 11. Delete gate
+只保留 canonical Workspace identity 与 Platform 自己需要的最小 metadata。Module 私有 state/config 不进入 Platform persistence。
 
-每个旧 engine 文件删除前必须满足：CodeGraph caller count = 0 且 `rg` import/reference count = 0。
+## 13. Delete gate
+
+每个旧 binding/config/docs/lifecycle middleman 删除前必须满足：CodeGraph caller count = 0 且精确文本 import/reference count = 0。若删除 `configByModuleRef` 后出现跨 Module 必需事实却没有 Producer-owned Contract，立即 `STOP = SHARED_FACT_CONTRACT_MISSING`，不得重建 config bus。
