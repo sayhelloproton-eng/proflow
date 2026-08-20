@@ -188,15 +188,15 @@ export async function syncWorkspacePackages(options: {
 		options.workspaceRoot,
 		options.executableAvailable ?? findExecutable,
 	);
-	const specs = [...options.packages]
-		.sort((a, b) => a.packageName.localeCompare(b.packageName))
-		.map((item) => `${item.packageName}@${item.version}`);
-	const args = await batchPackageManagerArgs(
+	const targets = [...options.packages].sort((a, b) =>
+		a.packageName.localeCompare(b.packageName),
+	);
+	const specs = targets.map((item) => `${item.packageName}@${item.version}`);
+	await writeManagedPackageSet(options.workspaceRoot, targets);
+	const args = await packageManagerInstallArgs(
 		runner,
 		manager,
 		options.workspaceRoot,
-		"sync",
-		specs,
 	);
 	try {
 		await runner.run(manager.name, args, options.workspaceRoot);
@@ -207,6 +207,51 @@ export async function syncWorkspacePackages(options: {
 		);
 	}
 	return { packageManager: manager.name, packages: specs };
+}
+
+async function writeManagedPackageSet(
+	workspaceRoot: string,
+	targets: readonly WorkspacePackageTarget[],
+): Promise<void> {
+	const path = join(workspaceRoot, "package.json");
+	const parsed: unknown = JSON.parse(await readFile(path, "utf8"));
+	if (!isRecord(parsed)) {
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			"workspace package.json root must be an object",
+		);
+	}
+	const dependencies = isRecord(parsed.dependencies)
+		? { ...parsed.dependencies }
+		: {};
+	const devDependencies = isRecord(parsed.devDependencies)
+		? { ...parsed.devDependencies }
+		: {};
+	for (const record of [dependencies, devDependencies]) {
+		for (const name of Object.keys(record)) {
+			if (name.startsWith("@tomflow/proflow-")) delete record[name];
+		}
+	}
+	for (const target of targets)
+		dependencies[target.packageName] = target.version;
+	const next: Record<string, unknown> = { ...parsed, dependencies };
+	if ("devDependencies" in parsed || Object.keys(devDependencies).length > 0) {
+		next.devDependencies = devDependencies;
+	}
+	await atomicWrite(path, `${JSON.stringify(next, null, 2)}\n`);
+}
+
+async function packageManagerInstallArgs(
+	runner: PackageCommandRunner,
+	manager: WorkspacePackageManagerSelection,
+	workspaceRoot: string,
+): Promise<string[]> {
+	if (manager.name === "pnpm") return ["install", "--ignore-scripts"];
+	if (manager.name === "npm") return ["install", "--ignore-scripts"];
+	const major = await batchYarnMajorVersion(runner, manager, workspaceRoot);
+	return major <= 1
+		? ["install", "--ignore-scripts"]
+		: ["install", "--mode=skip-build"];
 }
 
 export async function removeWorkspacePackages(options: {

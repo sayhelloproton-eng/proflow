@@ -284,7 +284,16 @@ async function handleDocs(root: string): Promise<CliOutcome> {
 async function validateInstalledPackageSet(
 	root: string,
 	candidates: readonly { packageName: string; moduleVersion: string }[],
+	previousManaged: readonly string[],
 ): Promise<void> {
+	const expectedNames = candidates.map((item) => item.packageName).sort();
+	const declaredNames = await workspaceProFlowDependencies(root);
+	if (JSON.stringify(declaredNames) !== JSON.stringify(expectedNames)) {
+		throw new PlatformError(
+			"COMMAND_FAILED",
+			`managed dependency set mismatch: expected ${expectedNames.join(", ")}, observed ${declaredNames.join(", ")}`,
+		);
+	}
 	for (const candidate of candidates) {
 		const observed = await observeWorkspaceInstalledVersion(
 			root,
@@ -294,6 +303,16 @@ async function validateInstalledPackageSet(
 			throw new PlatformError(
 				"COMMAND_FAILED",
 				`installed version mismatch for ${candidate.packageName}: expected ${candidate.moduleVersion}, observed ${observed ?? "missing"}`,
+			);
+		}
+	}
+	for (const stale of previousManaged.filter(
+		(name) => !expectedNames.includes(name),
+	)) {
+		if ((await observeWorkspaceInstalledVersion(root, stale)) !== undefined) {
+			throw new PlatformError(
+				"COMMAND_FAILED",
+				`stale managed package remains installed after synchronization: ${stale}`,
 			);
 		}
 	}
@@ -338,6 +357,7 @@ async function handleInstall(
 			"no ProFlow packages were discovered in the configured scope",
 		);
 	}
+	const previousManaged = await workspaceProFlowDependencies(root);
 	const mutation = await syncWorkspacePackages({
 		workspaceRoot: root,
 		packages: discovered.candidates.map((item) => ({
@@ -351,7 +371,11 @@ async function handleInstall(
 			? {}
 			: { executableAvailable: runtime.executableAvailable }),
 	});
-	await validateInstalledPackageSet(root, discovered.candidates);
+	await validateInstalledPackageSet(
+		root,
+		discovered.candidates,
+		previousManaged,
+	);
 	const metadata = await ensureWorkspaceMetadata(root);
 	return outcome("install", "SUCCEEDED", root, {
 		registry: discovered.registry,

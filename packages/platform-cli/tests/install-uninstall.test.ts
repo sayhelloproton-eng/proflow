@@ -19,6 +19,12 @@ const PACKAGES = [
 	},
 ] as const;
 
+const STALE = {
+	moduleRef: "stale-fixture",
+	packageName: "@tomflow/proflow-stale-fixture",
+	version: "9.9.9",
+} as const;
+
 function registryRunner() {
 	return {
 		async run(args: readonly string[]) {
@@ -68,20 +74,22 @@ function packageRunner(root: string, calls: string[][]) {
 			calls.push([command, ...args]);
 			if (args.includes("install")) {
 				const manifest = await readManifest(root);
-				const dependencies = Object.fromEntries(
-					PACKAGES.map((item) => [item.packageName, item.version]),
-				);
-				await writeFile(
-					join(root, "package.json"),
-					JSON.stringify({ ...manifest, dependencies }),
-				);
+				const dependencies = manifest.dependencies as
+					| Record<string, string>
+					| undefined;
+				assert.ok(dependencies);
 				for (const item of PACKAGES) {
+					assert.equal(dependencies[item.packageName], item.version);
 					await writeInstalledModule(root, {
 						moduleRef: item.moduleRef,
 						packageName: item.packageName,
 						version: item.version,
 					});
 				}
+				await rm(join(root, "node_modules", ...STALE.packageName.split("/")), {
+					recursive: true,
+					force: true,
+				});
 				return "";
 			}
 			if (args.includes("uninstall")) {
@@ -103,6 +111,18 @@ test("install synchronizes the complete Registry package set in one transaction"
 	const root = await tempWorkspace();
 	const calls: string[][] = [];
 	try {
+		await writeFile(
+			join(root, "package.json"),
+			JSON.stringify({
+				private: true,
+				dependencies: {
+					[STALE.packageName]: STALE.version,
+					"left-pad": "1.3.0",
+				},
+				devDependencies: { typescript: "7.0.2" },
+			}),
+		);
+		await writeInstalledModule(root, STALE);
 		const output = JSON.parse(
 			await runCli(["install", "--workspace", root, "--json"], {
 				cwd: root,
@@ -118,14 +138,25 @@ test("install synchronizes the complete Registry package set in one transaction"
 			1,
 			"complete package set must use one package-manager transaction",
 		);
-		for (const item of PACKAGES) {
-			assert.ok(calls[0]?.includes(`${item.packageName}@${item.version}`));
-		}
+		assert.deepEqual(calls[0], ["npm", "install", "--ignore-scripts"]);
 		const manifest = await readManifest(root);
 		assert.deepEqual(manifest.dependencies, {
+			"left-pad": "1.3.0",
 			"@tomflow/proflow-fixture-a": "1.2.3",
 			"@tomflow/proflow-fixture-b": "2.3.4",
 		});
+		assert.deepEqual(manifest.devDependencies, { typescript: "7.0.2" });
+		await assert.rejects(
+			readFile(
+				join(
+					root,
+					"node_modules",
+					...STALE.packageName.split("/"),
+					"package.json",
+				),
+				"utf8",
+			),
+		);
 		const metadata = JSON.parse(
 			await readFile(join(root, ".proflow", "workspace.json"), "utf8"),
 		) as Record<string, unknown>;
