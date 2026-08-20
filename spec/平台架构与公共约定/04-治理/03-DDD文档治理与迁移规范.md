@@ -196,7 +196,7 @@ README 只导航，不复制完整设计。
 
 ## D-10 Deployment Requirements
 
-Domain 只声明 requirements：required modules/resources、config slots、secretRef、lifecycle primitives、health/ready、verify、doctor、ACTION_REQUIRED、upgrade constraints。真正计划与物化归 Deployment Domain。
+Domain 只声明真实 requirements：required modules/resources、provides/requires、真正 public config slots、外部 setup 条件、status/runtime 语义，以及确有需要的 package-specific extra capability。deterministic materialization 归 owning `Module.install`，真实用户/外部动作归 owning `Module.setup`；Platform 只发现、排序、转发和聚合，不建立 Plan/Apply/Verify/Doctor 第二产品面。
 
 ## D-11 Known Limitations / Spikes / Evolution
 
@@ -284,13 +284,13 @@ config key、type、owner、required/default、secretRef、validation、Deployme
 若 Service 有独立 OS Process：processRef、entry point、command、ports、signals、transient state、crash/restart、logs、resource limits、dependencies。
 
 ## Deployment Unit
-真实 lifecycle：artifact、process/resource、install/precheck、configure、start/stop(若真实支持)、status、verify、doctor、upgrade、ACTION_REQUIRED、logs、recovery。External Resource 不支持 start/stop 时禁止伪造。
+Governed Module 的标准管理合同固定为 `install/uninstall/status/setup/docs/start/stop`。真实 process/resource 控制、日志、恢复或 package-specific verify/doctor/probe/migrate 可以由 owner 作为内部实现或 extra capability 保留，但不得升级成 Platform 标准 lifecycle。没有独立 runtime 时用 `runtimeStatus=NOT_APPLICABLE`，不伪造 start/stop 现实。
 
 ---
 
 # 8. External Resource Module 文档合同
 
-例如 ChatGPT Carrier、Chrome Runtime、Dev Tunnel、Model Provider。至少回答：Capability Contract、平台能控制什么、只能观察什么、Config、Auth、Availability、Hard limits、Verify、Doctor、ACTION_REQUIRED、Failure/Fallback、Known limitations、Upgrade/change risk。
+例如 ChatGPT Carrier、Chrome Runtime、Dev Tunnel、Model Provider。至少回答：Capability Contract、Module 能控制什么/只能观察什么、哪些 deterministic 内容由 install 自动完成、哪些真实外部动作进入 setup、`setupStatus/runtimeStatus` 如何观察、Hard limits、Failure/Fallback、Known limitations，以及 `SETUP.md` 的最短 Step + package-owned executable/verify。Package-specific Verify/Doctor 只有真实需要时才作为 extra capability 描述。
 
 External Resource 本身不需要 npm package，但对应 Module/Adapter 进入 Module Governance。
 

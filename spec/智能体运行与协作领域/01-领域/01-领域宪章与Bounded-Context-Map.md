@@ -37,7 +37,7 @@ contractRefs: []
 - Browser Extension real effect
 - Local file/git/shell effect
 - Model inference ownership
-- Deployment plan/external resource lifecycle
+- Deployment Module / External Resource governance and setup lifecycle
 
 ## 4. 主 Bounded Context
 

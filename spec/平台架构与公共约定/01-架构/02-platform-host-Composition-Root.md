@@ -39,7 +39,7 @@ Task workflow facts
 Role/Worker/Collaboration facts
 Execution Effect/Result/Evidence/Approval
 Model inference/assessment business facts
-Deployment Plan/Manifest truth
+Deployment Module package/status/setup/docs truth
 Browser tab/Conversation runtime state
 Task/System Observer durable truth
 ```
