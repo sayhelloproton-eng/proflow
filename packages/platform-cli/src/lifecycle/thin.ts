@@ -143,7 +143,7 @@ export async function setupModulesThin(
 	}
 	if (!matched)
 		throw new PlatformError(
-			"MODULE_NOT_FOUND",
+			"INVALID_REQUEST",
 			`setup target module ${target?.moduleRef ?? ""} was not discovered`,
 		);
 	return { phase: "setup", results, completed: true };

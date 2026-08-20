@@ -232,7 +232,7 @@ async function handleStatus(root: string): Promise<CliOutcome> {
 		const module = byRef.get(item.moduleRef);
 		if (!module)
 			throw new PlatformError(
-				"MODULE_NOT_FOUND",
+				"COMMAND_FAILED",
 				`unknown module ${item.moduleRef}`,
 			);
 		return {
