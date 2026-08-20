@@ -17,7 +17,12 @@ const base = {
 	moduleVersion: descriptor.moduleVersion,
 } as const;
 const input = (context: ModuleCommandContext) => ({
-	databasePath: join(resolve(context.workspaceRoot), ".proflow", "task.sqlite"),
+	databasePath: join(
+		resolve(context.workspaceRoot),
+		".proflow",
+		"state",
+		"task.sqlite",
+	),
 	migrations: taskMigrations,
 });
 const data = (context: ModuleCommandContext) => {

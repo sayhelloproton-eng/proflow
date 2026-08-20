@@ -26,7 +26,7 @@ const base = {
 	moduleVersion: descriptor.moduleVersion,
 } as const;
 export const taskDatabasePath = (context: ModuleCommandContext) =>
-	join(resolve(context.workspaceRoot), ".proflow", "task.sqlite");
+	join(resolve(context.workspaceRoot), ".proflow", "state", "task.sqlite");
 function inspect(path: string): boolean {
 	if (!existsSync(path)) return false;
 	let db: DatabaseSync | undefined;
