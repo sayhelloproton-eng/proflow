@@ -258,10 +258,7 @@ export async function createProductionBinding(input: {
 			{
 				service,
 				verifyProvider: async () => {
-					const inspection = service.inspect();
-					const ok =
-						inspection.dependency.fast === "READY" &&
-						inspection.dependency.reason === "READY";
+					const ok = await service.verifyCapabilities();
 					return {
 						ok,
 						message: ok

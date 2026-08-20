@@ -8,7 +8,7 @@ import { test } from "node:test";
 import { createModelRuntimeProcess } from "../src/process.ts";
 import { systemHealthAssessmentSpec } from "../src/specs/system-health-assessment.ts";
 
-test("formal model-runtime process verifies provider, serves readiness, restarts and stops", async () => {
+test("formal model-runtime process defers provider verification to verify/start, serves readiness, restarts and stops", async () => {
 	let calls = 0;
 	const provider = createServer(async (request, response) => {
 		const chunks: Buffer[] = [];
@@ -95,6 +95,11 @@ test("formal model-runtime process verifies provider, serves readiness, restarts
 		},
 		log: (entry) => logs.push(entry),
 	});
+	assert.equal(calls, 0);
+	assert.equal(service.inspect().readiness, "NOT_READY");
+	assert.equal(await service.verifyCapabilities(), true);
+	assert.equal(calls, 2);
+	assert.equal(service.inspect().readiness, "NOT_READY");
 	try {
 		const first = await service.start();
 		assert.equal(service.inspect().readiness, "READY");

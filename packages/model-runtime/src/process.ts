@@ -138,34 +138,69 @@ export async function createModelRuntimeProcess(input: {
 				ProviderCapabilityFact
 			>,
 		});
-	let roles = await verify();
-	const runtime = createModelRuntime({
-		specs: [
-			systemHealthAssessmentSpec,
-			taskDiagnosticSpec,
-			executionCommandRiskSpec,
-			browserPageVisionSpec,
-		],
-		roles,
-		provider,
-		refreshRoles: async () => {
-			roles = await verify();
-			return roles;
-		},
-		logger: createFileModelRuntimeLogger({
-			proflowRoot: input.config.stateRoot,
-		}),
-	});
-	const service = createModelRuntimeService({
-		runtime,
-		host: input.config.host,
-		port: input.config.port,
-		...(transportCredential ? { transportCredential } : {}),
+	let runtime: ReturnType<typeof createModelRuntime> | undefined;
+	let service: ReturnType<typeof createModelRuntimeService> | undefined;
+	const build = async () => {
+		let roles = await verify();
+		runtime = createModelRuntime({
+			specs: [
+				systemHealthAssessmentSpec,
+				taskDiagnosticSpec,
+				executionCommandRiskSpec,
+				browserPageVisionSpec,
+			],
+			roles,
+			provider,
+			refreshRoles: async () => {
+				roles = await verify();
+				return roles;
+			},
+			logger: createFileModelRuntimeLogger({
+				proflowRoot: input.config.stateRoot,
+			}),
+		});
+		service = createModelRuntimeService({
+			runtime,
+			host: input.config.host,
+			port: input.config.port,
+			...(transportCredential ? { transportCredential } : {}),
+		});
+		return service;
+	};
+	const unavailableDependency = () => ({
+		runtime: "UNAVAILABLE" as const,
+		lane: "IDLE" as const,
+		fast: "UNAVAILABLE" as const,
+		reason: "UNAVAILABLE" as const,
+		businessQueueDepth: 0,
+		backgroundQueueDepth: 0,
 	});
 	return Object.freeze({
-		...service,
+		status: () => service?.status() ?? "STOPPED",
+		inspect: () =>
+			service?.inspect() ?? {
+				process: "STOPPED" as const,
+				liveness: "DOWN" as const,
+				readiness: "NOT_READY" as const,
+				accepting: false,
+				inFlight: 0,
+				dependency: unavailableDependency(),
+			},
+		async verifyCapabilities() {
+			if (runtime === undefined) {
+				const roles = await verify();
+				return roles.fast.state === "READY" && roles.reason.state === "READY";
+			}
+			await runtime.refreshCapabilities();
+			const status = runtime.getRuntimeStatus();
+			return status.fast === "READY" && status.reason === "READY";
+		},
 		async start() {
-			const address = await service.start();
+			let current = service;
+			if (current === undefined) current = await build();
+			else if (current.status() !== "RUNNING")
+				await runtime?.refreshCapabilities();
+			const address = await current.start();
 			input.log?.({
 				timestamp: new Date().toISOString(),
 				component: "model-runtime-process",
@@ -175,6 +210,7 @@ export async function createModelRuntimeProcess(input: {
 			return address;
 		},
 		async stop() {
+			if (service === undefined) return;
 			await service.stop();
 			input.log?.({
 				timestamp: new Date().toISOString(),
@@ -184,7 +220,6 @@ export async function createModelRuntimeProcess(input: {
 		},
 		async restart() {
 			await this.stop();
-			await runtime.refreshCapabilities();
 			return this.start();
 		},
 	});
