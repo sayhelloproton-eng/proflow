@@ -11,7 +11,6 @@ import { behaviorAdapter } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
 import {
 	createDevTunnelRuntime,
-	type DevTunnelRuntime,
 	probeTlsProtocol,
 	readResponseChars,
 	verifyPublicIngress,
@@ -21,12 +20,6 @@ const loggedInRunner = async () => ({
 	exitCode: 0,
 	stdout: "user@example.com",
 	stderr: "",
-});
-
-const notLoggedInRunner = async () => ({
-	exitCode: 1,
-	stdout: "",
-	stderr: "not logged in",
 });
 
 test("dev-tunnel descriptor parses with public-ingress ownership and no legacy lifecycle metadata", () => {
