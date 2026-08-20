@@ -29,7 +29,8 @@ Conformance 是 Module Governance 的机械门，只验证七命令 Platform 所
 - `provides/requires` topology；
 - 七标准 adapter commands；
 - `setupStatus/runtimeStatus` shape；
-- `DOCS.md` 与 `SETUP.md`。
+- `DOCS.md` 与 `SETUP.md`；
+- `SETUP.md` 最短闭环结构与 package-owned executable/verify guidance。
 
 允许 Module-specific extra capability，不要求 Platform 代理。
 
@@ -46,4 +47,4 @@ service public start CLI as universal requirement
 
 ## Ownership
 
-Conformance 可以使用 fake resource 验证 adapter contract，但不得迫使 production 代码保留已删除产品概念，也不得为了 gate 修改 Browser/Model/Gateway/Task/Agent 业务语义。
+Conformance 可以使用 fake resource 验证 adapter contract，但不得迫使 production 代码保留已删除产品概念，也不得为了 gate 修改 Browser/Model/Gateway/Task/Agent 业务语义。它可以机械检查 setup guidance 是否可执行：不能只有 prose、不能要求用户搬 deterministic/private/shared-fact 值、人工步骤必须有 owner-owned verify 路径。

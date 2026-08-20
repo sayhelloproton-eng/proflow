@@ -37,7 +37,7 @@ Module 能唯一确定 → install
 用户选择或外部现实 → setup
 ```
 
-标准知识文档只保留 `DOCS.md` 与 `SETUP.md`。缺少 owner fact 时 fail-closed；不得让 Platform CLI 补业务逻辑或充当 config bus。
+标准知识文档只保留 `DOCS.md` 与 `SETUP.md`。`SETUP.md` 必须是最短闭环步骤；每个推进步骤有 package-owned executable/verify。缺少 owner fact 时 fail-closed；不得让 Platform CLI 补业务逻辑或充当 config bus。
 
 ## Boundary
 
@@ -57,6 +57,8 @@ Skill 必须按三类配置事实处理：
 - Module 可唯一确定 → `install` 自闭环；
 - Producer Module 提供 → shared fact / public Contract；
 - 用户选择或外部现实 → `setup`。
+
+对每个非 READY Module，Skill 必须继续追到：**自动步骤是否已经自动、真正人工输入是什么、对应 executable 是什么、完成后由哪个 executable verify、最终如何让 `Module.status.setupStatus=READY`**。任何一项答不上来都不是“文档问题”，而是 setup seam 未闭环，必须在 owning package 范围内补齐。
 
 ## Standard knowledge
 

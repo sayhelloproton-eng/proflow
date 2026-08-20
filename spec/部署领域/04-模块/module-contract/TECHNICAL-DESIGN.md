@@ -91,9 +91,13 @@ interface ModuleStatusObservation {
 ## 8. Operation result
 
 结构化 result 允许 `SUCCEEDED/BLOCKED/ACTION_REQUIRED/FAILED`。`ACTION_REQUIRED` 只用于真实人工或外部参与；Module 本应自闭环却失败时必须返回 `FAILED`。
+
+`ACTION_REQUIRED` 必须是**可执行引导**而不是状态标签：owner 应在现有 `actionRequired.action/description`（以及必要时 owner-defined `data`）中给出当前 Step、最小人工输入和 package-owned executable/verify。Platform 只透传/聚合，不解析这些 Module-specific 内容。
 ## 9. Documentation
 
 标准知识文件固定为 `DOCS.md` 与 `SETUP.md`。`docs` 返回 Module-owned knowledge；`setup` 根据真实状态给出当前动作。Schema/descriptor 不是第三份指导文档。
+
+`SETUP.md` 的最小闭环结构为：`Step ID/Goal → Executable → Human Action(可选) → Verify → Success Condition`。Executable/Verify 必须属于 package owner；允许同一个命令同时完成 prepare/apply/verify，优先减少步骤和用户往返。
 
 ## 10. Static descriptor
 

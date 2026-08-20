@@ -58,6 +58,7 @@ runtimeStatus = RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 - Module 能唯一确定的值：`install` 自闭环；
 - 跨 Module 值：Producer-owned Contract/shared fact；
 - 用户选择或外部现实：`setup`；
+- `setup` 必须先自动完成所有 machine-owned 步骤，只把真正不可自动的最小动作返回为 `ACTION_REQUIRED`；
 - `configSlots` 只允许描述真正公开的用户 setup 值，不能承载 deterministic/private/shared-fact 配置。
 ## Standard knowledge
 
@@ -68,7 +69,9 @@ DOCS.md
 SETUP.md
 ```
 
-`DOCS.md` 解释 Module 能力/API/Contract；`SETUP.md` 解释 install 之后仍需用户或外部世界完成的步骤。Schema 不是第三份指导文档。
+`DOCS.md` 解释 Module 能力/API/Contract；`SETUP.md` 解释 install 之后仍需用户或外部世界完成的步骤。`SETUP.md` 必须是最短闭环 Step：每个推进步骤都有 package-owned executable，人工步骤至少有 prepare/verify executable，且写明 Success Condition。Schema 不是第三份指导文档。
+
+`Module.setup` 返回 `ACTION_REQUIRED` 时，`actionRequired.description` 必须足够让 AI 直接执行下一步：说明当前真实动作、所需最小人工输入以及对应 package-owned executable/verify；不得只返回“请配置后重试”一类不可执行 prose。完整多步骤流程仍以 owning Module 的 `SETUP.md` 为真源。
 
 ## Ownership
 

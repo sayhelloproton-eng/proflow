@@ -71,6 +71,18 @@ SETUP.md
 
 `CONFIGURATION.md` 不再是标准文档要求。Config schema 可以作为 machine contract 存在，但不形成第三份指导文档。
 
+Conformance 对 `SETUP.md` 至少机械验证：
+
+```text
+存在明确 Step
+每个推进 Step 有 package-owned Executable
+人工 Step 有 prepare/verify executable
+存在 Success Condition，并最终指向 setupStatus=READY
+不得把 deterministic path/token/loopback/shared fact 写成用户必填项
+```
+
+Conformance 不要求固定命令名称，也不理解步骤业务语义；owner 可以用一个命令合并多个自动步骤。目标是验证“可执行闭环”，不是强迫形式化拆步。
+
 ## 7. Removed requirements
 
 Conformance 不再要求：
