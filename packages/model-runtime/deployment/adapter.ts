@@ -138,34 +138,32 @@ async function compose(
 	const processModule = await import("../src/process.ts");
 	const url = new URL(own.endpoint);
 	const { fast, reason } = ready.profiles;
-	return (
-		await processModule.createModelRuntimeProcess({
-			config: processModule.parseModelRuntimeProcessConfig({
-				host: url.hostname,
-				port: Number(url.port),
-				stateRoot: own.stateRoot,
-				transportCredentialFile: own.transportCredentialFile,
-				providerBaseUrl: ready.p.providerBaseUrl,
-				models: {
-					fast: ready.config.fastModel,
-					reason: ready.config.reasonModel,
+	return processModule.createModelRuntimeProcess({
+		config: processModule.parseModelRuntimeProcessConfig({
+			host: url.hostname,
+			port: Number(url.port),
+			stateRoot: own.stateRoot,
+			transportCredentialFile: own.transportCredentialFile,
+			providerBaseUrl: ready.p.providerBaseUrl,
+			models: {
+				fast: ready.config.fastModel,
+				reason: ready.config.reasonModel,
+			},
+			profiles: { fast, reason },
+			capabilityFacts: {
+				fast: {
+					contextWindow: fast.contextWindow,
+					maxOutputTokens: fast.maxOutputTokens,
+					basis: "provider-config",
 				},
-				profiles: { fast, reason },
-				capabilityFacts: {
-					fast: {
-						contextWindow: fast.contextWindow,
-						maxOutputTokens: fast.maxOutputTokens,
-						basis: "provider-config",
-					},
-					reason: {
-						contextWindow: reason.contextWindow,
-						maxOutputTokens: reason.maxOutputTokens,
-						basis: "provider-config",
-					},
+				reason: {
+					contextWindow: reason.contextWindow,
+					maxOutputTokens: reason.maxOutputTokens,
+					basis: "provider-config",
 				},
-			}),
-		})
-	).service;
+			},
+		}),
+	});
 }
 const failed = (
 	code: "SETUP_FAILED" | "START_FAILED" | "STOP_FAILED",
