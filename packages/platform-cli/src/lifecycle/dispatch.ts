@@ -1,5 +1,6 @@
 import {
-	type LifecyclePrimitive,
+	type ModuleCommandContext,
+	type ModuleManagementCommand,
 	type ModuleOperationResult,
 	moduleOperationResultSchema,
 } from "@tomflow/proflow-module-contract";
@@ -8,114 +9,76 @@ import type { ResolvedModule } from "../contracts.ts";
 import { PlatformError } from "../errors.ts";
 import type { ModuleCatalog, ModuleSource } from "../modules.ts";
 
-export interface LifecycleDispatchResult {
+export interface ModuleDispatchResult {
 	moduleRef: string;
-	primitive: LifecyclePrimitive;
+	command: ModuleManagementCommand;
 	result: ModuleOperationResult;
 	observedEffects: string[];
 }
 
-type PrimitiveFn = () => unknown;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null;
-}
-
-function isPrimitiveFn(value: unknown): value is PrimitiveFn {
-	return typeof value === "function";
-}
-
-function isWrappedResult(
-	value: unknown,
-): value is { result?: unknown; observedEffects?: unknown } {
-	return isRecord(value) && "result" in value;
-}
-
+type ModuleCommandFn = (context: ModuleCommandContext) => unknown;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null && !Array.isArray(value);
+const isCommandFn = (value: unknown): value is ModuleCommandFn =>
+	typeof value === "function";
 function moduleSource(module: ResolvedModule): ModuleSource {
-	const source: ModuleSource = {
-		type: module.source.type,
-		packageName: module.packageName,
-	};
-	if (module.source.path !== undefined) source.path = module.source.path;
-	return source;
+	return module.source.path === undefined
+		? { type: module.source.type, packageName: module.packageName }
+		: {
+				type: module.source.type,
+				packageName: module.packageName,
+				path: module.source.path,
+			};
 }
-
 function resolveBehaviorAdapter(namespace: unknown): Record<string, unknown> {
-	if (!isRecord(namespace)) {
+	if (!isRecord(namespace) || !isRecord(namespace.behaviorAdapter))
 		throw new PlatformError(
 			"COMMAND_FAILED",
-			"lifecycle adapter namespace is not an object",
+			"module adapter exposes no behaviorAdapter object",
 		);
-	}
-	const behaviorAdapter = namespace.behaviorAdapter;
-	if (!isRecord(behaviorAdapter)) {
-		throw new PlatformError(
-			"COMMAND_FAILED",
-			"lifecycle adapter exposes no behaviorAdapter object",
-		);
-	}
-	return behaviorAdapter;
+	return namespace.behaviorAdapter;
 }
-
-function observedEffectsOf(value: unknown): string[] {
-	if (!Array.isArray(value)) return [];
-	return value.filter((item): item is string => typeof item === "string");
-}
-
 function normalizeInvocation(raw: unknown): {
 	result: unknown;
 	observedEffects: string[];
 } {
-	if (isWrappedResult(raw)) {
-		return {
-			result: raw.result,
-			observedEffects: observedEffectsOf(raw.observedEffects),
-		};
-	}
-	return { result: raw, observedEffects: [] };
+	if (!isRecord(raw) || !("result" in raw))
+		return { result: raw, observedEffects: [] };
+	return {
+		result: raw.result,
+		observedEffects: Array.isArray(raw.observedEffects)
+			? raw.observedEffects.filter(
+					(item): item is string => typeof item === "string",
+				)
+			: [],
+	};
 }
-
-/**
- * Dispatches a single lifecycle primitive against one module through its
- * public deployment adapter. The descriptor is the source of truth for what is
- * supported: a primitive not declared in `lifecycle` is rejected with
- * `LIFECYCLE_UNSUPPORTED` rather than faked. The adapter result is always
- * runtime-validated against the Module Operation Result schema.
- */
-export async function dispatchLifecycle(
+export async function dispatchModuleCommand(
 	catalog: ModuleCatalog,
 	module: ResolvedModule,
-	primitive: LifecyclePrimitive,
-): Promise<LifecycleDispatchResult> {
-	if (!module.lifecycle.includes(primitive)) {
-		throw new PlatformError(
-			"LIFECYCLE_UNSUPPORTED",
-			`module ${module.moduleRef} does not declare lifecycle primitive "${primitive}"`,
-		);
-	}
-
+	command: ModuleManagementCommand,
+	context: ModuleCommandContext,
+): Promise<ModuleDispatchResult> {
 	const namespace = await catalog.loadAdapter(moduleSource(module));
 	const adapter = resolveBehaviorAdapter(namespace);
-	const invoke = adapter[primitive];
-	if (!isPrimitiveFn(invoke)) {
+	const invoke = adapter[command];
+	if (!isCommandFn(invoke))
 		throw new PlatformError(
 			"COMMAND_FAILED",
-			`module ${module.moduleRef} declares "${primitive}" but its adapter does not implement it`,
+			`module ${module.moduleRef} does not implement standard command "${command}"`,
 		);
-	}
-
-	const { result, observedEffects } = normalizeInvocation(await invoke());
+	const { result, observedEffects } = normalizeInvocation(
+		await invoke(context),
+	);
 	const parsed = moduleOperationResultSchema.safeParse(result);
-	if (!parsed.success) {
+	if (!parsed.success)
 		throw new PlatformError(
 			"COMMAND_FAILED",
-			`module ${module.moduleRef} "${primitive}" returned an invalid result: ${parsed.error.message}`,
+			`module ${module.moduleRef} "${command}" returned an invalid result: ${parsed.error.message}`,
 		);
-	}
-
 	return {
 		moduleRef: module.moduleRef,
-		primitive,
+		command,
 		result: parsed.data,
 		observedEffects,
 	};

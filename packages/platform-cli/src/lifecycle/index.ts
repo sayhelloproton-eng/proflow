@@ -1,8 +1,12 @@
-export type { LifecycleDispatchResult } from "./dispatch.ts";
-export { dispatchLifecycle } from "./dispatch.ts";
-export type { ThinLifecycleResult } from "./thin.ts";
+export type { ModuleDispatchResult } from "./dispatch.ts";
+export { dispatchModuleCommand } from "./dispatch.ts";
+export type { ModuleBatchResult } from "./thin.ts";
 export {
+	installModulesThin,
+	observeDocs,
 	observeStatuses,
-	preflightAndStartModules,
+	setupModulesThin,
+	startModulesThin,
 	stopModulesThin,
+	uninstallModulesThin,
 } from "./thin.ts";
