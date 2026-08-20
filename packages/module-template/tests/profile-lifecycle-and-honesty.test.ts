@@ -22,7 +22,7 @@ const canonicalObservation = {
 		moduleRef: "example",
 		moduleVersion: "1.0.0",
 		data: { state: "RUNNING" },
-		error: { code: "VERIFY_FAILED", message: "failed", retryable: false },
+		error: { code: "COMMAND_FAILED", message: "failed", retryable: false },
 		resourceVersion: "v1",
 		checks: [{ id: "example-check", status: "WARN", message: "warned" }],
 	},
@@ -47,13 +47,14 @@ test("gap-1 generated observation matches canonical ModuleOperationResult at run
 	const status = await adapter.status?.();
 	assert.equal(status?.result.status, "SUCCEEDED");
 	assert.deepEqual(status?.result.data, {
-		configStatus: "READY",
-		runtimeStatus: "UNKNOWN",
+		setupStatus: "READY",
+		runtimeStatus: "STOPPED",
 	});
-	assert.equal(adapter.verify, undefined);
+	assert.equal(typeof adapter.setup, "function");
+	assert.equal(typeof adapter.docs, "function");
 });
 
-test("gap-2 service profile generates and passes lifecycle tests", async (context) => {
+test("gap-2 service profile generates the fixed seven-command management surface", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-gap2-lifecycle-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
 
@@ -71,29 +72,34 @@ test("gap-2 service profile generates and passes lifecycle tests", async (contex
 	const status = await adapter.status?.();
 	assert.equal(status?.result.status, "SUCCEEDED");
 	assert.deepEqual(status?.result.data, {
-		configStatus: "READY",
-		runtimeStatus: "UNKNOWN",
+		setupStatus: "READY",
+		runtimeStatus: "STOPPED",
 	});
 	for (const primitive of ["start", "stop"] as const) {
-		const observation = await adapter[primitive]?.();
-		assert.equal(observation?.result.status, "ACTION_REQUIRED", primitive);
-		assert.equal(
-			observation?.result.actionRequired?.action,
-			"implement-service-lifecycle",
-			primitive,
-		);
+		const observation = await adapter[primitive]();
+		assert.equal(observation.result.status, "FAILED", primitive);
 	}
-	assert.equal(adapter.restart, undefined);
-	assert.equal(adapter.uninstall, undefined);
+	for (const command of [
+		"install",
+		"uninstall",
+		"status",
+		"setup",
+		"docs",
+		"start",
+		"stop",
+	] as const)
+		assert.equal(typeof adapter[command], "function", command);
 	const source = await readFile(
 		join(generated.packageDirectory, "deployment/adapter.ts"),
 		"utf8",
 	);
-	assert.match(source, /createProductionBinding/);
-	assert.doesNotMatch(source, /createServiceProcessBinding/);
+	assert.doesNotMatch(
+		source,
+		/createProductionBinding|createServiceProcessBinding/,
+	);
 });
 
-test("gap-3 browser-extension status reports honest READY config and UNKNOWN runtime", async (context) => {
+test("gap-3 browser-extension generated status uses the standard setup/runtime truth", async (context) => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-gap3-browser-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
 
@@ -112,8 +118,8 @@ test("gap-3 browser-extension status reports honest READY config and UNKNOWN run
 	assert.equal(status?.result.ok, true);
 	assert.equal(status?.result.status, "SUCCEEDED");
 	assert.deepEqual(status?.result.data, {
-		configStatus: "READY",
-		runtimeStatus: "UNKNOWN",
+		setupStatus: "READY",
+		runtimeStatus: "NOT_APPLICABLE",
 	});
 	assert.equal(status?.externalAvailabilityClaim, undefined);
 	assert.equal(status?.externalAvailabilityEvidence, undefined);

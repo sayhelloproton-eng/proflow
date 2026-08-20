@@ -252,43 +252,8 @@ test("PRESMOKE-B4-RUNTIME-02 formal readiness can require the Model Decision por
 	await wired.stop();
 });
 
-test("CP-EXE-RT-20 shipped execution-runtime descriptor and binary require the formal Browser/security/model composition", async () => {
-	const requiredSlots = new Map(
-		executionRuntimeDescriptor.configSlots.map(
-			(slot) => [slot.key, slot] as const,
-		),
-	);
-	const requiredKeys = [
-		"databasePath",
-		"projectRoot",
-		"artifactRoot",
-		"browserExecutorConfigPath",
-		"transportCredentialFile",
-		"identity.endpoint",
-		"identity.tokenFile",
-		"modelDecision.endpoint",
-		"modelDecision.credentialFile",
-	] as const;
-	const sensitiveKeys = [
-		"transportCredentialFile",
-		"identity.tokenFile",
-		"modelDecision.credentialFile",
-	] as const;
-	for (const key of requiredKeys)
-		assert.equal(
-			requiredSlots.get(key)?.required,
-			true,
-			`${key} must be a required Deployment config slot`,
-		);
-	for (const key of sensitiveKeys) {
-		const slot = requiredSlots.get(key);
-		assert.ok(slot, `${key} must exist`);
-		assert.equal(
-			"sensitive" in slot ? slot.sensitive : false,
-			true,
-			`${key} must be marked sensitive`,
-		);
-	}
+test("CP-EXE-RT-20 public descriptor exposes no internal composition config while the internal binary still requires formal Browser/security/model wiring", async () => {
+	assert.deepEqual(executionRuntimeDescriptor.configSlots, []);
 	const { root, config } = await fixture();
 	const configPath = join(root, "execution-runtime-missing-browser.json");
 	await writeFile(

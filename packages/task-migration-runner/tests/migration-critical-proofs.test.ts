@@ -612,54 +612,36 @@ test("remediation T06 status is non-mutating and verify detects name and schema 
 	);
 });
 
-test("deployment adapter drives real migration status/apply/verify and exposes migrated reality", async (context) => {
-	const databasePath = await fixture(context);
-	const { createProductionBinding } = await import("../deployment/adapter.ts");
-	const binding = createProductionBinding({ config: { databasePath } });
-	const status = binding.behaviorAdapter.status as () => {
-		result: {
-			status: string;
-			data?: { configStatus?: string; runtimeStatus?: string };
-		};
-	};
-	const migrate = binding.behaviorAdapter.migrate as () => {
-		result: { status: string };
-	};
-	const verify = binding.behaviorAdapter.verify as () => {
-		result: {
-			status: string;
-			data?: { migrated?: boolean; pendingVersions?: number[] };
-			checks?: Array<{ status: string }>;
-		};
-	};
-	const doctor = binding.behaviorAdapter.doctor as () => {
-		result: { status: string };
-	};
+test("deployment adapter drives real migration status/migrate and exposes migrated reality", async (context) => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-task-migration-adapter-"),
+	);
+	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const { behaviorAdapter } = await import("../deployment/adapter.ts");
+	const commandContext = { workspaceRoot };
 
-	const before = status();
-	assert.equal(before.result.status, "SUCCEEDED");
+	const before = await behaviorAdapter.status(commandContext);
 	assert.deepEqual(before.result.data, {
-		configStatus: "READY",
-		runtimeStatus: "STOPPED",
+		setupStatus: "FAILED",
+		runtimeStatus: "NOT_APPLICABLE",
 	});
-	const beforeVerification = verify();
-	assert.equal(beforeVerification.result.status, "FAILED");
-	assert.equal(beforeVerification.result.data?.migrated, false);
-	assert.ok((beforeVerification.result.data?.pendingVersions?.length ?? 0) > 0);
-	assert.equal(doctor().result.status, "BLOCKED");
+	const beforeMigration = await behaviorAdapter.migrationStatus(commandContext);
+	assert.equal(beforeMigration.result.data.migrated, false);
+	assert.ok(beforeMigration.result.data.pendingVersions.length > 0);
 
-	assert.equal(migrate().result.status, "SUCCEEDED");
+	const migrated = await behaviorAdapter.migrate(commandContext);
+	assert.equal(migrated.result.status, "SUCCEEDED");
 
-	const after = status();
-	assert.equal(after.result.status, "SUCCEEDED");
+	const after = await behaviorAdapter.status(commandContext);
 	assert.deepEqual(after.result.data, {
-		configStatus: "READY",
-		runtimeStatus: "STOPPED",
+		setupStatus: "READY",
+		runtimeStatus: "NOT_APPLICABLE",
 	});
-	const verified = verify();
-	assert.equal(verified.result.data?.migrated, true);
-	assert.deepEqual(verified.result.data?.pendingVersions, []);
-	assert.equal(verified.result.status, "SUCCEEDED");
-	assert.equal(verified.result.checks?.[0]?.status, "PASS");
-	assert.equal(doctor().result.status, "SUCCEEDED");
+	const verified = await behaviorAdapter.migrationStatus(commandContext);
+	assert.equal(verified.result.data.migrated, true);
+	assert.deepEqual(verified.result.data.pendingVersions, []);
+	assert.equal(
+		(await behaviorAdapter.setup(commandContext)).result.status,
+		"SUCCEEDED",
+	);
 });

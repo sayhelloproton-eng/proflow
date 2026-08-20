@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
@@ -486,14 +489,20 @@ test("REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality withou
 	assert.equal(browser.submitCount, 0);
 });
 
-test("REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remain explicitly incomplete locally", async () => {
+test("REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remain explicitly ACTION_REQUIRED locally", async (context) => {
+	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-browser-setup-"));
+	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
-	const status = behaviorAdapter.status().result;
+	const commandContext = { workspaceRoot };
+	const status = (await behaviorAdapter.status(commandContext)).result;
 	assert.equal(status.status, "SUCCEEDED");
-	assert.equal(status.data.configStatus, "INCOMPLETE");
-	assert.equal(status.data.runtimeStatus, "UNKNOWN");
-	assert.ok(status.data.missingConfig?.includes("bridge.endpoint"));
-	assert.ok(status.data.missingConfig?.includes("verificationEvidenceFile"));
+	assert.deepEqual(status.data, {
+		setupStatus: "ACTION_REQUIRED",
+		runtimeStatus: "STOPPED",
+	});
+	const setup = (await behaviorAdapter.setup(commandContext)).result;
+	assert.equal(setup.status, "ACTION_REQUIRED");
+	assert.equal(setup.actionRequired?.action, "load-unpacked-extension");
 });
 
 type VisionInspectInput = Parameters<BrowserVisionPort["inspect"]>[0];
