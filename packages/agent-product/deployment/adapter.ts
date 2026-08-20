@@ -1,5 +1,7 @@
+import { join } from "node:path";
+
 import { inspectDurableRoleRegistration } from "@tomflow/proflow-agent-runtime";
-import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
+import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
 
 import { descriptor } from "./descriptor.ts";
 
@@ -11,81 +13,79 @@ const base = {
 	moduleVersion: descriptor.moduleVersion,
 } as const;
 
-function createBehaviorAdapter(
-	stateRoot?: string,
-	config?: Record<string, string>,
-) {
-	const currentReality = () => {
-		if (!stateRoot) {
-			return {
+function observeRole(context: ModuleCommandContext) {
+	return inspectDurableRoleRegistration({
+		proflowRoot: join(context.workspaceRoot, ".proflow"),
+		agentPackageRef: descriptor.packageName,
+		expectedPackageVersion: descriptor.moduleVersion,
+	});
+}
+
+const success = () => ({ result: base, observedEffects: [] as string[] });
+
+export const behaviorAdapter = {
+	install: success,
+	uninstall: success,
+	status: (context: ModuleCommandContext) => {
+		const reality = observeRole(context);
+		const setupStatus =
+			reality.status === "READY"
+				? ("READY" as const)
+				: reality.status === "MISSING" || reality.status === "DRIFT"
+					? ("ACTION_REQUIRED" as const)
+					: ("FAILED" as const);
+		return {
+			result: {
 				...base,
-				ok: false as const,
-				status: "ACTION_REQUIRED" as const,
-				actionRequired: {
-					action: "configure-platform-host-state-root",
-					description:
-						"Platform Host stateRoot is required to inspect durable Role registration",
-				},
+				data: { setupStatus, runtimeStatus: "NOT_APPLICABLE" as const },
+			},
+			observedEffects: [] as string[],
+		};
+	},
+	setup: (context: ModuleCommandContext) => {
+		const reality = observeRole(context);
+		if (reality.status === "READY") {
+			return {
+				result: { ...base, data: { roleRef: reality.role?.roleRef } },
+				observedEffects: [] as string[],
 			};
 		}
-		const reality = inspectDurableRoleRegistration({
-			proflowRoot: stateRoot,
-			agentPackageRef: descriptor.packageName,
-			expectedPackageVersion: descriptor.moduleVersion,
-		});
-		if (reality.status === "READY") {
-			return { ...base, data: { roleRef: reality.role?.roleRef } };
-		}
-		const action =
-			reality.status === "MISSING"
-				? "materialize-custom-gpt"
-				: reality.status === "DRIFT"
-					? "refresh-custom-gpt-role-registration"
-					: "repair-custom-gpt-role-store";
-		return {
-			...base,
-			ok: false as const,
-			status: "ACTION_REQUIRED" as const,
-			actionRequired: {
-				action,
-				description: `${descriptor.packageName}@${descriptor.moduleVersion} Role is ${reality.status.toLowerCase()}: ${reality.issues.join(", ")}. Materialize/register the real Custom GPT Role, then rerun platform preflight --intent start.`,
-			},
-		};
-	};
-	return {
-		describe: () => ({ result: base, observedEffects: [] }),
-		preflight: () => ({ result: currentReality(), observedEffects: [] }),
-		status: () => ({
-			result: {
-				...base,
-				data: observeDeclaredModuleStatus(descriptor, config, "UNKNOWN"),
-			},
-			observedEffects: [],
-		}),
-		verify: () => ({
-			result: {
-				...base,
-				checks: [
-					{
-						id: "agent-package-material",
-						status: "PASS" as const,
-						message: "Static package material is present",
+		if (reality.status === "MISSING" || reality.status === "DRIFT") {
+			const action =
+				reality.status === "MISSING"
+					? "materialize-custom-gpt"
+					: "refresh-custom-gpt-role-registration";
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "ACTION_REQUIRED" as const,
+					actionRequired: {
+						action,
+						description: `${descriptor.packageName}@${descriptor.moduleVersion} Role is ${reality.status.toLowerCase()}: ${reality.issues.join(", ")}. Complete the package-owned Custom GPT/role setup, then rerun platform setup.`,
 					},
-				],
+				},
+				observedEffects: [] as string[],
+			};
+		}
+		return {
+			result: {
+				...base,
+				ok: false as const,
+				status: "FAILED" as const,
+				error: {
+					code: "SETUP_FAILED" as const,
+					message: `Role registration store is ${reality.status.toLowerCase()}: ${reality.issues.join(", ")}`,
+					retryable: false,
+				},
 			},
-			observedEffects: [],
-		}),
-		doctor: () => ({ result: currentReality(), observedEffects: [] }),
-	};
-}
-
-export const behaviorAdapter = createBehaviorAdapter();
-
-export function createProductionBinding(input: {
-	config: Record<string, string>;
-	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
-}) {
-	const stateRoot = input.configByModuleRef.get("platform-host")?.stateRoot;
-	if (!stateRoot) return undefined;
-	return { behaviorAdapter: createBehaviorAdapter(stateRoot, input.config) };
-}
+			observedEffects: [] as string[],
+		};
+	},
+	docs: () => ({
+		result: { ...base, data: descriptor.documentation },
+		observedEffects: [] as string[],
+	}),
+	start: success,
+	stop: success,
+} as const;
