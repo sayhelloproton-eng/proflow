@@ -417,35 +417,34 @@ CLI 检查 registry registeredPackageVersion
 
 # 10. 与 Deployment Domain 的关系
 
-所有 Agent Domain 独立包都必须遵守平台统一 Package Lifecycle Protocol，同时**包自己负责自身部署闭环**。
+所有 Agent Domain 独立包都必须遵守统一 Module Governance，同时**包自己负责自身部署闭环**。
 
-Agent Package 自己应引导/实现与自己有关的：
+每个 Agent Package 提供标准七能力：
 
 ```text
+install
+uninstall
+status
 setup
-configure
-Custom GPT Web 创建材料
-Action Schema/Auth 配置
-Knowledge upload（future/deferred；不进入 v1 apply/verify happy path）
-role register/show/validate/delete
-role key show/rotate
-status/verify/doctor
+docs
+start
+stop
 ```
 
-总 Deployment：
+其中 `Module.setup` 负责把 Custom GPT Web 创建、Action Schema/Auth、required capabilities、真实 role/carrier readiness 等人工或外部步骤编成可重入引导；`Module.status` 是唯一 management 状态真源。`custom-gpt ...`、`role register/show/validate/delete`、`role key ...` 等命令仍是 Agent Package 自身真实 extra capability，可以被 AI/用户直接调用，但 Platform 不代理、不解释。
+
+总 Deployment 只做：
 
 ```text
-发现 package capabilities
-→ 按依赖顺序编排
-→ 透传调用 package 自己的标准 lifecycle commands
-→ 汇总整体状态/验证
+发现 Module
+→ 按 provides/requires 排序
+→ 转发标准 Module command
+→ 聚合结构化结果
 ```
 
-**不由 Platform Deployment Planner/Executor 重新实现每个包的账号、登录、Carrier 创建、Role 绑定细节。**
+Platform 不实现账号登录、Carrier 创建、Role 绑定、Action Auth，也不建立 config bus、Plan/Apply 或 ACTION_REQUIRED resume state machine。再次执行 setup 时由 Agent Package 重新观察真实现实。
 
-Module 声明 requirements/config/lifecycle primitives；Deployment Planner 负责实例级 dependency graph、plan/apply 与 ACTION_REQUIRED resume。
-
-最终 `package.json` lifecycle descriptor、bin/exports、structured output 仍必须由 Deployment Domain 统一 Contract 冻结。
+最终 package discovery metadata、descriptor/adapter、bin/exports 与结构化结果仍必须服从 Deployment Module Contract / Conformance；这些工程约束不得反向重写 Agent 业务语义。
 
 
 ---
