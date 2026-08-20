@@ -1,7 +1,19 @@
 # @tomflow/proflow-execution-local — Module Setup
 
-No user or external setup is required by the current frozen Module contract. `Module.install` completes deterministic preparation; `Module.setup` only re-observes current reality and must not ask the user to supply private paths, loopback endpoints, tokens or cross-Module facts.
+## Goal
 
-## Completion
+Reach `setupStatus=READY` with zero user configuration.
 
-Setup is complete only when the Module's own `status` reports `setupStatus=READY`. Re-running setup must re-observe reality; it must not resume from a blind historical step index.
+## Step 1 — Materialize deterministic state
+
+**Type:** automatic
+**Executable:** `platform install`
+**What happens:** Local execution capability package; deterministic preparation is owned by Module.install and producer-owned facts. The user is never asked for private paths, loopback endpoints, token files, artifact paths or producer-owned shared facts.
+
+## Step 2 — Re-observe setup state
+
+**Type:** automatic verification
+**Verify:** `platform status`
+**Success condition:** `execution-local.setupStatus=READY`.
+
+No human or external setup action is required. If a machine-owned dependency is unavailable, the Module must report `FAILED` rather than converting it into user configuration.
