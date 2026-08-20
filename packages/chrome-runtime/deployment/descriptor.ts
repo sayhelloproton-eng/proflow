@@ -35,33 +35,6 @@ export const descriptor = {
 				"Absolute path to the Chrome/Chromium executable; when unset, probes macOS candidates then PATH commands",
 		},
 	],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "chrome-status",
-				description: "Chrome runtime is observable on this host",
-				lifecycle: "status",
-			},
-			{
-				id: "chrome-version",
-				description: "Chrome runtime version is observed",
-				lifecycle: "verify",
-			},
-			{
-				id: "chrome-extension-prerequisite",
-				description: "MV3 extension load and authorization are verified",
-				lifecycle: "verify",
-			},
-			{
-				id: "chrome-diagnostics",
-				description: "Chrome runtime and extension prerequisite diagnostics",
-				lifecycle: "doctor",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "external-resource",
@@ -69,17 +42,8 @@ export const descriptor = {
 			retention: "preserve",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

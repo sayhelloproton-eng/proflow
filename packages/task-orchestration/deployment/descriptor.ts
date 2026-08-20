@@ -12,24 +12,21 @@ export const descriptor = {
 		summary:
 			"Owns the Task & Orchestration public contract, domain rules and application services.",
 	},
-	provides: [{ contractRef: "task-orchestration", version: "1.0.0" }],
+	provides: [
+		{
+			contractRef: "task-orchestration",
+			version: "1.0.0",
+		},
+	],
 	requires: [],
 	requirements: [
-		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
+		{
+			kind: "runtime",
+			runtime: "node",
+			versionRange: ">=24.19.0",
+		},
 	],
 	configSlots: [],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "task-domain-tests-pass",
-				description: "Task orchestration Critical Proofs pass",
-				lifecycle: "verify",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "filesystem",
@@ -38,11 +35,8 @@ export const descriptor = {
 			retention: "preserve",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

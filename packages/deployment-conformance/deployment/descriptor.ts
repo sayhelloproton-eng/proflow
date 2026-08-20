@@ -15,27 +15,16 @@ export const descriptor = {
 	provides: [],
 	requires: [],
 	requirements: [
-		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
-	],
-	configSlots: [],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "conformance-tests-pass",
-				description: "Deployment conformance tests pass",
-				lifecycle: "verify",
-			},
-		],
-	},
-	effects: [],
-	documentation: [
 		{
-			id: "overview",
-			path: "./README.md",
-			description: "Deployment conformance package overview",
+			kind: "runtime",
+			runtime: "node",
+			versionRange: ">=24.19.0",
 		},
 	],
+	configSlots: [],
+	effects: [],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

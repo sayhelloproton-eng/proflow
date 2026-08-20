@@ -93,28 +93,6 @@ export const descriptor = {
 			description: "Loopback Model Runtime public transport",
 		},
 	],
-	lifecycle: {
-		supported: [
-			"describe",
-			"preflight",
-			"status",
-			"verify",
-			"doctor",
-			"start",
-			"stop",
-			"restart",
-			"uninstall",
-		],
-	},
-	verification: {
-		checks: [
-			{
-				id: "platform-host-readiness",
-				description: "Host transport and current owner dependencies are ready",
-				lifecycle: "verify",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "process",
@@ -122,17 +100,8 @@ export const descriptor = {
 			retention: "remove",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Platform Host package overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

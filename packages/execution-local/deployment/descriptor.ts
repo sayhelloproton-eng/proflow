@@ -45,30 +45,9 @@ export const descriptor = {
 			description: "Execution-owned output and evidence directory",
 		},
 	],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "local-real-gate",
-				description: "Typed local executor passes real project boundary proofs",
-				lifecycle: "verify",
-			},
-		],
-	},
 	effects: [],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

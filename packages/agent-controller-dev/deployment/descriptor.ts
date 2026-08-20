@@ -39,18 +39,6 @@ export const descriptor = {
 			default: "chatgpt-carrier",
 		},
 	],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "agent-package-material",
-				description: "Static Custom GPT package material is complete",
-				lifecycle: "verify",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "external-resource",
@@ -58,17 +46,8 @@ export const descriptor = {
 			retention: "preserve",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

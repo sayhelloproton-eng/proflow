@@ -15,27 +15,16 @@ export const descriptor = {
 	provides: [],
 	requires: [],
 	requirements: [
-		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
-	],
-	configSlots: [],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "cli-surface",
-				description: "Deterministic command surface parses and dispatches",
-				lifecycle: "verify",
-			},
-		],
-	},
-	effects: [],
-	documentation: [
 		{
-			id: "overview",
-			path: "./README.md",
-			description: "Platform CLI package overview and command surface",
+			kind: "runtime",
+			runtime: "node",
+			versionRange: ">=24.19.0",
 		},
 	],
+	configSlots: [],
+	effects: [],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

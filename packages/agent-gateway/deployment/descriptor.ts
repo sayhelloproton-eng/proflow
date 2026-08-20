@@ -69,28 +69,6 @@ export const descriptor = {
 			default: "dev-tunnel",
 		},
 	],
-	lifecycle: {
-		supported: [
-			"describe",
-			"preflight",
-			"status",
-			"verify",
-			"doctor",
-			"start",
-			"stop",
-			"restart",
-			"uninstall",
-		],
-	},
-	verification: {
-		checks: [
-			{
-				id: "gateway-readiness",
-				description: "Gateway dependencies and transport guards are ready",
-				lifecycle: "verify",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "process",
@@ -98,17 +76,8 @@ export const descriptor = {
 			retention: "remove",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Agent Gateway package overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

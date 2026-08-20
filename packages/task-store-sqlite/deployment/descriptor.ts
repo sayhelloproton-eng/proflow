@@ -34,18 +34,6 @@ export const descriptor = {
 			description: "Task SQLite database path",
 		},
 	],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "sqlite-integrity-pass",
-				description: "SQLite schema and integrity checks pass",
-				lifecycle: "verify",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "filesystem",
@@ -53,17 +41,8 @@ export const descriptor = {
 			retention: "preserve",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

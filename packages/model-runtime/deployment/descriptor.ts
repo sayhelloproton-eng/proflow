@@ -86,38 +86,6 @@ export const descriptor = {
 			default: "model-provider-api",
 		},
 	],
-	lifecycle: {
-		supported: [
-			"describe",
-			"preflight",
-			"status",
-			"verify",
-			"doctor",
-			"start",
-			"stop",
-			"restart",
-			"uninstall",
-		],
-	},
-	verification: {
-		checks: [
-			{
-				id: "runtime-status-fresh",
-				description: "Runtime reports fresh role and lane diagnostics",
-				lifecycle: "status",
-			},
-			{
-				id: "real-provider-capabilities",
-				description: "Configured provider roles pass live capability probes",
-				lifecycle: "verify",
-			},
-			{
-				id: "provider-diagnostics",
-				description: "Provider configuration has actionable diagnostics",
-				lifecycle: "doctor",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "process",
@@ -130,17 +98,8 @@ export const descriptor = {
 			retention: "preserve",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Model Runtime package overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

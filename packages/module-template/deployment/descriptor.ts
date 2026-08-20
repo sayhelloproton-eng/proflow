@@ -14,21 +14,13 @@ export const descriptor = {
 	provides: [],
 	requires: [],
 	requirements: [
-		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
+		{
+			kind: "runtime",
+			runtime: "node",
+			versionRange: ">=24.19.0",
+		},
 	],
 	configSlots: [],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "template-tests-pass",
-				description: "Module template tests pass",
-				lifecycle: "verify",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "filesystem",
@@ -36,11 +28,8 @@ export const descriptor = {
 			retention: "preserve",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Module template package overview",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

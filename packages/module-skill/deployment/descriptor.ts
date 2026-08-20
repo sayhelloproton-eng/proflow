@@ -1,6 +1,4 @@
-import { parseModuleDescriptor } from "@tomflow/proflow-module-contract";
-
-export const descriptor = parseModuleDescriptor({
+export const descriptor = {
 	contract: "module",
 	contractVersion: "1.0.0",
 	moduleRef: "module-skill",
@@ -17,30 +15,16 @@ export const descriptor = parseModuleDescriptor({
 	provides: [],
 	requires: [],
 	requirements: [
-		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
+		{
+			kind: "runtime",
+			runtime: "node",
+			versionRange: ">=24.19.0",
+		},
 	],
 	configSlots: [],
-	lifecycle: { supported: ["verify", "status"] },
-	verification: {
-		checks: [
-			{
-				id: "skill-policy-verify",
-				description: "SKILL.md exists and declares frozen-fact-only stop rules",
-				lifecycle: "verify",
-			},
-		],
-	},
 	effects: [],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Module skill package overview",
-		},
-		{
-			id: "skill",
-			path: "./SKILL.md",
-			description: "AI module creation and maintenance workflow",
-		},
-	],
-});
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
+} as const;

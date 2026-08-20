@@ -46,45 +46,6 @@ export const descriptor = {
 				"JSON evidence for real file-relay and 429/5xx verification behind the configured public ingress",
 		},
 	],
-	lifecycle: {
-		supported: [
-			"describe",
-			"preflight",
-			"status",
-			"verify",
-			"doctor",
-			"start",
-			"stop",
-			"restart",
-			"uninstall",
-		],
-	},
-	verification: {
-		checks: [
-			{
-				id: "tunnel-status",
-				description:
-					"dev-tunnel process reports a real running or stopped state",
-				lifecycle: "status",
-			},
-			{
-				id: "tunnel-public-ingress",
-				description:
-					"public HTTPS ingress passes the frozen TLS/port/size/latency contract",
-				lifecycle: "verify",
-			},
-			{
-				id: "tunnel-file-relay",
-				description: "file relay behind the public ingress is reachable",
-				lifecycle: "verify",
-			},
-			{
-				id: "tunnel-diagnostics",
-				description: "dev-tunnel configuration has actionable diagnostics",
-				lifecycle: "doctor",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "process",
@@ -102,17 +63,8 @@ export const descriptor = {
 			retention: "preserve",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Dev Tunnel module overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

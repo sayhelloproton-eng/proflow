@@ -12,33 +12,33 @@ export const descriptor = {
 		summary:
 			"Agent-owned Role Registry, credential binding and Collaboration durable runtime.",
 	},
-	provides: [{ contractRef: "agent-runtime", version: "1.0.0" }],
-	requires: [
-		{ contractRef: "task-orchestration", versionRange: ">=1.0.0 <2.0.0" },
-		{ contractRef: "execution", versionRange: ">=1.0.0 <2.0.0" },
-	],
-	requirements: [
-		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
-	],
-	configSlots: [],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "agent-runtime-boundary",
-				description: "Agent runtime owner boundary is available",
-				lifecycle: "verify",
-			},
-		],
-	},
-	effects: [],
-	documentation: [
+	provides: [
 		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
+			contractRef: "agent-runtime",
+			version: "1.0.0",
 		},
 	],
+	requires: [
+		{
+			contractRef: "task-orchestration",
+			versionRange: ">=1.0.0 <2.0.0",
+		},
+		{
+			contractRef: "execution",
+			versionRange: ">=1.0.0 <2.0.0",
+		},
+	],
+	requirements: [
+		{
+			kind: "runtime",
+			runtime: "node",
+			versionRange: ">=24.19.0",
+		},
+	],
+	configSlots: [],
+	effects: [],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

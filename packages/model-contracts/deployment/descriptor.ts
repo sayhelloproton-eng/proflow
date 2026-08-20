@@ -15,28 +15,16 @@ export const descriptor = {
 	provides: [],
 	requires: [],
 	requirements: [
-		{ kind: "runtime", runtime: "node", versionRange: ">=24.19.0" },
-	],
-	configSlots: [],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "model-contract-boundaries",
-				description:
-					"Model public boundary schemas reject invalid combinations",
-				lifecycle: "verify",
-			},
-		],
-	},
-	effects: [],
-	documentation: [
 		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
+			kind: "runtime",
+			runtime: "node",
+			versionRange: ">=24.19.0",
 		},
 	],
+	configSlots: [],
+	effects: [],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

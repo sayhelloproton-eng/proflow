@@ -99,28 +99,6 @@ export const descriptor = {
 				"File containing the Execution-to-Model transport credential",
 		},
 	],
-	lifecycle: {
-		supported: [
-			"describe",
-			"preflight",
-			"status",
-			"verify",
-			"doctor",
-			"start",
-			"stop",
-			"restart",
-			"uninstall",
-		],
-	},
-	verification: {
-		checks: [
-			{
-				id: "execution-runtime-critical-proofs",
-				description: "Execution Runtime critical proofs pass",
-				lifecycle: "verify",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "process",
@@ -134,17 +112,8 @@ export const descriptor = {
 			retention: "preserve",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Execution Runtime package overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

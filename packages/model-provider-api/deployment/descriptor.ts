@@ -1,6 +1,3 @@
-export const RESOURCE_IDENTITY = "model.provider.api" as const;
-export const RESOURCE_IDENTITY_VERSION = "1.0.0" as const;
-
 export const descriptor = {
 	contract: "module",
 	contractVersion: "1.0.0",
@@ -45,33 +42,6 @@ export const descriptor = {
 				"Optional credential reference; absent for unauthenticated providers",
 		},
 	],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "provider-status",
-				description: "Provider API reports an observable current status",
-				lifecycle: "status",
-			},
-			{
-				id: "provider-reachability",
-				description: "Provider API base URL is reachable",
-				lifecycle: "verify",
-			},
-			{
-				id: "provider-auth",
-				description: "Provider API accepts the configured credential",
-				lifecycle: "verify",
-			},
-			{
-				id: "provider-diagnostics",
-				description: "Provider configuration has actionable diagnostics",
-				lifecycle: "doctor",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "external-resource",
@@ -79,17 +49,8 @@ export const descriptor = {
 			retention: "preserve",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;

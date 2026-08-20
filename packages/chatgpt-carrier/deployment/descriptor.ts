@@ -45,63 +45,6 @@ export const descriptor = {
 				"JSON evidence file produced by the real Custom GPT verification workflow",
 		},
 	],
-	lifecycle: {
-		supported: ["describe", "preflight", "status", "verify", "doctor"],
-	},
-	verification: {
-		checks: [
-			{
-				id: "carrier-status",
-				description: "Carrier status reports real observed reachability",
-				lifecycle: "status",
-			},
-			{
-				id: "carrier-role-reachable",
-				description: "Custom GPT role/carrier is reachable",
-				lifecycle: "verify",
-			},
-			{
-				id: "carrier-actions-schema",
-				description: "Static Actions OpenAPI schema is current",
-				lifecycle: "verify",
-			},
-			{
-				id: "carrier-openapi",
-				description: "OpenAPI schema is installed on the carrier",
-				lifecycle: "verify",
-			},
-			{
-				id: "carrier-auth",
-				description: "Action auth is valid",
-				lifecycle: "verify",
-			},
-			{
-				id: "carrier-file-bridge",
-				description: "File Bridge is usable",
-				lifecycle: "verify",
-			},
-			{
-				id: "carrier-code-interpreter",
-				description: "Code interpreter is available when required",
-				lifecycle: "verify",
-			},
-			{
-				id: "carrier-web-search",
-				description: "Web search is available when required",
-				lifecycle: "verify",
-			},
-			{
-				id: "carrier-apps-disabled",
-				description: "Apps are disabled when required",
-				lifecycle: "verify",
-			},
-			{
-				id: "carrier-diagnostics",
-				description: "Carrier configuration has actionable diagnostics",
-				lifecycle: "doctor",
-			},
-		],
-	},
 	effects: [
 		{
 			kind: "external-resource",
@@ -109,17 +52,8 @@ export const descriptor = {
 			retention: "preserve",
 		},
 	],
-	documentation: [
-		{
-			id: "overview",
-			path: "./README.md",
-			description: "Package-owned module overview",
-		},
-		{
-			id: "configuration",
-			path: "./CONFIGURATION.md",
-			description:
-				"Module configuration fields, sources and materialization instructions",
-		},
-	],
+	documentation: {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
+	},
 } as const;
