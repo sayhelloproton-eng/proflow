@@ -55,3 +55,11 @@ READY_FOR_HUMAN_ACCEPTANCE = YES
 ```
 
 任何非 Gate blocker 记录 `OUT_OF_SCOPE_DOMAIN`；缺 shared fact 记录 `SHARED_FACT_CONTRACT_MISSING`；两者都禁止向业务源码无限扩散。
+
+## Setup 全量验收
+
+- [ ] `platform setup` 一次遍历全部 discovered Module，READY 跳过，ACTION_REQUIRED/FAILED 不提前停止。
+- [ ] 所有未 READY Module 的引导一次性聚合返回。
+- [ ] 所有需要 setup 的 Module 具备最短 `SETUP.md` Step、package-owned executable/verify 与 Success Condition。
+- [ ] 用户只提供真实人工/外部输入；path/token/endpoint/shared fact 不回退成人工配置。
+- [ ] 最终目标以最少用户操作、最少往返达到 READY 并进入 `platform start`。

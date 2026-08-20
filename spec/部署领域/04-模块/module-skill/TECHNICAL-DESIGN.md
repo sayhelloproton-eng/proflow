@@ -67,3 +67,7 @@ Skill 在生成/迁移 Module 时必须机械检查：
 Owner 修改 descriptor/adapter/status/setup/docs 后，同步 root manifest 与标准文档并重新运行 conformance。
 
 若适配七能力必须修改领域业务 API、状态机、service 算法，立即退出 Skill 范围并返回 `OUT_OF_SCOPE_DOMAIN`；若缺 Producer-owned shared fact，返回 `SHARED_FACT_CONTRACT_MISSING`，不得让 Platform 代传私有配置。
+
+## Setup 加速合同
+
+`platform setup` 每次都必须一次遍历全部 discovered Module；`READY` 跳过，`ACTION_REQUIRED/FAILED` 继续扫描并最终全量聚合。Platform 只转发/聚合，不解释步骤。各 Module 的 `SETUP.md` 必须以最短闭环 Step 描述；每个状态推进 Step 有 package-owned executable/verify 与 Success Condition。自动化优先，只有真实人工或外部动作才能要求用户输入，目标是最少操作、最少往返、最快 READY → start。

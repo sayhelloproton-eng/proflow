@@ -126,3 +126,7 @@ Platform 直接加载/调用 package-owned 标准 command adapter。允许 gener
 ## 13. Delete gate
 
 每个旧 binding/config/docs/lifecycle middleman 删除前必须满足：CodeGraph caller count = 0 且精确文本 import/reference count = 0。若删除 `configByModuleRef` 后出现跨 Module 必需事实却没有 Producer-owned Contract，立即 `STOP = SHARED_FACT_CONTRACT_MISSING`，不得重建 config bus。
+
+## Setup 加速合同
+
+`platform setup` 每次都必须一次遍历全部 discovered Module；`READY` 跳过，`ACTION_REQUIRED/FAILED` 继续扫描并最终全量聚合。Platform 只转发/聚合，不解释步骤。各 Module 的 `SETUP.md` 必须以最短闭环 Step 描述；每个状态推进 Step 有 package-owned executable/verify 与 Success Condition。自动化优先，只有真实人工或外部动作才能要求用户输入，目标是最少操作、最少往返、最快 READY → start。
