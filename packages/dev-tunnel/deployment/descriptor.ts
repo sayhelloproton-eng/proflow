@@ -12,7 +12,12 @@ export const descriptor = {
 		summary:
 			"Governs the Microsoft Dev Tunnel public HTTPS ingress resource and its managed local host process.",
 	},
-	provides: [],
+	provides: [
+		{
+			contractRef: "public-ingress",
+			version: "1.0.0",
+		},
+	],
 	requires: [],
 	requirements: [
 		{
