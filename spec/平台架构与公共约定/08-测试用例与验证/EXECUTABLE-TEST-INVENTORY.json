@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 119,
-    "testCalls": 501
+    "testCalls": 492
   },
   "tests": [
     {
@@ -137,7 +137,7 @@
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/module-conformance.test.ts",
-      "line": 20,
+      "line": 17,
       "title": "module contract C1/C2/C3",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -151,8 +151,8 @@
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/module-conformance.test.ts",
-      "line": 34,
-      "title": "production binding observes durable Role registration reality",
+      "line": 31,
+      "title": "Module.setup observes durable Role registration reality",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -524,8 +524,8 @@
     {
       "package": "agent-gateway",
       "path": "packages/agent-gateway/tests/module-conformance.test.ts",
-      "line": 38,
-      "title": "production binding preserves Gateway own config truth while dependencies are unavailable",
+      "line": 40,
+      "title": "Module.install owns deterministic Gateway config while producer dependencies remain explicit",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -578,7 +578,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 113,
+      "line": 114,
       "title": "CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browser continue protocol",
       "ids": [
         "CP-AGT-PROD-05"
@@ -591,7 +591,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 125,
+      "line": 126,
       "title": "CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked by package-local fixtures",
       "ids": [
         "CP-AGT-PROD-06"
@@ -615,7 +615,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/module-conformance.test.ts",
-      "line": 20,
+      "line": 17,
       "title": "module contract C1/C2/C3",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -629,8 +629,8 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/module-conformance.test.ts",
-      "line": 34,
-      "title": "production binding observes durable Role registration reality",
+      "line": 31,
+      "title": "Module.setup observes durable Role registration reality",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1049,7 +1049,7 @@
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/module-conformance.test.ts",
-      "line": 20,
+      "line": 17,
       "title": "module contract C1/C2/C3",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1063,8 +1063,8 @@
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/module-conformance.test.ts",
-      "line": 34,
-      "title": "production binding observes durable Role registration reality",
+      "line": 31,
+      "title": "Module.setup observes durable Role registration reality",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1077,8 +1077,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 15,
-      "title": "parseModuleDescriptor accepts the chatgpt-carrier descriptor",
+      "line": 31,
+      "title": "parseModuleDescriptor accepts the chatgpt-carrier descriptor without legacy lifecycle/verification fields",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1090,8 +1090,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 23,
-      "title": "adapter gates mutation while status reports current Module facts without a real carrier",
+      "line": 44,
+      "title": "unconfigured carrier status is ACTION_REQUIRED truth and setup owns the human step",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1103,8 +1103,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 45,
-      "title": "external-resource adapter exposes no start/stop/restart",
+      "line": 64,
+      "title": "external-resource adapter exposes the fixed seven-command management surface",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1116,8 +1116,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 59,
-      "title": "reachability alone never passes schema/auth checks",
+      "line": 76,
+      "title": "reachability alone never makes incomplete Action/auth verification READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1129,59 +1129,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 84,
-      "title": "preflight can SUCCEED when all required checks are VERIFIED",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/chatgpt-carrier/deployment/adapter.ts",
-        "packages/chatgpt-carrier/deployment/descriptor.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "chatgpt-carrier",
-      "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 101,
-      "title": "preflight returns ACTION_REQUIRED when required checks are UNVERIFIED",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/chatgpt-carrier/deployment/adapter.ts",
-        "packages/chatgpt-carrier/deployment/descriptor.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "chatgpt-carrier",
-      "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 118,
-      "title": "reachable-only observation cannot make doctor SUCCEED",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/chatgpt-carrier/deployment/adapter.ts",
-        "packages/chatgpt-carrier/deployment/descriptor.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "chatgpt-carrier",
-      "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 135,
-      "title": "doctor can SUCCEED when all required checks are VERIFIED",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/chatgpt-carrier/deployment/adapter.ts",
-        "packages/chatgpt-carrier/deployment/descriptor.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "chatgpt-carrier",
-      "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 152,
+      "line": 95,
       "title": "production status accepts protected 401/403 only with healthy Web verification evidence",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1205,7 +1153,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 21,
+      "line": 34,
       "title": "EXT-CHATGPT-01 v1 carrier readiness is capability/behavior based, never exact-model pinned",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1217,8 +1165,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 28,
-      "title": "EXT-CHATGPT-02 Knowledge specialization is deferred and is not a v1 readiness prerequisite",
+      "line": 43,
+      "title": "EXT-CHATGPT-02 Knowledge specialization is deferred and is not a setup prerequisite",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1229,8 +1177,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 37,
-      "title": "EXT-CHATGPT-03 real Action auth/OpenAPI/File Bridge/native capabilities are independently verifiable",
+      "line": 48,
+      "title": "EXT-CHATGPT-03 real Action auth/OpenAPI/File Bridge/native capabilities are independently accepted only as real setup evidence",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1241,7 +1189,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 57,
+      "line": 70,
       "title": "EXT-CHATGPT-04 stable Conversation c-id is not claimed from GPT Actions or persisted by Deployment adapter",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1253,7 +1201,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 66,
+      "line": 79,
       "title": "EXT-CHATGPT-05 unmet Web-only setup remains ACTION_REQUIRED and never becomes fake READY",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1265,7 +1213,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 35,
+      "line": 37,
       "title": "parseModuleDescriptor accepts the chrome-runtime descriptor",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1279,10 +1227,10 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 42,
-      "title": "adapter status reports Module facts while verify remains actionable without real Chrome/extension readiness",
+      "line": 45,
+      "title": "adapter status/setup report only Chrome runtime prerequisite truth",
       "ids": [],
-      "proofStrength": "REAL_EXTERNAL_DECLARATION",
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/chrome-runtime/deployment/adapter.ts",
         "packages/chrome-runtime/deployment/descriptor.ts",
@@ -1293,7 +1241,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 91,
+      "line": 75,
       "title": "explicit Chrome probe tolerates a slow but healthy version response beyond five seconds",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1307,8 +1255,8 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 109,
-      "title": "adapter exposes no start/stop/restart lifecycle",
+      "line": 93,
+      "title": "adapter exposes exactly the fixed seven management commands without a restart primitive",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1332,7 +1280,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/v1-carrier-boundary.test.ts",
-      "line": 10,
+      "line": 18,
       "title": "EXT-CHROME-01 chrome-runtime owns only the external browser prerequisite, not Task/Worker identity",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1344,7 +1292,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/v1-carrier-boundary.test.ts",
-      "line": 19,
+      "line": 27,
       "title": "EXT-CHROME-02 tab/window identity is transient and frame registry is not a v1 readiness contract",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1356,8 +1304,8 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/v1-carrier-boundary.test.ts",
-      "line": 28,
-      "title": "EXT-CHROME-03 runtime availability alone cannot prove MV3 extension load/authorization",
+      "line": 36,
+      "title": "EXT-CHROME-03 Chrome availability establishes only chrome-runtime readiness, not MV3 extension state",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1368,8 +1316,8 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/v1-carrier-boundary.test.ts",
-      "line": 40,
-      "title": "EXT-CHROME-04 external Chrome runtime has no synthetic process lifecycle",
+      "line": 54,
+      "title": "EXT-CHROME-04 external Chrome runtime uses the fixed seven-command management contract without descriptor lifecycle metadata",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1463,7 +1411,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 121,
+      "line": 120,
       "title": "CP-DPL-CONF-01 C1 rejects missing, version, config, lifecycle, and verification defects",
       "ids": [
         "CP-DPL-CONF-01"
@@ -1478,7 +1426,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 174,
+      "line": 173,
       "title": "CP-DPL-CONF-02 + CP-DPL-CONF-05 + RF-DPL-CONF-05 C2 inspects package form and generated truth",
       "ids": [
         "CP-DPL-CONF-02",
@@ -1495,7 +1443,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 246,
+      "line": 259,
       "title": "C2 accepts CLI-specific structured machine JSON and rejects non-object output",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1508,7 +1456,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 272,
+      "line": 285,
       "title": "CP-DPL-CONF-03 C3 rejects side effects and fake external availability without invoking undeclared lifecycle",
       "ids": [
         "CP-DPL-CONF-03"
@@ -1523,7 +1471,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 366,
+      "line": 387,
       "title": "remediation C3 rejects result identity drift and effects outside the descriptor",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1536,7 +1484,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 497,
+      "line": 512,
       "title": "CP-DPL-CONF-04 enforces GPT Actions and File Bridge frozen limits",
       "ids": [
         "CP-DPL-CONF-04"
@@ -1574,8 +1522,36 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
+      "line": 25,
+      "title": "dev-tunnel descriptor parses with public-ingress ownership and no legacy lifecycle metadata",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
+      "line": 36,
+      "title": "default behaviorAdapter reports setup truth without fabricating a tunnel",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
       "line": 49,
-      "title": "dev-tunnel descriptor parses against moduleDescriptorSchema",
+      "title": "dev-tunnel exposes the fixed seven-command management surface",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
@@ -1588,63 +1564,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 62,
-      "title": "default behaviorAdapter is honest when no tunnel is bound",
-      "ids": [],
-      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
-      "implementationRefs": [
-        "packages/dev-tunnel/deployment/adapter.ts",
-        "packages/dev-tunnel/deployment/descriptor.ts",
-        "packages/dev-tunnel/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "dev-tunnel",
-      "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 86,
-      "title": "start/stop/restart are honest when a runtime is bound but not logged in",
-      "ids": [],
-      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
-      "implementationRefs": [
-        "packages/dev-tunnel/deployment/adapter.ts",
-        "packages/dev-tunnel/deployment/descriptor.ts",
-        "packages/dev-tunnel/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "dev-tunnel",
-      "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 104,
-      "title": "every supported lifecycle primitive exposes an adapter function",
-      "ids": [],
-      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
-      "implementationRefs": [
-        "packages/dev-tunnel/deployment/adapter.ts",
-        "packages/dev-tunnel/deployment/descriptor.ts",
-        "packages/dev-tunnel/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "dev-tunnel",
-      "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 110,
-      "title": "production verification evidence is version- and ingress-bound",
-      "ids": [],
-      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
-      "implementationRefs": [
-        "packages/dev-tunnel/deployment/adapter.ts",
-        "packages/dev-tunnel/deployment/descriptor.ts",
-        "packages/dev-tunnel/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "dev-tunnel",
-      "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 151,
+      "line": 61,
       "title": "missing file relay and 429/5xx proof are FAIL, never SKIP/WARN",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1658,7 +1578,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 168,
+      "line": 78,
       "title": "start cannot SUCCEED without a configured tunnelId",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1672,7 +1592,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 173,
+      "line": 83,
       "title": "status reports UNKNOWN (not STOPPED) when no child is owned",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1686,7 +1606,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 182,
+      "line": 92,
       "title": "persistent runtime detaches and survives across adapter instances",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1700,7 +1620,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 218,
+      "line": 128,
       "title": "immediate spawn error does not report RUNNING",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1714,7 +1634,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 227,
+      "line": 137,
       "title": "TLS probe times out instead of hanging",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1728,7 +1648,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 244,
+      "line": 154,
       "title": "streaming read aborts after the size ceiling",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1742,49 +1662,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 259,
-      "title": "doctor reads current login/state/publicUrl reality, not just adapter-bound",
-      "ids": [],
-      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
-      "implementationRefs": [
-        "packages/dev-tunnel/deployment/adapter.ts",
-        "packages/dev-tunnel/deployment/descriptor.ts",
-        "packages/dev-tunnel/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "dev-tunnel",
-      "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 271,
-      "title": "stop returns ACTION_REQUIRED when stop state is genuinely UNKNOWN",
-      "ids": [],
-      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
-      "implementationRefs": [
-        "packages/dev-tunnel/deployment/adapter.ts",
-        "packages/dev-tunnel/deployment/descriptor.ts",
-        "packages/dev-tunnel/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "dev-tunnel",
-      "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 279,
-      "title": "restart does not start when stop is UNKNOWN",
-      "ids": [],
-      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
-      "implementationRefs": [
-        "packages/dev-tunnel/deployment/adapter.ts",
-        "packages/dev-tunnel/deployment/descriptor.ts",
-        "packages/dev-tunnel/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "dev-tunnel",
-      "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 292,
+      "line": 169,
       "title": "uninstall is idempotent when no dev-tunnel resource is bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1810,7 +1688,7 @@
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/v1-owner-boundary.test.ts",
       "line": 23,
-      "title": "EXT-TUNNEL-02 only the real managed tunnel resource declares start/stop/restart",
+      "title": "EXT-TUNNEL-02 managed tunnel remains process-owning while standard lifecycle metadata is removed",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1820,8 +1698,8 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/v1-owner-boundary.test.ts",
-      "line": 35,
-      "title": "EXT-TUNNEL-03 tunnel verification remains bounded to ingress/file-relay diagnostics",
+      "line": 32,
+      "title": "EXT-TUNNEL-03 ingress diagnostics remain Module-owned instead of descriptor verification metadata",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -2192,7 +2070,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 150,
+      "line": 153,
       "title": "REG-EXE-BR-01 stable role/worker identity rejects stale transient content instances",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2204,7 +2082,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 181,
+      "line": 184,
       "title": "REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, duplicate CREATE is zero",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2216,7 +2094,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 231,
+      "line": 234,
       "title": "PRESMOKE-B3-BINDING-01 RESTORE uses durable TaskRoleBinding conversationLocator instead of reconstructing a URL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2228,7 +2106,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 278,
+      "line": 281,
       "title": "REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Node or Effect completion",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2240,7 +2118,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 326,
+      "line": 329,
       "title": "PRESMOKE-B3-WAKE-01 worker.wake rejects untyped/arbitrary wake reasons before Browser effect",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2252,7 +2130,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 356,
+      "line": 359,
       "title": "REG-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministic observations",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2264,7 +2142,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 387,
+      "line": 390,
       "title": "REG-EXE-BR-05 permission fallback captures evidence and Side Panel remains read-only",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2276,7 +2154,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 413,
+      "line": 416,
       "title": "REG-EXE-BR-06 writes are globally serial and logical delivery follows physical verification",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2288,7 +2166,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 461,
+      "line": 464,
       "title": "REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2300,8 +2178,8 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 489,
-      "title": "REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remain explicitly incomplete locally",
+      "line": 492,
+      "title": "REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remain explicitly ACTION_REQUIRED locally",
       "ids": [],
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
       "implementationRefs": [
@@ -2312,7 +2190,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 523,
+      "line": 532,
       "title": "REG-EXE-BR-09 deterministic DOM observation makes zero Vision calls",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2324,7 +2202,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 555,
+      "line": 564,
       "title": "REG-EXE-BR-10 screenshot → Vision receives the exact captured image and returns a typed observation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2336,7 +2214,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 639,
+      "line": 648,
       "title": "REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fabricated success",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2348,7 +2226,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 689,
+      "line": 698,
       "title": "REG-EXE-BR-12 screenshot boundary rejects unsupported MIME and mismatched dataUrl",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2360,7 +2238,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 722,
+      "line": 731,
       "title": "REG-EXE-BR-13 Vision verification requires deterministic confidence and no human escalation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2388,7 +2266,7 @@
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/module-conformance.test.ts",
       "line": 44,
-      "title": "PRESMOKE-B6-DESC-01 extension descriptor config surface matches the consumed Bridge/Task/Approval connections",
+      "title": "PRESMOKE-B6-DESC-01 extension runtime connections are Module-owned/shared facts, never public config slots",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -2843,7 +2721,7 @@
       "package": "execution-local",
       "path": "packages/execution-local/tests/deployment-reality.test.ts",
       "line": 9,
-      "title": "execution-local production binding observes real project/artifact filesystem reality",
+      "title": "execution-local Module.install materializes deterministic workspace/artifact reality",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -3144,10 +3022,10 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/deployment-preflight-port.test.ts",
-      "line": 36,
-      "title": "FJ-07 preflight reports an occupied Execution Runtime listener before start",
+      "line": 17,
+      "title": "FJ-07 status exposes missing producer facts as FAILED instead of a Platform preflight",
       "ids": [],
-      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-runtime/deployment/adapter.ts"
       ]
@@ -3155,10 +3033,21 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/deployment-preflight-port.test.ts",
-      "line": 74,
-      "title": "production binding preserves Execution Runtime own config truth while Platform Host is unavailable",
+      "line": 28,
+      "title": "missing shared facts fail Module.setup/start without asking a human to copy machine-owned config",
       "ids": [],
-      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-runtime/deployment/adapter.ts"
+      ]
+    },
+    {
+      "package": "execution-runtime",
+      "path": "packages/execution-runtime/tests/deployment-preflight-port.test.ts",
+      "line": 40,
+      "title": "execution-runtime exposes exactly the fixed seven management commands",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-runtime/deployment/adapter.ts"
       ]
@@ -3707,7 +3596,7 @@
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
       "line": 255,
-      "title": "CP-EXE-RT-20 shipped execution-runtime descriptor and binary require the formal Browser/security/model composition",
+      "title": "CP-EXE-RT-20 public descriptor exposes no internal composition config while the internal binary still requires formal Browser/security/model wiring",
       "ids": [
         "CP-EXE-RT-20"
       ],
@@ -3720,7 +3609,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 315,
+      "line": 280,
       "title": "PRESMOKE-B5-RUNTIME-04 modelDecision readiness reflects the consumer-specific dependency probe",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3732,7 +3621,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/execution-runtime-service.test.ts",
-      "line": 337,
+      "line": 302,
       "title": "PRESMOKE-B5-RUNTIME-05 modelDecision config is loopback-only",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3972,7 +3861,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 23,
+      "line": 24,
       "title": "parseModuleDescriptor accepts the frozen external-resource descriptor",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3986,8 +3875,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 36,
-      "title": "resource identity constant matches the frozen registry contract",
+      "line": 35,
+      "title": "all seven management command results satisfy the structured result contract",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4000,8 +3889,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 40,
-      "title": "every lifecycle result satisfies the structured result contract",
+      "line": 56,
+      "title": "unconfigured adapter reports ACTION_REQUIRED through status/setup, not missingConfig",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4014,8 +3903,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 58,
-      "title": "unconfigured adapter reports Module facts while actionable primitives remain blocked",
+      "line": 73,
+      "title": "configured adapter owns reachability/auth only and publishes READY provider truth",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4028,8 +3917,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 80,
-      "title": "unconfigured verify returns FAIL reachability and auth checks, never a fake pass",
+      "line": 98,
+      "title": "adapter exposes exactly the fixed seven management commands",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4042,49 +3931,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 93,
-      "title": "configured adapter delegates capability verification to Model Domain",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/model-provider-api/deployment/adapter.ts",
-        "packages/model-provider-api/deployment/descriptor.ts",
-        "packages/model-provider-api/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "model-provider-api",
-      "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 133,
-      "title": "adapter exposes no start, stop, or restart lifecycle",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/model-provider-api/deployment/adapter.ts",
-        "packages/model-provider-api/deployment/descriptor.ts",
-        "packages/model-provider-api/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "model-provider-api",
-      "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 143,
-      "title": "descriptor declares no process lifecycle primitives",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/model-provider-api/deployment/adapter.ts",
-        "packages/model-provider-api/deployment/descriptor.ts",
-        "packages/model-provider-api/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
-      ]
-    },
-    {
-      "package": "model-provider-api",
-      "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 153,
+      "line": 110,
       "title": "low-level probe is honest about an unreachable provider",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4098,7 +3945,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 160,
+      "line": 117,
       "title": "providerCredential is optional (unauthenticated providers allowed)",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4112,7 +3959,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/v1-provider-boundary.test.ts",
-      "line": 10,
+      "line": 12,
       "title": "EXT-MODEL-PROVIDER-01 provider adapter owns reachability/auth, not FAST/REASON capability judgment",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4124,8 +3971,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/v1-provider-boundary.test.ts",
-      "line": 20,
-      "title": "EXT-MODEL-PROVIDER-02 provider-owned verification stops at reachability/auth and delegates capability truth to Model Domain",
+      "line": 22,
+      "title": "EXT-MODEL-PROVIDER-02 provider-owned setup stops at reachability/auth and leaves capability truth to Model Domain",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4136,8 +3983,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/v1-provider-boundary.test.ts",
-      "line": 39,
-      "title": "EXT-MODEL-PROVIDER-03 external provider adapter has no process lifecycle or system-assessment truth",
+      "line": 50,
+      "title": "EXT-MODEL-PROVIDER-03 external provider has no descriptor lifecycle/system-assessment truth",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4287,13 +4134,14 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 40,
+      "line": 38,
       "title": "runtime returns typed failures for boundary, capability, size, and invalid output",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/model-contracts/src/index.ts",
         "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/provider.ts",
         "packages/model-runtime/src/service.ts"
@@ -4302,13 +4150,14 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 97,
+      "line": 95,
       "title": "transport retry occurs once only when provider proves the request never started",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/model-contracts/src/index.ts",
         "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/provider.ts",
         "packages/model-runtime/src/service.ts"
@@ -4317,13 +4166,14 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 130,
+      "line": 128,
       "title": "OpenAI-compatible adapter sends role mapping, structured output, and every image",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/model-contracts/src/index.ts",
         "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/provider.ts",
         "packages/model-runtime/src/service.ts"
@@ -4332,13 +4182,14 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 181,
+      "line": 179,
       "title": "rendered provider prompt deterministically binds Spec instruction and typed input",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/model-contracts/src/index.ts",
         "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/provider.ts",
         "packages/model-runtime/src/service.ts"
@@ -4347,13 +4198,14 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 190,
+      "line": 188,
       "title": "HTTP service owns real start/status/infer/stop lifecycle",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/model-contracts/src/index.ts",
         "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/provider.ts",
         "packages/model-runtime/src/service.ts"
@@ -4362,13 +4214,14 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 217,
+      "line": 215,
       "title": "REAL1 /ready and /status refresh stale model capabilities in the same request",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/model-contracts/src/index.ts",
         "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/provider.ts",
         "packages/model-runtime/src/service.ts"
@@ -4377,13 +4230,14 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 271,
-      "title": "deployment adapter drives real service start/restart/status/stop lifecycle",
+      "line": 269,
+      "title": "deployment adapter exposes the fixed seven-command management surface without restart/verify/preflight",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/model-contracts/src/index.ts",
         "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/provider.ts",
         "packages/model-runtime/src/service.ts"
@@ -4392,13 +4246,14 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 300,
-      "title": "MOD-P1-06 HTTP client abort and deployment restart cancel queued/running work without late success",
+      "line": 284,
+      "title": "MOD-P1-06 HTTP client abort and explicit service restart cancel queued/running work without late success",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/model-contracts/src/index.ts",
         "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/provider.ts",
         "packages/model-runtime/src/service.ts"
@@ -4407,13 +4262,14 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 398,
+      "line": 375,
       "title": "deployment uninstall is idempotent when no Model Runtime service is bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/model-contracts/src/index.ts",
         "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/provider.ts",
         "packages/model-runtime/src/service.ts"
@@ -4422,13 +4278,14 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 405,
-      "title": "production binding preserves Model Runtime own config truth while dependencies are unavailable",
+      "line": 386,
+      "title": "model-runtime public setup surface is only fastModel/reasonModel and never asks the user for capabilityProfilesFile",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/model-contracts/src/index.ts",
         "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/provider.ts",
         "packages/model-runtime/src/service.ts"
@@ -4738,7 +4595,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/compatibility-hardening.test.ts",
-      "line": 54,
+      "line": 46,
       "title": "P1-6 compatibility covers all mechanically decidable breaking dimensions",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4760,7 +4617,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 45,
+      "line": 36,
       "title": "CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete boundary",
       "ids": [
         "CP-DPL-CON-01"
@@ -4773,7 +4630,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 80,
+      "line": 71,
       "title": "CP-DPL-CON-02 distinguishes moduleRef and secretRef and rejects unsafe combinations",
       "ids": [
         "CP-DPL-CON-02"
@@ -4786,7 +4643,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 118,
+      "line": 109,
       "title": "CP-DPL-CON-03 requirement queries are deterministic and side-effect free",
       "ids": [
         "CP-DPL-CON-03"
@@ -4799,8 +4656,8 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 128,
-      "title": "CP-DPL-CON-04 libraries and uncontrollable external resources do not fake start/stop",
+      "line": 119,
+      "title": "CP-DPL-CON-04 standard management is fixed at seven commands and legacy lifecycle fields are rejected",
       "ids": [
         "CP-DPL-CON-04"
       ],
@@ -4836,7 +4693,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 57,
+      "line": 59,
       "title": "CP-DPL-SKILL-01 descriptor round-trips the frozen contract and invents no capability/contract/dependency",
       "ids": [
         "CP-DPL-SKILL-01"
@@ -4851,7 +4708,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 70,
+      "line": 72,
       "title": "CP-DPL-SKILL-01 SKILL.md references only the frozen fact vocabulary",
       "ids": [
         "CP-DPL-SKILL-01"
@@ -4866,7 +4723,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 92,
+      "line": 94,
       "title": "CP-DPL-SKILL-02 package and descriptor carry no process lifecycle, persistence, service, or business store",
       "ids": [
         "CP-DPL-SKILL-02"
@@ -4881,7 +4738,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 103,
+      "line": 108,
       "title": "CP-DPL-SKILL-03 SKILL.md declares the required STOP / NOT_FROZEN stop rules",
       "ids": [
         "CP-DPL-SKILL-03"
@@ -4896,7 +4753,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 114,
+      "line": 119,
       "title": "RF-DPL-SKILL-01 the skill invents no capability, dependency, or permission",
       "ids": [
         "RF-DPL-SKILL-01"
@@ -4911,7 +4768,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 122,
+      "line": 127,
       "title": "RF-DPL-SKILL-02 real static conformance rejects a skill promoted to a process runtime",
       "ids": [
         "RF-DPL-SKILL-02"
@@ -4926,7 +4783,7 @@
     {
       "package": "module-skill",
       "path": "packages/module-skill/tests/module-skill.test.ts",
-      "line": 147,
+      "line": 152,
       "title": "RF-DPL-SKILL-03 SKILL.md stop rules cover missing dependency/permission/conformance before guessing",
       "ids": [
         "RF-DPL-SKILL-03"
@@ -4944,7 +4801,7 @@
       "line": 49,
       "title": "module-skill itself passes C1/C2/C3 generated-package conformance",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-template/src/index.ts"
@@ -4958,7 +4815,7 @@
       "ids": [
         "CP-DPL-SKILL-04"
       ],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-template/src/index.ts"
@@ -4972,7 +4829,19 @@
       "ids": [
         "RF-DPL-SKILL-04"
       ],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-template/src/index.ts"
+      ]
+    },
+    {
+      "package": "module-skill",
+      "path": "packages/module-skill/tests/skill-conformance.test.ts",
+      "line": 160,
+      "title": "SETUP-CLOSURE module-skill requires the shortest executable setup path",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-template/src/index.ts"
@@ -4992,7 +4861,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 45,
+      "line": 46,
       "title": "CP-DPL-TPL-01 materializes six profiles with only their real responsibilities",
       "ids": [
         "CP-DPL-TPL-01"
@@ -5006,8 +4875,8 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 106,
-      "title": "CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata and honest package-owned lifecycle",
+      "line": 100,
+      "title": "CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata and honest package-owned management surface",
       "ids": [
         "CP-DPL-TPL-02",
         "CP-DPL-TPL-05",
@@ -5022,7 +4891,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 168,
+      "line": 156,
       "title": "CP-DPL-TPL-03 generated TypeScript packages pass strict tsc with typed public boundaries",
       "ids": [
         "CP-DPL-TPL-03"
@@ -5036,7 +4905,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 207,
+      "line": 195,
       "title": "CP-DPL-TPL-04 migration is conditional and always requires re-conformance",
       "ids": [
         "CP-DPL-TPL-04"
@@ -5062,7 +4931,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/profile-hardening.test.ts",
-      "line": 90,
+      "line": 89,
       "title": "P1-4/P1-5 template enforces formal names and creates publishable public packages",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5074,7 +4943,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/profile-hardening.test.ts",
-      "line": 117,
+      "line": 116,
       "title": "FND-P1-01 generated Module builds JS and declarations, packs, and imports from an isolated consumer",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5097,8 +4966,8 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/profile-lifecycle-and-honesty.test.ts",
-      "line": 56,
-      "title": "gap-2 service profile generates and passes lifecycle tests",
+      "line": 57,
+      "title": "gap-2 service profile generates the fixed seven-command management surface",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5108,8 +4977,8 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/profile-lifecycle-and-honesty.test.ts",
-      "line": 96,
-      "title": "gap-3 browser-extension status reports honest READY config and UNKNOWN runtime",
+      "line": 102,
+      "title": "gap-3 browser-extension generated status uses the standard setup/runtime truth",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5130,19 +4999,8 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/docs.test.ts",
-      "line": 8,
-      "title": "platform docs aggregates Module-owned contracts and documents",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/platform-cli/src/cli.ts"
-      ]
-    },
-    {
-      "package": "platform-cli",
-      "path": "packages/platform-cli/tests/docs.test.ts",
-      "line": 61,
-      "title": "production binding failures are surfaced instead of downgraded to unbound state",
+      "line": 9,
+      "title": "platform docs forwards Module.docs result instead of reading package prose itself",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5175,7 +5033,7 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
       "line": 200,
-      "title": "only install accepts --workspace and all commands reject positional module arguments",
+      "title": "all operational commands accept --workspace while positional module arguments remain invalid",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5185,7 +5043,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 134,
+      "line": 125,
       "title": "InstalledModuleCatalog discovers declared governed installed modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5196,7 +5054,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 161,
+      "line": 152,
       "title": "InstalledModuleCatalog ignores undeclared and ungoverned packages",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5207,7 +5065,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 203,
+      "line": 194,
       "title": "discoverModules resolves installed modules through real Node resolution",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5218,7 +5076,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 233,
+      "line": 224,
       "title": "discoverModules finds installed modules in a product repo without pnpm-workspace.yaml",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5229,7 +5087,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 261,
+      "line": 252,
       "title": "AutoModuleCatalog combines workspace and installed sources",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5240,7 +5098,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 297,
+      "line": 288,
       "title": "AutoModuleCatalog prefers workspace over installed on packageName collision",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5251,7 +5109,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/installed-discovery.test.ts",
-      "line": 335,
+      "line": 326,
       "title": "InstalledModuleCatalog resolves a real built package via symlink",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5262,8 +5120,8 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 127,
-      "title": "start completes every preflight before any start and leaves zero starts on preflight failure",
+      "line": 149,
+      "title": "start gates on Module.status setup READY and never runs preflight",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5276,8 +5134,8 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 141,
-      "title": "start is dependency ordered and fail-fast without rollback or later starts",
+      "line": 163,
+      "title": "successful start and stop preserve dependency and reverse dependency order",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5290,8 +5148,8 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 162,
-      "title": "stop is reverse dependency ordered and fail-fast",
+      "line": 189,
+      "title": "setup skips READY modules and invokes only ACTION_REQUIRED module",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5304,8 +5162,36 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 173,
-      "title": "successful start and stop preserve dependency order",
+      "line": 199,
+      "title": "setup aggregates every non-ready Module instead of stopping at the first action",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 225,
+      "title": "targeted setup forwards opaque input without Platform interpretation",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 239,
+      "title": "setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5319,7 +5205,7 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
       "line": 9,
-      "title": "platform modules reports only Module-owned status facts",
+      "title": "platform status aggregates only Module-owned setup/runtime status",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5329,8 +5215,8 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 59,
-      "title": "production bindings keep raw secrets owner-scoped while sharing public config",
+      "line": 36,
+      "title": "platform status ignores obsolete Platform-side config files",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5340,8 +5226,8 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/product-workspace-integration.test.ts",
-      "line": 119,
-      "title": "simulated human Golden Path runs install → modules → docs → start → modules → stop → uninstall",
+      "line": 115,
+      "title": "simulated human Golden Path runs install → status → setup → docs → start → status → stop → uninstall",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5578,8 +5464,8 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-conformance.test.ts",
-      "line": 38,
-      "title": "production binding preserves Platform Host own config truth while dependencies are unavailable",
+      "line": 40,
+      "title": "Module.install owns Platform Host state/secrets while producer dependencies remain explicit",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -5969,7 +5855,7 @@
       "package": "task-migration-runner",
       "path": "packages/task-migration-runner/tests/migration-critical-proofs.test.ts",
       "line": 615,
-      "title": "deployment adapter drives real migration status/apply/verify and exposes migrated reality",
+      "title": "deployment adapter drives real migration status/migrate and exposes migrated reality",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -6329,7 +6215,7 @@
       "package": "task-store-sqlite",
       "path": "packages/task-store-sqlite/tests/deployment-reality.test.ts",
       "line": 23,
-      "title": "task-store production binding verifies real SQLite integrity and schema",
+      "title": "task-store Module.status verifies canonical SQLite integrity and schema",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [

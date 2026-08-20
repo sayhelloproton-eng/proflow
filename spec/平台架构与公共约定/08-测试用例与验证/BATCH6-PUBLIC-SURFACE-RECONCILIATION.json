@@ -232,7 +232,6 @@
       "binaries": [],
       "publicIndexSymbols": [
         "behaviorAdapter",
-        "createBehaviorAdapter",
         "descriptor"
       ],
       "classification": "CLASSIFIED"
@@ -357,7 +356,6 @@
       "binaries": [],
       "publicIndexSymbols": [
         "behaviorAdapter",
-        "createBehaviorAdapter",
         "descriptor"
       ],
       "classification": "CLASSIFIED"
@@ -743,10 +741,7 @@
       ],
       "binaries": [],
       "publicIndexSymbols": [
-        "RESOURCE_IDENTITY",
-        "RESOURCE_IDENTITY_VERSION",
         "behaviorAdapter",
-        "createBehaviorAdapter",
         "descriptor"
       ],
       "classification": "CLASSIFIED"
@@ -855,21 +850,20 @@
         "DeploymentError",
         "EffectRetention",
         "HumanAction",
-        "LifecyclePrimitive",
-        "LifecycleSupport",
-        "ModuleConfigStatus",
+        "ModuleCommandContext",
         "ModuleDescriptor",
-        "ModuleDocumentationEntry",
+        "ModuleDocumentation",
         "ModuleIdentity",
         "ModuleKind",
+        "ModuleManagementCommand",
         "ModuleOperationResult",
         "ModuleProvide",
         "ModuleRequire",
         "ModuleRequirement",
         "ModuleRuntimeStatus",
+        "ModuleSetupStatus",
         "ModuleStatusObservation",
         "ProFlowPackageMetadata",
-        "VerificationContract",
         "assessModuleCompatibility",
         "configSlotSchema",
         "configValueTypeSchema",
@@ -879,25 +873,23 @@
         "deploymentErrorSchema",
         "effectRetentionSchema",
         "humanActionSchema",
-        "lifecyclePrimitiveSchema",
-        "lifecycleSupportSchema",
-        "moduleConfigStatusSchema",
+        "moduleCommandContextSchema",
         "moduleDescriptorSchema",
-        "moduleDocumentationEntrySchema",
+        "moduleDocumentationSchema",
         "moduleIdentitySchema",
         "moduleKindSchema",
+        "moduleManagementCommandSchema",
         "moduleOperationResultSchema",
         "moduleProvideSchema",
         "moduleRequireSchema",
         "moduleRequirementSchema",
         "moduleRuntimeStatusSchema",
+        "moduleSetupStatusSchema",
         "moduleStatusObservationSchema",
-        "observeDeclaredModuleStatus",
         "parseModuleDescriptor",
         "proflowPackageMetadataSchema",
         "queryRequirements",
-        "verificationCheckSchema",
-        "verificationContractSchema"
+        "standardModuleManagementCommands"
       ],
       "classification": "CLASSIFIED"
     },
@@ -1030,7 +1022,6 @@
       "publicIndexSymbols": [
         "AutoModuleCatalog",
         "PlatformError",
-        "aggregateModuleDocs",
         "discoverModules",
         "renderHumanResult",
         "runCli"
