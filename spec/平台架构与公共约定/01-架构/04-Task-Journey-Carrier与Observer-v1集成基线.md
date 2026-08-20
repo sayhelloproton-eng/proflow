@@ -29,7 +29,7 @@ Task truth                 → Task Domain
 Role/Worker/Collaboration  → Agent Domain
 real Effect/Result/Evidence→ Execution Domain
 FAST/REASON/Vision         → Model Domain
-install/verify/doctor      → Deployment Domain
+Module governance / install-status-setup-start-stop → Deployment Domain
 page create/restore/wake   → Execution-owned Browser Carrier
 Task next-step detection   → Task Observer（Extension application logic）
 system assessment          → System Observer + Model REASON
@@ -63,7 +63,7 @@ J0 Role Ready
 
 ### J0
 
-Role READY 由 Deployment + ChatGPT Carrier verification 负责；按行为/能力、Actions/auth、required capabilities 与真实验证判断，不 pin 精确 model id。
+Role READY 的业务合格标准由 Agent/Carrier owner 定义；对应 Module 通过 `setup/status` 与必要的 Module-specific verification extra 观察真实行为/能力、Actions/auth、required capabilities。Platform Deployment 只聚合标准状态，不 pin 精确 model id。
 
 ### J1
 
@@ -218,7 +218,7 @@ Hard Rule / Owner Fact
 ```text
 Task start confirmation → Extension v1 / Feishu future；不是 Task Approval fact
 Execution safety approval → Execution owner fact
-Deployment ACTION_REQUIRED(_WEB) → human action + re-observe reality
+Module.setup ACTION_REQUIRED → human/external action + Module re-observe reality
 ChatGPT Action permission → OpenAI UI；routine non-consequential main path 使用 Always Allow
 ```
 

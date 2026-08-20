@@ -36,7 +36,7 @@ Extension、Agent Gateway、Execution Runtime、Model Runtime 仍是独立运行
 2. 建立 local transport/router，把请求转交事实 Owner。
 3. 按依赖顺序启动/停止 host-owned runtime components。
 4. 聚合 process/transport/dependency liveness/readiness，不发明 Domain READY。
-5. 注入由 Deployment materialize 的 config；schema/secret owner 不转移。
+5. 消费 platform-host 自己拥有的 runtime state/config 与明确 Public Contract/shared facts；Platform CLI 不注入、不解释其私有配置。
 6. 为 Extension application consumers 提供 Task/Agent/Execution/Model public client path。
 
 ## 3. Observer Support，但不拥有 Observer
@@ -58,7 +58,7 @@ System Observer 的 batching/carry-forward/global synthesis orchestration 不进
 - Task/Agent business Repository。
 - Execution Effect implementation。
 - Model provider/ReasoningSpec owner implementation。
-- Deployment plan/apply/verify truth。
+- Deployment / Platform CLI 私有 config、setup/status 或 Module lifecycle 第二真源。
 - cross-domain mutable mirror/global cache。
 - universal scheduler/event bus。
 - Browser DOM operation/frame/tab registry。

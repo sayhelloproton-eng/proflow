@@ -121,7 +121,7 @@ platform-host
 → module-skill
 ```
 
-`platform-cli` 的测试计划在 Deployment 阶段最先写完；其 fake-Module offline Gate 也可以提前准备，但**完整 production implementation/real lifecycle acceptance 在主要真实 Module 已存在后收口**。这既保留 Deployment 冻结文档中的 offline plan/apply Gate，也避免 CLI 先于真实 lifecycle 大量实现 fake 语义。
+`platform-cli` 的测试计划在 Deployment 阶段最先写完；其 fake-Module offline Gate 也可以提前准备，但**完整 production implementation/real lifecycle acceptance 在主要真实 Module 已存在后收口**。offline Gate 只证明七标准命令的 generic dispatch/ordering/result contract，不恢复 Plan/Apply，也避免 CLI 先于真实 Module 大量实现 fake 业务语义。
 
 `module-skill` 始终最后，不能早于规则与门禁。
 
