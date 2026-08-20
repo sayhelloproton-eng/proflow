@@ -69,3 +69,7 @@ Requires：所有正式 Module descriptor/adapter、Producer-owned shared facts�
 ## 7. 详细模型与边界正文
 
 本文件只冻结 DDD 导航边界；详细定义继续由本领域 `01-领域/02-*`、`01-领域/03-*` 和 `02-契约/*` 承载。
+
+## Setup closure invariant
+
+`platform setup` 必须全量扫描并聚合所有未 READY Module；每个 owning Module 的 `SETUP.md` 与 `Module.setup` 必须给出最短闭环，能自动的步骤自动完成，真正人工步骤提供 package-owned executable/verify，最终以 `Module.status.setupStatus=READY` 为完成条件。Platform 只做 discovery / ordering / forwarding / aggregation，不解释具体配置。
