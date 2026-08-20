@@ -40,7 +40,7 @@ Resolve Workspace
 
 ## 3. Status / Docs / Setup
 
-`status` 只聚合 Module.status；`docs` 只聚合 Module.docs；`setup` 只转发 Module.setup。三者都不替 Module 做业务判断。
+`status` 只聚合 Module.status；`docs` 只聚合 Module.docs；`setup` 按 dependency order 全量观察 Module，并对全部非 READY Module 转发 Module.setup。READY 跳过，可自动完成的 setup 继续执行，所有 `ACTION_REQUIRED/FAILED` 一次性聚合；Platform 不在第一个 blocker 停止，也不替 Module 做业务判断。
 
 ## 4. Start
 
@@ -71,6 +71,6 @@ Platform 不猜 Module cleanup；不自动删除整个 `.proflow`。
 
 ## 7. Human / Web 操作
 
-登录、浏览器加载、Custom GPT、Tunnel、Provider 等动作归 owning Module.setup。`ACTION_REQUIRED` 原样透传；再次执行 setup 时重新观察现实，不依赖 Platform resume state。
+登录、浏览器加载、Custom GPT、Tunnel、Provider 等动作归 owning Module.setup。每个 Module 的 `SETUP.md` 必须给出最短 Step 路线；每个状态推进 Step 必须有 package-owned executable 或 verify command。`ACTION_REQUIRED` 只用于真实人工/外部动作，并与其它 Module 的引导一起聚合；再次执行 setup 时重新观察现实，不依赖 Platform resume state。
 
 不存在 `platform configure/repair/doctor/apply` 作为替代入口。

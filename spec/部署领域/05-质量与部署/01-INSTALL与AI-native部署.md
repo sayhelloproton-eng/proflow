@@ -20,7 +20,7 @@ contractRefs: []
 platform install
 → platform status
 → platform docs（AI 理解 Module）
-→ platform setup（按 Module 当前事实逐步引导）
+→ platform setup（一次全量列出全部未 READY Module 的可执行引导）
 → platform status
 → platform start
 → platform status
@@ -53,7 +53,7 @@ Module install
 
 `status` 聚合 Module-owned `setupStatus/runtimeStatus`；`docs` 聚合 `Module.docs`；`setup` 转发 `Module.setup`。
 
-AI 通过 `DOCS.md` 理解能力，通过 `SETUP.md + Module.setup` 知道完整路线与当前下一步。Platform 不再读取 configSlots 后自行解释“缺什么配置”。
+AI 通过 `DOCS.md` 理解能力，通过 `SETUP.md + Module.setup` 一次获得完整未 READY 清单。各 Module 的 setup 以最少用户操作、最少往返、最快 READY 为目标：能自动就自动；必须人工时给出明确 Human Action；每个状态推进 Step 都有 package-owned executable/verify 与成功条件。Platform 不再读取 configSlots 后自行解释“缺什么配置”。
 
 ## 5. Config ownership
 
