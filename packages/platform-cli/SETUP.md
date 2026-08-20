@@ -1,7 +1,27 @@
 # @tomflow/proflow-platform-cli — Module Setup
 
-No user or external setup is required by the current frozen Module contract. `Module.install` completes deterministic preparation; `Module.setup` only re-observes current reality and must not ask the user to supply private paths, loopback endpoints, tokens or cross-Module facts.
+The Platform CLI owns orchestration only. It never interprets another Module's setup details. Global `platform setup` traverses every discovered Module, skips `READY` Modules, lets each non-ready Module run its own package-owned setup workflow, and aggregates every remaining `ACTION_REQUIRED` or `FAILED` result in one response.
 
-## Completion
+## Step 1 — Verify the Platform CLI Module
 
-Setup is complete only when the Module's own `status` reports `setupStatus=READY`. Re-running setup must re-observe reality; it must not resume from a blind historical step index.
+**Executable**
+
+```bash
+platform setup --module platform-cli
+```
+
+**Success condition**
+
+`platform status` reports `platform-cli setup=READY`. No user/private path, token, loopback endpoint, or cross-Module fact is requested.
+
+## Step 2 — Run the full workspace setup guide
+
+**Executable**
+
+```bash
+platform setup
+```
+
+**Success condition**
+
+All automatically solvable Module setup work is completed in the same run, and every remaining human/external action is listed together. Re-running the command re-observes reality and continues until all required Modules report `setupStatus=READY`.

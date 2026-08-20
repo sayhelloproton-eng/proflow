@@ -113,6 +113,7 @@ export async function setupModulesThin(
 ): Promise<ModuleBatchResult> {
 	const results: ModuleDispatchResult[] = [];
 	let matched = target === undefined;
+	let completed = true;
 	for (const module of ordered(modules)) {
 		if (target !== undefined && module.moduleRef !== target.moduleRef) continue;
 		matched = true;
@@ -122,12 +123,12 @@ export async function setupModulesThin(
 			"status",
 			context(workspaceRoot),
 		);
-		if (!succeeded(status.result))
-			return {
-				phase: "setup",
-				results: [...results, status],
-				completed: false,
-			};
+		if (!succeeded(status.result)) {
+			results.push(status);
+			completed = false;
+			if (target !== undefined) break;
+			continue;
+		}
 		const observed = moduleStatusObservationSchema.parse(status.result.data);
 		if (observed.setupStatus === "READY" && target?.input === undefined)
 			continue;
@@ -138,15 +139,17 @@ export async function setupModulesThin(
 			context(workspaceRoot, target?.input),
 		);
 		results.push(setup);
-		if (!succeeded(setup.result))
-			return { phase: "setup", results, completed: false };
+		if (!succeeded(setup.result)) {
+			completed = false;
+			if (target !== undefined) break;
+		}
 	}
 	if (!matched)
 		throw new PlatformError(
 			"INVALID_REQUEST",
 			`setup target module ${target?.moduleRef ?? ""} was not discovered`,
 		);
-	return { phase: "setup", results, completed: true };
+	return { phase: "setup", results, completed };
 }
 export async function startModulesThin(
 	catalog: ModuleCatalog,

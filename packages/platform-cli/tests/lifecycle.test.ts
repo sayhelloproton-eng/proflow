@@ -56,6 +56,7 @@ function recordingCatalog(
 	setupByRef: Readonly<
 		Record<string, "READY" | "ACTION_REQUIRED" | "FAILED">
 	> = {},
+	setupResultByRef: Readonly<Record<string, "ACTION_REQUIRED">> = {},
 ) {
 	const calls: Array<{ call: string; input?: unknown }> = [];
 	const catalog: ModuleCatalog = {
@@ -72,6 +73,24 @@ function recordingCatalog(
 					call: `${moduleRef}:${command}`,
 					...(context.input === undefined ? {} : { input: context.input }),
 				});
+				if (
+					command === "setup" &&
+					setupResultByRef[moduleRef] === "ACTION_REQUIRED"
+				)
+					return {
+						result: {
+							contract: "deployment.result.v1" as const,
+							ok: false,
+							status: "ACTION_REQUIRED" as const,
+							moduleRef,
+							moduleVersion: "1.0.0",
+							actionRequired: {
+								action: `configure-${moduleRef}`,
+								description: `Configure ${moduleRef}`,
+							},
+						},
+						observedEffects: [],
+					};
 				const data =
 					command === "status"
 						? {
@@ -159,6 +178,32 @@ test("setup skips READY modules and invokes only ACTION_REQUIRED module", async 
 	assert.deepEqual(
 		calls.map((item) => item.call),
 		["provider:status", "consumer:status", "consumer:setup", "leaf:status"],
+	);
+});
+
+test("setup aggregates every non-ready Module instead of stopping at the first action", async () => {
+	const { catalog, calls } = recordingCatalog(
+		{ consumer: "ACTION_REQUIRED", leaf: "ACTION_REQUIRED" },
+		{ consumer: "ACTION_REQUIRED", leaf: "ACTION_REQUIRED" },
+	);
+	const result = await setupModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(result.completed, false);
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		[
+			"provider:status",
+			"consumer:status",
+			"consumer:setup",
+			"leaf:status",
+			"leaf:setup",
+		],
+	);
+	assert.deepEqual(
+		result.results.map((item) => [item.moduleRef, item.result.status]),
+		[
+			["consumer", "ACTION_REQUIRED"],
+			["leaf", "ACTION_REQUIRED"],
+		],
 	);
 });
 

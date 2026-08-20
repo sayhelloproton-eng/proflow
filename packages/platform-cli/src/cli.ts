@@ -211,7 +211,13 @@ function batchStatus(result: ModuleBatchResult): CliStatus {
 		return result.blockedBy.setupStatus === "ACTION_REQUIRED"
 			? "ACTION_REQUIRED"
 			: "FAILED";
-	return statusFromModule(result.results.at(-1)?.result.status ?? "FAILED");
+	const statuses = result.results.map((item) =>
+		statusFromModule(item.result.status),
+	);
+	if (statuses.includes("FAILED")) return "FAILED";
+	if (statuses.includes("BLOCKED")) return "BLOCKED";
+	if (statuses.includes("ACTION_REQUIRED")) return "ACTION_REQUIRED";
+	return "FAILED";
 }
 async function handleStatus(root: string): Promise<CliOutcome> {
 	const { catalog, modules } = await buildContext(root);
@@ -537,6 +543,40 @@ function renderDocs(data: unknown) {
 			);
 	return lines.join("\n");
 }
+function renderSetup(data: unknown) {
+	if (!isRecord(data) || !Array.isArray(data.results))
+		return "No setup actions are required.";
+	const lines = ["ProFlow Setup", ""];
+	let automatic = 0;
+	let pending = 0;
+	for (const raw of data.results) {
+		if (!isRecord(raw) || !isRecord(raw.result)) continue;
+		const moduleRef = String(
+			raw.moduleRef ?? raw.result.moduleRef ?? "unknown",
+		);
+		const status = String(raw.result.status ?? "UNKNOWN");
+		if (status === "SUCCEEDED") {
+			automatic += 1;
+			continue;
+		}
+		pending += 1;
+		lines.push(`## ${moduleRef} — ${status}`);
+		const actionRequired = raw.result.actionRequired;
+		if (isRecord(actionRequired)) {
+			if (actionRequired.action !== undefined)
+				lines.push(`Action: ${String(actionRequired.action)}`);
+			if (actionRequired.description !== undefined)
+				lines.push(String(actionRequired.description));
+		} else if (raw.result.data !== undefined) {
+			lines.push(JSON.stringify(raw.result.data, null, 2));
+		}
+		lines.push("");
+	}
+	if (pending === 0) lines.push("All discovered Modules are setup-ready.");
+	if (automatic > 0)
+		lines.push(`Automatically completed in this run: ${automatic}`);
+	return lines.join("\n").trimEnd();
+}
 export function renderHumanResult(result: CliOutcome): string {
 	if (result.status === "FAILED")
 		return `${result.command.toUpperCase()} FAILED${result.error ? ` [${result.error.code}] ${result.error.message}` : ""}`;
@@ -553,6 +593,7 @@ export function renderHumanResult(result: CliOutcome): string {
 	if (result.command === "version" && isRecord(result.data))
 		return String(result.data.version ?? platformCliDescriptor.moduleVersion);
 	if (result.command === "status") return renderStatus(result.data);
+	if (result.command === "setup") return renderSetup(result.data);
 	if (result.command === "docs") return renderDocs(result.data);
 	return [
 		`${result.command.toUpperCase()} ${result.status}`,
