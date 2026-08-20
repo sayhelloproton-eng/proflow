@@ -20,7 +20,7 @@ contractRefs: []
 定义 Module identity/kind/version、轻量 package discovery metadata、provides/requires、标准七能力、统一 operation result 与 `setupStatus/runtimeStatus` 状态合同。
 
 ### `module-template`
-生成符合冻结模型的标准 Module 工程形式：descriptor、adapter、七标准能力、`DOCS.md`、`SETUP.md`。不生成 `CONFIGURATION.md`，也不生成 Platform-owned preflight/verify/doctor 心智。
+生成符合冻结模型的标准 Module 工程形式：descriptor、adapter、七标准能力、`DOCS.md`、`SETUP.md` 与 package-owned setup executable/verify seam。`SETUP.md` 必须表达最短闭环步骤，而不是纯 prose。Template 不生成 `CONFIGURATION.md`，也不生成 Platform-owned preflight/verify/doctor 心智。
 
 ### `deployment-conformance`
 机械验证 package metadata、descriptor/manifest equality、七标准 adapter commands、DOCS/SETUP 与治理边界；不验证业务正确性，不要求 `createProductionBinding` 或 Platform config bus。
@@ -35,7 +35,7 @@ install uninstall status setup docs start stop
 职责只包含 Registry/Workspace discovery、ordering、forwarding、aggregation 与 package-manager transaction orchestration。
 
 ### `module-skill`
-AI 开发辅助，只消费 Contract/Template/Conformance 与七命令产品真源；不得重新发明 Platform-owned validation/config bus/Plan/Apply/Verify/Doctor。
+AI 开发辅助，只消费 Contract/Template/Conformance 与七命令产品真源；负责检查 Module setup 是否从“当前 reality → 自动步骤 → 最小人工动作 → package-owned verify → READY”闭环，不得重新发明 Platform-owned validation/config bus/Plan/Apply/Verify/Doctor。
 
 ## 2. Module 分类
 
@@ -86,3 +86,20 @@ Create / Adopt
 ```
 
 新增合规 Module 不需要修改 Platform CLI module-specific 业务代码；Module-specific extra command 也不进入 Platform 代理面。
+
+## 7. Setup 闭环治理
+
+```text
+platform setup
+→ 全量发现与依赖排序
+→ READY Module 跳过
+→ 其余 Module.setup 全部执行
+→ Module 自己自动完成可自动步骤
+→ 一次聚合全部 ACTION_REQUIRED / FAILED
+→ 用户只提供真正不可自动获得的最小输入
+→ package-owned verify
+→ Module.status.setupStatus = READY
+→ platform start
+```
+
+Platform 只拥有“发现、排序、转发、聚合”。具体步骤、脚本、材料、验证与恢复全部属于 owning Module。治理优先级固定为：**能自动就自动；必须人工才问；能一次问完不分多次；能脚本验证不靠口头确认。**

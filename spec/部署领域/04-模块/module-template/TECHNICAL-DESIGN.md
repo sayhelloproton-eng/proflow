@@ -71,6 +71,18 @@ SETUP.md
 
 `CONFIGURATION.md` 不再生成。`DOCS.md` 讲能力/API/Contract；`SETUP.md` 讲 install 之后真实的人机/外部步骤。没有人工 setup 的 Module 也生成最小 `SETUP.md`，明确 `install` 已完成全部 deterministic preparation。
 
+生成的 `SETUP.md` 必须采用**最短闭环 Step**，每个会推进 setup 的 Step 至少包含：
+
+```text
+Step ID / Goal
+Executable（package-owned command/script）
+Human Action（仅真正不可自动时存在）
+Verify（package-owned executable；可与 Executable 合并）
+Success Condition（最终映射到 Module.status.setupStatus）
+```
+
+Template 不强制“一步一个进程”或人为拆分流程；如果一个 package-owned command 能自动完成准备、写入、验证，就应一次完成。纯人工 Web/UI 步骤也必须有 prepare/verify executable，使 AI 不依赖口头确认。
+
 ## 7. CLI
 
 生成的 Module 不因 kind 自动获得标准 shell CLI。标准七能力由 `deployment/adapter.ts` 提供统一管理真源。

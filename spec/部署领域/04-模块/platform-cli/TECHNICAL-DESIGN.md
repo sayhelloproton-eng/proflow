@@ -69,7 +69,23 @@ runtimeStatus = RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 
 ## 6. Setup
 
-按 dependency order 观察 status；对 `setupStatus != READY` 的 Module 调用 `Module.setup`，原样转发 `ACTION_REQUIRED/FAILED/SUCCEEDED`。Platform 不理解 Microsoft、Chrome、Custom GPT、Tunnel、Model 等具体步骤。
+`platform setup` 默认执行**全量扫描与聚合**：
+
+```text
+Discover all Modules
+→ dependency order
+→ observe Module.status
+→ READY: skip
+→ non-READY: invoke Module.setup
+→ continue after ACTION_REQUIRED / FAILED
+→ aggregate every result once
+```
+
+全量 setup 不得 fail-fast。其目的不是替 Module 决策，而是让 AI/用户一次看到当前所有 Module 的可执行引导和机器 blocker，减少反复运行命令才能知道下一件事的往返成本。
+
+Platform 原样保留 Module 返回的 `actionRequired/error/data`，但不理解 Microsoft、Chrome、Custom GPT、Tunnel、Model 等具体步骤，也不生成 module-specific instructions。`platform setup --module <moduleRef> --input <opaque-json>` 只作为某个 Module 接收后续最小人工输入的定向入口；它不是默认 discovery 流程，Platform 不解释 `input`。
+
+Module 的 setup 实现必须优先自动执行所有 machine-owned 步骤，只把真正的用户/外部选择留给 `ACTION_REQUIRED`。Platform 不允许因“方便引导”重新变成 config bus。
 
 ## 7. Docs
 
