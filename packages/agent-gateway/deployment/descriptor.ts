@@ -32,6 +32,10 @@ export const descriptor = {
 			versionRange: ">=1.0.0 <2.0.0",
 		},
 		{
+			contractRef: "platform-host",
+			versionRange: ">=1.0.0 <2.0.0",
+		},
+		{
 			contractRef: "public-ingress",
 			versionRange: ">=1.0.0 <2.0.0",
 		},

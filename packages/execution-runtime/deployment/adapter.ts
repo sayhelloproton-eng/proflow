@@ -47,31 +47,38 @@ async function ownFacts(context: ModuleCommandContext) {
 	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
 	return facts;
 }
-async function dependencies(context: ModuleCommandContext) {
+async function baseDependencies(context: ModuleCommandContext) {
 	const host = await readModuleSharedFacts(context, "platform-host");
 	const model = await readModuleSharedFacts(context, "model-runtime");
-	const browser = await readModuleSharedFacts(
-		context,
-		"execution-browser-extension",
-	);
 	const identityEndpoint = factString(host, "endpoint");
 	const identityTokenFile = factString(host, "identityTokenFile");
 	const modelEndpoint = factString(model, "endpoint");
 	const modelCredentialFile = factString(model, "transportCredentialFile");
-	const browserExecutorConfigPath = factString(
-		browser,
-		"browserExecutorConfigPath",
-	);
 	return identityEndpoint &&
 		identityTokenFile &&
 		modelEndpoint &&
-		modelCredentialFile &&
-		browserExecutorConfigPath
+		modelCredentialFile
 		? {
 				identityEndpoint,
 				identityTokenFile,
 				modelEndpoint,
 				modelCredentialFile,
+			}
+		: undefined;
+}
+async function dependencies(context: ModuleCommandContext) {
+	const base = await baseDependencies(context);
+	const browser = await readModuleSharedFacts(
+		context,
+		"execution-browser-extension",
+	);
+	const browserExecutorConfigPath = factString(
+		browser,
+		"browserExecutorConfigPath",
+	);
+	return base && browserExecutorConfigPath
+		? {
+				...base,
 				browserExecutorConfigPath,
 			}
 		: undefined;

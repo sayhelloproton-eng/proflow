@@ -1,14 +1,19 @@
-import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
+
+import {
+	deterministicLoopbackPort,
+	type ModuleCommandContext,
+	readModuleSharedFacts,
+	writeModuleSharedFacts,
+} from "@tomflow/proflow-module-contract";
 import { descriptor } from "./descriptor.ts";
 
 type GatewayProcess = {
 	start(): Promise<{ host: string; port: number }>;
 	stop(): Promise<void>;
-	restart(): Promise<{ host: string; port: number }>;
-	readiness(): Promise<{ status: "READY" | "NOT_READY" }>;
-	status(): unknown;
 };
-
+const services = new Map<string, GatewayProcess>();
 const base = {
 	contract: "deployment.result.v1",
 	ok: true,
@@ -16,201 +21,169 @@ const base = {
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
-const unbound = {
+const key = (context: ModuleCommandContext) => resolve(context.workspaceRoot);
+const factString = (
+	facts: Record<string, unknown> | undefined,
+	name: string,
+) => (typeof facts?.[name] === "string" ? String(facts[name]) : undefined);
+async function ownFacts(context: ModuleCommandContext) {
+	const localBaseUrl = `http://127.0.0.1:${deterministicLoopbackPort(context, descriptor.moduleRef)}`;
+	const tunnel = await readModuleSharedFacts(context, "dev-tunnel");
+	const publicBaseUrl = factString(tunnel, "publicBaseUrl");
+	const facts = { localBaseUrl, ...(publicBaseUrl ? { publicBaseUrl } : {}) };
+	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
+	return facts;
+}
+async function dependencies(context: ModuleCommandContext) {
+	const tunnel = await readModuleSharedFacts(context, "dev-tunnel");
+	const host = await readModuleSharedFacts(context, "platform-host");
+	const publicBaseUrl = factString(tunnel, "publicBaseUrl");
+	const downstreamBaseUrl = factString(host, "endpoint");
+	const downstreamCredentialFile = factString(
+		host,
+		"gatewayTransportCredentialFile",
+	);
+	const stateRoot = factString(host, "stateRoot");
+	return publicBaseUrl &&
+		downstreamBaseUrl &&
+		downstreamCredentialFile &&
+		stateRoot
+		? { publicBaseUrl, downstreamBaseUrl, downstreamCredentialFile, stateRoot }
+		: undefined;
+}
+async function running(context: ModuleCommandContext) {
+	const own = await ownFacts(context);
+	try {
+		return (
+			await fetch(`${own.localBaseUrl}/ready`, {
+				signal: AbortSignal.timeout(500),
+			})
+		).ok;
+	} catch {
+		return false;
+	}
+}
+async function compose(context: ModuleCommandContext): Promise<GatewayProcess> {
+	const own = await ownFacts(context);
+	const deps = await dependencies(context);
+	if (!deps)
+		throw new Error(
+			"public-ingress or platform-host shared facts are unavailable",
+		);
+	const credentialFile = join(
+		deps.stateRoot,
+		"agent",
+		"secrets",
+		"role-credentials.json",
+	);
+	if (!existsSync(credentialFile))
+		throw new Error(
+			"Agent role credential store is not materialized by Platform Host",
+		);
+	const { createAgentGatewayProcess, parseAgentGatewayProcessConfig } =
+		await import("../src/process.ts");
+	const listener = new URL(own.localBaseUrl);
+	return createAgentGatewayProcess({
+		config: parseAgentGatewayProcessConfig({
+			host: listener.hostname,
+			port: Number(listener.port),
+			publicBaseUrl: deps.publicBaseUrl,
+			downstreamBaseUrl: deps.downstreamBaseUrl,
+			credentialFile,
+			downstreamCredentialFile: deps.downstreamCredentialFile,
+		}),
+	});
+}
+const failed = (
+	code: "SETUP_FAILED" | "START_FAILED" | "STOP_FAILED",
+	message: string,
+) => ({
 	...base,
-	ok: false,
-	status: "ACTION_REQUIRED",
-	actionRequired: {
-		action: "compose-gateway",
-		description: "Provide owner ports and process configuration",
+	ok: false as const,
+	status: "FAILED" as const,
+	error: { code, message, retryable: true },
+});
+export const behaviorAdapter = {
+	install: async (context: ModuleCommandContext) => ({
+		result: { ...base, data: await ownFacts(context) },
+		observedEffects: [],
+	}),
+	uninstall: async (context: ModuleCommandContext) => {
+		const service = services.get(key(context));
+		if (service) {
+			await service.stop();
+			services.delete(key(context));
+		}
+		return {
+			result: base,
+			observedEffects: service ? ["Manage the declared service process"] : [],
+		};
 	},
-} as const;
-export function createBehaviorAdapter(
-	service?: GatewayProcess,
-	config?: Record<string, string>,
-	configValid = true,
-) {
-	return {
-		describe: () => ({ result: base, observedEffects: [] }),
-		preflight: () => ({ result: base, observedEffects: [] }),
-		status: async () => {
-			const readiness = service ? await service.readiness() : undefined;
-			const ready = readiness?.status === "READY";
-			const data = observeDeclaredModuleStatus(
-				descriptor,
-				config,
-				ready ? "RUNNING" : service ? "FAILED" : "UNKNOWN",
-				configValid,
-			);
+	status: async (context: ModuleCommandContext) => ({
+		result: {
+			...base,
+			data: {
+				setupStatus: (await dependencies(context))
+					? ("READY" as const)
+					: ("FAILED" as const),
+				runtimeStatus: (await running(context))
+					? ("RUNNING" as const)
+					: ("STOPPED" as const),
+			},
+		},
+		observedEffects: [],
+	}),
+	setup: async (context: ModuleCommandContext) => ({
+		result: (await dependencies(context))
+			? base
+			: failed(
+					"SETUP_FAILED",
+					"public-ingress or platform-host producer shared facts are unavailable",
+				),
+		observedEffects: [],
+	}),
+	docs: async (_context: ModuleCommandContext) => ({
+		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		observedEffects: [],
+	}),
+	start: async (context: ModuleCommandContext) => {
+		try {
+			const service = await compose(context);
+			const data = await service.start();
+			services.set(key(context), service);
+			await ownFacts(context);
 			return {
 				result: { ...base, data },
+				observedEffects: ["Manage the declared service process"],
+			};
+		} catch (error) {
+			return {
+				result: failed(
+					"START_FAILED",
+					error instanceof Error ? error.message : "agent-gateway start failed",
+				),
 				observedEffects: [],
 			};
-		},
-		verify: async () => {
-			const readiness = service ? await service.readiness() : undefined;
-			const ready = readiness?.status === "READY";
+		}
+	},
+	stop: async (context: ModuleCommandContext) => {
+		const service = services.get(key(context));
+		if (service) {
+			await service.stop();
+			services.delete(key(context));
 			return {
-				result: {
-					...(service && ready
-						? base
-						: service
-							? {
-									...base,
-									ok: false as const,
-									status: "ACTION_REQUIRED" as const,
-									actionRequired: {
-										action: "repair-gateway",
-										description: "Gateway is not READY",
-									},
-								}
-							: unbound),
-					checks: [
-						{
-							id: "gateway-readiness",
-							status: ready ? ("PASS" as const) : ("FAIL" as const),
-							message: service
-								? `Gateway readiness is ${readiness?.status ?? "NOT_READY"}`
-								: "No configured Gateway process is bound",
-						},
-					],
-				},
-				observedEffects: [],
-			};
-		},
-		doctor: () => ({ result: base, observedEffects: [] }),
-		start: async () => ({
-			result: {
-				...base,
-				...(service
-					? { data: await service.start() }
-					: {
-							status: "ACTION_REQUIRED" as const,
-							ok: false,
-							actionRequired: {
-								action: "compose-gateway",
-								description: "Provide owner ports before starting Gateway",
-							},
-						}),
-			},
-			observedEffects: service ? ["Manage the declared service process"] : [],
-		}),
-		stop: async () => {
-			if (service) await service.stop();
-			return {
-				result: service ? base : unbound,
-				observedEffects: service ? ["Manage the declared service process"] : [],
-			};
-		},
-		uninstall: async () => {
-			if (service) await service.stop();
-			return {
-				// Uninstall is idempotent: an unbound service means there is no
-				// process to stop before package removal. Runtime readiness still
-				// fails closed in status/start/verify.
 				result: base,
-				observedEffects: service ? ["Manage the declared service process"] : [],
+				observedEffects: ["Manage the declared service process"],
 			};
-		},
-		restart: async () => ({
-			result: {
-				...base,
-				...(service
-					? { data: await service.restart() }
-					: {
-							status: "ACTION_REQUIRED" as const,
-							ok: false,
-							actionRequired: {
-								action: "compose-gateway",
-								description: "Provide owner ports before restarting Gateway",
-							},
-						}),
-			},
-			observedEffects: service ? ["Manage the declared service process"] : [],
-		}),
-	};
-}
-
-export const behaviorAdapter = createBehaviorAdapter();
-
-export async function createProductionBinding(input: {
-	moduleRef: string;
-	config: Record<string, string>;
-	workspaceRoot: string;
-	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
-}): Promise<{ behaviorAdapter: Record<string, unknown> }> {
-	const unboundBinding = (configValid = true) => ({
-		behaviorAdapter: createBehaviorAdapter(
-			undefined,
-			input.config,
-			configValid,
-		),
-	});
-	const localBaseUrl = input.config.localBaseUrl;
-	const publicBaseUrl = input.config.publicBaseUrl;
-	const downstreamCredentialFile = input.config.downstreamCredentialFile;
-	if (!localBaseUrl || !publicBaseUrl || !downstreamCredentialFile)
-		return unboundBinding();
-
-	let listener: URL;
-	let publicUrl: URL;
-	try {
-		listener = new URL(localBaseUrl);
-		publicUrl = new URL(publicBaseUrl);
-	} catch {
-		return unboundBinding(false);
-	}
-	if (
-		listener.protocol !== "http:" ||
-		!new Set(["127.0.0.1", "localhost", "::1", "[::1]"]).has(
-			listener.hostname,
-		) ||
-		listener.pathname !== "/" ||
-		publicUrl.protocol !== "https:"
-	)
-		return unboundBinding(false);
-	const port = listener.port === "" ? 80 : Number(listener.port);
-	if (!Number.isInteger(port) || port <= 0 || port > 65_535)
-		return unboundBinding(false);
-
-	const platformHost = input.configByModuleRef.get("platform-host");
-	const executionRuntime = input.configByModuleRef.get("execution-runtime");
-	const stateRoot = platformHost?.stateRoot;
-	const downstreamBaseUrl = executionRuntime?.["identity.endpoint"];
-	if (!stateRoot || !downstreamBaseUrl) return unboundBinding();
-	try {
-		const downstream = new URL(downstreamBaseUrl);
-		if (
-			downstream.protocol !== "http:" ||
-			!["localhost", "127.0.0.1", "::1"].includes(downstream.hostname)
-		)
-			return unboundBinding();
-	} catch {
-		return unboundBinding();
-	}
-
-	const [
-		{ join },
-		{ createAgentGatewayProcess, parseAgentGatewayProcessConfig },
-	] = await Promise.all([import("node:path"), import("../src/process.ts")]);
-	let processConfig: ReturnType<typeof parseAgentGatewayProcessConfig>;
-	try {
-		processConfig = parseAgentGatewayProcessConfig({
-			host: listener.hostname,
-			port,
-			publicBaseUrl,
-			downstreamBaseUrl,
-			credentialFile: join(
-				stateRoot,
-				"agent",
-				"secrets",
-				"role-credentials.json",
-			),
-			downstreamCredentialFile,
-		});
-	} catch {
-		return unboundBinding(false);
-	}
-	const service = await createAgentGatewayProcess({ config: processConfig });
-	return { behaviorAdapter: createBehaviorAdapter(service, input.config) };
-}
+		}
+		return {
+			result: (await running(context))
+				? failed(
+						"STOP_FAILED",
+						"agent-gateway is running without an owned lifecycle handle",
+					)
+				: base,
+			observedEffects: [],
+		};
+	},
+} as const;
