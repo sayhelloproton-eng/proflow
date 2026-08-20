@@ -34,3 +34,10 @@ implementationWave: Wave 0
 - static/runtime descriptor identity/version 一致。
 
 旧 Core/install closure/preflight/mandatory verification assertions 必须删除，不得倒逼恢复产品字段。
+
+## Setup Contract 新增证明
+
+- `ACTION_REQUIRED` 只表达真正人工/外部动作。
+- setup result 能让 AI 得到最小人工输入与 package-owned executable/verify。
+- Contract 不要求 Platform 保存 step state 或理解 Module 私有配置。
+- Contract 支持 `platform setup` 对全部非 READY Module 一次遍历并一次性聚合。

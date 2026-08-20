@@ -41,3 +41,7 @@ FUTURE = 不属于 v1 当前范围
 ## DPL-FUTURE-004｜容器/集群部署
 - Type: `FUTURE`
 - v1 只面向当前单机/单体部署；无真实需求不引入 Docker/Kubernetes 编排层。
+
+## 当前 Setup 基线
+
+“逐个 Module 才能发现下一项配置”不再视为可接受限制。当前基线要求 `platform setup` 一次遍历全部 discovered Module，并一次性聚合所有 `ACTION_REQUIRED/FAILED`。每个 owning Module 必须提供最短 `SETUP.md` Step、package-owned executable/verify 与 Success Condition；真正无法自动化的外部现实才允许保留为 limitation/spike。

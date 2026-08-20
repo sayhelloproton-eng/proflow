@@ -35,3 +35,10 @@ implementationWave: Wave 0
 - 不生成 Platform config bus、production binding middleman 或 package-local Platform wrapper。
 
 测试只验证治理形式，不验证领域业务实现。
+
+## Setup Template 新增证明
+
+- 生成的 `SETUP.md` 必须是最短 Step 闭环。
+- 每个状态推进 Step 必须声明 package-owned executable/verify 与 Success Condition。
+- 能自动化的步骤不得生成 Human Action；只有真实外部/用户动作才可要求人工。
+- 生成结构必须允许 Platform 全量聚合而无需 module-specific 解释。

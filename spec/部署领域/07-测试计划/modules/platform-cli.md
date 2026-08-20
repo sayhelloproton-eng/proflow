@@ -76,3 +76,10 @@ Fresh Workspace
 ```
 
 Final assertion：没有隐藏 old-engine route，Platform 不需要理解任何具体 Module 的 Chrome/GPT/Tunnel/SQLite/port/config 业务。
+
+## Setup 全量聚合新增证明
+
+- 证明 `platform setup` 一次遍历全部 discovered Module，READY 跳过。
+- 证明首个 `ACTION_REQUIRED` 或 `FAILED` 不终止后续 Module setup。
+- 证明最终一次性聚合所有未 READY Module 的 action/error/data。
+- 证明 Platform 不解释 package-owned Step、executable/verify 或 opaque input。
