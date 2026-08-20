@@ -28,7 +28,7 @@ FUTURE = 不属于 v1 当前范围
 ## MODEL-LIMIT-001｜Provider Capability 必须实测
 - Type: `KNOWN_LIMITATION`
 - Provider 声明不能代替真实 capability verification。
-- Current fallback: Deployment verify/doctor + Model behavior tests；不满足则 `DEGRADED/UNAVAILABLE`。
+- Current fallback: owning Model Module 的 setup/status + package-owned capability verification + Model behavior tests；不满足则 `DEGRADED/UNAVAILABLE`。Platform 不提供 verify/doctor 第二真源。
 
 ## MODEL-LIMIT-002｜单 Lane 是 v1 稳定性策略
 - Type: `KNOWN_LIMITATION`
