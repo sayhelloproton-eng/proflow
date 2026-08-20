@@ -6,9 +6,10 @@ import { join, resolve } from "node:path";
 import { type TestContext, test } from "node:test";
 import { promisify } from "node:util";
 
-import type {
-	ModuleDescriptor,
-	ModuleOperationResult,
+import {
+	type ModuleDescriptor,
+	type ModuleOperationResult,
+	standardModuleManagementCommands,
 } from "@tomflow/proflow-module-contract";
 import { materializeModule } from "@tomflow/proflow-module-template";
 import {
@@ -57,22 +58,20 @@ function result(
 
 function adapterFor(descriptor: ModuleDescriptor): BehaviorAdapter {
 	const adapter: BehaviorAdapter = {};
-	for (const primitive of descriptor.lifecycle.supported) {
-		adapter[primitive] = (): BehaviorObservation => ({
+	for (const command of standardModuleManagementCommands) {
+		adapter[command] = (): BehaviorObservation => ({
 			result: result(
 				descriptor.moduleRef,
 				descriptor.moduleVersion,
-				primitive === "status"
-					? { configStatus: "READY", runtimeStatus: "UNKNOWN" }
+				command === "status"
+					? { setupStatus: "READY", runtimeStatus: "NOT_APPLICABLE" }
 					: undefined,
 			),
 			observedEffects: [],
-			...(primitive === "status" && descriptor.kind === "external-resource"
+			...(command === "status" && descriptor.kind === "external-resource"
 				? {
-						externalAvailabilityClaim: "UNKNOWN",
-						externalAvailabilityEvidence: "fake",
-						readinessClaim: "UNKNOWN",
-						readinessEvidence: "fake",
+						externalAvailabilityClaim: "UNKNOWN" as const,
+						externalAvailabilityEvidence: "fake" as const,
 					}
 				: {}),
 		});
@@ -272,8 +271,10 @@ test("C2 accepts CLI-specific structured machine JSON and rejects non-object out
 test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability without invoking undeclared lifecycle", async (context) => {
 	const generated = await generatedExternal(context);
 	let undeclaredCalls = 0;
-	const legal = adapterFor(generated.descriptor);
-	legal.start = () => {
+	const legal = adapterFor(generated.descriptor) as BehaviorAdapter & {
+		verify?: () => BehaviorObservation;
+	};
+	legal.verify = () => {
 		undeclaredCalls += 1;
 		return {
 			result: result(
@@ -306,8 +307,8 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 		"FAIL",
 	);
 
-	const mutatingPreflight = adapterFor(generated.descriptor);
-	mutatingPreflight.preflight = () => ({
+	const mutatingInstall = adapterFor(generated.descriptor);
+	mutatingInstall.install = () => ({
 		result: result(
 			generated.descriptor.moduleRef,
 			generated.descriptor.moduleVersion,
@@ -315,7 +316,7 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 		observedEffects: ["wrote config"],
 	});
 	assert.equal(
-		(await runBehaviorConformance(generated.descriptor, mutatingPreflight))
+		(await runBehaviorConformance(generated.descriptor, mutatingInstall))
 			.status,
 		"FAIL",
 	);
@@ -329,9 +330,8 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 			moduleRef: generated.descriptor.moduleRef,
 			moduleVersion: generated.descriptor.moduleVersion,
 			data: {
-				configStatus: "INCOMPLETE",
-				missingConfig: ["resourceUrl"],
-				runtimeStatus: "UNKNOWN",
+				setupStatus: "ACTION_REQUIRED",
+				runtimeStatus: "NOT_APPLICABLE",
 			},
 			actionRequired: {
 				action: "authenticate",
@@ -387,7 +387,7 @@ test("remediation C3 rejects result identity drift and effects outside the descr
 		{ ...base, moduleVersion: "9.9.9" },
 	]) {
 		const adapter = Object.fromEntries(
-			descriptor.lifecycle.supported.map((primitive) => [
+			standardModuleManagementCommands.map((primitive) => [
 				primitive,
 				() => ({ result, observedEffects: [] }),
 			]),
@@ -398,20 +398,14 @@ test("remediation C3 rejects result identity drift and effects outside the descr
 		);
 	}
 	const adapter = Object.fromEntries(
-		descriptor.lifecycle.supported.map((primitive) => [
+		standardModuleManagementCommands.map((primitive) => [
 			primitive,
 			() => ({
 				result:
-					primitive === "verify"
+					primitive === "status"
 						? {
 								...base,
-								checks: [
-									{
-										id: "real-check",
-										status: "PASS" as const,
-										message: "observed",
-									},
-								],
+								data: { setupStatus: "READY", runtimeStatus: "STOPPED" },
 							}
 						: base,
 				observedEffects: primitive === "start" ? ["undeclared effect"] : [],

@@ -19,73 +19,57 @@ const unavailable: ChromeRuntimeObservation = {
 	available: false,
 	extensionLoaded: false,
 };
-
 const availableWithoutExtension: ChromeRuntimeObservation = {
 	available: true,
 	resourceVersion: "Chrome 150.0.0.0",
 	extensionLoaded: false,
 };
 
-const availableWithExtension: ChromeRuntimeObservation = {
-	available: true,
-	resourceVersion: "Chrome 150.0.0.0",
-	extensionLoaded: true,
-};
+async function workspace(
+	context: { after(fn: () => unknown): void },
+	prefix: string,
+) {
+	const root = await mkdtemp(join(tmpdir(), prefix));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	return root;
+}
 
 test("parseModuleDescriptor accepts the chrome-runtime descriptor", () => {
 	const parsed = parseModuleDescriptor(descriptor);
 	assert.equal(parsed.moduleRef, "chrome-runtime");
 	assert.equal(parsed.kind, "external-resource");
 	assert.deepEqual(parsed.provides, []);
+	assert.equal("lifecycle" in parsed, false);
 });
 
-test("adapter status reports Module facts while verify remains actionable without real Chrome/extension readiness", async () => {
-	const unboundStatus = await behaviorAdapter.status();
-	assert.equal(unboundStatus.result.status, "SUCCEEDED");
-	assert.deepEqual(unboundStatus.result.data, {
-		configStatus: "READY",
-		runtimeStatus: "UNKNOWN",
-	});
-	const unboundVerify = await behaviorAdapter.verify();
-	assert.equal(unboundVerify.result.status, "ACTION_REQUIRED");
-
-	const unavailableAdapter = createBehaviorAdapter({
-		probe: async () => unavailable,
-	});
-	const unavailableStatus = await unavailableAdapter.status();
-	assert.equal(unavailableStatus.result.status, "SUCCEEDED");
-	assert.deepEqual(unavailableStatus.result.data, {
-		configStatus: "READY",
-		runtimeStatus: "FAILED",
-	});
+test("adapter status/setup report only Chrome runtime prerequisite truth", async (context) => {
+	const workspaceRoot = await workspace(context, "proflow-chrome-adapter-");
+	const unavailableAdapter = createBehaviorAdapter(async () => unavailable);
+	assert.deepEqual(
+		(await unavailableAdapter.status({ workspaceRoot })).result.data,
+		{
+			setupStatus: "ACTION_REQUIRED",
+			runtimeStatus: "STOPPED",
+		},
+	);
 	assert.equal(
-		(await unavailableAdapter.verify()).result.status,
+		(await unavailableAdapter.setup({ workspaceRoot })).result.status,
 		"ACTION_REQUIRED",
 	);
 
-	const withoutExtensionAdapter = createBehaviorAdapter({
-		probe: async () => availableWithoutExtension,
-	});
-	const withoutExtensionStatus = await withoutExtensionAdapter.status();
-	assert.equal(withoutExtensionStatus.result.status, "SUCCEEDED");
-	assert.deepEqual(withoutExtensionStatus.result.data, {
-		configStatus: "READY",
+	const availableAdapter = createBehaviorAdapter(
+		async () => availableWithoutExtension,
+	);
+	const status = await availableAdapter.status({ workspaceRoot });
+	assert.deepEqual(status.result.data, {
+		setupStatus: "READY",
 		runtimeStatus: "RUNNING",
 	});
-	const withoutExtensionVerify = await withoutExtensionAdapter.verify();
-	assert.equal(withoutExtensionVerify.result.status, "ACTION_REQUIRED");
-	assert.ok("resourceVersion" in withoutExtensionVerify.result);
 	assert.equal(
-		withoutExtensionVerify.result.resourceVersion,
-		"Chrome 150.0.0.0",
+		(await availableAdapter.setup({ workspaceRoot })).result.status,
+		"SUCCEEDED",
 	);
-
-	const withExtensionAdapter = createBehaviorAdapter({
-		probe: async () => availableWithExtension,
-	});
-	const withExtensionVerify = await withExtensionAdapter.verify();
-	assert.equal(withExtensionVerify.result.status, "SUCCEEDED");
-	assert.equal(withExtensionVerify.result.resourceVersion, "Chrome 150.0.0.0");
+	assert.equal("extensionLoaded" in (status.result.data as object), false);
 });
 
 test("explicit Chrome probe tolerates a slow but healthy version response beyond five seconds", async () => {
@@ -106,10 +90,15 @@ test("explicit Chrome probe tolerates a slow but healthy version response beyond
 	}
 });
 
-test("adapter exposes no start/stop/restart lifecycle", () => {
-	for (const adapter of [behaviorAdapter, createBehaviorAdapter()]) {
-		assert.equal("start" in adapter, false);
-		assert.equal("stop" in adapter, false);
-		assert.equal("restart" in adapter, false);
-	}
+test("adapter exposes exactly the fixed seven management commands without a restart primitive", () => {
+	assert.deepEqual(Object.keys(behaviorAdapter).sort(), [
+		"docs",
+		"install",
+		"setup",
+		"start",
+		"status",
+		"stop",
+		"uninstall",
+	]);
+	assert.equal("restart" in behaviorAdapter, false);
 });

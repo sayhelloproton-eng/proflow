@@ -1,210 +1,128 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
 import { parseModuleDescriptor } from "@tomflow/proflow-module-contract";
-import {
-	behaviorAdapter,
-	createBehaviorAdapter,
-	createProductionBinding,
-} from "../deployment/adapter.ts";
+import { behaviorAdapter } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
 
-test("parseModuleDescriptor accepts the chatgpt-carrier descriptor", () => {
+const verified = () => ({
+	reachable: "VERIFIED" as const,
+	actionsEnabled: "VERIFIED" as const,
+	openApiInstalled: "VERIFIED" as const,
+	actionAuthValid: "VERIFIED" as const,
+	fileBridge: "VERIFIED" as const,
+	codeInterpreter: "VERIFIED" as const,
+	webSearch: "VERIFIED" as const,
+	appsDisabledWhenRequired: "VERIFIED" as const,
+});
+
+async function workspace(
+	context: { after(fn: () => unknown): void },
+	prefix: string,
+) {
+	const root = await mkdtemp(join(tmpdir(), prefix));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	return root;
+}
+
+test("parseModuleDescriptor accepts the chatgpt-carrier descriptor without legacy lifecycle/verification fields", () => {
 	const parsed = parseModuleDescriptor(descriptor);
 	assert.equal(parsed.moduleRef, "chatgpt-carrier");
 	assert.equal(parsed.kind, "external-resource");
 	assert.deepEqual(parsed.provides, []);
-	assert.equal(parsed.lifecycle.supported.includes("start"), false);
-});
-
-test("adapter gates mutation while status reports current Module facts without a real carrier", async () => {
-	const preflight = await behaviorAdapter.preflight();
-	assert.equal(preflight.result.status, "ACTION_REQUIRED");
-	assert.equal(preflight.result.ok, false);
-
-	const status = await behaviorAdapter.status();
-	assert.equal(status.result.status, "SUCCEEDED");
-	assert.equal(status.result.ok, true);
-	assert.deepEqual(status.result.data, {
-		configStatus: "INCOMPLETE",
-		missingConfig: ["verificationEvidenceFile"],
-		runtimeStatus: "UNKNOWN",
+	assert.deepEqual(parsed.documentation, {
+		docs: "DOCS.md",
+		setup: "SETUP.md",
 	});
-	assert.equal(status.readinessClaim, "NOT_READY");
-	assert.equal(status.externalAvailabilityClaim, "UNKNOWN");
-
-	const verify = await behaviorAdapter.verify();
-	assert.equal(verify.result.status, "ACTION_REQUIRED");
-	assert.equal(verify.result.ok, false);
-	assert.ok(verify.result.actionRequired !== undefined);
+	assert.equal("lifecycle" in parsed, false);
+	assert.equal("verification" in parsed, false);
 });
 
-test("external-resource adapter exposes no start/stop/restart", () => {
-	const primitives = new Set(Object.keys(behaviorAdapter));
-	assert.equal(primitives.has("start"), false);
-	assert.equal(primitives.has("stop"), false);
-	assert.equal(primitives.has("restart"), false);
-	assert.deepEqual([...primitives].sort(), [
-		"describe",
-		"doctor",
-		"preflight",
+test("unconfigured carrier status is ACTION_REQUIRED truth and setup owns the human step", async (context) => {
+	const workspaceRoot = await workspace(
+		context,
+		"proflow-chatgpt-carrier-unconfigured-",
+	);
+	const commandContext = { workspaceRoot };
+	const status = await behaviorAdapter.status(commandContext);
+	assert.deepEqual(status.result.data, {
+		setupStatus: "ACTION_REQUIRED",
+		runtimeStatus: "STOPPED",
+	});
+	assert.equal(status.externalAvailabilityClaim, "UNKNOWN");
+	const setup = await behaviorAdapter.setup(commandContext);
+	assert.equal(setup.result.status, "ACTION_REQUIRED");
+	assert.equal(
+		setup.result.actionRequired?.action,
+		"materialize-custom-gpt-carrier",
+	);
+});
+
+test("external-resource adapter exposes the fixed seven-command management surface", () => {
+	assert.deepEqual(Object.keys(behaviorAdapter).sort(), [
+		"docs",
+		"install",
+		"setup",
+		"start",
 		"status",
-		"verify",
+		"stop",
+		"uninstall",
 	]);
 });
 
-test("reachability alone never passes schema/auth checks", async () => {
-	const adapter = createBehaviorAdapter({
-		observeVerification: async () => ({
-			reachable: "VERIFIED",
-			actionsEnabled: "UNVERIFIED",
-			openApiInstalled: "UNVERIFIED",
-			actionAuthValid: "UNVERIFIED",
-			fileBridge: "UNVERIFIED",
-			codeInterpreter: "UNVERIFIED",
-			webSearch: "UNVERIFIED",
-			appsDisabledWhenRequired: "UNVERIFIED",
-		}),
-	});
-	const verify = await adapter.verify();
-	assert.equal(verify.result.status, "ACTION_REQUIRED");
-	const reachableCheck = verify.result.checks?.find(
-		(check) => check.id === "carrier-role-reachable",
+test("reachability alone never makes incomplete Action/auth verification READY", async (context) => {
+	const workspaceRoot = await workspace(
+		context,
+		"proflow-chatgpt-carrier-incomplete-",
 	);
-	const authCheck = verify.result.checks?.find(
-		(check) => check.id === "carrier-auth",
+	const setup = await behaviorAdapter.setup({
+		workspaceRoot,
+		input: {
+			carrierUrl: "https://chatgpt.com/g/g-carrier-test",
+			verification: {
+				...verified(),
+				actionAuthValid: "UNVERIFIED",
+			},
+		},
+	});
+	assert.equal(setup.result.status, "ACTION_REQUIRED");
+	assert.equal(setup.result.actionRequired?.action, "verify-carrier");
+});
+
+test("production status accepts protected 401/403 only with healthy Web verification evidence", async (context) => {
+	const workspaceRoot = await workspace(
+		context,
+		"proflow-chatgpt-carrier-status-",
 	);
-	assert.equal(reachableCheck?.status, "PASS");
-	assert.notEqual(authCheck?.status, "PASS");
-});
-
-test("preflight can SUCCEED when all required checks are VERIFIED", async () => {
-	const adapter = createBehaviorAdapter({
-		observeVerification: async () => ({
-			reachable: "VERIFIED",
-			actionsEnabled: "VERIFIED",
-			openApiInstalled: "VERIFIED",
-			actionAuthValid: "VERIFIED",
-			fileBridge: "NOT_REQUIRED",
-			codeInterpreter: "NOT_REQUIRED",
-			webSearch: "NOT_REQUIRED",
-			appsDisabledWhenRequired: "NOT_REQUIRED",
-		}),
-	});
-	const preflight = await adapter.preflight();
-	assert.equal(preflight.result.status, "SUCCEEDED");
-});
-
-test("preflight returns ACTION_REQUIRED when required checks are UNVERIFIED", async () => {
-	const adapter = createBehaviorAdapter({
-		observeVerification: async () => ({
-			reachable: "VERIFIED",
-			actionsEnabled: "UNVERIFIED",
-			openApiInstalled: "UNVERIFIED",
-			actionAuthValid: "UNVERIFIED",
-			fileBridge: "UNVERIFIED",
-			codeInterpreter: "UNVERIFIED",
-			webSearch: "UNVERIFIED",
-			appsDisabledWhenRequired: "UNVERIFIED",
-		}),
-	});
-	const preflight = await adapter.preflight();
-	assert.equal(preflight.result.status, "ACTION_REQUIRED");
-});
-
-test("reachable-only observation cannot make doctor SUCCEED", async () => {
-	const adapter = createBehaviorAdapter({
-		observeVerification: async () => ({
-			reachable: "VERIFIED",
-			actionsEnabled: "UNVERIFIED",
-			openApiInstalled: "UNVERIFIED",
-			actionAuthValid: "UNVERIFIED",
-			fileBridge: "UNVERIFIED",
-			codeInterpreter: "UNVERIFIED",
-			webSearch: "UNVERIFIED",
-			appsDisabledWhenRequired: "UNVERIFIED",
-		}),
-	});
-	const doctor = await adapter.doctor();
-	assert.equal(doctor.result.status, "ACTION_REQUIRED");
-});
-
-test("doctor can SUCCEED when all required checks are VERIFIED", async () => {
-	const adapter = createBehaviorAdapter({
-		observeVerification: async () => ({
-			reachable: "VERIFIED",
-			actionsEnabled: "VERIFIED",
-			openApiInstalled: "VERIFIED",
-			actionAuthValid: "VERIFIED",
-			fileBridge: "NOT_REQUIRED",
-			codeInterpreter: "NOT_REQUIRED",
-			webSearch: "NOT_REQUIRED",
-			appsDisabledWhenRequired: "NOT_REQUIRED",
-		}),
-	});
-	const doctor = await adapter.doctor();
-	assert.equal(doctor.result.status, "SUCCEEDED");
-});
-
-test("production status accepts protected 401/403 only with healthy Web verification evidence", async () => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-chatgpt-carrier-status-"));
-	const carrierUrl = "https://chatgpt.com/";
-	const evidenceFile = join(root, "carrier-evidence.json");
 	const originalFetch = globalThis.fetch;
 	try {
-		await writeFile(
-			evidenceFile,
-			JSON.stringify({
-				contract: "proflow.chatgpt-carrier-verification.v1",
-				carrierUrl,
-				observedAt: "2026-08-19T00:00:00.000Z",
-				reachable: "VERIFIED",
-				actionsEnabled: "VERIFIED",
-				openApiInstalled: "VERIFIED",
-				actionAuthValid: "VERIFIED",
-				fileBridge: "VERIFIED",
-				codeInterpreter: "VERIFIED",
-				webSearch: "VERIFIED",
-				appsDisabledWhenRequired: "VERIFIED",
-			}),
-		);
-		const binding = createProductionBinding({
-			moduleRef: "chatgpt-carrier",
-			config: { carrierUrl, verificationEvidenceFile: evidenceFile },
-		});
-		const status = binding.behaviorAdapter.status as () => Promise<{
-			result: {
-				status: string;
-				data?: { configStatus: string; runtimeStatus: string };
-			};
-			readinessClaim: string;
-			externalAvailabilityClaim: string;
-		}>;
-
 		globalThis.fetch = async () => new Response(null, { status: 403 });
-		const protectedStatus = await status();
-		assert.equal(protectedStatus.result.status, "SUCCEEDED");
+		const setup = await behaviorAdapter.setup({
+			workspaceRoot,
+			input: {
+				carrierUrl: "https://chatgpt.com/g/g-carrier-test",
+				verification: verified(),
+			},
+		});
+		assert.equal(setup.result.status, "SUCCEEDED");
+		const protectedStatus = await behaviorAdapter.status({ workspaceRoot });
 		assert.deepEqual(protectedStatus.result.data, {
-			configStatus: "READY",
+			setupStatus: "READY",
 			runtimeStatus: "RUNNING",
 		});
-		assert.equal(protectedStatus.readinessClaim, "READY");
 		assert.equal(protectedStatus.externalAvailabilityClaim, "AVAILABLE");
 
 		globalThis.fetch = async () => new Response(null, { status: 404 });
-		const missingStatus = await status();
-		assert.equal(missingStatus.result.status, "SUCCEEDED");
+		const missingStatus = await behaviorAdapter.status({ workspaceRoot });
 		assert.deepEqual(missingStatus.result.data, {
-			configStatus: "READY",
+			setupStatus: "READY",
 			runtimeStatus: "FAILED",
 		});
-		assert.equal(missingStatus.readinessClaim, "NOT_READY");
 		assert.equal(missingStatus.externalAvailabilityClaim, "UNAVAILABLE");
 	} finally {
 		globalThis.fetch = originalFetch;
-		await rm(root, { recursive: true, force: true });
 	}
 });
