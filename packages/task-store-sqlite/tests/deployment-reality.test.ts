@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 
-import { createProductionBinding } from "../deployment/adapter.ts";
+import { behaviorAdapter, taskDatabasePath } from "../deployment/adapter.ts";
 
 const TABLES = [
 	"schema_migrations",
@@ -20,10 +20,17 @@ const TABLES = [
 	"idempotency_records",
 ];
 
-test("task-store production binding verifies real SQLite integrity and schema", async () => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-task-store-deploy-"));
-	const databasePath = join(root, "task.sqlite");
+test("task-store Module.status verifies canonical SQLite integrity and schema", async () => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-task-store-deploy-"),
+	);
+	const context = { workspaceRoot };
+	const databasePath = taskDatabasePath(context);
 	try {
+		await behaviorAdapter.install(context);
+		const incomplete = await behaviorAdapter.status(context);
+		assert.equal(incomplete.result.data.setupStatus, "FAILED");
+
 		const db = new DatabaseSync(databasePath);
 		try {
 			for (const table of TABLES)
@@ -31,31 +38,16 @@ test("task-store production binding verifies real SQLite integrity and schema", 
 		} finally {
 			db.close();
 		}
-		const binding = createProductionBinding({ config: { databasePath } });
-		const verify = (
-			binding.behaviorAdapter.verify as () => {
-				result: { status: string; checks?: Array<{ status: string }> };
-			}
-		)();
-		assert.equal(verify.result.status, "SUCCEEDED");
-		assert.equal(verify.result.checks?.[0]?.status, "PASS");
-
-		const missing = createProductionBinding({
-			config: { databasePath: join(root, "missing.sqlite") },
+		const ready = await behaviorAdapter.status(context);
+		assert.deepEqual(ready.result.data, {
+			setupStatus: "READY",
+			runtimeStatus: "NOT_APPLICABLE",
 		});
-		const missingVerify = (
-			missing.behaviorAdapter.verify as () => { result: { status: string } }
-		)();
-		assert.equal(missingVerify.result.status, "BLOCKED");
-
-		const unconfigured = createProductionBinding({ config: {} });
-		const unconfiguredVerify = (
-			unconfigured.behaviorAdapter.verify as () => {
-				result: { status: string };
-			}
-		)();
-		assert.equal(unconfiguredVerify.result.status, "ACTION_REQUIRED");
+		assert.equal(
+			(await behaviorAdapter.setup(context)).result.status,
+			"SUCCEEDED",
+		);
 	} finally {
-		await rm(root, { recursive: true, force: true });
+		await rm(workspaceRoot, { recursive: true, force: true });
 	}
 });

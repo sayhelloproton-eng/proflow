@@ -11,10 +11,7 @@ import {
 	runStaticConformance,
 } from "@tomflow/proflow-deployment-conformance";
 import type { ModuleDescriptor } from "@tomflow/proflow-module-contract";
-import {
-	behaviorAdapter,
-	createProductionBinding,
-} from "../deployment/adapter.ts";
+import { behaviorAdapter } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
 
 test("module contract C1/C2/C3", async () => {
@@ -31,31 +28,18 @@ test("module contract C1/C2/C3", async () => {
 	);
 });
 
-test("production binding observes durable Role registration reality", async () => {
-	const stateRoot = await mkdtemp(join(tmpdir(), "proflow-role-binding-"));
+test("Module.setup observes durable Role registration reality", async () => {
+	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-role-binding-"));
+	const context = { workspaceRoot };
 	try {
-		const binding = createProductionBinding({
-			config: {},
-			configByModuleRef: new Map([["platform-host", { stateRoot }]]),
-		});
-		assert.ok(binding);
-		const adapter = binding.behaviorAdapter as unknown as {
-			preflight(): {
-				result: {
-					status: string;
-					actionRequired?: { description: string };
-				};
-			};
-		};
-		const missing = adapter.preflight().result;
+		const missing = behaviorAdapter.setup(context).result;
 		assert.equal(missing.status, "ACTION_REQUIRED");
 		assert.match(
 			missing.actionRequired?.description ?? "",
 			new RegExp(descriptor.packageName),
 		);
-
 		const roleRef = `g-${descriptor.moduleRef}-real1`;
-		const agentRoot = join(stateRoot, "agent");
+		const agentRoot = join(workspaceRoot, ".proflow", "agent");
 		await mkdir(join(agentRoot, "secrets"), { recursive: true });
 		await writeFile(
 			join(agentRoot, "roles.json"),
@@ -65,8 +49,8 @@ test("production binding observes durable Role registration reality", async () =
 			join(agentRoot, "secrets", "role-credentials.json"),
 			`${JSON.stringify({ [roleRef]: "credential-role-binding-0123456789abcdef" }, null, 2)}\n`,
 		);
-		assert.equal(adapter.preflight().result.status, "SUCCEEDED");
+		assert.equal(behaviorAdapter.setup(context).result.status, "SUCCEEDED");
 	} finally {
-		await rm(stateRoot, { recursive: true, force: true });
+		await rm(workspaceRoot, { recursive: true, force: true });
 	}
 });

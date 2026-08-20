@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -8,10 +11,7 @@ import {
 	runStaticConformance,
 } from "@tomflow/proflow-deployment-conformance";
 import type { ModuleDescriptor } from "@tomflow/proflow-module-contract";
-import {
-	behaviorAdapter,
-	createProductionBinding,
-} from "../deployment/adapter.ts";
+import { behaviorAdapter } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
 
 test("module contract C1/C2/C3", async () => {
@@ -29,47 +29,35 @@ test("module contract C1/C2/C3", async () => {
 });
 
 test("uninstall is idempotent when no Gateway service is bound", async () => {
-	const result = await behaviorAdapter.uninstall();
+	const result = await behaviorAdapter.uninstall({
+		workspaceRoot: "/__proflow_gateway_uninstall__",
+	});
 	assert.equal(result.result.status, "SUCCEEDED");
 	assert.equal(result.result.ok, true);
 	assert.deepEqual(result.observedEffects, []);
 });
 
-test("production binding preserves Gateway own config truth while dependencies are unavailable", async () => {
-	const config = {
-		localBaseUrl: "http://127.0.0.1:4201/",
-		publicBaseUrl: "https://gateway.example.test/",
-		downstreamCredentialFile: "/tmp/downstream.token",
-	};
-	const unbound = await createProductionBinding({
-		moduleRef: "agent-gateway",
-		workspaceRoot: "/tmp/proflow-workspace",
-		config,
-		configByModuleRef: new Map(),
-	});
-	const status = unbound.behaviorAdapter.status;
-	assert.equal(typeof status, "function");
-	const observed = await (
-		status as () => Promise<{ result: { data: unknown } }>
-	)();
-	assert.deepEqual(observed.result.data, {
-		configStatus: "READY",
-		runtimeStatus: "UNKNOWN",
-	});
-
-	const invalid = await createProductionBinding({
-		moduleRef: "agent-gateway",
-		workspaceRoot: "/tmp/proflow-workspace",
-		config: { ...config, localBaseUrl: "https://gateway.example.test/" },
-		configByModuleRef: new Map(),
-	});
-	const invalidStatus = invalid.behaviorAdapter.status;
-	assert.equal(typeof invalidStatus, "function");
-	const invalidObserved = await (
-		invalidStatus as () => Promise<{ result: { data: unknown } }>
-	)();
-	assert.deepEqual(invalidObserved.result.data, {
-		configStatus: "INVALID",
-		runtimeStatus: "UNKNOWN",
-	});
+test("Module.install owns deterministic Gateway config while producer dependencies remain explicit", async () => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-gateway-module-"),
+	);
+	const context = { workspaceRoot };
+	try {
+		const installed = await behaviorAdapter.install(context);
+		assert.equal(installed.result.status, "SUCCEEDED");
+		const data = installed.result.data as {
+			localBaseUrl: string;
+			publicBaseUrl?: string;
+		};
+		assert.match(data.localBaseUrl, /^http:\/\/127\.0\.0\.1:\d+$/);
+		assert.equal(data.publicBaseUrl, undefined);
+		const observed = await behaviorAdapter.status(context);
+		assert.deepEqual(observed.result.data, {
+			setupStatus: "FAILED",
+			runtimeStatus: "STOPPED",
+		});
+		assert.equal(descriptor.configSlots.length, 0);
+	} finally {
+		await rm(workspaceRoot, { recursive: true, force: true });
+	}
 });
