@@ -3,7 +3,7 @@ export const descriptor = {
 	contractVersion: "1.0.0",
 	moduleRef: "agent-product",
 	packageName: "@tomflow/proflow-agent-product",
-	moduleVersion: "0.1.4",
+	moduleVersion: "0.1.5",
 	kind: "agent-package",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
