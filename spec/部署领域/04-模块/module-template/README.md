@@ -52,3 +52,7 @@ Template 只生成治理形式，不猜领域 API/permission/业务状态。真�
 
 - [TECHNICAL-DESIGN.md](TECHNICAL-DESIGN.md)
 - [00-五包架构与Module治理模型.md](../00-五包架构与Module治理模型.md)
+
+## Setup 全量与闭环合同
+
+Module Contract 要支持薄 Platform 的全量 setup：`platform setup` 一次遍历全部 discovered Module，READY 跳过，所有非 READY Module 都有机会执行自己的 `setup`，`ACTION_REQUIRED/FAILED` 由 Platform 最终一次性聚合。Module 自己负责最短闭环：先自动完成 machine-owned 步骤，只把真正人工/外部动作暴露为 `ACTION_REQUIRED`；`SETUP.md` 的每个状态推进 Step 都必须对应 package-owned executable/verify 与 Success Condition。

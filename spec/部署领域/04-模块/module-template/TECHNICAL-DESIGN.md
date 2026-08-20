@@ -96,3 +96,7 @@ Template 不强制“一步一个进程”或人为拆分流程；如果一个 p
 ## 9. 禁止回退
 
 Template 不得重新生成：`CONFIGURATION.md`、`configStatus/missingConfig`、optional lifecycle list、Platform preflight、`createProductionBinding` requirement 或 package-local Platform install wrapper。
+
+## Setup 全量与闭环合同
+
+Module Contract 要支持薄 Platform 的全量 setup：`platform setup` 一次遍历全部 discovered Module，READY 跳过，所有非 READY Module 都有机会执行自己的 `setup`，`ACTION_REQUIRED/FAILED` 由 Platform 最终一次性聚合。Module 自己负责最短闭环：先自动完成 machine-owned 步骤，只把真正人工/外部动作暴露为 `ACTION_REQUIRED`；`SETUP.md` 的每个状态推进 Step 都必须对应 package-owned executable/verify 与 Success Condition。

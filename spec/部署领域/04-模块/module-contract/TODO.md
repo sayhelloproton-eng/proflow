@@ -45,3 +45,10 @@ runtime provides/requires semantics unchanged
 - 不为了旧测试保留已删除产品字段。
 - 缺 Producer-owned shared fact 时记录 `SHARED_FACT_CONTRACT_MISSING` 并停止。
 - 若需要领域重设计才能满足 contract，记录 `DOMAIN_BLOCKER` 并停止扩散。
+
+## Setup Contract 验收
+
+- [ ] `Module.setup` 只要求真实人工/外部输入，machine-owned 步骤先自动闭环。
+- [ ] `ACTION_REQUIRED` 必须包含可直接执行的动作、最小人工输入、package-owned executable/verify。
+- [ ] `SETUP.md` 为最短 Step 路径，每个状态推进 Step 有 Success Condition。
+- [ ] Platform 可对全部非 READY Module 做全量转发/聚合，不需要理解包内步骤。
