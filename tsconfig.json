@@ -47,6 +47,9 @@
 			"@tomflow/proflow-execution-runtime/service": [
 				"./packages/execution-runtime/src/service.ts"
 			],
+			"@tomflow/proflow-module-contract": [
+				"./packages/module-contract/src/index.ts"
+			],
 			"@tomflow/proflow-model-contracts": [
 				"./packages/model-contracts/src/index.ts"
 			],

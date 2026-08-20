@@ -1,13 +1,22 @@
-import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
+import { randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+
+import {
+	deterministicLoopbackPort,
+	ensureModuleSecretFile,
+	type ModuleCommandContext,
+	readModuleSharedFacts,
+	writeModuleSharedFacts,
+} from "@tomflow/proflow-module-contract";
 import { descriptor } from "./descriptor.ts";
 
-type PlatformHostService = {
+type Service = {
 	start(): Promise<{ host: string; port: number }>;
 	stop(): Promise<void>;
-	restart(): Promise<{ host: string; port: number }>;
-	status(): Promise<{ readiness: "READY" | "NOT_READY" }>;
 };
-
+const services = new Map<string, Service>();
 const base = {
 	contract: "deployment.result.v1",
 	ok: true,
@@ -15,171 +24,201 @@ const base = {
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
-const unbound = {
-	...base,
-	ok: false,
-	status: "ACTION_REQUIRED",
-	actionRequired: {
-		action: "compose-platform-host",
-		description: "Provide validated Host configuration and owner transports",
-	},
-} as const;
-
-export function createBehaviorAdapter(
-	service?: PlatformHostService,
-	config?: Record<string, string>,
-	configValid = true,
-) {
-	return {
-		describe: () => ({ result: base, observedEffects: [] }),
-		preflight: () => ({ result: base, observedEffects: [] }),
-		status: async () => {
-			const status = service ? await service.status() : undefined;
-			const ready = status?.readiness === "READY";
-			const data = observeDeclaredModuleStatus(
-				descriptor,
-				config,
-				ready ? "RUNNING" : service ? "FAILED" : "UNKNOWN",
-				configValid,
-			);
-			return {
-				result: { ...base, data },
-				observedEffects: [],
-			};
-		},
-		verify: async () => {
-			const status = service ? await service.status() : undefined;
-			const ready = status?.readiness === "READY";
-			return {
-				result: {
-					...(service && ready
-						? base
-						: service
-							? {
-									...base,
-									ok: false as const,
-									status: "ACTION_REQUIRED" as const,
-									actionRequired: {
-										action: "repair-platform-host",
-										description: "Platform Host is not READY",
-									},
-								}
-							: unbound),
-					checks: [
-						{
-							id: "platform-host-readiness",
-							status: ready ? ("PASS" as const) : ("FAIL" as const),
-							message: service
-								? `Platform Host readiness is ${status?.readiness ?? "NOT_READY"}`
-								: "No configured Host process is bound",
-						},
-					],
-				},
-				observedEffects: [],
-			};
-		},
-		doctor: () => ({ result: base, observedEffects: [] }),
-		start: async () => ({
-			result: service ? { ...base, data: await service.start() } : unbound,
-			observedEffects: service ? ["Manage the platform-host process"] : [],
-		}),
-		stop: async () => {
-			if (service) await service.stop();
-			return {
-				result: service ? base : unbound,
-				observedEffects: service ? ["Manage the platform-host process"] : [],
-			};
-		},
-		restart: async () => ({
-			result: service ? { ...base, data: await service.restart() } : unbound,
-			observedEffects: service ? ["Manage the platform-host process"] : [],
-		}),
-		uninstall: async () => {
-			if (service) await service.stop();
-			return {
-				// Uninstall is idempotent: an unbound service means there is no
-				// process to stop before package removal. Runtime readiness still
-				// fails closed in status/start/verify.
-				result: base,
-				observedEffects: service ? ["Manage the platform-host process"] : [],
-			};
-		},
-	};
+const key = (context: ModuleCommandContext) => resolve(context.workspaceRoot);
+const stateRoot = (context: ModuleCommandContext) =>
+	join(key(context), ".proflow");
+const factString = (
+	facts: Record<string, unknown> | undefined,
+	name: string,
+) => (typeof facts?.[name] === "string" ? String(facts[name]) : undefined);
+async function ensureSecret(path: string) {
+	await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+	if (!existsSync(path))
+		await writeFile(path, `${randomBytes(32).toString("base64url")}\n`, {
+			mode: 0o600,
+		});
+	await chmod(path, 0o600);
+	const value = (await readFile(path, "utf8")).trim();
+	if (value.length < 32) throw new Error(`invalid private credential ${path}`);
+	return path;
 }
-
-export const behaviorAdapter = createBehaviorAdapter();
-
-const REQUIRED_CONFIG = [
-	"stateRoot",
-	"workspaceRoot",
-	"gatewayTransportCredentialFile",
-	"executionBaseUrl",
-	"executionTransportCredentialFile",
-	"modelBaseUrl",
-	"modelTransportCredentialFile",
-] as const;
-
-// Binds the real Host process only when materialized owner config and required
-// dependency composition are available. Unbound bindings still carry owner
-// config so status remains authoritative. The heavy src import is deferred
-// until a real binding is requested.
-export async function createProductionBinding(input: {
-	moduleRef: string;
-	config: Record<string, string>;
-	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
-}): Promise<{ behaviorAdapter: Record<string, unknown> }> {
-	const config = input.config;
-	const unboundBinding = (configValid = true) => ({
-		behaviorAdapter: createBehaviorAdapter(undefined, config, configValid),
-	});
-	if (!REQUIRED_CONFIG.every((key) => config[key] !== undefined))
-		return unboundBinding();
-
-	// The Platform Host's public loopback endpoint is already a cross-module
-	// contract: Execution calls it through identity.endpoint. Reuse that
-	// materialized endpoint as the listener instead of binding an ephemeral port
-	// that no dependent module could discover after `start`.
-	const executionRuntime = input.configByModuleRef.get("execution-runtime");
-	const advertised = executionRuntime?.["identity.endpoint"];
-	if (!advertised) return unboundBinding();
-	let listener: URL;
+async function ownFacts(context: ModuleCommandContext) {
+	const root = stateRoot(context);
+	const endpoint = `http://127.0.0.1:${deterministicLoopbackPort(context, descriptor.moduleRef)}`;
+	const identityTokenFile = await ensureSecret(
+		join(root, "execution", "secrets", "execution-identity.token"),
+	);
+	const taskApplicationTokenFile = await ensureSecret(
+		join(root, "browser", "secrets", "task-application.token"),
+	);
+	const approvalApplicationTokenFile = await ensureSecret(
+		join(root, "browser", "secrets", "approval-application.token"),
+	);
+	const gatewayTransportCredentialFile = await ensureModuleSecretFile(
+		context,
+		descriptor.moduleRef,
+		"gateway-transport",
+	);
+	const facts = {
+		endpoint,
+		stateRoot: root,
+		identityTokenFile,
+		taskApplicationTokenFile,
+		approvalApplicationTokenFile,
+		gatewayTransportCredentialFile,
+	};
+	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
+	return facts;
+}
+async function dependencies(context: ModuleCommandContext) {
+	const execution = await readModuleSharedFacts(context, "execution-runtime");
+	const model = await readModuleSharedFacts(context, "model-runtime");
+	const executionBaseUrl = factString(execution, "endpoint");
+	const executionTransportCredentialFile = factString(
+		execution,
+		"transportCredentialFile",
+	);
+	const modelBaseUrl = factString(model, "endpoint");
+	const modelTransportCredentialFile = factString(
+		model,
+		"transportCredentialFile",
+	);
+	return executionBaseUrl &&
+		executionTransportCredentialFile &&
+		modelBaseUrl &&
+		modelTransportCredentialFile
+		? {
+				executionBaseUrl,
+				executionTransportCredentialFile,
+				modelBaseUrl,
+				modelTransportCredentialFile,
+			}
+		: undefined;
+}
+async function running(context: ModuleCommandContext) {
+	const { endpoint } = await ownFacts(context);
 	try {
-		listener = new URL(advertised);
+		return (
+			await fetch(`${endpoint}/ready`, { signal: AbortSignal.timeout(500) })
+		).ok;
 	} catch {
-		return unboundBinding();
+		return false;
 	}
-	if (listener.protocol !== "http:" || listener.pathname !== "/")
-		return unboundBinding();
-	const port = listener.port === "" ? 80 : Number(listener.port);
-	if (!Number.isInteger(port) || port <= 0 || port > 65_535)
-		return unboundBinding();
-
+}
+async function compose(context: ModuleCommandContext): Promise<Service> {
+	const own = await ownFacts(context);
+	const deps = await dependencies(context);
+	if (!deps)
+		throw new Error("required Execution/Model shared facts are unavailable");
 	const { createPlatformHost, parsePlatformHostConfig } = await import(
 		"../src/index.ts"
 	);
-	let hostConfig: ReturnType<typeof parsePlatformHostConfig>;
-	try {
-		hostConfig = parsePlatformHostConfig({
-			stateRoot: config.stateRoot,
-			workspaceRoot: config.workspaceRoot,
-			host: listener.hostname,
-			port,
-			executionBaseUrl: config.executionBaseUrl,
-			executionTransportCredentialFile: config.executionTransportCredentialFile,
-			modelBaseUrl: config.modelBaseUrl,
-			modelTransportCredentialFile: config.modelTransportCredentialFile,
-			gatewayTransportCredentialFile: config.gatewayTransportCredentialFile,
+	const url = new URL(own.endpoint);
+	const host = createPlatformHost({
+		config: parsePlatformHostConfig({
+			stateRoot: own.stateRoot,
+			workspaceRoot: key(context),
+			host: url.hostname,
+			port: Number(url.port),
+			executionBaseUrl: deps.executionBaseUrl,
+			executionTransportCredentialFile: deps.executionTransportCredentialFile,
+			modelBaseUrl: deps.modelBaseUrl,
+			modelTransportCredentialFile: deps.modelTransportCredentialFile,
+			gatewayTransportCredentialFile: own.gatewayTransportCredentialFile,
 			roles: [],
-		});
-	} catch {
-		return unboundBinding(false);
-	}
-	const host = createPlatformHost({ config: hostConfig });
-	const service: PlatformHostService = {
-		start: () => host.start(),
-		stop: () => host.stop(),
-		restart: () => host.restart(),
-		status: async () => ({ readiness: (await host.status()).readiness }),
-	};
-	return { behaviorAdapter: createBehaviorAdapter(service, input.config) };
+		}),
+	});
+	return { start: () => host.start(), stop: () => host.stop() };
 }
+const failed = (
+	code: "SETUP_FAILED" | "START_FAILED" | "STOP_FAILED",
+	message: string,
+) => ({
+	...base,
+	ok: false as const,
+	status: "FAILED" as const,
+	error: { code, message, retryable: true },
+});
+export const behaviorAdapter = {
+	install: async (context: ModuleCommandContext) => ({
+		result: { ...base, data: await ownFacts(context) },
+		observedEffects: [],
+	}),
+	uninstall: async (context: ModuleCommandContext) => {
+		const service = services.get(key(context));
+		if (service) {
+			await service.stop();
+			services.delete(key(context));
+		}
+		return {
+			result: base,
+			observedEffects: service ? ["Manage the platform-host process"] : [],
+		};
+	},
+	status: async (context: ModuleCommandContext) => ({
+		result: {
+			...base,
+			data: {
+				setupStatus: (await dependencies(context))
+					? ("READY" as const)
+					: ("FAILED" as const),
+				runtimeStatus: (await running(context))
+					? ("RUNNING" as const)
+					: ("STOPPED" as const),
+			},
+		},
+		observedEffects: [],
+	}),
+	setup: async (context: ModuleCommandContext) => ({
+		result: (await dependencies(context))
+			? base
+			: failed(
+					"SETUP_FAILED",
+					"required Execution/Model producer shared facts are unavailable",
+				),
+		observedEffects: [],
+	}),
+	docs: async (_context: ModuleCommandContext) => ({
+		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		observedEffects: [],
+	}),
+	start: async (context: ModuleCommandContext) => {
+		try {
+			const service = await compose(context);
+			const data = await service.start();
+			services.set(key(context), service);
+			return {
+				result: { ...base, data },
+				observedEffects: ["Manage the platform-host process"],
+			};
+		} catch (error) {
+			return {
+				result: failed(
+					"START_FAILED",
+					error instanceof Error ? error.message : "platform-host start failed",
+				),
+				observedEffects: [],
+			};
+		}
+	},
+	stop: async (context: ModuleCommandContext) => {
+		const service = services.get(key(context));
+		if (service) {
+			await service.stop();
+			services.delete(key(context));
+			return {
+				result: base,
+				observedEffects: ["Manage the platform-host process"],
+			};
+		}
+		return {
+			result: (await running(context))
+				? failed(
+						"STOP_FAILED",
+						"platform-host is running without an owned lifecycle handle",
+					)
+				: base,
+			observedEffects: [],
+		};
+	},
+} as const;

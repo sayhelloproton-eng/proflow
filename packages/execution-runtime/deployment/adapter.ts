@@ -1,15 +1,22 @@
-import { createServer } from "node:net";
+import { mkdir, readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 
-import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
+import {
+	deterministicLoopbackPort,
+	ensureModuleSecretFile,
+	type ModuleCommandContext,
+	moduleWorkspaceStateDirectory,
+	readModuleSharedFacts,
+	writeModuleSharedFacts,
+} from "@tomflow/proflow-module-contract";
 import { descriptor } from "./descriptor.ts";
 
-type ProcessService = {
-	start(): Promise<{ host: string; port: number }>;
+type Service = {
+	start(): Promise<unknown>;
 	stop(): Promise<void>;
-	restart(): Promise<{ host: string; port: number }>;
 	status(): { readiness: "READY" | "NOT_READY" };
 };
-
+const services = new Map<string, Service>();
 const base = {
 	contract: "deployment.result.v1",
 	ok: true,
@@ -17,238 +24,79 @@ const base = {
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
-
-const unbound = {
-	...base,
-	ok: false,
-	status: "ACTION_REQUIRED",
-	actionRequired: {
-		action: "bind-runtime",
-		description: "Bind a configured Execution Runtime service",
-	},
-} as const;
-
-async function listenerPreflight(listener: URL) {
-	const port = listener.port === "" ? 80 : Number(listener.port);
-	const host = listener.hostname.replace(/^\[(.*)\]$/, "$1");
-	const address = `${host}:${port}`;
-	try {
-		const response = await fetch(new URL("/ready", listener), {
-			signal: AbortSignal.timeout(500),
-		});
-		if (response.ok)
-			return {
-				result: {
-					...base,
-					checks: [
-						{
-							id: "execution-runtime-listener",
-							status: "PASS" as const,
-							message: `Execution Runtime listener ${address} is already READY`,
-						},
-					],
-				},
-				observedEffects: [],
-			};
-	} catch {
-		// A stopped runtime is expected here; continue with a bind-only port probe.
-	}
-	const probe = await new Promise<{ available: boolean; message: string }>(
-		(resolve) => {
-			const server = createServer();
-			server.once("error", (error) =>
-				resolve({
-					available: false,
-					message: error instanceof Error ? error.message : String(error),
-				}),
-			);
-			server.listen({ host, port, exclusive: true }, () =>
-				server.close(() =>
-					resolve({
-						available: true,
-						message: `Execution Runtime listener ${address} is available`,
-					}),
-				),
-			);
-		},
-	);
-	return probe.available
-		? {
-				result: {
-					...base,
-					checks: [
-						{
-							id: "execution-runtime-listener",
-							status: "PASS" as const,
-							message: probe.message,
-						},
-					],
-				},
-				observedEffects: [],
-			}
-		: {
-				result: {
-					...base,
-					ok: false as const,
-					status: "ACTION_REQUIRED" as const,
-					actionRequired: {
-						action: "free-execution-runtime-port",
-						description: `Execution Runtime listener ${address} is unavailable (${probe.message}); stop the conflicting process or configure a different endpoint before platform start`,
-					},
-					checks: [
-						{
-							id: "execution-runtime-listener",
-							status: "FAIL" as const,
-							message: probe.message,
-						},
-					],
-				},
-				observedEffects: [],
-			};
-}
-
-export function createBehaviorAdapter(
-	service?: ProcessService,
-	config?: Record<string, string>,
-	configValid = true,
-) {
-	return {
-		describe: () => ({ result: base, observedEffects: [] }),
-		preflight: () => ({ result: base, observedEffects: [] }),
-		status: () => {
-			const status = service?.status();
-			const ready = status?.readiness === "READY";
-			const data = observeDeclaredModuleStatus(
-				descriptor,
-				config,
-				ready ? "RUNNING" : service ? "FAILED" : "UNKNOWN",
-				configValid,
-			);
-			return {
-				result: { ...base, data },
-				observedEffects: [],
-			};
-		},
-		verify: () => {
-			const status = service?.status();
-			const ready = status?.readiness === "READY";
-			return {
-				result: {
-					...(service && ready
-						? base
-						: service
-							? {
-									...base,
-									ok: false as const,
-									status: "ACTION_REQUIRED" as const,
-									actionRequired: {
-										action: "repair-execution-runtime",
-										description: "Execution Runtime is not READY",
-									},
-								}
-							: unbound),
-					checks: [
-						{
-							id: "execution-runtime-critical-proofs",
-							status: ready ? ("PASS" as const) : ("FAIL" as const),
-							message: service
-								? `Execution Runtime readiness is ${status?.readiness ?? "NOT_READY"}`
-								: "No configured Execution Runtime process is bound",
-						},
-					],
-				},
-				observedEffects: [],
-			};
-		},
-		doctor: () => ({ result: base, observedEffects: [] }),
-		start: async () => ({
-			result: service ? { ...base, data: await service.start() } : unbound,
-			observedEffects: service
-				? [...descriptor.effects.map((item) => item.description)]
-				: [],
-		}),
-		stop: async () => {
-			if (service) await service.stop();
-			return {
-				result: service ? base : unbound,
-				observedEffects: service
-					? [...descriptor.effects.map((item) => item.description)]
-					: [],
-			};
-		},
-		uninstall: async () => {
-			if (service) await service.stop();
-			return {
-				// Uninstall is idempotent: an unbound service means there is no
-				// process to stop before package removal. Runtime readiness still
-				// fails closed in status/start/verify.
-				result: base,
-				observedEffects: service
-					? descriptor.effects
-							.filter((item) => item.retention === "remove")
-							.map((item) => item.description)
-					: [],
-			};
-		},
-		restart: async () => ({
-			result: service ? { ...base, data: await service.restart() } : unbound,
-			observedEffects: service
-				? [...descriptor.effects.map((item) => item.description)]
-				: [],
-		}),
-	};
-}
-
-export const behaviorAdapter = createBehaviorAdapter();
-
-export async function createProductionBinding(input: {
-	moduleRef: string;
-	config: Record<string, string>;
-	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
-}): Promise<{ behaviorAdapter: Record<string, unknown> }> {
-	const unboundBinding = (configValid = true) => ({
-		behaviorAdapter: createBehaviorAdapter(
-			undefined,
-			input.config,
-			configValid,
+const key = (context: ModuleCommandContext) => resolve(context.workspaceRoot);
+const factString = (
+	facts: Record<string, unknown> | undefined,
+	name: string,
+) => (typeof facts?.[name] === "string" ? String(facts[name]) : undefined);
+async function ownFacts(context: ModuleCommandContext) {
+	const state = moduleWorkspaceStateDirectory(context, descriptor.moduleRef);
+	await mkdir(state, { recursive: true, mode: 0o700 });
+	const facts = {
+		endpoint: `http://127.0.0.1:${deterministicLoopbackPort(context, descriptor.moduleRef)}`,
+		transportCredentialFile: await ensureModuleSecretFile(
+			context,
+			descriptor.moduleRef,
+			"transport",
 		),
-	});
-	const required = [
-		"databasePath",
-		"projectRoot",
-		"artifactRoot",
+		databasePath: join(state, "execution.sqlite"),
+		projectRoot: key(context),
+		artifactRoot: join(key(context), ".proflow", "artifacts", "execution"),
+	};
+	await mkdir(facts.artifactRoot, { recursive: true, mode: 0o700 });
+	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
+	return facts;
+}
+async function dependencies(context: ModuleCommandContext) {
+	const host = await readModuleSharedFacts(context, "platform-host");
+	const model = await readModuleSharedFacts(context, "model-runtime");
+	const browser = await readModuleSharedFacts(
+		context,
+		"execution-browser-extension",
+	);
+	const identityEndpoint = factString(host, "endpoint");
+	const identityTokenFile = factString(host, "identityTokenFile");
+	const modelEndpoint = factString(model, "endpoint");
+	const modelCredentialFile = factString(model, "transportCredentialFile");
+	const browserExecutorConfigPath = factString(
+		browser,
 		"browserExecutorConfigPath",
-		"transportCredentialFile",
-		"identity.endpoint",
-		"identity.tokenFile",
-		"modelDecision.endpoint",
-		"modelDecision.credentialFile",
-	] as const;
-	if (!required.every((key) => input.config[key])) return unboundBinding();
-
-	for (const key of ["identity.endpoint", "modelDecision.endpoint"] as const) {
-		try {
-			const endpoint = new URL(input.config[key] ?? "");
-			if (endpoint.protocol !== "http:") return unboundBinding(false);
-		} catch {
-			return unboundBinding(false);
-		}
-	}
-
-	const platformHost = input.configByModuleRef.get("platform-host");
-	const advertised = platformHost?.executionBaseUrl;
-	if (!advertised) return unboundBinding();
-	let listener: URL;
+	);
+	return identityEndpoint &&
+		identityTokenFile &&
+		modelEndpoint &&
+		modelCredentialFile &&
+		browserExecutorConfigPath
+		? {
+				identityEndpoint,
+				identityTokenFile,
+				modelEndpoint,
+				modelCredentialFile,
+				browserExecutorConfigPath,
+			}
+		: undefined;
+}
+async function running(context: ModuleCommandContext) {
+	const own = await ownFacts(context);
 	try {
-		listener = new URL(advertised);
+		const token = (await readFile(own.transportCredentialFile, "utf8")).trim();
+		return (
+			await fetch(`${own.endpoint}/ready`, {
+				headers: { authorization: `Bearer ${token}` },
+				signal: AbortSignal.timeout(500),
+			})
+		).ok;
 	} catch {
-		return unboundBinding();
+		return false;
 	}
-	if (listener.protocol !== "http:" || listener.pathname !== "/")
-		return unboundBinding();
-	const port = listener.port === "" ? 80 : Number(listener.port);
-	if (!Number.isInteger(port) || port <= 0 || port > 65_535)
-		return unboundBinding();
+}
+async function compose(context: ModuleCommandContext): Promise<Service> {
+	const own = await ownFacts(context);
+	const deps = await dependencies(context);
+	if (!deps)
+		throw new Error(
+			"required Platform Host, Model Runtime, or Browser Executor shared facts are unavailable",
+		);
 	const [
 		{ createFormalExecutionRuntimeLifecycle },
 		{ parseExecutionRuntimeProcessConfig },
@@ -256,34 +104,125 @@ export async function createProductionBinding(input: {
 		import("../src/formal-process.ts"),
 		import("../src/service.ts"),
 	]);
-	let service: ReturnType<typeof createFormalExecutionRuntimeLifecycle>;
-	try {
-		service = createFormalExecutionRuntimeLifecycle({
-			config: parseExecutionRuntimeProcessConfig({
-				host: listener.hostname,
-				port,
-				databasePath: input.config.databasePath,
-				projectRoot: input.config.projectRoot,
-				artifactRoot: input.config.artifactRoot,
-				browserExecutorConfigPath: input.config.browserExecutorConfigPath,
-				transportCredentialFile: input.config.transportCredentialFile,
-				identity: {
-					endpoint: input.config["identity.endpoint"],
-					tokenFile: input.config["identity.tokenFile"],
-				},
-				modelDecision: {
-					endpoint: input.config["modelDecision.endpoint"],
-					credentialFile: input.config["modelDecision.credentialFile"],
-				},
-			}),
-		});
-	} catch {
-		return unboundBinding(false);
-	}
-	return {
-		behaviorAdapter: {
-			...createBehaviorAdapter(service, input.config),
-			preflight: () => listenerPreflight(listener),
-		},
-	};
+	const url = new URL(own.endpoint);
+	return createFormalExecutionRuntimeLifecycle({
+		config: parseExecutionRuntimeProcessConfig({
+			host: url.hostname,
+			port: Number(url.port),
+			databasePath: own.databasePath,
+			projectRoot: own.projectRoot,
+			artifactRoot: own.artifactRoot,
+			browserExecutorConfigPath: deps.browserExecutorConfigPath,
+			transportCredentialFile: own.transportCredentialFile,
+			identity: {
+				endpoint: deps.identityEndpoint,
+				tokenFile: deps.identityTokenFile,
+			},
+			modelDecision: {
+				endpoint: deps.modelEndpoint,
+				credentialFile: deps.modelCredentialFile,
+			},
+			exactNetworkTargets: [],
+		}),
+	});
 }
+const failed = (
+	code: "SETUP_FAILED" | "START_FAILED" | "STOP_FAILED",
+	message: string,
+) => ({
+	...base,
+	ok: false as const,
+	status: "FAILED" as const,
+	error: { code, message, retryable: true },
+});
+export const behaviorAdapter = {
+	install: async (context: ModuleCommandContext) => ({
+		result: { ...base, data: await ownFacts(context) },
+		observedEffects: [],
+	}),
+	uninstall: async (context: ModuleCommandContext) => {
+		const service = services.get(key(context));
+		if (service) {
+			await service.stop();
+			services.delete(key(context));
+		}
+		return {
+			result: base,
+			observedEffects: service
+				? [...descriptor.effects.map((item) => item.description)]
+				: [],
+		};
+	},
+	status: async (context: ModuleCommandContext) => ({
+		result: {
+			...base,
+			data: {
+				setupStatus: (await dependencies(context))
+					? ("READY" as const)
+					: ("FAILED" as const),
+				runtimeStatus: (await running(context))
+					? ("RUNNING" as const)
+					: ("STOPPED" as const),
+			},
+		},
+		observedEffects: [],
+	}),
+	setup: async (context: ModuleCommandContext) => ({
+		result: (await dependencies(context))
+			? base
+			: failed(
+					"SETUP_FAILED",
+					"required producer shared facts are unavailable",
+				),
+		observedEffects: [],
+	}),
+	docs: async (_context: ModuleCommandContext) => ({
+		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		observedEffects: [],
+	}),
+	start: async (context: ModuleCommandContext) => {
+		try {
+			const service = await compose(context);
+			const data = await service.start();
+			services.set(key(context), service);
+			return {
+				result: { ...base, data },
+				observedEffects: [
+					...descriptor.effects.map((item) => item.description),
+				],
+			};
+		} catch (error) {
+			return {
+				result: failed(
+					"START_FAILED",
+					error instanceof Error
+						? error.message
+						: "execution-runtime start failed",
+				),
+				observedEffects: [],
+			};
+		}
+	},
+	stop: async (context: ModuleCommandContext) => {
+		const service = services.get(key(context));
+		if (service) {
+			await service.stop();
+			services.delete(key(context));
+			return {
+				result: base,
+				observedEffects: [
+					...descriptor.effects.map((item) => item.description),
+				],
+			};
+		}
+		return {
+			result: (await running(context))
+				? failed(
+						"STOP_FAILED",
+						"execution-runtime is running without an owned lifecycle handle",
+					)
+				: base,
+			observedEffects: [],
+		};
+	},
+} as const;

@@ -1,273 +1,154 @@
-import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+
+import { modelCapabilityProfileSchema } from "@tomflow/proflow-model-contracts";
+import {
+	deterministicLoopbackPort,
+	ensureModuleSecretFile,
+	type ModuleCommandContext,
+	moduleWorkspaceStateDirectory,
+	readModuleSharedFacts,
+	writeModuleSharedFacts,
+} from "@tomflow/proflow-module-contract";
 import type { ModelRuntimeService } from "../src/service.ts";
 import { descriptor } from "./descriptor.ts";
 
-type LiveVerification = () => Promise<{ ok: boolean; message: string }>;
-
-const success = (data?: unknown) => ({
-	contract: "deployment.result.v1" as const,
+type SetupConfig = {
+	fastModel: string;
+	reasonModel: string;
+	capabilityProfilesFile: string;
+};
+const services = new Map<string, ModelRuntimeService>();
+const base = {
+	contract: "deployment.result.v1",
 	ok: true,
-	status: "SUCCEEDED" as const,
+	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
-	...(data === undefined ? {} : { data }),
-});
-
-const actionRequired = (action: string, description: string) => ({
-	contract: "deployment.result.v1" as const,
-	ok: false,
-	status: "ACTION_REQUIRED" as const,
-	moduleRef: descriptor.moduleRef,
-	moduleVersion: descriptor.moduleVersion,
-	actionRequired: { action, description },
-});
-
-export function createBehaviorAdapter(
-	input?: { service: ModelRuntimeService; verifyProvider: LiveVerification },
-	config?: Record<string, string>,
-	configValid = true,
-) {
-	return {
-		describe: () => ({
-			result: success({ publicApi: ["infer", "getRuntimeStatus"] }),
-			observedEffects: [],
-		}),
-		preflight: () => ({
-			result: input
-				? success()
-				: actionRequired(
-						"configure-provider",
-						"Bind a runtime service and real provider verifier",
-					),
-			observedEffects: [],
-		}),
-		status: () => {
-			const inspection = input?.service.inspect();
-			const running =
-				inspection?.readiness === "READY" &&
-				inspection.dependency.fast === "READY" &&
-				inspection.dependency.reason === "READY";
-			return {
-				result: success(
-					observeDeclaredModuleStatus(
-						descriptor,
-						config,
-						running ? "RUNNING" : input ? "FAILED" : "UNKNOWN",
-						configValid,
-					),
-				),
-				observedEffects: [],
-			};
-		},
-		verify: async () => {
-			if (!input)
-				return {
-					result: actionRequired(
-						"configure-provider",
-						"Real provider verification is required",
-					),
-					observedEffects: [],
-				};
-			const proof = await input.verifyProvider();
-			return {
-				result: proof.ok
-					? {
-							...success(),
-							checks: [
-								{
-									id: "real-provider-capabilities",
-									status: "PASS" as const,
-									message: proof.message,
-								},
-							],
-						}
-					: {
-							...actionRequired("repair-provider", proof.message),
-							checks: [
-								{
-									id: "real-provider-capabilities",
-									status: "FAIL" as const,
-									message: proof.message,
-								},
-							],
-						},
-				observedEffects: ["Calls the configured model provider API"],
-			};
-		},
-		doctor: () => ({
-			result: input
-				? {
-						...success(),
-						checks: [
-							{
-								id: "provider-diagnostics",
-								status: "PASS" as const,
-								message: "Provider verifier and runtime service are bound",
-							},
-						],
-					}
-				: actionRequired(
-						"configure-provider",
-						"Provider URL, role models, and optional credential reference are required",
-					),
-			observedEffects: [],
-		}),
-		start: async () => ({
-			result: input
-				? success(await input.service.start())
-				: actionRequired(
-						"configure-provider",
-						"Cannot start without a bound runtime",
-					),
-			observedEffects: input
-				? ["Runs the Model Runtime HTTP service process"]
-				: [],
-		}),
-		stop: async () => {
-			if (input) await input.service.stop();
-			return {
-				result: input
-					? success()
-					: actionRequired("configure-provider", "No bound runtime to stop"),
-				observedEffects: input
-					? ["Runs the Model Runtime HTTP service process"]
-					: [],
-			};
-		},
-		uninstall: async () => {
-			if (input) await input.service.stop();
-			return {
-				// An unbound runtime is already absent for uninstall purposes.
-				// start/status/verify still fail closed until provider config exists.
-				result: success(),
-				observedEffects: input
-					? ["Runs the Model Runtime HTTP service process"]
-					: [],
-			};
-		},
-		restart: async () => {
-			if (!input)
-				return {
-					result: actionRequired(
-						"configure-provider",
-						"No bound runtime to restart",
-					),
-					observedEffects: [],
-				};
-			await input.service.stop();
-			const address = await input.service.start();
-			return {
-				result: success(address),
-				observedEffects: ["Runs the Model Runtime HTTP service process"],
-			};
-		},
-	};
-}
-
-export const behaviorAdapter = createBehaviorAdapter();
-
-export async function createProductionBinding(input: {
-	moduleRef: string;
-	config: Record<string, string>;
-	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
-}): Promise<{ behaviorAdapter: Record<string, unknown> }> {
-	const unboundBinding = (configValid = true) => ({
-		behaviorAdapter: createBehaviorAdapter(
-			undefined,
-			input.config,
-			configValid,
+} as const;
+const key = (context: ModuleCommandContext) => resolve(context.workspaceRoot);
+const stateDir = (context: ModuleCommandContext) =>
+	moduleWorkspaceStateDirectory(context, descriptor.moduleRef);
+const setupPath = (context: ModuleCommandContext) =>
+	join(stateDir(context), "setup.json");
+const factString = (
+	facts: Record<string, unknown> | undefined,
+	name: string,
+) => (typeof facts?.[name] === "string" ? String(facts[name]) : undefined);
+async function ownFacts(context: ModuleCommandContext) {
+	await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+	const facts = {
+		endpoint: `http://127.0.0.1:${deterministicLoopbackPort(context, descriptor.moduleRef)}`,
+		transportCredentialFile: await ensureModuleSecretFile(
+			context,
+			descriptor.moduleRef,
+			"transport",
 		),
-	});
-	const required = [
-		"stateRoot",
-		"transportCredentialFile",
-		"providerBaseUrl",
-		"fastModel",
-		"reasonModel",
-		"capabilityProfilesFile",
-	] as const;
-	if (!required.every((key) => input.config[key])) return unboundBinding();
+		stateRoot: stateDir(context),
+	};
+	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
+	return facts;
+}
+function supplied(context: ModuleCommandContext): SetupConfig | undefined {
+	const value = context.input;
+	if (typeof value !== "object" || value === null || Array.isArray(value))
+		return undefined;
+	const fastModel = Reflect.get(value, "fastModel"),
+		reasonModel = Reflect.get(value, "reasonModel"),
+		capabilityProfilesFile = Reflect.get(value, "capabilityProfilesFile");
+	return typeof fastModel === "string" &&
+		fastModel &&
+		typeof reasonModel === "string" &&
+		reasonModel &&
+		typeof capabilityProfilesFile === "string" &&
+		capabilityProfilesFile
+		? {
+				fastModel,
+				reasonModel,
+				capabilityProfilesFile: resolve(capabilityProfilesFile),
+			}
+		: undefined;
+}
+async function readSetup(
+	context: ModuleCommandContext,
+): Promise<SetupConfig | undefined> {
 	try {
-		new URL(input.config.providerBaseUrl ?? "");
+		const raw = JSON.parse(await readFile(setupPath(context), "utf8"));
+		return typeof raw.fastModel === "string" &&
+			typeof raw.reasonModel === "string" &&
+			typeof raw.capabilityProfilesFile === "string"
+			? raw
+			: undefined;
 	} catch {
-		return unboundBinding(false);
+		return undefined;
 	}
-
-	const capabilityProfilesFile = input.config.capabilityProfilesFile;
-	if (!capabilityProfilesFile) return unboundBinding();
-	const [fs, contracts] = await Promise.all([
-		import("node:fs/promises"),
-		import("@tomflow/proflow-model-contracts"),
-	]);
-	let fast: ReturnType<typeof contracts.modelCapabilityProfileSchema.parse>;
-	let reason: ReturnType<typeof contracts.modelCapabilityProfileSchema.parse>;
-	try {
-		const raw: unknown = JSON.parse(
-			await fs.readFile(capabilityProfilesFile, "utf8"),
+}
+async function profiles(config: SetupConfig) {
+	const raw = JSON.parse(await readFile(config.capabilityProfilesFile, "utf8"));
+	const fast = modelCapabilityProfileSchema.parse(raw.fast);
+	const reason = modelCapabilityProfileSchema.parse(raw.reason);
+	if (
+		fast.modelRef !== config.fastModel ||
+		reason.modelRef !== config.reasonModel
+	)
+		throw new Error(
+			"model capability profiles do not match selected FAST/REASON models",
 		);
-		if (typeof raw !== "object" || raw === null || Array.isArray(raw))
-			return unboundBinding(false);
-		const profilesObject = raw as Record<string, unknown>;
-		fast = contracts.modelCapabilityProfileSchema.parse(profilesObject.fast);
-		reason = contracts.modelCapabilityProfileSchema.parse(
-			profilesObject.reason,
-		);
-		if (
-			fast.modelRef !== input.config.fastModel ||
-			reason.modelRef !== input.config.reasonModel
-		)
-			return unboundBinding(false);
-	} catch {
-		return unboundBinding(false);
-	}
-
-	const platformHost = input.configByModuleRef.get("platform-host");
-	const executionRuntime = input.configByModuleRef.get("execution-runtime");
-	const advertised = platformHost?.modelBaseUrl;
-	if (!advertised) return unboundBinding();
-	let listener: URL;
+	return { fast, reason };
+}
+async function provider(context: ModuleCommandContext) {
+	const facts = await readModuleSharedFacts(context, "model-provider-api");
+	const providerBaseUrl = factString(facts, "providerBaseUrl");
+	const providerCredential = factString(facts, "providerCredential");
+	return providerBaseUrl ? { providerBaseUrl, providerCredential } : undefined;
+}
+async function configured(context: ModuleCommandContext) {
 	try {
-		listener = new URL(advertised);
+		const config = await readSetup(context);
+		const p = await provider(context);
+		if (!config || !p || p.providerCredential) return undefined;
+		return { config, p, profiles: await profiles(config) };
 	} catch {
-		return unboundBinding();
+		return undefined;
 	}
-	if (listener.protocol !== "http:" || listener.pathname !== "/")
-		return unboundBinding();
-	const port = listener.port === "" ? 80 : Number(listener.port);
-	if (!Number.isInteger(port) || port <= 0 || port > 65_535)
-		return unboundBinding();
-	const executionModelEndpoint = executionRuntime?.["modelDecision.endpoint"];
-	if (executionModelEndpoint) {
-		try {
-			if (
-				new URL(executionModelEndpoint).href.replace(/\/$/, "") !==
-				listener.href.replace(/\/$/, "")
-			)
-				return unboundBinding();
-		} catch {
-			return unboundBinding();
-		}
+}
+async function running(context: ModuleCommandContext) {
+	const own = await ownFacts(context);
+	try {
+		const token = (await readFile(own.transportCredentialFile, "utf8")).trim();
+		return (
+			await fetch(`${own.endpoint}/ready`, {
+				headers: { authorization: `Bearer ${token}` },
+				signal: AbortSignal.timeout(500),
+			})
+		).ok;
+	} catch {
+		return false;
 	}
-	// A provider credential is an opaque secretRef identity. Platform CLI has no
-	// raw-secret resolver by design, so an authenticated provider stays
-	// fail-closed here until such a resolver is explicitly composed.
-	if (input.config.providerCredential) return unboundBinding();
-
+}
+async function compose(
+	context: ModuleCommandContext,
+): Promise<ModelRuntimeService> {
+	const own = await ownFacts(context);
+	const ready = await configured(context);
+	if (!ready)
+		throw new Error(
+			"model runtime setup or provider shared facts are not ready",
+		);
 	const processModule = await import("../src/process.ts");
-	let service: Awaited<
-		ReturnType<typeof processModule.createModelRuntimeProcess>
-	>;
-	try {
-		service = await processModule.createModelRuntimeProcess({
+	const url = new URL(own.endpoint);
+	const { fast, reason } = ready.profiles;
+	return (
+		await processModule.createModelRuntimeProcess({
 			config: processModule.parseModelRuntimeProcessConfig({
-				host: listener.hostname,
-				port,
-				stateRoot: input.config.stateRoot,
-				transportCredentialFile: input.config.transportCredentialFile,
-				providerBaseUrl: input.config.providerBaseUrl,
+				host: url.hostname,
+				port: Number(url.port),
+				stateRoot: own.stateRoot,
+				transportCredentialFile: own.transportCredentialFile,
+				providerBaseUrl: ready.p.providerBaseUrl,
 				models: {
-					fast: input.config.fastModel,
-					reason: input.config.reasonModel,
+					fast: ready.config.fastModel,
+					reason: ready.config.reasonModel,
 				},
 				profiles: { fast, reason },
 				capabilityFacts: {
@@ -283,25 +164,151 @@ export async function createProductionBinding(input: {
 					},
 				},
 			}),
-		});
-	} catch {
-		return unboundBinding(false);
-	}
-	return {
-		behaviorAdapter: createBehaviorAdapter(
-			{
-				service,
-				verifyProvider: async () => {
-					const ok = await service.verifyCapabilities();
-					return {
-						ok,
-						message: ok
-							? "Fresh production binding capability probe accepted FAST and REASON"
-							: "Fresh production binding capability probe did not accept both model roles",
-					};
-				},
-			},
-			input.config,
-		),
-	};
+		})
+	).service;
 }
+const failed = (
+	code: "SETUP_FAILED" | "START_FAILED" | "STOP_FAILED",
+	message: string,
+	retryable = true,
+) => ({
+	...base,
+	ok: false as const,
+	status: "FAILED" as const,
+	error: { code, message, retryable },
+});
+export const behaviorAdapter = {
+	install: async (context: ModuleCommandContext) => ({
+		result: { ...base, data: await ownFacts(context) },
+		observedEffects: [],
+	}),
+	uninstall: async (context: ModuleCommandContext) => {
+		const service = services.get(key(context));
+		if (service) {
+			await service.stop();
+			services.delete(key(context));
+		}
+		return {
+			result: base,
+			observedEffects: service
+				? ["Runs the Model Runtime HTTP service process"]
+				: [],
+		};
+	},
+	status: async (context: ModuleCommandContext) => ({
+		result: {
+			...base,
+			data: {
+				setupStatus: (await configured(context))
+					? ("READY" as const)
+					: ("FAILED" as const),
+				runtimeStatus: (await running(context))
+					? ("RUNNING" as const)
+					: ("STOPPED" as const),
+			},
+		},
+		observedEffects: [],
+	}),
+	setup: async (context: ModuleCommandContext) => {
+		const input = supplied(context);
+		if (input) {
+			await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+			await writeFile(
+				setupPath(context),
+				`${JSON.stringify(input, null, 2)}\n`,
+				{ mode: 0o600 },
+			);
+		}
+		const config = input ?? (await readSetup(context));
+		if (!config)
+			return {
+				result: {
+					...base,
+					ok: false as const,
+					status: "ACTION_REQUIRED" as const,
+					actionRequired: {
+						action: "select-model-roles",
+						description:
+							"Provide fastModel, reasonModel, and capabilityProfilesFile to Module.setup.",
+					},
+				},
+				observedEffects: [],
+			};
+		const p = await provider(context);
+		if (!p)
+			return {
+				result: failed(
+					"SETUP_FAILED",
+					"model.provider.api producer shared facts are unavailable",
+				),
+				observedEffects: [],
+			};
+		if (p.providerCredential)
+			return {
+				result: failed(
+					"SETUP_FAILED",
+					"providerCredential is a secretRef but no credential resolver contract is available",
+					false,
+				),
+				observedEffects: [],
+			};
+		try {
+			await profiles(config);
+			return { result: base, observedEffects: [] };
+		} catch (error) {
+			return {
+				result: failed(
+					"SETUP_FAILED",
+					error instanceof Error
+						? error.message
+						: "model capability profile validation failed",
+					false,
+				),
+				observedEffects: [],
+			};
+		}
+	},
+	docs: async (_context: ModuleCommandContext) => ({
+		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		observedEffects: [],
+	}),
+	start: async (context: ModuleCommandContext) => {
+		try {
+			const service = await compose(context);
+			const data = await service.start();
+			services.set(key(context), service);
+			return {
+				result: { ...base, data },
+				observedEffects: ["Runs the Model Runtime HTTP service process"],
+			};
+		} catch (error) {
+			return {
+				result: failed(
+					"START_FAILED",
+					error instanceof Error ? error.message : "model-runtime start failed",
+				),
+				observedEffects: [],
+			};
+		}
+	},
+	stop: async (context: ModuleCommandContext) => {
+		const service = services.get(key(context));
+		if (service) {
+			await service.stop();
+			services.delete(key(context));
+			return {
+				result: base,
+				observedEffects: ["Runs the Model Runtime HTTP service process"],
+			};
+		}
+		return {
+			result: (await running(context))
+				? failed(
+						"STOP_FAILED",
+						"model-runtime is running without an owned lifecycle handle",
+					)
+				: base,
+			observedEffects: [],
+		};
+	},
+} as const;
