@@ -20,23 +20,23 @@ contractRefs: []
 
 | Module 类型 | Module 自己拥有 | Platform CLI 只做 |
 |---|---|---|
-| library/in-process | config/status truth（适用时） | discovery / docs aggregation |
-| service | validate/status/start/stop | dependency ordering + dispatch |
-| browser-extension | config/materialization/status/validate | aggregation + dispatch |
-| agent-package | carrier/config/status knowledge | aggregation + dispatch |
-| external-resource | config/status/validate/lifecycle（真实支持时） | aggregation + dispatch |
+| 所有 governed Module | `install/uninstall/status/setup/docs/start/stop` 标准管理真源 | discovery / ordering / forwarding / aggregation |
+| 有独立 runtime 的 Module | 真实 process/service composition 与 runtime status | 调用标准 start/stop，不理解内部实现 |
+| 无独立 runtime 的 Module | no-op start/stop + `NOT_APPLICABLE` | 原样聚合 |
+| 有人工/外部依赖的 Module | setup workflow / ACTION_REQUIRED / reality observation | 转发 setup，不保存 step state |
+| 有 extra capability 的 Module | verify/doctor/migrate/role/create 等自身命令 | 不代理、不解释 |
 
-Platform 不把领域私有 `health/config/verify/doctor` 逻辑复制进自身。
+Platform 不把领域私有 `health/config/verification` 逻辑复制进自身，也不读取 Module 私有 config。
 
 ## 2. Runtime topology
 
-`provides/requires` 只表示 Runtime Module contract 与顺序关系：
+`provides/requires` 只表示 Module contract 与顺序关系：
 
-- `platform docs` 聚合并展示；
-- `platform start` 用于依赖顺序；
-- `platform stop` 用于逆依赖顺序。
+- `platform install/setup/start` 可用于依赖顺序；
+- `platform stop/uninstall` 使用逆依赖顺序；
+- `platform docs` 只聚合 Module.docs，不把 topology 翻译成配置值。
 
-它们不参与 npm package 安装 closure；不存在 `installRequires`。
+它们不参与 npm package dependency closure；不存在 `installRequires`，也不得被 Platform 用作 shared-fact config copy。
 
 ## 3. Application Composition Root
 
@@ -60,8 +60,8 @@ Task Runtime、Agent Runtime 保持独立 npm package并由 host in-process 装�
 
 ## 5. 外部资源
 
-Chrome Runtime、ChatGPT Carrier、Dev Tunnel、Model Provider 等由对应 Module/Adapter 自描述。需要人工动作时由 Module 自己返回可执行信息；Platform 不建立独立 Human Action workflow engine。
+Chrome Runtime、ChatGPT Carrier、Dev Tunnel、Model Provider 等由对应 Module 自描述。deterministic preparation 归 `Module.install`；需要人工/外部动作时由 `Module.setup` 返回 `ACTION_REQUIRED`；Platform 不建立独立 Human Action workflow engine。
 
 ## 6. Composition boundary
 
-新增符合 Module Contract 的 package 后，应自动进入 discovery/docs/status/lifecycle dispatch，不允许为了某个领域再向 Platform CLI 添加 module-specific if/else。
+新增符合 Module Contract 的 package 后，应自动进入 discovery，并由 Platform generic 转发七标准能力；不允许为了某个领域再向 Platform CLI 添加 module-specific if/else，也不允许 Platform 代理 Module-specific extra command。

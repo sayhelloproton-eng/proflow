@@ -21,13 +21,13 @@ contractRefs: []
 | Parent Domain | `deployment-governance` |
 | Context Ref | `deployment-governance` |
 | Subdomain | v1 未进一步拆分正式 Subdomain |
-| Language Scope | ModuleDescriptor、ModuleProvide/Require、ModuleRequirement、ConfigSlot、Deployment Plan/Step、ACTION_REQUIRED、VerificationResult、Manifest、Platform READY。 |
+| Language Scope | ModuleDescriptor、ModuleProvide/Require、ModuleRequirement、ModuleOperationResult、ModuleStatus、ACTION_REQUIRED、DOCS/SETUP、七标准管理能力。 |
 
 v1 未进一步冻结独立 Subdomain；五个 npm package 是工程职责分工，不是五个业务 Subdomain/BC。
 
 ## Purpose
 
-统一 Module Contract、依赖图、Plan/Apply、生命周期调用、Verify/Doctor、Manifest 与升级治理。
+统一 Module Contract、七标准管理能力、Module topology、package lifecycle、External Resource setup 与版本治理。
 
 ## Model Boundary
 
@@ -39,13 +39,13 @@ v1 未进一步冻结独立 Subdomain；五个 npm package 是工程职责分工
 
 ## Upstream
 
-各 Domain Module 声明 requirements/provides/requires/config/lifecycle/verification；External Resource Adapter 提供可观察能力与操作边界。
+各 Domain Module 声明 identity/provides/requires 与七标准管理能力；Module 自己拥有 status/setup/docs、私有配置与真实 runtime composition。External Resource Adapter 只翻译外部现实，不把配置 ownership 交给 Platform。
 
 只允许通过对应 Public Contract / logical Requires 获取上游事实；禁止读取其他领域 DB、Repository 或内部 Adapter。
 
 ## Downstream
 
-platform-cli、conformance、template、module-skill 以及各 Module lifecycle/verify/doctor 调用方消费 Deployment governance facts。
+platform-cli、conformance、template、module-skill 以及各 Module 标准管理调用方消费 Deployment governance facts；Module-specific extra capability 由对应 package 自己发布和消费。
 
 下游只能通过本 Context/Domain Public Contract 使用能力，不得 deep import 内部 Module。
 

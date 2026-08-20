@@ -37,7 +37,7 @@ Platform
 | 智能体运行与协作 | Agent Package/Role/Worker/Collaboration/Gateway | `agent-runtime-collaboration` | [智能体运行与协作领域](智能体运行与协作领域/README.md) |
 | 执行 | Intent→Effect→Result/Evidence；Local/Browser Effect | `execution` | [执行领域](执行领域/README.md) |
 | 模型与推理 | ReasoningSpec/FAST/REASON/AUTO/Provider/Health | `model-reasoning` | [模型与推理领域](模型与推理领域/README.md) |
-| 部署 | Module Governance/Plan/Apply/Verify/Doctor/Upgrade | `deployment-governance` | [部署领域](部署领域/README.md) |
+| 部署 | Module Governance / 七标准管理能力 / External Resource setup / package-version governance | `deployment-governance` | [部署领域](部署领域/README.md) |
 
 公共边界与工程约定见 [平台架构与公共约定](平台架构与公共约定/README.md)。
 
@@ -94,7 +94,7 @@ agent-gateway  ───────────────┐
         execution-browser-extension
 ```
 
-`platform-cli` 负责 Module Graph、配置、plan/apply、verify/doctor/upgrade；它不是业务 Runtime。ChatGPT Carrier、Chrome Runtime、Dev Tunnel、Model Provider 等作为 External Resource Module 治理。
+`platform-cli` 只负责 Module discovery/ordering/forwarding/aggregation 与 package-manager orchestration；标准命令固定为 `install/uninstall/status/setup/docs/start/stop`，它不是业务 Runtime，也不读取 Module 私有配置。ChatGPT Carrier、Chrome Runtime、Dev Tunnel、Model Provider 等作为 External Resource Module 自治治理。
 
 ## 7. Source of Truth
 
