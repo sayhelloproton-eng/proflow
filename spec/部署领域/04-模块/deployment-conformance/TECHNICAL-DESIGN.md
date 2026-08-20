@@ -102,3 +102,6 @@ Platform private config materialization
 ## 8. Boundary
 
 Conformance 只证明治理合同，不证明 Browser/Model/Gateway/Task/Agent 业务正确性，也不得把真实外部账号变成 CI 依赖。若为了通过 Conformance 必须修改领域业务逻辑，判定为越界并 STOP。
+## Setup Closure Conformance
+
+Conformance 必须机械证明 setup 结构可被薄 Platform 全量聚合：每个需要 setup 的 Module 有最短 `SETUP.md` Step；每个状态推进 Step 声明 package-owned executable/verify 与 Success Condition；`ACTION_REQUIRED` 只用于真实人工/外部动作。`platform setup` 可一次遍历全部 discovered Module，READY 跳过，所有非 READY 继续执行并一次性聚合，而不需要 Platform 理解 Module 私有配置或步骤。
