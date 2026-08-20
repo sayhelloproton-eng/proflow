@@ -122,38 +122,56 @@ test("simulated human Golden Path runs install → status → setup → docs →
 		executableAvailable: () => true,
 	};
 	try {
-		const installed = parse(await runCli(["install", "--json"], runtime));
+		const installed = parse(
+			await runCli(["install", "--workspace", ".", "--json"], runtime),
+		);
 		assert.equal(installed.status, "SUCCEEDED");
 
-		const before = parse(await runCli(["status", "--json"], { cwd: root }));
+		const before = parse(
+			await runCli(["status", "--workspace", ".", "--json"], { cwd: root }),
+		);
 		assert.equal(before.status, "SUCCEEDED");
 		assert.equal(before.data?.modules?.[0]?.setupStatus, "ACTION_REQUIRED");
 		assert.equal(before.data?.modules?.[0]?.runtimeStatus, "STOPPED");
 
-		const setup = parse(await runCli(["setup", "--json"], { cwd: root }));
+		const setup = parse(
+			await runCli(["setup", "--workspace", ".", "--json"], { cwd: root }),
+		);
 		assert.equal(setup.status, "SUCCEEDED");
-		const ready = parse(await runCli(["status", "--json"], { cwd: root }));
+		const ready = parse(
+			await runCli(["status", "--workspace", ".", "--json"], { cwd: root }),
+		);
 		assert.equal(ready.data?.modules?.[0]?.setupStatus, "READY");
 
-		const docs = parse(await runCli(["docs", "--json"], { cwd: root }));
+		const docs = parse(
+			await runCli(["docs", "--workspace", ".", "--json"], { cwd: root }),
+		);
 		assert.equal(docs.status, "SUCCEEDED");
 		assert.match(
 			JSON.stringify(docs.data?.modules?.[0]?.docs ?? {}),
 			/Fixture Service/,
 		);
 
-		const started = parse(await runCli(["start", "--json"], { cwd: root }));
+		const started = parse(
+			await runCli(["start", "--workspace", ".", "--json"], { cwd: root }),
+		);
 		assert.equal(started.status, "SUCCEEDED");
-		const running = parse(await runCli(["status", "--json"], { cwd: root }));
+		const running = parse(
+			await runCli(["status", "--workspace", ".", "--json"], { cwd: root }),
+		);
 		assert.equal(running.data?.modules?.[0]?.runtimeStatus, "RUNNING");
 
-		const stopped = parse(await runCli(["stop", "--json"], { cwd: root }));
+		const stopped = parse(
+			await runCli(["stop", "--workspace", ".", "--json"], { cwd: root }),
+		);
 		assert.equal(stopped.status, "SUCCEEDED");
-		const afterStop = parse(await runCli(["status", "--json"], { cwd: root }));
+		const afterStop = parse(
+			await runCli(["status", "--workspace", ".", "--json"], { cwd: root }),
+		);
 		assert.equal(afterStop.data?.modules?.[0]?.runtimeStatus, "STOPPED");
 
 		const uninstalled = parse(
-			await runCli(["uninstall", "--json"], {
+			await runCli(["uninstall", "--workspace", ".", "--json"], {
 				cwd: root,
 				packageRunner: runtime.packageRunner,
 				executableAvailable: () => true,

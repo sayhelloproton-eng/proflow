@@ -56,7 +56,7 @@ function recordingCatalog(
 	setupByRef: Readonly<
 		Record<string, "READY" | "ACTION_REQUIRED" | "FAILED">
 	> = {},
-	setupResultByRef: Readonly<Record<string, "ACTION_REQUIRED">> = {},
+	setupResultByRef: Readonly<Record<string, "ACTION_REQUIRED" | "FAILED">> = {},
 ) {
 	const calls: Array<{ call: string; input?: unknown }> = [];
 	const catalog: ModuleCatalog = {
@@ -73,24 +73,39 @@ function recordingCatalog(
 					call: `${moduleRef}:${command}`,
 					...(context.input === undefined ? {} : { input: context.input }),
 				});
-				if (
-					command === "setup" &&
-					setupResultByRef[moduleRef] === "ACTION_REQUIRED"
-				)
-					return {
-						result: {
-							contract: "deployment.result.v1" as const,
-							ok: false,
-							status: "ACTION_REQUIRED" as const,
-							moduleRef,
-							moduleVersion: "1.0.0",
-							actionRequired: {
-								action: `configure-${moduleRef}`,
-								description: `Configure ${moduleRef}`,
-							},
-						},
-						observedEffects: [],
-					};
+				if (command === "setup" && setupResultByRef[moduleRef]) {
+					const setupResult = setupResultByRef[moduleRef];
+					return setupResult === "ACTION_REQUIRED"
+						? {
+								result: {
+									contract: "deployment.result.v1" as const,
+									ok: false,
+									status: "ACTION_REQUIRED" as const,
+									moduleRef,
+									moduleVersion: "1.0.0",
+									actionRequired: {
+										action: `configure-${moduleRef}`,
+										description: `Configure ${moduleRef}`,
+									},
+								},
+								observedEffects: [],
+							}
+						: {
+								result: {
+									contract: "deployment.result.v1" as const,
+									ok: false,
+									status: "FAILED" as const,
+									moduleRef,
+									moduleVersion: "1.0.0",
+									error: {
+										code: "SETUP_FAILED" as const,
+										message: `Machine failure ${moduleRef}`,
+										retryable: true,
+									},
+								},
+								observedEffects: [],
+							};
+				}
 				const data =
 					command === "status"
 						? {
@@ -219,4 +234,30 @@ test("targeted setup forwards opaque input without Platform interpretation", asy
 		{ call: "consumer:status" },
 		{ call: "consumer:setup", input },
 	]);
+});
+
+test("setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run", async () => {
+	const { catalog, calls } = recordingCatalog(
+		{ consumer: "ACTION_REQUIRED", leaf: "FAILED" },
+		{ consumer: "ACTION_REQUIRED", leaf: "FAILED" },
+	);
+	const result = await setupModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(result.completed, false);
+	assert.deepEqual(
+		result.results.map((item) => [item.moduleRef, item.result.status]),
+		[
+			["consumer", "ACTION_REQUIRED"],
+			["leaf", "FAILED"],
+		],
+	);
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		[
+			"provider:status",
+			"consumer:status",
+			"consumer:setup",
+			"leaf:status",
+			"leaf:setup",
+		],
+	);
 });

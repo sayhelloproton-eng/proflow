@@ -197,14 +197,13 @@ test("uninstall removes ProFlow dependencies and preserves .proflow", async () =
 	}
 });
 
-test("only install accepts --workspace and all commands reject positional module arguments", async () => {
+test("all operational commands accept --workspace while positional module arguments remain invalid", async () => {
 	const root = await tempWorkspace();
 	try {
-		const wrongWorkspace = JSON.parse(
+		const explicitWorkspace = JSON.parse(
 			await runCli(["status", "--workspace", root, "--json"], { cwd: root }),
 		) as { status: string; error?: { code: string } };
-		assert.equal(wrongWorkspace.status, "FAILED");
-		assert.equal(wrongWorkspace.error?.code, "INVALID_REQUEST");
+		assert.equal(explicitWorkspace.status, "SUCCEEDED");
 
 		const positional = JSON.parse(
 			await runCli(["install", "fixture-module", "--json"], { cwd: root }),

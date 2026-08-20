@@ -137,11 +137,6 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 	if (!COMMANDS.includes(raw as Command))
 		throw new PlatformError("INVALID_REQUEST", `unknown command ${raw}`);
 	const command = raw as Command;
-	if (workspace !== undefined && command !== "install")
-		throw new PlatformError(
-			"INVALID_REQUEST",
-			"--workspace is only valid with install",
-		);
 	if ((moduleRef !== undefined || inputSeen) && command !== "setup")
 		throw new PlatformError(
 			"INVALID_REQUEST",
@@ -451,10 +446,12 @@ async function handleStop(root: string): Promise<CliOutcome> {
 }
 function helpOutcome(): CliOutcome {
 	return outcome("help", "SUCCEEDED", undefined, {
-		usage: "platform <install|uninstall|status|setup|docs|start|stop> [--json]",
+		usage:
+			"platform <install|uninstall|status|setup|docs|start|stop> [--workspace <path>] [--json]",
 		commands: [...COMMANDS],
 		install: "platform install [--workspace <path>]",
-		setup: "platform setup [--module <moduleRef> --input '<json>']",
+		setup:
+			"platform setup [--workspace <path>] [--module <moduleRef> --input '<json>']",
 	});
 }
 export async function runCli(
@@ -475,11 +472,10 @@ export async function runCli(
 					version: platformCliDescriptor.moduleVersion,
 				}),
 			);
-		const cwd = await canonicalWorkspace(runtime.cwd ?? process.cwd());
-		const root =
-			parsed.command === "install" && parsed.workspace !== undefined
-				? await canonicalWorkspace(cwd, parsed.workspace)
-				: cwd;
+		const root = await canonicalWorkspace(
+			runtime.cwd ?? process.cwd(),
+			parsed.workspace,
+		);
 		switch (parsed.command) {
 			case "install":
 				return JSON.stringify(await handleInstall(root, runtime));
