@@ -330,7 +330,7 @@ export const behaviorAdapter = {
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action: "load-unpacked-extension",
-						description: `Load ${browserExtensionLoadDir(context.workspaceRoot)} in Chrome, copy its extensionId, then rerun Module.setup with extensionId.`,
+						description: `Load ${browserExtensionLoadDir(context.workspaceRoot)} in Chrome, copy its extensionId, then run platform setup --module execution-browser-extension --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"extensionId":"<32-char-id>"}'.`,
 					},
 				},
 				observedEffects: [],
@@ -374,8 +374,7 @@ export const behaviorAdapter = {
 				status: "ACTION_REQUIRED" as const,
 				actionRequired: {
 					action: "reload-and-verify-extension",
-					description:
-						"Reload the unpacked extension after runtime config materialization, confirm its MV3 service worker is RUNNING, then rerun Module.setup with serviceWorker=RUNNING.",
+					description: `Reload the unpacked extension, confirm its MV3 service worker is RUNNING, then run platform setup --module execution-browser-extension --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"serviceWorker":"RUNNING"}'.`,
 				},
 			},
 			observedEffects: [],

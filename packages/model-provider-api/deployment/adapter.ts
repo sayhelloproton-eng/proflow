@@ -148,8 +148,7 @@ export const behaviorAdapter = {
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action: "configure-provider",
-						description:
-							"Provide providerBaseUrl and, when required, providerCredential to Module.setup.",
+						description: `Choose the real provider endpoint, then run platform setup --module model-provider-api --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"providerBaseUrl":"<base-url>"}'. Add providerCredential only when a valid producer-owned credential resolver contract exists.`,
 					},
 				},
 				observedEffects: [],

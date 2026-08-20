@@ -200,8 +200,7 @@ export const behaviorAdapter = {
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action: "complete-tunnel-login",
-						description:
-							"Complete Microsoft Dev Tunnel login, then rerun setup.",
+						description: `Run devtunnel user login, complete Microsoft authentication, then rerun platform setup --module dev-tunnel --workspace ${JSON.stringify(context.workspaceRoot)}.`,
 					},
 				},
 				observedEffects: [],
@@ -217,8 +216,7 @@ export const behaviorAdapter = {
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action: "select-or-create-tunnel",
-						description:
-							"Create or select the persistent Dev Tunnel and provide tunnelId plus publicBaseUrl to this setup step.",
+						description: `Create/select the persistent tunnel (for example devtunnel create <tunnel-id>), then run platform setup --module dev-tunnel --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"tunnelId":"<id>","publicBaseUrl":"https://<host>"}'.`,
 					},
 				},
 				observedEffects: [],

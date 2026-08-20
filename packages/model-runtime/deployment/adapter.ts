@@ -213,7 +213,7 @@ export const behaviorAdapter = {
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action: "select-model-roles",
-						description: "Provide fastModel and reasonModel to Module.setup.",
+						description: `Choose the FAST and REASON model IDs, then run platform setup --module model-runtime --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"fastModel":"<fast-model-id>","reasonModel":"<reason-model-id>"}'. Do not provide capabilityProfilesFile or provider internals.`,
 					},
 				},
 				observedEffects: [],
