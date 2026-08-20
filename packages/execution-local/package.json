@@ -23,7 +23,8 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@tomflow/proflow-execution-contracts": "workspace:^"
+		"@tomflow/proflow-execution-contracts": "workspace:^",
+		"@tomflow/proflow-module-contract": "workspace:^"
 	},
 	"description": "In-process real local executor for typed ProFlow Execution capabilities.",
 	"keywords": [

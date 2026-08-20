@@ -48,8 +48,7 @@ export const descriptor = {
 	effects: [
 		{
 			kind: "external-resource",
-			description:
-				"Package an MV3 extension that performs Execution-authorized Browser effects",
+			description: "Materialize the unpacked MV3 extension package",
 			retention: "preserve",
 		},
 	],

@@ -41,29 +41,27 @@ test("Execution Browser module contract C1/C2/C3", async () => {
 		await access(new URL(`../${artifact}`, import.meta.url));
 });
 
-test("PRESMOKE-B6-DESC-01 extension descriptor config surface matches the consumed Bridge/Task/Approval connections", async () => {
+test("PRESMOKE-B6-DESC-01 extension runtime connections are Module-owned/shared facts, never public config slots", async () => {
 	const optionsSource = await readFile(
 		new URL("../extension/options.ts", import.meta.url),
 		"utf8",
 	);
-	const slotKeys = (descriptor as unknown as ModuleDescriptor).configSlots.map(
-		(slot) => slot.key,
+	const adapterSource = await readFile(
+		new URL("../deployment/adapter.ts", import.meta.url),
+		"utf8",
 	);
-	for (const key of [
-		"bridge.endpoint",
-		"bridge.token",
-		"taskApplication.endpoint",
-		"taskApplication.token",
-		"approvalApplication.endpoint",
-		"approvalApplication.token",
-	])
-		assert.ok(slotKeys.includes(key), `${key} must be a declared config slot`);
-	assert.ok(!slotKeys.includes("executionRuntimeUrl"));
-	assert.ok(!slotKeys.includes("localPlatformCredential"));
+	assert.deepEqual((descriptor as unknown as ModuleDescriptor).configSlots, []);
+	assert.match(
+		adapterSource,
+		/readModuleSharedFacts\(context, "platform-host"\)/,
+	);
+	assert.match(adapterSource, /ensureModuleSecretFile/);
 	for (const storageKey of [
 		"proflowRuntimeBridge",
 		"proflowTaskApplication",
 		"proflowApprovalApplication",
-	])
+	]) {
 		assert.match(optionsSource, new RegExp(storageKey));
+		assert.match(adapterSource, new RegExp(storageKey));
+	}
 });
