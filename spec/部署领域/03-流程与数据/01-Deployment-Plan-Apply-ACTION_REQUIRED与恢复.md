@@ -1,6 +1,6 @@
 ---
 docId: DEPLOYMENT-DOC-03-01
-title: 六命令编排流与失败边界
+title: 七命令编排流与失败边界
 docType: runtime-flow
 authority: normative
 lifecycle: active
@@ -12,79 +12,65 @@ requires: []
 contractRefs: []
 ---
 
-# 六命令编排流与失败边界
+# 七命令编排流与失败边界
 
 > 旧 Plan / Apply / Resume 产品流程已退休。本文给出当前薄 Platform CLI 的运行流。
 
 ## 1. 总原则
 
 ```text
-用户意图 = 六个 CLI 命令
-内部 primitive = 实现细节，不进入用户心智
+用户意图 = 七个 Platform 命令
+Module 真实行为 = Module 标准能力
+Platform = discovery / ordering / forwarding / aggregation
 ```
 
-Platform 不再生成 `planRef/stepRef/applyRef/resumeRef`，也不维护部署事务状态机。
+Platform 不再生成 `planRef/stepRef/applyRef/resumeRef`，也不维护部署事务状态机或 Module 私有 config bus。
 
 ## 2. Install
 
 ```text
 Resolve Workspace
-→ 校验已有 Workspace-local metadata
-→ Registry 动态获得完整 ProFlow package/version set
-→ 一次 package-manager transaction 同步
-→ 重新读取真实安装结果
-→ 校验 Module descriptors
-→ Fresh 时初始化最小 .proflow metadata
+→ Registry / package-manager 同步 package set
+→ 重新发现 Module
+→ dependency order
+→ Module.install
 ```
 
-失败即失败；不建立成功 Binding，不进入 Plan/Apply recovery。
+失败即失败；不进入 Plan/Apply recovery。Module.install 自闭环 deterministic materialization。
 
-## 3. Modules / Docs
+## 3. Status / Docs / Setup
 
-`modules` 只读聚合当前 Module-owned status observation；`docs` 只读聚合 Module-owned knowledge。两者都不修复、不材料化配置、不执行人工动作。
+`status` 只聚合 Module.status；`docs` 只聚合 Module.docs；`setup` 只转发 Module.setup。三者都不替 Module 做业务判断。
 
 ## 4. Start
 
 ```text
 Discover
-→ Build runtime dependency order
-→ Validate all applicable Modules (fail-fast)
-→ only if all PASS: Start in dependency order (fail-fast)
+→ Build dependency order
+→ Module.status
+→ require setupStatus=READY
+→ Module.start in dependency order (fail-fast)
 ```
 
-Validate 阶段失败时，本轮不得启动任何 Module。
-
-Start 阶段中途失败时：后续 Module 不再启动；已成功启动者保持真实现状；Platform 不自动 rollback/retry/repair。
-
-Module 返回 `ACTION_REQUIRED` 等结构化信息时可原样透传，Platform 不建立 resumable workflow。
+没有独立 validate/preflight。Start 中途失败时后续 Module 不再启动；已成功启动者保持真实现状，Platform 不自动 rollback/retry/repair。
 
 ## 5. Stop
 
-```text
-Discover
-→ Build runtime dependency order
-→ Reverse order
-→ Module stop (fail-fast)
-```
-
-Stop 不做 validate，也不隐式执行其它命令。
+逆依赖顺序调用 `Module.stop`，fail-fast；不隐式执行其它命令。
 
 ## 6. Uninstall
 
 ```text
-识别 Workspace package.json 中 ProFlow dependencies/devDependencies
-→ package manager 一次 remove transaction
-→ 保留 .proflow
+Discover
+→ reverse dependency order
+→ Module.uninstall
+→ package-manager remove
 ```
 
-Uninstall 不自动 stop，不执行 cleanup workflow，不删除 Workspace 用户数据。
+Platform 不猜 Module cleanup；不自动删除整个 `.proflow`。
 
-## 7. 并发与安全
+## 7. Human / Web 操作
 
-Package manager 自己负责 package mutation 的锁文件/manifest 一致性。Platform 只保留实现六命令所需的最小 Workspace-local 原子 metadata 写入，不保留旧 apply lock/plan state。
-
-## 8. Human / Web 操作
-
-需要登录、浏览器加载、Custom GPT 配置、凭据等动作时，知识和检查归 owning Module。AI 通过 `platform docs` 获取操作说明；真正启动前由 Module validate/preflight 再确认。
+登录、浏览器加载、Custom GPT、Tunnel、Provider 等动作归 owning Module.setup。`ACTION_REQUIRED` 原样透传；再次执行 setup 时重新观察现实，不依赖 Platform resume state。
 
 不存在 `platform configure/repair/doctor/apply` 作为替代入口。
