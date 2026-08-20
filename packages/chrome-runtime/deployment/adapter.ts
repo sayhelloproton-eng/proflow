@@ -110,8 +110,7 @@ export function createBehaviorAdapter(
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action: "install-or-expose-chrome",
-						description:
-							"Install a supported Chrome/Chromium runtime, or provide chromeExecutablePath to Module.setup.",
+						description: `Install a supported Chrome/Chromium runtime and rerun platform setup --module chrome-runtime --workspace ${JSON.stringify(context.workspaceRoot)}; if auto-detection still fails, rerun with --input '{"chromeExecutablePath":"<absolute-path>"}'.`,
 					},
 				},
 				observedEffects: [observedEffect],

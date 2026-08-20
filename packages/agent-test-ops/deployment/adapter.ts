@@ -62,7 +62,7 @@ export const behaviorAdapter = {
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action,
-						description: `${descriptor.packageName}@${descriptor.moduleVersion} Role is ${reality.status.toLowerCase()}: ${reality.issues.join(", ")}. Complete the package-owned Custom GPT/role setup, then rerun platform setup.`,
+						description: `${descriptor.packageName}@${descriptor.moduleVersion} Role is ${reality.status.toLowerCase()}: ${reality.issues.join(", ")}. Run ${descriptor.packageName.replace("@tomflow/", "")} custom-gpt setup --workspace ${JSON.stringify(context.workspaceRoot)}; create/update the real Custom GPT; then run ${descriptor.packageName.replace("@tomflow/", "")} role register <gpt-url> --workspace ${JSON.stringify(context.workspaceRoot)} and rerun platform setup.`,
 					},
 				},
 				observedEffects: [] as string[],

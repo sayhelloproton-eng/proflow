@@ -220,8 +220,7 @@ export const behaviorAdapter = {
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action: "materialize-custom-gpt-carrier",
-						description:
-							"Create or select the real Custom GPT and provide its https://chatgpt.com/g/... URL to this setup step.",
+						description: `Create or select the real Custom GPT, then run platform setup --module chatgpt-carrier --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"carrierUrl":"<gpt-url>"}'.`,
 					},
 				},
 				observedEffects: [],
@@ -234,8 +233,7 @@ export const behaviorAdapter = {
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action: "correct-carrier-url",
-						description:
-							"carrierUrl must be a real https://chatgpt.com/g/... Custom GPT URL.",
+						description: `carrierUrl must be a real https://chatgpt.com/g/... URL. Rerun platform setup --module chatgpt-carrier --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"carrierUrl":"<gpt-url>"}'.`,
 					},
 				},
 				observedEffects: [],
