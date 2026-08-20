@@ -1,7 +1,3 @@
-import {
-	inferenceRequestSchema,
-	MODEL_CONTRACT_DESCRIPTOR,
-} from "../src/index.ts";
 import { descriptor } from "./descriptor.ts";
 
 const base = {
@@ -12,57 +8,26 @@ const base = {
 	moduleVersion: descriptor.moduleVersion,
 } as const;
 
+const success = () => ({ result: base, observedEffects: [] as string[] });
+
 export const behaviorAdapter = {
-	describe: () => ({
-		result: { ...base, data: MODEL_CONTRACT_DESCRIPTOR },
-		observedEffects: [],
-	}),
-	preflight: () => ({ result: base, observedEffects: [] }),
+	install: success,
+	uninstall: success,
 	status: () => ({
 		result: {
 			...base,
 			data: {
-				configStatus: "READY" as const,
-				runtimeStatus: "UNKNOWN" as const,
+				setupStatus: "READY" as const,
+				runtimeStatus: "NOT_APPLICABLE" as const,
 			},
 		},
-		observedEffects: [],
+		observedEffects: [] as string[],
 	}),
-	verify: () => {
-		const valid = inferenceRequestSchema.safeParse({
-			contractVersion: "1.0.0",
-			specRef: "verification.probe.v1",
-			mode: "fast",
-			priority: "background",
-			trace: { callerRef: "deployment:model-contracts" },
-			payload: {},
-		}).success;
-		return {
-			result: {
-				...base,
-				ok: valid,
-				status: valid ? ("SUCCEEDED" as const) : ("FAILED" as const),
-				checks: [
-					{
-						id: "model-contract-boundaries",
-						status: valid ? ("PASS" as const) : ("FAIL" as const),
-						message: valid
-							? "Model boundary schemas loaded and validated a typed probe"
-							: "Model boundary schema verification failed",
-					},
-				],
-				...(!valid
-					? {
-							error: {
-								code: "VERIFY_FAILED",
-								message: "Model contract boundary probe failed",
-								retryable: false,
-							},
-						}
-					: {}),
-			},
-			observedEffects: [],
-		};
-	},
-	doctor: () => ({ result: base, observedEffects: [] }),
+	setup: success,
+	docs: () => ({
+		result: { ...base, data: descriptor.documentation },
+		observedEffects: [] as string[],
+	}),
+	start: success,
+	stop: success,
 } as const;

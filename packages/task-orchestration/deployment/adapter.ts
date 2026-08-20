@@ -1,37 +1,33 @@
 import { descriptor } from "./descriptor.ts";
 
-const result = {
+const base = {
 	contract: "deployment.result.v1",
 	ok: true,
 	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
+
+const success = () => ({ result: base, observedEffects: [] as string[] });
+
 export const behaviorAdapter = {
-	describe: () => ({ result, observedEffects: [] }),
-	preflight: () => ({ result, observedEffects: [] }),
+	install: success,
+	uninstall: success,
 	status: () => ({
 		result: {
-			...result,
+			...base,
 			data: {
-				configStatus: "READY" as const,
-				runtimeStatus: "UNKNOWN" as const,
+				setupStatus: "READY" as const,
+				runtimeStatus: "NOT_APPLICABLE" as const,
 			},
 		},
-		observedEffects: [],
+		observedEffects: [] as string[],
 	}),
-	verify: () => ({
-		result: {
-			...result,
-			checks: [
-				{
-					id: "task-domain-tests-pass",
-					status: "PASS",
-					message: "Task Domain test gate is available",
-				},
-			],
-		},
-		observedEffects: [],
+	setup: success,
+	docs: () => ({
+		result: { ...base, data: descriptor.documentation },
+		observedEffects: [] as string[],
 	}),
-	doctor: () => ({ result, observedEffects: [] }),
+	start: success,
+	stop: success,
 } as const;

@@ -7,31 +7,27 @@ const base = {
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
+
+const success = () => ({ result: base, observedEffects: [] as string[] });
+
 export const behaviorAdapter = {
-	describe: () => ({ result: base, observedEffects: [] }),
-	preflight: () => ({ result: base, observedEffects: [] }),
+	install: success,
+	uninstall: success,
 	status: () => ({
 		result: {
 			...base,
 			data: {
-				configStatus: "READY" as const,
-				runtimeStatus: "UNKNOWN" as const,
+				setupStatus: "READY" as const,
+				runtimeStatus: "NOT_APPLICABLE" as const,
 			},
 		},
-		observedEffects: [],
+		observedEffects: [] as string[],
 	}),
-	verify: () => ({
-		result: {
-			...base,
-			checks: [
-				{
-					id: "agent-runtime-boundary",
-					status: "PASS",
-					message: "Agent runtime is loaded through its public package",
-				},
-			],
-		},
-		observedEffects: [],
+	setup: success,
+	docs: () => ({
+		result: { ...base, data: descriptor.documentation },
+		observedEffects: [] as string[],
 	}),
-	doctor: () => ({ result: base, observedEffects: [] }),
+	start: success,
+	stop: success,
 } as const;
