@@ -1,31 +1,44 @@
-import { observeDeclaredModuleStatus } from "@tomflow/proflow-module-contract";
-
+import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
 import { descriptor } from "./descriptor.ts";
 
-const success = (data?: unknown) => ({
-	contract: "deployment.result.v1" as const,
+const base = {
+	contract: "deployment.result.v1",
 	ok: true,
-	status: "SUCCEEDED" as const,
+	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
-	...(data === undefined ? {} : { data }),
-});
-
+} as const;
+const noRuntime = {
+	setupStatus: "READY",
+	runtimeStatus: "NOT_APPLICABLE",
+} as const;
 export const behaviorAdapter = {
-	describe: () => ({
-		result: success({ role: "deployment-governance", kind: descriptor.kind }),
+	install: async (_context: ModuleCommandContext) => ({
+		result: base,
 		observedEffects: [],
 	}),
-	preflight: () => ({ result: success(), observedEffects: [] }),
-	status: () => ({
-		result: success(
-			observeDeclaredModuleStatus(descriptor, undefined, "UNKNOWN"),
-		),
+	uninstall: async (_context: ModuleCommandContext) => ({
+		result: base,
 		observedEffects: [],
 	}),
-	verify: () => ({
-		result: success(),
+	status: async (_context: ModuleCommandContext) => ({
+		result: { ...base, data: noRuntime },
 		observedEffects: [],
 	}),
-	doctor: () => ({ result: success(), observedEffects: [] }),
-};
+	setup: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+	docs: async (_context: ModuleCommandContext) => ({
+		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		observedEffects: [],
+	}),
+	start: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+	stop: async (_context: ModuleCommandContext) => ({
+		result: base,
+		observedEffects: [],
+	}),
+} as const;
