@@ -24,12 +24,12 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@tomflow/proflow-module-contract": "workspace:^",
 		"yaml": "2.9.0",
 		"zod": "4.1.12"
 	},
 	"devDependencies": {
-		"@tomflow/proflow-deployment-conformance": "workspace:^",
-		"@tomflow/proflow-module-contract": "workspace:^"
+		"@tomflow/proflow-deployment-conformance": "workspace:^"
 	},
 	"description": "Agent-owned Role Registry, credential binding and Collaboration durable runtime.",
 	"keywords": [

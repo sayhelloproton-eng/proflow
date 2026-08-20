@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import {
 	createRoleManagementClient,
+	createWorkspaceRoleSetupClient,
 	validateRoleCarrier,
 } from "@tomflow/proflow-agent-runtime/role-management-client";
 
@@ -16,17 +17,19 @@ const metadata = JSON.parse(
 ) as Record<string, unknown>;
 const material = materializeAgentPackage(metadata);
 const args = process.argv.slice(2);
+const workspaceRoot = () =>
+	option("--workspace") ?? process.env.PROFLOW_WORKSPACE;
 const binary = material.packageName.split("/").at(-1);
 
 function help() {
 	process.stdout.write(`Usage:
-	  ${binary} custom-gpt setup --gateway-url https://public.example
+	  ${binary} custom-gpt setup --workspace /absolute/workspace
 	  ${binary} custom-gpt show-name
 	  ${binary} custom-gpt show-description
 	  ${binary} custom-gpt show-instructions
 	  ${binary} custom-gpt action-schema --gateway-url https://public.example
 
-	  ${binary} role register https://chatgpt.com/g/g-... --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow
+	  ${binary} role register https://chatgpt.com/g/g-... --workspace /absolute/workspace
 	  ${binary} role show --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow
 	  ${binary} role list --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow
 	  ${binary} role validate --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow --gateway-url https://public.example
@@ -65,22 +68,29 @@ function roleRefFromCarrierUrl(carrierUrl: string) {
 
 async function runRoleCommand() {
 	const command = args[1];
-	const client = managementClient();
 	let result: unknown;
 	if (command === "register") {
 		const carrierUrl = args[2];
 		if (!carrierUrl || carrierUrl.startsWith("--"))
 			throw new Error("CUSTOM_GPT_URL_REQUIRED");
 		const roleRef = roleRefFromCarrierUrl(carrierUrl);
-		result = await client.invoke("role.register", {
+		const input = {
 			agentPackageRef: material.packageName,
 			registeredPackageVersion: material.version,
 			roleRef,
 			carrierUrl,
-		});
+		};
+		const workspace = workspaceRoot();
+		result = workspace
+			? await (await createWorkspaceRoleSetupClient(workspace)).registerRole(
+					input,
+				)
+			: await managementClient().invoke("role.register", input);
 	} else if (command === "list") {
+		const client = managementClient();
 		result = await client.invoke("role.list");
 	} else if (command === "validate") {
+		const client = managementClient();
 		const gatewayUrl =
 			option("--gateway-url") ?? process.env.PROFLOW_AGENT_GATEWAY_URL;
 		if (!gatewayUrl) throw new Error("GATEWAY_URL_REQUIRED");
@@ -116,10 +126,12 @@ async function runRoleCommand() {
 			],
 		};
 	} else if (command === "show" || command === "delete") {
+		const client = managementClient();
 		result = await client.invoke(`role.${command}`, {
 			agentPackageRef: material.packageName,
 		});
 	} else if (command === "key") {
+		const client = managementClient();
 		const keyCommand = args[2];
 		if (keyCommand !== "show" && keyCommand !== "rotate")
 			throw new Error("UNSUPPORTED_ROLE_KEY_COMMAND");
@@ -137,7 +149,11 @@ if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 } else if (args[0] === "custom-gpt") {
 	const command = args[1];
 	const agent = metadata.proflowAgent as Record<string, unknown>;
-	const gatewayUrl = option("--gateway-url");
+	let gatewayUrl = option("--gateway-url");
+	if (!gatewayUrl && workspaceRoot())
+		gatewayUrl = await (
+			await createWorkspaceRoleSetupClient(workspaceRoot() as string)
+		).gatewayUrl();
 	if (
 		gatewayUrl &&
 		(!gatewayUrl.startsWith("https://") || gatewayUrl.endsWith("/"))

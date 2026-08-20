@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
+import { readModuleSharedFacts } from "@tomflow/proflow-module-contract";
 import { parse } from "yaml";
+import { createAgentRuntime, inspectDurableRoleRegistration } from "./index.ts";
 
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
@@ -118,6 +120,39 @@ export async function validateRoleCarrier(input: RoleCarrierValidationInput) {
 		status: issues.length === 0 ? ("PASS" as const) : ("FAIL" as const),
 		issues,
 	};
+}
+
+export async function createWorkspaceRoleSetupClient(workspaceRoot: string) {
+	const workspace = resolve(workspaceRoot);
+	const proflowRoot = join(workspace, ".proflow");
+	const runtime = await createAgentRuntime({
+		proflowRoot,
+		task: {
+			async getTask() {
+				throw new Error("TASK_API_NOT_AVAILABLE_DURING_ROLE_SETUP");
+			},
+			async hasNonTerminalRoleUsage() {
+				return false;
+			},
+		},
+	});
+	return Object.freeze({
+		registerRole: (input: unknown) => runtime.registerRole(input),
+		inspectRole(input: {
+			agentPackageRef: string;
+			expectedPackageVersion: string;
+		}) {
+			return inspectDurableRoleRegistration({ proflowRoot, ...input });
+		},
+		async gatewayUrl() {
+			const facts = await readModuleSharedFacts(
+				{ workspaceRoot: workspace },
+				"agent-gateway",
+			);
+			const value = facts?.publicBaseUrl;
+			return typeof value === "string" ? value : undefined;
+		},
+	});
 }
 
 export function createRoleManagementClient(
