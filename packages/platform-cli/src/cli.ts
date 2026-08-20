@@ -558,11 +558,19 @@ function renderSetup(data: unknown) {
 		pending += 1;
 		lines.push(`## ${moduleRef} — ${status}`);
 		const actionRequired = raw.result.actionRequired;
+		const error = raw.result.error;
 		if (isRecord(actionRequired)) {
 			if (actionRequired.action !== undefined)
 				lines.push(`Action: ${String(actionRequired.action)}`);
 			if (actionRequired.description !== undefined)
 				lines.push(String(actionRequired.description));
+		} else if (isRecord(error)) {
+			const code = error.code === undefined ? "FAILED" : String(error.code);
+			const message =
+				error.message === undefined
+					? "Module setup failed."
+					: String(error.message);
+			lines.push(`Error: ${code} — ${message}`);
 		} else if (raw.result.data !== undefined) {
 			lines.push(JSON.stringify(raw.result.data, null, 2));
 		}
@@ -574,6 +582,12 @@ function renderSetup(data: unknown) {
 	return lines.join("\n").trimEnd();
 }
 export function renderHumanResult(result: CliOutcome): string {
+	if (
+		result.command === "setup" &&
+		isRecord(result.data) &&
+		Array.isArray(result.data.results)
+	)
+		return renderSetup(result.data);
 	if (result.status === "FAILED")
 		return `${result.command.toUpperCase()} FAILED${result.error ? ` [${result.error.code}] ${result.error.message}` : ""}`;
 	if (result.command === "help")

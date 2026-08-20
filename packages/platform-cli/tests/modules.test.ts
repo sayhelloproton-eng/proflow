@@ -3,7 +3,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { runCli } from "../src/cli.ts";
+import { renderHumanResult, runCli } from "../src/cli.ts";
 import { tempWorkspace, writeWorkspaceModule } from "./test-helpers.ts";
 
 test("platform status aggregates only Module-owned setup/runtime status", async () => {
@@ -52,4 +52,45 @@ test("platform status ignores obsolete Platform-side config files", async () => 
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
+});
+
+test("platform setup human output preserves all actions when the aggregate also contains machine failures", () => {
+	const rendered = renderHumanResult({
+		command: "setup",
+		status: "FAILED",
+		data: {
+			phase: "setup",
+			completed: false,
+			results: [
+				{
+					moduleRef: "chatgpt-carrier",
+					result: {
+						status: "ACTION_REQUIRED",
+						actionRequired: {
+							action: "materialize-custom-gpt-carrier",
+							description: "Run the package-owned carrier setup command.",
+						},
+					},
+				},
+				{
+					moduleRef: "model-runtime",
+					result: {
+						status: "FAILED",
+						error: {
+							code: "SETUP_FAILED",
+							message: "producer shared facts are unavailable",
+						},
+					},
+				},
+			],
+		},
+	});
+	assert.match(rendered, /ProFlow Setup/);
+	assert.match(rendered, /chatgpt-carrier — ACTION_REQUIRED/);
+	assert.match(rendered, /materialize-custom-gpt-carrier/);
+	assert.match(rendered, /Run the package-owned carrier setup command/);
+	assert.match(rendered, /model-runtime — FAILED/);
+	assert.match(rendered, /SETUP_FAILED/);
+	assert.match(rendered, /producer shared facts are unavailable/);
+	assert.notEqual(rendered, "SETUP FAILED");
 });
