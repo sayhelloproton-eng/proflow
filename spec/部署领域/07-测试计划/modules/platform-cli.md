@@ -26,48 +26,53 @@ implementationWave: Wave 6
 
 ## Frozen surface
 
-Exactly six top-level commands:
+Exactly seven top-level commands:
 
 ```text
-modules docs install uninstall start stop
+install
+uninstall
+status
+setup
+docs
+start
+stop
 ```
 
-Removed commands must be unroutable; frozen commands accept no positional module/package target. `install` may accept only `--workspace`.
+`modules` 与所有 removed Platform commands 必须不可 routable；Module-specific extra command 不进入 Platform。
 
 ## Targeted tests
 
-### modules
+### status / setup / docs
 
-Aggregate Module-owned `moduleRef/version/configStatus/missingConfig?/runtimeStatus`; Platform does not derive private health/config/runtime truth.
-
-### docs
-
-Aggregate all installed Module `provides/requires/configSlots/documents` in one call; no positional filtering command.
+`status` == Module.status 聚合；`setup` == Module.setup 转发；`docs` == Module.docs 聚合。Platform 不推导 private config/health，也不读取 configSlots 后生成 setup 指导。
 
 ### install / uninstall
 
-Install performs full private-scope ProFlow package/version synchronization and descriptor re-observation without Plan/Apply/Core/installRequires. Uninstall removes ProFlow dependencies only and preserves `.proflow`.
+Install 先完成 Registry/package-manager sync，再 dependency-order 调用 Module.install。Uninstall 先 reverse-order Module.uninstall，再 package remove。Platform 不 materialize Module private config。
 
-### lifecycle
+### start / stop
 
-Start dispatches all applicable validate/preflight before any start, fail-fast; then starts dependency-order, fail-fast, no rollback. Stop dispatches reverse-order and fail-fast.
+Start 先聚合 Module.status；任一适用 Module `setupStatus != READY` 时 0 次 start。全部 READY 后 dependency-order start，fail-fast；无 preflight/validate。Stop reverse-order，fail-fast。
 
 ### composition
 
-Service packages use package-owned production bindings; Platform service-process wrapper caller count = 0. Workspace target does not depend on global binding lifecycle state.
+Platform 不存在 `createProductionBinding(configByModuleRef)`、private config loader、Module-specific branch。Internal service process entrypoint 可以存在，但 ownership 在 Module.start/stop。
 
 ## Simulated human integration
 
 ```text
 Fresh Workspace
 → install
-→ modules
+→ status
 → docs
-→ configure via Module docs
+→ setup
+→ simulate ACTION_REQUIRED completion
+→ setup
+→ status
 → start
-→ modules
+→ status
 → stop
 → uninstall
 ```
 
-Final assertion: `.proflow` remains and no hidden old-engine command/path is required.
+Final assertion：没有隐藏 old-engine route，Platform 不需要理解任何具体 Module 的 Chrome/GPT/Tunnel/SQLite/port/config 业务。
