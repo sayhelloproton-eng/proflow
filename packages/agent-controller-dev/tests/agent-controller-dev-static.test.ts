@@ -69,13 +69,14 @@ test("CP-AGT-DEV-03 sandbox artifact is explicitly not real apply", () => {
 });
 test("CP-AGT-DEV-04 provisioning/reopen real evidence remains external ACTION_REQUIRED", async () => {
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
-	const status = behaviorAdapter.status().result;
+	const context = { workspaceRoot: "/__proflow_missing_agent_fixture__" };
+	const status = behaviorAdapter.status(context).result;
 	assert.equal(status.status, "SUCCEEDED");
 	assert.deepEqual(status.data, {
-		configStatus: "READY",
-		runtimeStatus: "UNKNOWN",
+		setupStatus: "ACTION_REQUIRED",
+		runtimeStatus: "NOT_APPLICABLE",
 	});
-	assert.equal(behaviorAdapter.preflight().result.status, "ACTION_REQUIRED");
+	assert.equal(behaviorAdapter.setup(context).result.status, "ACTION_REQUIRED");
 	assert.match(
 		metadata.proflowAgent.instructions,
 		/REOPEN 使用原 Task-bound worker/,
