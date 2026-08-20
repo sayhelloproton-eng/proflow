@@ -23,7 +23,7 @@ contractRefs: []
 | 所有 governed Module | `install/uninstall/status/setup/docs/start/stop` 标准管理真源 | discovery / ordering / forwarding / aggregation |
 | 有独立 runtime 的 Module | 真实 process/service composition 与 runtime status | 调用标准 start/stop，不理解内部实现 |
 | 无独立 runtime 的 Module | no-op start/stop + `NOT_APPLICABLE` | 原样聚合 |
-| 有人工/外部依赖的 Module | setup workflow / ACTION_REQUIRED / reality observation | 转发 setup，不保存 step state |
+| 有人工/外部依赖的 Module | 最短 setup workflow / ACTION_REQUIRED / reality observation / package-owned executable+verify | 全量转发并聚合 setup，不保存 step state |
 | 有 extra capability 的 Module | verify/doctor/migrate/role/create 等自身命令 | 不代理、不解释 |
 
 Platform 不把领域私有 `health/config/verification` 逻辑复制进自身，也不读取 Module 私有 config。
@@ -60,7 +60,7 @@ Task Runtime、Agent Runtime 保持独立 npm package并由 host in-process 装�
 
 ## 5. 外部资源
 
-Chrome Runtime、ChatGPT Carrier、Dev Tunnel、Model Provider 等由对应 Module 自描述。deterministic preparation 归 `Module.install`；需要人工/外部动作时由 `Module.setup` 返回 `ACTION_REQUIRED`；Platform 不建立独立 Human Action workflow engine。
+Chrome Runtime、ChatGPT Carrier、Dev Tunnel、Model Provider 等由对应 Module 自描述。deterministic preparation 归 `Module.install`；`platform setup` 一次遍历全部非 READY Module。Module 内部能自动完成的步骤必须自动完成；只有真实人工/外部动作返回 `ACTION_REQUIRED`，并给出 package-owned executable/verify 与成功条件；Platform 只聚合，不建立独立 Human Action workflow engine。
 
 ## 6. Composition boundary
 

@@ -55,7 +55,7 @@ Install 只在成功同步 package + descriptor 后初始化/复用最小 metada
 
 Module owns config/state semantics。Platform 只保存通用 Workspace identity/metadata，不读取、不解释 Module 私有 config，也不作为跨 Module config bus。
 
-Module 能唯一确定的路径、端口、token、artifact/config 文件由 `Module.install` 自闭环；跨 Module 值通过 Producer-owned Contract/shared fact；真实用户选择或外部现实进入 `Module.setup`。
+Module 能唯一确定的路径、端口、token、artifact/config 文件由 `Module.install` 自闭环；跨 Module 值通过 Producer-owned Contract/shared fact；真实用户选择或外部现实进入 `Module.setup`。setup 必须以最少用户操作为目标：能自动就自动，必须人工时由 package-owned Step 提供 executable/verify 与成功条件，禁止把内部 path/token/endpoint 重新暴露给用户。
 
 ## 5. Secret
 

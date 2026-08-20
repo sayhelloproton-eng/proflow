@@ -36,7 +36,7 @@ runtimeStatus = RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 
 ## 3. Setup owns actionable guidance
 
-人工/外部条件由 `Module.setup` 返回 `ACTION_REQUIRED`；Platform 只透传。再次 setup 时 Module 重新观察真实环境。
+人工/外部条件由 `Module.setup` 返回 `ACTION_REQUIRED`；`platform setup` 必须继续遍历其它 Module，并一次聚合全部 `ACTION_REQUIRED/FAILED`。每个 Module 的 `SETUP.md` 按最短 Step 闭环，状态推进 Step 均提供 package-owned executable/verify；再次 setup 时 Module 重新观察真实环境。
 
 ## 4. Docs owns knowledge
 
