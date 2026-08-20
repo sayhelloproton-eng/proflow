@@ -1,3 +1,5 @@
+import { join, resolve } from "node:path";
+
 import { z } from "zod";
 
 const identifier = z
@@ -568,3 +570,5 @@ export function assessModuleCompatibility(
 	}
 	return { compatible: breakingChanges.length === 0, breakingChanges };
 }
+
+export * from "./workspace.ts";
