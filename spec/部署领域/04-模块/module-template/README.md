@@ -27,25 +27,25 @@ kind: library
 
 ## Purpose
 
-统一生成符合当前 Module Contract 的 package 骨架，使新增 Module 无需修改 Platform CLI。
+统一生成符合当前 Module Contract 的 package 骨架，使新增 Module 无需修改 Platform CLI module-specific 逻辑。
 
 生成目标包括：
 
-- `package.json.proflow` 最小 discovery metadata；
+- 最小 discovery metadata；
 - `proflow.module.json` / runtime descriptor；
-- adapter 与真实适用的 `status/preflight/start/stop` 资源；
-- `provides/requires/configSlots/documentation`；
-- configSlots 非空时生成配置指导。
+- 七标准 adapter capabilities；
+- `DOCS.md` / `SETUP.md`；
+- `provides/requires` 与真正 public config schema。
 
-明确不生成：`installClass`、`installRequires`、Core/Optional 分类、package-owned 单包 install delegation。
+不生成 `CONFIGURATION.md`、`installClass/installRequires`、Platform preflight/verify/doctor 或 `createProductionBinding(configByModuleRef)`。
 
 ## Stable create entry
 
-Template 继续提供 `materializeModule()` 与稳定 create CLI；二者共用同一实现。
+Template 继续提供 `materializeModule()` 与稳定 create CLI；这是 Module-specific extra capability，不属于 Platform 标准命令面。
 
 ## Boundary
 
-Template 只生成治理形式，不猜领域 API/permission/业务状态。Service/Browser/External Resource 的真实生命周期与状态判断必须由 package owner 实现。
+Template 只生成治理形式，不猜领域 API/permission/业务状态。真实 service/browser/external-resource 行为由 package owner 实现；无 runtime 的 profile 通过 `NOT_APPLICABLE` 表达。
 
 ## Technical docs
 

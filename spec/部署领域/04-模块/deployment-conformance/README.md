@@ -19,29 +19,31 @@ contractRefs:
 
 ## Purpose
 
-Conformance 是 Module Governance 的机械门，只验证当前薄 Platform 所依赖的公开事实一致性。
+Conformance 是 Module Governance 的机械门，只验证七命令 Platform 所依赖的公开治理事实，不证明领域业务 E2E。
 
 ## Current conformance surface
 
-- package identity 与 `package.json.proflow.module/descriptor`；
+- package identity 与最小 `package.json.proflow`；
 - static `proflow.module.json` 与 runtime descriptor 一致；
-- `moduleRef/packageName/version/kind`；
-- Runtime `provides/requires`；
-- `configSlots/documentation`；
-- Module status observation shape；
-- 真实适用的 lifecycle declaration/adapter；
-- config-bearing Module 的配置指导。
+- `moduleRef/packageName/version/kind/platformCompatibility`；
+- `provides/requires` topology；
+- 七标准 adapter commands；
+- `setupStatus/runtimeStatus` shape；
+- `DOCS.md` 与 `SETUP.md`。
+
+允许 Module-specific extra capability，不要求 Platform 代理。
 
 明确不再验证：
 
 ```text
-installClass
-installRequires / install closure
-Core guard
-package-owned self install
-Platform plan/apply/verify/doctor/manifest
+installClass / installRequires / install closure
+CONFIGURATION.md as standard guidance
+configStatus / missingConfig
+createProductionBinding / configByModuleRef
+preflight / verify / doctor / restart as standard management lifecycle
+service public start CLI as universal requirement
 ```
 
 ## Ownership
 
-Conformance 可以使用 fake resource 验证 adapter contract，但不替代领域业务 E2E。Platform CLI 不因 conformance 增加 module-specific 业务逻辑。
+Conformance 可以使用 fake resource 验证 adapter contract，但不得迫使 production 代码保留已删除产品概念，也不得为了 gate 修改 Browser/Model/Gateway/Task/Agent 业务语义。
