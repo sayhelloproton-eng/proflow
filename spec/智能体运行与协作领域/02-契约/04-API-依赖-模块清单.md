@@ -143,12 +143,12 @@ Vision page/screenshot fallback
 ## Requires｜Deployment
 
 ```text
-module config/materialization
-public-ingress External Resource
-Custom GPT carrier readiness
-Action Auth / native capability requirements
-verify/doctor/ACTION_REQUIRED_WEB
+package install/uninstall + Module discovery/topology
+standard install/status/setup/docs/start/stop forwarding
+public-ingress / Custom GPT Carrier as governed Modules
 ```
+
+Agent/Carrier 私有 config、Action Auth、native capability readiness 由 owning Module 自己处理；Web-only 人工动作通过 `Module.setup → ACTION_REQUIRED`，Platform 不提供 verify/doctor 第二套真源。
 
 ## Gateway
 
@@ -200,7 +200,7 @@ Message Center保存logical thread/message/participants/reply/delivery state/ide
 ```text
 Task start confirmation channel → startTask, no Task approval fact
 Execution safety Approval → Execution owner
-Deployment ACTION_REQUIRED(_WEB) → human action + re-observe
+Module.setup ACTION_REQUIRED → human/external action + Module re-observe
 ChatGPT Action permission → Always Allow / carrier recovery
 ```
 

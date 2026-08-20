@@ -215,18 +215,9 @@ File Bridge 是 transport，不改变 Owner。
 
 ## 5. Requires｜Deployment Domain
 
-Deployment 负责：
+Agent 只依赖 Deployment 的通用 Module Governance：package install/uninstall、Module discovery/topology，以及 `install/status/setup/docs/start/stop` 标准调用。Agent Package / Gateway / Carrier 的私有 config、Role readiness、Actions/Auth/Capabilities verification 均由 owning Module 自己实现。
 
-```text
-Agent packages / Gateway / Carrier external resources
-config/secret slots
-Role registration readiness
-Actions/Auth/Capabilities verification
-Web-only ACTION_REQUIRED
-verify/doctor/upgrade
-```
-
-Role READY 按 behavior/capability/auth verification，不按 exact model id。
+需要 Web-only 人工动作时由 `Module.setup` 返回 `ACTION_REQUIRED`；Role READY 仍按 behavior/capability/auth verification，不按 exact model id。Platform 不提供 verify/doctor/upgrade 第二套业务真源。
 
 ---
 
