@@ -29,8 +29,8 @@ contractRefs: []
 ## 规则
 
 - Runtime cross-module dependency 只通过 `provides/requires`；npm dependency 由 package manager 负责。
-- Library 不伪造 lifecycle。
-- Service/External Resource 只暴露真实拥有的 status/validate/start/stop。
-- Platform CLI 不实现 Module 私有验证/health/config truth。
-- Config-bearing Module 必须提供足够的静态配置指导。
+- 所有 governed Module 都提供 `install/uninstall/status/setup/docs/start/stop`；Library 的 runtime 生命周期可用 `NOT_APPLICABLE` 表达，不伪造独立 process。
+- Platform CLI 不实现 Module 私有验证/health/config truth，只发现、排序、转发和聚合。
+- `Module.install` 自动闭环 deterministic materialization；Producer-owned shared fact 不要求用户搬运。
+- `Module.setup` 只保留真实用户/外部动作，并以最少交互尽快到 READY。每个 `SETUP.md` Step 都必须有 package-owned executable/verify；纯人工步骤至少具备 prepare/verify 命令。
 - 不存在 Core/installRequires 安装模型，也不存在 package-owned 单包 install 产品入口。

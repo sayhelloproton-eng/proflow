@@ -27,7 +27,7 @@ v1 未进一步冻结独立 Subdomain；五个 npm package 是工程职责分工
 
 ## Purpose
 
-统一 Module Contract、七标准管理能力、Module topology、package lifecycle、External Resource setup 与版本治理。
+统一 Module Contract、七标准管理能力、Module topology、package lifecycle、External Resource setup 与版本治理；其中 setup 以“全量聚合 + Module 自闭环 + 最少人工操作 + 最快 READY/start”为固定产品目标。
 
 ## Model Boundary
 
@@ -39,7 +39,7 @@ v1 未进一步冻结独立 Subdomain；五个 npm package 是工程职责分工
 
 ## Upstream
 
-各 Domain Module 声明 identity/provides/requires 与七标准管理能力；Module 自己拥有 status/setup/docs、私有配置与真实 runtime composition。External Resource Adapter 只翻译外部现实，不把配置 ownership 交给 Platform。
+各 Domain Module 声明 identity/provides/requires 与七标准管理能力；Module 自己拥有 status/setup/docs、私有配置与真实 runtime composition。`Module.setup` 必须先自动完成所有可自动步骤，并通过 package-owned executable/verify 把真正的人工动作闭环到 `setupStatus=READY`。External Resource Adapter 只翻译外部现实，不把配置 ownership 交给 Platform。
 
 只允许通过对应 Public Contract / logical Requires 获取上游事实；禁止读取其他领域 DB、Repository 或内部 Adapter。
 
@@ -59,7 +59,7 @@ platform-cli、conformance、template、module-skill 以及各 Module 标准管�
 
 ## Key Flows / Persistence / Recovery
 
-见 [关键流程](../../../03-流程与数据/01-Deployment-Plan-Apply-ACTION_REQUIRED与恢复.md) 以及同目录 `03-流程与数据/` 下的持久化、并发、恢复文档。
+当前七命令与 setup 主流程以 [当前设计规则](../../03-当前设计原则与不变量.md) 为最高真源；`03-流程与数据/` 下的流程/恢复文档必须与该真源一致，不得复活 Plan/Apply/Preflight 等已移除 Platform 产品面。
 
 ## Modules
 

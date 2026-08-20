@@ -48,6 +48,8 @@ contractRefs: []
 
 其他领域只能依赖本领域 Public Contract / logical capability；禁止 direct DB read、internal repository/adapter、deep import 或状态镜像。Module TODO 不得重新定义领域模型。
 
+Setup 的产品目标固定为：**用最少用户操作、最少往返、最快达到全部 required Module `setupStatus=READY` 并进入 `platform start`**。`platform setup` 默认全量聚合；具体配置流程由各 Module 自己闭环。机器能完成的步骤必须自动完成，用户只处理真实外部选择/动作；每个 setup Step 都必须有 package-owned executable/verify 路径。
+
 ## 2026-08-14 Carrier / Journey 对齐
 
 Deployment 负责三个固定 Custom GPT Role 对应 Module 的标准 setup/status/docs 接缝，以及 Action auth/schema、File Bridge/Code Interpreter/Web Search capability requirement、Always Allow target configuration 与 Chrome/Carrier external-resource readiness。它不拥有 Task Worker c-id、Task/System Observer 或 Worker Turn；System Observer 只能读取 Module 当前真实 status 与公开 deployment summary。Role READY 是 behavior/capability/auth/reality based，exact model id 不是真源。

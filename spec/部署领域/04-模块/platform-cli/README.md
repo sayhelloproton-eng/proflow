@@ -48,11 +48,17 @@ Platform CLI 是薄 orchestration layer：discovery、dependency ordering、forw
 platform install   → package sync + Module.install
 platform uninstall → Module.uninstall + package remove
 platform status    → Module.status
-platform setup     → Module.setup
+platform setup     → full scan + aggregate Module.setup
 platform docs      → Module.docs
 platform start     → status gate + Module.start
 platform stop      → Module.stop
 ```
+
+## Setup semantics
+
+`platform setup` 默认遍历全部 discovered Module：READY 跳过，非 READY 调用各自 `Module.setup`，遇到 `ACTION_REQUIRED` 或 `FAILED` 继续扫描，最后一次性返回完整结果。Platform 不生成具体引导内容；它只聚合各包自己的 action/error/data。
+
+定向 `platform setup --module <moduleRef> --input <opaque-json>` 仅用于把某个 Module 真正需要的最小人工输入送回 owning Module。Platform 不解析 input，也不要求用户提供系统可自行确定的 path/token/endpoint/shared fact。
 
 ## Workspace semantics
 
