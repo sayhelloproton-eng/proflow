@@ -70,17 +70,20 @@ Local Resource APIs
 
 # 3. Public Ingress 外部依赖
 
-**Microsoft Dev Tunnels 作为 Deployment-owned External Resource Module 提供 public-ingress logical capability。Agent Gateway 只声明/消费该 capability / `moduleRef`，不拥有 tunnel account/login/lifecycle：
+**Microsoft Dev Tunnels 作为受 Module Governance 管理的 External Resource Module 提供 public-ingress logical capability。Agent Gateway 只消费该 Public Contract/shared fact，不拥有 tunnel account/login lifecycle：
 
 ```text
-Deployment External Resource Module (Dev Tunnel adapter)
-→ account/login/configure/start/stop/status/verify/doctor（仅暴露现实支持的 lifecycle）
+Dev Tunnel Module
+→ install/setup/status/start/stop 自治闭环
+→ setup 处理 account/login/tunnel/public URL
 → provides public-ingress capability / current public URL
 
 Agent Gateway
-→ requires public-ingress moduleRef / logical capability
+→ requires public-ingress logical capability
 → owns only Gateway local listener + Carrier ingress protocol
 ```
+
+Platform 只负责 Module discovery/ordering/forwarding，不复制 public URL 到 Gateway 私有配置。
 
 Gateway 不把 Microsoft CLI 细节写进业务代码，也不把 Dev Tunnel 保存为 Agent-owned deployment unit。
 
@@ -277,7 +280,7 @@ Gateway 完成认证与 normalize 后，再转换为内部 canonical request。R
 
 ## 12.2 Production hard limits
 
-Gateway / Deployment conformance 必须检查：
+Gateway 自身 runtime validation / package conformance 必须检查：
 
 ```text
 45s Action round-trip hard ceiling
@@ -355,7 +358,7 @@ Gateway   → OpenAI file protocol / normalize / relay
 Task      → TaskDocument truth
 Execution → physical fetch/materialization/hash/evidence
 Agent     → Carrier/Role/Worker/Collaboration
-Deployment→ capability/config/verify
+Deployment→ generic Module governance only；Gateway Module owns install/setup/status/private config
 ```
 
 不新增 File Service / Artifact Domain。
@@ -376,7 +379,7 @@ Worker
 Browser WAKE 只传小型 identity/trigger。File Bridge 失败时允许小型 bounded text fallback，但不得重新把完整 PRD/日志/代码包恢复为 DOM 注入主路径。
 ## 13.5 P0 File Bridge 安全配置、信任边界与错误语义
 
-这些值是 **proflow v1 自身的安全预算**，不是对 OpenAI 输入上限的重新定义；Deployment 以 Config Slots materialize，Gateway/Execution 启动时 runtime validate：
+这些值是 **ProFlow v1 自身的冻结安全预算**，不是对 OpenAI 输入上限的重新定义；Gateway Module.install 将确定性预算 materialize 为自己的 runtime config，Gateway/Execution 启动时 runtime validate。Platform 不要求用户填写这些固定值：
 
 ```text
 agentGateway.fileBridge.maxInputFiles          = 10

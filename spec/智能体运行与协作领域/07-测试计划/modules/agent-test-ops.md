@@ -71,7 +71,7 @@ implementationWave: Wave 4
 
 ## 4. Real / Fake Boundary
 
-**Real requirement**：静态包测试 + real verify/doctor/human escalation + provisioning/reopen E2E。
+**Real requirement**：静态包测试 + real Module setup/status + package-owned verification/human escalation + provisioning/reopen E2E。
 
 **允许的隔离方式**：可 fake 下游错误用于角色边界测试；真实 Carrier provisioning/Actions 需真实 Web。
 
@@ -79,7 +79,7 @@ implementationWave: Wave 4
 
 - [ ] **CP-AGT-TEST-01** — 测试+运维 Instructions、能力范围、Action allowlist 与角色最小权限一致。
 - [ ] **CP-AGT-TEST-02** — 测试结果/证据回写只通过 owner contract，不能把“测试通过”直接等同 Task/Execution 状态成功。
-- [ ] **CP-AGT-TEST-03** — 异常恢复、doctor/verify 与人工升级路径保持 Deployment/Execution owner 边界。
+- [ ] **CP-AGT-TEST-03** — 异常恢复、Module setup/status、package-owned verification 与人工升级路径保持 Agent/Deployment/Execution owner 边界。
 - [ ] **CP-AGT-TEST-04** — 测试 Worker provisioning/reopen/same-worker 复用规则与研发 Worker 一致，不 duplicate create。
 
 ## 6. Frozen TODO Coverage
@@ -90,7 +90,7 @@ implementationWave: Wave 4
 |---|---|---|---|---|---|---|
 | `AGT-TEST-001` | 冻结测试+运维 Instructions、能力范围和 Action allowlist | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-TEST-OPS` § `AGT-TEST-001` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-TEST-OPS`<br>`AGENT-DOC-02-03` | `CP-AGT-TEST-01` | 测试+运维 Instructions、能力范围和 Action allowlist | 测试+运维 Instructions、能力范围、Action allowlist 与角色最小权限一致。 |
 | `AGT-TEST-002` | 实现并验证测试结果/证据回写约束 | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-TEST-OPS` § `AGT-TEST-002` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-TEST-OPS`<br>`AGENT-DOC-02-03` | `CP-AGT-TEST-02` | 测试结果/证据回写约束 | 测试结果/证据回写只通过 owner contract，不能把“测试通过”直接等同 Task/Execution 状态成功。 |
-| `AGT-TEST-003` | 验证异常恢复、doctor/verify 与人工升级路径 | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-TEST-OPS` § `AGT-TEST-003` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-TEST-OPS`<br>`AGENT-DOC-02-03` | `CP-AGT-TEST-03` | 异常恢复、doctor/verify 与人工升级路径 | 异常恢复、doctor/verify 与人工升级路径保持 Deployment/Execution owner 边界。 |
+| `AGT-TEST-003` | 验证异常恢复、Module setup/status、package verification 与人工升级路径 | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-TEST-OPS` § `AGT-TEST-003` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-TEST-OPS`<br>`AGENT-DOC-02-03` | `CP-AGT-TEST-03` | 异常恢复、Module setup/status、package verification 与人工升级路径 | 异常恢复与人工升级保持 Agent/Deployment/Execution owner 边界；Platform 不拥有 verify/doctor 第二真源。 |
 | `AGT-TEST-004` | 完成测试 Worker provisioning/reopen/same-worker E2E | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-TEST-OPS` § `AGT-TEST-004` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-TEST-OPS`<br>`AGENT-DOC-02-03` | `CP-AGT-TEST-04` | 测试 Worker provisioning/reopen/same-worker E2E | 测试 Worker provisioning/reopen/same-worker 复用规则与研发 Worker 一致，不 duplicate create。 |
 
 ## 7. Required Failure / Boundary Families
@@ -99,7 +99,7 @@ implementationWave: Wave 4
 
 - [ ] **RF-AGT-TEST-01** — 测试+运维 Instructions/allowlist/最小权限漂移
 - [ ] **RF-AGT-TEST-02** — 测试结果/证据越权回写或把“测试通过”直接等同 Task/Execution success
-- [ ] **RF-AGT-TEST-03** — 异常恢复/doctor/verify/人工升级越过 Deployment/Execution owner
+- [ ] **RF-AGT-TEST-03** — 异常恢复/setup/status/package verification/人工升级越过 Agent/Deployment/Execution owner，或 Platform 重建 verify/doctor 第二真源
 - [ ] **RF-AGT-TEST-04** — 测试 Worker provisioning/reopen/same-worker 产生 duplicate create
 
 
@@ -112,7 +112,7 @@ implementationWave: Wave 4
 - **EV-AGT-TEST-01** — 角色 package/Instructions/allowlist artifact/hash
 - **EV-AGT-TEST-02** — 测试结果/证据通过 owner Contract 的写入 trace
 - **EV-AGT-TEST-03** — Task/Execution state 未被测试角色直接推进的观察
-- **EV-AGT-TEST-04** — doctor/verify/human escalation trace
+- **EV-AGT-TEST-04** — Module setup/status/package verification/human escalation trace
 - **EV-AGT-TEST-05** — provisioning/reopen/same-worker identity
 - **EV-AGT-TEST-06** — 真实 Carrier Actions/E2E result
 
