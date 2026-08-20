@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 119,
-    "testCalls": 497
+    "testCalls": 501
   },
   "tests": [
     {
@@ -496,7 +496,7 @@
     {
       "package": "agent-gateway",
       "path": "packages/agent-gateway/tests/module-conformance.test.ts",
-      "line": 14,
+      "line": 17,
       "title": "module contract C1/C2/C3",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -510,8 +510,22 @@
     {
       "package": "agent-gateway",
       "path": "packages/agent-gateway/tests/module-conformance.test.ts",
-      "line": 28,
+      "line": 31,
       "title": "uninstall is idempotent when no Gateway service is bound",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/agent-gateway/deployment/adapter.ts",
+        "packages/agent-gateway/deployment/descriptor.ts",
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-gateway",
+      "path": "packages/agent-gateway/tests/module-conformance.test.ts",
+      "line": 38,
+      "title": "production binding preserves Gateway own config truth while dependencies are unavailable",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -3130,8 +3144,19 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/deployment-preflight-port.test.ts",
-      "line": 24,
+      "line": 36,
       "title": "FJ-07 preflight reports an occupied Execution Runtime listener before start",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-runtime/deployment/adapter.ts"
+      ]
+    },
+    {
+      "package": "execution-runtime",
+      "path": "packages/execution-runtime/tests/deployment-preflight-port.test.ts",
+      "line": 74,
+      "title": "production binding preserves Execution Runtime own config truth while Platform Host is unavailable",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
@@ -4262,7 +4287,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 34,
+      "line": 40,
       "title": "runtime returns typed failures for boundary, capability, size, and invalid output",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4277,7 +4302,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 91,
+      "line": 97,
       "title": "transport retry occurs once only when provider proves the request never started",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4292,7 +4317,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 124,
+      "line": 130,
       "title": "OpenAI-compatible adapter sends role mapping, structured output, and every image",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4307,7 +4332,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 175,
+      "line": 181,
       "title": "rendered provider prompt deterministically binds Spec instruction and typed input",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4322,7 +4347,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 184,
+      "line": 190,
       "title": "HTTP service owns real start/status/infer/stop lifecycle",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4337,7 +4362,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 211,
+      "line": 217,
       "title": "REAL1 /ready and /status refresh stale model capabilities in the same request",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4352,7 +4377,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 265,
+      "line": 271,
       "title": "deployment adapter drives real service start/restart/status/stop lifecycle",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4367,7 +4392,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 294,
+      "line": 300,
       "title": "MOD-P1-06 HTTP client abort and deployment restart cancel queued/running work without late success",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4382,8 +4407,23 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 392,
+      "line": 398,
       "title": "deployment uninstall is idempotent when no Model Runtime service is bound",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-contracts/src/index.ts",
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/src/index.ts",
+        "packages/model-runtime/src/provider.ts",
+        "packages/model-runtime/src/service.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
+      "line": 405,
+      "title": "production binding preserves Model Runtime own config truth while dependencies are unavailable",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
@@ -4541,7 +4581,7 @@
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-process.test.ts",
       "line": 11,
-      "title": "formal model-runtime process verifies provider, serves readiness, restarts and stops",
+      "title": "formal model-runtime process defers provider verification to verify/start, serves readiness, restarts and stops",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
@@ -4552,7 +4592,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-process.test.ts",
-      "line": 137,
+      "line": 142,
       "title": "B2-MOD-02 formal process writes sanitized disk inference JSONL for result and pre-queue rejection",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4564,7 +4604,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-process.test.ts",
-      "line": 303,
+      "line": 308,
       "title": "RF-MODEL-RT-14 transport credential rejects group/world-readable files",
       "ids": [
         "RF-MODEL-RT-14"
@@ -5112,7 +5152,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 102,
+      "line": 110,
       "title": "install synchronizes the complete Registry package set in one transaction",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5123,7 +5163,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 137,
+      "line": 168,
       "title": "uninstall removes ProFlow dependencies and preserves .proflow",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5134,7 +5174,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 169,
+      "line": 200,
       "title": "only install accepts --workspace and all commands reject positional module arguments",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5510,7 +5550,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-conformance.test.ts",
-      "line": 14,
+      "line": 17,
       "title": "platform-host Module Contract C1/C2/C3",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5524,8 +5564,22 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-conformance.test.ts",
-      "line": 28,
+      "line": 31,
       "title": "uninstall is idempotent when no Platform Host service is bound",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts",
+        "packages/platform-host/deployment/adapter.ts",
+        "packages/platform-host/deployment/descriptor.ts"
+      ]
+    },
+    {
+      "package": "platform-host",
+      "path": "packages/platform-host/tests/platform-host-conformance.test.ts",
+      "line": 38,
+      "title": "production binding preserves Platform Host own config truth while dependencies are unavailable",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
