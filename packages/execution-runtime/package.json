@@ -1,6 +1,6 @@
 {
 	"name": "@tomflow/proflow-execution-runtime",
-	"version": "0.1.7",
+	"version": "0.1.8",
 	"type": "module",
 	"publishConfig": {
 		"access": "public"
@@ -28,11 +28,11 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@tomflow/proflow-module-contract": "workspace:^",
 		"@tomflow/proflow-execution-browser-extension": "workspace:^",
 		"@tomflow/proflow-execution-contracts": "workspace:^",
 		"@tomflow/proflow-execution-local": "workspace:^",
-		"@tomflow/proflow-model-contracts": "workspace:^"
+		"@tomflow/proflow-model-contracts": "workspace:^",
+		"@tomflow/proflow-module-contract": "workspace:^"
 	},
 	"devDependencies": {
 		"@tomflow/proflow-deployment-conformance": "workspace:^"

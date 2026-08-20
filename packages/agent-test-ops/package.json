@@ -1,6 +1,6 @@
 {
 	"name": "@tomflow/proflow-agent-test-ops",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"description": "Versioned Test/Operations Custom GPT materialization package for the fixed Test-Ops role.",
 	"type": "module",
 	"publishConfig": {
