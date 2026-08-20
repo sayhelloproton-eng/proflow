@@ -27,7 +27,7 @@ FUTURE = 不属于 v1 当前范围
 
 ## DPL-LIMIT-001｜Custom GPT 配置是 Web-only
 - Type: `KNOWN_LIMITATION`
-- Current fallback: `ACTION_REQUIRED_WEB` + 完成后 verify/doctor。
+- Current fallback: owning Agent/Carrier `Module.setup` 返回 `ACTION_REQUIRED`，用户完成 Web 动作后 Module 重新观察真实 Role/Carrier 状态；必要的深度 verification 保持 package-owned extra capability，Platform 不提供 verify/doctor 第二真源。
 
 ## DPL-LIMIT-002｜Carrier Workspace 管理要求可能因环境而异
 - Type: `KNOWN_LIMITATION`

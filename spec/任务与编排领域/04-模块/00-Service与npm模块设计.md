@@ -236,11 +236,11 @@ SQLite / Markdown
 
 ---
 
-# 13. Module 生命周期
+# 13. Module 标准管理面
 
-具体模块部署行为必须遵循当前 Deployment Domain 的正式 Deployment Contract。
+三个 Task packages 都必须遵循当前 Deployment Module Contract，并提供统一标准能力：`install/uninstall/status/setup/docs/start/stop`。
 
-Task 侧至少需要机器可管理的生命周期能力，例如 describe / preflight / start / stop / status / verify / doctor；具体 install / configure / dependency planning 由 Deployment Domain 当前正式模型裁决，Task Domain 不自行建立第二套部署编排。
+Task package 自己拥有 deterministic install、status/docs 与适用 runtime 行为；无独立 runtime 的 package 使用 no-op start/stop + `NOT_APPLICABLE`。Migration `apply/verify` 等真实 package-specific 命令可以保留，但 Platform 不代理、不把它们升级成标准 lifecycle。Task Domain 不自行建立第二套部署编排。
 
 ---
 
