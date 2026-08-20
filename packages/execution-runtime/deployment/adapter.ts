@@ -110,6 +110,7 @@ async function listenerPreflight(listener: URL) {
 export function createBehaviorAdapter(
 	service?: ProcessService,
 	config?: Record<string, string>,
+	configValid = true,
 ) {
 	return {
 		describe: () => ({ result: base, observedEffects: [] }),
@@ -121,6 +122,7 @@ export function createBehaviorAdapter(
 				descriptor,
 				config,
 				ready ? "RUNNING" : service ? "FAILED" : "UNKNOWN",
+				configValid,
 			);
 			return {
 				result: { ...base, data },
@@ -203,7 +205,14 @@ export async function createProductionBinding(input: {
 	moduleRef: string;
 	config: Record<string, string>;
 	configByModuleRef: ReadonlyMap<string, Record<string, string>>;
-}): Promise<{ behaviorAdapter: Record<string, unknown> } | undefined> {
+}): Promise<{ behaviorAdapter: Record<string, unknown> }> {
+	const unboundBinding = (configValid = true) => ({
+		behaviorAdapter: createBehaviorAdapter(
+			undefined,
+			input.config,
+			configValid,
+		),
+	});
 	const required = [
 		"databasePath",
 		"projectRoot",
@@ -215,15 +224,31 @@ export async function createProductionBinding(input: {
 		"modelDecision.endpoint",
 		"modelDecision.credentialFile",
 	] as const;
-	if (!required.every((key) => input.config[key])) return undefined;
+	if (!required.every((key) => input.config[key])) return unboundBinding();
+
+	for (const key of ["identity.endpoint", "modelDecision.endpoint"] as const) {
+		try {
+			const endpoint = new URL(input.config[key] ?? "");
+			if (endpoint.protocol !== "http:") return unboundBinding(false);
+		} catch {
+			return unboundBinding(false);
+		}
+	}
+
 	const platformHost = input.configByModuleRef.get("platform-host");
 	const advertised = platformHost?.executionBaseUrl;
-	if (!advertised) return undefined;
-	const listener = new URL(advertised);
+	if (!advertised) return unboundBinding();
+	let listener: URL;
+	try {
+		listener = new URL(advertised);
+	} catch {
+		return unboundBinding();
+	}
 	if (listener.protocol !== "http:" || listener.pathname !== "/")
-		return undefined;
+		return unboundBinding();
 	const port = listener.port === "" ? 80 : Number(listener.port);
-	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined;
+	if (!Number.isInteger(port) || port <= 0 || port > 65_535)
+		return unboundBinding();
 	const [
 		{ createFormalExecutionRuntimeLifecycle },
 		{ parseExecutionRuntimeProcessConfig },
@@ -231,25 +256,30 @@ export async function createProductionBinding(input: {
 		import("../src/formal-process.ts"),
 		import("../src/service.ts"),
 	]);
-	const service = createFormalExecutionRuntimeLifecycle({
-		config: parseExecutionRuntimeProcessConfig({
-			host: listener.hostname,
-			port,
-			databasePath: input.config.databasePath,
-			projectRoot: input.config.projectRoot,
-			artifactRoot: input.config.artifactRoot,
-			browserExecutorConfigPath: input.config.browserExecutorConfigPath,
-			transportCredentialFile: input.config.transportCredentialFile,
-			identity: {
-				endpoint: input.config["identity.endpoint"],
-				tokenFile: input.config["identity.tokenFile"],
-			},
-			modelDecision: {
-				endpoint: input.config["modelDecision.endpoint"],
-				credentialFile: input.config["modelDecision.credentialFile"],
-			},
-		}),
-	});
+	let service: ReturnType<typeof createFormalExecutionRuntimeLifecycle>;
+	try {
+		service = createFormalExecutionRuntimeLifecycle({
+			config: parseExecutionRuntimeProcessConfig({
+				host: listener.hostname,
+				port,
+				databasePath: input.config.databasePath,
+				projectRoot: input.config.projectRoot,
+				artifactRoot: input.config.artifactRoot,
+				browserExecutorConfigPath: input.config.browserExecutorConfigPath,
+				transportCredentialFile: input.config.transportCredentialFile,
+				identity: {
+					endpoint: input.config["identity.endpoint"],
+					tokenFile: input.config["identity.tokenFile"],
+				},
+				modelDecision: {
+					endpoint: input.config["modelDecision.endpoint"],
+					credentialFile: input.config["modelDecision.credentialFile"],
+				},
+			}),
+		});
+	} catch {
+		return unboundBinding(false);
+	}
 	return {
 		behaviorAdapter: {
 			...createBehaviorAdapter(service, input.config),

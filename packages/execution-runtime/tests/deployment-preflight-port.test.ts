@@ -21,23 +21,25 @@ async function occupiedPort() {
 	return { server, port: address.port };
 }
 
+const configuredRuntime = {
+	databasePath: "/tmp/proflow-fj07/execution.sqlite",
+	projectRoot: "/tmp/proflow-fj07/project",
+	artifactRoot: "/tmp/proflow-fj07/artifacts",
+	browserExecutorConfigPath: "/tmp/proflow-fj07/browser.json",
+	transportCredentialFile: "/tmp/proflow-fj07/transport.token",
+	"identity.endpoint": "http://127.0.0.1:43101/",
+	"identity.tokenFile": "/tmp/proflow-fj07/identity.token",
+	"modelDecision.endpoint": "http://127.0.0.1:43102/",
+	"modelDecision.credentialFile": "/tmp/proflow-fj07/model.token",
+} as const;
+
 test("FJ-07 preflight reports an occupied Execution Runtime listener before start", async () => {
 	const occupied = await occupiedPort();
 	try {
 		const endpoint = `http://127.0.0.1:${occupied.port}/`;
 		const binding = await createProductionBinding({
 			moduleRef: "execution-runtime",
-			config: {
-				databasePath: "/tmp/proflow-fj07/execution.sqlite",
-				projectRoot: "/tmp/proflow-fj07/project",
-				artifactRoot: "/tmp/proflow-fj07/artifacts",
-				browserExecutorConfigPath: "/tmp/proflow-fj07/browser.json",
-				transportCredentialFile: "/tmp/proflow-fj07/transport.token",
-				"identity.endpoint": endpoint,
-				"identity.tokenFile": "/tmp/proflow-fj07/identity.token",
-				"modelDecision.endpoint": "http://127.0.0.1:43102/",
-				"modelDecision.credentialFile": "/tmp/proflow-fj07/model.token",
-			},
+			config: { ...configuredRuntime, "identity.endpoint": endpoint },
 			configByModuleRef: new Map([
 				["platform-host", { executionBaseUrl: endpoint }],
 			]),
@@ -67,4 +69,34 @@ test("FJ-07 preflight reports an occupied Execution Runtime listener before star
 	} finally {
 		if (occupied.server.listening) await close(occupied.server);
 	}
+});
+
+test("production binding preserves Execution Runtime own config truth while Platform Host is unavailable", async () => {
+	const unbound = await createProductionBinding({
+		moduleRef: "execution-runtime",
+		config: configuredRuntime,
+		configByModuleRef: new Map(),
+	});
+	const status = unbound.behaviorAdapter.status;
+	assert.equal(typeof status, "function");
+	const observed = (status as () => { result: { data: unknown } })();
+	assert.deepEqual(observed.result.data, {
+		configStatus: "READY",
+		runtimeStatus: "UNKNOWN",
+	});
+
+	const invalid = await createProductionBinding({
+		moduleRef: "execution-runtime",
+		config: { ...configuredRuntime, "identity.endpoint": "not-a-url" },
+		configByModuleRef: new Map(),
+	});
+	const invalidStatus = invalid.behaviorAdapter.status;
+	assert.equal(typeof invalidStatus, "function");
+	const invalidObserved = (
+		invalidStatus as () => { result: { data: unknown } }
+	)();
+	assert.deepEqual(invalidObserved.result.data, {
+		configStatus: "INVALID",
+		runtimeStatus: "UNKNOWN",
+	});
 });

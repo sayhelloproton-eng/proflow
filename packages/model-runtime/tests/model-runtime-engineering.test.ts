@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import { createReasoningSpec } from "@tomflow/proflow-model-contracts";
 import { z } from "zod";
-import { createBehaviorAdapter } from "../deployment/adapter.ts";
+import {
+	createBehaviorAdapter,
+	createProductionBinding,
+} from "../deployment/adapter.ts";
 import { createModelRuntime, renderPrompt } from "../src/index.ts";
 import { createOpenAICompatibleProvider } from "../src/provider.ts";
 import { createModelRuntimeService } from "../src/service.ts";
@@ -394,4 +400,69 @@ test("deployment uninstall is idempotent when no Model Runtime service is bound"
 	assert.equal(result.result.status, "SUCCEEDED");
 	assert.equal(result.result.ok, true);
 	assert.deepEqual(result.observedEffects, []);
+});
+
+test("production binding preserves Model Runtime own config truth while dependencies are unavailable", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-model-binding-status-"));
+	try {
+		const capabilityProfilesFile = join(root, "profiles.json");
+		const common = {
+			inputModalities: ["text"],
+			structuredOutput: "native",
+			contextWindow: 32_000,
+			maxOutputTokens: 2_048,
+		};
+		await writeFile(
+			capabilityProfilesFile,
+			JSON.stringify({
+				fast: {
+					...common,
+					modelRef: "fast-model",
+					reasoningModes: ["no-thinking"],
+				},
+				reason: {
+					...common,
+					modelRef: "reason-model",
+					reasoningModes: ["thinking"],
+				},
+			}),
+		);
+		const config = {
+			stateRoot: root,
+			transportCredentialFile: join(root, "transport.token"),
+			providerBaseUrl: "http://127.0.0.1:4400/v1/",
+			fastModel: "fast-model",
+			reasonModel: "reason-model",
+			capabilityProfilesFile,
+		};
+		const unbound = await createProductionBinding({
+			moduleRef: "model-runtime",
+			config,
+			configByModuleRef: new Map(),
+		});
+		const status = unbound.behaviorAdapter.status;
+		assert.equal(typeof status, "function");
+		const observed = (status as () => { result: { data: unknown } })();
+		assert.deepEqual(observed.result.data, {
+			configStatus: "READY",
+			runtimeStatus: "UNKNOWN",
+		});
+
+		const invalid = await createProductionBinding({
+			moduleRef: "model-runtime",
+			config: { ...config, providerBaseUrl: "not-a-url" },
+			configByModuleRef: new Map(),
+		});
+		const invalidStatus = invalid.behaviorAdapter.status;
+		assert.equal(typeof invalidStatus, "function");
+		const invalidObserved = (
+			invalidStatus as () => { result: { data: unknown } }
+		)();
+		assert.deepEqual(invalidObserved.result.data, {
+			configStatus: "INVALID",
+			runtimeStatus: "UNKNOWN",
+		});
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
 });
