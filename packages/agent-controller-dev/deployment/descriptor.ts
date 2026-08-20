@@ -30,15 +30,7 @@ export const descriptor = {
 			url: "https://chatgpt.com/",
 		},
 	],
-	configSlots: [
-		{
-			key: "carrierModuleRef",
-			type: "moduleRef",
-			required: false,
-			description: "External resource module governing the Custom GPT carrier",
-			default: "chatgpt-carrier",
-		},
-	],
+	configSlots: [],
 	effects: [
 		{
 			kind: "external-resource",

@@ -31,20 +31,7 @@ export const descriptor = {
 			access: "read-write",
 		},
 	],
-	configSlots: [
-		{
-			key: "projectRoot",
-			type: "path",
-			required: true,
-			description: "Canonical project boundary",
-		},
-		{
-			key: "artifactRoot",
-			type: "path",
-			required: true,
-			description: "Execution-owned output and evidence directory",
-		},
-	],
+	configSlots: [],
 	effects: [],
 	documentation: {
 		docs: "DOCS.md",

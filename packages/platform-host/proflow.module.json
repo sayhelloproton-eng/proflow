@@ -42,53 +42,7 @@
       "versionRange": ">=24.19.0"
     }
   ],
-  "configSlots": [
-    {
-      "key": "stateRoot",
-      "type": "path",
-      "required": true,
-      "description": "Absolute .proflow owner state root"
-    },
-    {
-      "key": "workspaceRoot",
-      "type": "path",
-      "required": true,
-      "description": "Absolute Task document workspace root"
-    },
-    {
-      "key": "gatewayTransportCredentialFile",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the dedicated credential accepted from agent-gateway"
-    },
-    {
-      "key": "executionBaseUrl",
-      "type": "url",
-      "required": true,
-      "description": "Loopback Execution Runtime public transport"
-    },
-    {
-      "key": "executionTransportCredentialFile",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the credential used for Platform Host calls to Execution Runtime"
-    },
-    {
-      "key": "modelTransportCredentialFile",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the credential used for Platform Host calls to Model Runtime"
-    },
-    {
-      "key": "modelBaseUrl",
-      "type": "url",
-      "required": true,
-      "description": "Loopback Model Runtime public transport"
-    }
-  ],
+  "configSlots": [],
   "effects": [
     {
       "kind": "process",

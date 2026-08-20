@@ -23,26 +23,7 @@
       "action": "Complete Microsoft Dev Tunnel login when required"
     }
   ],
-  "configSlots": [
-    {
-      "key": "publicBaseUrl",
-      "type": "url",
-      "required": true,
-      "description": "Public HTTPS URL supplied by the dev-tunnel resource"
-    },
-    {
-      "key": "tunnelId",
-      "type": "string",
-      "required": false,
-      "description": "Persistent Microsoft Dev Tunnel identifier used when this adapter owns lifecycle start/stop"
-    },
-    {
-      "key": "verificationEvidenceFile",
-      "type": "path",
-      "required": false,
-      "description": "JSON evidence for real file-relay and 429/5xx verification behind the configured public ingress"
-    }
-  ],
+  "configSlots": [],
   "effects": [
     {
       "kind": "process",

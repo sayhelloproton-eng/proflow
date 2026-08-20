@@ -32,32 +32,6 @@
   ],
   "configSlots": [
     {
-      "key": "stateRoot",
-      "type": "path",
-      "required": true,
-      "description": "Absolute .proflow owner state root"
-    },
-    {
-      "key": "transportCredentialFile",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the dedicated local credential required by Model Runtime callers"
-    },
-    {
-      "key": "providerBaseUrl",
-      "type": "url",
-      "required": true,
-      "description": "OpenAI-compatible provider API base URL"
-    },
-    {
-      "key": "providerCredential",
-      "type": "secretRef",
-      "required": false,
-      "sensitive": true,
-      "description": "Credential reference resolved outside module configuration"
-    },
-    {
       "key": "fastModel",
       "type": "string",
       "required": true,
@@ -68,19 +42,6 @@
       "type": "string",
       "required": true,
       "description": "Provider model identifier for REASON"
-    },
-    {
-      "key": "capabilityProfilesFile",
-      "type": "path",
-      "required": true,
-      "description": "JSON file containing Deployment-configured FAST/REASON ModelCapabilityProfile values"
-    },
-    {
-      "key": "providerModuleRef",
-      "type": "moduleRef",
-      "required": false,
-      "description": "External resource module governing the provider API",
-      "default": "model-provider-api"
     }
   ],
   "effects": [

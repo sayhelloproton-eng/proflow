@@ -38,34 +38,7 @@
       "versionRange": ">=24.19.0"
     }
   ],
-  "configSlots": [
-    {
-      "key": "localBaseUrl",
-      "type": "url",
-      "required": true,
-      "description": "Loopback HTTP listener URL owned by Agent Gateway and targeted by the public ingress resource"
-    },
-    {
-      "key": "publicBaseUrl",
-      "type": "url",
-      "required": true,
-      "description": "Public HTTPS URL supplied by the dev-tunnel resource"
-    },
-    {
-      "key": "downstreamCredentialFile",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the dedicated Gateway-to-platform-host transport credential"
-    },
-    {
-      "key": "publicIngressModuleRef",
-      "type": "moduleRef",
-      "required": false,
-      "description": "External resource module governing the public ingress",
-      "default": "dev-tunnel"
-    }
-  ],
+  "configSlots": [],
   "effects": [
     {
       "kind": "process",

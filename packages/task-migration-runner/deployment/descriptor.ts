@@ -21,14 +21,7 @@ export const descriptor = {
 			versionRange: ">=24.19.0",
 		},
 	],
-	configSlots: [
-		{
-			key: "databasePath",
-			type: "path",
-			required: true,
-			description: "Task SQLite database path",
-		},
-	],
+	configSlots: [],
 	effects: [
 		{
 			kind: "filesystem",

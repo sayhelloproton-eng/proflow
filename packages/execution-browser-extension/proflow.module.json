@@ -42,67 +42,7 @@
       "action": "Load and verify the unpacked MV3 extension in the real Chrome profile"
     }
   ],
-  "configSlots": [
-    {
-      "key": "bridge.endpoint",
-      "type": "url",
-      "required": true,
-      "description": "Loopback Browser Reality Bridge endpoint"
-    },
-    {
-      "key": "bridge.token",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the Browser Reality Bridge extension token"
-    },
-    {
-      "key": "taskApplication.endpoint",
-      "type": "url",
-      "required": true,
-      "description": "Loopback Platform Host Task application endpoint"
-    },
-    {
-      "key": "taskApplication.token",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the Platform Host Task application token"
-    },
-    {
-      "key": "approvalApplication.endpoint",
-      "type": "url",
-      "required": true,
-      "description": "Loopback Platform Host Approval application endpoint"
-    },
-    {
-      "key": "approvalApplication.token",
-      "type": "path",
-      "required": true,
-      "sensitive": true,
-      "description": "File containing the Platform Host Approval application token"
-    },
-    {
-      "key": "verificationEvidenceFile",
-      "type": "path",
-      "required": true,
-      "description": "JSON evidence file written after real Chrome loads the Deployment-managed MV3 extension and its Service Worker runs"
-    },
-    {
-      "key": "chromeRuntimeModuleRef",
-      "type": "moduleRef",
-      "required": false,
-      "description": "External resource module governing the Chrome runtime",
-      "default": "chrome-runtime"
-    },
-    {
-      "key": "carrierModuleRef",
-      "type": "moduleRef",
-      "required": false,
-      "description": "External resource module governing the Custom GPT carrier",
-      "default": "chatgpt-carrier"
-    }
-  ],
+  "configSlots": [],
   "effects": [
     {
       "kind": "external-resource",

@@ -29,22 +29,7 @@ export const descriptor = {
 			action: "Materialize and verify the Custom GPT carrier",
 		},
 	],
-	configSlots: [
-		{
-			key: "carrierUrl",
-			type: "url",
-			required: false,
-			description: "ChatGPT Custom GPT carrier entry URL",
-			default: "https://chatgpt.com/",
-		},
-		{
-			key: "verificationEvidenceFile",
-			type: "path",
-			required: true,
-			description:
-				"JSON evidence file produced by the real Custom GPT verification workflow",
-		},
-	],
+	configSlots: [],
 	effects: [
 		{
 			kind: "external-resource",
