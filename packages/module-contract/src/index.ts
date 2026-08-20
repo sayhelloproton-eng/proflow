@@ -36,14 +36,11 @@ export const moduleIdentitySchema = z.strictObject({
 });
 export type ModuleIdentity = z.infer<typeof moduleIdentitySchema>;
 
-export const moduleDocumentationEntrySchema = z.strictObject({
-	id: identifier,
-	path: z.string().min(1),
-	description: z.string().min(1).optional(),
+export const moduleDocumentationSchema = z.strictObject({
+	docs: z.literal("DOCS.md"),
+	setup: z.literal("SETUP.md"),
 });
-export type ModuleDocumentationEntry = z.infer<
-	typeof moduleDocumentationEntrySchema
->;
+export type ModuleDocumentation = z.infer<typeof moduleDocumentationSchema>;
 
 export const moduleProvideSchema = z.strictObject({
 	contractRef: identifier,
@@ -170,118 +167,44 @@ export const configSlotSchema = z
 	});
 export type ConfigSlot = z.infer<typeof configSlotSchema>;
 
-export const moduleConfigStatusSchema = z.enum([
+export const moduleSetupStatusSchema = z.enum([
 	"READY",
-	"INCOMPLETE",
-	"INVALID",
+	"ACTION_REQUIRED",
+	"FAILED",
 ]);
-export type ModuleConfigStatus = z.infer<typeof moduleConfigStatusSchema>;
+export type ModuleSetupStatus = z.infer<typeof moduleSetupStatusSchema>;
 
 export const moduleRuntimeStatusSchema = z.enum([
 	"RUNNING",
 	"STOPPED",
 	"FAILED",
-	"UNKNOWN",
+	"NOT_APPLICABLE",
 ]);
 export type ModuleRuntimeStatus = z.infer<typeof moduleRuntimeStatusSchema>;
 
-export const moduleStatusObservationSchema = z
-	.strictObject({
-		configStatus: moduleConfigStatusSchema,
-		missingConfig: z.array(identifier).min(1).optional(),
-		runtimeStatus: moduleRuntimeStatusSchema,
-	})
-	.superRefine((observation, context) => {
-		if (
-			observation.configStatus === "INCOMPLETE" &&
-			observation.missingConfig === undefined
-		) {
-			context.addIssue({
-				code: "custom",
-				message: "INCOMPLETE config status requires missingConfig",
-				path: ["missingConfig"],
-			});
-		}
-		if (
-			observation.configStatus !== "INCOMPLETE" &&
-			observation.missingConfig !== undefined
-		) {
-			context.addIssue({
-				code: "custom",
-				message: "missingConfig is only valid for INCOMPLETE config status",
-				path: ["missingConfig"],
-			});
-		}
-	});
+export const moduleStatusObservationSchema = z.strictObject({
+	setupStatus: moduleSetupStatusSchema,
+	runtimeStatus: moduleRuntimeStatusSchema,
+});
 export type ModuleStatusObservation = z.infer<
 	typeof moduleStatusObservationSchema
 >;
 
-export function observeDeclaredModuleStatus(
-	descriptor: { readonly configSlots: readonly ConfigSlot[] },
-	config: Readonly<Record<string, string>> | undefined,
-	runtimeStatus: ModuleRuntimeStatus,
-	configValid = true,
-): ModuleStatusObservation {
-	const missingConfig = descriptor.configSlots
-		.filter(
-			(slot) =>
-				slot.required &&
-				config?.[slot.key] === undefined &&
-				slot.default === undefined,
-		)
-		.map((slot) => slot.key);
-	if (missingConfig.length > 0) {
-		return {
-			configStatus: "INCOMPLETE",
-			missingConfig,
-			runtimeStatus,
-		};
-	}
-	return {
-		configStatus: configValid ? "READY" : "INVALID",
-		runtimeStatus,
-	};
-}
-
-export const lifecyclePrimitiveSchema = z.enum([
-	"describe",
-	"preflight",
+export const standardModuleManagementCommands = [
+	"install",
+	"uninstall",
 	"status",
-	"verify",
-	"doctor",
+	"setup",
+	"docs",
 	"start",
 	"stop",
-	"restart",
-	"migrate",
-	"uninstall",
-]);
-export type LifecyclePrimitive = z.infer<typeof lifecyclePrimitiveSchema>;
-
-export const lifecycleSupportSchema = z.strictObject({
-	supported: z
-		.array(lifecyclePrimitiveSchema)
-		.min(1)
-		.superRefine((items, context) => {
-			if (new Set(items).size !== items.length) {
-				context.addIssue({
-					code: "custom",
-					message: "lifecycle primitives must be unique",
-				});
-			}
-		}),
-});
-export type LifecycleSupport = z.infer<typeof lifecycleSupportSchema>;
-
-export const verificationCheckSchema = z.strictObject({
-	id: identifier,
-	description: z.string().min(1),
-	lifecycle: z.enum(["status", "verify", "doctor"]),
-});
-export const verificationContractSchema = z.strictObject({
-	checks: z.array(verificationCheckSchema).min(1),
-});
-export type VerificationContract = z.infer<typeof verificationContractSchema>;
+] as const;
+export const moduleManagementCommandSchema = z.enum(
+	standardModuleManagementCommands,
+);
+export type ModuleManagementCommand = z.infer<
+	typeof moduleManagementCommandSchema
+>;
 
 export const effectRetentionSchema = z.enum([
 	"remove",
@@ -313,10 +236,8 @@ export const moduleDescriptorSchema = z
 		requires: z.array(moduleRequireSchema),
 		requirements: z.array(moduleRequirementSchema),
 		configSlots: z.array(configSlotSchema),
-		lifecycle: lifecycleSupportSchema,
-		verification: verificationContractSchema,
 		effects: z.array(deploymentEffectSchema),
-		documentation: z.array(moduleDocumentationEntrySchema),
+		documentation: moduleDocumentationSchema,
 	})
 	.superRefine((descriptor, context) => {
 		const expectedModuleRef = descriptor.packageName.slice(
@@ -329,26 +250,6 @@ export const moduleDescriptorSchema = z
 					"moduleRef must equal the @tomflow/proflow-* package-name suffix",
 				path: ["moduleRef"],
 			});
-		}
-		const supported = descriptor.lifecycle.supported;
-		if (
-			descriptor.kind === "library" &&
-			supported.some((item) => ["start", "stop", "restart"].includes(item))
-		) {
-			context.addIssue({
-				code: "custom",
-				message: "library modules cannot declare process lifecycle primitives",
-				path: ["lifecycle", "supported"],
-			});
-		}
-		for (const check of descriptor.verification.checks) {
-			if (!supported.includes(check.lifecycle)) {
-				context.addIssue({
-					code: "custom",
-					message: `verification check requires unsupported ${check.lifecycle} lifecycle`,
-					path: ["verification", "checks"],
-				});
-			}
 		}
 	});
 export type ModuleDescriptor = z.infer<typeof moduleDescriptorSchema>;
@@ -368,16 +269,12 @@ export const deploymentErrorCodeSchema = z.enum([
 	"COMPATIBILITY_MISMATCH",
 	"DEPENDENCY_UNRESOLVED",
 	"REQUIREMENT_UNMET",
-	"CONFIG_REQUIRED",
-	"LIFECYCLE_UNSUPPORTED",
 	"CORE_PACKAGE_REQUIRED",
 	"EXTERNAL_RESOURCE_UNAVAILABLE",
-	"PLAN_INVALID",
-	"PLAN_STALE",
-	"APPLY_FAILED",
-	"VERIFY_FAILED",
-	"DOCTOR_FAILED",
-	"UPGRADE_FAILED",
+	"INSTALL_FAILED",
+	"SETUP_FAILED",
+	"START_FAILED",
+	"STOP_FAILED",
 	"UNINSTALL_FAILED",
 	"COMMAND_FAILED",
 ]);
@@ -398,7 +295,7 @@ export const moduleOperationResultSchema = z
 	.strictObject({
 		contract: z.literal("deployment.result.v1"),
 		ok: z.boolean(),
-		status: z.enum(["SUCCEEDED", "BLOCKED", "ACTION_REQUIRED", "FAILED"]),
+		status: z.enum(["SUCCEEDED", "ACTION_REQUIRED", "FAILED"]),
 		moduleRef: identifier,
 		moduleVersion: semver,
 		data: z.unknown().optional(),
@@ -425,10 +322,27 @@ export const moduleOperationResultSchema = z
 				path: ["actionRequired"],
 			});
 		}
+		if (
+			result.status !== "ACTION_REQUIRED" &&
+			result.actionRequired !== undefined
+		) {
+			context.addIssue({
+				code: "custom",
+				message: "actionRequired is only valid for ACTION_REQUIRED",
+				path: ["actionRequired"],
+			});
+		}
 		if (result.status === "FAILED" && result.error === undefined) {
 			context.addIssue({
 				code: "custom",
 				message: "FAILED must include a typed error",
+				path: ["error"],
+			});
+		}
+		if (result.status !== "FAILED" && result.error !== undefined) {
+			context.addIssue({
+				code: "custom",
+				message: "error is only valid for FAILED",
 				path: ["error"],
 			});
 		}
@@ -630,22 +544,6 @@ export function assessModuleCompatibility(
 			slot.default === undefined
 		) {
 			breakingChanges.push(`config became required: ${slot.key}`);
-		}
-	}
-	for (const primitive of current.lifecycle.supported) {
-		if (!target.lifecycle.supported.includes(primitive)) {
-			breakingChanges.push(`lifecycle removed: ${primitive}`);
-		}
-	}
-	for (const check of current.verification.checks) {
-		const replacement = target.verification.checks.find(
-			(item) => item.id === check.id,
-		);
-		if (
-			replacement === undefined ||
-			replacement.lifecycle !== check.lifecycle
-		) {
-			breakingChanges.push(`verification changed or removed: ${check.id}`);
 		}
 	}
 	if (JSON.stringify(current.effects) !== JSON.stringify(target.effects)) {
