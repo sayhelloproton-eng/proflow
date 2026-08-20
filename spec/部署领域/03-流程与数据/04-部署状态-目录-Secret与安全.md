@@ -53,17 +53,17 @@ Install 只在成功同步 package + descriptor 后初始化/复用最小 metada
 
 ## 4. Config ownership
 
-Module owns config semantics。Platform 只允许保存/读取通用 Workspace config 载体，不理解 Browser/Model/Gateway 私有字段。
+Module owns config/state semantics。Platform 只保存通用 Workspace identity/metadata，不读取、不解释 Module 私有 config，也不作为跨 Module config bus。
 
-特殊物理材料化必须由 owning Module 显式提供能力，不得把领域文件逻辑重新搬进 Platform。
+Module 能唯一确定的路径、端口、token、artifact/config 文件由 `Module.install` 自闭环；跨 Module 值通过 Producer-owned Contract/shared fact；真实用户选择或外部现实进入 `Module.setup`。
 
 ## 5. Secret
 
 - raw secret 不进入 CLI JSON、日志、docs 聚合或通用 evidence；
-- Module 只读取自己声明的敏感 config slot；
+- Module 只读取自己拥有的 credential/state contract；
 - 受控文件需限制权限；
 - Platform 不建立新的 Vault Service，也不复制领域 credential 语义。
 
 ## 6. 原子性
 
-只为六命令所需的最小 Workspace-local metadata 使用安全原子写。旧 Plan/Apply persistence 与 exclusive apply lock 在零 caller 后删除。
+只为七命令所需的最小 Workspace-local metadata 使用安全原子写。旧 Plan/Apply persistence 与 exclusive apply lock 在零 caller 后删除。

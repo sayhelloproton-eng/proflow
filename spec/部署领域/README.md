@@ -15,7 +15,7 @@ contractRefs: []
 
 # 部署领域
 
-> Module Governance、Plan/Apply、External Resource、Verify/Doctor、Upgrade。本目录同时表达 DDD 领域边界和真实工程实现路径。
+> Module Governance、七标准管理能力、External Resource setup/status 与版本治理。本目录同时表达 DDD 领域边界和真实工程实现路径。
 
 ## 推荐阅读顺序
 
@@ -50,4 +50,4 @@ contractRefs: []
 
 ## 2026-08-14 Carrier / Journey 对齐
 
-Deployment 负责三个固定 Custom GPT Role 的 Web-only setup、Action auth/schema、File Bridge/Code Interpreter/Web Search capability requirement、Always Allow target configuration 与 Chrome/Carrier external-resource readiness。它不拥有 Task Worker c-id、Task/System Observer 或 Worker Turn；System Observer 只能读取 Deployment 当前 status/verify/doctor bounded summary。Role READY 是 behavior/capability/auth/reality based，exact model id 不是真源。
+Deployment 负责三个固定 Custom GPT Role 对应 Module 的标准 setup/status/docs 接缝，以及 Action auth/schema、File Bridge/Code Interpreter/Web Search capability requirement、Always Allow target configuration 与 Chrome/Carrier external-resource readiness。它不拥有 Task Worker c-id、Task/System Observer 或 Worker Turn；System Observer 只能读取 Module 当前真实 status 与公开 deployment summary。Role READY 是 behavior/capability/auth/reality based，exact model id 不是真源。
