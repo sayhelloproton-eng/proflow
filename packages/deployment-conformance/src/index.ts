@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
+	type ModuleCommandContext,
 	type ModuleDescriptor,
 	type ModuleManagementCommand,
 	moduleDescriptorSchema,
@@ -527,9 +528,9 @@ export interface BehaviorObservation {
 	readinessEvidence?: "none" | "fake" | "real";
 }
 
-type BehaviorOperation = () =>
-	| BehaviorObservation
-	| Promise<BehaviorObservation>;
+type BehaviorOperation = (
+	context: ModuleCommandContext,
+) => BehaviorObservation | Promise<BehaviorObservation>;
 export type BehaviorAdapter = Partial<
 	Record<ModuleManagementCommand, BehaviorOperation>
 >;
@@ -537,6 +538,7 @@ export type BehaviorAdapter = Partial<
 export async function runBehaviorConformance(
 	descriptor: ModuleDescriptor,
 	adapter: BehaviorAdapter,
+	context: ModuleCommandContext = { workspaceRoot: process.cwd() },
 ): Promise<ConformanceGateResult> {
 	const issues: ConformanceIssue[] = [];
 	for (const command of standardModuleManagementCommands) {
@@ -550,7 +552,7 @@ export async function runBehaviorConformance(
 		}
 		let observation: BehaviorObservation;
 		try {
-			observation = await operation();
+			observation = await operation(context);
 		} catch {
 			issues.push({
 				code: "BEHAVIOR_THREW",

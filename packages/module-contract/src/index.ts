@@ -206,6 +206,12 @@ export type ModuleManagementCommand = z.infer<
 	typeof moduleManagementCommandSchema
 >;
 
+export const moduleCommandContextSchema = z.strictObject({
+	workspaceRoot: z.string().min(1),
+	input: z.unknown().optional(),
+});
+export type ModuleCommandContext = z.infer<typeof moduleCommandContextSchema>;
+
 export const effectRetentionSchema = z.enum([
 	"remove",
 	"preserve",
