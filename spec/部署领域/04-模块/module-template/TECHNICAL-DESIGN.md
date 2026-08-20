@@ -22,56 +22,65 @@ Template 只负责把当前 Module Contract 机械落成工程骨架，不拥有
 
 ## 2. Materialize 输入
 
-`MaterializeModuleInput` 不再包含 `installClass`。创建者只提供真实 owner facts：module/package identity、kind、domain/summary、provides/requires、configSlots 与适用 lifecycle facts。
+创建者只提供真实 owner facts：module/package identity、kind、domain/summary、provides/requires、真正 public config schema 与 Module-specific extra capability metadata。
 
-CLI 删除 `--install-class` 及 `core|optional` 校验。
+不得输入 `installClass/installRequires`，不得要求调用者描述七标准能力是否存在：七能力由 Contract 强制。
 
 ## 3. Generated package metadata
 
-`package.json.proflow` 只保留：
+`package.json.proflow` 只保留 `module: true` 与 descriptor/manifest 索引。
+## 4. Generated adapter
+
+所有 profile 都生成相同七标准能力：
 
 ```text
-module: true
-descriptor / manifest index
+install
+uninstall
+status
+setup
+docs
+start
+stop
 ```
 
-不得生成 `installClass/installRequires`。
+- library：`start/stop` 为标准 no-op，`runtimeStatus=NOT_APPLICABLE`；
+- service：七能力委托 owner runtime/process 实现；
+- browser-extension / external-resource：install/setup/status 分离 deterministic materialization 与真实外部动作；
+- agent-package：setup 承担 Custom GPT/Role 等真实人工步骤；
+- cli：标准管理面与 module-specific CLI 分离。
 
-## 4. Descriptor
+Template 不生成 `preflight/validate/verify/doctor/restart` 作为标准管理能力，也不要求 `createProductionBinding`。
 
-`descriptorFor()` 必须与新 contract 对齐，不包含 install classification；保留 Runtime topology、config、documentation 与真实 lifecycle declaration。
-
-## 5. Status observation
-
-所有可被 `platform modules` 发现的生成 profile 应提供统一 status observation seam：
+## 5. Config ownership
 
 ```text
-configStatus = READY | INCOMPLETE | INVALID
-missingConfig? only when INCOMPLETE
-runtimeStatus = RUNNING | STOPPED | FAILED | UNKNOWN
+Module 可唯一确定 → install
+Producer Module 提供 → shared fact / public Contract
+用户或外部世界决定 → setup
 ```
 
-Skeleton 可以 fail-closed，但不得让 Platform 替 Module 猜状态。
+Template 不允许把 Workspace 路径、固定 loopback、token path、artifact path 或 shared fact 生成为 user-required config。
+## 6. Standard knowledge
 
-## 6. Lifecycle by kind
+每个生成 Module 必须包含：
 
-- library：不生成虚假 start/stop；
-- service：生成 package-owned validate/status/start/stop seam，真实 production binding 由 owner 完成；
-- browser-extension / external-resource：生成对应 status/validate seam，不假设可自动删除外部资源；
-- agent-package：生成知识/config/status 入口，不制造 service process。
+```text
+DOCS.md
+SETUP.md
+```
 
-Template 不再要求 Platform-owned `createServiceProcessBinding`。
+`CONFIGURATION.md` 不再生成。`DOCS.md` 讲能力/API/Contract；`SETUP.md` 讲 install 之后真实的人机/外部步骤。没有人工 setup 的 Module 也生成最小 `SETUP.md`，明确 `install` 已完成全部 deterministic preparation。
 
-## 7. Documentation
+## 7. CLI
 
-所有 Module 至少生成 README / documentation index；configSlots 非空时必须生成 `CONFIGURATION.md`（或等价足量配置指导）。
+生成的 Module 不因 kind 自动获得标准 shell CLI。标准七能力由 `deployment/adapter.ts` 提供统一管理真源。
 
-配置指导必须说明字段含义、来源、格式、敏感性、materialization 方法与基础完成判定。
+真实 module-specific CLI 可以由 owner 显式声明并保留；Template 自身的 `create` CLI 也是其额外业务能力。
 
-## 8. Package-owned install surface
+## 8. Conformance
 
-不存在单 package Platform install 产品概念。Template 不再生成 `self-install.mjs` 或 service CLI 的 install delegation branch。
+生成结果必须直接通过当前 deployment-conformance：metadata、descriptor/manifest、七 adapter commands、status shape、DOCS/SETUP。不得依赖 Platform CLI 特判修补。
 
-## 9. Conformance
+## 9. 禁止回退
 
-生成结果必须直接通过当前 deployment-conformance 的 metadata/descriptor/status/docs 检查；不得依赖后续 Platform CLI 特判修补。
+Template 不得重新生成：`CONFIGURATION.md`、`configStatus/missingConfig`、optional lifecycle list、Platform preflight、`createProductionBinding` requirement 或 package-local Platform install wrapper。

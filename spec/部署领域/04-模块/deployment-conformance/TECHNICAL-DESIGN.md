@@ -18,7 +18,7 @@ contractRefs:
 
 ## 1. Goal
 
-确保任意 governed package 可以被六命令 Platform 机械发现、理解和分发，而无需 Platform 特判。
+确保任意 governed package 都能被七命令 Platform 机械发现和统一调用，无需 Platform 特判，同时不把业务正确性塞进部署门禁。
 
 ## 2. Package checks
 
@@ -26,39 +26,67 @@ contractRefs:
 @tomflow/proflow-* identity
 package.json.proflow.module === true
 descriptor/manifest path valid
-published files contain descriptor
+published files contain descriptor + manifest + DOCS.md + SETUP.md
 ```
 
-删除 `package.json.proflow.installClass/installRequires` 及其一致性/closure 检查。
+不验证 `installClass/installRequires/Core/Optional`。
+## 3. Descriptor / manifest checks
 
-## 3. Descriptor checks
+验证 identity/version/kind/platformCompatibility、provides/requires、requirements、真正 public config schema 与 documentation index。Static `proflow.module.json` 必须与 runtime descriptor 语义一致。
 
-验证 identity/version/kind/platformCompatibility、provides/requires、configSlots、documentation 与真实 lifecycle declaration。Static descriptor 与 runtime descriptor 语义一致。
+七标准能力不再通过 optional lifecycle list 表达；它们由 governed Module Contract 固定要求。
 
-## 4. Status contract
+## 4. Adapter contract
 
-需要参与 `platform modules` 的 Module adapter 必须能返回：
+每个 governed Module adapter 必须同时提供：
 
 ```text
-configStatus: READY | INCOMPLETE | INVALID
-missingConfig?: string[]
-runtimeStatus: RUNNING | STOPPED | FAILED | UNKNOWN
+install
+uninstall
+status
+setup
+docs
+start
+stop
 ```
 
-`missingConfig` 仅 INCOMPLETE 时允许。
+Conformance 只验证存在性、结构化结果和基础语义，不替 Module 判断真实业务状态。Module-specific extra command 允许存在，Platform 不需要认识。
 
-## 5. Documentation contract
+## 5. Status contract
 
-configSlots 非空时，必须至少存在足够的配置指导，说明来源/格式/敏感性/materialization/完成判定。
+```text
+setupStatus: READY | ACTION_REQUIRED | FAILED
+runtimeStatus: RUNNING | STOPPED | FAILED | NOT_APPLICABLE
+```
 
-## 6. Lifecycle contract
+禁止标准 status 再暴露 `configStatus/missingConfig`；禁止用 `UNKNOWN` 代替 Module 自己的观察责任。
+## 6. Documentation contract
 
-只声明真实拥有的 primitive。Service/运行型 Module 必须 package-owned；Platform-owned process wrapper 不是 conformance 目标。
+标准知识文件必须且只按统一入口提供：
 
-## 7. Runtime topology
+```text
+DOCS.md
+SETUP.md
+```
 
-Repository graph gate 继续验证 `provides/requires` unresolved/incompatible/cycle；不再做 npm install closure 验证。
+`CONFIGURATION.md` 不再是标准文档要求。Config schema 可以作为 machine contract 存在，但不形成第三份指导文档。
+
+## 7. Removed requirements
+
+Conformance 不再要求：
+
+```text
+preflight / validate
+platform verify / doctor
+createProductionBinding
+service public start CLI
+CONFIGURATION.md
+configStatus / missingConfig
+Platform private config materialization
+```
+
+真实 module-specific verification、migration、architecture、role/custom-gpt 等 extra capability 可继续存在，只要不伪装成 Platform 标准面。
 
 ## 8. Boundary
 
-Conformance 证明治理合同，不证明 Browser/Model/Gateway 等业务正确性；不得把真实外部账号变成 CI 依赖。
+Conformance 只证明治理合同，不证明 Browser/Model/Gateway/Task/Agent 业务正确性，也不得把真实外部账号变成 CI 依赖。若为了通过 Conformance 必须修改领域业务逻辑，判定为越界并 STOP。
