@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import { modelCapabilityProfileSchema } from "@tomflow/proflow-model-contracts";
+import type { ModelCapabilityProfile } from "@tomflow/proflow-model-contracts";
 import {
 	deterministicLoopbackPort,
 	ensureModuleSecretFile,
@@ -16,7 +16,6 @@ import { descriptor } from "./descriptor.ts";
 type SetupConfig = {
 	fastModel: string;
 	reasonModel: string;
-	capabilityProfilesFile: string;
 };
 const services = new Map<string, ModelRuntimeService>();
 const base = {
@@ -54,19 +53,12 @@ function supplied(context: ModuleCommandContext): SetupConfig | undefined {
 	if (typeof value !== "object" || value === null || Array.isArray(value))
 		return undefined;
 	const fastModel = Reflect.get(value, "fastModel"),
-		reasonModel = Reflect.get(value, "reasonModel"),
-		capabilityProfilesFile = Reflect.get(value, "capabilityProfilesFile");
+		reasonModel = Reflect.get(value, "reasonModel");
 	return typeof fastModel === "string" &&
 		fastModel &&
 		typeof reasonModel === "string" &&
-		reasonModel &&
-		typeof capabilityProfilesFile === "string" &&
-		capabilityProfilesFile
-		? {
-				fastModel,
-				reasonModel,
-				capabilityProfilesFile: resolve(capabilityProfilesFile),
-			}
+		reasonModel
+		? { fastModel, reasonModel }
 		: undefined;
 }
 async function readSetup(
@@ -75,27 +67,22 @@ async function readSetup(
 	try {
 		const raw = JSON.parse(await readFile(setupPath(context), "utf8"));
 		return typeof raw.fastModel === "string" &&
-			typeof raw.reasonModel === "string" &&
-			typeof raw.capabilityProfilesFile === "string"
-			? raw
+			typeof raw.reasonModel === "string"
+			? { fastModel: raw.fastModel, reasonModel: raw.reasonModel }
 			: undefined;
 	} catch {
 		return undefined;
 	}
 }
-async function profiles(config: SetupConfig) {
-	const raw = JSON.parse(await readFile(config.capabilityProfilesFile, "utf8"));
-	const fast = modelCapabilityProfileSchema.parse(raw.fast);
-	const reason = modelCapabilityProfileSchema.parse(raw.reason);
-	if (
-		fast.modelRef !== config.fastModel ||
-		reason.modelRef !== config.reasonModel
-	)
-		throw new Error(
-			"model capability profiles do not match selected FAST/REASON models",
-		);
-	return { fast, reason };
+async function profiles(_config: SetupConfig): Promise<{
+	fast: ModelCapabilityProfile;
+	reason: ModelCapabilityProfile;
+}> {
+	throw new Error(
+		"model capability profile source is unavailable through an existing producer-owned contract",
+	);
 }
+
 async function provider(context: ModuleCommandContext) {
 	const facts = await readModuleSharedFacts(context, "model-provider-api");
 	const providerBaseUrl = factString(facts, "providerBaseUrl");
@@ -226,8 +213,7 @@ export const behaviorAdapter = {
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action: "select-model-roles",
-						description:
-							"Provide fastModel, reasonModel, and capabilityProfilesFile to Module.setup.",
+						description: "Provide fastModel and reasonModel to Module.setup.",
 					},
 				},
 				observedEffects: [],
