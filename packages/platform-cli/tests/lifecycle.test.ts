@@ -159,7 +159,10 @@ function recordingCatalog(
 								runtimeStatus: runtimeByRef.get(moduleRef) ?? "STOPPED",
 							}
 						: undefined;
-				return { result: success(moduleRef, data), observedEffects: [] };
+				return {
+					result: success(moduleRef, data),
+					observedEffects: command === "stop" ? ["Stopped fixture"] : [],
+				};
 			};
 			return {
 				behaviorAdapter: {
@@ -312,6 +315,42 @@ test("stop runs in reverse dependency order and fails fast", async () => {
 		calls.map((item) => item.call),
 		["leaf:status", "leaf:stop", "consumer:status", "consumer:stop"],
 	);
+});
+
+test("stop reports a successful no-effect external runtime as skipped", async () => {
+	const external = moduleFixture({ moduleRef: "external" });
+	const calls: string[] = [];
+	const catalog: ModuleCatalog = {
+		async sources() {
+			return [];
+		},
+		async loadDescriptor() {
+			return {};
+		},
+		async loadAdapter() {
+			return {
+				behaviorAdapter: {
+					status: async () => ({
+						result: success("external", {
+							setupStatus: "READY",
+							runtimeStatus: "RUNNING",
+						}),
+						observedEffects: [],
+					}),
+					stop: async () => {
+						calls.push("stop");
+						return { result: success("external"), observedEffects: [] };
+					},
+				},
+			};
+		},
+	};
+	const result = await stopModulesThin(catalog, [external], workspaceRoot);
+	assert.equal(result.completed, true);
+	assert.deepEqual(result.skipped, [
+		{ moduleRef: "external", reason: "NO_EFFECT" },
+	]);
+	assert.deepEqual(calls, ["stop"]);
 });
 
 test("uninstall runs in reverse dependency order and fails fast", async () => {

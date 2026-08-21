@@ -22,7 +22,7 @@ export interface ModuleBatchResult {
 	blockers?: Array<{ moduleRef: string; setupStatus: ModuleSetupStatus }>;
 	skipped?: Array<{
 		moduleRef: string;
-		reason: "READY" | "RUNNING" | "STOPPED" | "NOT_APPLICABLE";
+		reason: "READY" | "RUNNING" | "STOPPED" | "NOT_APPLICABLE" | "NO_EFFECT";
 	}>;
 }
 const succeeded = (result: ModuleOperationResult) =>
@@ -223,13 +223,21 @@ export async function stopModulesThin(
 			context(workspaceRoot),
 		);
 		results.push(stopped);
+		const noOwnedEffect =
+			succeeded(stopped.result) && stopped.observedEffects.length === 0;
+		if (noOwnedEffect)
+			skipped.push({ moduleRef: module.moduleRef, reason: "NO_EFFECT" });
 		reportProgress(reporter, {
 			command: "stop",
 			phase: "stop",
 			current: index + 1,
 			total: modulesInOrder.length,
 			moduleRef: module.moduleRef,
-			status: succeeded(stopped.result) ? "SUCCEEDED" : "FAILED",
+			status: noOwnedEffect
+				? "SKIPPED"
+				: succeeded(stopped.result)
+					? "SUCCEEDED"
+					: "FAILED",
 			message: `${module.moduleRef}`,
 		});
 		if (!succeeded(stopped.result))
