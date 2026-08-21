@@ -22,7 +22,7 @@ export interface ModuleBatchResult {
 	blockers?: Array<{ moduleRef: string; setupStatus: ModuleSetupStatus }>;
 	skipped?: Array<{
 		moduleRef: string;
-		reason: "RUNNING" | "STOPPED" | "NOT_APPLICABLE";
+		reason: "READY" | "RUNNING" | "STOPPED" | "NOT_APPLICABLE";
 	}>;
 }
 const succeeded = (result: ModuleOperationResult) =>
@@ -245,6 +245,7 @@ export async function setupModulesThin(
 	reporter?: PlatformProgressReporter,
 ): Promise<ModuleBatchResult> {
 	const results: ModuleDispatchResult[] = [];
+	const skipped: NonNullable<ModuleBatchResult["skipped"]> = [];
 	let matched = target === undefined;
 	let completed = true;
 	const modulesInOrder = ordered(modules);
@@ -274,6 +275,7 @@ export async function setupModulesThin(
 		}
 		const observed = moduleStatusObservationSchema.parse(status.result.data);
 		if (observed.setupStatus === "READY" && target?.input === undefined) {
+			skipped.push({ moduleRef: module.moduleRef, reason: "READY" });
 			reportProgress(reporter, {
 				command: "setup",
 				phase: "setup",
@@ -301,7 +303,7 @@ export async function setupModulesThin(
 			status: succeeded(setup.result)
 				? "SUCCEEDED"
 				: setup.result.status === "ACTION_REQUIRED"
-					? "SKIPPED"
+					? "ACTION_REQUIRED"
 					: "FAILED",
 			message: module.moduleRef,
 		});
@@ -315,7 +317,7 @@ export async function setupModulesThin(
 			"INVALID_REQUEST",
 			`setup target module ${target?.moduleRef ?? ""} was not discovered`,
 		);
-	return { phase: "setup", results, completed };
+	return { phase: "setup", results, completed, skipped };
 }
 export async function startModulesThin(
 	catalog: ModuleCatalog,

@@ -338,6 +338,10 @@ test("setup skips READY modules and invokes only ACTION_REQUIRED module", async 
 		calls.map((item) => item.call),
 		["provider:status", "consumer:status", "consumer:setup", "leaf:status"],
 	);
+	assert.deepEqual(result.skipped, [
+		{ moduleRef: "provider", reason: "READY" },
+		{ moduleRef: "leaf", reason: "READY" },
+	]);
 });
 
 test("setup aggregates every non-ready Module instead of stopping at the first action", async () => {

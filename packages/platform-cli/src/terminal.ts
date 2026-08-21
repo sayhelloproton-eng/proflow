@@ -21,11 +21,13 @@ function progressLine(event: PlatformProgressEvent, color: boolean): string {
 	const suffix =
 		event.status === "SUCCEEDED"
 			? "完成"
-			: event.status === "FAILED"
-				? "失败"
-				: event.status === "SKIPPED"
-					? "跳过"
-					: "";
+			: event.status === "ACTION_REQUIRED"
+				? "待处理"
+				: event.status === "FAILED"
+					? "失败"
+					: event.status === "SKIPPED"
+						? "跳过"
+						: "";
 	if (!color || suffix === "")
 		return `${prefix}${event.message}${suffix ? `… ${suffix}` : "…"}`;
 	const tone =

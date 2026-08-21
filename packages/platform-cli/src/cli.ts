@@ -675,8 +675,12 @@ function renderSetup(data: unknown) {
 	if (!isRecord(data) || !Array.isArray(data.results))
 		return "没有需要执行的配置步骤。";
 	const lines = ["ProFlow 配置", ""];
-	let automatic = 0;
-	let pending = 0;
+	const skipped = Array.isArray(data.skipped) ? data.skipped : [];
+	let ready = skipped.filter(
+		(item) => isRecord(item) && item.reason === "READY",
+	).length;
+	let needsAction = 0;
+	let blocked = 0;
 	for (const raw of data.results) {
 		if (!isRecord(raw) || !isRecord(raw.result)) continue;
 		const moduleRef = String(
@@ -684,10 +688,11 @@ function renderSetup(data: unknown) {
 		);
 		const status = String(raw.result.status ?? "UNKNOWN");
 		if (status === "SUCCEEDED") {
-			automatic += 1;
+			ready += 1;
 			continue;
 		}
-		pending += 1;
+		if (status === "FAILED") blocked += 1;
+		else needsAction += 1;
 		lines.push(moduleRef);
 		const plan = moduleSetupPlanDataSchema.safeParse(raw.result.data);
 		if (plan.success) {
@@ -734,9 +739,10 @@ function renderSetup(data: unknown) {
 		}
 		lines.push("");
 	}
-	if (pending === 0) lines.push("全部模块均已就绪。 ");
-	if (automatic > 0) lines.push(`本次自动完成：${automatic} 个模块`);
-	lines.push(`汇总：${automatic} 个已就绪，${pending} 个待处理`);
+	if (needsAction === 0 && blocked === 0) lines.push("全部模块均已就绪。");
+	lines.push(
+		`汇总：${ready} 个已就绪，${needsAction} 个需要操作，${blocked} 个系统阻塞`,
+	);
 	return lines.join("\n").trimEnd();
 }
 export function renderHumanResult(result: CliOutcome): string {

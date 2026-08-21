@@ -78,6 +78,10 @@ test("platform setup human output preserves all actions when the aggregate also 
 		data: {
 			phase: "setup",
 			completed: false,
+			skipped: [
+				{ moduleRef: "module-contract", reason: "READY" },
+				{ moduleRef: "platform-host", reason: "READY" },
+			],
 			results: [
 				{
 					moduleRef: "chatgpt-carrier",
@@ -111,5 +115,6 @@ test("platform setup human output preserves all actions when the aggregate also 
 	assert.match(rendered, /\[BLOCKED 1\/1\]/);
 	assert.match(rendered, /SETUP_FAILED/);
 	assert.match(rendered, /producer shared facts are unavailable/);
+	assert.match(rendered, /汇总：2 个已就绪，1 个需要操作，1 个系统阻塞/);
 	assert.notEqual(rendered, "SETUP FAILED");
 });
