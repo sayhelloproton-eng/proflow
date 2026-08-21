@@ -6,6 +6,10 @@
   dir: packages/agent-controller-dev
   intents:
     - little-kids-attend
+"@tomflow/proflow-agent-controller-dev@0.1.11":
+  dir: packages/agent-controller-dev
+  intents:
+    - funny-gifts-design
 "@tomflow/proflow-agent-controller-dev@0.1.2":
   dir: packages/agent-controller-dev
   intents:
@@ -66,6 +70,10 @@
   dir: packages/agent-product
   intents:
     - little-kids-attend
+"@tomflow/proflow-agent-product@0.1.11":
+  dir: packages/agent-product
+  intents:
+    - funny-gifts-design
 "@tomflow/proflow-agent-product@0.1.2":
   dir: packages/agent-product
   intents:
@@ -122,6 +130,10 @@
   dir: packages/agent-test-ops
   intents:
     - little-kids-attend
+"@tomflow/proflow-agent-test-ops@0.1.11":
+  dir: packages/agent-test-ops
+  intents:
+    - funny-gifts-design
 "@tomflow/proflow-agent-test-ops@0.1.2":
   dir: packages/agent-test-ops
   intents:
@@ -150,6 +162,10 @@
   dir: packages/chatgpt-carrier
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-chatgpt-carrier@0.1.10":
+  dir: packages/chatgpt-carrier
+  intents:
+    - funny-gifts-design
 "@tomflow/proflow-chatgpt-carrier@0.1.2":
   dir: packages/chatgpt-carrier
   intents:
@@ -246,6 +262,10 @@
   dir: packages/dev-tunnel
   intents:
     - little-kids-attend
+"@tomflow/proflow-dev-tunnel@0.1.12":
+  dir: packages/dev-tunnel
+  intents:
+    - funny-gifts-design
 "@tomflow/proflow-dev-tunnel@0.1.2":
   dir: packages/dev-tunnel
   intents:
@@ -274,6 +294,10 @@
   dir: packages/execution-browser-extension
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-execution-browser-extension@0.1.10":
+  dir: packages/execution-browser-extension
+  intents:
+    - funny-gifts-design
 "@tomflow/proflow-execution-browser-extension@0.1.2":
   dir: packages/execution-browser-extension
   intents:
@@ -430,6 +454,10 @@
   dir: packages/model-provider-api
   intents:
     - little-kids-attend
+"@tomflow/proflow-model-provider-api@0.1.9":
+  dir: packages/model-provider-api
+  intents:
+    - funny-gifts-design
 "@tomflow/proflow-model-runtime@0.1.1":
   dir: packages/model-runtime
   intents:
@@ -442,6 +470,10 @@
   dir: packages/model-runtime
   intents:
     - little-kids-attend
+"@tomflow/proflow-model-runtime@0.1.12":
+  dir: packages/model-runtime
+  intents:
+    - funny-gifts-design
 "@tomflow/proflow-model-runtime@0.1.2":
   dir: packages/model-runtime
   intents:
@@ -626,6 +658,10 @@
   dir: packages/platform-cli
   intents:
     - public-towns-occur
+"@tomflow/proflow-platform-cli@0.1.31":
+  dir: packages/platform-cli
+  intents:
+    - funny-gifts-design
 "@tomflow/proflow-platform-cli@0.1.4":
   dir: packages/platform-cli
   intents:
