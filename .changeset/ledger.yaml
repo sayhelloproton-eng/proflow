@@ -530,6 +530,10 @@
   dir: packages/platform-cli
   intents:
     - platform-publish-metadata
+"@tomflow/proflow-platform-cli@0.1.27":
+  dir: packages/platform-cli
+  intents:
+    - platform-tarball-republish
 "@tomflow/proflow-platform-cli@0.1.3":
   dir: packages/platform-cli
   intents:
