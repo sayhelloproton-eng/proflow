@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 123,
-    "testCalls": 512
+    "testCalls": 513
   },
   "tests": [
     {
@@ -5106,6 +5106,18 @@
       "path": "packages/platform-cli/tests/human-contract.test.ts",
       "line": 94,
       "title": "non-TTY progress uses a stable marker instead of a frozen spinner",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 115,
+      "title": "stop summary does not count a no-effect module as both success and skipped",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [

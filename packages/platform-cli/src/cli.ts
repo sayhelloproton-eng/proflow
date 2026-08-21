@@ -872,9 +872,13 @@ export function renderHumanResult(result: CliOutcome): string {
 		(result.command === "start" || result.command === "stop") &&
 		isRecord(result.data)
 	) {
-		const skipped = Array.isArray(result.data.skipped)
-			? result.data.skipped.length
-			: 0;
+		const skippedItems = Array.isArray(result.data.skipped)
+			? result.data.skipped.filter(isRecord)
+			: [];
+		const skippedRefs = new Set(
+			skippedItems.map((item) => String(item.moduleRef)),
+		);
+		const skipped = skippedItems.length;
 		const results = Array.isArray(result.data.results)
 			? result.data.results.filter(isRecord)
 			: [];
@@ -882,7 +886,10 @@ export function renderHumanResult(result: CliOutcome): string {
 			(item) => item.command === result.command,
 		);
 		const succeeded = operations.filter(
-			(item) => isRecord(item.result) && item.result.status === "SUCCEEDED",
+			(item) =>
+				isRecord(item.result) &&
+				item.result.status === "SUCCEEDED" &&
+				!skippedRefs.has(String(item.moduleRef)),
 		).length;
 		const failed = operations.find(
 			(item) => isRecord(item.result) && item.result.status !== "SUCCEEDED",

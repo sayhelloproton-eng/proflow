@@ -111,3 +111,21 @@ test("non-TTY progress uses a stable marker instead of a frozen spinner", () => 
 	assert.match(output, /^› 正在发现 Registry 模块\n$/);
 	assert.doesNotMatch(output, /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
 });
+
+test("stop summary does not count a no-effect module as both success and skipped", () => {
+	const rendered = renderHumanResult({
+		command: "stop",
+		status: "SUCCEEDED",
+		data: {
+			results: [
+				{
+					moduleRef: "chrome-runtime",
+					command: "stop",
+					result: { status: "SUCCEEDED" },
+				},
+			],
+			skipped: [{ moduleRef: "chrome-runtime", reason: "NO_EFFECT" }],
+		},
+	});
+	assert.match(rendered, /成功：0，跳过：1，失败：0/);
+});
