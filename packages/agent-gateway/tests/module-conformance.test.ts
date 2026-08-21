@@ -53,8 +53,18 @@ test("Module.install owns deterministic Gateway config while producer dependenci
 		assert.equal(data.publicBaseUrl, undefined);
 		const observed = await behaviorAdapter.status(context);
 		assert.deepEqual(observed.result.data, {
-			setupStatus: "FAILED",
+			setupStatus: "BLOCKED",
 			runtimeStatus: "STOPPED",
+			issues: [
+				{
+					scope: "SETUP",
+					code: "UPSTREAM_NOT_READY",
+					message:
+						"等待 dev-tunnel 发布公开 HTTPS 地址，并等待 platform-host 发布下游端点与传输凭据",
+					relatedModuleRefs: ["dev-tunnel", "platform-host"],
+					nextCommand: "platform setup --module dev-tunnel",
+				},
+			],
 		});
 		assert.equal(descriptor.configSlots.length, 0);
 	} finally {

@@ -56,6 +56,15 @@ export const behaviorAdapter = {
 				: {
 						setupStatus: "FAILED" as const,
 						runtimeStatus: "NOT_APPLICABLE" as const,
+						issues: [
+							{
+								scope: "SETUP" as const,
+								code: "WORKSPACE_PATH_NOT_WRITABLE",
+								message: "Workspace 或 Execution Artifact 目录不可读写",
+								relatedModuleRefs: [],
+								nextCommand: "platform setup --module execution-local",
+							},
+						],
 					},
 		},
 		observedEffects: [],

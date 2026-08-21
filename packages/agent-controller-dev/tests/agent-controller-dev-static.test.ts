@@ -75,6 +75,15 @@ test("CP-AGT-DEV-04 provisioning/reopen real evidence remains external ACTION_RE
 	assert.deepEqual(status.data, {
 		setupStatus: "ACTION_REQUIRED",
 		runtimeStatus: "NOT_APPLICABLE",
+		issues: [
+			{
+				scope: "SETUP",
+				code: "ROLE_SETUP_REQUIRED",
+				message: "ROLE_NOT_REGISTERED:@tomflow/proflow-agent-controller-dev",
+				relatedModuleRefs: [],
+				nextCommand: "platform setup --module agent-controller-dev",
+			},
+		],
 	});
 	assert.equal(behaviorAdapter.setup(context).result.status, "ACTION_REQUIRED");
 	assert.match(

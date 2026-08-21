@@ -155,6 +155,15 @@ export const behaviorAdapter = {
 					data: {
 						setupStatus: "ACTION_REQUIRED" as const,
 						runtimeStatus: "STOPPED" as const,
+						issues: [
+							{
+								scope: "SETUP" as const,
+								code: "PROVIDER_SETUP_REQUIRED",
+								message: "尚未配置模型服务 Base URL",
+								relatedModuleRefs: [],
+								nextCommand: "platform setup --module model-provider-api",
+							},
+						],
 					},
 				},
 				observedEffects: [],
@@ -162,20 +171,40 @@ export const behaviorAdapter = {
 		const observation = await probe(config);
 		const credentialResolverMissing =
 			Boolean(config.providerCredential) && !observation.authenticated;
+		const setupStatus =
+			observation.reachable && observation.authenticated
+				? ("READY" as const)
+				: credentialResolverMissing
+					? ("FAILED" as const)
+					: ("ACTION_REQUIRED" as const);
 		return {
 			result: {
 				...base,
 				data: {
-					setupStatus:
-						observation.reachable && observation.authenticated
-							? ("READY" as const)
-							: credentialResolverMissing
-								? ("FAILED" as const)
-								: ("ACTION_REQUIRED" as const),
+					setupStatus,
 					runtimeStatus:
 						observation.reachable && observation.authenticated
 							? ("RUNNING" as const)
 							: ("STOPPED" as const),
+					...(setupStatus === "READY"
+						? {}
+						: {
+								issues: [
+									{
+										scope: "SETUP" as const,
+										code:
+											setupStatus === "FAILED"
+												? "PROVIDER_CREDENTIAL_INVALID"
+												: "PROVIDER_UNREACHABLE",
+										message:
+											setupStatus === "FAILED"
+												? "模型服务凭据无法通过现有 Credential Resolver 验证"
+												: "模型服务地址当前不可达或需要继续配置认证",
+										relatedModuleRefs: [],
+										nextCommand: "platform setup --module model-provider-api",
+									},
+								],
+							}),
 				},
 			},
 			observedEffects: [effect],

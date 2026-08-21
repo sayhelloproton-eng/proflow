@@ -8,10 +8,42 @@ import {
 	moduleDocsDataSchema,
 	moduleOperationResultSchema,
 	moduleSetupPlanDataSchema,
+	moduleStatusObservationSchema,
 	parseModuleDescriptor,
 	queryRequirements,
 	standardModuleManagementCommands,
 } from "../src/index.ts";
+
+test("status distinguishes dependency blocking from verified failure", () => {
+	const blocked = {
+		setupStatus: "BLOCKED",
+		runtimeStatus: "STOPPED",
+		issues: [
+			{
+				scope: "SETUP",
+				code: "UPSTREAM_NOT_READY",
+				message: "等待 provider 发布共享信息",
+				relatedModuleRefs: ["provider"],
+				nextCommand: "platform setup --module provider",
+			},
+		],
+	};
+	assert.equal(moduleStatusObservationSchema.safeParse(blocked).success, true);
+	assert.equal(
+		moduleStatusObservationSchema.safeParse({
+			setupStatus: "FAILED",
+			runtimeStatus: "STOPPED",
+		}).success,
+		false,
+	);
+	assert.equal(
+		moduleStatusObservationSchema.safeParse({
+			setupStatus: "READY",
+			runtimeStatus: "FAILED",
+		}).success,
+		false,
+	);
+});
 
 const libraryDescriptor = {
 	contract: "module",

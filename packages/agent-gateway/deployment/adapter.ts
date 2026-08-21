@@ -154,20 +154,35 @@ export const behaviorAdapter = {
 			observedEffects: service ? ["Manage the declared service process"] : [],
 		};
 	},
-	status: async (context: ModuleCommandContext) => ({
-		result: {
-			...base,
-			data: {
-				setupStatus: (await dependencies(context))
-					? ("READY" as const)
-					: ("FAILED" as const),
-				runtimeStatus: (await running(context))
-					? ("RUNNING" as const)
-					: ("STOPPED" as const),
+	status: async (context: ModuleCommandContext) => {
+		const ready = await dependencies(context);
+		return {
+			result: {
+				...base,
+				data: {
+					setupStatus: ready ? ("READY" as const) : ("BLOCKED" as const),
+					runtimeStatus: (await running(context))
+						? ("RUNNING" as const)
+						: ("STOPPED" as const),
+					...(ready
+						? {}
+						: {
+								issues: [
+									{
+										scope: "SETUP" as const,
+										code: "UPSTREAM_NOT_READY",
+										message:
+											"等待 dev-tunnel 发布公开 HTTPS 地址，并等待 platform-host 发布下游端点与传输凭据",
+										relatedModuleRefs: ["dev-tunnel", "platform-host"],
+										nextCommand: "platform setup --module dev-tunnel",
+									},
+								],
+							}),
+				},
 			},
-		},
-		observedEffects: [],
-	}),
+			observedEffects: [],
+		};
+	},
 	setup: async (context: ModuleCommandContext) => ({
 		result: (await dependencies(context))
 			? base

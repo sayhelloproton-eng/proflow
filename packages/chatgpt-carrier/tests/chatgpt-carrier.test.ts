@@ -51,6 +51,15 @@ test("unconfigured carrier status is ACTION_REQUIRED truth and setup owns the hu
 	assert.deepEqual(status.result.data, {
 		setupStatus: "ACTION_REQUIRED",
 		runtimeStatus: "STOPPED",
+		issues: [
+			{
+				scope: "SETUP",
+				code: "CARRIER_SETUP_REQUIRED",
+				message: "尚未登记可用的 Custom GPT Carrier",
+				relatedModuleRefs: [],
+				nextCommand: "platform setup --module chatgpt-carrier",
+			},
+		],
 	});
 	assert.equal(status.externalAvailabilityClaim, "UNKNOWN");
 	const setup = await behaviorAdapter.setup(commandContext);
@@ -120,6 +129,15 @@ test("production status accepts protected 401/403 only with healthy Web verifica
 		assert.deepEqual(missingStatus.result.data, {
 			setupStatus: "READY",
 			runtimeStatus: "FAILED",
+			issues: [
+				{
+					scope: "RUNTIME",
+					code: "CARRIER_UNREACHABLE",
+					message: "已登记的 Custom GPT Carrier 当前不可达",
+					relatedModuleRefs: [],
+					nextCommand: "pnpm exec -- proflow-chatgpt-carrier verify",
+				},
+			],
 		});
 		assert.equal(missingStatus.externalAvailabilityClaim, "UNAVAILABLE");
 	} finally {

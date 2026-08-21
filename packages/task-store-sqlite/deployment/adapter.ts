@@ -69,18 +69,33 @@ export const behaviorAdapter = {
 		result: base,
 		observedEffects: [],
 	}),
-	status: async (context: ModuleCommandContext) => ({
-		result: {
-			...base,
-			data: {
-				setupStatus: inspect(taskDatabasePath(context))
-					? ("READY" as const)
-					: ("FAILED" as const),
-				runtimeStatus: "NOT_APPLICABLE" as const,
+	status: async (context: ModuleCommandContext) => {
+		const ready = inspect(taskDatabasePath(context));
+		return {
+			result: {
+				...base,
+				data: {
+					setupStatus: ready ? ("READY" as const) : ("FAILED" as const),
+					runtimeStatus: "NOT_APPLICABLE" as const,
+					...(ready
+						? {}
+						: {
+								issues: [
+									{
+										scope: "SETUP" as const,
+										code: "TASK_SCHEMA_MISSING",
+										message: "Task SQLite schema 尚未正确初始化",
+										relatedModuleRefs: ["task-migration-runner"],
+										nextCommand:
+											"platform setup --module task-migration-runner",
+									},
+								],
+							}),
+				},
 			},
-		},
-		observedEffects: [],
-	}),
+			observedEffects: [],
+		};
+	},
 	setup: async (context: ModuleCommandContext) => ({
 		result: inspect(taskDatabasePath(context))
 			? base

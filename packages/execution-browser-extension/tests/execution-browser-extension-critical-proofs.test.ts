@@ -499,6 +499,15 @@ test("REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remain explicitly ACTION_REQUI
 	assert.deepEqual(status.data, {
 		setupStatus: "ACTION_REQUIRED",
 		runtimeStatus: "STOPPED",
+		issues: [
+			{
+				scope: "SETUP",
+				code: "EXTENSION_LOAD_REQUIRED",
+				message: "Chrome 扩展尚未加载或缺少可验证的运行证据",
+				relatedModuleRefs: ["chrome-runtime"],
+				nextCommand: "platform setup --module execution-browser-extension",
+			},
+		],
 	});
 	const setup = (await behaviorAdapter.setup(commandContext)).result;
 	assert.equal(setup.status, "ACTION_REQUIRED");

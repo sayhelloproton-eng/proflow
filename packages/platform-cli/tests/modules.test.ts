@@ -14,7 +14,19 @@ test("platform status aggregates only Module-owned setup/runtime status", async 
 	try {
 		await writeWorkspaceModule(root, {
 			moduleRef: "fixture-module",
-			statusData: { setupStatus: "ACTION_REQUIRED", runtimeStatus: "STOPPED" },
+			statusData: {
+				setupStatus: "ACTION_REQUIRED",
+				runtimeStatus: "STOPPED",
+				issues: [
+					{
+						scope: "SETUP",
+						code: "SETUP_REQUIRED",
+						message: "Fixture 尚未配置",
+						relatedModuleRefs: [],
+						nextCommand: "platform setup --module fixture-module",
+					},
+				],
+			},
 		});
 		const output = parseCli(await runCli(["status"], { cwd: root })) as {
 			status: string;
@@ -27,6 +39,15 @@ test("platform status aggregates only Module-owned setup/runtime status", async 
 				version: "1.0.0",
 				setupStatus: "ACTION_REQUIRED",
 				runtimeStatus: "STOPPED",
+				issues: [
+					{
+						scope: "SETUP",
+						code: "SETUP_REQUIRED",
+						message: "Fixture 尚未配置",
+						relatedModuleRefs: [],
+						nextCommand: "platform setup --module fixture-module",
+					},
+				],
 			},
 		]);
 		const serialized = JSON.stringify(output.data.modules[0]);

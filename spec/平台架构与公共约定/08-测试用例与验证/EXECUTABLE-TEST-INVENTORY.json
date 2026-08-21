@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 124,
-    "testCalls": 518
+    "testCalls": 523
   },
   "tests": [
     {
@@ -578,7 +578,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 114,
+      "line": 123,
       "title": "CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browser continue protocol",
       "ids": [
         "CP-AGT-PROD-05"
@@ -591,7 +591,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 126,
+      "line": 135,
       "title": "CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked by package-local fixtures",
       "ids": [
         "CP-AGT-PROD-06"
@@ -1103,7 +1103,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 64,
+      "line": 73,
       "title": "external-resource adapter exposes the fixed seven-command management surface",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1116,7 +1116,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 76,
+      "line": 85,
       "title": "reachability alone never makes incomplete Action/auth verification READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1129,7 +1129,7 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 95,
+      "line": 104,
       "title": "production status accepts protected 401/403 only with healthy Web verification evidence",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1241,7 +1241,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 75,
+      "line": 84,
       "title": "explicit Chrome probe tolerates a slow but healthy version response beyond five seconds",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1255,7 +1255,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 93,
+      "line": 102,
       "title": "adapter exposes exactly the fixed seven management commands without a restart primitive",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1471,7 +1471,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 384,
+      "line": 393,
       "title": "remediation C3 rejects result identity drift and effects outside the descriptor",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1484,7 +1484,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 509,
+      "line": 518,
       "title": "CP-DPL-CONF-04 enforces GPT Actions and File Bridge frozen limits",
       "ids": [
         "CP-DPL-CONF-04"
@@ -1572,7 +1572,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 49,
+      "line": 58,
       "title": "dev-tunnel exposes the fixed seven-command management surface",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1586,7 +1586,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 61,
+      "line": 70,
       "title": "missing file relay and 429/5xx proof are FAIL, never SKIP/WARN",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1600,7 +1600,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 78,
+      "line": 87,
       "title": "start cannot SUCCEED without a configured tunnelId",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1614,7 +1614,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 83,
+      "line": 92,
       "title": "status reports UNKNOWN (not STOPPED) when no child is owned",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1628,7 +1628,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 92,
+      "line": 101,
       "title": "persistent runtime detaches and survives across adapter instances",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1642,7 +1642,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 128,
+      "line": 137,
       "title": "immediate spawn error does not report RUNNING",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1656,7 +1656,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 137,
+      "line": 146,
       "title": "TLS probe times out instead of hanging",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1670,7 +1670,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 154,
+      "line": 163,
       "title": "streaming read aborts after the size ceiling",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1684,7 +1684,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/dev-tunnel.test.ts",
-      "line": 169,
+      "line": 178,
       "title": "uninstall is idempotent when no dev-tunnel resource is bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2212,7 +2212,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 532,
+      "line": 541,
       "title": "REG-EXE-BR-09 deterministic DOM observation makes zero Vision calls",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2224,7 +2224,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 564,
+      "line": 573,
       "title": "REG-EXE-BR-10 screenshot → Vision receives the exact captured image and returns a typed observation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2236,7 +2236,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 648,
+      "line": 657,
       "title": "REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fabricated success",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2248,7 +2248,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 698,
+      "line": 707,
       "title": "REG-EXE-BR-12 screenshot boundary rejects unsupported MIME and mismatched dataUrl",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2260,7 +2260,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 731,
+      "line": 740,
       "title": "REG-EXE-BR-13 Vision verification requires deterministic confidence and no human escalation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3045,7 +3045,7 @@
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/deployment-preflight-port.test.ts",
       "line": 17,
-      "title": "FJ-07 status exposes missing producer facts as FAILED instead of a Platform preflight",
+      "title": "FJ-07 status exposes missing producer facts as BLOCKED instead of a Platform preflight",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -3055,7 +3055,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/deployment-preflight-port.test.ts",
-      "line": 28,
+      "line": 42,
       "title": "missing shared facts fail Module.setup/start without asking a human to copy machine-owned config",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3066,7 +3066,7 @@
     {
       "package": "execution-runtime",
       "path": "packages/execution-runtime/tests/deployment-preflight-port.test.ts",
-      "line": 40,
+      "line": 54,
       "title": "execution-runtime exposes exactly the fixed seven management commands",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3925,7 +3925,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 73,
+      "line": 82,
       "title": "configured adapter owns reachability/auth only and publishes READY provider truth",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3939,7 +3939,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 98,
+      "line": 107,
       "title": "adapter exposes exactly the fixed seven management commands",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3953,7 +3953,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 110,
+      "line": 119,
       "title": "low-level probe is honest about an unreachable provider",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3967,7 +3967,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 117,
+      "line": 126,
       "title": "providerCredential is optional (unauthenticated providers allowed)",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4639,7 +4639,18 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 39,
+      "line": 17,
+      "title": "status distinguishes dependency blocking from verified failure",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "module-contract",
+      "path": "packages/module-contract/tests/module-contract.test.ts",
+      "line": 71,
       "title": "docs and setup plan boundaries require executable structured content",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4650,7 +4661,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 82,
+      "line": 114,
       "title": "CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete boundary",
       "ids": [
         "CP-DPL-CON-01"
@@ -4663,7 +4674,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 117,
+      "line": 149,
       "title": "CP-DPL-CON-02 distinguishes moduleRef and secretRef and rejects unsafe combinations",
       "ids": [
         "CP-DPL-CON-02"
@@ -4676,7 +4687,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 155,
+      "line": 187,
       "title": "CP-DPL-CON-03 requirement queries are deterministic and side-effect free",
       "ids": [
         "CP-DPL-CON-03"
@@ -4689,7 +4700,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 165,
+      "line": 197,
       "title": "CP-DPL-CON-04 standard management is fixed at seven commands and legacy lifecycle fields are rejected",
       "ids": [
         "CP-DPL-CON-04"
@@ -4702,7 +4713,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 194,
+      "line": 226,
       "title": "CP-DPL-CON-04 Module results reject Platform-only BLOCKED outcomes",
       "ids": [
         "CP-DPL-CON-04"
@@ -4715,7 +4726,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 207,
+      "line": 239,
       "title": "CP-DPL-CON-05 compatibility distinguishes additive and breaking changes",
       "ids": [
         "CP-DPL-CON-05"
@@ -5056,7 +5067,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 8,
+      "line": 9,
       "title": "public --json is rejected and runCli returns a typed object",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5068,7 +5079,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 15,
+      "line": 16,
       "title": "human status output translates every public status enum",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5080,7 +5091,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 66,
+      "line": 104,
       "title": "status reports one aggregate progress phase instead of printing every module",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5092,7 +5103,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 86,
+      "line": 124,
       "title": "help contains explanations and no raw JSON input route",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5104,7 +5115,55 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 94,
+      "line": 135,
+      "title": "usage errors include contextual help while operation failures stay concise",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 150,
+      "title": "uninstall success says already uninstalled",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 160,
+      "title": "docs terminal entry writes continuously without launching a pager",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 168,
+      "title": "TTY replacement progress clears completed status checks instead of persisting them",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 195,
       "title": "non-TTY progress uses a stable marker instead of a frozen spinner",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5116,7 +5175,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 115,
+      "line": 216,
       "title": "TTY progress keeps completed phases and restores the current task after subprocess logs",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5128,7 +5187,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 152,
+      "line": 253,
       "title": "NO_COLOR disables semantic ANSI colors",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5140,7 +5199,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 167,
+      "line": 268,
       "title": "retryable package-manager warnings are yellow warnings, not failed events",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5152,7 +5211,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 189,
+      "line": 290,
       "title": "stop summary does not count a no-effect module as both success and skipped",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5307,7 +5366,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 198,
+      "line": 212,
       "title": "start gates on Module.status setup READY and never runs preflight",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5321,7 +5380,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 223,
+      "line": 257,
       "title": "start and stop retries skip runtime states already reached",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5335,7 +5394,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 245,
+      "line": 279,
       "title": "successful start and stop preserve dependency and reverse dependency order",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5349,7 +5408,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 274,
+      "line": 308,
       "title": "start performs zero starts when a Module reports FAILED setup status",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5363,7 +5422,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 292,
+      "line": 328,
       "title": "start fails fast during execution without starting later Modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5377,7 +5436,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 308,
+      "line": 344,
       "title": "stop runs in reverse dependency order and fails fast",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5391,7 +5450,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 320,
+      "line": 356,
       "title": "stop reports a successful no-effect external runtime as skipped",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5405,7 +5464,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 356,
+      "line": 392,
       "title": "uninstall runs in reverse dependency order and fails fast",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5419,7 +5478,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 372,
+      "line": 408,
       "title": "setup skips READY modules and invokes only ACTION_REQUIRED module",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5433,7 +5492,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 386,
+      "line": 422,
       "title": "setup aggregates every non-ready Module instead of stopping at the first action",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5447,7 +5506,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 412,
+      "line": 448,
       "title": "targeted setup forwards opaque input without Platform interpretation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5461,7 +5520,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 426,
+      "line": 462,
       "title": "setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5486,7 +5545,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 40,
+      "line": 61,
       "title": "platform status ignores obsolete config and all removed routes remain invalid",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5497,7 +5556,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 74,
+      "line": 95,
       "title": "platform setup human output preserves all actions when the aggregate also contains machine failures",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

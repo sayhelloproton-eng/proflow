@@ -21,8 +21,15 @@ export interface FixtureModuleInput {
 	}>;
 	configSlots?: Array<Record<string, unknown>>;
 	statusData?: {
-		setupStatus: "READY" | "ACTION_REQUIRED" | "FAILED";
+		setupStatus: "READY" | "ACTION_REQUIRED" | "BLOCKED" | "FAILED";
 		runtimeStatus: "RUNNING" | "STOPPED" | "FAILED" | "NOT_APPLICABLE";
+		issues?: Array<{
+			scope: "SETUP" | "RUNTIME";
+			code: string;
+			message: string;
+			relatedModuleRefs: string[];
+			nextCommand: string;
+		}>;
 	};
 	docsData?: unknown;
 	documents?: Array<{ id: string; path: string; content: string }>;

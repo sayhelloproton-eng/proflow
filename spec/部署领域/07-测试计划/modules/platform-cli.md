@@ -81,7 +81,9 @@ Final assertion：没有隐藏 old-engine route，Platform 不需要理解任何
 
 人工输出断言：长命令在完成前产生进度；帮助、状态、setup、start/stop 摘要均中文化；不得输出整块 JSON。
 
-终端快照覆盖 TTY/非 TTY、`NO_COLOR`、80/120 列；已完成阶段不得被 spinner 擦除。Registry/package-manager 的事件必须在相应外部命令完成前可观察，Status/Start/Stop 必须提供分组、原因和可执行下一步。Docs TTY 分页、非 TTY 连续输出，Markdown 结构不得被简单剥离。
+终端快照覆盖 TTY/非 TTY、`NO_COLOR`、80/120 列；已完成阶段不得被 spinner 擦除。Registry/package-manager 的事件必须在相应外部命令完成前可观察，Status/Start/Stop 必须提供分组、原因和可执行下一步。Docs 在 TTY/非 TTY 均连续输出全部文档且不启动分页器，Markdown 结构不得被简单剥离。Start status 预检保留逐 Module 结构化事件，但 TTY 只动态刷新当前计数，最终 blocker 只渲染一次。
+
+Fresh Workspace 必须呈现 `14 已就绪 / 7 需要操作 / 3 等待依赖 / 0 失败`；usage error 显示上下文帮助，运行期错误不追加整页帮助；Uninstall 成功文案统一为“已经卸载”。
 
 ## Setup 全量聚合新增证明
 

@@ -77,16 +77,27 @@ interface ModuleRequire { contractRef: string; versionRange: string; optional?: 
 ## 7. Status observation
 
 ```ts
-type ModuleSetupStatus = "READY" | "ACTION_REQUIRED" | "FAILED";
+type ModuleSetupStatus = "READY" | "ACTION_REQUIRED" | "BLOCKED" | "FAILED";
 type ModuleRuntimeStatus = "RUNNING" | "STOPPED" | "FAILED" | "NOT_APPLICABLE";
+
+interface ModuleStatusIssue {
+  scope: "SETUP" | "RUNTIME";
+  code: string;
+  message: string;
+  relatedModuleRefs: string[];
+  nextCommand: string;
+}
 
 interface ModuleStatusObservation {
   setupStatus: ModuleSetupStatus;
   runtimeStatus: ModuleRuntimeStatus;
+  issues?: ModuleStatusIssue[];
 }
 ```
 
-状态由 Module 自己判断，Platform 只校验 shape 并聚合。禁止 `configStatus/missingConfig`、Platform-derived readiness 或 `UNKNOWN` 逃避观察。
+状态由 Module 自己判断，Platform 只校验 shape 并聚合。`BLOCKED` 表示等待上游 Module 或外部依赖，`ACTION_REQUIRED` 表示当前确实需要用户操作，`FAILED` 只表示已经执行检查后确认的配置损坏、非法状态或验证失败。任何非健康 setup/runtime 状态都必须返回对应 `issues`，包含具体原因、相关 Module 与下一条可执行命令；禁止通用占位原因。禁止 `configStatus/missingConfig`、Platform-derived readiness 或 `UNKNOWN` 逃避观察。
+
+`BLOCKED` 只扩展 status observation；Module operation result 仍不允许返回 `BLOCKED`。
 
 ## 8. Operation result
 

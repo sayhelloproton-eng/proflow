@@ -365,15 +365,29 @@ export const behaviorAdapter = {
 		const loadDir = browserExtensionLoadDir(context.workspaceRoot);
 		const setup = await readSetup(context);
 		const evidence = await readEvidence(context, loadDir);
+		const setupReady = Boolean(setup && evidence);
 		return {
 			result: {
 				...base,
 				data: {
-					setupStatus:
-						setup && evidence
-							? ("READY" as const)
-							: ("ACTION_REQUIRED" as const),
+					setupStatus: setupReady
+						? ("READY" as const)
+						: ("ACTION_REQUIRED" as const),
 					runtimeStatus: evidence ? ("RUNNING" as const) : ("STOPPED" as const),
+					...(setupReady
+						? {}
+						: {
+								issues: [
+									{
+										scope: "SETUP" as const,
+										code: "EXTENSION_LOAD_REQUIRED",
+										message: "Chrome 扩展尚未加载或缺少可验证的运行证据",
+										relatedModuleRefs: ["chrome-runtime"],
+										nextCommand:
+											"platform setup --module execution-browser-extension",
+									},
+								],
+							}),
 				},
 			},
 			observedEffects: evidence

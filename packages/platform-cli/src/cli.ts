@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { spawn } from "node:child_process";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -60,7 +59,12 @@ export interface CliOutcome {
 	status: CliStatus;
 	workspaceRoot?: string;
 	data?: unknown;
-	error?: { code: string; message: string };
+	error?: {
+		code: string;
+		message: string;
+		category?: "USAGE" | "OPERATION";
+		helpCommand?: Command;
+	};
 }
 export interface CliRuntimeOptions {
 	cwd?: string;
@@ -191,7 +195,9 @@ function batchStatus(result: ModuleBatchResult): CliStatus {
 	if (result.blockedBy)
 		return result.blockedBy.setupStatus === "ACTION_REQUIRED"
 			? "ACTION_REQUIRED"
-			: "FAILED";
+			: result.blockedBy.setupStatus === "BLOCKED"
+				? "BLOCKED"
+				: "FAILED";
 	const statuses = result.results.map((item) =>
 		statusFromModule(item.result.status),
 	);
@@ -236,6 +242,9 @@ async function handleStatus(
 			version: module.moduleVersion,
 			setupStatus: parsed.data.setupStatus,
 			runtimeStatus: parsed.data.runtimeStatus,
+			...(parsed.data.issues === undefined
+				? {}
+				: { issues: parsed.data.issues }),
 		};
 	});
 	reportProgress(runtime.onProgress, {
@@ -640,7 +649,10 @@ export async function runCli(
 	try {
 		parsed = parseArgs(argv);
 	} catch (error) {
-		return errorOutcome("unknown", error);
+		const helpCommand = argv.find((value) =>
+			COMMANDS.includes(value as Command),
+		) as Command | undefined;
+		return errorOutcome("unknown", error, "USAGE", helpCommand);
 	}
 	try {
 		if (parsed.command === "help") return helpOutcome();
@@ -672,12 +684,22 @@ export async function runCli(
 		return errorOutcome(parsed.command, error);
 	}
 }
-function errorOutcome(command: string, error: unknown): CliOutcome {
+function errorOutcome(
+	command: string,
+	error: unknown,
+	category: "USAGE" | "OPERATION" = "OPERATION",
+	helpCommand?: Command,
+): CliOutcome {
 	if (error instanceof PlatformError)
 		return {
 			command,
 			status: "FAILED",
-			error: { code: error.code, message: error.message },
+			error: {
+				code: error.code,
+				message: error.message,
+				category,
+				...(helpCommand === undefined ? {} : { helpCommand }),
+			},
 		};
 	return {
 		command,
@@ -685,6 +707,7 @@ function errorOutcome(command: string, error: unknown): CliOutcome {
 		error: {
 			code: "COMMAND_FAILED",
 			message: error instanceof Error ? error.message : String(error),
+			category,
 		},
 	};
 }
@@ -719,6 +742,7 @@ function humanTheme(options: HumanRenderOptions = {}) {
 		title: (value: string) => paint("bold", paint("cyan", value)),
 		section: (value: string) => paint("bold", value),
 		command: (value: string) => paint("blue", value),
+		info: (value: string) => paint("blue", value),
 		muted: (value: string) => paint("dim", value),
 		success: (value: string) => paint("green", value),
 		warning: (value: string) => paint("yellow", value),
@@ -733,6 +757,7 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 	const setupLabels: Record<string, string> = {
 		READY: "已就绪",
 		ACTION_REQUIRED: "需要操作",
+		BLOCKED: "等待依赖",
 		FAILED: "失败",
 	};
 	const runtimeLabels: Record<string, string> = {
@@ -742,8 +767,15 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 		NOT_APPLICABLE: "无独立进程",
 	};
 	const modules = data.modules.filter(isRecord);
-	const unhealthy = modules.filter(
-		(item) => item.setupStatus !== "READY" || item.runtimeStatus === "FAILED",
+	const failedModules = modules.filter(
+		(item) => item.setupStatus === "FAILED" || item.runtimeStatus === "FAILED",
+	);
+	const actionModules = modules.filter(
+		(item) =>
+			item.setupStatus === "ACTION_REQUIRED" && item.runtimeStatus !== "FAILED",
+	);
+	const blockedModules = modules.filter(
+		(item) => item.setupStatus === "BLOCKED" && item.runtimeStatus !== "FAILED",
 	);
 	const running = modules.filter(
 		(item) => item.setupStatus === "READY" && item.runtimeStatus === "RUNNING",
@@ -755,42 +787,44 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 			item.runtimeStatus !== "FAILED",
 	);
 	const lines = [theme.title("ProFlow 状态"), ""];
-	if (unhealthy.length > 0) lines.push(theme.section("需要处理"), "");
-	for (const raw of unhealthy) {
-		const moduleRef = String(raw.moduleRef);
-		const setupStatus = String(raw.setupStatus);
-		const runtimeStatus = String(raw.runtimeStatus);
-		const failed = setupStatus === "FAILED" || runtimeStatus === "FAILED";
-		const actionRequired = setupStatus === "ACTION_REQUIRED";
-		const icon = failed
-			? "✕"
-			: actionRequired
-				? "◆"
-				: runtimeStatus === "RUNNING"
-					? "●"
-					: runtimeStatus === "NOT_APPLICABLE"
-						? "○"
-						: "✓";
-		const tone = failed ? theme.failure : theme.warning;
-		lines.push(
-			`${tone(icon)} ${theme.section(moduleRef)}  ${theme.muted(String(raw.version))}`,
-		);
-		lines.push(
-			`  ${tone(setupLabels[setupStatus] ?? "未知")} · ${runtimeLabels[runtimeStatus] ?? "未知"}`,
-		);
-		if (failed) {
+	const renderProblems = (
+		title: string,
+		entries: Record<string, unknown>[],
+		tone: (value: string) => string,
+		icon: string,
+	) => {
+		if (entries.length === 0) return;
+		lines.push(theme.section(title), "");
+		for (const raw of entries) {
+			const moduleRef = String(raw.moduleRef);
+			const setupStatus = String(raw.setupStatus);
+			const runtimeStatus = String(raw.runtimeStatus);
 			lines.push(
-				`  原因：${setupStatus === "FAILED" ? "模块配置检查失败" : "模块运行状态异常"}`,
-				`  下一步：${theme.command(`platform setup --module ${moduleRef}`)}`,
+				`${tone(icon)} ${theme.section(moduleRef)}  ${theme.muted(String(raw.version))}`,
 			);
-		} else if (actionRequired) {
 			lines.push(
-				"  原因：模块尚未完成配置",
-				`  下一步：${theme.command(`platform setup --module ${moduleRef}`)}`,
+				`  ${tone(setupLabels[setupStatus] ?? "未知")} · ${runtimeLabels[runtimeStatus] ?? "未知"}`,
 			);
+			const issues = Array.isArray(raw.issues)
+				? raw.issues.filter(isRecord)
+				: [];
+			for (const issue of issues) {
+				lines.push(`  原因：${String(issue.message)}`);
+				if (
+					Array.isArray(issue.relatedModuleRefs) &&
+					issue.relatedModuleRefs.length > 0
+				)
+					lines.push(
+						`  依赖：${issue.relatedModuleRefs.map(String).join("、")}`,
+					);
+				lines.push(`  下一步：${theme.command(String(issue.nextCommand))}`);
+			}
+			lines.push("");
 		}
-		lines.push("");
-	}
+	};
+	renderProblems("失败", failedModules, theme.failure, "✕");
+	renderProblems("需要操作", actionModules, theme.warning, "◆");
+	renderProblems("等待依赖", blockedModules, theme.info, "◇");
 	const compact = (
 		title: string,
 		entries: Record<string, unknown>[],
@@ -813,9 +847,12 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 		(item) => item.setupStatus === "ACTION_REQUIRED",
 	).length;
 	const failed = modules.filter((item) => item.setupStatus === "FAILED").length;
+	const blocked = modules.filter(
+		(item) => item.setupStatus === "BLOCKED",
+	).length;
 	lines.push(
 		theme.section("汇总"),
-		`${theme.success(`${ready} 已就绪`)} · ${theme.warning(`${action} 需要操作`)} · ${failed > 0 ? theme.failure(`${failed} 失败`) : `${failed} 失败`}`,
+		`${theme.success(`${ready} 已就绪`)} · ${theme.warning(`${action} 需要操作`)} · ${theme.info(`${blocked} 等待依赖`)} · ${failed > 0 ? theme.failure(`${failed} 失败`) : `${failed} 失败`}`,
 	);
 	return lines.join("\n");
 }
@@ -995,6 +1032,90 @@ function renderSetup(data: unknown, theme: HumanTheme) {
 	);
 	return lines.join("\n").trimEnd();
 }
+
+function renderHelp(theme: HumanTheme, command?: Command): string {
+	const commandHelp: Record<Command, { usage: string; description: string }> = {
+		install: {
+			usage: "platform install [--workspace <路径>]",
+			description: "安装并初始化全部 ProFlow 模块",
+		},
+		uninstall: {
+			usage: "platform uninstall [--workspace <路径>]",
+			description: "卸载模块包，保留 Workspace 数据",
+		},
+		status: {
+			usage: "platform status [--workspace <路径>]",
+			description: "查看模块配置与运行状态",
+		},
+		setup: {
+			usage: "platform setup [--workspace <路径>] [--module <模块名>]",
+			description: "自动配置并列出全部剩余步骤",
+		},
+		docs: {
+			usage: "platform docs [--workspace <路径>]",
+			description: "阅读全部模块能力文档",
+		},
+		start: {
+			usage: "platform start [--workspace <路径>]",
+			description: "完成全量检查后启动平台",
+		},
+		stop: {
+			usage: "platform stop [--workspace <路径>]",
+			description: "按逆依赖顺序停止平台",
+		},
+	};
+	if (command) {
+		const item = commandHelp[command];
+		return [
+			theme.title(`platform ${command}`),
+			item.description,
+			"",
+			theme.section("用法"),
+			`  ${theme.command(item.usage)}`,
+			"",
+			theme.section("帮助"),
+			`  ${theme.command(`platform ${command} --help`)}`,
+		].join("\n");
+	}
+	return [
+		theme.title("ProFlow 平台命令行"),
+		"管理 ProFlow 模块的安装、配置、文档和运行生命周期。",
+		"",
+		theme.section("用法"),
+		`  ${theme.command("platform <command> [--workspace <路径>]")}`,
+		"",
+		theme.section("命令"),
+		...Object.entries(commandHelp).map(
+			([name, item]) =>
+				`  ${theme.command(`platform ${name}`.padEnd(21))}${item.description}`,
+		),
+		"",
+		theme.section("公共参数"),
+		"  --workspace <路径>       指定 ProFlow Workspace",
+		"  setup --module <模块名>  只查看指定模块的配置步骤",
+		"  -h, --help               显示帮助",
+		"  -v, --version            显示版本",
+		"",
+		theme.section("推荐流程"),
+		`  ${theme.command("install → status → docs → setup → start → status → stop")}`,
+		"",
+		theme.section("人工配置示例"),
+		`  人工：${theme.command("pnpm exec -- proflow-chatgpt-carrier setup")}`,
+		`  AI：  ${theme.command("pnpm exec -- proflow-chatgpt-carrier setup")}`,
+		`        ${theme.command("--carrier-url <url>")}`,
+		"",
+		theme.section("状态图例"),
+		`  ${theme.success("已就绪")}    配置与验证完成`,
+		`  ${theme.warning("需要操作")}  需要执行 setup 步骤`,
+		`  ${theme.info("等待依赖")}  等待上游 Module 或外部服务`,
+		`  ${theme.failure("失败")}      已确认配置或运行故障`,
+		"  运行中    服务进程正在运行",
+		"  无独立进程 该模块无需启动",
+		"",
+		theme.section("遇到问题"),
+		`  先运行 ${theme.command("platform status")}；配置问题运行 ${theme.command("platform setup")}。`,
+	].join("\n");
+}
 export function renderHumanResult(
 	result: CliOutcome,
 	options: HumanRenderOptions = {},
@@ -1010,18 +1131,47 @@ export function renderHumanResult(
 		const blockers = Array.isArray(result.data.blockers)
 			? result.data.blockers.filter(isRecord)
 			: [];
-		if (blockers.length > 0)
-			return [
-				theme.failure("平台未启动：存在未就绪模块"),
-				"",
-				...blockers.flatMap((item) => [
-					`${String(item.setupStatus) === "FAILED" ? theme.failure("✕") : theme.warning("◆")} ${theme.section(String(item.moduleRef))}  ${String(item.setupStatus) === "FAILED" ? theme.failure("失败") : theme.warning("需要操作")}`,
-					`  原因：${typeof item.reason === "string" ? item.reason : "模块配置尚未完成"}`,
-					`  下一步：${theme.command(`platform setup --module ${String(item.moduleRef)}`)}`,
-				]),
-				"",
+		if (blockers.length > 0) {
+			const groups = [
+				{ status: "FAILED", title: "失败", icon: "✕", tone: theme.failure },
+				{
+					status: "ACTION_REQUIRED",
+					title: "需要操作",
+					icon: "◆",
+					tone: theme.warning,
+				},
+				{ status: "BLOCKED", title: "等待依赖", icon: "◇", tone: theme.info },
+			];
+			const lines = [theme.failure("平台未启动：存在未就绪模块"), ""];
+			for (const group of groups) {
+				const entries = blockers.filter(
+					(item) => item.setupStatus === group.status,
+				);
+				if (entries.length === 0) continue;
+				lines.push(theme.section(group.title));
+				for (const item of entries)
+					lines.push(
+						`${group.tone(group.icon)} ${theme.section(String(item.moduleRef))}`,
+						`  原因：${typeof item.reason === "string" ? item.reason : "模块尚未就绪"}`,
+						`  下一步：${theme.command(typeof item.nextCommand === "string" ? item.nextCommand : `platform setup --module ${String(item.moduleRef)}`)}`,
+					);
+				lines.push("");
+			}
+			const readyCount = Array.isArray(result.data.results)
+				? result.data.results.filter(
+						(item) =>
+							isRecord(item) &&
+							isRecord(item.result) &&
+							item.result.status === "SUCCEEDED",
+					).length - blockers.length
+				: 0;
+			lines.push(
+				theme.section("检查汇总"),
+				`${Math.max(0, readyCount)} 已就绪 · ${blockers.length} 未就绪 · 0 个模块已启动`,
 				`处理方式：${theme.command(`platform setup${result.workspaceRoot ? ` --workspace "${result.workspaceRoot}"` : ""}`)}`,
-			].join("\n");
+			);
+			return lines.join("\n");
+		}
 	}
 	if (result.status === "FAILED" && result.error)
 		return [
@@ -1029,42 +1179,11 @@ export function renderHumanResult(
 			`${theme.failure("│")} ${theme.section(result.error.code)}`,
 			`${theme.failure("│")} ${result.error.message}`,
 			theme.failure("╰─ 请根据提示修复后重试"),
+			...(result.error.category === "USAGE"
+				? ["", renderHelp(theme, result.error.helpCommand)]
+				: []),
 		].join("\n");
-	if (result.command === "help")
-		return [
-			theme.title("ProFlow 平台命令行"),
-			"管理 ProFlow 模块的安装、配置、文档和运行生命周期。",
-			"",
-			theme.section("用法"),
-			`  ${theme.command("platform <command> [--workspace <路径>]")}`,
-			"",
-			theme.section("命令"),
-			`${theme.command("platform install")}     安装并初始化全部 ProFlow 模块`,
-			"platform uninstall   卸载模块包，保留 Workspace 数据",
-			"platform status      查看模块配置与运行状态",
-			"platform setup       自动配置并列出全部剩余步骤",
-			"platform docs        阅读模块能力文档",
-			"platform start       完成全量检查后启动平台",
-			"platform stop        按逆依赖顺序停止平台",
-			"",
-			theme.section("公共参数"),
-			"  --workspace <路径>       指定 ProFlow Workspace",
-			"  setup --module <模块名>  只查看指定模块的配置步骤",
-			"",
-			theme.section("推荐流程"),
-			`  ${theme.command("install → status → docs → setup → start → status → stop")}`,
-			"",
-			theme.section("人工配置示例"),
-			`  人工：${theme.command("pnpm exec -- proflow-chatgpt-carrier setup")}`,
-			`  AI：  ${theme.command("pnpm exec -- proflow-chatgpt-carrier setup --carrier-url <url>")}`,
-			"",
-			theme.section("状态图例"),
-			`  ${theme.success("已就绪")}  配置完成    ${theme.warning("需要操作")}  运行 setup`,
-			`  ${theme.failure("失败")}    存在阻塞    无独立进程  无需启动`,
-			"",
-			theme.section("遇到问题"),
-			`  先运行 ${theme.command("platform status")}；配置问题运行 ${theme.command("platform setup")}。`,
-		].join("\n");
+	if (result.command === "help") return renderHelp(theme);
 	if (result.command === "version" && isRecord(result.data))
 		return String(result.data.version ?? platformCliDescriptor.moduleVersion);
 	if (result.command === "status") return renderStatus(result.data, theme);
@@ -1113,6 +1232,8 @@ export function renderHumanResult(
 		start: "启动",
 		stop: "停止",
 	};
+	if (result.command === "uninstall" && result.status === "SUCCEEDED")
+		return `${theme.success("✓ 已经卸载")}${result.workspaceRoot ? `\n${theme.muted("Workspace")}  ${result.workspaceRoot}` : ""}`;
 	return `${result.status === "SUCCEEDED" ? theme.success("✓") : theme.failure("✕")} ${labels[result.command] ?? result.command}${result.status === "SUCCEEDED" ? "成功" : "未完成"}${result.workspaceRoot ? `\n${theme.muted("Workspace")}  ${result.workspaceRoot}` : ""}`;
 }
 if (import.meta.main) {
@@ -1128,26 +1249,6 @@ if (import.meta.main) {
 		color,
 		width: process.stdout.columns,
 	})}\n`;
-	if (
-		result.command === "docs" &&
-		process.stdout.isTTY === true &&
-		rendered.split("\n").length > (process.stdout.rows ?? 24)
-	) {
-		await writeThroughPager(rendered);
-	} else process.stdout.write(rendered);
+	process.stdout.write(rendered);
 	if (result.status !== "SUCCEEDED") process.exitCode = 1;
-}
-
-async function writeThroughPager(content: string): Promise<void> {
-	await new Promise<void>((resolvePromise) => {
-		const pager = spawn("less", ["-FIRX"], {
-			stdio: ["pipe", "inherit", "inherit"],
-		});
-		pager.once("error", () => {
-			process.stdout.write(content);
-			resolvePromise();
-		});
-		pager.once("close", () => resolvePromise());
-		pager.stdin.end(content);
-	});
 }

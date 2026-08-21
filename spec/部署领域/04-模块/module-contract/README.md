@@ -47,7 +47,7 @@ stop
 ## Frozen status truth
 
 ```text
-setupStatus   = READY | ACTION_REQUIRED | FAILED
+setupStatus   = READY | ACTION_REQUIRED | BLOCKED | FAILED
 runtimeStatus = RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 ```
 

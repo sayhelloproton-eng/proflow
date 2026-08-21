@@ -41,7 +41,7 @@ Platform does not interpret Module-private configuration or recreate a cross-Mod
 `platform status` validates and aggregates only Module-owned observations:
 
 ```text
-setupStatus: READY | ACTION_REQUIRED | FAILED
+setupStatus: READY | ACTION_REQUIRED | BLOCKED | FAILED
 runtimeStatus: RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 ```
 

@@ -170,6 +170,7 @@ export type ConfigSlot = z.infer<typeof configSlotSchema>;
 export const moduleSetupStatusSchema = z.enum([
 	"READY",
 	"ACTION_REQUIRED",
+	"BLOCKED",
 	"FAILED",
 ]);
 export type ModuleSetupStatus = z.infer<typeof moduleSetupStatusSchema>;
@@ -182,10 +183,41 @@ export const moduleRuntimeStatusSchema = z.enum([
 ]);
 export type ModuleRuntimeStatus = z.infer<typeof moduleRuntimeStatusSchema>;
 
-export const moduleStatusObservationSchema = z.strictObject({
-	setupStatus: moduleSetupStatusSchema,
-	runtimeStatus: moduleRuntimeStatusSchema,
+export const moduleStatusIssueSchema = z.strictObject({
+	scope: z.enum(["SETUP", "RUNTIME"]),
+	code: z.string().min(1),
+	message: z.string().min(1),
+	relatedModuleRefs: z.array(z.string().min(1)),
+	nextCommand: z.string().min(1),
 });
+export type ModuleStatusIssue = z.infer<typeof moduleStatusIssueSchema>;
+
+export const moduleStatusObservationSchema = z
+	.strictObject({
+		setupStatus: moduleSetupStatusSchema,
+		runtimeStatus: moduleRuntimeStatusSchema,
+		issues: z.array(moduleStatusIssueSchema).min(1).optional(),
+	})
+	.superRefine((observation, context) => {
+		if (
+			observation.setupStatus !== "READY" &&
+			!observation.issues?.some((issue) => issue.scope === "SETUP")
+		)
+			context.addIssue({
+				code: "custom",
+				message: "non-ready setup status requires a SETUP issue",
+				path: ["issues"],
+			});
+		if (
+			observation.runtimeStatus === "FAILED" &&
+			!observation.issues?.some((issue) => issue.scope === "RUNTIME")
+		)
+			context.addIssue({
+				code: "custom",
+				message: "failed runtime status requires a RUNTIME issue",
+				path: ["issues"],
+			});
+	});
 export type ModuleStatusObservation = z.infer<
 	typeof moduleStatusObservationSchema
 >;

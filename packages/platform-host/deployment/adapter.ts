@@ -155,20 +155,34 @@ export const behaviorAdapter = {
 			observedEffects: service ? ["Manage the platform-host process"] : [],
 		};
 	},
-	status: async (context: ModuleCommandContext) => ({
-		result: {
-			...base,
-			data: {
-				setupStatus: (await dependencies(context))
-					? ("READY" as const)
-					: ("FAILED" as const),
-				runtimeStatus: (await running(context))
-					? ("RUNNING" as const)
-					: ("STOPPED" as const),
+	status: async (context: ModuleCommandContext) => {
+		const ready = await dependencies(context);
+		return {
+			result: {
+				...base,
+				data: {
+					setupStatus: ready ? ("READY" as const) : ("BLOCKED" as const),
+					runtimeStatus: (await running(context))
+						? ("RUNNING" as const)
+						: ("STOPPED" as const),
+					...(ready
+						? {}
+						: {
+								issues: [
+									{
+										scope: "SETUP" as const,
+										code: "UPSTREAM_NOT_READY",
+										message: "等待 Execution 与 Model Runtime 发布服务信息",
+										relatedModuleRefs: ["execution-runtime", "model-runtime"],
+										nextCommand: "platform setup --module model-runtime",
+									},
+								],
+							}),
+				},
 			},
-		},
-		observedEffects: [],
-	}),
+			observedEffects: [],
+		};
+	},
 	setup: async (context: ModuleCommandContext) => ({
 		result: (await dependencies(context))
 			? base

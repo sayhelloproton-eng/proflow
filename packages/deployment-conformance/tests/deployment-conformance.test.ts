@@ -340,6 +340,15 @@ test("CP-DPL-CONF-03 C3 rejects side effects and fake external availability with
 			{
 				setupStatus: "ACTION_REQUIRED",
 				runtimeStatus: "NOT_APPLICABLE",
+				issues: [
+					{
+						scope: "SETUP",
+						code: "AUTHENTICATION_REQUIRED",
+						message: "External resource authentication is required",
+						relatedModuleRefs: [],
+						nextCommand: `platform setup --module ${generated.descriptor.moduleRef}`,
+					},
+				],
 			},
 		),
 		observedEffects: [],

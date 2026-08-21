@@ -63,6 +63,15 @@ test("unconfigured adapter reports ACTION_REQUIRED through status/setup, not mis
 		{
 			setupStatus: "ACTION_REQUIRED",
 			runtimeStatus: "STOPPED",
+			issues: [
+				{
+					scope: "SETUP",
+					code: "PROVIDER_SETUP_REQUIRED",
+					message: "尚未配置模型服务 Base URL",
+					relatedModuleRefs: [],
+					nextCommand: "platform setup --module model-provider-api",
+				},
+			],
 		},
 	);
 	const setup = await behaviorAdapter.setup({ workspaceRoot });

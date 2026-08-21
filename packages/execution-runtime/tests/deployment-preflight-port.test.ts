@@ -14,13 +14,27 @@ async function workspace(context: { after(fn: () => unknown): void }) {
 	return root;
 }
 
-test("FJ-07 status exposes missing producer facts as FAILED instead of a Platform preflight", async (context) => {
+test("FJ-07 status exposes missing producer facts as BLOCKED instead of a Platform preflight", async (context) => {
 	const workspaceRoot = await workspace(context);
 	const observed = await behaviorAdapter.status({ workspaceRoot });
 	assert.equal(observed.result.status, "SUCCEEDED");
 	assert.deepEqual(observed.result.data, {
-		setupStatus: "FAILED",
+		setupStatus: "BLOCKED",
 		runtimeStatus: "STOPPED",
+		issues: [
+			{
+				scope: "SETUP",
+				code: "UPSTREAM_NOT_READY",
+				message:
+					"等待 platform-host、model-runtime 与 execution-browser-extension 发布运行所需信息",
+				relatedModuleRefs: [
+					"platform-host",
+					"model-runtime",
+					"execution-browser-extension",
+				],
+				nextCommand: "platform setup --module model-runtime",
+			},
+		],
 	});
 	assert.equal("preflight" in behaviorAdapter, false);
 });

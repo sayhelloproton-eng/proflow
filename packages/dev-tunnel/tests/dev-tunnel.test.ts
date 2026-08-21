@@ -43,6 +43,15 @@ test("default behaviorAdapter reports setup truth without fabricating a tunnel",
 	assert.deepEqual(status.result.data, {
 		setupStatus: "ACTION_REQUIRED",
 		runtimeStatus: "STOPPED",
+		issues: [
+			{
+				scope: "SETUP",
+				code: "TUNNEL_SETUP_REQUIRED",
+				message: "尚未选择或创建持久 Tunnel",
+				relatedModuleRefs: [],
+				nextCommand: "platform setup --module dev-tunnel",
+			},
+		],
 	});
 });
 

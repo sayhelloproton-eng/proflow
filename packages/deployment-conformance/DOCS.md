@@ -8,7 +8,7 @@
 
 - C1 检查静态 Module Contract 与依赖拓扑。
 - C2 检查 npm 包形态、公开 exports、文档和生成来源。
-- C3 运行 adapter，验证结果身份、状态和真实副作用边界。
+- C3 运行 adapter，验证结果身份、状态、非健康诊断和真实副作用边界。
 
 ## 提供的 API 与 Public Contract
 

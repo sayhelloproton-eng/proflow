@@ -23,6 +23,7 @@ export interface ModuleBatchResult {
 		moduleRef: string;
 		setupStatus: ModuleSetupStatus;
 		reason?: string;
+		nextCommand?: string;
 	}>;
 	skipped?: Array<{
 		moduleRef: string;
@@ -137,7 +138,10 @@ async function runOrdered(
 			total: modulesInOrder.length,
 			moduleRef: module.moduleRef,
 			status: "STARTED",
-			message: `${module.moduleRef}`,
+			message:
+				command === "uninstall"
+					? `正在卸载 ${module.moduleRef}`
+					: `${module.moduleRef}`,
 		});
 		const result = await dispatchModuleCommand(
 			catalog,
@@ -348,11 +352,13 @@ export async function startModulesThin(
 		reportProgress(reporter, {
 			command: "start",
 			phase: "status",
+			kind: "detail",
+			retention: "REPLACE",
 			current: index + 1,
 			total: modulesInOrder.length,
 			moduleRef: module.moduleRef,
 			status: "STARTED",
-			message: `${module.moduleRef}`,
+			message: `正在检查模块状态 · ${module.moduleRef}`,
 		});
 		const status = await dispatchModuleCommand(
 			catalog,
@@ -364,11 +370,13 @@ export async function startModulesThin(
 		reportProgress(reporter, {
 			command: "start",
 			phase: "status",
+			kind: "detail",
+			retention: "REPLACE",
 			current: index + 1,
 			total: modulesInOrder.length,
 			moduleRef: module.moduleRef,
 			status: succeeded(status.result) ? "SUCCEEDED" : "FAILED",
-			message: `${module.moduleRef}`,
+			message: `正在检查模块状态 · ${module.moduleRef}`,
 		});
 		if (!succeeded(status.result)) {
 			blockers.push({
@@ -380,11 +388,19 @@ export async function startModulesThin(
 		}
 		const observed = moduleStatusObservationSchema.parse(status.result.data);
 		runtimeByRef.set(module.moduleRef, observed.runtimeStatus);
-		if (observed.setupStatus !== "READY")
+		if (observed.setupStatus !== "READY") {
+			const issue = observed.issues?.find((item) => item.scope === "SETUP");
 			blockers.push({
 				moduleRef: module.moduleRef,
 				setupStatus: observed.setupStatus,
+				...(issue
+					? {
+							reason: issue.message,
+							nextCommand: issue.nextCommand,
+						}
+					: {}),
 			});
+		}
 	}
 	if (results.some((item) => !succeeded(item.result)) || blockers.length > 0)
 		return {

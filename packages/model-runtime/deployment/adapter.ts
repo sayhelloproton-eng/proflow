@@ -239,20 +239,69 @@ export const behaviorAdapter = {
 				: [],
 		};
 	},
-	status: async (context: ModuleCommandContext) => ({
-		result: {
-			...base,
-			data: {
-				setupStatus: (await configured(context))
-					? ("READY" as const)
-					: ("FAILED" as const),
-				runtimeStatus: (await running(context))
-					? ("RUNNING" as const)
-					: ("STOPPED" as const),
+	status: async (context: ModuleCommandContext) => {
+		const p = await provider(context);
+		const config = await readSetup(context);
+		let setupStatus: "READY" | "ACTION_REQUIRED" | "BLOCKED" | "FAILED";
+		let issues:
+			| Array<{
+					scope: "SETUP";
+					code: string;
+					message: string;
+					relatedModuleRefs: string[];
+					nextCommand: string;
+			  }>
+			| undefined;
+		if (!p) {
+			setupStatus = "BLOCKED";
+			issues = [
+				{
+					scope: "SETUP",
+					code: "UPSTREAM_NOT_READY",
+					message: "等待 model-provider-api 发布可用的模型服务地址",
+					relatedModuleRefs: ["model-provider-api"],
+					nextCommand: "platform setup --module model-provider-api",
+				},
+			];
+		} else if (!config) {
+			setupStatus = "ACTION_REQUIRED";
+			issues = [
+				{
+					scope: "SETUP",
+					code: "MODEL_ROLES_REQUIRED",
+					message: "尚未选择 FAST 与 REASON 模型",
+					relatedModuleRefs: [],
+					nextCommand: "platform setup --module model-runtime",
+				},
+			];
+		} else if (await configured(context)) {
+			setupStatus = "READY";
+		} else {
+			setupStatus = "FAILED";
+			issues = [
+				{
+					scope: "SETUP",
+					code: "MODEL_CAPABILITY_VERIFICATION_FAILED",
+					message: "FAST 或 REASON 模型能力验证失败",
+					relatedModuleRefs: ["model-provider-api"],
+					nextCommand: "pnpm exec -- proflow-model-runtime verify",
+				},
+			];
+		}
+		return {
+			result: {
+				...base,
+				data: {
+					setupStatus,
+					runtimeStatus: (await running(context))
+						? ("RUNNING" as const)
+						: ("STOPPED" as const),
+					...(issues ? { issues } : {}),
+				},
 			},
-		},
-		observedEffects: [],
-	}),
+			observedEffects: [],
+		};
+	},
 	setup: async (context: ModuleCommandContext) => {
 		const input = supplied(context);
 		if (input) {

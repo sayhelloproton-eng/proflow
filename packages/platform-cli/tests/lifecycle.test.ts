@@ -55,7 +55,7 @@ function success(moduleRef: string, data?: unknown): ModuleOperationResult {
 
 function recordingCatalog(
 	setupByRef: Readonly<
-		Record<string, "READY" | "ACTION_REQUIRED" | "FAILED">
+		Record<string, "READY" | "ACTION_REQUIRED" | "BLOCKED" | "FAILED">
 	> = {},
 	setupResultByRef: Readonly<Record<string, "ACTION_REQUIRED" | "FAILED">> = {},
 	startFailureByRef: Readonly<Record<string, boolean>> = {},
@@ -152,11 +152,25 @@ function recordingCatalog(
 					};
 				}
 				if (command === "stop") runtimeByRef.set(moduleRef, "STOPPED");
+				const setupStatus = setupByRef[moduleRef] ?? "READY";
 				const data =
 					command === "status"
 						? {
-								setupStatus: setupByRef[moduleRef] ?? "READY",
+								setupStatus,
 								runtimeStatus: runtimeByRef.get(moduleRef) ?? "STOPPED",
+								...(setupStatus === "READY"
+									? {}
+									: {
+											issues: [
+												{
+													scope: "SETUP" as const,
+													code: "NOT_READY",
+													message: `${moduleRef} is not ready`,
+													relatedModuleRefs: [],
+													nextCommand: `platform setup --module ${moduleRef}`,
+												},
+											],
+										}),
 							}
 						: undefined;
 				return {
@@ -198,26 +212,46 @@ const modules = [leaf, consumer, provider];
 test("start gates on Module.status setup READY and never runs preflight", async () => {
 	const { catalog, calls } = recordingCatalog({
 		consumer: "ACTION_REQUIRED",
-		provider: "FAILED",
+		provider: "BLOCKED",
 	});
+	const events: Array<{
+		retention?: string;
+		phase: string;
+		moduleRef?: string;
+	}> = [];
 	const result = await startModulesThin(
 		catalog,
 		[consumer, provider],
 		workspaceRoot,
+		(event) => events.push(event),
 	);
 	assert.equal(result.completed, false);
 	assert.deepEqual(result.blockedBy, {
 		moduleRef: "provider",
-		setupStatus: "FAILED",
+		setupStatus: "BLOCKED",
+		reason: "provider is not ready",
+		nextCommand: "platform setup --module provider",
 	});
 	assert.deepEqual(result.blockers, [
-		{ moduleRef: "provider", setupStatus: "FAILED" },
-		{ moduleRef: "consumer", setupStatus: "ACTION_REQUIRED" },
+		{
+			moduleRef: "provider",
+			setupStatus: "BLOCKED",
+			reason: "provider is not ready",
+			nextCommand: "platform setup --module provider",
+		},
+		{
+			moduleRef: "consumer",
+			setupStatus: "ACTION_REQUIRED",
+			reason: "consumer is not ready",
+			nextCommand: "platform setup --module consumer",
+		},
 	]);
 	assert.deepEqual(
 		calls.map((item) => item.call),
 		["provider:status", "consumer:status"],
 	);
+	assert.equal(events.length, 4);
+	assert.ok(events.every((event) => event.retention === "REPLACE"));
 });
 
 test("start and stop retries skip runtime states already reached", async () => {
@@ -282,6 +316,8 @@ test("start performs zero starts when a Module reports FAILED setup status", asy
 	assert.deepEqual(result.blockedBy, {
 		moduleRef: "consumer",
 		setupStatus: "FAILED",
+		reason: "consumer is not ready",
+		nextCommand: "platform setup --module consumer",
 	});
 	assert.deepEqual(
 		calls.map((item) => item.call),

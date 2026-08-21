@@ -229,6 +229,15 @@ export const behaviorAdapter = {
 					data: {
 						setupStatus: "ACTION_REQUIRED" as const,
 						runtimeStatus: "STOPPED" as const,
+						issues: [
+							{
+								scope: "SETUP" as const,
+								code: "CARRIER_SETUP_REQUIRED",
+								message: "尚未登记可用的 Custom GPT Carrier",
+								relatedModuleRefs: [],
+								nextCommand: "platform setup --module chatgpt-carrier",
+							},
+						],
 					},
 				},
 				observedEffects: [],
@@ -239,16 +248,47 @@ export const behaviorAdapter = {
 			readVerification(context, state),
 			probe(state),
 		]);
+		const setupReady = healthy(verification);
 		return {
 			result: {
 				...base,
 				data: {
-					setupStatus: healthy(verification)
+					setupStatus: setupReady
 						? ("READY" as const)
 						: ("ACTION_REQUIRED" as const),
 					runtimeStatus: carrier.available
 						? ("RUNNING" as const)
 						: ("FAILED" as const),
+					...(!setupReady || !carrier.available
+						? {
+								issues: [
+									...(!setupReady
+										? [
+												{
+													scope: "SETUP" as const,
+													code: "CARRIER_VERIFICATION_REQUIRED",
+													message: "Custom GPT Carrier 尚未通过能力验证",
+													relatedModuleRefs: [],
+													nextCommand:
+														"platform setup --module chatgpt-carrier",
+												},
+											]
+										: []),
+									...(!carrier.available
+										? [
+												{
+													scope: "RUNTIME" as const,
+													code: "CARRIER_UNREACHABLE",
+													message: "已登记的 Custom GPT Carrier 当前不可达",
+													relatedModuleRefs: [],
+													nextCommand:
+														"pnpm exec -- proflow-chatgpt-carrier verify",
+												},
+											]
+										: []),
+								],
+							}
+						: {}),
 				},
 			},
 			observedEffects: [effect],

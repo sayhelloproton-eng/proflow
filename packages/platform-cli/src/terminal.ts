@@ -32,17 +32,19 @@ function progressLine(
 			? ` · ${(event.elapsedMs / 1000).toFixed(1)}s`
 			: "";
 	const suffix =
-		event.status === "SUCCEEDED"
-			? "完成"
-			: event.status === "WARNING"
-				? "警告"
-				: event.status === "ACTION_REQUIRED"
-					? "待处理"
-					: event.status === "FAILED"
-						? "失败"
-						: event.status === "SKIPPED"
-							? "跳过"
-							: "";
+		event.command === "uninstall" && event.status === "SUCCEEDED"
+			? "已经卸载"
+			: event.status === "SUCCEEDED"
+				? "完成"
+				: event.status === "WARNING"
+					? "警告"
+					: event.status === "ACTION_REQUIRED"
+						? "待处理"
+						: event.status === "FAILED"
+							? "失败"
+							: event.status === "SKIPPED"
+								? "跳过"
+								: "";
 	const symbol =
 		event.kind === "subprocess"
 			? "│"
@@ -116,6 +118,12 @@ export function createTerminalProgressReporter(
 		);
 		if (!interactive) {
 			stream.write(`${line}\n`);
+			return;
+		}
+		if (event.retention === "REPLACE" && event.status !== "STARTED") {
+			cursorTo(stream, 0);
+			clearLine(stream, 0);
+			active = undefined;
 			return;
 		}
 		cursorTo(stream, 0);

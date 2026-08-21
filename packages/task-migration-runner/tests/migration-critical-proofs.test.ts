@@ -622,6 +622,15 @@ test("deployment adapter drives real migration status/migrate and exposes migrat
 	assert.deepEqual(before.result.data, {
 		setupStatus: "FAILED",
 		runtimeStatus: "NOT_APPLICABLE",
+		issues: [
+			{
+				scope: "SETUP",
+				code: "MIGRATION_VERIFICATION_FAILED",
+				message: "database does not exist",
+				relatedModuleRefs: ["task-store-sqlite"],
+				nextCommand: "platform setup --module task-migration-runner",
+			},
+		],
 	});
 	const beforeMigration = await behaviorAdapter.migrationStatus(commandContext);
 	assert.equal(beforeMigration.result.data.migrated, false);

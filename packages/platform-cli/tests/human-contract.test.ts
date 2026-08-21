@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { PassThrough } from "node:stream";
 import { test } from "node:test";
 
@@ -23,6 +24,15 @@ test("human status output translates every public status enum", () => {
 					version: "1.0.0",
 					setupStatus: "ACTION_REQUIRED",
 					runtimeStatus: "NOT_APPLICABLE",
+					issues: [
+						{
+							scope: "SETUP",
+							code: "SETUP_REQUIRED",
+							message: "尚未配置",
+							relatedModuleRefs: [],
+							nextCommand: "platform setup --module a",
+						},
+					],
 				},
 				{
 					moduleRef: "b",
@@ -35,6 +45,30 @@ test("human status output translates every public status enum", () => {
 					version: "1.0.0",
 					setupStatus: "FAILED",
 					runtimeStatus: "STOPPED",
+					issues: [
+						{
+							scope: "SETUP",
+							code: "VERIFY_FAILED",
+							message: "配置文件签名无效",
+							relatedModuleRefs: [],
+							nextCommand: "platform setup --module c",
+						},
+					],
+				},
+				{
+					moduleRef: "d",
+					version: "1.0.0",
+					setupStatus: "BLOCKED",
+					runtimeStatus: "STOPPED",
+					issues: [
+						{
+							scope: "SETUP",
+							code: "UPSTREAM_NOT_READY",
+							message: "等待 provider",
+							relatedModuleRefs: ["provider"],
+							nextCommand: "platform setup --module provider",
+						},
+					],
 				},
 			],
 		},
@@ -60,7 +94,11 @@ test("human status output translates every public status enum", () => {
 	assert.match(rendered, /◆\s+a/);
 	assert.match(rendered, /✕\s+c/);
 	assert.match(rendered, /下一步：platform setup --module a/);
-	assert.match(rendered, /原因：模块配置检查失败/);
+	assert.match(rendered, /原因：配置文件签名无效/);
+	assert.match(rendered, /等待依赖/);
+	assert.match(rendered, /原因：等待 provider/);
+	assert.match(rendered, /下一步：platform setup --module provider/);
+	assert.doesNotMatch(rendered, /模块配置检查失败/);
 });
 
 test("status reports one aggregate progress phase instead of printing every module", async () => {
@@ -88,7 +126,70 @@ test("help contains explanations and no raw JSON input route", () => {
 	assert.match(rendered, /安装并初始化全部 ProFlow 模块/);
 	assert.match(rendered, /人工配置示例/);
 	assert.match(rendered, /状态图例/);
+	assert.match(rendered, /-h, --help/);
+	assert.match(rendered, /-v, --version/);
+	assert.match(rendered, /等待依赖/);
 	assert.equal(rendered.includes("--input"), false);
+});
+
+test("usage errors include contextual help while operation failures stay concise", async () => {
+	const invalid = await runCli(["dasdsd"]);
+	const invalidRendered = renderHumanResult(invalid);
+	assert.match(invalidRendered, /unknown command dasdsd/);
+	assert.match(invalidRendered, /用法/);
+	assert.match(invalidRendered, /platform install/);
+	const operationRendered = renderHumanResult({
+		command: "start",
+		status: "FAILED",
+		error: { code: "COMMAND_FAILED", message: "service crashed" },
+	});
+	assert.match(operationRendered, /service crashed/);
+	assert.doesNotMatch(operationRendered, /推荐流程/);
+});
+
+test("uninstall success says already uninstalled", () => {
+	const rendered = renderHumanResult({
+		command: "uninstall",
+		status: "SUCCEEDED",
+		workspaceRoot: "/workspace",
+	});
+	assert.match(rendered, /已经卸载/);
+	assert.doesNotMatch(rendered, /卸载成功|已完成/);
+});
+
+test("docs terminal entry writes continuously without launching a pager", async () => {
+	const source = await readFile(
+		new URL("../src/cli.ts", import.meta.url),
+		"utf8",
+	);
+	assert.doesNotMatch(source, /writeThroughPager|spawn\("less"/);
+});
+
+test("TTY replacement progress clears completed status checks instead of persisting them", () => {
+	const stream = new PassThrough();
+	Object.defineProperty(stream, "isTTY", { value: true });
+	let output = "";
+	stream.on("data", (chunk) => {
+		output += chunk.toString();
+	});
+	const reporter = createTerminalProgressReporter(
+		stream as unknown as NodeJS.WriteStream,
+	);
+	const event = {
+		command: "start",
+		kind: "detail" as const,
+		retention: "REPLACE" as const,
+		phase: "status",
+		current: 12,
+		total: 24,
+		moduleRef: "model-runtime",
+		message: "正在检查模块状态 · model-runtime",
+	};
+	reporter({ ...event, status: "STARTED" });
+	reporter({ ...event, status: "SUCCEEDED" });
+	reporter.close();
+	assert.match(output, /正在检查模块状态/);
+	assert.doesNotMatch(output, /完成/);
 });
 
 test("non-TTY progress uses a stable marker instead of a frozen spinner", () => {

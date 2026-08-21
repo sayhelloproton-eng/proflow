@@ -7,11 +7,13 @@ export type PlatformProgressStatus =
 	| "SKIPPED";
 
 export type PlatformProgressKind = "phase" | "detail" | "subprocess";
+export type PlatformProgressRetention = "KEEP" | "REPLACE";
 
 export interface PlatformProgressEvent {
 	command: string;
 	phase: string;
 	kind?: PlatformProgressKind;
+	retention?: PlatformProgressRetention;
 	current?: number;
 	total?: number;
 	moduleRef?: string;

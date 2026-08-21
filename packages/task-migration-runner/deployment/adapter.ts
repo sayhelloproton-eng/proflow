@@ -78,6 +78,20 @@ export const behaviorAdapter = {
 				data: {
 					setupStatus: v.ok ? ("READY" as const) : ("FAILED" as const),
 					runtimeStatus: "NOT_APPLICABLE" as const,
+					...(v.ok
+						? {}
+						: {
+								issues: [
+									{
+										scope: "SETUP" as const,
+										code: "MIGRATION_VERIFICATION_FAILED",
+										message: v.error?.message ?? "Task migration 状态验证失败",
+										relatedModuleRefs: ["task-store-sqlite"],
+										nextCommand:
+											"platform setup --module task-migration-runner",
+									},
+								],
+							}),
 				},
 			},
 			observedEffects: [],

@@ -61,11 +61,11 @@ Platform 不猜 Module-owned state/artifact cleanup。
 
 ```text
 moduleRef/version = discovery metadata
-setupStatus = READY | ACTION_REQUIRED | FAILED
+setupStatus = READY | ACTION_REQUIRED | BLOCKED | FAILED
 runtimeStatus = RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 ```
 
-没有 `configStatus`、`missingConfig`、整体 Platform readiness 或 verification state。
+非健康状态同时聚合 Module-owned `issues`，按需要操作、等待依赖、失败分组显示具体原因和下一条命令。没有 `configStatus`、`missingConfig`、整体 Platform readiness 或 verification state。
 
 ## 6. Setup
 
@@ -93,7 +93,7 @@ Module 的 setup 实现必须优先自动执行所有 machine-owned 步骤，只
 
 `platform docs` 调用 `Module.docs` 并聚合。Platform 不读取 Module 私有 config，也不根据 configSlots 拼配置指南。
 
-TTY 对长文启用分页器，Markdown renderer 保留标题、列表、表格、代码块与自动折行；非 TTY 稳定连续输出。文档正文由 Module owner 提供中文说明，Platform 不改写内容。
+TTY 与非 TTY 都连续输出全部 Module 文档，输出完成后立即回到 Shell，不自动启动分页器。Markdown renderer 保留标题、列表、表格、代码块与自动折行；文档正文由 Module owner 提供中文说明，Platform 不改写内容。
 
 标准知识文档为 `DOCS.md` 与 `SETUP.md`；Module-specific 其它业务文档可以存在，但不形成新的 Platform 标准管理面。
 
@@ -119,9 +119,13 @@ Platform 继续拥有 npm/pnpm/yarn selection、safe argv、package synchronizat
 
 package-manager 使用流式子进程读取，并把关键 resolved/downloaded/reused/linked/added、warning/error 行转换为 progress detail。可重试 warning 必须使用黄色 `WARNING` 事件，不能冒充红色 `FAILED`；真正 error 才使用失败语义。Registry 搜索完成后立即报告候选数，再以最多四个并发请求逐包校验 metadata。TTY 保留已完成阶段并只动态刷新当前任务；非 TTY 每个事件输出一行。
 
+进度事件通过 `retention=KEEP|REPLACE` 声明终端保留策略。Install 的发现与安装结果使用 `KEEP`；Start 的全量 status 预检使用 `REPLACE`，TTY 只刷新当前计数，最终只渲染一份 blocker 清单。结构化 reporter 仍接收每个 Module 的事件。
+
 ## 10.1 Terminal renderer
 
 Help、Install、Status、Docs、Setup、Start、Stop、Uninstall 共用统一 TerminalRenderer。语义色固定为标题青色、信息蓝色、成功绿色、待处理黄色、失败红色、辅助灰色；支持 `NO_COLOR` 与窄终端折行，不尝试改变终端字号，也不恢复 JSON 输出。
+
+CLI usage error 必须显示上下文帮助：未知命令/顶层选项显示顶层 Usage 与命令表，已识别命令的参数错误显示该命令 Usage。运行期失败只显示真实原因、诊断与恢复命令，不追加完整帮助。
 
 ## 11. Module command binding
 

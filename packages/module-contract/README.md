@@ -15,7 +15,7 @@ Additional Module-specific commands may exist, but they are not part of the Plat
 ## Status observation
 
 ```text
-setupStatus: READY | ACTION_REQUIRED | FAILED
+setupStatus: READY | ACTION_REQUIRED | BLOCKED | FAILED
 runtimeStatus: RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 ```
 

@@ -26,7 +26,7 @@ const result = (data) => ({
 export const behaviorAdapter = {
   install: async () => ({ result: result(), observedEffects: [] }),
   uninstall: async () => ({ result: result(), observedEffects: [] }),
-  status: async () => ({ result: result({ setupStatus: ready ? "READY" : "ACTION_REQUIRED", runtimeStatus: running ? "RUNNING" : "STOPPED" }), observedEffects: [] }),
+  status: async () => ({ result: result({ setupStatus: ready ? "READY" : "ACTION_REQUIRED", runtimeStatus: running ? "RUNNING" : "STOPPED", ...(ready ? {} : { issues: [{ scope: "SETUP", code: "SETUP_REQUIRED", message: "Fixture 尚未配置", relatedModuleRefs: [], nextCommand: "platform setup --module fixture-service" }] }) }), observedEffects: [] }),
   setup: async () => { ready = true; return { result: result(), observedEffects: [] }; },
   docs: async () => ({ result: result({ docs: "Fixture Service" }), observedEffects: [] }),
   start: async () => { running = true; return { result: result(), observedEffects: [] }; },

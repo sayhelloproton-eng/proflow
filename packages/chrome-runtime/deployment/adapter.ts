@@ -76,6 +76,19 @@ export function createBehaviorAdapter(
 						runtimeStatus: observation.available
 							? ("RUNNING" as const)
 							: ("STOPPED" as const),
+						...(observation.available
+							? {}
+							: {
+									issues: [
+										{
+											scope: "SETUP" as const,
+											code: "CHROME_UNAVAILABLE",
+											message: "未检测到可用的 Chrome Runtime",
+											relatedModuleRefs: [],
+											nextCommand: "platform setup --module chrome-runtime",
+										},
+									],
+								}),
 					},
 				},
 				observedEffects: [observedEffect],

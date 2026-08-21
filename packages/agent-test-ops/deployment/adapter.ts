@@ -106,7 +106,28 @@ export const behaviorAdapter = {
 		return {
 			result: {
 				...base,
-				data: { setupStatus, runtimeStatus: "NOT_APPLICABLE" as const },
+				data: {
+					setupStatus,
+					runtimeStatus: "NOT_APPLICABLE" as const,
+					...(setupStatus === "READY"
+						? {}
+						: {
+								issues: [
+									{
+										scope: "SETUP" as const,
+										code:
+											reality.status === "BROKEN"
+												? "ROLE_REGISTRATION_BROKEN"
+												: "ROLE_SETUP_REQUIRED",
+										message:
+											reality.issues.join("；") ||
+											"Custom GPT Role 尚未完成注册",
+										relatedModuleRefs: [],
+										nextCommand: "platform setup --module agent-test-ops",
+									},
+								],
+							}),
+				},
 			},
 			observedEffects: [] as string[],
 		};

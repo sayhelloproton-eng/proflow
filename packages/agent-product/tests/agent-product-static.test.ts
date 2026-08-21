@@ -107,6 +107,15 @@ test("CP-AGT-PROD-03 + CP-AGT-PROD-04 Extension-first Task ownership is reflecte
 	assert.deepEqual(status.data, {
 		setupStatus: "ACTION_REQUIRED",
 		runtimeStatus: "NOT_APPLICABLE",
+		issues: [
+			{
+				scope: "SETUP",
+				code: "ROLE_SETUP_REQUIRED",
+				message: "ROLE_NOT_REGISTERED:@tomflow/proflow-agent-product",
+				relatedModuleRefs: [],
+				nextCommand: "platform setup --module agent-product",
+			},
+		],
 	});
 	assert.equal(behaviorAdapter.setup(context).result.status, "ACTION_REQUIRED");
 });
@@ -131,6 +140,15 @@ test("CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked b
 	assert.deepEqual(status.data, {
 		setupStatus: "ACTION_REQUIRED",
 		runtimeStatus: "NOT_APPLICABLE",
+		issues: [
+			{
+				scope: "SETUP",
+				code: "ROLE_SETUP_REQUIRED",
+				message: "ROLE_NOT_REGISTERED:@tomflow/proflow-agent-product",
+				relatedModuleRefs: [],
+				nextCommand: "platform setup --module agent-product",
+			},
+		],
 	});
 	assert.equal(behaviorAdapter.setup(context).result.status, "ACTION_REQUIRED");
 });

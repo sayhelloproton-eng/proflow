@@ -24,7 +24,7 @@ contractRefs: []
 
 ```text
 moduleRef/version = discovery metadata
-setupStatus = READY | ACTION_REQUIRED | FAILED
+setupStatus = READY | ACTION_REQUIRED | BLOCKED | FAILED
 runtimeStatus = RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 ```
 

@@ -225,6 +225,15 @@ export const behaviorAdapter = {
 					data: {
 						setupStatus: "ACTION_REQUIRED" as const,
 						runtimeStatus: "STOPPED" as const,
+						issues: [
+							{
+								scope: "SETUP" as const,
+								code: "TUNNEL_SETUP_REQUIRED",
+								message: "尚未选择或创建持久 Tunnel",
+								relatedModuleRefs: [],
+								nextCommand: "platform setup --module dev-tunnel",
+							},
+						],
 					},
 				},
 				observedEffects: [],
@@ -254,6 +263,34 @@ export const behaviorAdapter = {
 						? ("READY" as const)
 						: ("ACTION_REQUIRED" as const),
 					runtimeStatus,
+					...(!configured || runtimeStatus === "FAILED"
+						? {
+								issues: [
+									...(!configured
+										? [
+												{
+													scope: "SETUP" as const,
+													code: "TUNNEL_LOGIN_REQUIRED",
+													message: "Dev Tunnel CLI 尚未登录或配置未保存",
+													relatedModuleRefs: [],
+													nextCommand: "platform setup --module dev-tunnel",
+												},
+											]
+										: []),
+									...(runtimeStatus === "FAILED"
+										? [
+												{
+													scope: "RUNTIME" as const,
+													code: "TUNNEL_RUNTIME_FAILED",
+													message: "Tunnel 运行状态检查失败",
+													relatedModuleRefs: [],
+													nextCommand: "pnpm exec -- proflow-dev-tunnel verify",
+												},
+											]
+										: []),
+								],
+							}
+						: {}),
 				},
 			},
 			observedEffects: [],

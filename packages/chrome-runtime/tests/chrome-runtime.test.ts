@@ -50,6 +50,15 @@ test("adapter status/setup report only Chrome runtime prerequisite truth", async
 		{
 			setupStatus: "ACTION_REQUIRED",
 			runtimeStatus: "STOPPED",
+			issues: [
+				{
+					scope: "SETUP",
+					code: "CHROME_UNAVAILABLE",
+					message: "未检测到可用的 Chrome Runtime",
+					relatedModuleRefs: [],
+					nextCommand: "platform setup --module chrome-runtime",
+				},
+			],
 		},
 	);
 	assert.equal(
