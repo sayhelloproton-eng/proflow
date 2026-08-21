@@ -1,28 +1,11 @@
-# @tomflow/proflow-agent-runtime — Module Docs
+# agent-runtime
 
-Module ref: `agent-runtime`  
-Domain: `agent-runtime-collaboration`  
-Kind: `library`
+Agent Runtime（智能体运行时）管理角色登记、角色凭据和角色之间的协作消息。它作为库运行在 Platform Host 内部，不需要单独启动进程。
 
-Agent-owned Role Registry, credential binding and Collaboration durable runtime.
+## 主要能力
 
-## Standard management surface
+- 保存固定角色与 Custom GPT 的绑定关系。
+- 为角色签发和轮换访问凭据。
+- 可靠记录角色之间的提问、回复与交付结果。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- `agent-runtime` `1.0.0`
-
-## Requires
-
-- `task-orchestration` `>=1.0.0 <2.0.0`
-- `execution` `>=1.0.0 <2.0.0`
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+通常无需人工配置。使用 `platform status` 查看它是否就绪。

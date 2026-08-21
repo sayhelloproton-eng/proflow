@@ -1,27 +1,11 @@
-# @tomflow/proflow-model-contracts — Module Docs
+# model-contracts
 
-Module ref: `model-contracts`  
-Domain: `model-reasoning`  
-Kind: `library`
+Model Contracts（模型合同）定义模型推理请求、FAST/REASON 角色、运行状态和结构化结果的公共格式。
 
-Typed public Model & Reasoning contracts and runtime validation for ProFlow inference.
+## 主要用途
 
-## Standard management surface
+- 约束调用方可以提交的推理任务。
+- 校验模型返回的结构化结果。
+- 区分快速判断与深度推理的职责。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- None.
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+这是一个库模块，没有独立进程，也不需要人工配置。

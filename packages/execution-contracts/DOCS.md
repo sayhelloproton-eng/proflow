@@ -1,27 +1,11 @@
-# @tomflow/proflow-execution-contracts — Module Docs
+# execution-contracts
 
-Module ref: `execution-contracts`  
-Domain: `execution`  
-Kind: `library`
+Execution Contracts（执行合同）定义 ProFlow 执行请求、结果、错误、Artifact（产物）和 Evidence（证据）的公共数据格式。
 
-Typed public Execution contracts and runtime validation for the ProFlow real-world effect plane.
+## 主要用途
 
-## Standard management surface
+- 让不同模块使用同一套强类型接口。
+- 在外部输入进入系统时进行格式校验。
+- 区分执行结果、产物引用和验证证据。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- None.
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+这是一个库模块，没有独立进程，也不需要人工配置。

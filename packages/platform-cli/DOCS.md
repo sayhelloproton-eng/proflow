@@ -1,27 +1,11 @@
-# @tomflow/proflow-platform-cli — Module Docs
+# platform-cli
 
-Module ref: `platform-cli`  
-Domain: `deployment-governance`  
-Kind: `cli`
+Platform CLI（平台命令行）是 ProFlow 的统一管理入口，负责发现模块、安装依赖、汇总状态和按依赖顺序启动或停止模块。
 
-Thin Platform CLI for Module discovery, documentation, package synchronization and lifecycle orchestration.
+## 推荐流程
 
-## Standard management surface
+`platform install` → `platform status` → `platform docs` → `platform setup` → `platform start`
 
-`install / uninstall / status / setup / docs / start / stop`
+## 边界
 
-## Provides
-
-- None.
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+Platform CLI 只负责调用和汇总，不读取模块私有配置，也不替模块解释外部服务。具体配置由对应模块的 Setup（配置向导）完成。

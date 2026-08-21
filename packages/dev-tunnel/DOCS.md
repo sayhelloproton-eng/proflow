@@ -1,27 +1,13 @@
-# @tomflow/proflow-dev-tunnel — Module Docs
+# dev-tunnel
 
-Module ref: `dev-tunnel`  
-Domain: `deployment-governance`  
-Kind: `external-resource`
+Dev Tunnel（开发隧道）把本机 Agent Gateway 安全地映射为公开 HTTPS 地址，供 Custom GPT Actions 调用。
 
-Governs the Microsoft Dev Tunnel public HTTPS ingress resource and its managed local host process.
+## 什么时候需要
 
-## Standard management surface
+当 ProFlow 在本机运行，而 Custom GPT 需要从互联网访问本机网关时使用。
 
-`install / uninstall / status / setup / docs / start / stop`
+## 如何配置
 
-## Provides
+运行 `proflow-dev-tunnel setup`。向导会检查 `devtunnel` 工具和登录状态，列出现有 Tunnel（隧道），协助选择或创建持久隧道，然后保存并验证公开地址。
 
-- None.
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+公开地址会被外部服务访问，请只暴露 ProFlow 网关需要的端口。

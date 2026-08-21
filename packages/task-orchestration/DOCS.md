@@ -1,27 +1,11 @@
-# @tomflow/proflow-task-orchestration — Module Docs
+# task-orchestration
 
-Module ref: `task-orchestration`  
-Domain: `task-orchestration`  
-Kind: `library`
+Task Orchestration（任务编排）管理 Task、Task Group、Node、角色绑定和任务文档，是任务生命周期的业务真相来源。
 
-Owns the Task & Orchestration public contract, domain rules and application services.
+## 主要能力
 
-## Standard management surface
+- 创建、启动、推进、重开和终止任务。
+- 管理节点顺序以及角色与 Worker（工作实例）的绑定。
+- 保存任务文档和状态变更记录。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- `task-orchestration` `1.0.0`
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+它作为库运行在 Platform Host 中，没有独立进程，也不需要人工配置。

@@ -1,28 +1,13 @@
-# @tomflow/proflow-model-runtime — Module Docs
+# model-runtime
 
-Module ref: `model-runtime`  
-Domain: `model-reasoning`  
-Kind: `service`
+Model Runtime（模型运行时）为 ProFlow 提供 FAST（快速模型）和 REASON（推理模型）两类推理通道。
 
-Provides the ProFlow Model Runtime service with FAST/REASON routing, provider capability checks and inference observability.
+## 什么时候需要
 
-## Standard management surface
+模型服务就绪后，需要为两类工作选择具体模型时使用。
 
-`install / uninstall / status / setup / docs / start / stop`
+## 如何配置
 
-## Provides
+运行 `proflow-model-runtime setup`。向导会先检查模型服务，再提示选择 FAST 和 REASON 模型，保存后立即验证两条通道。
 
-- `model-inference` `1.0.0`
-
-## Requires
-
-- `model.provider.api` `>=1.0.0 <2.0.0`
-
-## Public setup inputs
-
-- `fastModel` — Provider model identifier for FAST
-- `reasonModel` — Provider model identifier for REASON
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+FAST 适合常规判断；REASON 用于复杂诊断。运行时不会在两者之间进行隐式降级。

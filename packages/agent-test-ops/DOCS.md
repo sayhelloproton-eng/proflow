@@ -1,27 +1,16 @@
-# @tomflow/proflow-agent-test-ops — Module Docs
+# agent-test-ops
 
-Module ref: `agent-test-ops`  
-Domain: `agent-runtime-collaboration`  
-Kind: `agent-package`
+为 ProFlow 准备测试与运维角色使用的 Custom GPT。它负责验证交付结果、整理 Evidence（验证证据）并协助运行维护。
 
-Versioned Test/Operations Custom GPT materialization package for the fixed Test-Ops role.
+## 什么时候需要
 
-## Standard management surface
+首次部署测试/运维角色，或者角色指令和 Actions（动作接口）发生升级时使用。
 
-`install / uninstall / status / setup / docs / start / stop`
+## 如何配置
 
-## Provides
+运行 `proflow-agent-test-ops setup`。向导会准备角色资料、打开 Custom GPT 编辑入口，并在完成后登记和验证 GPT 地址。
 
-- None.
+## 相关术语
 
-## Requires
-
-- `custom-gpt-actions-gateway` `>=1.0.0 <2.0.0`
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+- Evidence（验证证据）：能够证明测试或真实操作结果的记录。
+- Test/Ops Role（测试/运维角色）：负责质量验证和运行维护的固定角色。

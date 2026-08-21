@@ -1,30 +1,11 @@
-# @tomflow/proflow-platform-host — Module Docs
+# platform-host
 
-Module ref: `platform-host`  
-Domain: `platform-architecture`  
-Kind: `service`
+Platform Host（平台主服务）把 Task、Agent、Execution 和 Model 等模块组合成一个本机应用，并提供受认证的本地接口。
 
-Provides the ProFlow local application composition root that binds Task, Agent, Execution and Model owner transports.
+## 主要职责
 
-## Standard management surface
+- 装配各领域运行时并管理启动与停止。
+- 提供本机 HTTP 接口和健康状态。
+- 把请求转给真正拥有数据和规则的模块。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- `platform-host` `1.0.0`
-
-## Requires
-
-- `task-orchestration` `>=1.0.0 <2.0.0`
-- `agent-runtime` `>=1.0.0 <2.0.0`
-- `execution` `>=1.0.0 <2.0.0`
-- `model-inference` `>=1.0.0 <2.0.0`
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+它不保存第二份业务数据，也不负责浏览器中的 Observer（观察器）循环。

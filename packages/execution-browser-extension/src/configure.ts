@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -53,6 +54,24 @@ export async function materializeBrowserExtensionConfig(
 	});
 }
 
+function openChromeExtensions() {
+	const url = "chrome://extensions";
+	const command =
+		process.platform === "darwin"
+			? "open"
+			: process.platform === "win32"
+				? "cmd"
+				: "xdg-open";
+	const parameters =
+		process.platform === "darwin"
+			? ["-a", "Google Chrome", url]
+			: process.platform === "win32"
+				? ["/c", "start", "", url]
+				: [url];
+	const child = spawn(command, parameters, { detached: true, stdio: "ignore" });
+	child.unref();
+}
+
 async function main(): Promise<void> {
 	const args = process.argv.slice(2);
 	if (args.includes("--json")) throw new Error("不支持的选项 --json");
@@ -68,13 +87,19 @@ async function main(): Promise<void> {
 		if (!extensionId && !process.stdin.isTTY)
 			throw new Error("非交互环境必须提供 --extension-id");
 		if (!extensionId) {
+			const prepared = await behaviorAdapter.install({ workspaceRoot });
+			const loadDir = String(prepared.result.data.loadDir);
 			const prompt = createInterface({
 				input: process.stdin,
 				output: process.stdout,
 			});
 			try {
+				process.stdout.write(
+					`\nChrome 扩展配置\n\n  1. 已准备扩展目录：${loadDir}\n  2. 在 Chrome 打开“扩展程序”，启用“开发者模式”。\n  3. 点击“加载已解压的扩展程序”，选择上面的目录。\n  4. 确认 Service Worker（后台服务）显示正常，再复制扩展 ID。\n\n`,
+				);
+				openChromeExtensions();
 				extensionId = await prompt.question(
-					"Chrome Extension ID（32 位小写字母）：",
+					"◆ Chrome Extension ID（32 位小写字母）\n> ",
 				);
 			} finally {
 				prompt.close();
@@ -86,8 +111,8 @@ async function main(): Promise<void> {
 		});
 		process.stdout.write(
 			result.result.status === "SUCCEEDED"
-				? "浏览器扩展配置与运行证据已保存。\n"
-				: "浏览器扩展尚未就绪。\n",
+				? "\n✓ Extension ID 已保存\n✓ Service Worker 运行证据已记录\n"
+				: "\n✕ 浏览器扩展尚未就绪，请检查扩展错误后重试。\n",
 		);
 		if (result.result.status === "FAILED") process.exitCode = 1;
 		return;

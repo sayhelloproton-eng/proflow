@@ -1,27 +1,11 @@
-# @tomflow/proflow-module-template — Module Docs
+# module-template
 
-Module ref: `module-template`  
-Domain: `deployment-governance`  
-Kind: `library`
+Module Template（模块模板）提供 ProFlow 模块的标准工程骨架，支持库、服务、CLI、浏览器扩展、角色包和外部资源等类型。
 
-Materializes standard ProFlow module package profiles.
+## 主要用途
 
-## Standard management surface
+- 生成最小可运行的 TypeScript 包结构。
+- 带上标准管理入口、测试和发布配置。
+- 降低不同模块之间的工程差异。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- None.
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+模板只生成起点，不替模块填写真实业务逻辑或伪造外部资源状态。

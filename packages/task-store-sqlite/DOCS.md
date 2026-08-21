@@ -1,27 +1,11 @@
-# @tomflow/proflow-task-store-sqlite — Module Docs
+# task-store-sqlite
 
-Module ref: `task-store-sqlite`  
-Domain: `task-orchestration`  
-Kind: `library`
+Task Store SQLite（任务 SQLite 存储）为任务领域提供本机持久化，保存任务、节点、角色绑定、文档和幂等记录。
 
-Provides the node:sqlite store and repository adapters for Task-owned structured facts.
+## 工作方式
 
-## Standard management surface
+- 使用 SQLite 事务保证多项更新同时成功或同时失败。
+- 使用 WAL（预写日志）提高可靠性和并发读取能力。
+- 启动时检查数据库结构和完整性。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- None.
-
-## Requires
-
-- `task-orchestration` `>=1.0.0 <2.0.0`
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+数据库由模块维护，不建议直接编辑 `.proflow/state` 中的文件。

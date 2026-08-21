@@ -1,29 +1,13 @@
-# @tomflow/proflow-execution-browser-extension — Module Docs
+# execution-browser-extension
 
-Module ref: `execution-browser-extension`  
-Domain: `execution`  
-Kind: `browser-extension`
+Execution Browser Extension（浏览器执行扩展）让 ProFlow 在 Chrome 中执行受控页面操作、采集页面证据，并提供任务与审批界面。
 
-Execution-owned MV3 Browser executor, evidence provider and browser application surface.
+## 什么时候需要
 
-## Standard management surface
+首次部署浏览器能力、扩展升级，或者 Chrome 报告扩展未连接时使用。
 
-`install / uninstall / status / setup / docs / start / stop`
+## 如何配置
 
-## Provides
+运行 `proflow-execution-browser-extension setup`。向导会准备扩展目录、打开 Chrome 扩展管理页，并说明如何加载已解压扩展；完成后收集 Extension ID（扩展标识）并验证连接状态。
 
-- `execution-browser-executor` `1.0.0`
-
-## Requires
-
-- `execution` `>=1.0.0 <2.0.0`
-- `task-orchestration` `>=1.0.0 <2.0.0`
-- `agent-runtime` `>=1.0.0 <2.0.0`
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+扩展不保存 Task（任务）或 Approval（审批）的业务真相，只负责浏览器侧交互。

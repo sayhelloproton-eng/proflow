@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 122,
-    "testCalls": 508
+    "files": 123,
+    "testCalls": 510
   },
   "tests": [
     {
@@ -1517,6 +1517,17 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "deployment-conformance",
+      "path": "packages/deployment-conformance/tests/setup-assistant.test.ts",
+      "line": 7,
+      "title": "interactive setup CLIs contain concrete guided operations",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/deployment-conformance/src/index.ts"
       ]
     },
     {
@@ -5067,7 +5078,18 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 59,
+      "line": 64,
+      "title": "status reports one aggregate progress phase instead of printing every module",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 84,
       "title": "help contains explanations and no raw JSON input route",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5100,7 +5122,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 261,
+      "line": 266,
       "title": "uninstall removes ProFlow dependencies and preserves .proflow",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5111,7 +5133,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 293,
+      "line": 298,
       "title": "uninstall never removes packages after a Module.uninstall failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5122,7 +5144,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 349,
+      "line": 354,
       "title": "all operational commands accept --workspace while positional module arguments remain invalid",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

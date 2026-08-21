@@ -1,27 +1,11 @@
-# @tomflow/proflow-execution-runtime — Module Docs
+# execution-runtime
 
-Module ref: `execution-runtime`  
-Domain: `execution`  
-Kind: `service`
+Execution Runtime（执行运行时）是 ProFlow 真实操作的控制中心。它负责审批、幂等、执行调度、结果记录和异常恢复。
 
-Durable, policy-controlled Execution Core orchestration over SQLite and controlled executor ports.
+## 使用前提
 
-## Standard management surface
+本机执行器、浏览器执行器、模型运行时和 Platform Host 提供的身份信息必须就绪。缺少上游事实时，状态会显示失败并由 `platform setup` 给出原因。
 
-`install / uninstall / status / setup / docs / start / stop`
+## 运行方式
 
-## Provides
-
-- `execution` `1.0.0`
-
-## Requires
-
-- `execution-local` `>=1.0.0 <2.0.0`
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+配置完成后使用 `platform start` 启动。不要直接修改它在 `.proflow` 中维护的数据库和凭据。

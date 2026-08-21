@@ -1,27 +1,13 @@
-# @tomflow/proflow-chrome-runtime — Module Docs
+# chrome-runtime
 
-Module ref: `chrome-runtime`  
-Domain: `deployment-governance`  
-Kind: `external-resource`
+Chrome Runtime（Chrome 运行环境）检查本机是否有可用的 Chrome，并确认浏览器能够承载 ProFlow 扩展。
 
-Observes the real Chrome runtime and MV3 extension load prerequisite.
+## 什么时候需要
 
-## Standard management surface
+安装平台、Chrome 路径变化或浏览器无法启动时使用。
 
-`install / uninstall / status / setup / docs / start / stop`
+## 工作方式
 
-## Provides
+模块会自动检查常见安装位置和 PATH（命令搜索路径）。通常无需人工配置，也不会替用户关闭正在使用的 Chrome。
 
-- None.
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- `chromeExecutablePath` — Absolute path to the Chrome/Chromium executable; when unset, probes macOS candidates then PATH commands
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+如果自动发现失败，`platform setup` 会给出需要选择的浏览器路径。

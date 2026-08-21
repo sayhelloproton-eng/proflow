@@ -1,27 +1,16 @@
-# @tomflow/proflow-agent-controller-dev — Module Docs
+# agent-controller-dev
 
-Module ref: `agent-controller-dev`  
-Domain: `agent-runtime-collaboration`  
-Kind: `agent-package`
+为 ProFlow 准备总控与研发角色使用的 Custom GPT。它负责理解任务、组织研发工作，并通过受控的 Execution（执行服务）完成真实代码操作。
 
-Versioned Controller/Development Custom GPT materialization package for the fixed Controller-Dev role.
+## 什么时候需要
 
-## Standard management surface
+首次部署总控/研发角色，或者角色的 Instructions（指令）、Actions（动作接口）发生升级时使用。
 
-`install / uninstall / status / setup / docs / start / stop`
+## 如何配置
 
-## Provides
+运行 `proflow-agent-controller-dev setup`。向导会准备角色资料，引导你打开 Custom GPT 编辑页面，最后登记 GPT 地址并验证角色状态。
 
-- None.
+## 相关术语
 
-## Requires
-
-- `custom-gpt-actions-gateway` `>=1.0.0 <2.0.0`
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+- Custom GPT（自定义 GPT）：承载角色指令和 Actions 的 ChatGPT 应用。
+- Worker（工作角色实例）：任务中实际参与协作的角色实例。

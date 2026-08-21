@@ -17,7 +17,10 @@ async function providerBaseUrl(args: readonly string[]): Promise<string> {
 		output: process.stdout,
 	});
 	try {
-		return await prompt.question("模型服务 Base URL：");
+		process.stdout.write(
+			"\n模型服务配置\n\n  Base URL（基础地址）是 OpenAI-compatible API 的服务入口。\n  脚本会检查 URL 格式、探测服务并保存验证结果。\n\n",
+		);
+		return await prompt.question("◆ 请输入 HTTPS Base URL\n> ");
 	} finally {
 		prompt.close();
 	}
@@ -39,8 +42,8 @@ if (command === "setup") {
 				: "连接失败";
 	process.stdout.write(
 		result.result.status === "SUCCEEDED"
-			? "模型服务配置已保存并验证。\n"
-			: `模型服务尚未就绪：${detail}\n`,
+			? "\n✓ 服务可访问\n✓ 配置已保存并通过验证\n"
+			: `\n✕ 模型服务尚未就绪\n  ${detail}\n`,
 	);
 	if (result.result.status === "FAILED") process.exitCode = 1;
 } else if (command === "verify") {

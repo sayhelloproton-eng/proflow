@@ -30,9 +30,15 @@ test("every built deployment adapter returns its published DOCS.md body", async 
 		const result = Reflect.get(raw as object, "result");
 		const parsed = moduleDocsDataSchema.safeParse(Reflect.get(result, "data"));
 		assert.equal(parsed.success, true, moduleRef);
-		assert.equal(
-			parsed.success && parsed.data.docs,
-			await readFile(new URL(`${moduleRef}/DOCS.md`, packagesRoot), "utf8"),
+		const expected = await readFile(
+			new URL(`${moduleRef}/DOCS.md`, packagesRoot),
+			"utf8",
+		);
+		assert.equal(parsed.success && parsed.data.docs, expected, moduleRef);
+		assert.match(expected, /[\u4e00-\u9fff]/, moduleRef);
+		assert.doesNotMatch(
+			expected,
+			/Standard management surface|Public setup inputs|Ownership boundary|Module Docs/,
 			moduleRef,
 		);
 	}

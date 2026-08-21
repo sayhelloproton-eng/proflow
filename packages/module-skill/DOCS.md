@@ -1,27 +1,11 @@
-# @tomflow/proflow-module-skill — Module Docs
+# module-skill
 
-Module ref: `module-skill`  
-Domain: `deployment-governance`  
-Kind: `library`
+Module Skill（模块开发技能）帮助开发者或 AI 按 ProFlow 规范创建、检查和升级模块。
 
-Guides AI through standard ProFlow module creation and maintenance.
+## 适用场景
 
-## Standard management surface
+- 新建符合 Module Contract（模块合同）的包。
+- 为已有模块补齐描述、测试和文档。
+- 在发布前运行一致性检查。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- None.
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+它是开发辅助内容，不参与平台运行，也不会替模块决定业务能力。

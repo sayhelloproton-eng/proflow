@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -65,6 +66,20 @@ function roleRefFromCarrierUrl(carrierUrl: string) {
 	if (!/^g-[A-Za-z0-9_-]+$/.test(roleRef) || url.pathname !== `/g/${roleRef}`)
 		throw new Error("INVALID_CUSTOM_GPT_URL");
 	return roleRef;
+}
+
+function openCustomGptEditor() {
+	const url = "https://chatgpt.com/gpts/editor";
+	const command =
+		process.platform === "darwin"
+			? "open"
+			: process.platform === "win32"
+				? "cmd"
+				: "xdg-open";
+	const parameters =
+		process.platform === "win32" ? ["/c", "start", "", url] : [url];
+	const child = spawn(command, parameters, { detached: true, stdio: "ignore" });
+	child.unref();
 }
 
 async function runRoleCommand() {
@@ -157,7 +172,11 @@ if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 			output: process.stdout,
 		});
 		try {
-			carrierUrl = await prompt.question("Custom GPT URL：");
+			process.stdout.write(
+				`\n${material.displayName} 配置\n\n  1. 浏览器将打开 Custom GPT（自定义 GPT）编辑器。\n  2. 名称：${material.displayName}\n  3. 说明：${String(metadata.description)}\n  4. Instructions（指令）和 Action Schema（动作接口）可用本命令的 custom-gpt 子命令读取。\n  5. 保存 GPT 后复制其公开 URL。\n\n`,
+			);
+			openCustomGptEditor();
+			carrierUrl = await prompt.question("◆ Custom GPT URL\n> ");
 		} finally {
 			prompt.close();
 		}
@@ -169,7 +188,9 @@ if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 		roleRef,
 		carrierUrl,
 	});
-	process.stdout.write("Custom GPT Role 已注册。\n");
+	process.stdout.write(
+		"\n✓ Custom GPT Role（角色）已注册\n✓ 验证通过，可继续运行 platform setup\n",
+	);
 } else if (args[0] === "verify") {
 	const result = behaviorAdapter.status({
 		workspaceRoot: workspaceRoot() ?? process.cwd(),

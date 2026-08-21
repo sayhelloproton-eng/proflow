@@ -108,11 +108,11 @@ test("platform setup human output preserves all actions when the aggregate also 
 	});
 	assert.match(rendered, /ProFlow 配置/);
 	assert.match(rendered, /chatgpt-carrier/);
-	assert.match(rendered, /\[TODO 1\/1\]/);
+	assert.match(rendered, /◆ chatgpt-carrier/);
 	assert.match(rendered, /proflow-chatgpt-carrier setup/);
 	assert.match(rendered, /AI 执行/);
 	assert.match(rendered, /model-runtime/);
-	assert.match(rendered, /\[BLOCKED 1\/1\]/);
+	assert.match(rendered, /✕ model-runtime/);
 	assert.match(rendered, /SETUP_FAILED/);
 	assert.match(rendered, /producer shared facts are unavailable/);
 	assert.match(rendered, /汇总：2 个已就绪，1 个需要操作，1 个系统阻塞/);

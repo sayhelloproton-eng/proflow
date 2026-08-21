@@ -54,6 +54,31 @@ test("human status output translates every public status enum", () => {
 		"失败",
 	])
 		assert.match(rendered, new RegExp(translated));
+	assert.match(rendered, /●\s+b/);
+	assert.match(rendered, /◆\s+a/);
+	assert.match(rendered, /✕\s+c/);
+	assert.match(rendered, /下一步：platform setup --module a/);
+	assert.match(rendered, /原因：模块配置检查失败/);
+});
+
+test("status reports one aggregate progress phase instead of printing every module", async () => {
+	const events: Array<{ phase: string; moduleRef?: string; status: string }> =
+		[];
+	const result = await runCli(["status"], {
+		onProgress: (event) => events.push(event),
+	});
+	assert.equal(result.status, "SUCCEEDED");
+	assert.equal(
+		events.some((event) => event.moduleRef !== undefined),
+		false,
+	);
+	assert.deepEqual(
+		events.map((event) => [event.phase, event.status]),
+		[
+			["status", "STARTED"],
+			["status", "SUCCEEDED"],
+		],
+	);
 });
 
 test("help contains explanations and no raw JSON input route", () => {

@@ -1,28 +1,13 @@
-# @tomflow/proflow-model-provider-api — Module Docs
+# model-provider-api
 
-Module ref: `model-provider-api`  
-Domain: `deployment-governance`  
-Kind: `external-resource`
+Model Provider API（模型服务接口）负责连接和检查一个 OpenAI-compatible（兼容 OpenAI 协议）的模型服务。
 
-Governs and probes the configured OpenAI-compatible model provider API as an external resource.
+## 什么时候需要
 
-## Standard management surface
+首次选择模型服务、服务地址变化或认证方式变化时使用。
 
-`install / uninstall / status / setup / docs / start / stop`
+## 如何配置
 
-## Provides
+运行 `proflow-model-provider-api setup`。向导会解释地址格式、检查服务连通性；需要认证时，只接受模块支持的安全凭据方式。
 
-- `model.provider.api` `1.0.0`
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- `providerBaseUrl` — OpenAI-compatible provider API base URL
-- `providerCredential` — Optional credential reference; absent for unauthenticated providers
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+该模块只确认服务可访问，不替 Model Runtime 判断具体模型是否适合 FAST 或 REASON。

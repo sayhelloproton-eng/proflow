@@ -1,29 +1,14 @@
-# @tomflow/proflow-agent-gateway — Module Docs
+# agent-gateway
 
-Module ref: `agent-gateway`  
-Domain: `agent-runtime-collaboration`  
-Kind: `service`
+Agent Gateway（智能体网关）是 Custom GPT Actions 的公网入口。它校验角色身份、请求格式和权限，再把请求转发给 ProFlow 内部服务。
 
-The sole Custom GPT Actions HTTP ingress and OpenAI transport anti-corruption layer.
+## 什么时候需要
 
-## Standard management surface
+当 Custom GPT 需要调用 ProFlow 的任务、协作或执行能力时，必须启动该服务。
 
-`install / uninstall / status / setup / docs / start / stop`
+## 使用前提
 
-## Provides
+- Platform Host（平台主服务）已经就绪。
+- Dev Tunnel（开发隧道）已经提供可公开访问的 HTTPS 地址。
 
-- `custom-gpt-actions-gateway` `1.0.0`
-
-## Requires
-
-- `agent-runtime` `>=1.0.0 <2.0.0`
-- `task-orchestration` `>=1.0.0 <2.0.0`
-- `execution` `>=1.0.0 <2.0.0`
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+网关不保存业务数据；配置完成后使用 `platform start` 统一启动。

@@ -1,27 +1,11 @@
-# @tomflow/proflow-deployment-conformance — Module Docs
+# deployment-conformance
 
-Module ref: `deployment-conformance`  
-Domain: `deployment-governance`  
-Kind: `cli`
+Deployment Conformance（部署一致性检查）用于验证一个 ProFlow 模块是否具备完整、可发布、可被平台管理的工程结构。
 
-Validates ProFlow module contract, package and behavior conformance.
+## 主要检查
 
-## Standard management surface
+- Module Contract（模块合同）是否合法。
+- npm 包中的描述文件、文档和入口是否齐全。
+- 七个标准管理命令是否遵守边界。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- None.
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+它面向模块开发和发布流程，普通平台使用者通常不需要单独运行。

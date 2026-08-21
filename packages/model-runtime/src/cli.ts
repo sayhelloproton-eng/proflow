@@ -31,8 +31,11 @@ async function main(): Promise<void> {
 				output: process.stdout,
 			});
 			try {
-				fastModel ||= await prompt.question("FAST 模型 ID：");
-				reasonModel ||= await prompt.question("REASON 模型 ID：");
+				process.stdout.write(
+					"\n模型角色配置\n\n  FAST（快速模型）处理低延迟任务。\n  REASON（推理模型）处理复杂分析任务。\n  输入 Provider（模型服务商）实际提供的模型 ID。\n\n",
+				);
+				fastModel ||= await prompt.question("◆ FAST 模型 ID\n> ");
+				reasonModel ||= await prompt.question("◆ REASON 模型 ID\n> ");
 			} finally {
 				prompt.close();
 			}
@@ -43,8 +46,8 @@ async function main(): Promise<void> {
 		});
 		process.stdout.write(
 			result.result.status === "SUCCEEDED"
-				? "模型角色配置完成。\n"
-				: "模型角色配置尚未就绪，请先完成上游模型服务配置。\n",
+				? "\n✓ 两个模型角色已保存\n✓ Provider 探测与角色验证通过\n"
+				: "\n✕ 模型角色尚未就绪\n  请先运行 proflow-model-provider-api setup\n",
 		);
 		if (result.result.status === "FAILED") process.exitCode = 1;
 		return;

@@ -217,6 +217,11 @@ test("install synchronizes the complete Registry package set in one transaction"
 		assert.equal(output.data.next, "platform status");
 		assert.ok(progress.some((event) => event.phase === "workspace"));
 		assert.ok(progress.some((event) => event.phase === "registry"));
+		assert.ok(
+			progress.some(
+				(event) => event.phase === "registry" && event.status === "SUCCEEDED",
+			),
+		);
 		assert.deepEqual(
 			progress
 				.filter(

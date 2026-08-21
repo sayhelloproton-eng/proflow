@@ -1,27 +1,11 @@
-# @tomflow/proflow-module-contract — Module Docs
+# module-contract
 
-Module ref: `module-contract`  
-Domain: `deployment-governance`  
-Kind: `library`
+Module Contract（模块合同）定义 ProFlow 如何识别和管理模块，包括模块身份、依赖关系、状态以及七个标准管理命令。
 
-Defines the canonical governance contract for ProFlow modules.
+## 主要用途
 
-## Standard management surface
+- 为模块描述文件提供强类型和运行时校验。
+- 统一配置状态与运行状态的含义。
+- 约束 Setup Step（配置步骤）的可执行信息。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- None.
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+这是平台治理的基础库，不需要单独配置或启动。

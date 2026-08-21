@@ -13,11 +13,15 @@ const colors = {
 	reset: "\u001b[0m",
 } as const;
 
-function progressLine(event: PlatformProgressEvent, color: boolean): string {
+const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+function progressLine(
+	event: PlatformProgressEvent,
+	color: boolean,
+	spinner = "",
+): string {
 	const prefix =
-		event.current && event.total
-			? `[${String(event.current).padStart(2, "0")}/${event.total}] `
-			: "";
+		event.current && event.total ? `${event.current}/${event.total} · ` : "";
 	const suffix =
 		event.status === "SUCCEEDED"
 			? "完成"
@@ -28,24 +32,66 @@ function progressLine(event: PlatformProgressEvent, color: boolean): string {
 					: event.status === "SKIPPED"
 						? "跳过"
 						: "";
-	if (!color || suffix === "")
-		return `${prefix}${event.message}${suffix ? `… ${suffix}` : "…"}`;
+	const symbol =
+		event.status === "STARTED"
+			? spinner
+			: event.status === "SUCCEEDED"
+				? "✓"
+				: event.status === "FAILED"
+					? "✕"
+					: event.status === "ACTION_REQUIRED"
+						? "◆"
+						: "○";
+	if (!color)
+		return `${symbol ? `${symbol} ` : ""}${prefix}${event.message}${suffix ? ` · ${suffix}` : ""}`;
 	const tone =
 		event.status === "SUCCEEDED"
 			? colors.green
 			: event.status === "FAILED"
 				? colors.red
 				: colors.yellow;
-	return `${colors.dim}${prefix}${colors.reset}${event.message}… ${tone}${suffix}${colors.reset}`;
+	return `${tone}${symbol}${colors.reset} ${colors.dim}${prefix}${colors.reset}${event.message}${suffix ? ` · ${tone}${suffix}${colors.reset}` : ""}`;
 }
+
+export type TerminalProgressReporter = PlatformProgressReporter & {
+	close(): void;
+};
 
 export function createTerminalProgressReporter(
 	stream: NodeJS.WriteStream = process.stderr,
-): PlatformProgressReporter {
+): TerminalProgressReporter {
 	const interactive = stream.isTTY === true;
-	const color = interactive && !("NO_COLOR" in process.env);
-	return (event) => {
-		const line = progressLine(event, color);
+	const color =
+		interactive &&
+		process.env.NO_COLOR === undefined &&
+		process.env.TERM !== "dumb";
+	let timer: NodeJS.Timeout | undefined;
+	let frame = 0;
+	let active: PlatformProgressEvent | undefined;
+	const clearSpinner = () => {
+		if (timer) clearInterval(timer);
+		timer = undefined;
+	};
+	const paint = () => {
+		if (!active) return;
+		cursorTo(stream, 0);
+		clearLine(stream, 0);
+		stream.write(
+			progressLine(
+				active,
+				color,
+				spinnerFrames[frame++ % spinnerFrames.length],
+			),
+		);
+	};
+	const reporter = ((event: PlatformProgressEvent) => {
+		clearSpinner();
+		active = event.status === "STARTED" ? event : undefined;
+		const line = progressLine(
+			event,
+			color,
+			spinnerFrames[frame++ % spinnerFrames.length],
+		);
 		if (!interactive) {
 			stream.write(`${line}\n`);
 			return;
@@ -53,6 +99,26 @@ export function createTerminalProgressReporter(
 		cursorTo(stream, 0);
 		clearLine(stream, 0);
 		stream.write(line);
-		if (event.status !== "STARTED") stream.write("\n");
+		if (event.status === "STARTED") {
+			timer = setInterval(paint, 80);
+			timer.unref();
+			return;
+		}
+		const compactModuleProgress =
+			event.current !== undefined &&
+			event.total !== undefined &&
+			event.current < event.total &&
+			event.status !== "FAILED" &&
+			event.status !== "ACTION_REQUIRED";
+		if (!compactModuleProgress) stream.write("\n");
+	}) as TerminalProgressReporter;
+	reporter.close = () => {
+		clearSpinner();
+		if (interactive && active) {
+			cursorTo(stream, 0);
+			clearLine(stream, 0);
+		}
+		active = undefined;
 	};
+	return reporter;
 }

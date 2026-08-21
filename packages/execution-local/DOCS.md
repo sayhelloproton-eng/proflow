@@ -1,27 +1,11 @@
-# @tomflow/proflow-execution-local — Module Docs
+# execution-local
 
-Module ref: `execution-local`  
-Domain: `execution`  
-Kind: `library`
+Execution Local（本机执行器）负责文件、Git、进程和受限网络等真实本机操作，由 Execution Runtime 调用。
 
-In-process real local executor for typed ProFlow Execution capabilities.
+## 主要能力
 
-## Standard management surface
+- 在指定项目范围内读写文件和执行 Git 操作。
+- 启动受控进程并限制输出、超时和环境变量。
+- 生成 Context Pack（上下文包）与 Patch（补丁）产物。
 
-`install / uninstall / status / setup / docs / start / stop`
-
-## Provides
-
-- `execution-local` `1.0.0`
-
-## Requires
-
-- None.
-
-## Public setup inputs
-
-- None. Deterministic/private values and cross-Module shared facts are not public configuration.
-
-## Ownership boundary
-
-Module business APIs and any module-specific extra commands remain package-owned. Platform does not proxy or interpret them. Current human/external preparation is documented in `SETUP.md`.
+它是库模块，不单独启动；所有真实操作仍受 Execution Policy（执行策略）约束。

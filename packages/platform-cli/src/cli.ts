@@ -202,13 +202,14 @@ async function handleStatus(
 	root: string,
 	runtime: CliRuntimeOptions,
 ): Promise<CliOutcome> {
+	reportProgress(runtime.onProgress, {
+		command: "status",
+		phase: "status",
+		status: "STARTED",
+		message: "正在读取模块状态",
+	});
 	const { catalog, modules } = await buildContext(root);
-	const observed = await observeStatuses(
-		catalog,
-		modules,
-		root,
-		runtime.onProgress,
-	);
+	const observed = await observeStatuses(catalog, modules, root);
 	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
 	const output = observed.map((item) => {
 		if (item.result.status !== "SUCCEEDED")
@@ -235,19 +236,26 @@ async function handleStatus(
 			runtimeStatus: parsed.data.runtimeStatus,
 		};
 	});
+	reportProgress(runtime.onProgress, {
+		command: "status",
+		phase: "status",
+		status: "SUCCEEDED",
+		message: `已读取 ${output.length} 个模块状态`,
+	});
 	return outcome("status", "SUCCEEDED", root, { modules: output });
 }
 async function handleDocs(
 	root: string,
 	runtime: CliRuntimeOptions,
 ): Promise<CliOutcome> {
+	reportProgress(runtime.onProgress, {
+		command: "docs",
+		phase: "docs",
+		status: "STARTED",
+		message: "正在整理模块文档",
+	});
 	const { catalog, modules: resolvedModules } = await buildContext(root);
-	const docs = await observeDocs(
-		catalog,
-		resolvedModules,
-		root,
-		runtime.onProgress,
-	);
+	const docs = await observeDocs(catalog, resolvedModules, root);
 	const byRef = new Map(
 		resolvedModules.map((module) => [module.moduleRef, module]),
 	);
@@ -271,6 +279,15 @@ async function handleDocs(
 			docs: parsed.data.docs,
 		});
 	}
+	reportProgress(runtime.onProgress, {
+		command: "docs",
+		phase: "docs",
+		status: errors.length === 0 ? "SUCCEEDED" : "FAILED",
+		message:
+			errors.length === 0
+				? `已整理 ${modules.length} 份模块文档`
+				: `${errors.length} 份模块文档读取失败`,
+	});
 	return outcome("docs", errors.length === 0 ? "SUCCEEDED" : "FAILED", root, {
 		modules,
 		errors,
@@ -347,6 +364,12 @@ async function handleInstall(
 		...(runtime.registryRunner === undefined
 			? {}
 			: { runner: runtime.registryRunner }),
+	});
+	reportProgress(runtime.onProgress, {
+		command: "install",
+		phase: "registry",
+		status: "SUCCEEDED",
+		message: `已发现 ${discovered.candidates.length} 个注册模块`,
 	});
 	if (discovered.rejected.length > 0)
 		throw new PlatformError(
@@ -481,6 +504,12 @@ async function handleSetup(
 	parsed: ParsedArgs,
 	runtime: CliRuntimeOptions,
 ): Promise<CliOutcome> {
+	reportProgress(runtime.onProgress, {
+		command: "setup",
+		phase: "setup",
+		status: "STARTED",
+		message: "正在分析模块配置",
+	});
 	const { catalog, modules } = await buildContext(root);
 	const target =
 		parsed.moduleRef === undefined
@@ -491,8 +520,14 @@ async function handleSetup(
 		modules,
 		root,
 		target,
-		runtime.onProgress,
+		undefined,
 	);
+	reportProgress(runtime.onProgress, {
+		command: "setup",
+		phase: "setup",
+		status: result.completed ? "SUCCEEDED" : "ACTION_REQUIRED",
+		message: result.completed ? "模块配置已就绪" : "配置清单已生成",
+	});
 	return outcome("setup", batchStatus(result), root, result);
 }
 async function handleStart(
@@ -601,20 +636,60 @@ function renderStatus(data: unknown) {
 		FAILED: "运行失败",
 		NOT_APPLICABLE: "无独立进程",
 	};
-	return [
-		"ProFlow 模块状态",
-		"",
-		"模块                         版本       配置状态   运行状态",
-		...data.modules
-			.filter(isRecord)
-			.map(
-				(raw) =>
-					`${String(raw.moduleRef).padEnd(28)} ${String(raw.version).padEnd(10)} ${(setupLabels[String(raw.setupStatus)] ?? "未知").padEnd(10)} ${runtimeLabels[String(raw.runtimeStatus)] ?? "未知"}`,
-			),
-		"",
-		"需要操作：运行 platform setup",
-		"失败：运行 platform setup 查看原因和修复步骤",
-	].join("\n");
+	const modules = data.modules.filter(isRecord);
+	const lines = ["ProFlow 状态", ""];
+	for (const raw of modules) {
+		const moduleRef = String(raw.moduleRef);
+		const setupStatus = String(raw.setupStatus);
+		const runtimeStatus = String(raw.runtimeStatus);
+		const failed = setupStatus === "FAILED" || runtimeStatus === "FAILED";
+		const actionRequired = setupStatus === "ACTION_REQUIRED";
+		const icon = failed
+			? "✕"
+			: actionRequired
+				? "◆"
+				: runtimeStatus === "RUNNING"
+					? "●"
+					: runtimeStatus === "NOT_APPLICABLE"
+						? "○"
+						: "✓";
+		lines.push(
+			`${icon} ${moduleRef.padEnd(30)} ${String(raw.version).padEnd(9)} ${setupLabels[setupStatus] ?? "未知"} · ${runtimeLabels[runtimeStatus] ?? "未知"}`,
+		);
+		if (failed) {
+			lines.push(
+				`  原因：${setupStatus === "FAILED" ? "模块配置检查失败" : "模块运行状态异常"}`,
+				`  下一步：platform setup --module ${moduleRef}`,
+			);
+		} else if (actionRequired) {
+			lines.push(
+				"  原因：模块尚未完成配置",
+				`  下一步：platform setup --module ${moduleRef}`,
+			);
+		}
+	}
+	const ready = modules.filter((item) => item.setupStatus === "READY").length;
+	const action = modules.filter(
+		(item) => item.setupStatus === "ACTION_REQUIRED",
+	).length;
+	const failed = modules.filter((item) => item.setupStatus === "FAILED").length;
+	lines.push("", `汇总：${ready} 已就绪 · ${action} 需要操作 · ${failed} 失败`);
+	return lines.join("\n");
+}
+
+function renderTerminalMarkdown(source: string): string {
+	return source
+		.split(/\r?\n/)
+		.map((line) => {
+			const heading = line.match(/^#{1,6}\s+(.+)$/);
+			if (heading?.[1]) return heading[1].replaceAll("`", "");
+			const bullet = line.match(/^\s*-\s+(.+)$/);
+			if (bullet?.[1]) return `  • ${bullet[1].replaceAll("`", "")}`;
+			return line.replaceAll("`", "");
+		})
+		.join("\n")
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
 }
 function renderDocs(data: unknown) {
 	if (!isRecord(data) || !Array.isArray(data.modules))
@@ -624,8 +699,10 @@ function renderDocs(data: unknown) {
 		if (isRecord(raw))
 			lines.push(
 				"",
-				`## ${String(raw.moduleRef)} @ ${String(raw.version)}`,
-				String(raw.docs ?? ""),
+				"─".repeat(72),
+				`${String(raw.moduleRef)}  ${String(raw.version)}`,
+				"",
+				renderTerminalMarkdown(String(raw.docs ?? "")),
 			);
 	if (Array.isArray(data.errors) && data.errors.length > 0)
 		lines.push(
@@ -693,28 +770,26 @@ function renderSetup(data: unknown) {
 		}
 		if (status === "FAILED") blocked += 1;
 		else needsAction += 1;
-		lines.push(moduleRef);
+		lines.push(`${status === "FAILED" ? "✕" : "◆"} ${moduleRef}`);
 		const plan = moduleSetupPlanDataSchema.safeParse(raw.result.data);
 		if (plan.success) {
 			for (const [index, step] of plan.data.steps.entries()) {
-				lines.push(
-					`  [${step.state} ${index + 1}/${plan.data.steps.length}] ${step.title}`,
-				);
-				lines.push(`  人工执行：${step.execution.interactive}`);
-				lines.push(`  AI 执行：${step.execution.nonInteractive}`);
+				lines.push(`  ${index + 1}. ${step.title}`);
+				lines.push(`     运行：${step.execution.interactive}`);
+				lines.push(`     自动执行：${step.execution.nonInteractive}`);
 				if (step.requiredInputs.length > 0)
 					lines.push(
-						`  需要输入：${step.requiredInputs.map((item) => item.description).join("、")}`,
+						`     需要：${step.requiredInputs.map((item) => item.description).join("、")}`,
 					);
-				lines.push(`  验证：${step.verify}`);
-				lines.push(`  完成条件：${step.successCondition}`);
-				if (step.blockedReason) lines.push(`  原因：${step.blockedReason}`);
+				lines.push(`     验证：${step.verify}`);
+				lines.push(`     完成：${step.successCondition}`);
+				if (step.blockedReason) lines.push(`     原因：${step.blockedReason}`);
 			}
 			lines.push("");
 			continue;
 		}
 		lines.push(
-			`  [${status === "FAILED" ? "BLOCKED" : "TODO"} 1/1] ${status === "FAILED" ? "等待上游服务信息" : "完成模块配置"}`,
+			`  1. ${status === "FAILED" ? "等待上游服务信息" : "完成模块配置"}`,
 		);
 		const error = raw.result.error;
 		if (status !== "FAILED") {
@@ -827,9 +902,9 @@ export function renderHumanResult(result: CliOutcome): string {
 }
 if (import.meta.main) {
 	const argv = process.argv.slice(2);
-	const result = await runCli(argv, {
-		onProgress: createTerminalProgressReporter(),
-	});
+	const reporter = createTerminalProgressReporter();
+	const result = await runCli(argv, { onProgress: reporter });
+	reporter.close();
 	process.stdout.write(`${renderHumanResult(result)}\n`);
 	if (result.status !== "SUCCEEDED") process.exitCode = 1;
 }
