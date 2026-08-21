@@ -360,6 +360,12 @@ async function handleInstall(
 		);
 	const previousManaged = await workspaceProFlowDependencies(root);
 	const pnpmPolicyBefore = await observeMinimumReleaseAgeExclude(root);
+	reportProgress(runtime.onProgress, {
+		command: "install",
+		phase: "packages",
+		status: "STARTED",
+		message: "正在同步依赖",
+	});
 	const mutation = await syncWorkspacePackages({
 		workspaceRoot: root,
 		packages: discovered.candidates.map((item) => ({

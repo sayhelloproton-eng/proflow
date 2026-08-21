@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 121,
-    "testCalls": 506
+    "files": 122,
+    "testCalls": 507
   },
   "tests": [
     {
@@ -1506,6 +1506,17 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/module-template/src/index.ts"
+      ]
+    },
+    {
+      "package": "deployment-conformance",
+      "path": "packages/deployment-conformance/tests/published-docs.test.ts",
+      "line": 9,
+      "title": "every built deployment adapter returns its published DOCS.md body",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts"
       ]
     },
     {

@@ -122,7 +122,15 @@ export function createBehaviorAdapter(
 			result: {
 				...base,
 				data: {
-					docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+					docs: readFileSync(
+						new URL(
+							import.meta.url.includes("/dist/")
+								? "../../DOCS.md"
+								: "../DOCS.md",
+							import.meta.url,
+						),
+						"utf8",
+					),
 				},
 			},
 			observedEffects: [],
