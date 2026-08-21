@@ -40,8 +40,11 @@ export async function recordPnpmPolicyOwnership(
 	before: readonly string[],
 ): Promise<void> {
 	const after = await observeMinimumReleaseAgeExclude(root);
-	const introduced = after.filter((value) => !before.includes(value));
-	if (introduced.length === 0) return;
+	const newlyIntroduced = after.filter((value) => !before.includes(value));
+	if (newlyIntroduced.length === 0) return;
+	const introduced = [
+		...new Set([...(await readOwnedValues(root)), ...newlyIntroduced]),
+	].sort();
 	await mkdir(join(root, ".proflow", "deployment"), { recursive: true });
 	await atomicWrite(
 		ownershipFile(root),
@@ -49,23 +52,25 @@ export async function recordPnpmPolicyOwnership(
 	);
 }
 
-export async function cleanOwnedPnpmPolicy(root: string): Promise<string[]> {
-	let introduced: string[];
+async function readOwnedValues(root: string): Promise<string[]> {
 	try {
 		const parsed: unknown = JSON.parse(
 			await readFile(ownershipFile(root), "utf8"),
 		);
-		introduced =
-			typeof parsed === "object" &&
+		return typeof parsed === "object" &&
 			parsed !== null &&
 			Array.isArray(Reflect.get(parsed, "introduced"))
-				? Reflect.get(parsed, "introduced").filter(
-						(value: unknown): value is string => typeof value === "string",
-					)
-				: [];
+			? Reflect.get(parsed, "introduced").filter(
+					(value: unknown): value is string => typeof value === "string",
+				)
+			: [];
 	} catch {
 		return [];
 	}
+}
+
+export async function cleanOwnedPnpmPolicy(root: string): Promise<string[]> {
+	const introduced = await readOwnedValues(root);
 	if (introduced.length === 0) return [];
 	const source = await text(root);
 	if (!source) return [];
