@@ -622,6 +622,10 @@
   dir: packages/platform-cli
   intents:
     - modern-humans-flash
+"@tomflow/proflow-platform-cli@0.1.30":
+  dir: packages/platform-cli
+  intents:
+    - public-towns-occur
 "@tomflow/proflow-platform-cli@0.1.4":
   dir: packages/platform-cli
   intents:
