@@ -157,7 +157,8 @@ export async function startModulesThin(
 	workspaceRoot: string,
 ): Promise<ModuleBatchResult> {
 	const results: ModuleDispatchResult[] = [];
-	for (const module of ordered(modules)) {
+	const modulesInOrder = ordered(modules);
+	for (const module of modulesInOrder) {
 		const status = await dispatchModuleCommand(
 			catalog,
 			module,
@@ -181,6 +182,8 @@ export async function startModulesThin(
 					setupStatus: observed.setupStatus,
 				},
 			};
+	}
+	for (const module of modulesInOrder) {
 		const started = await dispatchModuleCommand(
 			catalog,
 			module,

@@ -27,6 +27,7 @@ implementationWave: Wave 0
 
 - 七标准能力 schema/adapter contract 可验证。
 - `ModuleStatusObservation` 只接受 `setupStatus=READY|ACTION_REQUIRED|FAILED` 与 `runtimeStatus=RUNNING|STOPPED|FAILED|NOT_APPLICABLE`。
+- Module operation result 只接受 `SUCCEEDED/ACTION_REQUIRED/FAILED`；`BLOCKED` 仅属于 Platform orchestration/aggregation outcome。
 - `configStatus/missingConfig` active schema/export/caller = 0。
 - public config schema 不接受 deterministic/private/shared-fact 冒充用户配置。
 - `provides/requires` runtime topology semantics 保持。

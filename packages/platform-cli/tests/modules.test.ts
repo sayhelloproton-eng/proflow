@@ -33,7 +33,7 @@ test("platform status aggregates only Module-owned setup/runtime status", async 
 	}
 });
 
-test("platform status ignores obsolete Platform-side config files", async () => {
+test("platform status ignores obsolete config and all removed routes remain invalid", async () => {
 	const root = await tempWorkspace();
 	try {
 		await writeWorkspaceModule(root, { moduleRef: "fixture-module" });
@@ -44,11 +44,23 @@ test("platform status ignores obsolete Platform-side config files", async () => 
 			await runCli(["status", "--json"], { cwd: root }),
 		) as { status: string };
 		assert.equal(output.status, "SUCCEEDED");
-		const old = JSON.parse(
-			await runCli(["modules", "--json"], { cwd: root }),
-		) as { status: string; error?: { code: string } };
-		assert.equal(old.status, "FAILED");
-		assert.equal(old.error?.code, "INVALID_REQUEST");
+		for (const removed of [
+			"modules",
+			"preflight",
+			"verify",
+			"doctor",
+			"restart",
+			"plan",
+			"apply",
+			"upgrade",
+			"manifest",
+		]) {
+			const old = JSON.parse(
+				await runCli([removed, "--json"], { cwd: root }),
+			) as { status: string; error?: { code: string } };
+			assert.equal(old.status, "FAILED", removed);
+			assert.equal(old.error?.code, "INVALID_REQUEST", removed);
+		}
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

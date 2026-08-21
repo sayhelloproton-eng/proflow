@@ -3196,9 +3196,9 @@
       "executableRefs": [
         {
           "path": "packages/module-contract/tests/module-contract.test.ts",
-          "line": 40,
+          "line": 37,
           "title": "CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete boundary",
-          "disposition": "KEEP"
+          "disposition": "UPDATE"
         }
       ],
       "disposition": "KEEP",
@@ -3241,9 +3241,9 @@
       "executableRefs": [
         {
           "path": "packages/module-contract/tests/module-contract.test.ts",
-          "line": 75,
+          "line": 72,
           "title": "CP-DPL-CON-02 distinguishes moduleRef and secretRef and rejects unsafe combinations",
-          "disposition": "KEEP"
+          "disposition": "UPDATE"
         }
       ],
       "disposition": "KEEP",
@@ -3285,9 +3285,9 @@
       "executableRefs": [
         {
           "path": "packages/module-contract/tests/module-contract.test.ts",
-          "line": 113,
+          "line": 110,
           "title": "CP-DPL-CON-03 requirement queries are deterministic and side-effect free",
-          "disposition": "KEEP"
+          "disposition": "UPDATE"
         }
       ],
       "disposition": "KEEP",
@@ -3300,7 +3300,7 @@
       "moduleRef": "module-contract",
       "sourceTestPlan": "部署领域/07-测试计划/modules/module-contract.md",
       "sourceDocId": "TP-MODULE-MODULE-CONTRACT",
-      "requirement": "Library / 不可控 External Resource 不因统一接口而被迫声明虚假 start/stop。",
+      "requirement": "七标准能力保持固定；Module operation result 拒绝 Platform-only BLOCKED，旧 lifecycle 字段不可复活。",
       "testLayers": [
         "Unit",
         "Contract / Runtime Schema"
@@ -3321,18 +3321,24 @@
         "For Real External E2E layers, collect real target-environment evidence; mocks cannot upgrade the case to real PASS"
       ],
       "expected": [
-        "Library / 不可控 External Resource 不因统一接口而被迫声明虚假 start/stop。"
+        "七标准能力保持固定；Module operation result 拒绝 Platform-only BLOCKED，旧 lifecycle 字段不可复活。"
       ],
       "forbidden": [
-        "Current implementation behavior may not redefine the expected result",
-        "Mock/HTTP-200/process-alive alone may not prove a real external or business-effect result"
+        "Module result 接受 BLOCKED 或旧 lifecycle 字段复活",
+        "Silent contract drift"
       ],
       "executableRefs": [
         {
           "path": "packages/module-contract/tests/module-contract.test.ts",
-          "line": 123,
-          "title": "CP-DPL-CON-04 libraries and uncontrollable external resources do not fake start/stop",
-          "disposition": "KEEP"
+          "line": 120,
+          "title": "CP-DPL-CON-04 standard management is fixed at seven commands and legacy lifecycle fields are rejected",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/module-contract/tests/module-contract.test.ts",
+          "line": 149,
+          "title": "CP-DPL-CON-04 Module results reject Platform-only BLOCKED outcomes",
+          "disposition": "UPDATE"
         }
       ],
       "disposition": "KEEP",
@@ -3374,9 +3380,9 @@
       "executableRefs": [
         {
           "path": "packages/module-contract/tests/module-contract.test.ts",
-          "line": 143,
+          "line": 162,
           "title": "CP-DPL-CON-05 compatibility distinguishes additive and breaking changes",
-          "disposition": "KEEP"
+          "disposition": "UPDATE"
         }
       ],
       "disposition": "KEEP",
@@ -3412,9 +3418,9 @@
       "executableRefs": [
         {
           "path": "packages/module-contract/tests/module-contract.test.ts",
-          "line": 40,
+          "line": 37,
           "title": "CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete boundary",
-          "disposition": "KEEP"
+          "disposition": "UPDATE"
         }
       ],
       "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
@@ -3450,9 +3456,9 @@
       "executableRefs": [
         {
           "path": "packages/module-contract/tests/module-contract.test.ts",
-          "line": 75,
+          "line": 72,
           "title": "CP-DPL-CON-02 distinguishes moduleRef and secretRef and rejects unsafe combinations",
-          "disposition": "KEEP"
+          "disposition": "UPDATE"
         }
       ],
       "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
@@ -3489,15 +3495,9 @@
       "executableRefs": [
         {
           "path": "packages/module-contract/tests/module-contract.test.ts",
-          "line": 113,
+          "line": 110,
           "title": "CP-DPL-CON-03 requirement queries are deterministic and side-effect free",
-          "disposition": "KEEP"
-        },
-        {
-          "path": "packages/module-contract/tests/module-contract.test.ts",
-          "line": 123,
-          "title": "CP-DPL-CON-04 libraries and uncontrollable external resources do not fake start/stop",
-          "disposition": "KEEP"
+          "disposition": "UPDATE"
         }
       ],
       "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
@@ -3533,9 +3533,9 @@
       "executableRefs": [
         {
           "path": "packages/module-contract/tests/module-contract.test.ts",
-          "line": 143,
+          "line": 162,
           "title": "CP-DPL-CON-05 compatibility distinguishes additive and breaking changes",
-          "disposition": "KEEP"
+          "disposition": "UPDATE"
         }
       ],
       "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
@@ -4217,49 +4217,40 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "module discovery/materialization/preflight 能发现 missing/incompatible/cyclic dependency，而不是在 apply 中途才失败。",
+      "requirement": "Platform 一级管理面严格为 install/uninstall/status/setup/docs/start/stop 七命令，所有 removed routes 不可 routable。",
       "testLayers": [
-        "Contract / Runtime Schema",
-        "Module Integration"
+        "Domain Behavior",
+        "Package-local Integration",
+        "Failure / Recovery"
       ],
       "riskRefs": [
         "RF-DPL-CLI-01"
       ],
-      "evidenceRefs": [
-        "EV-DPL-CLI-01"
-      ],
+      "evidenceRefs": [],
       "preconditions": [
-        "Use latest landed domain/technical/test documents as truth",
-        "Do not weaken expected behavior to match current implementation"
+        "Use the current frozen seven-command contract as truth",
+        "Do not weaken expected behavior to match implementation"
       ],
       "action": [
-        "Run the mapped package-local executable test(s) and any required integration layer",
-        "For Real External E2E layers, collect real target-environment evidence; mocks cannot upgrade the case to real PASS"
+        "Run the mapped package-local executable tests"
       ],
       "expected": [
-        "module discovery/materialization/preflight 能发现 missing/incompatible/cyclic dependency，而不是在 apply 中途才失败。"
+        "Platform 一级管理面严格为 install/uninstall/status/setup/docs/start/stop 七命令，所有 removed routes 不可 routable。"
       ],
       "forbidden": [
-        "Current implementation behavior may not redefine the expected result",
-        "Mock/HTTP-200/process-alive alone may not prove a real external or business-effect result"
+        "Current implementation behavior may not redefine the frozen seven-command result"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-          "line": 140,
-          "title": "CP-DPL-CLI-01 graph throws DEPENDENCY_UNRESOLVED for a missing required provider",
+          "path": "packages/platform-cli/tests/modules.test.ts",
+          "line": 36,
+          "title": "platform status ignores obsolete config and all removed routes remain invalid",
           "disposition": "UPDATE"
         },
         {
-          "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-          "line": 155,
-          "title": "CP-DPL-CLI-01 graph throws DEPENDENCY_INCOMPATIBLE for an out-of-range provider",
-          "disposition": "UPDATE"
-        },
-        {
-          "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-          "line": 172,
-          "title": "CP-DPL-CLI-01 graph throws DEPENDENCY_CYCLE for cyclic dependencies",
+          "path": "packages/platform-cli/tests/install-uninstall.test.ts",
+          "line": 332,
+          "title": "all operational commands accept --workspace while positional module arguments remain invalid",
           "disposition": "UPDATE"
         }
       ],
@@ -4273,44 +4264,58 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "plan 固定目标与步骤；stale plan 被识别；同 planRef resume 先重看 reality，已满足 step skip。",
+      "requirement": "install 在 metadata 前置门禁后同步完整 Registry package set 并 dependency-order Module.install；uninstall reverse-order Module.uninstall 后才移除 package。",
       "testLayers": [
-        "Persistence",
-        "Real Local Integration",
+        "Domain Behavior",
+        "Package-local Integration",
         "Failure / Recovery"
       ],
       "riskRefs": [
         "RF-DPL-CLI-02"
       ],
-      "evidenceRefs": [
-        "EV-DPL-CLI-02"
-      ],
+      "evidenceRefs": [],
       "preconditions": [
-        "Use latest landed domain/technical/test documents as truth",
-        "Do not weaken expected behavior to match current implementation"
+        "Use the current frozen seven-command contract as truth",
+        "Do not weaken expected behavior to match implementation"
       ],
       "action": [
-        "Run the mapped package-local executable test(s) and any required integration layer",
-        "For Real External E2E layers, collect real target-environment evidence; mocks cannot upgrade the case to real PASS"
+        "Run the mapped package-local executable tests"
       ],
       "expected": [
-        "plan 固定目标与步骤；stale plan 被识别；同 planRef resume 先重看 reality，已满足 step skip。"
+        "install 在 metadata 前置门禁后同步完整 Registry package set 并 dependency-order Module.install；uninstall reverse-order Module.uninstall 后才移除 package。"
       ],
       "forbidden": [
-        "Current implementation behavior may not redefine the expected result",
-        "Mock/HTTP-200/process-alive alone may not prove a real external or business-effect result"
+        "Current implementation behavior may not redefine the frozen seven-command result"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/apply-resume.test.ts",
-          "line": 247,
-          "title": "CP-DPL-CLI-02 resume re-observes reality and skips already-satisfied steps without re-execution",
+          "path": "packages/platform-cli/tests/install-uninstall.test.ts",
+          "line": 115,
+          "title": "install rejects invalid existing Workspace metadata before external discovery or mutation",
           "disposition": "UPDATE"
         },
         {
-          "path": "packages/platform-cli/tests/apply-resume.test.ts",
-          "line": 287,
-          "title": "CP-DPL-CLI-02 a stale plan is BLOCKED and never applied",
+          "path": "packages/platform-cli/tests/install-uninstall.test.ts",
+          "line": 186,
+          "title": "install synchronizes the complete Registry package set in one transaction",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/install-uninstall.test.ts",
+          "line": 244,
+          "title": "uninstall removes ProFlow dependencies and preserves .proflow",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/install-uninstall.test.ts",
+          "line": 276,
+          "title": "uninstall never removes packages after a Module.uninstall failure",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 280,
+          "title": "uninstall runs in reverse dependency order and fails fast",
           "disposition": "UPDATE"
         }
       ],
@@ -4324,41 +4329,44 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "ACTION_REQUIRED 是可恢复边界；human/failure 均 STOP，不演化为长期 workflow engine。",
+      "requirement": "status 只聚合 Module-owned setupStatus/runtimeStatus，不读取或推导旧 Platform private config。",
       "testLayers": [
-        "Cross-Domain Integration",
+        "Domain Behavior",
+        "Package-local Integration",
         "Failure / Recovery"
       ],
       "riskRefs": [
         "RF-DPL-CLI-03"
       ],
-      "evidenceRefs": [
-        "EV-DPL-CLI-03"
-      ],
+      "evidenceRefs": [],
       "preconditions": [
-        "Use latest landed domain/technical/test documents as truth",
-        "Do not weaken expected behavior to match current implementation"
+        "Use the current frozen seven-command contract as truth",
+        "Do not weaken expected behavior to match implementation"
       ],
       "action": [
-        "Run the mapped package-local executable test(s) and any required integration layer",
-        "For Real External E2E layers, collect real target-environment evidence; mocks cannot upgrade the case to real PASS"
+        "Run the mapped package-local executable tests"
       ],
       "expected": [
-        "ACTION_REQUIRED 是可恢复边界；human/failure 均 STOP，不演化为长期 workflow engine。"
+        "status 只聚合 Module-owned setupStatus/runtimeStatus，不读取或推导旧 Platform private config。"
       ],
       "forbidden": [
-        "Current implementation behavior may not redefine the expected result",
-        "Mock/HTTP-200/process-alive alone may not prove a real external or business-effect result"
+        "Current implementation behavior may not redefine the frozen seven-command result"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 25,
-          "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
-          "disposition": "ADD"
+          "path": "packages/platform-cli/tests/modules.test.ts",
+          "line": 9,
+          "title": "platform status aggregates only Module-owned setup/runtime status",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/modules.test.ts",
+          "line": 36,
+          "title": "platform status ignores obsolete config and all removed routes remain invalid",
+          "disposition": "UPDATE"
         }
       ],
-      "disposition": "ADD",
+      "disposition": "UPDATE",
       "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
     },
     {
@@ -4368,42 +4376,69 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "start/stop 只对真实声明该 primitive 的 Deployment Unit 生效；library/remote resource 不伪造。",
+      "requirement": "setup 对全部非 READY Module 全量扫描聚合且透传 opaque input；docs 只聚合 Module.docs。",
       "testLayers": [
-        "Module Integration",
-        "Real External E2E"
+        "Domain Behavior",
+        "Package-local Integration",
+        "Failure / Recovery"
       ],
       "riskRefs": [
         "RF-DPL-CLI-04"
       ],
-      "evidenceRefs": [
-        "EV-DPL-CLI-09"
-      ],
+      "evidenceRefs": [],
       "preconditions": [
-        "Use latest landed domain/technical/test documents as truth",
-        "Do not weaken expected behavior to match current implementation"
+        "Use the current frozen seven-command contract as truth",
+        "Do not weaken expected behavior to match implementation"
       ],
       "action": [
-        "Run the mapped package-local executable test(s) and any required integration layer",
-        "For Real External E2E layers, collect real target-environment evidence; mocks cannot upgrade the case to real PASS"
+        "Run the mapped package-local executable tests"
       ],
       "expected": [
-        "start/stop 只对真实声明该 primitive 的 Deployment Unit 生效；library/remote resource 不伪造。"
+        "setup 对全部非 READY Module 全量扫描聚合且透传 opaque input；docs 只聚合 Module.docs。"
       ],
       "forbidden": [
-        "Current implementation behavior may not redefine the expected result",
-        "Mock/HTTP-200/process-alive alone may not prove a real external or business-effect result"
+        "Current implementation behavior may not redefine the frozen seven-command result"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 32,
-          "title": "CP-DPL-CLI-04 platform CLI never invents Task worker/conversation/browser identity",
-          "disposition": "ADD"
+          "path": "packages/platform-cli/tests/docs.test.ts",
+          "line": 9,
+          "title": "platform docs forwards Module.docs result instead of reading package prose itself",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 296,
+          "title": "setup skips READY modules and invokes only ACTION_REQUIRED module",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 306,
+          "title": "setup aggregates every non-ready Module instead of stopping at the first action",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 332,
+          "title": "targeted setup forwards opaque input without Platform interpretation",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 346,
+          "title": "setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/modules.test.ts",
+          "line": 69,
+          "title": "platform setup human output preserves all actions when the aggregate also contains machine failures",
+          "disposition": "UPDATE"
         }
       ],
-      "disposition": "ADD",
-      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+      "disposition": "UPDATE",
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
     },
     {
       "caseId": "CP-DPL-CLI-05",
@@ -4412,45 +4447,57 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "status/verify/doctor 读取 current reality；persisted history 不能制造 fake READY。",
+      "requirement": "start 先完成全量 setupStatus gate；任一非 READY 时 0 start；全 READY 后 dependency-order start 并 fail-fast。",
       "testLayers": [
-        "Persistence",
-        "Real Local Integration",
-        "Real External E2E",
+        "Domain Behavior",
+        "Package-local Integration",
         "Failure / Recovery"
       ],
       "riskRefs": [
         "RF-DPL-CLI-05"
       ],
-      "evidenceRefs": [
-        "EV-DPL-CLI-04",
-        "EV-DPL-CLI-06"
-      ],
+      "evidenceRefs": [],
       "preconditions": [
-        "Use latest landed domain/technical/test documents as truth",
-        "Do not weaken expected behavior to match current implementation"
+        "Use the current frozen seven-command contract as truth",
+        "Do not weaken expected behavior to match implementation"
       ],
       "action": [
-        "Run the mapped package-local executable test(s) and any required integration layer",
-        "For Real External E2E layers, collect real target-environment evidence; mocks cannot upgrade the case to real PASS"
+        "Run the mapped package-local executable tests"
       ],
       "expected": [
-        "status/verify/doctor 读取 current reality；persisted history 不能制造 fake READY。"
+        "start 先完成全量 setupStatus gate；任一非 READY 时 0 start；全 READY 后 dependency-order start 并 fail-fast。"
       ],
       "forbidden": [
-        "Current implementation behavior may not redefine the expected result",
-        "Mock/HTTP-200/process-alive alone may not prove a real external or business-effect result"
+        "Current implementation behavior may not redefine the frozen seven-command result"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 17,
-          "title": "CP-DPL-CLI-05 Carrier/Role readiness is current owner verification, not exact model pin or System Assessment",
-          "disposition": "ADD"
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 192,
+          "title": "start gates on Module.status setup READY and never runs preflight",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 210,
+          "title": "successful start and stop preserve dependency and reverse dependency order",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 236,
+          "title": "start performs zero starts when a Module reports FAILED setup status",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 254,
+          "title": "start fails fast during execution without starting later Modules",
+          "disposition": "UPDATE"
         }
       ],
-      "disposition": "ADD",
-      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+      "disposition": "UPDATE",
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
     },
     {
       "caseId": "CP-DPL-CLI-06",
@@ -4459,50 +4506,45 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "upgrade fail 保留 verification history，STOP + doctor；rollback 通过新 Plan，不做事务式自动 rollback。",
+      "requirement": "stop reverse dependency order 调用 Module.stop 并 fail-fast。",
       "testLayers": [
-        "Persistence",
-        "Real External E2E",
+        "Domain Behavior",
+        "Package-local Integration",
         "Failure / Recovery"
       ],
       "riskRefs": [
-        "RF-DPL-CLI-07"
+        "RF-DPL-CLI-06"
       ],
-      "evidenceRefs": [
-        "EV-DPL-CLI-06",
-        "EV-DPL-CLI-07"
-      ],
+      "evidenceRefs": [],
       "preconditions": [
-        "Use latest landed domain/technical/test documents as truth",
-        "Do not weaken expected behavior to match current implementation"
+        "Use the current frozen seven-command contract as truth",
+        "Do not weaken expected behavior to match implementation"
       ],
       "action": [
-        "Run the mapped package-local executable test(s) and any required integration layer",
-        "For Real External E2E layers, collect real target-environment evidence; mocks cannot upgrade the case to real PASS"
+        "Run the mapped package-local executable tests"
       ],
       "expected": [
-        "upgrade fail 保留 verification history，STOP + doctor；rollback 通过新 Plan，不做事务式自动 rollback。"
+        "stop reverse dependency order 调用 Module.stop 并 fail-fast。"
       ],
       "forbidden": [
-        "Current implementation behavior may not redefine the expected result",
-        "Mock/HTTP-200/process-alive alone may not prove a real external or business-effect result"
+        "Current implementation behavior may not redefine the frozen seven-command result"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-          "line": 792,
-          "title": "CP-DPL-CLI-06 upgrade — current != target drives a migrate step and never a rollback step",
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 210,
+          "title": "successful start and stop preserve dependency and reverse dependency order",
           "disposition": "UPDATE"
         },
         {
-          "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-          "line": 861,
-          "title": "CP-DPL-CLI-06 upgrade — a verify FAIL during upgrade preserves prior PASS history (no erase)",
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 270,
+          "title": "stop runs in reverse dependency order and fails fast",
           "disposition": "UPDATE"
         }
       ],
       "disposition": "UPDATE",
-      "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
+      "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
     },
     {
       "caseId": "CP-DPL-CLI-07",
@@ -4511,48 +4553,40 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "same workspace 只允许一个 apply：exclusive workspace lock 生效；repo-local plan/state/config 采用安全原子写，concurrent apply 不破坏 deployment state。",
+      "requirement": "Fresh Workspace 模拟 Golden Path 覆盖七命令，installed discovery 不依赖旧 Platform workflow。",
       "testLayers": [
-        "Persistence",
-        "Real Local Integration",
-        "Security / Boundary",
-        "Concurrency / Idempotency"
+        "Domain Behavior",
+        "Package-local Integration",
+        "Failure / Recovery"
       ],
       "riskRefs": [
-        "RF-DPL-CLI-06",
-        "RF-DPL-CLI-08"
+        "RF-DPL-CLI-07"
       ],
-      "evidenceRefs": [
-        "EV-DPL-CLI-05",
-        "EV-DPL-CLI-06",
-        "EV-DPL-CLI-08"
-      ],
+      "evidenceRefs": [],
       "preconditions": [
-        "Use latest landed domain/technical/test documents as truth",
-        "Do not weaken expected behavior to match current implementation"
+        "Use the current frozen seven-command contract as truth",
+        "Do not weaken expected behavior to match implementation"
       ],
       "action": [
-        "Run the mapped package-local executable test(s) and any required integration layer",
-        "For Real External E2E layers, collect real target-environment evidence; mocks cannot upgrade the case to real PASS"
+        "Run the mapped package-local executable tests"
       ],
       "expected": [
-        "same workspace 只允许一个 apply：exclusive workspace lock 生效；repo-local plan/state/config 采用安全原子写，concurrent apply 不破坏 deployment state。"
+        "Fresh Workspace 模拟 Golden Path 覆盖七命令，installed discovery 不依赖旧 Platform workflow。"
       ],
       "forbidden": [
-        "Current implementation behavior may not redefine the expected result",
-        "Mock/HTTP-200/process-alive alone may not prove a real external or business-effect result"
+        "Current implementation behavior may not redefine the frozen seven-command result"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-          "line": 211,
-          "title": "CP-DPL-CLI-07 plan save/load roundtrips and is atomic",
+          "path": "packages/platform-cli/tests/product-workspace-integration.test.ts",
+          "line": 115,
+          "title": "simulated human Golden Path runs install → status → setup → docs → start → status → stop → uninstall",
           "disposition": "UPDATE"
         },
         {
-          "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-          "line": 379,
-          "title": "CP-DPL-CLI-07 second same-workspace apply is blocked with WORKSPACE_LOCKED",
+          "path": "packages/platform-cli/tests/installed-discovery.test.ts",
+          "line": 224,
+          "title": "discoverModules finds installed modules in a product repo without pnpm-workspace.yaml",
           "disposition": "UPDATE"
         }
       ],
@@ -4566,47 +4600,39 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "missing/incompatible/cyclic dependency 未在 preflight 阻断",
+      "requirement": "removed Platform route 或 positional module route 被接受。",
       "boundCpIds": [
         "CP-DPL-CLI-01"
       ],
       "preconditions": [
-        "Start from a valid baseline fixture for the bound Critical Proof",
-        "Inject only the documented invalid/stale/duplicate/unavailable/unsafe condition"
+        "Start from a valid seven-command fixture",
+        "Inject only the stated invalid or failure condition"
       ],
       "action": [
-        "Exercise the negative/boundary branch for RF-DPL-CLI-01",
-        "Observe Owner/adapter/runtime result and side effects for: missing/incompatible/cyclic dependency 未在 preflight 阻断"
+        "Exercise the mapped negative boundary and observe calls plus side effects"
       ],
       "expected": [
-        "The invalid/unsafe condition is rejected, contained, deferred, or reported with the typed outcome defined by the latest documents",
-        "No unauthorized business fact/effect is fabricated"
+        "The invalid condition is rejected or contained without unauthorized side effects"
       ],
       "forbidden": [
-        "missing/incompatible/cyclic dependency 未在 preflight 阻断",
-        "Silent success, blind retry, fake READY, or partial unauthorized mutation"
+        "removed Platform route 或 positional module route 被接受。",
+        "Silent success or partial unauthorized mutation"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-          "line": 140,
-          "title": "CP-DPL-CLI-01 graph throws DEPENDENCY_UNRESOLVED for a missing required provider",
+          "path": "packages/platform-cli/tests/modules.test.ts",
+          "line": 36,
+          "title": "platform status ignores obsolete config and all removed routes remain invalid",
           "disposition": "UPDATE"
         },
         {
-          "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-          "line": 155,
-          "title": "CP-DPL-CLI-01 graph throws DEPENDENCY_INCOMPATIBLE for an out-of-range provider",
-          "disposition": "UPDATE"
-        },
-        {
-          "path": "packages/platform-cli/tests/discovery-graph-preflight.test.ts",
-          "line": 172,
-          "title": "CP-DPL-CLI-01 graph throws DEPENDENCY_CYCLE for cyclic dependencies",
+          "path": "packages/platform-cli/tests/install-uninstall.test.ts",
+          "line": 332,
+          "title": "all operational commands accept --workspace while positional module arguments remain invalid",
           "disposition": "UPDATE"
         }
       ],
-      "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
+      "coverageMode": "DIRECT_RF_EXECUTABLE",
       "disposition": "UPDATE"
     },
     {
@@ -4616,41 +4642,33 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "stale plan 或 resume 未重新观察 reality、已满足 step 被重复执行",
+      "requirement": "非法 existing Workspace metadata 未在 Registry/package mutation 前失败。",
       "boundCpIds": [
         "CP-DPL-CLI-02"
       ],
       "preconditions": [
-        "Start from a valid baseline fixture for the bound Critical Proof",
-        "Inject only the documented invalid/stale/duplicate/unavailable/unsafe condition"
+        "Start from a valid seven-command fixture",
+        "Inject only the stated invalid or failure condition"
       ],
       "action": [
-        "Exercise the negative/boundary branch for RF-DPL-CLI-02",
-        "Observe Owner/adapter/runtime result and side effects for: stale plan 或 resume 未重新观察 reality、已满足 step 被重复执行"
+        "Exercise the mapped negative boundary and observe calls plus side effects"
       ],
       "expected": [
-        "The invalid/unsafe condition is rejected, contained, deferred, or reported with the typed outcome defined by the latest documents",
-        "No unauthorized business fact/effect is fabricated"
+        "The invalid condition is rejected or contained without unauthorized side effects"
       ],
       "forbidden": [
-        "stale plan 或 resume 未重新观察 reality、已满足 step 被重复执行",
-        "Silent success, blind retry, fake READY, or partial unauthorized mutation"
+        "非法 existing Workspace metadata 未在 Registry/package mutation 前失败。",
+        "Silent success or partial unauthorized mutation"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/apply-resume.test.ts",
-          "line": 247,
-          "title": "CP-DPL-CLI-02 resume re-observes reality and skips already-satisfied steps without re-execution",
-          "disposition": "UPDATE"
-        },
-        {
-          "path": "packages/platform-cli/tests/apply-resume.test.ts",
-          "line": 287,
-          "title": "CP-DPL-CLI-02 a stale plan is BLOCKED and never applied",
+          "path": "packages/platform-cli/tests/install-uninstall.test.ts",
+          "line": 115,
+          "title": "install rejects invalid existing Workspace metadata before external discovery or mutation",
           "disposition": "UPDATE"
         }
       ],
-      "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
+      "coverageMode": "DIRECT_RF_EXECUTABLE",
       "disposition": "UPDATE"
     },
     {
@@ -4660,36 +4678,40 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "ACTION_REQUIRED/interrupted apply/upgrade 无法安全 resume",
+      "requirement": "Module.uninstall 失败后仍执行 package remove。",
       "boundCpIds": [
-        "CP-DPL-CLI-03"
+        "CP-DPL-CLI-02"
       ],
       "preconditions": [
-        "Start from a valid baseline fixture for the bound Critical Proof",
-        "Inject only the documented invalid/stale/duplicate/unavailable/unsafe condition"
+        "Start from a valid seven-command fixture",
+        "Inject only the stated invalid or failure condition"
       ],
       "action": [
-        "Exercise the negative/boundary branch for RF-DPL-CLI-03",
-        "Observe Owner/adapter/runtime result and side effects for: ACTION_REQUIRED/interrupted apply/upgrade 无法安全 resume"
+        "Exercise the mapped negative boundary and observe calls plus side effects"
       ],
       "expected": [
-        "The invalid/unsafe condition is rejected, contained, deferred, or reported with the typed outcome defined by the latest documents",
-        "No unauthorized business fact/effect is fabricated"
+        "The invalid condition is rejected or contained without unauthorized side effects"
       ],
       "forbidden": [
-        "ACTION_REQUIRED/interrupted apply/upgrade 无法安全 resume",
-        "Silent success, blind retry, fake READY, or partial unauthorized mutation"
+        "Module.uninstall 失败后仍执行 package remove。",
+        "Silent success or partial unauthorized mutation"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 25,
-          "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
-          "disposition": "ADD"
+          "path": "packages/platform-cli/tests/install-uninstall.test.ts",
+          "line": 276,
+          "title": "uninstall never removes packages after a Module.uninstall failure",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 280,
+          "title": "uninstall runs in reverse dependency order and fails fast",
+          "disposition": "UPDATE"
         }
       ],
-      "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
-      "disposition": "KEEP"
+      "coverageMode": "DIRECT_RF_EXECUTABLE",
+      "disposition": "UPDATE"
     },
     {
       "caseId": "RF-DPL-CLI-04",
@@ -4698,36 +4720,34 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "对 Library/remote resource 调用虚假 start/stop",
+      "requirement": "ACTION_REQUIRED setup blocker 触发 partial start。",
       "boundCpIds": [
-        "CP-DPL-CLI-04"
+        "CP-DPL-CLI-05"
       ],
       "preconditions": [
-        "Start from a valid baseline fixture for the bound Critical Proof",
-        "Inject only the documented invalid/stale/duplicate/unavailable/unsafe condition"
+        "Start from a valid seven-command fixture",
+        "Inject only the stated invalid or failure condition"
       ],
       "action": [
-        "Exercise the negative/boundary branch for RF-DPL-CLI-04",
-        "Observe Owner/adapter/runtime result and side effects for: 对 Library/remote resource 调用虚假 start/stop"
+        "Exercise the mapped negative boundary and observe calls plus side effects"
       ],
       "expected": [
-        "The invalid/unsafe condition is rejected, contained, deferred, or reported with the typed outcome defined by the latest documents",
-        "No unauthorized business fact/effect is fabricated"
+        "The invalid condition is rejected or contained without unauthorized side effects"
       ],
       "forbidden": [
-        "对 Library/remote resource 调用虚假 start/stop",
-        "Silent success, blind retry, fake READY, or partial unauthorized mutation"
+        "ACTION_REQUIRED setup blocker 触发 partial start。",
+        "Silent success or partial unauthorized mutation"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 32,
-          "title": "CP-DPL-CLI-04 platform CLI never invents Task worker/conversation/browser identity",
-          "disposition": "ADD"
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 192,
+          "title": "start gates on Module.status setup READY and never runs preflight",
+          "disposition": "UPDATE"
         }
       ],
-      "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
-      "disposition": "KEEP"
+      "coverageMode": "DIRECT_RF_EXECUTABLE",
+      "disposition": "UPDATE"
     },
     {
       "caseId": "RF-DPL-CLI-05",
@@ -4736,36 +4756,34 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "persisted history 制造 fake READY 或 status/verify/doctor 不读 current reality",
+      "requirement": "FAILED setupStatus 触发 partial start。",
       "boundCpIds": [
         "CP-DPL-CLI-05"
       ],
       "preconditions": [
-        "Start from a valid baseline fixture for the bound Critical Proof",
-        "Inject only the documented invalid/stale/duplicate/unavailable/unsafe condition"
+        "Start from a valid seven-command fixture",
+        "Inject only the stated invalid or failure condition"
       ],
       "action": [
-        "Exercise the negative/boundary branch for RF-DPL-CLI-05",
-        "Observe Owner/adapter/runtime result and side effects for: persisted history 制造 fake READY 或 status/verify/doctor 不读 current reality"
+        "Exercise the mapped negative boundary and observe calls plus side effects"
       ],
       "expected": [
-        "The invalid/unsafe condition is rejected, contained, deferred, or reported with the typed outcome defined by the latest documents",
-        "No unauthorized business fact/effect is fabricated"
+        "The invalid condition is rejected or contained without unauthorized side effects"
       ],
       "forbidden": [
-        "persisted history 制造 fake READY 或 status/verify/doctor 不读 current reality",
-        "Silent success, blind retry, fake READY, or partial unauthorized mutation"
+        "FAILED setupStatus 触发 partial start。",
+        "Silent success or partial unauthorized mutation"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/manifest-ready-install.test.ts",
-          "line": 250,
-          "title": "last verify PASS + current status unavailable cannot be READY (RF-DPL-CLI-05)",
-          "disposition": "KEEP"
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 236,
+          "title": "start performs zero starts when a Module reports FAILED setup status",
+          "disposition": "UPDATE"
         }
       ],
       "coverageMode": "DIRECT_RF_EXECUTABLE",
-      "disposition": "KEEP"
+      "disposition": "UPDATE"
     },
     {
       "caseId": "RF-DPL-CLI-06",
@@ -4774,41 +4792,33 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "config/secret materialization 越界，或 raw secret 泄漏到 manifest/JSON/log/evidence/model context",
+      "requirement": "Module.start 失败后继续启动后续 Module 或自动 rollback。",
       "boundCpIds": [
-        "CP-DPL-CLI-07"
+        "CP-DPL-CLI-05"
       ],
       "preconditions": [
-        "Start from a valid baseline fixture for the bound Critical Proof",
-        "Inject only the documented invalid/stale/duplicate/unavailable/unsafe condition"
+        "Start from a valid seven-command fixture",
+        "Inject only the stated invalid or failure condition"
       ],
       "action": [
-        "Exercise the negative/boundary branch for RF-DPL-CLI-06",
-        "Observe Owner/adapter/runtime result and side effects for: config/secret materialization 越界，或 raw secret 泄漏到 manifest/JSON/log/evidence/model context"
+        "Exercise the mapped negative boundary and observe calls plus side effects"
       ],
       "expected": [
-        "The invalid/unsafe condition is rejected, contained, deferred, or reported with the typed outcome defined by the latest documents",
-        "No unauthorized business fact/effect is fabricated"
+        "The invalid condition is rejected or contained without unauthorized side effects"
       ],
       "forbidden": [
-        "config/secret materialization 越界，或 raw secret 泄漏到 manifest/JSON/log/evidence/model context",
-        "Silent success, blind retry, fake READY, or partial unauthorized mutation"
+        "Module.start 失败后继续启动后续 Module 或自动 rollback。",
+        "Silent success or partial unauthorized mutation"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-          "line": 211,
-          "title": "CP-DPL-CLI-07 plan save/load roundtrips and is atomic",
-          "disposition": "UPDATE"
-        },
-        {
-          "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-          "line": 379,
-          "title": "CP-DPL-CLI-07 second same-workspace apply is blocked with WORKSPACE_LOCKED",
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 254,
+          "title": "start fails fast during execution without starting later Modules",
           "disposition": "UPDATE"
         }
       ],
-      "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
+      "coverageMode": "DIRECT_RF_EXECUTABLE",
       "disposition": "UPDATE"
     },
     {
@@ -4818,41 +4828,33 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "upgrade failure 丢失 verification history 或擅自事务式自动 rollback",
+      "requirement": "Module.stop 失败后继续 stop 后续 Module。",
       "boundCpIds": [
         "CP-DPL-CLI-06"
       ],
       "preconditions": [
-        "Start from a valid baseline fixture for the bound Critical Proof",
-        "Inject only the documented invalid/stale/duplicate/unavailable/unsafe condition"
+        "Start from a valid seven-command fixture",
+        "Inject only the stated invalid or failure condition"
       ],
       "action": [
-        "Exercise the negative/boundary branch for RF-DPL-CLI-07",
-        "Observe Owner/adapter/runtime result and side effects for: upgrade failure 丢失 verification history 或擅自事务式自动 rollback"
+        "Exercise the mapped negative boundary and observe calls plus side effects"
       ],
       "expected": [
-        "The invalid/unsafe condition is rejected, contained, deferred, or reported with the typed outcome defined by the latest documents",
-        "No unauthorized business fact/effect is fabricated"
+        "The invalid condition is rejected or contained without unauthorized side effects"
       ],
       "forbidden": [
-        "upgrade failure 丢失 verification history 或擅自事务式自动 rollback",
-        "Silent success, blind retry, fake READY, or partial unauthorized mutation"
+        "Module.stop 失败后继续 stop 后续 Module。",
+        "Silent success or partial unauthorized mutation"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-          "line": 792,
-          "title": "CP-DPL-CLI-06 upgrade — current != target drives a migrate step and never a rollback step",
-          "disposition": "UPDATE"
-        },
-        {
-          "path": "packages/platform-cli/tests/deployment-final-integration.test.ts",
-          "line": 861,
-          "title": "CP-DPL-CLI-06 upgrade — a verify FAIL during upgrade preserves prior PASS history (no erase)",
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 270,
+          "title": "stop runs in reverse dependency order and fails fast",
           "disposition": "UPDATE"
         }
       ],
-      "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
+      "coverageMode": "DIRECT_RF_EXECUTABLE",
       "disposition": "UPDATE"
     },
     {
@@ -4862,41 +4864,39 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "same-workspace concurrent apply 绕过 exclusive lock，或 repo-local state/config 原子写失败导致部署状态损坏",
+      "requirement": "setup 遇到 ACTION_REQUIRED/FAILED 后提前终止或丢失完整 action/error 聚合。",
       "boundCpIds": [
-        "CP-DPL-CLI-07"
+        "CP-DPL-CLI-04"
       ],
       "preconditions": [
-        "Start from a valid baseline fixture for the bound Critical Proof",
-        "Inject only the documented invalid/stale/duplicate/unavailable/unsafe condition"
+        "Start from a valid seven-command fixture",
+        "Inject only the stated invalid or failure condition"
       ],
       "action": [
-        "Exercise the negative/boundary branch for RF-DPL-CLI-08",
-        "Observe Owner/adapter/runtime result and side effects for: same-workspace concurrent apply 绕过 exclusive lock，或 repo-local state/config 原子写失败导致部署状态损坏"
+        "Exercise the mapped negative boundary and observe calls plus side effects"
       ],
       "expected": [
-        "The invalid/unsafe condition is rejected, contained, deferred, or reported with the typed outcome defined by the latest documents",
-        "No unauthorized business fact/effect is fabricated"
+        "The invalid condition is rejected or contained without unauthorized side effects"
       ],
       "forbidden": [
-        "same-workspace concurrent apply 绕过 exclusive lock，或 repo-local state/config 原子写失败导致部署状态损坏",
-        "Silent success, blind retry, fake READY, or partial unauthorized mutation"
+        "setup 遇到 ACTION_REQUIRED/FAILED 后提前终止或丢失完整 action/error 聚合。",
+        "Silent success or partial unauthorized mutation"
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-          "line": 211,
-          "title": "CP-DPL-CLI-07 plan save/load roundtrips and is atomic",
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 346,
+          "title": "setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run",
           "disposition": "UPDATE"
         },
         {
-          "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-          "line": 379,
-          "title": "CP-DPL-CLI-07 second same-workspace apply is blocked with WORKSPACE_LOCKED",
+          "path": "packages/platform-cli/tests/modules.test.ts",
+          "line": 69,
+          "title": "platform setup human output preserves all actions when the aggregate also contains machine failures",
           "disposition": "UPDATE"
         }
       ],
-      "coverageMode": "BOUND_CP_NEGATIVE_BRANCH",
+      "coverageMode": "DIRECT_RF_EXECUTABLE",
       "disposition": "UPDATE"
     },
     {
@@ -11164,8 +11164,7 @@
       "boundCpIds": [
         "CP-AGT-PROD-01",
         "CP-AGT-DEV-01",
-        "CP-AGT-TEST-01",
-        "CP-DPL-CLI-03"
+        "CP-AGT-TEST-01"
       ],
       "automationLevel": "NON_E2E",
       "preconditions": [
@@ -11202,12 +11201,6 @@
           "line": 26,
           "title": "CP-AGT-TEST-01 instructions and Action allowlist preserve test/ops least privilege",
           "disposition": "UPDATE"
-        },
-        {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 25,
-          "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
-          "disposition": "ADD"
         }
       ],
       "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
@@ -12481,8 +12474,7 @@
       "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
       "requirement": "Knowledge specialization and exact ChatGPT model pin are not v1 Role READY prerequisites.",
       "boundCpIds": [
-        "CP-AGT-PROD-01",
-        "CP-DPL-CLI-03"
+        "CP-AGT-PROD-01"
       ],
       "automationLevel": "NON_E2E",
       "preconditions": [
@@ -12507,12 +12499,6 @@
           "line": 32,
           "title": "CP-AGT-PROD-01 generic Product package does not own pre-Task creation or require Knowledge specialization in v1",
           "disposition": "UPDATE"
-        },
-        {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 25,
-          "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
-          "disposition": "ADD"
         }
       ],
       "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
@@ -12527,7 +12513,7 @@
       "boundCpIds": [
         "CP-TASK-ORCH-10",
         "CP-EXE-BR-06",
-        "CP-DPL-CLI-03"
+        "CP-DPL-CLI-04"
       ],
       "automationLevel": "NON_E2E",
       "preconditions": [
@@ -12566,10 +12552,10 @@
           "disposition": "ADD"
         },
         {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 25,
-          "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
-          "disposition": "ADD"
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 346,
+          "title": "setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run",
+          "disposition": "UPDATE"
         }
       ],
       "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
@@ -12865,13 +12851,14 @@
       "domain": "platform",
       "moduleRef": null,
       "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
-      "requirement": "Gateway transport budgets, Execution timeouts/cancel/UNKNOWN, SQLite crash-reopen, Browser reload, and Deployment interrupted apply remain bounded and recoverable.",
+      "requirement": "Gateway transport budgets, Execution timeouts/cancel/UNKNOWN, SQLite crash-reopen, Browser reload, and Deployment metadata/start/stop failure boundaries remain bounded and recoverable.",
       "boundCpIds": [
         "CP-AGT-GW-03",
         "CP-EXE-RT-06",
+        "CP-TASK-STORE-05",
         "CP-DPL-CLI-02",
-        "CP-DPL-CLI-07",
-        "CP-TASK-STORE-05"
+        "CP-DPL-CLI-05",
+        "CP-DPL-CLI-06"
       ],
       "automationLevel": "NON_E2E",
       "preconditions": [
@@ -12883,7 +12870,7 @@
         "Capture owner state/result/evidence and transport/recovery observations"
       ],
       "expected": [
-        "Gateway transport budgets, Execution timeouts/cancel/UNKNOWN, SQLite crash-reopen, Browser reload, and Deployment interrupted apply remain bounded and recoverable."
+        "Gateway transport budgets, Execution timeouts/cancel/UNKNOWN, SQLite crash-reopen, Browser reload, and Deployment metadata/start/stop failure boundaries remain bounded and recoverable."
       ],
       "forbidden": [
         "Duplicate business ownership",
@@ -12904,34 +12891,28 @@
           "disposition": "KEEP"
         },
         {
-          "path": "packages/platform-cli/tests/apply-resume.test.ts",
-          "line": 247,
-          "title": "CP-DPL-CLI-02 resume re-observes reality and skips already-satisfied steps without re-execution",
-          "disposition": "UPDATE"
-        },
-        {
-          "path": "packages/platform-cli/tests/apply-resume.test.ts",
-          "line": 287,
-          "title": "CP-DPL-CLI-02 a stale plan is BLOCKED and never applied",
-          "disposition": "UPDATE"
-        },
-        {
-          "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-          "line": 211,
-          "title": "CP-DPL-CLI-07 plan save/load roundtrips and is atomic",
-          "disposition": "UPDATE"
-        },
-        {
-          "path": "packages/platform-cli/tests/persistence-lock-security.test.ts",
-          "line": 379,
-          "title": "CP-DPL-CLI-07 second same-workspace apply is blocked with WORKSPACE_LOCKED",
-          "disposition": "UPDATE"
-        },
-        {
           "path": "packages/task-store-sqlite/tests/store-critical-proofs.test.ts",
           "line": 146,
           "title": "CP-TASK-STORE-05 same/same idempotency replays and concurrent same/different is unique",
           "disposition": "KEEP"
+        },
+        {
+          "path": "packages/platform-cli/tests/install-uninstall.test.ts",
+          "line": 115,
+          "title": "install rejects invalid existing Workspace metadata before external discovery or mutation",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 254,
+          "title": "start fails fast during execution without starting later Modules",
+          "disposition": "UPDATE"
+        },
+        {
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 270,
+          "title": "stop runs in reverse dependency order and fails fast",
+          "disposition": "UPDATE"
         }
       ],
       "realExternalStatus": "NOT_REQUIRED_BY_THIS_CASE"
@@ -13243,7 +13224,7 @@
       "requirement": "Real GPT/Chrome/Dev Tunnel/Model Provider verification re-observes current reality after human actions and never marks READY from history alone.",
       "boundCpIds": [
         "CP-DPL-CLI-03",
-        "CP-DPL-CLI-05"
+        "CP-DPL-CLI-04"
       ],
       "automationLevel": "FINAL_MANUAL_E2E",
       "preconditions": [
@@ -13264,16 +13245,16 @@
       ],
       "executableRefs": [
         {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 25,
-          "title": "CP-DPL-CLI-03 Web-only unmet prerequisites remain ACTION_REQUIRED(_WEB) and resume re-observes reality",
-          "disposition": "ADD"
+          "path": "packages/platform-cli/tests/modules.test.ts",
+          "line": 9,
+          "title": "platform status aggregates only Module-owned setup/runtime status",
+          "disposition": "UPDATE"
         },
         {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 17,
-          "title": "CP-DPL-CLI-05 Carrier/Role readiness is current owner verification, not exact model pin or System Assessment",
-          "disposition": "ADD"
+          "path": "packages/platform-cli/tests/lifecycle.test.ts",
+          "line": 346,
+          "title": "setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run",
+          "disposition": "UPDATE"
         }
       ],
       "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"
@@ -13287,8 +13268,7 @@
       "requirement": "Real fault injection covers Chrome reload, locator stale, permission prompt unexpected, tunnel/provider loss and lost-result/UNKNOWN recovery with no duplicate business effect.",
       "boundCpIds": [
         "CP-EXE-BR-09",
-        "CP-AGT-GW-08",
-        "CP-DPL-CLI-05"
+        "CP-AGT-GW-08"
       ],
       "automationLevel": "FINAL_MANUAL_E2E",
       "preconditions": [
@@ -13319,12 +13299,6 @@
           "line": 364,
           "title": "CP-AGT-GW-08 gateway has no business persistence and uncertainty looks up owner result",
           "disposition": "KEEP"
-        },
-        {
-          "path": "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
-          "line": 17,
-          "title": "CP-DPL-CLI-05 Carrier/Role readiness is current owner verification, not exact model pin or System Assessment",
-          "disposition": "ADD"
         }
       ],
       "realExternalStatus": "FINAL_MANUAL_E2E_REQUIRED"

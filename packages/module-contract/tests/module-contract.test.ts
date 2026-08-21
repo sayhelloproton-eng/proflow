@@ -5,6 +5,7 @@ import {
 	assessModuleCompatibility,
 	type ModuleDescriptor,
 	moduleDescriptorSchema,
+	moduleOperationResultSchema,
 	parseModuleDescriptor,
 	queryRequirements,
 	standardModuleManagementCommands,
@@ -143,6 +144,19 @@ test("CP-DPL-CON-04 standard management is fixed at seven commands and legacy li
 		docs: "DOCS.md",
 		setup: "SETUP.md",
 	});
+});
+
+test("CP-DPL-CON-04 Module results reject Platform-only BLOCKED outcomes", () => {
+	assert.equal(
+		moduleOperationResultSchema.safeParse({
+			contract: "deployment.result.v1",
+			ok: false,
+			status: "BLOCKED",
+			moduleRef: "example-library",
+			moduleVersion: "1.0.0",
+		}).success,
+		false,
+	);
 });
 
 test("CP-DPL-CON-05 compatibility distinguishes additive and breaking changes", () => {

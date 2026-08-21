@@ -7,6 +7,7 @@ import {
 	setupModulesThin,
 	startModulesThin,
 	stopModulesThin,
+	uninstallModulesThin,
 } from "../src/lifecycle/index.ts";
 import type { ModuleCatalog, ModuleSource } from "../src/modules.ts";
 
@@ -57,6 +58,9 @@ function recordingCatalog(
 		Record<string, "READY" | "ACTION_REQUIRED" | "FAILED">
 	> = {},
 	setupResultByRef: Readonly<Record<string, "ACTION_REQUIRED" | "FAILED">> = {},
+	startFailureByRef: Readonly<Record<string, boolean>> = {},
+	stopFailureByRef: Readonly<Record<string, boolean>> = {},
+	uninstallFailureByRef: Readonly<Record<string, boolean>> = {},
 ) {
 	const calls: Array<{ call: string; input?: unknown }> = [];
 	const catalog: ModuleCatalog = {
@@ -106,6 +110,45 @@ function recordingCatalog(
 								observedEffects: [],
 							};
 				}
+				if (command === "start" && startFailureByRef[moduleRef]) {
+					return {
+						result: {
+							contract: "deployment.result.v1" as const,
+							ok: false,
+							status: "FAILED" as const,
+							moduleRef,
+							moduleVersion: "1.0.0",
+							error: {
+								code: "START_FAILED" as const,
+								message: `Start failure ${moduleRef}`,
+								retryable: true,
+							},
+						},
+						observedEffects: [],
+					};
+				}
+				if (
+					(command === "stop" && stopFailureByRef[moduleRef]) ||
+					(command === "uninstall" && uninstallFailureByRef[moduleRef])
+				) {
+					const errorCode =
+						command === "stop" ? "STOP_FAILED" : "UNINSTALL_FAILED";
+					return {
+						result: {
+							contract: "deployment.result.v1" as const,
+							ok: false,
+							status: "FAILED" as const,
+							moduleRef,
+							moduleVersion: "1.0.0",
+							error: {
+								code: errorCode,
+								message: `${command} failure ${moduleRef}`,
+								retryable: true,
+							},
+						},
+						observedEffects: [],
+					};
+				}
 				const data =
 					command === "status"
 						? {
@@ -148,7 +191,11 @@ const modules = [leaf, consumer, provider];
 
 test("start gates on Module.status setup READY and never runs preflight", async () => {
 	const { catalog, calls } = recordingCatalog({ consumer: "ACTION_REQUIRED" });
-	const result = await startModulesThin(catalog, modules, workspaceRoot);
+	const result = await startModulesThin(
+		catalog,
+		[consumer, provider],
+		workspaceRoot,
+	);
 	assert.equal(result.completed, false);
 	assert.deepEqual(result.blockedBy, {
 		moduleRef: "consumer",
@@ -156,7 +203,7 @@ test("start gates on Module.status setup READY and never runs preflight", async 
 	});
 	assert.deepEqual(
 		calls.map((item) => item.call),
-		["provider:status", "provider:start", "consumer:status"],
+		["provider:status", "consumer:status"],
 	);
 });
 
@@ -174,15 +221,75 @@ test("successful start and stop preserve dependency and reverse dependency order
 		calls.map((item) => item.call),
 		[
 			"provider:status",
-			"provider:start",
 			"consumer:status",
-			"consumer:start",
 			"leaf:status",
+			"provider:start",
+			"consumer:start",
 			"leaf:start",
 			"leaf:stop",
 			"consumer:stop",
 			"provider:stop",
 		],
+	);
+});
+
+test("start performs zero starts when a Module reports FAILED setup status", async () => {
+	const { catalog, calls } = recordingCatalog({ consumer: "FAILED" });
+	const result = await startModulesThin(
+		catalog,
+		[consumer, provider],
+		workspaceRoot,
+	);
+	assert.equal(result.completed, false);
+	assert.deepEqual(result.blockedBy, {
+		moduleRef: "consumer",
+		setupStatus: "FAILED",
+	});
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		["provider:status", "consumer:status"],
+	);
+});
+
+test("start fails fast during execution without starting later Modules", async () => {
+	const { catalog, calls } = recordingCatalog({}, {}, { consumer: true });
+	const result = await startModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(result.completed, false);
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		[
+			"provider:status",
+			"consumer:status",
+			"leaf:status",
+			"provider:start",
+			"consumer:start",
+		],
+	);
+});
+
+test("stop runs in reverse dependency order and fails fast", async () => {
+	const { catalog, calls } = recordingCatalog({}, {}, {}, { consumer: true });
+	const result = await stopModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(result.completed, false);
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		["leaf:stop", "consumer:stop"],
+	);
+});
+
+test("uninstall runs in reverse dependency order and fails fast", async () => {
+	const { catalog, calls } = recordingCatalog(
+		{},
+		{},
+		{},
+		{},
+		{ consumer: true },
+	);
+	const result = await uninstallModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(result.completed, false);
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		["leaf:uninstall", "consumer:uninstall"],
 	);
 });
 

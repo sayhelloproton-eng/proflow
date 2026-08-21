@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "node:test";
 
@@ -68,7 +68,11 @@ async function readManifest(root: string): Promise<Record<string, unknown>> {
 	) as Record<string, unknown>;
 }
 
-function packageRunner(root: string, calls: string[][]) {
+function packageRunner(
+	root: string,
+	calls: string[][],
+	adapterSource?: string,
+) {
 	return {
 		async run(command: string, args: readonly string[]) {
 			calls.push([command, ...args]);
@@ -84,6 +88,7 @@ function packageRunner(root: string, calls: string[][]) {
 						moduleRef: item.moduleRef,
 						packageName: item.packageName,
 						version: item.version,
+						...(adapterSource === undefined ? {} : { adapterSource }),
 					});
 				}
 				await rm(join(root, "node_modules", ...STALE.packageName.split("/")), {
@@ -106,6 +111,77 @@ function packageRunner(root: string, calls: string[][]) {
 		},
 	};
 }
+
+test("install rejects invalid existing Workspace metadata before external discovery or mutation", async () => {
+	const root = await tempWorkspace();
+	const packageCalls: string[][] = [];
+	let registryCalls = 0;
+	const baseRegistryRunner = registryRunner();
+	const installMarker = join(root, "module-install-called");
+	const adapterSource = `
+import { writeFile } from "node:fs/promises";
+const base = (moduleRef) => ({ contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef, moduleVersion: "1.0.0" });
+export const behaviorAdapter = {
+  install: async (context) => { await writeFile(${JSON.stringify(installMarker)}, context.workspaceRoot); return { result: base("fixture-a"), observedEffects: [] }; },
+  uninstall: async () => ({ result: base("fixture-a"), observedEffects: [] }),
+  status: async () => ({ result: { ...base("fixture-a"), data: { setupStatus: "READY", runtimeStatus: "NOT_APPLICABLE" } }, observedEffects: [] }),
+  setup: async () => ({ result: base("fixture-a"), observedEffects: [] }),
+  docs: async () => ({ result: base("fixture-a"), observedEffects: [] }),
+  start: async () => ({ result: base("fixture-a"), observedEffects: [] }),
+  stop: async () => ({ result: base("fixture-a"), observedEffects: [] }),
+};
+`;
+	try {
+		await mkdir(join(root, ".proflow"), { recursive: true });
+		await writeFile(
+			join(root, ".proflow", "workspace.json"),
+			JSON.stringify({
+				contract: "invalid.workspace.contract",
+				workspaceInstanceId: "invalid-workspace-instance",
+				workspaceRoot: root,
+				createdAt: new Date().toISOString(),
+			}),
+		);
+		const manifestBefore = await readFile(join(root, "package.json"), "utf8");
+		const output = JSON.parse(
+			await runCli(["install", "--workspace", root, "--json"], {
+				cwd: root,
+				registryRunner: {
+					async run(args) {
+						registryCalls += 1;
+						return baseRegistryRunner.run(args);
+					},
+				},
+				packageRunner: packageRunner(root, packageCalls, adapterSource),
+				executableAvailable: () => true,
+			}),
+		) as { status: string; error?: { code: string } };
+
+		assert.equal(output.status, "FAILED");
+		assert.equal(output.error?.code, "WORKSPACE_INSTANCE_INVALID");
+		assert.equal(registryCalls, 0);
+		assert.deepEqual(packageCalls, []);
+		assert.equal(
+			await readFile(join(root, "package.json"), "utf8"),
+			manifestBefore,
+		);
+		await assert.rejects(readFile(installMarker, "utf8"));
+		await assert.rejects(
+			readFile(
+				join(
+					root,
+					"node_modules",
+					"@tomflow",
+					"proflow-fixture-a",
+					"package.json",
+				),
+				"utf8",
+			),
+		);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
 
 test("install synchronizes the complete Registry package set in one transaction", async () => {
 	const root = await tempWorkspace();
@@ -192,6 +268,62 @@ test("uninstall removes ProFlow dependencies and preserves .proflow", async () =
 			"utf8",
 		);
 		assert.match(metadata, /proflow\.workspace\.v1/);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("uninstall never removes packages after a Module.uninstall failure", async () => {
+	const root = await tempWorkspace();
+	const packageCalls: string[][] = [];
+	const moduleRef = PACKAGES[0].moduleRef;
+	const packageName = PACKAGES[0].packageName;
+	const version = PACKAGES[0].version;
+	const adapterSource = `
+const success = { contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${JSON.stringify(moduleRef)}, moduleVersion: ${JSON.stringify(version)} };
+export const behaviorAdapter = {
+  install: async () => ({ result: success, observedEffects: [] }),
+  uninstall: async () => ({ result: { ...success, ok: false, status: "FAILED", error: { code: "UNINSTALL_FAILED", message: "fixture uninstall failure", retryable: true } }, observedEffects: [] }),
+  status: async () => ({ result: { ...success, data: { setupStatus: "READY", runtimeStatus: "NOT_APPLICABLE" } }, observedEffects: [] }),
+  setup: async () => ({ result: success, observedEffects: [] }),
+  docs: async () => ({ result: success, observedEffects: [] }),
+  start: async () => ({ result: success, observedEffects: [] }),
+  stop: async () => ({ result: success, observedEffects: [] }),
+};
+`;
+	try {
+		await writeFile(
+			join(root, "package.json"),
+			JSON.stringify({
+				private: true,
+				dependencies: { [packageName]: version },
+			}),
+		);
+		await writeInstalledModule(root, {
+			moduleRef,
+			packageName,
+			version,
+			adapterSource,
+		});
+		const output = JSON.parse(
+			await runCli(["uninstall", "--workspace", root, "--json"], {
+				cwd: root,
+				packageRunner: {
+					async run(command, args) {
+						packageCalls.push([command, ...args]);
+						return "";
+					},
+				},
+				executableAvailable: () => true,
+			}),
+		) as { status: string; data?: { removed?: string[] } };
+
+		assert.equal(output.status, "FAILED");
+		assert.deepEqual(output.data?.removed, []);
+		assert.deepEqual(packageCalls, []);
+		assert.deepEqual((await readManifest(root)).dependencies, {
+			[packageName]: version,
+		});
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

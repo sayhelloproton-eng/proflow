@@ -310,6 +310,7 @@ async function handleInstall(
 	root: string,
 	runtime: CliRuntimeOptions,
 ): Promise<CliOutcome> {
+	const metadata = await ensureWorkspaceMetadata(root);
 	const discovered = await discoverRegistryModules({
 		workspaceRoot: root,
 		...(runtime.registryRunner === undefined
@@ -345,7 +346,6 @@ async function handleInstall(
 		discovered.candidates,
 		previousManaged,
 	);
-	const metadata = await ensureWorkspaceMetadata(root);
 	const { catalog, modules } = await buildContext(root);
 	const moduleInstall = await installModulesThin(catalog, modules, root);
 	return outcome("install", batchStatus(moduleInstall), root, {

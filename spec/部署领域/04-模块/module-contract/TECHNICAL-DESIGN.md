@@ -90,7 +90,7 @@ interface ModuleStatusObservation {
 
 ## 8. Operation result
 
-结构化 result 允许 `SUCCEEDED/BLOCKED/ACTION_REQUIRED/FAILED`。`ACTION_REQUIRED` 只用于真实人工或外部参与；Module 本应自闭环却失败时必须返回 `FAILED`。
+Module 结构化 operation result 只允许 `SUCCEEDED/ACTION_REQUIRED/FAILED`。`ACTION_REQUIRED` 只用于真实人工或外部参与；Module 本应自闭环却失败时必须返回 `FAILED`。`BLOCKED` 仅属于 Platform orchestration/aggregation outcome，不得由 Module operation result 返回。
 
 `ACTION_REQUIRED` 必须是**可执行引导**而不是状态标签：owner 应在现有 `actionRequired.action/description`（以及必要时 owner-defined `data`）中给出当前 Step、最小人工输入和 package-owned executable/verify。Platform 只透传/聚合，不解析这些 Module-specific 内容。
 ## 9. Documentation

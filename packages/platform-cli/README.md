@@ -1,64 +1,68 @@
 # @tomflow/proflow-platform-cli
 
-Deterministic Workspace-level CLI for ProFlow Platform installation, discovery, knowledge aggregation and lifecycle dispatch.
+Thin Workspace-level orchestration CLI for ProFlow package discovery, dependency ordering, command forwarding, result aggregation and package-manager operations.
 
-## Frozen CLI
+## Standard CLI
+
+The top-level management surface is exactly seven commands:
 
 ```bash
-platform modules
-platform docs
 platform install
 platform uninstall
+platform status
+platform setup
+platform docs
 platform start
 platform stop
 ```
 
-Removed top-level commands: `search`, `plan`, `apply`, `upgrade`, `preflight`, `restart`, `status`, `verify`, `doctor`, `manifest`.
+Removed Platform routes such as `modules`, `preflight`, `verify`, `doctor`, `restart`, `plan`, `apply`, `upgrade` and `manifest` are not routable. Module-specific commands remain owned by their Module and are not proxied by Platform.
+
+All seven commands accept `--workspace <path>`; without it, the CLI uses `process.cwd()`.
 
 ## Ownership
 
 ```text
-Module / package owns logic and truth.
-Platform CLI owns discovery, dispatch, aggregation and ordering.
-Package manager owns npm dependency operations.
+Module owns its behavior, private configuration and operational truth.
+Platform owns discovery, dependency ordering, invocation, aggregation and package-manager orchestration.
+Package manager owns npm dependency mutation.
 ```
 
-## Workspace
+Platform does not interpret Module-private configuration or recreate a cross-Module configuration bus.
 
-`platform install [--workspace <path>]` resolves the explicit workspace or `process.cwd()`. The other five commands operate on `process.cwd()` and do not depend on a global current-workspace binding.
+## Install / Uninstall
 
-`.proflow` is Workspace/user data and may survive uninstall/reinstall. `platform uninstall` removes ProFlow package dependencies only and never deletes `.proflow`.
+`platform install` validates or creates the minimal Workspace metadata, discovers the complete governed package set from the Registry, synchronizes that set, validates the installed descriptors, then invokes `Module.install` in dependency order. It does not perform human setup work.
 
-## Install
+`platform uninstall` invokes `Module.uninstall` in reverse dependency order before package removal. `.proflow` is Workspace/user data and is preserved unless an owning Module explicitly removes its own artifacts.
 
-Install dynamically discovers the complete managed ProFlow package/version set from the private npm scope, synchronizes it in one package-manager transaction where possible, re-observes installed packages, validates descriptors, then initializes/reuses minimal Workspace-local metadata.
+## Status
 
-There is no Core package class, `installRequires`, install closure, Plan/Apply or independent Upgrade flow.
-
-## Modules
-
-`platform modules` aggregates Module-owned status observations only:
+`platform status` validates and aggregates only Module-owned observations:
 
 ```text
-moduleRef
-version
-configStatus: READY | INCOMPLETE | INVALID
-missingConfig?  # only when INCOMPLETE
-runtimeStatus: RUNNING | STOPPED | FAILED | UNKNOWN
+setupStatus: READY | ACTION_REQUIRED | FAILED
+runtimeStatus: RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 ```
 
-Platform does not infer private health/config/runtime facts.
+There is no Platform-derived configuration status, missing-input list, overall readiness or verification state.
+
+## Setup
+
+`platform setup` scans all discovered Modules in dependency order. It skips `READY` Modules, invokes `Module.setup` for every non-ready Module, continues after `ACTION_REQUIRED` or `FAILED`, and returns one complete aggregate.
+
+Targeted `platform setup --module <moduleRef> --input '<json>'` forwards opaque input to the owning Module. Platform neither interprets that input nor creates Module-specific instructions.
 
 ## Docs
 
-`platform docs` aggregates each installed Module's `provides`, `requires`, `configSlots` and static documentation. It accepts no module/document positional argument.
+`platform docs` invokes and aggregates `Module.docs`. `DOCS.md` and `SETUP.md` remain Module-owned knowledge.
 
 ## Start / Stop
 
-Start builds Runtime dependency order from `provides/requires`, dispatches all applicable Module validate/preflight first (fail-fast), then starts in dependency order (fail-fast). It does not rollback already-started Modules.
+`platform start` first completes the dependency-ordered `Module.status` setup gate. If any applicable Module has `setupStatus != READY`, no `Module.start` call is made. Once every Module is ready, starts run in dependency order and fail fast. A start failure does not trigger automatic rollback.
 
-Stop dispatches Module stop in reverse dependency order and fails fast.
+`platform stop` invokes `Module.stop` in reverse dependency order and fails fast.
 
 ## Boundary
 
-The CLI must remain thin: new compliant Modules should become discoverable/observable/startable without adding module-specific business logic here.
+The CLI remains a thin, generic orchestration layer. Adding a conforming Module must not require Module-specific Platform business logic.
