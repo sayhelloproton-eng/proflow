@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
@@ -20,6 +21,49 @@ const base = {
 	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
+} as const;
+const setupPlan = {
+	steps: [
+		{
+			id: "STEP-MODEL-PROVIDER-API-01",
+			title: "配置模型服务地址",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "proflow-model-provider-api setup",
+				nonInteractive:
+					"proflow-model-provider-api setup --provider-base-url <url>",
+			},
+			requiredInputs: [
+				{
+					name: "providerBaseUrl",
+					description: "模型服务 Base URL",
+					sensitive: false,
+				},
+			],
+			verify: "proflow-model-provider-api verify",
+			successCondition: "配置状态变为“已就绪”",
+		},
+	],
+} as const;
+const blockedSetupPlan = {
+	steps: [
+		{
+			id: "STEP-MODEL-PROVIDER-API-02",
+			title: "修复模型服务认证",
+			state: "BLOCKED",
+			responsible: "EXTERNAL",
+			execution: {
+				interactive: "proflow-model-provider-api setup",
+				nonInteractive:
+					"proflow-model-provider-api setup --provider-base-url <url>",
+			},
+			requiredInputs: [],
+			verify: "proflow-model-provider-api verify",
+			successCondition: "配置状态变为“已就绪”",
+			blockedReason: "Credential resolver 合同尚不可用",
+		},
+	],
 } as const;
 const effect = "Probes the configured OpenAI-compatible model provider API";
 const configPath = (context: ModuleCommandContext) =>
@@ -146,9 +190,11 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
+					data: setupPlan,
 					actionRequired: {
 						action: "configure-provider",
-						description: `Choose the real provider endpoint, then run platform setup --module model-provider-api --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"providerBaseUrl":"<base-url>"}'. Add providerCredential only when a valid producer-owned credential resolver contract exists.`,
+						description:
+							"Choose the real provider endpoint, then run proflow-model-provider-api setup --provider-base-url <url>.",
 					},
 				},
 				observedEffects: [],
@@ -163,6 +209,7 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "FAILED" as const,
+					data: blockedSetupPlan,
 					error: {
 						code: "SETUP_FAILED" as const,
 						message:
@@ -177,6 +224,7 @@ export const behaviorAdapter = {
 				...base,
 				ok: false as const,
 				status: "ACTION_REQUIRED" as const,
+				data: setupPlan,
 				actionRequired: {
 					action: "repair-provider",
 					description: observation.message,
@@ -186,7 +234,12 @@ export const behaviorAdapter = {
 		};
 	},
 	docs: async (_context: ModuleCommandContext) => ({
-		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		result: {
+			...base,
+			data: {
+				docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+			},
+		},
 		observedEffects: [],
 	}),
 	start: async (_context: ModuleCommandContext) => ({

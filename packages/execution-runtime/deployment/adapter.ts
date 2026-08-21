@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
@@ -23,6 +24,25 @@ const base = {
 	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
+} as const;
+const blockedSetupPlan = {
+	steps: [
+		{
+			id: "STEP-EXECUTION-RUNTIME-01",
+			title: "等待上游服务信息",
+			state: "BLOCKED",
+			responsible: "EXTERNAL",
+			execution: {
+				interactive: "platform setup --module execution-runtime",
+				nonInteractive: "platform setup --module execution-runtime",
+			},
+			requiredInputs: [],
+			verify: "platform status",
+			successCondition: "配置状态变为“已就绪”",
+			blockedReason:
+				"Platform Host、Model Runtime 或 Browser Executor 尚未就绪",
+		},
+	],
 } as const;
 const key = (context: ModuleCommandContext) => resolve(context.workspaceRoot);
 const factString = (
@@ -177,14 +197,22 @@ export const behaviorAdapter = {
 	setup: async (context: ModuleCommandContext) => ({
 		result: (await dependencies(context))
 			? base
-			: failed(
-					"SETUP_FAILED",
-					"required producer shared facts are unavailable",
-				),
+			: {
+					...failed(
+						"SETUP_FAILED",
+						"required producer shared facts are unavailable",
+					),
+					data: blockedSetupPlan,
+				},
 		observedEffects: [],
 	}),
 	docs: async (_context: ModuleCommandContext) => ({
-		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		result: {
+			...base,
+			data: {
+				docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+			},
+		},
 		observedEffects: [],
 	}),
 	start: async (context: ModuleCommandContext) => {

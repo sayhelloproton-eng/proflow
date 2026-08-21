@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
@@ -110,14 +111,20 @@ export function createBehaviorAdapter(
 					status: "ACTION_REQUIRED" as const,
 					actionRequired: {
 						action: "install-or-expose-chrome",
-						description: `Install a supported Chrome/Chromium runtime and rerun platform setup --module chrome-runtime --workspace ${JSON.stringify(context.workspaceRoot)}; if auto-detection still fails, rerun with --input '{"chromeExecutablePath":"<absolute-path>"}'.`,
+						description:
+							"Install a supported Chrome/Chromium runtime, then rerun platform setup --module chrome-runtime. Chrome path is auto-detected.",
 					},
 				},
 				observedEffects: [observedEffect],
 			};
 		},
 		docs: async (_context: ModuleCommandContext) => ({
-			result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+			result: {
+				...base,
+				data: {
+					docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+				},
+			},
 			observedEffects: [],
 		}),
 		start: async (_context: ModuleCommandContext) => ({

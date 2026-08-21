@@ -28,7 +28,7 @@ export const behaviorAdapter = {
   uninstall: async () => ({ result: result(), observedEffects: [] }),
   status: async () => ({ result: result({ setupStatus: ready ? "READY" : "ACTION_REQUIRED", runtimeStatus: running ? "RUNNING" : "STOPPED" }), observedEffects: [] }),
   setup: async () => { ready = true; return { result: result(), observedEffects: [] }; },
-  docs: async () => ({ result: result({ docs: "Fixture Service", setup: "No configuration required." }), observedEffects: [] }),
+  docs: async () => ({ result: result({ docs: "Fixture Service" }), observedEffects: [] }),
   start: async () => { running = true; return { result: result(), observedEffects: [] }; },
   stop: async () => { running = false; return { result: result(), observedEffects: [] }; },
 };
@@ -102,8 +102,8 @@ function packageRunner(root: string, calls: string[][]) {
 	};
 }
 
-function parse(output: string) {
-	return JSON.parse(output) as {
+function parse(output: Awaited<ReturnType<typeof runCli>>) {
+	return output as {
 		status: string;
 		data?: { modules?: Array<Record<string, unknown>> } & Record<
 			string,
@@ -123,28 +123,28 @@ test("simulated human Golden Path runs install → status → setup → docs →
 	};
 	try {
 		const installed = parse(
-			await runCli(["install", "--workspace", ".", "--json"], runtime),
+			await runCli(["install", "--workspace", "."], runtime),
 		);
 		assert.equal(installed.status, "SUCCEEDED");
 
 		const before = parse(
-			await runCli(["status", "--workspace", ".", "--json"], { cwd: root }),
+			await runCli(["status", "--workspace", "."], { cwd: root }),
 		);
 		assert.equal(before.status, "SUCCEEDED");
 		assert.equal(before.data?.modules?.[0]?.setupStatus, "ACTION_REQUIRED");
 		assert.equal(before.data?.modules?.[0]?.runtimeStatus, "STOPPED");
 
 		const setup = parse(
-			await runCli(["setup", "--workspace", ".", "--json"], { cwd: root }),
+			await runCli(["setup", "--workspace", "."], { cwd: root }),
 		);
 		assert.equal(setup.status, "SUCCEEDED");
 		const ready = parse(
-			await runCli(["status", "--workspace", ".", "--json"], { cwd: root }),
+			await runCli(["status", "--workspace", "."], { cwd: root }),
 		);
 		assert.equal(ready.data?.modules?.[0]?.setupStatus, "READY");
 
 		const docs = parse(
-			await runCli(["docs", "--workspace", ".", "--json"], { cwd: root }),
+			await runCli(["docs", "--workspace", "."], { cwd: root }),
 		);
 		assert.equal(docs.status, "SUCCEEDED");
 		assert.match(
@@ -153,25 +153,25 @@ test("simulated human Golden Path runs install → status → setup → docs →
 		);
 
 		const started = parse(
-			await runCli(["start", "--workspace", ".", "--json"], { cwd: root }),
+			await runCli(["start", "--workspace", "."], { cwd: root }),
 		);
 		assert.equal(started.status, "SUCCEEDED");
 		const running = parse(
-			await runCli(["status", "--workspace", ".", "--json"], { cwd: root }),
+			await runCli(["status", "--workspace", "."], { cwd: root }),
 		);
 		assert.equal(running.data?.modules?.[0]?.runtimeStatus, "RUNNING");
 
 		const stopped = parse(
-			await runCli(["stop", "--workspace", ".", "--json"], { cwd: root }),
+			await runCli(["stop", "--workspace", "."], { cwd: root }),
 		);
 		assert.equal(stopped.status, "SUCCEEDED");
 		const afterStop = parse(
-			await runCli(["status", "--workspace", ".", "--json"], { cwd: root }),
+			await runCli(["status", "--workspace", "."], { cwd: root }),
 		);
 		assert.equal(afterStop.data?.modules?.[0]?.runtimeStatus, "STOPPED");
 
 		const uninstalled = parse(
-			await runCli(["uninstall", "--workspace", ".", "--json"], {
+			await runCli(["uninstall", "--workspace", "."], {
 				cwd: root,
 				packageRunner: runtime.packageRunner,
 				executableAvailable: () => true,

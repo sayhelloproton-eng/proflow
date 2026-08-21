@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 119,
-    "testCalls": 500
+    "files": 121,
+    "testCalls": 506
   },
   "tests": [
     {
@@ -1444,7 +1444,7 @@
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
       "line": 259,
-      "title": "C2 accepts CLI-specific structured machine JSON and rejects non-object output",
+      "title": "C2 accepts a typed runCli outcome and rejects non-object output",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1456,7 +1456,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 285,
+      "line": 282,
       "title": "CP-DPL-CONF-03 C3 rejects side effects and fake external availability without invoking undeclared lifecycle",
       "ids": [
         "CP-DPL-CONF-03"
@@ -1471,7 +1471,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 387,
+      "line": 384,
       "title": "remediation C3 rejects result identity drift and effects outside the descriptor",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1484,7 +1484,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/deployment-conformance.test.ts",
-      "line": 512,
+      "line": 509,
       "title": "CP-DPL-CONF-04 enforces GPT Actions and File Bridge frozen limits",
       "ids": [
         "CP-DPL-CONF-04"
@@ -4617,7 +4617,18 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 37,
+      "line": 39,
+      "title": "docs and setup plan boundaries require executable structured content",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "module-contract",
+      "path": "packages/module-contract/tests/module-contract.test.ts",
+      "line": 76,
       "title": "CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete boundary",
       "ids": [
         "CP-DPL-CON-01"
@@ -4630,7 +4641,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 72,
+      "line": 111,
       "title": "CP-DPL-CON-02 distinguishes moduleRef and secretRef and rejects unsafe combinations",
       "ids": [
         "CP-DPL-CON-02"
@@ -4643,7 +4654,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 110,
+      "line": 149,
       "title": "CP-DPL-CON-03 requirement queries are deterministic and side-effect free",
       "ids": [
         "CP-DPL-CON-03"
@@ -4656,7 +4667,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 120,
+      "line": 159,
       "title": "CP-DPL-CON-04 standard management is fixed at seven commands and legacy lifecycle fields are rejected",
       "ids": [
         "CP-DPL-CON-04"
@@ -4669,7 +4680,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 149,
+      "line": 188,
       "title": "CP-DPL-CON-04 Module results reject Platform-only BLOCKED outcomes",
       "ids": [
         "CP-DPL-CON-04"
@@ -4682,7 +4693,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 162,
+      "line": 201,
       "title": "CP-DPL-CON-05 compatibility distinguishes additive and breaking changes",
       "ids": [
         "CP-DPL-CON-05"
@@ -4904,7 +4915,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 156,
+      "line": 155,
       "title": "CP-DPL-TPL-03 generated TypeScript packages pass strict tsc with typed public boundaries",
       "ids": [
         "CP-DPL-TPL-03"
@@ -4918,7 +4929,7 @@
     {
       "package": "module-template",
       "path": "packages/module-template/tests/module-template.test.ts",
-      "line": 195,
+      "line": 194,
       "title": "CP-DPL-TPL-04 migration is conditional and always requires re-conformance",
       "ids": [
         "CP-DPL-TPL-04"
@@ -5012,7 +5023,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/docs.test.ts",
-      "line": 9,
+      "line": 12,
       "title": "platform docs forwards Module.docs result instead of reading package prose itself",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5022,8 +5033,41 @@
     },
     {
       "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 6,
+      "title": "public --json is rejected and runCli returns a typed object",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 13,
+      "title": "human status output translates every public status enum",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 59,
+      "title": "help contains explanations and no raw JSON input route",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 115,
+      "line": 118,
       "title": "install rejects invalid existing Workspace metadata before external discovery or mutation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5034,7 +5078,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 186,
+      "line": 189,
       "title": "install synchronizes the complete Registry package set in one transaction",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5045,7 +5089,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 244,
+      "line": 261,
       "title": "uninstall removes ProFlow dependencies and preserves .proflow",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5056,7 +5100,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 276,
+      "line": 293,
       "title": "uninstall never removes packages after a Module.uninstall failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5067,7 +5111,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 332,
+      "line": 349,
       "title": "all operational commands accept --workspace while positional module arguments remain invalid",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5155,7 +5199,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 192,
+      "line": 195,
       "title": "start gates on Module.status setup READY and never runs preflight",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5169,7 +5213,21 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 210,
+      "line": 220,
+      "title": "start and stop retries skip runtime states already reached",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 242,
       "title": "successful start and stop preserve dependency and reverse dependency order",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5183,7 +5241,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 236,
+      "line": 271,
       "title": "start performs zero starts when a Module reports FAILED setup status",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5197,7 +5255,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 254,
+      "line": 289,
       "title": "start fails fast during execution without starting later Modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5211,7 +5269,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 270,
+      "line": 305,
       "title": "stop runs in reverse dependency order and fails fast",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5225,7 +5283,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 280,
+      "line": 317,
       "title": "uninstall runs in reverse dependency order and fails fast",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5239,7 +5297,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 296,
+      "line": 333,
       "title": "setup skips READY modules and invokes only ACTION_REQUIRED module",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5253,7 +5311,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 306,
+      "line": 343,
       "title": "setup aggregates every non-ready Module instead of stopping at the first action",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5267,7 +5325,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 332,
+      "line": 369,
       "title": "targeted setup forwards opaque input without Platform interpretation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5281,7 +5339,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 346,
+      "line": 383,
       "title": "setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5295,7 +5353,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 9,
+      "line": 12,
       "title": "platform status aggregates only Module-owned setup/runtime status",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5306,7 +5364,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 36,
+      "line": 40,
       "title": "platform status ignores obsolete config and all removed routes remain invalid",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5317,12 +5375,23 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 69,
+      "line": 74,
       "title": "platform setup human output preserves all actions when the aggregate also contains machine failures",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/pnpm-policy.test.ts",
+      "line": 13,
+      "title": "uninstall policy cleanup removes only install-introduced pnpm exclusions",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/install/pnpm-policy.ts"
       ]
     },
     {
@@ -5944,7 +6013,7 @@
     {
       "package": "task-migration-runner",
       "path": "packages/task-migration-runner/tests/migration-critical-proofs.test.ts",
-      "line": 575,
+      "line": 573,
       "title": "remediation T06 status is non-mutating and verify detects name and schema drift",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5956,7 +6025,7 @@
     {
       "package": "task-migration-runner",
       "path": "packages/task-migration-runner/tests/migration-critical-proofs.test.ts",
-      "line": 615,
+      "line": 613,
       "title": "deployment adapter drives real migration status/migrate and exposes migrated reality",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

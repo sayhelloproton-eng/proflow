@@ -565,9 +565,7 @@ test("CP-TASK-MIG-04 public apply/status/verify and machine CLI expose execution
 		verifyMigrations({ databasePath, migrations: taskMigrations }).contract,
 		"task-migration",
 	);
-	const cli = JSON.parse(
-		await runCli(["--json", "status", "--database", databasePath]),
-	) as { contract: string; status: string };
+	const cli = await runCli(["status", "--database", databasePath]);
 	assert.equal(cli.contract, "deployment.result.v1");
 	assert.equal(cli.status, "SUCCEEDED");
 });

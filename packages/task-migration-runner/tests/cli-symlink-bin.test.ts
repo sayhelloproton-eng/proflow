@@ -20,13 +20,7 @@ test("public migration CLI executes when launched through a node_modules/.bin-st
 		{ encoding: "utf8" },
 	);
 	assert.equal(result.status, 0, result.stderr);
-	const output = JSON.parse(result.stdout) as {
-		contract?: string;
-		ok?: boolean;
-		status?: string;
-	};
-	assert.equal(output.contract, "deployment.result.v1");
-	assert.equal(output.ok, true);
-	assert.equal(output.status, "SUCCEEDED");
+	assert.match(result.stdout, /迁移已完成/);
+	assert.doesNotMatch(result.stdout, /^\s*[{[]/);
 	await access(databasePath);
 });

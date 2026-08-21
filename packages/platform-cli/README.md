@@ -51,7 +51,7 @@ There is no Platform-derived configuration status, missing-input list, overall r
 
 `platform setup` scans all discovered Modules in dependency order. It skips `READY` Modules, invokes `Module.setup` for every non-ready Module, continues after `ACTION_REQUIRED` or `FAILED`, and returns one complete aggregate.
 
-Targeted `platform setup --module <moduleRef> --input '<json>'` forwards opaque input to the owning Module. Platform neither interprets that input nor creates Module-specific instructions.
+Targeted `platform setup --module <moduleRef>` re-observes one Module. Human or AI input is collected by the package-owned setup command shown by `platform setup`; Platform does not accept raw JSON input.
 
 ## Docs
 

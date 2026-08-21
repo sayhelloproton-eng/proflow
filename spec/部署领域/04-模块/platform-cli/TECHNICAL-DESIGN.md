@@ -83,7 +83,7 @@ Discover all Modules
 
 全量 setup 不得 fail-fast。其目的不是替 Module 决策，而是让 AI/用户一次看到当前所有 Module 的可执行引导和机器 blocker，减少反复运行命令才能知道下一件事的往返成本。
 
-Platform 原样保留 Module 返回的 `actionRequired/error/data`，但不理解 Microsoft、Chrome、Custom GPT、Tunnel、Model 等具体步骤，也不生成 module-specific instructions。`platform setup --module <moduleRef> --input <opaque-json>` 只作为某个 Module 接收后续最小人工输入的定向入口；它不是默认 discovery 流程，Platform 不解释 `input`。
+Platform 原样保留并校验 Module 返回的结构化 setup steps，但不理解 Microsoft、Chrome、Custom GPT、Tunnel、Model 等业务事实。`platform setup --module <moduleRef>` 只定向重新观察某个 Module；人工或 AI 输入由 Module-owning setup CLI 通过明确参数收集，Platform 不接受原始 JSON input。
 
 Module 的 setup 实现必须优先自动执行所有 machine-owned 步骤，只把真正的用户/外部选择留给 `ACTION_REQUIRED`。Platform 不允许因“方便引导”重新变成 config bus。
 

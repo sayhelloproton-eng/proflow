@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { inspectDurableRoleRegistration } from "@tomflow/proflow-agent-runtime";
@@ -11,6 +12,25 @@ const base = {
 	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
+} as const;
+const setupPlan = {
+	steps: [
+		{
+			id: "STEP-AGENT-TEST-OPS-01",
+			title: "创建并注册 Custom GPT",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "proflow-agent-test-ops setup",
+				nonInteractive: "proflow-agent-test-ops setup --carrier-url <url>",
+			},
+			requiredInputs: [
+				{ name: "carrierUrl", description: "Custom GPT URL", sensitive: false },
+			],
+			verify: "proflow-agent-test-ops verify",
+			successCondition: "配置状态变为“已就绪”",
+		},
+	],
 } as const;
 
 function observeRole(context: ModuleCommandContext) {
@@ -60,6 +80,7 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
+					data: setupPlan,
 					actionRequired: {
 						action,
 						description: `${descriptor.packageName}@${descriptor.moduleVersion} Role is ${reality.status.toLowerCase()}: ${reality.issues.join(", ")}. Run ${descriptor.packageName.replace("@tomflow/", "")} custom-gpt setup --workspace ${JSON.stringify(context.workspaceRoot)}; create/update the real Custom GPT; then run ${descriptor.packageName.replace("@tomflow/", "")} role register <gpt-url> --workspace ${JSON.stringify(context.workspaceRoot)} and rerun platform setup.`,
@@ -83,7 +104,12 @@ export const behaviorAdapter = {
 		};
 	},
 	docs: () => ({
-		result: { ...base, data: descriptor.documentation },
+		result: {
+			...base,
+			data: {
+				docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+			},
+		},
 		observedEffects: [] as string[],
 	}),
 	start: success,

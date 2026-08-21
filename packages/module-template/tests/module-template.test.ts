@@ -144,11 +144,10 @@ test("CP-DPL-TPL-02 + CP-DPL-TPL-05 + RF-DPL-TPL-05 emits minimum metadata and h
 			join(result.packageDirectory, "SETUP.md"),
 			"utf8",
 		);
-		assert.match(setupGuide, /fewest user actions/);
-		assert.match(
-			setupGuide,
-			/package-owned executable command or verification command/,
-		);
+		assert.match(setupGuide, /Interactive executable:/);
+		assert.match(setupGuide, /Non-interactive executable:/);
+		assert.match(setupGuide, /Required inputs:/);
+		assert.match(setupGuide, /Verify:/);
 		assert.match(setupGuide, /setupStatus=READY/);
 	}
 });

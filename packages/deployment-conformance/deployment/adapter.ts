@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { descriptor } from "./descriptor.ts";
 
 const base = {
@@ -25,7 +26,12 @@ export const behaviorAdapter = {
 	}),
 	setup: success,
 	docs: () => ({
-		result: { ...base, data: descriptor.documentation },
+		result: {
+			...base,
+			data: {
+				docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+			},
+		},
 		observedEffects: [] as string[],
 	}),
 	start: success,

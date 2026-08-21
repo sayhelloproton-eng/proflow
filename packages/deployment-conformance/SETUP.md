@@ -1,19 +1,10 @@
 # @tomflow/proflow-deployment-conformance — Module Setup
 
-## Goal
+## STEP-DEPLOYMENT-CONFORMANCE-01 — 完成模块自动配置
 
-Reach `setupStatus=READY` without user configuration.
-
-## Step 1 — Materialize deterministic state
-
-**Type:** automatic
-**Executable:** `platform install`
-**What happens:** the Module install seam completes deterministic preparation; no private path, endpoint, token or shared fact is requested from the user.
-
-## Step 2 — Verify completion
-
-**Type:** automatic verification
-**Verify:** `platform status`
-**Success condition:** `deployment-conformance.setupStatus=READY`.
-
-No human or external setup action is required.
+Responsible: AI
+Interactive executable: `platform setup --module deployment-conformance`
+Non-interactive executable: `platform setup --module deployment-conformance`
+Required inputs: none
+Verify: `platform status`
+Success condition: `deployment-conformance.setupStatus=READY`.

@@ -1,16 +1,65 @@
 #!/usr/bin/env node
+import { createInterface } from "node:readline/promises";
+import { behaviorAdapter } from "../deployment/adapter.ts";
 import {
 	createModelRuntimeProcess,
 	loadModelRuntimeProcessConfig,
 } from "./process.ts";
 
 async function main(): Promise<void> {
-	const [command, configPath] = process.argv.slice(2);
+	const args = process.argv.slice(2);
+	const [command, configPath] = args;
+	const option = (name: string) => {
+		const index = args.indexOf(name);
+		return index >= 0 ? args[index + 1] : undefined;
+	};
+	if (args.includes("--json")) throw new Error("不支持的选项 --json");
 	if (command === "--help" || command === "-h") {
 		process.stdout.write(
-			"Usage: proflow-model-runtime start /absolute/config.json\\n",
+			"用法：proflow-model-runtime setup [--fast-model <id> --reason-model <id>]\n      proflow-model-runtime verify\n      proflow-model-runtime start /absolute/config.json\n",
 		);
 		process.exit(0);
+	}
+	if (command === "setup") {
+		let fastModel = option("--fast-model"),
+			reasonModel = option("--reason-model");
+		if ((!fastModel || !reasonModel) && !process.stdin.isTTY)
+			throw new Error("非交互环境必须提供 --fast-model 和 --reason-model");
+		if (!fastModel || !reasonModel) {
+			const prompt = createInterface({
+				input: process.stdin,
+				output: process.stdout,
+			});
+			try {
+				fastModel ||= await prompt.question("FAST 模型 ID：");
+				reasonModel ||= await prompt.question("REASON 模型 ID：");
+			} finally {
+				prompt.close();
+			}
+		}
+		const result = await behaviorAdapter.setup({
+			workspaceRoot: option("--workspace") ?? process.cwd(),
+			input: { fastModel, reasonModel },
+		});
+		process.stdout.write(
+			result.result.status === "SUCCEEDED"
+				? "模型角色配置完成。\n"
+				: "模型角色配置尚未就绪，请先完成上游模型服务配置。\n",
+		);
+		if (result.result.status === "FAILED") process.exitCode = 1;
+		return;
+	}
+	if (command === "verify") {
+		const result = await behaviorAdapter.status({
+			workspaceRoot: option("--workspace") ?? process.cwd(),
+		});
+		process.stdout.write(
+			result.result.data.setupStatus === "READY"
+				? "验证通过。\n"
+				: "验证未通过：配置尚未就绪。\n",
+		);
+		if (result.result.data.setupStatus !== "READY") process.exitCode = 1;
+		return;
 	}
 	if (command !== "start" || !configPath)
 		throw new Error("Usage: proflow-model-runtime start /absolute/config.json");

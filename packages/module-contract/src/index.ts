@@ -190,6 +190,48 @@ export type ModuleStatusObservation = z.infer<
 	typeof moduleStatusObservationSchema
 >;
 
+export const moduleDocsDataSchema = z.strictObject({
+	docs: z.string().min(1),
+});
+export type ModuleDocsData = z.infer<typeof moduleDocsDataSchema>;
+
+export const moduleSetupStepSchema = z
+	.strictObject({
+		id: z.string().regex(/^STEP-[A-Z0-9-]+-[0-9]{2}$/),
+		title: z.string().min(1),
+		state: z.enum(["TODO", "BLOCKED"]),
+		responsible: z.enum(["AI", "USER", "EXTERNAL"]),
+		execution: z.strictObject({
+			interactive: z.string().min(1),
+			nonInteractive: z.string().min(1),
+		}),
+		requiredInputs: z.array(
+			z.strictObject({
+				name: identifier,
+				description: z.string().min(1),
+				sensitive: z.boolean(),
+			}),
+		),
+		verify: z.string().min(1),
+		successCondition: z.string().min(1),
+		blockedReason: z.string().min(1).optional(),
+	})
+	.superRefine((step, context) => {
+		if (step.state === "BLOCKED" && step.blockedReason === undefined) {
+			context.addIssue({
+				code: "custom",
+				message: "BLOCKED setup step requires blockedReason",
+				path: ["blockedReason"],
+			});
+		}
+	});
+export type ModuleSetupStep = z.infer<typeof moduleSetupStepSchema>;
+
+export const moduleSetupPlanDataSchema = z.strictObject({
+	steps: z.array(moduleSetupStepSchema).min(1),
+});
+export type ModuleSetupPlanData = z.infer<typeof moduleSetupPlanDataSchema>;
+
 export const standardModuleManagementCommands = [
 	"install",
 	"uninstall",

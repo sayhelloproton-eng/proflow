@@ -1,19 +1,10 @@
 # @tomflow/proflow-module-contract — Module Setup
 
-## Goal
+## STEP-MODULE-CONTRACT-01 — 完成模块自动配置
 
-Reach `setupStatus=READY` with zero user configuration.
-
-## Step 1 — Materialize deterministic state
-
-**Type:** automatic
-**Executable:** `platform install`
-**What happens:** Module contract/schema package; deterministic package materialization only. The user is never asked for private paths, loopback endpoints, token files, artifact paths or producer-owned shared facts.
-
-## Step 2 — Re-observe setup state
-
-**Type:** automatic verification
-**Verify:** `platform status`
-**Success condition:** `module-contract.setupStatus=READY`.
-
-No human or external setup action is required. If a machine-owned dependency is unavailable, the Module must report `FAILED` rather than converting it into user configuration.
+Responsible: AI
+Interactive executable: `platform setup --module module-contract`
+Non-interactive executable: `platform setup --module module-contract`
+Required inputs: none
+Verify: `platform status`
+Success condition: `module-contract.setupStatus=READY`.

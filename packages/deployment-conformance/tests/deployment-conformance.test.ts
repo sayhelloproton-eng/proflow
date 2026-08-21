@@ -256,12 +256,12 @@ test("CP-DPL-CONF-02 + CP-DPL-CONF-05 + RF-DPL-CONF-05 C2 inspects package form 
 	await writeFile(setupPath, setupOriginal);
 });
 
-test("C2 accepts CLI-specific structured machine JSON and rejects non-object output", async (context) => {
+test("C2 accepts a typed runCli outcome and rejects non-object output", async (context) => {
 	const generated = await generatedCli(context);
 	const cliPath = join(generated.packageDirectory, "dist/src/cli.js");
 	await writeFile(
 		cliPath,
-		'export async function runCli() { return JSON.stringify({ command: "help", status: "SUCCEEDED", data: { usage: "fixture" } }); }\n',
+		'export async function runCli() { return { command: "help", status: "SUCCEEDED", data: { usage: "fixture" } }; }\n',
 	);
 	let result = await runPackageConformance(
 		generated.packageDirectory,
@@ -269,10 +269,7 @@ test("C2 accepts CLI-specific structured machine JSON and rejects non-object out
 	);
 	assert.equal(result.status, "PASS");
 
-	await writeFile(
-		cliPath,
-		"export async function runCli() { return JSON.stringify([]); }\n",
-	);
+	await writeFile(cliPath, "export async function runCli() { return []; }\n");
 	result = await runPackageConformance(
 		generated.packageDirectory,
 		generated.descriptor,

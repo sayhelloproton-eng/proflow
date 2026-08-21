@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import {
@@ -20,6 +20,24 @@ const base = {
 	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
+} as const;
+const blockedSetupPlan = {
+	steps: [
+		{
+			id: "STEP-AGENT-GATEWAY-01",
+			title: "等待公开入口与 Platform Host",
+			state: "BLOCKED",
+			responsible: "EXTERNAL",
+			execution: {
+				interactive: "platform setup --module agent-gateway",
+				nonInteractive: "platform setup --module agent-gateway",
+			},
+			requiredInputs: [],
+			verify: "platform status",
+			successCondition: "配置状态变为“已就绪”",
+			blockedReason: "public-ingress 或 platform-host 的共享事实尚不可用",
+		},
+	],
 } as const;
 const key = (context: ModuleCommandContext) => resolve(context.workspaceRoot);
 const factString = (
@@ -136,14 +154,22 @@ export const behaviorAdapter = {
 	setup: async (context: ModuleCommandContext) => ({
 		result: (await dependencies(context))
 			? base
-			: failed(
-					"SETUP_FAILED",
-					"public-ingress or platform-host producer shared facts are unavailable",
-				),
+			: {
+					...failed(
+						"SETUP_FAILED",
+						"public-ingress or platform-host producer shared facts are unavailable",
+					),
+					data: blockedSetupPlan,
+				},
 		observedEffects: [],
 	}),
 	docs: async (_context: ModuleCommandContext) => ({
-		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		result: {
+			...base,
+			data: {
+				docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+			},
+		},
 		observedEffects: [],
 	}),
 	start: async (context: ModuleCommandContext) => {

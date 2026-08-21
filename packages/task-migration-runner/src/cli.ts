@@ -10,7 +10,12 @@ if (
 	import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
 ) {
 	const output = await runCli(process.argv.slice(2));
-	process.stdout.write(`${output}\n`);
-	if ((JSON.parse(output) as { ok?: boolean }).ok !== true)
-		process.exitCode = 1;
+	if (output.data?.usage) process.stdout.write(`${output.data.usage}\n`);
+	else
+		process.stdout.write(
+			output.ok
+				? `${output.checks?.[0]?.message === "migrations applied" ? "迁移已完成" : output.checks?.[0]?.message === "migrations verified" ? "迁移验证通过" : "迁移状态可读取"}\n`
+				: `迁移失败：${output.error?.message ?? output.checks?.[0]?.message ?? "未知错误"}\n`,
+		);
+	if (!output.ok) process.exitCode = 1;
 }

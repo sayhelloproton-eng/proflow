@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
@@ -17,6 +18,25 @@ const base = {
 	moduleVersion: descriptor.moduleVersion,
 } as const;
 const effect = "Observes the ChatGPT Custom GPT carrier";
+const setupPlan = {
+	steps: [
+		{
+			id: "STEP-CHATGPT-CARRIER-01",
+			title: "创建或选择 Custom GPT",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "proflow-chatgpt-carrier setup",
+				nonInteractive: "proflow-chatgpt-carrier setup --carrier-url <url>",
+			},
+			requiredInputs: [
+				{ name: "carrierUrl", description: "Custom GPT URL", sensitive: false },
+			],
+			verify: "proflow-chatgpt-carrier verify",
+			successCondition: "配置状态变为“已就绪”",
+		},
+	],
+} as const;
 type CarrierState = {
 	contract: "proflow.chatgpt-carrier-state.v1";
 	carrierUrl: string;
@@ -218,9 +238,11 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
+					data: setupPlan,
 					actionRequired: {
 						action: "materialize-custom-gpt-carrier",
-						description: `Create or select the real Custom GPT, then run platform setup --module chatgpt-carrier --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"carrierUrl":"<gpt-url>"}'.`,
+						description:
+							"Create or select the real Custom GPT, then run proflow-chatgpt-carrier setup --carrier-url <gpt-url>.",
 					},
 				},
 				observedEffects: [],
@@ -231,9 +253,11 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
+					data: setupPlan,
 					actionRequired: {
 						action: "correct-carrier-url",
-						description: `carrierUrl must be a real https://chatgpt.com/g/... URL. Rerun platform setup --module chatgpt-carrier --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"carrierUrl":"<gpt-url>"}'.`,
+						description:
+							"carrierUrl must be a real https://chatgpt.com/g/... URL. Rerun proflow-chatgpt-carrier setup --carrier-url <gpt-url>.",
 					},
 				},
 				observedEffects: [],
@@ -271,6 +295,7 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
+					data: setupPlan,
 					actionRequired: {
 						action: "verify-carrier",
 						description:
@@ -288,6 +313,7 @@ export const behaviorAdapter = {
 						...base,
 						ok: false as const,
 						status: "ACTION_REQUIRED" as const,
+						data: setupPlan,
 						actionRequired: {
 							action: "repair-carrier",
 							description: carrier.message,
@@ -297,7 +323,12 @@ export const behaviorAdapter = {
 		};
 	},
 	docs: async (_context: ModuleCommandContext) => ({
-		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		result: {
+			...base,
+			data: {
+				docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+			},
+		},
 		observedEffects: [],
 	}),
 	start: async (context: ModuleCommandContext) => {

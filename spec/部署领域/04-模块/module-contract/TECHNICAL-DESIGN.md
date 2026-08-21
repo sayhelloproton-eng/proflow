@@ -92,12 +92,14 @@ interface ModuleStatusObservation {
 
 Module 结构化 operation result 只允许 `SUCCEEDED/ACTION_REQUIRED/FAILED`。`ACTION_REQUIRED` 只用于真实人工或外部参与；Module 本应自闭环却失败时必须返回 `FAILED`。`BLOCKED` 仅属于 Platform orchestration/aggregation outcome，不得由 Module operation result 返回。
 
-`ACTION_REQUIRED` 必须是**可执行引导**而不是状态标签：owner 应在现有 `actionRequired.action/description`（以及必要时 owner-defined `data`）中给出当前 Step、最小人工输入和 package-owned executable/verify。Platform 只透传/聚合，不解析这些 Module-specific 内容。
+`ACTION_REQUIRED` 必须是**可执行引导**而不是状态标签。`data` 必须通过 `ModuleSetupPlanData` 返回全部剩余 `TODO`；`FAILED` 必须至少返回一个带 `blockedReason` 的 `BLOCKED` Step。每个 Step 固定包含唯一 ID、标题、责任方、人工命令、AI 非交互命令、最小输入、verify 与 success condition。Platform 只校验、排序和翻译公共字段，不保存输入。
+
+`Module.docs` 的 `data` 固定为 `{ docs: string }`，其中 `docs` 是 `DOCS.md` 正文，不是文件名或 documentation index；不得混入 `SETUP.md`。
 ## 9. Documentation
 
 标准知识文件固定为 `DOCS.md` 与 `SETUP.md`。`docs` 返回 Module-owned knowledge；`setup` 根据真实状态给出当前动作。Schema/descriptor 不是第三份指导文档。
 
-`SETUP.md` 的最小闭环结构为：`Step ID/Goal → Executable → Human Action(可选) → Verify → Success Condition`。Executable/Verify 必须属于 package owner；允许同一个命令同时完成 prepare/apply/verify，优先减少步骤和用户往返。
+`SETUP.md` 的最小闭环结构为：`Step ID → Responsible → Interactive executable → Non-interactive executable → Required inputs → Verify → Success condition`。文档命令必须与 adapter 返回的结构化 Step 一致；禁止只写“配置后重试”的 prose。
 
 ## 10. Static descriptor
 

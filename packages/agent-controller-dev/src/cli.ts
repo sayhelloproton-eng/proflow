@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -8,7 +9,7 @@ import {
 	createWorkspaceRoleSetupClient,
 	validateRoleCarrier,
 } from "@tomflow/proflow-agent-runtime/role-management-client";
-
+import { behaviorAdapter } from "../deployment/adapter.ts";
 import { materializeAgentPackage } from "./index.ts";
 
 const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -142,8 +143,43 @@ async function runRoleCommand() {
 	process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
+if (args.includes("--json")) throw new Error("不支持的选项 --json");
 if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 	help();
+} else if (args[0] === "setup") {
+	const workspace = workspaceRoot() ?? process.cwd();
+	let carrierUrl = option("--carrier-url");
+	if (!carrierUrl && !process.stdin.isTTY)
+		throw new Error("非交互环境必须提供 --carrier-url");
+	if (!carrierUrl) {
+		const prompt = createInterface({
+			input: process.stdin,
+			output: process.stdout,
+		});
+		try {
+			carrierUrl = await prompt.question("Custom GPT URL：");
+		} finally {
+			prompt.close();
+		}
+	}
+	const roleRef = roleRefFromCarrierUrl(carrierUrl);
+	await (await createWorkspaceRoleSetupClient(workspace)).registerRole({
+		agentPackageRef: material.packageName,
+		registeredPackageVersion: material.version,
+		roleRef,
+		carrierUrl,
+	});
+	process.stdout.write("Custom GPT Role 已注册。\n");
+} else if (args[0] === "verify") {
+	const result = behaviorAdapter.status({
+		workspaceRoot: workspaceRoot() ?? process.cwd(),
+	});
+	process.stdout.write(
+		result.result.data.setupStatus === "READY"
+			? "验证通过。\n"
+			: "验证未通过：Role 尚未就绪。\n",
+	);
+	if (result.result.data.setupStatus !== "READY") process.exitCode = 1;
 } else if (args[0] === "role") {
 	await runRoleCommand();
 } else if (args[0] === "custom-gpt") {

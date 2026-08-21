@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
@@ -14,6 +15,31 @@ const base = {
 	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
+} as const;
+const setupPlan = {
+	steps: [
+		{
+			id: "STEP-DEV-TUNNEL-01",
+			title: "选择或创建持久 Tunnel",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "proflow-dev-tunnel setup",
+				nonInteractive:
+					"proflow-dev-tunnel setup --tunnel-id <id> --public-base-url <url>",
+			},
+			requiredInputs: [
+				{ name: "tunnelId", description: "Tunnel ID", sensitive: false },
+				{
+					name: "publicBaseUrl",
+					description: "公开 HTTPS URL",
+					sensitive: false,
+				},
+			],
+			verify: "proflow-dev-tunnel verify",
+			successCondition: "配置状态变为“已就绪”",
+		},
+	],
 } as const;
 const processEffect = "Manage the dev-tunnel public ingress process";
 type SetupState = {
@@ -198,6 +224,7 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
+					data: setupPlan,
 					actionRequired: {
 						action: "complete-tunnel-login",
 						description: `Run devtunnel user login, complete Microsoft authentication, then rerun platform setup --module dev-tunnel --workspace ${JSON.stringify(context.workspaceRoot)}.`,
@@ -214,9 +241,11 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
+					data: setupPlan,
 					actionRequired: {
 						action: "select-or-create-tunnel",
-						description: `Create/select the persistent tunnel (for example devtunnel create <tunnel-id>), then run platform setup --module dev-tunnel --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"tunnelId":"<id>","publicBaseUrl":"https://<host>"}'.`,
+						description:
+							"Create/select the persistent tunnel, then run proflow-dev-tunnel setup --tunnel-id <id> --public-base-url <url>.",
 					},
 				},
 				observedEffects: [],
@@ -242,6 +271,7 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
+					data: setupPlan,
 					actionRequired: {
 						action: "correct-tunnel-facts",
 						description:
@@ -255,7 +285,12 @@ export const behaviorAdapter = {
 		}
 	},
 	docs: async (_context: ModuleCommandContext) => ({
-		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		result: {
+			...base,
+			data: {
+				docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+			},
+		},
 		observedEffects: [],
 	}),
 	start: async (context: ModuleCommandContext) => {

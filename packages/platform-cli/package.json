@@ -8,6 +8,7 @@
 	"exports": {
 		".": "./dist/src/index.js",
 		"./cli": "./dist/src/cli.js",
+		"./command": "./dist/src/command.js",
 		"./deployment/adapter": "./dist/deployment/adapter.js",
 		"./deployment/descriptor": "./dist/deployment/descriptor.js"
 	},

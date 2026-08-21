@@ -5,7 +5,9 @@ import {
 	assessModuleCompatibility,
 	type ModuleDescriptor,
 	moduleDescriptorSchema,
+	moduleDocsDataSchema,
 	moduleOperationResultSchema,
+	moduleSetupPlanDataSchema,
 	parseModuleDescriptor,
 	queryRequirements,
 	standardModuleManagementCommands,
@@ -33,6 +35,43 @@ const libraryDescriptor = {
 	effects: [],
 	documentation: { docs: "DOCS.md", setup: "SETUP.md" },
 } as const satisfies ModuleDescriptor;
+
+test("docs and setup plan boundaries require executable structured content", () => {
+	assert.equal(
+		moduleDocsDataSchema.safeParse({ docs: "# Capability\n" }).success,
+		true,
+	);
+	assert.equal(
+		moduleDocsDataSchema.safeParse({ docs: "DOCS.md", setup: "SETUP.md" })
+			.success,
+		false,
+	);
+	const step = {
+		id: "STEP-EXAMPLE-01",
+		title: "配置",
+		state: "TODO",
+		responsible: "USER",
+		execution: {
+			interactive: "proflow-example setup",
+			nonInteractive: "proflow-example setup --value <value>",
+		},
+		requiredInputs: [
+			{ name: "value", description: "配置值", sensitive: false },
+		],
+		verify: "proflow-example verify",
+		successCondition: "setupStatus=READY",
+	};
+	assert.equal(
+		moduleSetupPlanDataSchema.safeParse({ steps: [step] }).success,
+		true,
+	);
+	assert.equal(
+		moduleSetupPlanDataSchema.safeParse({
+			steps: [{ ...step, state: "BLOCKED" }],
+		}).success,
+		false,
+	);
+});
 
 test("CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete boundary", () => {
 	const parsed = parseModuleDescriptor(libraryDescriptor);

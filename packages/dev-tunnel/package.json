@@ -5,6 +5,9 @@
 	"publishConfig": {
 		"access": "public"
 	},
+	"bin": {
+		"proflow-dev-tunnel": "./dist/src/cli.js"
+	},
 	"exports": {
 		".": "./dist/src/index.js",
 		"./deployment/adapter": "./dist/deployment/adapter.js",

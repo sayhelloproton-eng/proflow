@@ -454,9 +454,33 @@ export function verifyMigrations(input: MigrationInput): MigrationResult {
 	}
 }
 
-export async function runCli(args: string[]): Promise<string> {
+export interface TaskMigrationCliOutcome {
+	contract: "deployment.result.v1";
+	ok: boolean;
+	status: "SUCCEEDED" | "FAILED";
+	moduleRef: string;
+	moduleVersion: string;
+	data?: { usage: string };
+	checks?: Array<{ id: string; status: "PASS" | "FAIL"; message: string }>;
+	error?: { code: string; message: string; retryable: boolean };
+}
+
+export async function runCli(args: string[]): Promise<TaskMigrationCliOutcome> {
+	if (args.includes("--json"))
+		return {
+			contract: "deployment.result.v1",
+			ok: false,
+			status: "FAILED",
+			moduleRef: moduleDescriptor.moduleRef,
+			moduleVersion: moduleDescriptor.moduleVersion,
+			error: {
+				code: "INVALID_REQUEST",
+				message: "不支持的选项 --json",
+				retryable: false,
+			},
+		};
 	if (args.includes("--help") || args.includes("-h")) {
-		return JSON.stringify({
+		return {
 			contract: "deployment.result.v1",
 			ok: true,
 			status: "SUCCEEDED",
@@ -466,7 +490,7 @@ export async function runCli(args: string[]): Promise<string> {
 				usage:
 					"proflow-task-migrate [apply|status|verify] --database <path> [--legacy-role-map <json>]",
 			},
-		});
+		};
 	}
 	const command =
 		args.find((item) => ["apply", "status", "verify"].includes(item)) ??
@@ -525,7 +549,7 @@ export async function runCli(args: string[]): Promise<string> {
 	} else {
 		getMigrationStatus({ databasePath, migrations: taskMigrations });
 	}
-	return JSON.stringify({
+	return {
 		contract: "deployment.result.v1",
 		ok: success,
 		status: success ? "SUCCEEDED" : "FAILED",
@@ -537,5 +561,5 @@ export async function runCli(args: string[]): Promise<string> {
 		...(success
 			? {}
 			: { error: { code: "COMMAND_FAILED", message, retryable: false } }),
-	});
+	};
 }

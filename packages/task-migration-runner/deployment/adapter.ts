@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
@@ -101,7 +102,12 @@ export const behaviorAdapter = {
 		};
 	},
 	docs: async (_context: ModuleCommandContext) => ({
-		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		result: {
+			...base,
+			data: {
+				docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+			},
+		},
 		observedEffects: [],
 	}),
 	start: async (_context: ModuleCommandContext) => ({

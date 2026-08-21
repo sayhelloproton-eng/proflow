@@ -3,7 +3,11 @@
 import { readFile, realpath, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { moduleStatusObservationSchema } from "@tomflow/proflow-module-contract";
+import {
+	moduleDocsDataSchema,
+	moduleSetupPlanDataSchema,
+	moduleStatusObservationSchema,
+} from "@tomflow/proflow-module-contract";
 import { descriptor as platformCliDescriptor } from "../deployment/descriptor.ts";
 import { AutoModuleCatalog, discoverModules } from "./discovery/discover.ts";
 import { InstalledModuleCatalog } from "./discovery/installed.ts";
@@ -15,6 +19,11 @@ import {
 	syncWorkspacePackages,
 } from "./install/package-manager.ts";
 import {
+	cleanOwnedPnpmPolicy,
+	observeMinimumReleaseAgeExclude,
+	recordPnpmPolicyOwnership,
+} from "./install/pnpm-policy.ts";
+import {
 	installModulesThin,
 	type ModuleBatchResult,
 	observeDocs,
@@ -25,11 +34,13 @@ import {
 	uninstallModulesThin,
 } from "./lifecycle/index.ts";
 import { ensureWorkspaceMetadata } from "./persistence/workspace-metadata.ts";
+import { type PlatformProgressReporter, reportProgress } from "./progress.ts";
 import {
 	discoverRegistryModules,
 	type NpmCommandRunner,
 	PRO_FLOW_PACKAGE_PREFIX,
 } from "./registry/index.ts";
+import { createTerminalProgressReporter } from "./terminal.ts";
 
 const COMMANDS = [
 	"install",
@@ -54,51 +65,29 @@ export interface CliRuntimeOptions {
 	registryRunner?: NpmCommandRunner;
 	packageRunner?: PackageCommandRunner;
 	executableAvailable?: (command: string) => boolean;
+	onProgress?: PlatformProgressReporter;
 }
 interface ParsedArgs {
 	command: Command | "help" | "version";
 	workspace?: string;
 	moduleRef?: string;
-	input?: unknown;
-	json: boolean;
 }
 
 function parseArgs(argv: readonly string[]): ParsedArgs {
-	let json = false,
-		workspace: string | undefined,
-		moduleRef: string | undefined,
-		input: unknown,
-		inputSeen = false;
+	let workspace: string | undefined, moduleRef: string | undefined;
 	let special: "help" | "version" | undefined;
 	const positional: string[] = [];
 	for (let index = 0; index < argv.length; index += 1) {
 		const value = argv[index];
 		if (value === undefined) continue;
-		if (value === "--json") {
-			json = true;
-			continue;
-		}
-		if (
-			value === "--workspace" ||
-			value === "--module" ||
-			value === "--input"
-		) {
+		if (value === "--json")
+			throw new PlatformError("INVALID_REQUEST", "不支持的选项 --json");
+		if (value === "--workspace" || value === "--module") {
 			const next = argv[index + 1];
-			if (!next || (value !== "--input" && next.startsWith("-")))
+			if (!next || next.startsWith("-"))
 				throw new PlatformError("INVALID_REQUEST", `${value} requires a value`);
 			if (value === "--workspace") workspace = next;
 			else if (value === "--module") moduleRef = next;
-			else {
-				try {
-					input = JSON.parse(next);
-					inputSeen = true;
-				} catch (error) {
-					throw new PlatformError(
-						"INVALID_REQUEST",
-						`--input must be valid JSON: ${error instanceof Error ? error.message : String(error)}`,
-					);
-				}
-			}
 			index += 1;
 			continue;
 		}
@@ -118,16 +107,15 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 		if (
 			workspace !== undefined ||
 			moduleRef !== undefined ||
-			inputSeen ||
 			positional.length > 0
 		)
 			throw new PlatformError(
 				"INVALID_REQUEST",
 				`${special} flag cannot be combined with command options`,
 			);
-		return { command: special, json };
+		return { command: special };
 	}
-	if (positional.length === 0) return { command: "help", json };
+	if (positional.length === 0) return { command: "help" };
 	if (positional.length !== 1)
 		throw new PlatformError(
 			"INVALID_REQUEST",
@@ -137,19 +125,15 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 	if (!COMMANDS.includes(raw as Command))
 		throw new PlatformError("INVALID_REQUEST", `unknown command ${raw}`);
 	const command = raw as Command;
-	if ((moduleRef !== undefined || inputSeen) && command !== "setup")
+	if (moduleRef !== undefined && command !== "setup")
 		throw new PlatformError(
 			"INVALID_REQUEST",
-			"--module/--input are only valid with setup",
+			"--module is only valid with setup",
 		);
-	if (inputSeen && moduleRef === undefined)
-		throw new PlatformError("INVALID_REQUEST", "--input requires --module");
 	return {
 		command,
-		json,
 		...(workspace === undefined ? {} : { workspace }),
 		...(moduleRef === undefined ? {} : { moduleRef }),
-		...(inputSeen ? { input } : {}),
 	};
 }
 function outcome(
@@ -214,9 +198,17 @@ function batchStatus(result: ModuleBatchResult): CliStatus {
 	if (statuses.includes("ACTION_REQUIRED")) return "ACTION_REQUIRED";
 	return "FAILED";
 }
-async function handleStatus(root: string): Promise<CliOutcome> {
+async function handleStatus(
+	root: string,
+	runtime: CliRuntimeOptions,
+): Promise<CliOutcome> {
 	const { catalog, modules } = await buildContext(root);
-	const observed = await observeStatuses(catalog, modules, root);
+	const observed = await observeStatuses(
+		catalog,
+		modules,
+		root,
+		runtime.onProgress,
+	);
 	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
 	const output = observed.map((item) => {
 		if (item.result.status !== "SUCCEEDED")
@@ -245,16 +237,43 @@ async function handleStatus(root: string): Promise<CliOutcome> {
 	});
 	return outcome("status", "SUCCEEDED", root, { modules: output });
 }
-async function handleDocs(root: string): Promise<CliOutcome> {
-	const { catalog, modules } = await buildContext(root);
-	const docs = await observeDocs(catalog, modules, root);
-	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
-	return outcome("docs", "SUCCEEDED", root, {
-		modules: docs.map((item) => ({
+async function handleDocs(
+	root: string,
+	runtime: CliRuntimeOptions,
+): Promise<CliOutcome> {
+	const { catalog, modules: resolvedModules } = await buildContext(root);
+	const docs = await observeDocs(
+		catalog,
+		resolvedModules,
+		root,
+		runtime.onProgress,
+	);
+	const byRef = new Map(
+		resolvedModules.map((module) => [module.moduleRef, module]),
+	);
+	const modules: Array<Record<string, unknown>> = [];
+	const errors: Array<Record<string, unknown>> = [];
+	for (const item of docs) {
+		const parsed = moduleDocsDataSchema.safeParse(item.result.data);
+		if (item.result.status !== "SUCCEEDED" || !parsed.success) {
+			errors.push({
+				moduleRef: item.moduleRef,
+				reason:
+					item.result.status !== "SUCCEEDED"
+						? (item.result.error?.message ?? "文档读取失败")
+						: "Module.docs 返回格式无效",
+			});
+			continue;
+		}
+		modules.push({
 			moduleRef: item.moduleRef,
 			version: byRef.get(item.moduleRef)?.moduleVersion,
-			docs: item.result.data,
-		})),
+			docs: parsed.data.docs,
+		});
+	}
+	return outcome("docs", errors.length === 0 ? "SUCCEEDED" : "FAILED", root, {
+		modules,
+		errors,
 	});
 }
 async function validateInstalledPackageSet(
@@ -310,7 +329,19 @@ async function handleInstall(
 	root: string,
 	runtime: CliRuntimeOptions,
 ): Promise<CliOutcome> {
+	reportProgress(runtime.onProgress, {
+		command: "install",
+		phase: "workspace",
+		status: "STARTED",
+		message: "正在校验 Workspace",
+	});
 	const metadata = await ensureWorkspaceMetadata(root);
+	reportProgress(runtime.onProgress, {
+		command: "install",
+		phase: "registry",
+		status: "STARTED",
+		message: "正在发现 Registry 模块",
+	});
 	const discovered = await discoverRegistryModules({
 		workspaceRoot: root,
 		...(runtime.registryRunner === undefined
@@ -328,6 +359,7 @@ async function handleInstall(
 			"no ProFlow packages were discovered in the configured scope",
 		);
 	const previousManaged = await workspaceProFlowDependencies(root);
+	const pnpmPolicyBefore = await observeMinimumReleaseAgeExclude(root);
 	const mutation = await syncWorkspacePackages({
 		workspaceRoot: root,
 		packages: discovered.candidates.map((item) => ({
@@ -341,13 +373,25 @@ async function handleInstall(
 			? {}
 			: { executableAvailable: runtime.executableAvailable }),
 	});
+	reportProgress(runtime.onProgress, {
+		command: "install",
+		phase: "packages",
+		status: "SUCCEEDED",
+		message: "依赖同步完成",
+	});
+	await recordPnpmPolicyOwnership(root, pnpmPolicyBefore);
 	await validateInstalledPackageSet(
 		root,
 		discovered.candidates,
 		previousManaged,
 	);
 	const { catalog, modules } = await buildContext(root);
-	const moduleInstall = await installModulesThin(catalog, modules, root);
+	const moduleInstall = await installModulesThin(
+		catalog,
+		modules,
+		root,
+		runtime.onProgress,
+	);
 	return outcome("install", batchStatus(moduleInstall), root, {
 		registry: discovered.registry,
 		packageManager: mutation.packageManager,
@@ -396,7 +440,12 @@ async function handleUninstall(
 ): Promise<CliOutcome> {
 	const packageNames = await workspaceProFlowDependencies(root);
 	const { catalog, modules } = await buildContext(root);
-	const moduleUninstall = await uninstallModulesThin(catalog, modules, root);
+	const moduleUninstall = await uninstallModulesThin(
+		catalog,
+		modules,
+		root,
+		runtime.onProgress,
+	);
 	if (!moduleUninstall.completed)
 		return outcome("uninstall", batchStatus(moduleUninstall), root, {
 			modules: moduleUninstall,
@@ -412,88 +461,107 @@ async function handleUninstall(
 			? {}
 			: { executableAvailable: runtime.executableAvailable }),
 	});
+	const cleanedPnpmPolicy = await cleanOwnedPnpmPolicy(root);
 	return outcome("uninstall", "SUCCEEDED", root, {
 		modules: moduleUninstall,
 		packageManager: mutation.packageManager,
 		removed: packageNames,
+		cleanedPnpmPolicy,
 		preserved: [".proflow"],
 	});
 }
 async function handleSetup(
 	root: string,
 	parsed: ParsedArgs,
+	runtime: CliRuntimeOptions,
 ): Promise<CliOutcome> {
 	const { catalog, modules } = await buildContext(root);
 	const target =
 		parsed.moduleRef === undefined
 			? undefined
-			: {
-					moduleRef: parsed.moduleRef,
-					...(Object.hasOwn(parsed, "input") ? { input: parsed.input } : {}),
-				};
-	const result = await setupModulesThin(catalog, modules, root, target);
+			: { moduleRef: parsed.moduleRef };
+	const result = await setupModulesThin(
+		catalog,
+		modules,
+		root,
+		target,
+		runtime.onProgress,
+	);
 	return outcome("setup", batchStatus(result), root, result);
 }
-async function handleStart(root: string): Promise<CliOutcome> {
+async function handleStart(
+	root: string,
+	runtime: CliRuntimeOptions,
+): Promise<CliOutcome> {
 	const { catalog, modules } = await buildContext(root);
-	const result = await startModulesThin(catalog, modules, root);
+	const result = await startModulesThin(
+		catalog,
+		modules,
+		root,
+		runtime.onProgress,
+	);
 	return outcome("start", batchStatus(result), root, result);
 }
-async function handleStop(root: string): Promise<CliOutcome> {
+async function handleStop(
+	root: string,
+	runtime: CliRuntimeOptions,
+): Promise<CliOutcome> {
 	const { catalog, modules } = await buildContext(root);
-	const result = await stopModulesThin(catalog, modules, root);
+	const result = await stopModulesThin(
+		catalog,
+		modules,
+		root,
+		runtime.onProgress,
+	);
 	return outcome("stop", batchStatus(result), root, result);
 }
 function helpOutcome(): CliOutcome {
 	return outcome("help", "SUCCEEDED", undefined, {
 		usage:
-			"platform <install|uninstall|status|setup|docs|start|stop> [--workspace <path>] [--json]",
+			"platform <install|uninstall|status|setup|docs|start|stop> [--workspace <path>]",
 		commands: [...COMMANDS],
 		install: "platform install [--workspace <path>]",
-		setup:
-			"platform setup [--workspace <path>] [--module <moduleRef> --input '<json>']",
+		setup: "platform setup [--workspace <path>] [--module <moduleRef>]",
 	});
 }
 export async function runCli(
 	argv: readonly string[],
 	runtime: CliRuntimeOptions = {},
-): Promise<string> {
+): Promise<CliOutcome> {
 	let parsed: ParsedArgs;
 	try {
 		parsed = parseArgs(argv);
 	} catch (error) {
-		return JSON.stringify(errorOutcome("unknown", error));
+		return errorOutcome("unknown", error);
 	}
 	try {
-		if (parsed.command === "help") return JSON.stringify(helpOutcome());
+		if (parsed.command === "help") return helpOutcome();
 		if (parsed.command === "version")
-			return JSON.stringify(
-				outcome("version", "SUCCEEDED", undefined, {
-					version: platformCliDescriptor.moduleVersion,
-				}),
-			);
+			return outcome("version", "SUCCEEDED", undefined, {
+				version: platformCliDescriptor.moduleVersion,
+			});
 		const root = await canonicalWorkspace(
 			runtime.cwd ?? process.cwd(),
 			parsed.workspace,
 		);
 		switch (parsed.command) {
 			case "install":
-				return JSON.stringify(await handleInstall(root, runtime));
+				return await handleInstall(root, runtime);
 			case "uninstall":
-				return JSON.stringify(await handleUninstall(root, runtime));
+				return await handleUninstall(root, runtime);
 			case "status":
-				return JSON.stringify(await handleStatus(root));
+				return await handleStatus(root, runtime);
 			case "setup":
-				return JSON.stringify(await handleSetup(root, parsed));
+				return await handleSetup(root, parsed, runtime);
 			case "docs":
-				return JSON.stringify(await handleDocs(root));
+				return await handleDocs(root, runtime);
 			case "start":
-				return JSON.stringify(await handleStart(root));
+				return await handleStart(root, runtime);
 			case "stop":
-				return JSON.stringify(await handleStop(root));
+				return await handleStop(root, runtime);
 		}
 	} catch (error) {
-		return JSON.stringify(errorOutcome(parsed.command, error));
+		return errorOutcome(parsed.command, error);
 	}
 }
 function errorOutcome(command: string, error: unknown): CliOutcome {
@@ -515,34 +583,92 @@ function errorOutcome(command: string, error: unknown): CliOutcome {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
 function renderStatus(data: unknown) {
-	if (!isRecord(data) || !Array.isArray(data.modules)) return "No modules.";
+	if (!isRecord(data) || !Array.isArray(data.modules)) return "未发现模块。";
+	const setupLabels: Record<string, string> = {
+		READY: "已就绪",
+		ACTION_REQUIRED: "需要操作",
+		FAILED: "失败",
+	};
+	const runtimeLabels: Record<string, string> = {
+		RUNNING: "运行中",
+		STOPPED: "已停止",
+		FAILED: "运行失败",
+		NOT_APPLICABLE: "无独立进程",
+	};
 	return [
-		"ProFlow Modules",
+		"ProFlow 模块状态",
 		"",
+		"模块                         版本       配置状态   运行状态",
 		...data.modules
 			.filter(isRecord)
 			.map(
 				(raw) =>
-					`${String(raw.moduleRef)}  ${String(raw.version)}  setup=${String(raw.setupStatus)}  runtime=${String(raw.runtimeStatus)}`,
+					`${String(raw.moduleRef).padEnd(28)} ${String(raw.version).padEnd(10)} ${(setupLabels[String(raw.setupStatus)] ?? "未知").padEnd(10)} ${runtimeLabels[String(raw.runtimeStatus)] ?? "未知"}`,
 			),
+		"",
+		"需要操作：运行 platform setup",
+		"失败：运行 platform setup 查看原因和修复步骤",
 	].join("\n");
 }
 function renderDocs(data: unknown) {
-	if (!isRecord(data) || !Array.isArray(data.modules)) return "No module docs.";
-	const lines = ["ProFlow Docs"];
+	if (!isRecord(data) || !Array.isArray(data.modules))
+		return "未发现模块文档。";
+	const lines = ["ProFlow 模块文档"];
 	for (const raw of data.modules)
 		if (isRecord(raw))
 			lines.push(
 				"",
 				`## ${String(raw.moduleRef)} @ ${String(raw.version)}`,
-				JSON.stringify(raw.docs ?? {}, null, 2),
+				String(raw.docs ?? ""),
 			);
+	if (Array.isArray(data.errors) && data.errors.length > 0)
+		lines.push(
+			"",
+			"文档读取失败：",
+			...data.errors
+				.filter(isRecord)
+				.map((item) => `- ${String(item.moduleRef)}：${String(item.reason)}`),
+		);
 	return lines.join("\n");
 }
+const setupCommands: Record<string, { ai: string; inputs: string }> = {
+	"chatgpt-carrier": {
+		ai: "proflow-chatgpt-carrier setup --carrier-url <url>",
+		inputs: "Custom GPT URL",
+	},
+	"dev-tunnel": {
+		ai: "proflow-dev-tunnel setup --tunnel-id <id> --public-base-url <url>",
+		inputs: "Tunnel ID、公开 HTTPS URL",
+	},
+	"model-provider-api": {
+		ai: "proflow-model-provider-api setup --provider-base-url <url>",
+		inputs: "模型服务 Base URL",
+	},
+	"model-runtime": {
+		ai: "proflow-model-runtime setup --fast-model <id> --reason-model <id>",
+		inputs: "FAST 模型 ID、REASON 模型 ID",
+	},
+	"execution-browser-extension": {
+		ai: "proflow-execution-browser-extension setup --extension-id <id>",
+		inputs: "Chrome Extension ID",
+	},
+	"agent-controller-dev": {
+		ai: "proflow-agent-controller-dev setup --carrier-url <url>",
+		inputs: "Custom GPT URL",
+	},
+	"agent-product": {
+		ai: "proflow-agent-product setup --carrier-url <url>",
+		inputs: "Custom GPT URL",
+	},
+	"agent-test-ops": {
+		ai: "proflow-agent-test-ops setup --carrier-url <url>",
+		inputs: "Custom GPT URL",
+	},
+};
 function renderSetup(data: unknown) {
 	if (!isRecord(data) || !Array.isArray(data.results))
-		return "No setup actions are required.";
-	const lines = ["ProFlow Setup", ""];
+		return "没有需要执行的配置步骤。";
+	const lines = ["ProFlow 配置", ""];
 	let automatic = 0;
 	let pending = 0;
 	for (const raw of data.results) {
@@ -556,29 +682,55 @@ function renderSetup(data: unknown) {
 			continue;
 		}
 		pending += 1;
-		lines.push(`## ${moduleRef} — ${status}`);
-		const actionRequired = raw.result.actionRequired;
+		lines.push(moduleRef);
+		const plan = moduleSetupPlanDataSchema.safeParse(raw.result.data);
+		if (plan.success) {
+			for (const [index, step] of plan.data.steps.entries()) {
+				lines.push(
+					`  [${step.state} ${index + 1}/${plan.data.steps.length}] ${step.title}`,
+				);
+				lines.push(`  人工执行：${step.execution.interactive}`);
+				lines.push(`  AI 执行：${step.execution.nonInteractive}`);
+				if (step.requiredInputs.length > 0)
+					lines.push(
+						`  需要输入：${step.requiredInputs.map((item) => item.description).join("、")}`,
+					);
+				lines.push(`  验证：${step.verify}`);
+				lines.push(`  完成条件：${step.successCondition}`);
+				if (step.blockedReason) lines.push(`  原因：${step.blockedReason}`);
+			}
+			lines.push("");
+			continue;
+		}
+		lines.push(
+			`  [${status === "FAILED" ? "BLOCKED" : "TODO"} 1/1] ${status === "FAILED" ? "等待上游服务信息" : "完成模块配置"}`,
+		);
 		const error = raw.result.error;
-		if (isRecord(actionRequired)) {
-			if (actionRequired.action !== undefined)
-				lines.push(`Action: ${String(actionRequired.action)}`);
-			if (actionRequired.description !== undefined)
-				lines.push(String(actionRequired.description));
+		if (status !== "FAILED") {
+			const commands = setupCommands[moduleRef] ?? {
+				ai: `proflow-${moduleRef} setup`,
+				inputs: "按命令提示提供",
+			};
+			lines.push(`  人工执行：proflow-${moduleRef} setup`);
+			lines.push(`  AI 执行：${commands.ai}`);
+			lines.push(`  需要输入：${commands.inputs}`);
+			lines.push(`  验证：proflow-${moduleRef} verify`);
+			lines.push("  完成条件：配置状态变为“已就绪”");
 		} else if (isRecord(error)) {
 			const code = error.code === undefined ? "FAILED" : String(error.code);
 			const message =
 				error.message === undefined
 					? "Module setup failed."
 					: String(error.message);
-			lines.push(`Error: ${code} — ${message}`);
-		} else if (raw.result.data !== undefined) {
-			lines.push(JSON.stringify(raw.result.data, null, 2));
+			lines.push(`  原因：${code} — ${message}`);
+			lines.push(`  执行：platform setup --module ${moduleRef}`);
+			lines.push("  完成条件：配置状态变为“已就绪”");
 		}
 		lines.push("");
 	}
-	if (pending === 0) lines.push("All discovered Modules are setup-ready.");
-	if (automatic > 0)
-		lines.push(`Automatically completed in this run: ${automatic}`);
+	if (pending === 0) lines.push("全部模块均已就绪。 ");
+	if (automatic > 0) lines.push(`本次自动完成：${automatic} 个模块`);
+	lines.push(`汇总：${automatic} 个已就绪，${pending} 个待处理`);
 	return lines.join("\n").trimEnd();
 }
 export function renderHumanResult(result: CliOutcome): string {
@@ -588,37 +740,84 @@ export function renderHumanResult(result: CliOutcome): string {
 		Array.isArray(result.data.results)
 	)
 		return renderSetup(result.data);
-	if (result.status === "FAILED")
-		return `${result.command.toUpperCase()} FAILED${result.error ? ` [${result.error.code}] ${result.error.message}` : ""}`;
+	if (result.command === "start" && isRecord(result.data)) {
+		const blockers = Array.isArray(result.data.blockers)
+			? result.data.blockers.filter(isRecord)
+			: [];
+		if (blockers.length > 0)
+			return [
+				"平台未启动：存在未就绪模块",
+				"",
+				...blockers.map(
+					(item) =>
+						`${String(item.moduleRef).padEnd(28)} ${String(item.setupStatus) === "FAILED" ? "失败" : "需要操作"}  配置尚未完成`,
+				),
+				"",
+				`处理方式：platform setup${result.workspaceRoot ? ` --workspace "${result.workspaceRoot}"` : ""}`,
+			].join("\n");
+	}
+	if (result.status === "FAILED" && result.error)
+		return `${result.command} 失败：${result.error.message}`;
 	if (result.command === "help")
 		return [
-			"ProFlow Platform CLI",
+			"ProFlow 平台命令行",
 			"",
-			...COMMANDS.map((command) => `platform ${command}`),
+			"platform install     安装并初始化全部 ProFlow 模块",
+			"platform uninstall   卸载模块包，保留 Workspace 数据",
+			"platform status      查看模块配置与运行状态",
+			"platform setup       自动配置并列出全部剩余步骤",
+			"platform docs        阅读模块能力文档",
+			"platform start       完成全量检查后启动平台",
+			"platform stop        按逆依赖顺序停止平台",
 			"",
-			"platform install --workspace <path>",
-			"platform setup --module <moduleRef> --input '<json>'",
-			"append --json for machine-readable output",
+			"常用参数：--workspace <路径>；setup 还支持 --module <模块名>",
+			"推荐流程：install → status → docs → setup → start → status → stop",
+			"人工配置示例：proflow-chatgpt-carrier setup",
+			"AI 配置示例：proflow-chatgpt-carrier setup --carrier-url <url>",
+			"状态图例：已就绪＝配置完成；需要操作＝需运行 setup；失败＝存在系统阻塞；无独立进程＝无需启动",
 		].join("\n");
 	if (result.command === "version" && isRecord(result.data))
 		return String(result.data.version ?? platformCliDescriptor.moduleVersion);
 	if (result.command === "status") return renderStatus(result.data);
 	if (result.command === "setup") return renderSetup(result.data);
 	if (result.command === "docs") return renderDocs(result.data);
-	return [
-		`${result.command.toUpperCase()} ${result.status}`,
-		...(result.workspaceRoot ? [`Workspace: ${result.workspaceRoot}`] : []),
-		...(result.data === undefined
-			? []
-			: [JSON.stringify(result.data, null, 2)]),
-	].join("\n");
+	if (
+		(result.command === "start" || result.command === "stop") &&
+		isRecord(result.data)
+	) {
+		const skipped = Array.isArray(result.data.skipped)
+			? result.data.skipped.length
+			: 0;
+		const results = Array.isArray(result.data.results)
+			? result.data.results.filter(isRecord)
+			: [];
+		const operations = results.filter(
+			(item) => item.command === result.command,
+		);
+		const succeeded = operations.filter(
+			(item) => isRecord(item.result) && item.result.status === "SUCCEEDED",
+		).length;
+		const failed = operations.find(
+			(item) => isRecord(item.result) && item.result.status !== "SUCCEEDED",
+		);
+		return [
+			`平台${result.command === "start" ? "启动" : "停止"}${failed ? "未完成" : "完成"}`,
+			`成功：${succeeded}，跳过：${skipped}${failed ? `，失败：${String(failed.moduleRef)}` : "，失败：0"}`,
+		].join("\n");
+	}
+	const labels: Record<string, string> = {
+		install: "安装",
+		uninstall: "卸载",
+		start: "启动",
+		stop: "停止",
+	};
+	return `${labels[result.command] ?? result.command}${result.status === "SUCCEEDED" ? "成功" : "未完成"}${result.workspaceRoot ? `\nWorkspace：${result.workspaceRoot}` : ""}`;
 }
 if (import.meta.main) {
 	const argv = process.argv.slice(2);
-	const output = await runCli(argv);
-	const result = JSON.parse(output) as CliOutcome;
-	process.stdout.write(
-		`${argv.includes("--json") ? output : renderHumanResult(result)}\n`,
-	);
+	const result = await runCli(argv, {
+		onProgress: createTerminalProgressReporter(),
+	});
+	process.stdout.write(`${renderHumanResult(result)}\n`);
 	if (result.status !== "SUCCEEDED") process.exitCode = 1;
 }

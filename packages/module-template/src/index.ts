@@ -238,7 +238,7 @@ function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
 
 		case "cli":
 			return {
-				"src/cli.ts": `export interface CliResult {\n\tcontract: "deployment.result.v1";\n\tok: boolean;\n\tstatus: "SUCCEEDED";\n\tmoduleRef: string;\n\tmoduleVersion: string;\n}\n\nexport function runCli(args: readonly string[]): string {\n\tif (!args.includes("--json")) throw new TypeError("--json is required");\n\tconst result: CliResult = { contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${JSON.stringify(descriptor.moduleRef)}, moduleVersion: ${JSON.stringify(descriptor.moduleVersion)} };\n\treturn JSON.stringify(result);\n}\n`,
+				"src/cli.ts": `export interface CliResult {\n\tcontract: "deployment.result.v1";\n\tok: boolean;\n\tstatus: "SUCCEEDED" | "FAILED";\n\tmoduleRef: string;\n\tmoduleVersion: string;\n\terror?: { code: string; message: string };\n}\n\nexport function runCli(args: readonly string[]): CliResult {\n\tif (args.includes("--json")) return { contract: "deployment.result.v1", ok: false, status: "FAILED", moduleRef: ${JSON.stringify(descriptor.moduleRef)}, moduleVersion: ${JSON.stringify(descriptor.moduleVersion)}, error: { code: "INVALID_REQUEST", message: "不支持的选项 --json" } };\n\treturn { contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: ${JSON.stringify(descriptor.moduleRef)}, moduleVersion: ${JSON.stringify(descriptor.moduleVersion)} };\n}\n`,
 			};
 		case "browser-extension":
 			return {
@@ -264,7 +264,7 @@ function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
 		"package.json": packageJson(descriptor),
 		"README.md": `# ${descriptor.packageName}\n\nModule: \`${descriptor.moduleRef}\`  \nDomain: \`${descriptor.identity.domain}\`  \nKind: \`${descriptor.kind}\`  \nTemplate: \`${descriptor.templateVersion}\`\n\n${descriptor.identity.summary}\n`,
 		"DOCS.md": `# Module Docs\n\n${descriptor.identity.summary}\n\nDocument the Module purpose, public contracts, capabilities, usage, errors and limitations here.\n`,
-		"SETUP.md": `# Module Setup\n\n## Goal\n\nReach \`Module.status.setupStatus=READY\` with the fewest user actions.\n\n## Step 1 — Materialize deterministic state\n\n**Type:** automatic\n**Executable:** \`platform install\`\n**What happens:** \`Module.install\` owns all deterministic/private preparation. The generated scaffold requires no user or external setup.\n\n## Step 2 — Verify completion\n\n**Type:** automatic verification\n**Verify:** \`platform status\`\n**Success condition:** \`setupStatus=READY\`.\n\nOwners must keep every machine-solvable step automatic. If real human or external action is later required, replace or extend these with the shortest ordered package-owned executable/verify steps and ask only for information the Module cannot determine itself.\n`,
+		"SETUP.md": `# Module Setup\n\n## STEP-${descriptor.moduleRef.toUpperCase()}-01 — 初始化并验证模块\n\nResponsible: AI\nInteractive executable: \`platform install\`\nNon-interactive executable: \`platform install\`\nRequired inputs: none\nVerify: \`platform status\`\nSuccess condition: \`setupStatus=READY\`.\n`,
 		"tsconfig.json": `${JSON.stringify(
 			{
 				compilerOptions: {

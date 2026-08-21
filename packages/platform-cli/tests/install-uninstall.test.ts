@@ -4,6 +4,9 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { runCli } from "../src/cli.ts";
+
+const parseCli = <T>(value: T): T => value;
+
 import { tempWorkspace, writeInstalledModule } from "./test-helpers.ts";
 
 const PACKAGES = [
@@ -143,8 +146,8 @@ export const behaviorAdapter = {
 			}),
 		);
 		const manifestBefore = await readFile(join(root, "package.json"), "utf8");
-		const output = JSON.parse(
-			await runCli(["install", "--workspace", root, "--json"], {
+		const output = parseCli(
+			await runCli(["install", "--workspace", root], {
 				cwd: root,
 				registryRunner: {
 					async run(args) {
@@ -186,6 +189,8 @@ export const behaviorAdapter = {
 test("install synchronizes the complete Registry package set in one transaction", async () => {
 	const root = await tempWorkspace();
 	const calls: string[][] = [];
+	const progress: Array<{ phase: string; moduleRef?: string; status: string }> =
+		[];
 	try {
 		await writeFile(
 			join(root, "package.json"),
@@ -199,16 +204,28 @@ test("install synchronizes the complete Registry package set in one transaction"
 			}),
 		);
 		await writeInstalledModule(root, STALE);
-		const output = JSON.parse(
-			await runCli(["install", "--workspace", root, "--json"], {
+		const output = parseCli(
+			await runCli(["install", "--workspace", root], {
 				cwd: root,
 				registryRunner: registryRunner(),
 				packageRunner: packageRunner(root, calls),
 				executableAvailable: () => true,
+				onProgress: (event) => progress.push(event),
 			}),
 		) as { status: string; data: Record<string, unknown> };
 		assert.equal(output.status, "SUCCEEDED");
 		assert.equal(output.data.next, "platform status");
+		assert.ok(progress.some((event) => event.phase === "workspace"));
+		assert.ok(progress.some((event) => event.phase === "registry"));
+		assert.deepEqual(
+			progress
+				.filter(
+					(event) => event.phase === "install" && event.status === "SUCCEEDED",
+				)
+				.map((event) => event.moduleRef)
+				.sort(),
+			["fixture-a", "fixture-b"],
+		);
 		assert.equal(
 			calls.length,
 			1,
@@ -245,15 +262,15 @@ test("uninstall removes ProFlow dependencies and preserves .proflow", async () =
 	const root = await tempWorkspace();
 	const calls: string[][] = [];
 	try {
-		await runCli(["install", "--json"], {
+		await runCli(["install"], {
 			cwd: root,
 			registryRunner: registryRunner(),
 			packageRunner: packageRunner(root, calls),
 			executableAvailable: () => true,
 		});
 		calls.length = 0;
-		const output = JSON.parse(
-			await runCli(["uninstall", "--json"], {
+		const output = parseCli(
+			await runCli(["uninstall"], {
 				cwd: root,
 				packageRunner: packageRunner(root, calls),
 				executableAvailable: () => true,
@@ -305,8 +322,8 @@ export const behaviorAdapter = {
 			version,
 			adapterSource,
 		});
-		const output = JSON.parse(
-			await runCli(["uninstall", "--workspace", root, "--json"], {
+		const output = parseCli(
+			await runCli(["uninstall", "--workspace", root], {
 				cwd: root,
 				packageRunner: {
 					async run(command, args) {
@@ -332,29 +349,28 @@ export const behaviorAdapter = {
 test("all operational commands accept --workspace while positional module arguments remain invalid", async () => {
 	const root = await tempWorkspace();
 	try {
-		const explicitWorkspace = JSON.parse(
-			await runCli(["status", "--workspace", root, "--json"], { cwd: root }),
+		const explicitWorkspace = parseCli(
+			await runCli(["status", "--workspace", root], { cwd: root }),
 		) as { status: string; error?: { code: string } };
 		assert.equal(explicitWorkspace.status, "SUCCEEDED");
 
-		const positional = JSON.parse(
-			await runCli(["install", "fixture-module", "--json"], { cwd: root }),
+		const positional = parseCli(
+			await runCli(["install", "fixture-module"], { cwd: root }),
 		) as { status: string; error?: { code: string } };
 		assert.equal(positional.status, "FAILED");
 		assert.equal(positional.error?.code, "INVALID_REQUEST");
 
 		for (const legacyBare of ["help", "version"] as const) {
-			const result = JSON.parse(
-				await runCli([legacyBare, "--json"], { cwd: root }),
-			) as { status: string; error?: { code: string } };
+			const result = parseCli(await runCli([legacyBare], { cwd: root })) as {
+				status: string;
+				error?: { code: string };
+			};
 			assert.equal(result.status, "FAILED");
 			assert.equal(result.error?.code, "INVALID_REQUEST");
 		}
 
 		for (const flag of ["--help", "--version"] as const) {
-			const result = JSON.parse(
-				await runCli([flag, "--json"], { cwd: root }),
-			) as {
+			const result = parseCli(await runCli([flag], { cwd: root })) as {
 				status: string;
 			};
 			assert.equal(result.status, "SUCCEEDED");

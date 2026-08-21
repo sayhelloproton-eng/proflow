@@ -63,6 +63,7 @@ function recordingCatalog(
 	uninstallFailureByRef: Readonly<Record<string, boolean>> = {},
 ) {
 	const calls: Array<{ call: string; input?: unknown }> = [];
+	const runtimeByRef = new Map<string, "RUNNING" | "STOPPED">();
 	const catalog: ModuleCatalog = {
 		async sources() {
 			return [];
@@ -127,6 +128,7 @@ function recordingCatalog(
 						observedEffects: [],
 					};
 				}
+				if (command === "start") runtimeByRef.set(moduleRef, "RUNNING");
 				if (
 					(command === "stop" && stopFailureByRef[moduleRef]) ||
 					(command === "uninstall" && uninstallFailureByRef[moduleRef])
@@ -149,11 +151,12 @@ function recordingCatalog(
 						observedEffects: [],
 					};
 				}
+				if (command === "stop") runtimeByRef.set(moduleRef, "STOPPED");
 				const data =
 					command === "status"
 						? {
 								setupStatus: setupByRef[moduleRef] ?? "READY",
-								runtimeStatus: "STOPPED" as const,
+								runtimeStatus: runtimeByRef.get(moduleRef) ?? "STOPPED",
 							}
 						: undefined;
 				return { result: success(moduleRef, data), observedEffects: [] };
@@ -190,7 +193,10 @@ const leaf = moduleFixture({
 const modules = [leaf, consumer, provider];
 
 test("start gates on Module.status setup READY and never runs preflight", async () => {
-	const { catalog, calls } = recordingCatalog({ consumer: "ACTION_REQUIRED" });
+	const { catalog, calls } = recordingCatalog({
+		consumer: "ACTION_REQUIRED",
+		provider: "FAILED",
+	});
 	const result = await startModulesThin(
 		catalog,
 		[consumer, provider],
@@ -198,12 +204,38 @@ test("start gates on Module.status setup READY and never runs preflight", async 
 	);
 	assert.equal(result.completed, false);
 	assert.deepEqual(result.blockedBy, {
-		moduleRef: "consumer",
-		setupStatus: "ACTION_REQUIRED",
+		moduleRef: "provider",
+		setupStatus: "FAILED",
 	});
+	assert.deepEqual(result.blockers, [
+		{ moduleRef: "provider", setupStatus: "FAILED" },
+		{ moduleRef: "consumer", setupStatus: "ACTION_REQUIRED" },
+	]);
 	assert.deepEqual(
 		calls.map((item) => item.call),
 		["provider:status", "consumer:status"],
+	);
+});
+
+test("start and stop retries skip runtime states already reached", async () => {
+	const { catalog, calls } = recordingCatalog();
+	await startModulesThin(catalog, modules, workspaceRoot);
+	calls.length = 0;
+	const secondStart = await startModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(secondStart.completed, true);
+	assert.equal(secondStart.skipped?.length, 3);
+	assert.equal(
+		calls.some((item) => item.call.endsWith(":start")),
+		false,
+	);
+	await stopModulesThin(catalog, modules, workspaceRoot);
+	calls.length = 0;
+	const secondStop = await stopModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(secondStop.completed, true);
+	assert.equal(secondStop.skipped?.length, 3);
+	assert.equal(
+		calls.some((item) => item.call.endsWith(":stop")),
+		false,
 	);
 });
 
@@ -226,8 +258,11 @@ test("successful start and stop preserve dependency and reverse dependency order
 			"provider:start",
 			"consumer:start",
 			"leaf:start",
+			"leaf:status",
 			"leaf:stop",
+			"consumer:status",
 			"consumer:stop",
+			"provider:status",
 			"provider:stop",
 		],
 	);
@@ -269,11 +304,13 @@ test("start fails fast during execution without starting later Modules", async (
 
 test("stop runs in reverse dependency order and fails fast", async () => {
 	const { catalog, calls } = recordingCatalog({}, {}, {}, { consumer: true });
+	await startModulesThin(catalog, modules, workspaceRoot);
+	calls.length = 0;
 	const result = await stopModulesThin(catalog, modules, workspaceRoot);
 	assert.equal(result.completed, false);
 	assert.deepEqual(
 		calls.map((item) => item.call),
-		["leaf:stop", "consumer:stop"],
+		["leaf:status", "leaf:stop", "consumer:status", "consumer:stop"],
 	);
 });
 

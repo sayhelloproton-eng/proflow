@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,49 @@ const base = {
 	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
+} as const;
+const setupPlan = {
+	steps: [
+		{
+			id: "STEP-EXECUTION-BROWSER-EXTENSION-01",
+			title: "加载 Chrome 扩展",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "proflow-execution-browser-extension setup",
+				nonInteractive:
+					"proflow-execution-browser-extension setup --extension-id <id>",
+			},
+			requiredInputs: [
+				{
+					name: "extensionId",
+					description: "Chrome Extension ID",
+					sensitive: false,
+				},
+			],
+			verify: "proflow-execution-browser-extension verify",
+			successCondition: "配置状态变为“已就绪”",
+		},
+	],
+} as const;
+const blockedSetupPlan = {
+	steps: [
+		{
+			id: "STEP-EXECUTION-BROWSER-EXTENSION-02",
+			title: "修复扩展配置",
+			state: "BLOCKED",
+			responsible: "EXTERNAL",
+			execution: {
+				interactive: "proflow-execution-browser-extension setup",
+				nonInteractive:
+					"proflow-execution-browser-extension setup --extension-id <id>",
+			},
+			requiredInputs: [],
+			verify: "proflow-execution-browser-extension verify",
+			successCondition: "配置状态变为“已就绪”",
+			blockedReason: "Extension ID 或生成配置无效",
+		},
+	],
 } as const;
 type BrowserSetupState = { extensionId: string };
 type BrowserVerificationEvidence = {
@@ -308,11 +352,14 @@ export const behaviorAdapter = {
 		if (supplied.extensionId) {
 			if (!/^[a-z]{32}$/.test(supplied.extensionId))
 				return {
-					result: failed(
-						"SETUP_FAILED",
-						"extensionId must be a canonical 32-character Chromium extension id",
-						false,
-					),
+					result: {
+						...failed(
+							"SETUP_FAILED",
+							"extensionId must be a canonical 32-character Chromium extension id",
+							false,
+						),
+						data: blockedSetupPlan,
+					},
 					observedEffects: [],
 				};
 			setup = { extensionId: supplied.extensionId };
@@ -328,9 +375,10 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
+					data: setupPlan,
 					actionRequired: {
 						action: "load-unpacked-extension",
-						description: `Load ${browserExtensionLoadDir(context.workspaceRoot)} in Chrome, copy its extensionId, then run platform setup --module execution-browser-extension --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"extensionId":"<32-char-id>"}'.`,
+						description: `Load ${browserExtensionLoadDir(context.workspaceRoot)} in Chrome, copy its extensionId, then run proflow-execution-browser-extension setup --extension-id <id>.`,
 					},
 				},
 				observedEffects: [],
@@ -339,12 +387,15 @@ export const behaviorAdapter = {
 			await materialize(context, setup);
 		} catch (error) {
 			return {
-				result: failed(
-					"SETUP_FAILED",
-					error instanceof Error
-						? error.message
-						: "browser extension config materialization failed",
-				),
+				result: {
+					...failed(
+						"SETUP_FAILED",
+						error instanceof Error
+							? error.message
+							: "browser extension config materialization failed",
+					),
+					data: blockedSetupPlan,
+				},
 				observedEffects: [],
 			};
 		}
@@ -372,16 +423,23 @@ export const behaviorAdapter = {
 				...base,
 				ok: false as const,
 				status: "ACTION_REQUIRED" as const,
+				data: setupPlan,
 				actionRequired: {
 					action: "reload-and-verify-extension",
-					description: `Reload the unpacked extension, confirm its MV3 service worker is RUNNING, then run platform setup --module execution-browser-extension --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"serviceWorker":"RUNNING"}'.`,
+					description:
+						"Reload the unpacked extension, confirm its MV3 service worker is RUNNING, then rerun proflow-execution-browser-extension setup --extension-id <id>.",
 				},
 			},
 			observedEffects: [],
 		};
 	},
 	docs: async (_context: ModuleCommandContext) => ({
-		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		result: {
+			...base,
+			data: {
+				docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+			},
+		},
 		observedEffects: [],
 	}),
 	start: async (context: ModuleCommandContext) => {

@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 
-import { descriptor } from "../deployment/descriptor.ts";
 import { materializeModule } from "./index.ts";
-
-const MODULE_TEMPLATE_VERSION = descriptor.moduleVersion;
 
 interface ParsedCreateArgs {
 	targetDirectory: string;
@@ -85,36 +82,11 @@ async function main(): Promise<void> {
 		const input = parseCreateArgs(argv);
 		const created = await materializeModule(input);
 		process.stdout.write(
-			`${JSON.stringify({
-				contract: "deployment.result.v1",
-				ok: true,
-				status: "SUCCEEDED",
-				moduleRef: "module-template",
-				moduleVersion: MODULE_TEMPLATE_VERSION,
-				data: {
-					createdModuleRef: created.descriptor.moduleRef,
-					packageName: created.descriptor.packageName,
-					packageDirectory: created.packageDirectory,
-					files: created.files,
-				},
-			})}\n`,
+			`模块创建成功：${created.descriptor.moduleRef}\n目录：${created.packageDirectory}\n文件：${created.files.length} 个\n`,
 		);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
-		process.stdout.write(
-			`${JSON.stringify({
-				contract: "deployment.result.v1",
-				ok: false,
-				status: "FAILED",
-				moduleRef: "module-template",
-				moduleVersion: MODULE_TEMPLATE_VERSION,
-				error: {
-					code: "INVALID_REQUEST",
-					message,
-					retryable: false,
-				},
-			})}\n`,
-		);
+		process.stdout.write(`模块创建失败：${message}\n`);
 		process.exitCode = 1;
 	}
 }

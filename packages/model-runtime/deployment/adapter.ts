@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
@@ -24,6 +25,49 @@ const base = {
 	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
+} as const;
+const setupPlan = {
+	steps: [
+		{
+			id: "STEP-MODEL-RUNTIME-01",
+			title: "选择 FAST 与 REASON 模型",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "proflow-model-runtime setup",
+				nonInteractive:
+					"proflow-model-runtime setup --fast-model <id> --reason-model <id>",
+			},
+			requiredInputs: [
+				{ name: "fastModel", description: "FAST 模型 ID", sensitive: false },
+				{
+					name: "reasonModel",
+					description: "REASON 模型 ID",
+					sensitive: false,
+				},
+			],
+			verify: "proflow-model-runtime verify",
+			successCondition: "配置状态变为“已就绪”",
+		},
+	],
+} as const;
+const blockedSetupPlan = {
+	steps: [
+		{
+			id: "STEP-MODEL-RUNTIME-02",
+			title: "等待模型服务与能力事实",
+			state: "BLOCKED",
+			responsible: "EXTERNAL",
+			execution: {
+				interactive: "platform setup --module model-runtime",
+				nonInteractive: "platform setup --module model-runtime",
+			},
+			requiredInputs: [],
+			verify: "proflow-model-runtime verify",
+			successCondition: "配置状态变为“已就绪”",
+			blockedReason: "模型服务共享事实或模型能力验证尚不可用",
+		},
+	],
 } as const;
 const key = (context: ModuleCommandContext) => resolve(context.workspaceRoot);
 const stateDir = (context: ModuleCommandContext) =>
@@ -211,9 +255,11 @@ export const behaviorAdapter = {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
+					data: setupPlan,
 					actionRequired: {
 						action: "select-model-roles",
-						description: `Choose the FAST and REASON model IDs, then run platform setup --module model-runtime --workspace ${JSON.stringify(context.workspaceRoot)} --input '{"fastModel":"<fast-model-id>","reasonModel":"<reason-model-id>"}'. Do not provide capabilityProfilesFile or provider internals.`,
+						description:
+							"Choose the FAST and REASON model IDs, then run proflow-model-runtime setup --fast-model <id> --reason-model <id>.",
 					},
 				},
 				observedEffects: [],
@@ -221,19 +267,25 @@ export const behaviorAdapter = {
 		const p = await provider(context);
 		if (!p)
 			return {
-				result: failed(
-					"SETUP_FAILED",
-					"model.provider.api producer shared facts are unavailable",
-				),
+				result: {
+					...failed(
+						"SETUP_FAILED",
+						"model.provider.api producer shared facts are unavailable",
+					),
+					data: blockedSetupPlan,
+				},
 				observedEffects: [],
 			};
 		if (p.providerCredential)
 			return {
-				result: failed(
-					"SETUP_FAILED",
-					"providerCredential is a secretRef but no credential resolver contract is available",
-					false,
-				),
+				result: {
+					...failed(
+						"SETUP_FAILED",
+						"providerCredential is a secretRef but no credential resolver contract is available",
+						false,
+					),
+					data: blockedSetupPlan,
+				},
 				observedEffects: [],
 			};
 		try {
@@ -241,19 +293,27 @@ export const behaviorAdapter = {
 			return { result: base, observedEffects: [] };
 		} catch (error) {
 			return {
-				result: failed(
-					"SETUP_FAILED",
-					error instanceof Error
-						? error.message
-						: "model capability profile validation failed",
-					false,
-				),
+				result: {
+					...failed(
+						"SETUP_FAILED",
+						error instanceof Error
+							? error.message
+							: "model capability profile validation failed",
+						false,
+					),
+					data: blockedSetupPlan,
+				},
 				observedEffects: [],
 			};
 		}
 	},
 	docs: async (_context: ModuleCommandContext) => ({
-		result: { ...base, data: { docs: "DOCS.md", setup: "SETUP.md" } },
+		result: {
+			...base,
+			data: {
+				docs: readFileSync(new URL("../DOCS.md", import.meta.url), "utf8"),
+			},
+		},
 		observedEffects: [],
 	}),
 	start: async (context: ModuleCommandContext) => {

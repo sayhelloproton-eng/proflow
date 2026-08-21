@@ -354,18 +354,38 @@ export async function runPackageConformance(
 					"SETUP.md must state setupStatus=READY as the completion condition",
 			});
 		}
-		const steps = setupGuide.split(/^## Step[^\n]*$/m).slice(1);
+		const steps = setupGuide.split(/^## (?:Step|STEP-)[^\n]*$/m).slice(1);
+		const stepIds = [
+			...setupGuide.matchAll(/^## (STEP-[A-Z0-9-]+-[0-9]{2})\s+—/gm),
+		].map((match) => match[1]);
 		if (steps.length === 0) {
 			issues.push({
 				code: "SETUP_GUIDE_NOT_EXECUTABLE",
 				message: "SETUP.md must describe ordered ## Step sections",
 			});
 		} else {
+			if (
+				stepIds.length !== steps.length ||
+				new Set(stepIds).size !== stepIds.length
+			) {
+				issues.push({
+					code: "SETUP_STEP_ID_INVALID",
+					message: "SETUP.md requires one unique canonical Step ID per step",
+				});
+			}
 			steps.forEach((step, index) => {
-				if (!/(?:\*\*)?(?:Executable|Verify)(?:\*\*)?:/i.test(step)) {
+				const fields = [
+					"Responsible:",
+					"Interactive executable:",
+					"Non-interactive executable:",
+					"Required inputs:",
+					"Verify:",
+					"Success condition:",
+				];
+				if (fields.some((field) => !step.includes(field))) {
 					issues.push({
 						code: "SETUP_STEP_EXECUTABLE_MISSING",
-						message: `SETUP.md Step ${index + 1} must name an Executable or Verify command`,
+						message: `SETUP.md Step ${index + 1} must define responsible, interactive/non-interactive commands, inputs, verify, and success condition`,
 					});
 				}
 			});
@@ -495,9 +515,7 @@ export async function runPackageConformance(
 					message: "CLI must export runCli",
 				});
 			} else {
-				const output: unknown = await runCli(["--json"]);
-				const parsedOutput: unknown =
-					typeof output === "string" ? JSON.parse(output) : undefined;
+				const parsedOutput: unknown = await runCli([]);
 				const structured =
 					typeof parsedOutput === "object" &&
 					parsedOutput !== null &&
@@ -507,7 +525,7 @@ export async function runPackageConformance(
 					issues.push({
 						code: "MACHINE_RESULT_INVALID",
 						message:
-							"CLI JSON output must be a structured machine object with status",
+							"CLI runCli result must be a structured object with status",
 					});
 				}
 			}

@@ -8,32 +8,57 @@ import { runStaticConformance } from "./index.ts";
 const moduleRef = descriptor.moduleRef;
 const moduleVersion = descriptor.moduleVersion;
 
-export async function runCli(args: readonly string[]): Promise<string> {
-	if (args.includes("--help") || args.includes("-h")) {
-		return JSON.stringify({
+export interface ConformanceCliOutcome {
+	contract: "deployment.result.v1";
+	ok: boolean;
+	status: "SUCCEEDED" | "FAILED";
+	moduleRef: string;
+	moduleVersion: string;
+	data?: unknown;
+	error?: { code: string; message: string; retryable: boolean };
+}
+
+export async function runCli(
+	args: readonly string[],
+): Promise<ConformanceCliOutcome> {
+	if (args.includes("--json")) {
+		return {
 			contract: "deployment.result.v1",
-			ok: true,
-			status: "SUCCEEDED",
+			ok: false,
+			status: "FAILED",
 			moduleRef,
 			moduleVersion,
-			data: { usage: "proflow-conformance --json [descriptor.json]" },
-		});
+			error: {
+				code: "INVALID_REQUEST",
+				message: "不支持的选项 --json",
+				retryable: false,
+			},
+		};
 	}
-	if (!args.includes("--json")) throw new TypeError("--json is required");
-	const descriptorPath = args.find((argument) => argument !== "--json");
-	if (descriptorPath === undefined) {
-		return JSON.stringify({
+	if (args.includes("--help") || args.includes("-h")) {
+		return {
 			contract: "deployment.result.v1",
 			ok: true,
 			status: "SUCCEEDED",
 			moduleRef,
 			moduleVersion,
-		});
+			data: { usage: "proflow-conformance [descriptor.json]" },
+		};
+	}
+	const descriptorPath = args[0];
+	if (descriptorPath === undefined) {
+		return {
+			contract: "deployment.result.v1",
+			ok: true,
+			status: "SUCCEEDED",
+			moduleRef,
+			moduleVersion,
+		};
 	}
 	try {
 		const input: unknown = JSON.parse(await readFile(descriptorPath, "utf8"));
 		const result = runStaticConformance(input);
-		return JSON.stringify({
+		return {
 			contract: "deployment.result.v1",
 			ok: result.status === "PASS",
 			status: result.status === "PASS" ? "SUCCEEDED" : "FAILED",
@@ -49,29 +74,29 @@ export async function runCli(args: readonly string[]): Promise<string> {
 						},
 					}
 				: {}),
-		});
+		};
 	} catch (error: unknown) {
 		const message = error instanceof Error ? error.message : "unknown error";
-		return JSON.stringify({
+		return {
 			contract: "deployment.result.v1",
 			ok: false,
 			status: "FAILED",
 			moduleRef,
 			moduleVersion,
 			error: { code: "INVALID_REQUEST", message, retryable: false },
-		});
+		};
 	}
 }
 
 if (import.meta.main) {
 	const output = await runCli(process.argv.slice(2));
-	process.stdout.write(`${output}\n`);
-	const parsed: unknown = JSON.parse(output);
-	if (
-		typeof parsed === "object" &&
-		parsed !== null &&
-		Reflect.get(parsed, "ok") === false
-	) {
-		process.exitCode = 1;
-	}
+	if (output.data && typeof output.data === "object" && "usage" in output.data)
+		process.stdout.write(`${String(Reflect.get(output.data, "usage"))}\n`);
+	else
+		process.stdout.write(
+			output.ok
+				? "一致性检查通过\n"
+				: `一致性检查失败：${output.error?.message ?? "存在不一致"}\n`,
+		);
+	if (!output.ok) process.exitCode = 1;
 }

@@ -1,20 +1,10 @@
 # @tomflow/proflow-agent-test-ops — Module Setup
 
-## Goal
-Reach `setupStatus=READY` with one unavoidable human action: create/select the real Test/Ops Custom GPT.
+## STEP-AGENT-TEST-OPS-01 — 创建并注册 Custom GPT Role
 
-## Step 1 — Prepare the Custom GPT bundle
-**Type:** automatic
-**Executable:** `proflow-agent-test-ops custom-gpt setup --workspace <workspace>`
-This prints the package-owned Instructions, knowledge files, capabilities and Action schema using the Gateway URL discovered from Workspace shared facts. Do not copy internal endpoints or token paths manually.
-
-## Step 2 — Create or update the Custom GPT
-**Type:** human
-**Human action:** Apply the prepared bundle in ChatGPT Web and obtain the real `https://chatgpt.com/g/g-...` URL.
-**Verify/commit executable:** `proflow-agent-test-ops role register <gpt-url> --workspace <workspace>`
-This uses Agent Runtime's durable role API directly; Platform Host does not need to be running.
-
-## Step 3 — Re-observe completion
-**Type:** automatic verification
-**Executable:** `platform setup --module agent-test-ops --workspace <workspace>`
-**Success condition:** `platform status --workspace <workspace>` reports `agent-test-ops.setupStatus=READY`.
+Responsible: USER
+Interactive executable: `proflow-agent-test-ops setup`
+Non-interactive executable: `proflow-agent-test-ops setup --carrier-url <url>`
+Required inputs: Custom GPT URL
+Verify: `proflow-agent-test-ops verify`
+Success condition: `agent-test-ops.setupStatus=READY`.

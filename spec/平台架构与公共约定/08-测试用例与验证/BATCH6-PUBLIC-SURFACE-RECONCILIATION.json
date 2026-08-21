@@ -229,7 +229,14 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [],
+      "binaries": [
+        {
+          "name": "proflow-chatgpt-carrier",
+          "target": "./dist/src/cli.js",
+          "source": "packages/chatgpt-carrier/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
       "publicIndexSymbols": [
         "behaviorAdapter",
         "descriptor"
@@ -353,7 +360,14 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [],
+      "binaries": [
+        {
+          "name": "proflow-dev-tunnel",
+          "target": "./dist/src/cli.js",
+          "source": "packages/dev-tunnel/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
       "publicIndexSymbols": [
         "behaviorAdapter",
         "descriptor"
@@ -739,7 +753,14 @@
           "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [],
+      "binaries": [
+        {
+          "name": "proflow-model-provider-api",
+          "target": "./dist/src/cli.js",
+          "source": "packages/model-provider-api/src/cli.ts",
+          "classification": "SHIPPED_BINARY"
+        }
+      ],
       "publicIndexSymbols": [
         "behaviorAdapter",
         "descriptor"
@@ -852,6 +873,7 @@
         "HumanAction",
         "ModuleCommandContext",
         "ModuleDescriptor",
+        "ModuleDocsData",
         "ModuleDocumentation",
         "ModuleIdentity",
         "ModuleKind",
@@ -861,7 +883,9 @@
         "ModuleRequire",
         "ModuleRequirement",
         "ModuleRuntimeStatus",
+        "ModuleSetupPlanData",
         "ModuleSetupStatus",
+        "ModuleSetupStep",
         "ModuleStatusObservation",
         "ProFlowPackageMetadata",
         "assessModuleCompatibility",
@@ -875,6 +899,7 @@
         "humanActionSchema",
         "moduleCommandContextSchema",
         "moduleDescriptorSchema",
+        "moduleDocsDataSchema",
         "moduleDocumentationSchema",
         "moduleIdentitySchema",
         "moduleKindSchema",
@@ -884,7 +909,9 @@
         "moduleRequireSchema",
         "moduleRequirementSchema",
         "moduleRuntimeStatusSchema",
+        "moduleSetupPlanDataSchema",
         "moduleSetupStatusSchema",
+        "moduleSetupStepSchema",
         "moduleStatusObservationSchema",
         "parseModuleDescriptor",
         "proflowPackageMetadataSchema",
@@ -996,6 +1023,12 @@
           "key": "./cli",
           "target": "./dist/src/cli.js",
           "source": "packages/platform-cli/src/cli.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./command",
+          "target": "./dist/src/command.js",
+          "source": "packages/platform-cli/src/command.ts",
           "classification": "SHIPPED_PUBLIC_EXPORT"
         },
         {
@@ -1119,6 +1152,7 @@
         "MigrationInput",
         "MigrationResult",
         "MigrationStatus",
+        "TaskMigrationCliOutcome",
         "applyMigrations",
         "discoverMigrations",
         "getMigrationStatus",

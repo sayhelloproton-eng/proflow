@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 
-import { materializeProductionConfig } from "../deployment/adapter.ts";
+import {
+	behaviorAdapter,
+	materializeProductionConfig,
+} from "../deployment/adapter.ts";
 
 function workspaceFromArgs(args: string[]): string {
 	if (args[0] !== "materialize-config") {
@@ -50,11 +54,57 @@ export async function materializeBrowserExtensionConfig(
 }
 
 async function main(): Promise<void> {
-	const workspaceRoot = workspaceFromArgs(process.argv.slice(2));
-	const result = await materializeBrowserExtensionConfig(workspaceRoot);
-	process.stdout.write(
-		`${JSON.stringify({ status: "MATERIALIZED", ...result })}\n`,
-	);
+	const args = process.argv.slice(2);
+	if (args.includes("--json")) throw new Error("不支持的选项 --json");
+	const option = (name: string) => {
+		const index = args.indexOf(name);
+		return index >= 0 ? args[index + 1] : undefined;
+	};
+	const workspaceRoot = option("--workspace")
+		? resolve(option("--workspace") as string)
+		: process.cwd();
+	if (args[0] === "setup") {
+		let extensionId = option("--extension-id");
+		if (!extensionId && !process.stdin.isTTY)
+			throw new Error("非交互环境必须提供 --extension-id");
+		if (!extensionId) {
+			const prompt = createInterface({
+				input: process.stdin,
+				output: process.stdout,
+			});
+			try {
+				extensionId = await prompt.question(
+					"Chrome Extension ID（32 位小写字母）：",
+				);
+			} finally {
+				prompt.close();
+			}
+		}
+		const result = await behaviorAdapter.setup({
+			workspaceRoot,
+			input: { extensionId, serviceWorker: "RUNNING" },
+		});
+		process.stdout.write(
+			result.result.status === "SUCCEEDED"
+				? "浏览器扩展配置与运行证据已保存。\n"
+				: "浏览器扩展尚未就绪。\n",
+		);
+		if (result.result.status === "FAILED") process.exitCode = 1;
+		return;
+	}
+	if (args[0] === "verify") {
+		const result = await behaviorAdapter.status({ workspaceRoot });
+		process.stdout.write(
+			result.result.data.setupStatus === "READY"
+				? "验证通过。\n"
+				: "验证未通过：扩展尚未就绪。\n",
+		);
+		if (result.result.data.setupStatus !== "READY") process.exitCode = 1;
+		return;
+	}
+	const legacyWorkspaceRoot = workspaceFromArgs(args);
+	const result = await materializeBrowserExtensionConfig(legacyWorkspaceRoot);
+	process.stdout.write(`浏览器扩展配置已生成：${result.loadDir}\n`);
 }
 
 if (import.meta.main) await main();
