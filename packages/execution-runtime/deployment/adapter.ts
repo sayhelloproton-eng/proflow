@@ -29,18 +29,49 @@ const blockedSetupPlan = {
 	steps: [
 		{
 			id: "STEP-EXECUTION-RUNTIME-01",
-			title: "等待上游服务信息",
+			title: "等待 Platform Host",
 			state: "BLOCKED",
 			responsible: "EXTERNAL",
 			execution: {
-				interactive: "platform setup --module execution-runtime",
-				nonInteractive: "platform setup --module execution-runtime",
+				interactive: "platform setup --module platform-host",
+				nonInteractive: "platform setup --module platform-host",
 			},
 			requiredInputs: [],
 			verify: "platform status",
 			successCondition: "配置状态变为“已就绪”",
-			blockedReason:
-				"Platform Host、Model Runtime 或 Browser Executor 尚未就绪",
+			blockedReason: "platform-host 尚未发布 endpoint 与 identityTokenFile",
+		},
+		{
+			id: "STEP-EXECUTION-RUNTIME-02",
+			title: "等待 Model Runtime",
+			description: "Execution 的模型决策入口尚不可用。",
+			state: "BLOCKED",
+			responsible: "EXTERNAL",
+			execution: {
+				interactive: "platform setup --module model-runtime",
+				nonInteractive: "platform setup --module model-runtime",
+			},
+			requiredInputs: [],
+			verify: "platform status",
+			successCondition:
+				"model-runtime 已发布 endpoint 与 transportCredentialFile",
+			blockedReason: "model-runtime 尚未就绪",
+		},
+		{
+			id: "STEP-EXECUTION-RUNTIME-03",
+			title: "等待 Browser Executor",
+			description: "Browser Effect 配置尚不可用。",
+			state: "BLOCKED",
+			responsible: "EXTERNAL",
+			execution: {
+				interactive: "platform setup --module execution-browser-extension",
+				nonInteractive: "platform setup --module execution-browser-extension",
+			},
+			requiredInputs: [],
+			verify: "platform status",
+			successCondition:
+				"execution-browser-extension 已发布 browserExecutorConfigPath",
+			blockedReason: "execution-browser-extension 尚未就绪",
 		},
 	],
 } as const;

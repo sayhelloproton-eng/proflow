@@ -20,13 +20,46 @@ const setupPlan = {
 	steps: [
 		{
 			id: "STEP-DEV-TUNNEL-01",
-			title: "选择或创建持久 Tunnel",
+			title: "检查 Dev Tunnel CLI 与登录",
+			description: "确认 CLI 可用，必要时启动 Microsoft 登录。",
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "pnpm exec -- proflow-dev-tunnel setup",
+				interactive: "pnpm exec -- proflow-dev-tunnel setup 01",
+				nonInteractive: "pnpm exec -- proflow-dev-tunnel setup 01",
+			},
+			requiredInputs: [],
+			verify: "devtunnel user show",
+			successCondition: "Microsoft 登录状态可被 CLI 观察",
+			humanAction: "若浏览器打开 Microsoft 登录页，完成账号登录。",
+		},
+		{
+			id: "STEP-DEV-TUNNEL-02",
+			title: "选择或创建持久 Tunnel",
+			description: "列出现有 Tunnel；不存在时由脚本创建。",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "pnpm exec -- proflow-dev-tunnel setup 02",
 				nonInteractive:
-					"pnpm exec -- proflow-dev-tunnel setup --tunnel-id <id> --public-base-url <url>",
+					"pnpm exec -- proflow-dev-tunnel setup 02 --tunnel-id <id>",
+			},
+			requiredInputs: [
+				{ name: "tunnelId", description: "Tunnel ID", sensitive: false },
+			],
+			verify: "devtunnel show <id>",
+			successCondition: "持久 Tunnel 可以被 devtunnel show 观察",
+		},
+		{
+			id: "STEP-DEV-TUNNEL-03",
+			title: "配置入口并保存公开 URL",
+			description: "为 Platform Host 建立映射，保存公开 HTTPS URL。",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "pnpm exec -- proflow-dev-tunnel setup 03",
+				nonInteractive:
+					"pnpm exec -- proflow-dev-tunnel setup 03 --tunnel-id <id> --public-base-url <url>",
 			},
 			requiredInputs: [
 				{ name: "tunnelId", description: "Tunnel ID", sensitive: false },
@@ -37,7 +70,22 @@ const setupPlan = {
 				},
 			],
 			verify: "pnpm exec -- proflow-dev-tunnel verify",
-			successCondition: "配置状态变为“已就绪”",
+			successCondition: "公开 HTTPS URL 已保存并可验证",
+			humanAction: "确认 Dev Tunnel 门户或 CLI 显示的公开 HTTPS URL。",
+		},
+		{
+			id: "STEP-DEV-TUNNEL-04",
+			title: "验证 Dev Tunnel",
+			description: "检查登录、配置和公开入口。",
+			state: "TODO",
+			responsible: "AI",
+			execution: {
+				interactive: "pnpm exec -- proflow-dev-tunnel setup 04",
+				nonInteractive: "pnpm exec -- proflow-dev-tunnel verify",
+			},
+			requiredInputs: [],
+			verify: "pnpm exec -- proflow-dev-tunnel verify",
+			successCondition: "dev-tunnel.setupStatus=READY",
 		},
 	],
 } as const;

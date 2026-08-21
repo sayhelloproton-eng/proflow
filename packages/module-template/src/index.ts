@@ -260,10 +260,25 @@ function profileFiles(descriptor: ModuleDescriptor): Record<string, string> {
 }
 
 function commonFiles(descriptor: ModuleDescriptor): Record<string, string> {
+	const provides =
+		descriptor.provides.length === 0
+			? "- 无公开逻辑 Contract。"
+			: descriptor.provides
+					.map((item) => `- \`${item.contractRef}\`（版本 ${item.version}）`)
+					.join("\n");
+	const requires =
+		descriptor.requires.length === 0
+			? "- 无上游 Module Contract 依赖。"
+			: descriptor.requires
+					.map(
+						(item) =>
+							`- \`${item.contractRef}\`（兼容版本 ${item.versionRange}）`,
+					)
+					.join("\n");
 	return {
 		"package.json": packageJson(descriptor),
 		"README.md": `# ${descriptor.packageName}\n\nModule: \`${descriptor.moduleRef}\`  \nDomain: \`${descriptor.identity.domain}\`  \nKind: \`${descriptor.kind}\`  \nTemplate: \`${descriptor.templateVersion}\`\n\n${descriptor.identity.summary}\n`,
-		"DOCS.md": `# Module Docs\n\n${descriptor.identity.summary}\n\nDocument the Module purpose, public contracts, capabilities, usage, errors and limitations here.\n`,
+		"DOCS.md": `# ${descriptor.moduleRef}\n\n## 模块定位与作用\n\n${descriptor.identity.summary}\n\n## 主要能力\n\n- 通过标准 Module 管理面参与 ProFlow 的安装、配置、状态观察、文档和生命周期管理。\n\n## 提供的 API 与 Public Contract\n\n${provides}\n\n## 依赖的 Module、Contract 和外部资源\n\n${requires}\n\n## 运行形态与生命周期\n\n- 类型：\`${descriptor.kind}\`。\n- 所属领域：\`${descriptor.identity.domain}\`。\n\n## 使用方式\n\n- 使用 \`platform docs\` 阅读能力说明。\n- 使用 \`platform status\` 查看当前状态。\n\n## 职责边界与限制\n\n- 只负责本 Module descriptor 声明的能力和效果，不接管其他 Module 的私有状态。\n\n## 术语\n\n- Module（模块）：可被 ProFlow 发现、验证和管理的独立工程单元。\n- Public Contract（公开契约）：Module 之间允许依赖的稳定接口。\n`,
 		"SETUP.md": `# Module Setup\n\n## STEP-${descriptor.moduleRef.toUpperCase()}-01 — 初始化并验证模块\n\nResponsible: AI\nInteractive executable: \`platform install\`\nNon-interactive executable: \`platform install\`\nRequired inputs: none\nVerify: \`platform status\`\nSuccess condition: \`setupStatus=READY\`.\n`,
 		"tsconfig.json": `${JSON.stringify(
 			{

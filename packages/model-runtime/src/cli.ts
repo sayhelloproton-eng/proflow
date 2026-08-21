@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createInterface } from "node:readline/promises";
+import { readModuleSharedFacts } from "@tomflow/proflow-module-contract";
 import { behaviorAdapter } from "../deployment/adapter.ts";
 import {
 	createModelRuntimeProcess,
@@ -30,11 +31,62 @@ async function main(): Promise<void> {
 		process.exit(0);
 	}
 	if (command === "setup") {
+		const step = args[1]?.startsWith("--") ? undefined : args[1];
+		const workspaceRoot = option("--workspace") ?? process.cwd();
+		if (step === "02") {
+			const result = await behaviorAdapter.status({ workspaceRoot });
+			process.stdout.write(
+				result.result.data.setupStatus === "READY"
+					? "✓ 模型角色验证通过\n"
+					: "✕ 模型角色尚未就绪\n",
+			);
+			if (result.result.data.setupStatus !== "READY") process.exitCode = 1;
+			process.exit();
+		}
+		if (step !== undefined && step !== "01")
+			throw new Error(`UNSUPPORTED_SETUP_STEP:${step}`);
 		let fastModel = option("--fast-model"),
 			reasonModel = option("--reason-model");
 		if ((!fastModel || !reasonModel) && !process.stdin.isTTY)
 			throw new Error("非交互环境必须提供 --fast-model 和 --reason-model");
 		if (!fastModel || !reasonModel) {
+			const facts = await readModuleSharedFacts(
+				{ workspaceRoot },
+				"model-provider-api",
+			);
+			const baseUrl =
+				typeof facts?.providerBaseUrl === "string"
+					? facts.providerBaseUrl
+					: undefined;
+			if (baseUrl) {
+				try {
+					const response = await fetch(`${baseUrl.replace(/\/$/, "")}/models`, {
+						signal: AbortSignal.timeout(5_000),
+					});
+					const payload: unknown = await response.json();
+					const data =
+						typeof payload === "object" && payload !== null
+							? Reflect.get(payload, "data")
+							: undefined;
+					if (Array.isArray(data)) {
+						const ids = data
+							.map((item) =>
+								typeof item === "object" && item !== null
+									? Reflect.get(item, "id")
+									: undefined,
+							)
+							.filter((id): id is string => typeof id === "string");
+						if (ids.length > 0)
+							process.stdout.write(
+								`\nProvider 可用模型：\n${ids.map((id) => `  • ${id}`).join("\n")}\n`,
+							);
+					}
+				} catch {
+					process.stdout.write(
+						"\n◆ 暂时无法读取模型列表，可继续手动输入模型 ID。\n",
+					);
+				}
+			}
 			const prompt = createInterface({
 				input: process.stdin,
 				output: process.stdout,
@@ -50,7 +102,7 @@ async function main(): Promise<void> {
 			}
 		}
 		const result = await behaviorAdapter.setup({
-			workspaceRoot: option("--workspace") ?? process.cwd(),
+			workspaceRoot,
 			input: { fastModel, reasonModel },
 		});
 		process.stdout.write(

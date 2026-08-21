@@ -39,6 +39,19 @@ const args = process.argv.slice(2),
 	workspaceRoot = option(args, "--workspace") ?? process.cwd();
 if (args.includes("--json")) throw new Error("不支持的选项 --json");
 if (command === "setup") {
+	const step = args[1]?.startsWith("--") ? undefined : args[1];
+	if (step === "02") {
+		const result = await behaviorAdapter.status({ workspaceRoot });
+		process.stdout.write(
+			result.result.data.setupStatus === "READY"
+				? "✓ 模型服务验证通过\n"
+				: "✕ 模型服务不可用或认证未通过\n",
+		);
+		if (result.result.data.setupStatus !== "READY") process.exitCode = 1;
+		process.exit();
+	}
+	if (step !== undefined && step !== "01")
+		throw new Error(`UNSUPPORTED_SETUP_STEP:${step}`);
 	const result = await behaviorAdapter.setup({
 		workspaceRoot,
 		input: { providerBaseUrl: await providerBaseUrl(args) },

@@ -75,10 +75,17 @@ function packageRunner(
 	root: string,
 	calls: string[][],
 	adapterSource?: string,
+	packageOutput?: string,
 ) {
 	return {
-		async run(command: string, args: readonly string[]) {
+		async run(
+			command: string,
+			args: readonly string[],
+			_cwd: string,
+			onOutput?: (event: { stream: "stdout" | "stderr"; line: string }) => void,
+		) {
 			calls.push([command, ...args]);
+			if (packageOutput) onOutput?.({ stream: "stderr", line: packageOutput });
 			if (args.includes("install")) {
 				const manifest = await readManifest(root);
 				const dependencies = manifest.dependencies as
@@ -259,6 +266,42 @@ test("install synchronizes the complete Registry package set in one transaction"
 			await readFile(join(root, ".proflow", "workspace.json"), "utf8"),
 		) as Record<string, unknown>;
 		assert.equal(metadata.contract, "proflow.workspace.v1");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("install classifies retryable package-manager warnings without reporting failure", async () => {
+	const root = await tempWorkspace();
+	const events: Array<{ kind?: string; status: string; message: string }> = [];
+	try {
+		const result = await runCli(["install", "--workspace", root], {
+			cwd: root,
+			registryRunner: registryRunner(),
+			packageRunner: packageRunner(
+				root,
+				[],
+				undefined,
+				"[WARN] network error (ECONNRESET); will retry",
+			),
+			executableAvailable: () => true,
+			onProgress: (event) => events.push(event),
+		});
+		assert.equal(result.status, "SUCCEEDED");
+		assert.ok(
+			events.some(
+				(event) =>
+					event.kind === "subprocess" &&
+					event.status === "WARNING" &&
+					event.message.includes("ECONNRESET"),
+			),
+		);
+		assert.equal(
+			events.some(
+				(event) => event.kind === "subprocess" && event.status === "FAILED",
+			),
+			false,
+		);
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

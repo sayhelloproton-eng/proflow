@@ -25,17 +25,34 @@ const blockedSetupPlan = {
 	steps: [
 		{
 			id: "STEP-AGENT-GATEWAY-01",
-			title: "等待公开入口与 Platform Host",
+			title: "等待 Public Ingress",
+			description: "Gateway 需要稳定的公开 HTTPS 地址。",
 			state: "BLOCKED",
 			responsible: "EXTERNAL",
 			execution: {
-				interactive: "platform setup --module agent-gateway",
-				nonInteractive: "platform setup --module agent-gateway",
+				interactive: "platform setup --module dev-tunnel",
+				nonInteractive: "platform setup --module dev-tunnel",
 			},
 			requiredInputs: [],
 			verify: "platform status",
 			successCondition: "配置状态变为“已就绪”",
-			blockedReason: "public-ingress 或 platform-host 的共享事实尚不可用",
+			blockedReason: "dev-tunnel 尚未发布 publicBaseUrl",
+		},
+		{
+			id: "STEP-AGENT-GATEWAY-02",
+			title: "等待 Platform Host",
+			description: "Gateway 下游应用端点和凭据尚不可用。",
+			state: "BLOCKED",
+			responsible: "EXTERNAL",
+			execution: {
+				interactive: "platform setup --module platform-host",
+				nonInteractive: "platform setup --module platform-host",
+			},
+			requiredInputs: [],
+			verify: "platform status",
+			successCondition:
+				"platform-host 已发布 endpoint、stateRoot 和 transport credential",
+			blockedReason: "platform-host 尚未就绪",
 		},
 	],
 } as const;

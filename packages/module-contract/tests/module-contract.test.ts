@@ -67,6 +67,12 @@ test("docs and setup plan boundaries require executable structured content", () 
 	);
 	assert.equal(
 		moduleSetupPlanDataSchema.safeParse({
+			steps: [{ ...step, state: "DONE" }],
+		}).success,
+		true,
+	);
+	assert.equal(
+		moduleSetupPlanDataSchema.safeParse({
 			steps: [{ ...step, state: "BLOCKED" }],
 		}).success,
 		false,

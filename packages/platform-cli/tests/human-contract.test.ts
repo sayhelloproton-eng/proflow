@@ -112,6 +112,80 @@ test("non-TTY progress uses a stable marker instead of a frozen spinner", () => 
 	assert.doesNotMatch(output, /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
 });
 
+test("TTY progress keeps completed phases and restores the current task after subprocess logs", () => {
+	const stream = new PassThrough();
+	Object.defineProperty(stream, "isTTY", { value: true });
+	let output = "";
+	stream.on("data", (chunk) => {
+		output += chunk.toString();
+	});
+	const reporter = createTerminalProgressReporter(
+		stream as unknown as NodeJS.WriteStream,
+	);
+	reporter({
+		command: "install",
+		kind: "phase",
+		phase: "registry",
+		status: "SUCCEEDED",
+		message: "Registry 解析完成",
+	});
+	reporter({
+		command: "install",
+		kind: "phase",
+		phase: "packages",
+		status: "STARTED",
+		message: "正在同步依赖",
+	});
+	reporter({
+		command: "install",
+		kind: "subprocess",
+		phase: "packages",
+		status: "STARTED",
+		message: "resolved 24, downloaded 3, added 24",
+	});
+	reporter.close();
+	assert.match(output, /Registry 解析完成/);
+	assert.match(output, /resolved 24, downloaded 3, added 24/);
+	assert.ok((output.match(/正在同步依赖/g)?.length ?? 0) >= 2);
+});
+
+test("NO_COLOR disables semantic ANSI colors", () => {
+	const previous = process.env.NO_COLOR;
+	process.env.NO_COLOR = "1";
+	try {
+		const rendered = renderHumanResult(
+			{ command: "help", status: "SUCCEEDED" },
+			{ color: process.env.NO_COLOR === undefined, width: 80 },
+		);
+		assert.equal(rendered.includes(String.fromCharCode(27)), false);
+	} finally {
+		if (previous === undefined) delete process.env.NO_COLOR;
+		else process.env.NO_COLOR = previous;
+	}
+});
+
+test("retryable package-manager warnings are yellow warnings, not failed events", () => {
+	const stream = new PassThrough();
+	Object.defineProperty(stream, "isTTY", { value: false });
+	let output = "";
+	stream.on("data", (chunk) => {
+		output += chunk.toString();
+	});
+	const reporter = createTerminalProgressReporter(
+		stream as unknown as NodeJS.WriteStream,
+	);
+	reporter({
+		command: "uninstall",
+		kind: "subprocess",
+		phase: "packages",
+		status: "WARNING",
+		message: "[WARN] network error; will retry",
+	});
+	reporter.close();
+	assert.match(output, /│ \[WARN\].*警告/);
+	assert.doesNotMatch(output, /失败/);
+});
+
 test("stop summary does not count a no-effect module as both success and skipped", () => {
 	const rendered = renderHumanResult({
 		command: "stop",
@@ -127,5 +201,5 @@ test("stop summary does not count a no-effect module as both success and skipped
 			skipped: [{ moduleRef: "chrome-runtime", reason: "NO_EFFECT" }],
 		},
 	});
-	assert.match(rendered, /成功：0，跳过：1，失败：0/);
+	assert.match(rendered, /成功：0\s+跳过：1\s+失败：0/);
 });

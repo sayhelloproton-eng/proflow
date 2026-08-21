@@ -33,7 +33,7 @@ implementationWave: Wave 0
 - `provides/requires` runtime topology semantics 保持。
 - `DOCS.md/SETUP.md` 标准知识合同可验证。
 - `Module.docs.data.docs` 是 DOCS 正文且不能包含 SETUP index。
-- setup Step 校验唯一 ID、TODO/BLOCKED、责任方、人工/AI executable、requiredInputs、verify、successCondition；BLOCKED 强制 blockedReason。
+- setup Step 校验唯一 ID、DONE/TODO/BLOCKED、说明、责任方、人工/AI executable、requiredInputs、verify、successCondition；BLOCKED 强制 blockedReason，不可自动化步骤声明 Human Action。
 - static/runtime descriptor identity/version 一致。
 
 旧 Core/install closure/preflight/mandatory verification assertions 必须删除，不得倒逼恢复产品字段。
@@ -45,3 +45,4 @@ implementationWave: Wave 0
 - `ACTION_REQUIRED` 没有 TODO、`FAILED` 没有 BLOCKED 或 SETUP.md 与 adapter 命令不一致时 conformance 必须失败。
 - Contract 不要求 Platform 保存 step state 或理解 Module 私有配置。
 - Contract 支持 `platform setup` 对全部非 READY Module 一次遍历并一次性聚合。
+- 完整计划能表达已完成、当前、后续和上游阻塞，重复观察不依赖 Platform 保存 step state。

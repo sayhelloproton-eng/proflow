@@ -81,6 +81,8 @@ Final assertion：没有隐藏 old-engine route，Platform 不需要理解任何
 
 人工输出断言：长命令在完成前产生进度；帮助、状态、setup、start/stop 摘要均中文化；不得输出整块 JSON。
 
+终端快照覆盖 TTY/非 TTY、`NO_COLOR`、80/120 列；已完成阶段不得被 spinner 擦除。Registry/package-manager 的事件必须在相应外部命令完成前可观察，Status/Start/Stop 必须提供分组、原因和可执行下一步。Docs TTY 分页、非 TTY 连续输出，Markdown 结构不得被简单剥离。
+
 ## Setup 全量聚合新增证明
 
 - 证明 `platform setup` 一次遍历全部 discovered Module，READY 跳过。

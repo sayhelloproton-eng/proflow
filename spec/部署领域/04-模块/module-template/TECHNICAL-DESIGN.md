@@ -69,7 +69,7 @@ DOCS.md
 SETUP.md
 ```
 
-`CONFIGURATION.md` 不再生成。`DOCS.md` 讲能力/API/Contract；`SETUP.md` 讲 install 之后真实的人机/外部步骤。没有人工 setup 的 Module 也生成最小 `SETUP.md`，明确 `install` 已完成全部 deterministic preparation。
+`CONFIGURATION.md` 不再生成。`DOCS.md` 以中文固定生成八个可验证章节：定位与作用、主要能力、Public Contract、依赖、运行形态、使用方式、职责边界、术语；其中 Provides/Requires 必须逐项对应 descriptor。`SETUP.md` 讲 install 之后真实的人机/外部步骤。没有人工 setup 的 Module 也生成最小 `SETUP.md`，明确 `install` 已完成全部 deterministic preparation。
 
 生成的 `SETUP.md` 必须采用**最短闭环 Step**，每个会推进 setup 的 Step 至少包含：
 
@@ -82,6 +82,8 @@ Success Condition（最终映射到 Module.status.setupStatus）
 ```
 
 Template 不强制“一步一个进程”或人为拆分流程；如果一个 package-owned command 能自动完成准备、写入、验证，就应一次完成。纯人工 Web/UI 步骤也必须有 prepare/verify executable，使 AI 不依赖口头确认。
+
+有真实外部流程的 Setup CLI 支持 `setup` 从当前未完成步骤继续，并支持 `setup 01`、`setup 02` 显式重跑。脚本负责检查前置条件、准备材料、打开准确页面、复制非敏感材料并主动验证；登录、授权、粘贴、保存、Chrome 加载等操作作为明确 Human Action 保留，不自动操作已登录网页。
 
 ## 7. CLI
 

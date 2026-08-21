@@ -10,6 +10,10 @@
   dir: packages/agent-controller-dev
   intents:
     - funny-gifts-design
+"@tomflow/proflow-agent-controller-dev@0.1.12":
+  dir: packages/agent-controller-dev
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-agent-controller-dev@0.1.2":
   dir: packages/agent-controller-dev
   intents:
@@ -42,6 +46,10 @@
   dir: packages/agent-gateway
   intents:
     - little-kids-attend
+"@tomflow/proflow-agent-gateway@0.1.11":
+  dir: packages/agent-gateway
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-agent-gateway@0.1.2":
   dir: packages/agent-gateway
   intents:
@@ -74,6 +82,10 @@
   dir: packages/agent-product
   intents:
     - funny-gifts-design
+"@tomflow/proflow-agent-product@0.1.12":
+  dir: packages/agent-product
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-agent-product@0.1.2":
   dir: packages/agent-product
   intents:
@@ -122,6 +134,10 @@
   dir: packages/agent-runtime
   intents:
     - little-kids-attend
+"@tomflow/proflow-agent-runtime@0.1.9":
+  dir: packages/agent-runtime
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-agent-test-ops@0.1.1":
   dir: packages/agent-test-ops
   intents:
@@ -134,6 +150,10 @@
   dir: packages/agent-test-ops
   intents:
     - funny-gifts-design
+"@tomflow/proflow-agent-test-ops@0.1.12":
+  dir: packages/agent-test-ops
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-agent-test-ops@0.1.2":
   dir: packages/agent-test-ops
   intents:
@@ -166,6 +186,10 @@
   dir: packages/chatgpt-carrier
   intents:
     - funny-gifts-design
+"@tomflow/proflow-chatgpt-carrier@0.1.11":
+  dir: packages/chatgpt-carrier
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-chatgpt-carrier@0.1.2":
   dir: packages/chatgpt-carrier
   intents:
@@ -202,6 +226,10 @@
   dir: packages/chrome-runtime
   intents:
     - little-kids-attend
+"@tomflow/proflow-chrome-runtime@0.1.12":
+  dir: packages/chrome-runtime
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-chrome-runtime@0.1.2":
   dir: packages/chrome-runtime
   intents:
@@ -250,6 +278,10 @@
   dir: packages/deployment-conformance
   intents:
     - little-kids-attend
+"@tomflow/proflow-deployment-conformance@0.1.9":
+  dir: packages/deployment-conformance
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-dev-tunnel@0.1.1":
   dir: packages/dev-tunnel
   intents:
@@ -266,6 +298,10 @@
   dir: packages/dev-tunnel
   intents:
     - funny-gifts-design
+"@tomflow/proflow-dev-tunnel@0.1.13":
+  dir: packages/dev-tunnel
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-dev-tunnel@0.1.2":
   dir: packages/dev-tunnel
   intents:
@@ -298,6 +334,10 @@
   dir: packages/execution-browser-extension
   intents:
     - funny-gifts-design
+"@tomflow/proflow-execution-browser-extension@0.1.11":
+  dir: packages/execution-browser-extension
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-execution-browser-extension@0.1.2":
   dir: packages/execution-browser-extension
   intents:
@@ -346,10 +386,18 @@
   dir: packages/execution-contracts
   intents:
     - little-kids-attend
+"@tomflow/proflow-execution-contracts@0.1.9":
+  dir: packages/execution-contracts
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-execution-local@0.1.1":
   dir: packages/execution-local
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-execution-local@0.1.10":
+  dir: packages/execution-local
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-execution-local@0.1.2":
   dir: packages/execution-local
   intents:
@@ -386,6 +434,10 @@
   dir: packages/execution-runtime
   intents:
     - little-kids-attend
+"@tomflow/proflow-execution-runtime@0.1.12":
+  dir: packages/execution-runtime
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-execution-runtime@0.1.2":
   dir: packages/execution-runtime
   intents:
@@ -430,10 +482,18 @@
   dir: packages/model-contracts
   intents:
     - little-kids-attend
+"@tomflow/proflow-model-contracts@0.1.9":
+  dir: packages/model-contracts
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-model-provider-api@0.1.1":
   dir: packages/model-provider-api
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-model-provider-api@0.1.10":
+  dir: packages/model-provider-api
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-model-provider-api@0.1.2":
   dir: packages/model-provider-api
   intents:
@@ -474,6 +534,10 @@
   dir: packages/model-runtime
   intents:
     - funny-gifts-design
+"@tomflow/proflow-model-runtime@0.1.13":
+  dir: packages/model-runtime
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-model-runtime@0.1.2":
   dir: packages/model-runtime
   intents:
@@ -502,6 +566,10 @@
   dir: packages/module-contract
   intents:
     - little-kids-attend
+"@tomflow/proflow-module-contract@0.1.11":
+  dir: packages/module-contract
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-module-contract@0.1.5":
   dir: packages/module-contract
   intents:
@@ -526,6 +594,10 @@
   dir: packages/module-skill
   intents:
     - module-skill-acceptance-not-frozen
+"@tomflow/proflow-module-skill@0.1.10":
+  dir: packages/module-skill
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-module-skill@0.1.2":
   dir: packages/module-skill
   intents:
@@ -574,6 +646,10 @@
   dir: packages/module-template
   intents:
     - little-kids-attend
+"@tomflow/proflow-module-template@0.1.9":
+  dir: packages/module-template
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-platform-cli@0.1.1":
   dir: packages/platform-cli
   intents:
@@ -670,6 +746,14 @@
   dir: packages/platform-cli
   intents:
     - late-breads-turn
+"@tomflow/proflow-platform-cli@0.1.34":
+  dir: packages/platform-cli
+  intents:
+    - terminal-guidance-polish
+"@tomflow/proflow-platform-cli@0.1.35":
+  dir: packages/platform-cli
+  intents:
+    - package-warning-semantics
 "@tomflow/proflow-platform-cli@0.1.4":
   dir: packages/platform-cli
   intents:
@@ -702,6 +786,10 @@
   dir: packages/platform-host
   intents:
     - little-kids-attend
+"@tomflow/proflow-platform-host@0.1.11":
+  dir: packages/platform-host
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-platform-host@0.1.2":
   dir: packages/platform-host
   intents:
@@ -746,6 +834,10 @@
   dir: packages/task-migration-runner
   intents:
     - little-kids-attend
+"@tomflow/proflow-task-migration-runner@0.1.9":
+  dir: packages/task-migration-runner
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-task-orchestration@0.1.1":
   dir: packages/task-orchestration
   intents:
@@ -766,6 +858,10 @@
   dir: packages/task-orchestration
   intents:
     - little-kids-attend
+"@tomflow/proflow-task-orchestration@0.1.8":
+  dir: packages/task-orchestration
+  intents:
+    - terminal-guidance-polish
 "@tomflow/proflow-task-store-sqlite@0.1.1":
   dir: packages/task-store-sqlite
   intents:
@@ -790,3 +886,7 @@
   dir: packages/task-store-sqlite
   intents:
     - little-kids-attend
+"@tomflow/proflow-task-store-sqlite@0.1.9":
+  dir: packages/task-store-sqlite
+  intents:
+    - terminal-guidance-polish

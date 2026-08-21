@@ -6,9 +6,12 @@ import type {
 } from "./progress.ts";
 
 const colors = {
+	cyan: "\u001b[36m",
+	blue: "\u001b[34m",
 	green: "\u001b[32m",
 	red: "\u001b[31m",
 	yellow: "\u001b[33m",
+	bold: "\u001b[1m",
 	dim: "\u001b[2m",
 	reset: "\u001b[0m",
 } as const;
@@ -21,36 +24,52 @@ function progressLine(
 	spinner = "",
 ): string {
 	const prefix =
-		event.current && event.total ? `${event.current}/${event.total} · ` : "";
+		event.current && event.total
+			? `[${String(event.current).padStart(String(event.total).length, "0")}/${event.total}] `
+			: "";
+	const elapsed =
+		event.elapsedMs !== undefined
+			? ` · ${(event.elapsedMs / 1000).toFixed(1)}s`
+			: "";
 	const suffix =
 		event.status === "SUCCEEDED"
 			? "完成"
-			: event.status === "ACTION_REQUIRED"
-				? "待处理"
-				: event.status === "FAILED"
-					? "失败"
-					: event.status === "SKIPPED"
-						? "跳过"
-						: "";
+			: event.status === "WARNING"
+				? "警告"
+				: event.status === "ACTION_REQUIRED"
+					? "待处理"
+					: event.status === "FAILED"
+						? "失败"
+						: event.status === "SKIPPED"
+							? "跳过"
+							: "";
 	const symbol =
-		event.status === "STARTED"
-			? spinner
-			: event.status === "SUCCEEDED"
-				? "✓"
-				: event.status === "FAILED"
-					? "✕"
-					: event.status === "ACTION_REQUIRED"
-						? "◆"
-						: "○";
+		event.kind === "subprocess"
+			? "│"
+			: event.status === "STARTED"
+				? spinner
+				: event.status === "SUCCEEDED"
+					? "✓"
+					: event.status === "WARNING"
+						? "!"
+						: event.status === "FAILED"
+							? "✕"
+							: event.status === "ACTION_REQUIRED"
+								? "◆"
+								: "○";
 	if (!color)
-		return `${symbol ? `${symbol} ` : ""}${prefix}${event.message}${suffix ? ` · ${suffix}` : ""}`;
+		return `${symbol ? `${symbol} ` : ""}${prefix}${event.message}${suffix ? ` · ${suffix}` : ""}${elapsed}`;
 	const tone =
 		event.status === "SUCCEEDED"
 			? colors.green
-			: event.status === "FAILED"
-				? colors.red
-				: colors.yellow;
-	return `${tone}${symbol}${colors.reset} ${colors.dim}${prefix}${colors.reset}${event.message}${suffix ? ` · ${tone}${suffix}${colors.reset}` : ""}`;
+			: event.status === "WARNING"
+				? colors.yellow
+				: event.status === "FAILED"
+					? colors.red
+					: event.kind === "subprocess"
+						? colors.blue
+						: colors.yellow;
+	return `${tone}${symbol}${colors.reset} ${colors.dim}${prefix}${colors.reset}${event.message}${suffix ? ` · ${tone}${suffix}${colors.reset}` : ""}${event.elapsedMs === undefined ? "" : `${colors.dim}${elapsed}${colors.reset}`}`;
 }
 
 export type TerminalProgressReporter = PlatformProgressReporter & {
@@ -86,7 +105,10 @@ export function createTerminalProgressReporter(
 	};
 	const reporter = ((event: PlatformProgressEvent) => {
 		clearSpinner();
-		active = event.status === "STARTED" ? event : undefined;
+		const previousActive = active;
+		if (event.kind !== "subprocess") {
+			active = event.status === "STARTED" ? event : undefined;
+		}
 		const line = progressLine(
 			event,
 			color,
@@ -99,18 +121,22 @@ export function createTerminalProgressReporter(
 		cursorTo(stream, 0);
 		clearLine(stream, 0);
 		stream.write(line);
+		if (event.kind === "subprocess") {
+			stream.write("\n");
+			active = previousActive;
+			if (active) {
+				paint();
+				timer = setInterval(paint, 80);
+				timer.unref();
+			}
+			return;
+		}
 		if (event.status === "STARTED") {
 			timer = setInterval(paint, 80);
 			timer.unref();
 			return;
 		}
-		const compactModuleProgress =
-			event.current !== undefined &&
-			event.total !== undefined &&
-			event.current < event.total &&
-			event.status !== "FAILED" &&
-			event.status !== "ACTION_REQUIRED";
-		if (!compactModuleProgress) stream.write("\n");
+		stream.write("\n");
 	}) as TerminalProgressReporter;
 	reporter.close = () => {
 		clearSpinner();

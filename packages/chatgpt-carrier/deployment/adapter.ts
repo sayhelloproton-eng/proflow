@@ -22,19 +22,52 @@ const setupPlan = {
 	steps: [
 		{
 			id: "STEP-CHATGPT-CARRIER-01",
-			title: "创建或选择 Custom GPT",
+			title: "选择真实 Custom GPT",
+			description: "打开管理页，选择载体并保存真实 GPT URL。",
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "pnpm exec -- proflow-chatgpt-carrier setup",
+				interactive: "pnpm exec -- proflow-chatgpt-carrier setup 01",
 				nonInteractive:
-					"pnpm exec -- proflow-chatgpt-carrier setup --carrier-url <url>",
+					"pnpm exec -- proflow-chatgpt-carrier setup 01 --carrier-url <url>",
 			},
 			requiredInputs: [
 				{ name: "carrierUrl", description: "Custom GPT URL", sensitive: false },
 			],
+			verify:
+				"pnpm exec -- proflow-chatgpt-carrier setup 01 --carrier-url <url>",
+			successCondition: "真实 Carrier URL 已保存",
+			humanAction: "在 ChatGPT 中选择或创建 Custom GPT，并复制 URL。",
+		},
+		{
+			id: "STEP-CHATGPT-CARRIER-02",
+			title: "检查 Carrier 能力",
+			description: "逐项确认 Actions、OpenAPI、认证和所需 GPT 能力。",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "pnpm exec -- proflow-chatgpt-carrier setup 02",
+				nonInteractive:
+					"pnpm exec -- proflow-chatgpt-carrier setup 02 --confirm-capabilities",
+			},
+			requiredInputs: [],
 			verify: "pnpm exec -- proflow-chatgpt-carrier verify",
-			successCondition: "配置状态变为“已就绪”",
+			successCondition: "Carrier 能力检查已记录",
+			humanAction: "在 Custom GPT 配置页逐项核对脚本显示的检查项。",
+		},
+		{
+			id: "STEP-CHATGPT-CARRIER-03",
+			title: "验证 Carrier",
+			description: "重新观察 URL 和能力证据，确认最终状态。",
+			state: "TODO",
+			responsible: "AI",
+			execution: {
+				interactive: "pnpm exec -- proflow-chatgpt-carrier setup 03",
+				nonInteractive: "pnpm exec -- proflow-chatgpt-carrier verify",
+			},
+			requiredInputs: [],
+			verify: "pnpm exec -- proflow-chatgpt-carrier verify",
+			successCondition: "chatgpt-carrier.setupStatus=READY",
 		},
 	],
 } as const;

@@ -31,12 +31,13 @@ const setupPlan = {
 		{
 			id: "STEP-MODEL-RUNTIME-01",
 			title: "选择 FAST 与 REASON 模型",
+			description: "读取 Provider 可用模型，选择后分别执行能力验证。",
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "pnpm exec -- proflow-model-runtime setup",
+				interactive: "pnpm exec -- proflow-model-runtime setup 01",
 				nonInteractive:
-					"pnpm exec -- proflow-model-runtime setup --fast-model <id> --reason-model <id>",
+					"pnpm exec -- proflow-model-runtime setup 01 --fast-model <id> --reason-model <id>",
 			},
 			requiredInputs: [
 				{ name: "fastModel", description: "FAST 模型 ID", sensitive: false },
@@ -47,14 +48,28 @@ const setupPlan = {
 				},
 			],
 			verify: "pnpm exec -- proflow-model-runtime verify",
-			successCondition: "配置状态变为“已就绪”",
+			successCondition: "FAST 与 REASON 模型已保存并通过验证",
+		},
+		{
+			id: "STEP-MODEL-RUNTIME-02",
+			title: "验证模型角色",
+			description: "重新探测两条模型角色通道。",
+			state: "TODO",
+			responsible: "AI",
+			execution: {
+				interactive: "pnpm exec -- proflow-model-runtime setup 02",
+				nonInteractive: "pnpm exec -- proflow-model-runtime verify",
+			},
+			requiredInputs: [],
+			verify: "pnpm exec -- proflow-model-runtime verify",
+			successCondition: "model-runtime.setupStatus=READY",
 		},
 	],
 } as const;
 const blockedSetupPlan = {
 	steps: [
 		{
-			id: "STEP-MODEL-RUNTIME-02",
+			id: "STEP-MODEL-RUNTIME-03",
 			title: "等待模型服务与能力事实",
 			state: "BLOCKED",
 			responsible: "EXTERNAL",

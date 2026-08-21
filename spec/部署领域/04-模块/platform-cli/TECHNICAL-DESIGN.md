@@ -87,9 +87,13 @@ Platform 原样保留并校验 Module 返回的结构化 setup steps，但不理
 
 Module 的 setup 实现必须优先自动执行所有 machine-owned 步骤，只把真正的用户/外部选择留给 `ACTION_REQUIRED`。Platform 不允许因“方便引导”重新变成 config bus。
 
+终端把完整步骤渲染为 `✓ 已完成 / → 当前步骤 / ○ 后续步骤 / ✕ 阻塞`，并始终给出最短下一条命令；Platform 不持久化进度，重复执行时重新观察 Module-owned evidence。
+
 ## 7. Docs
 
 `platform docs` 调用 `Module.docs` 并聚合。Platform 不读取 Module 私有 config，也不根据 configSlots 拼配置指南。
+
+TTY 对长文启用分页器，Markdown renderer 保留标题、列表、表格、代码块与自动折行；非 TTY 稳定连续输出。文档正文由 Module owner 提供中文说明，Platform 不改写内容。
 
 标准知识文档为 `DOCS.md` 与 `SETUP.md`；Module-specific 其它业务文档可以存在，但不形成新的 Platform 标准管理面。
 
@@ -112,6 +116,12 @@ Discover
 ## 10. Package manager primitive
 
 Platform 继续拥有 npm/pnpm/yarn selection、safe argv、package synchronization/removal 与 installed-version observation；这些只能服务 package graph，不能变成 Module config owner。
+
+package-manager 使用流式子进程读取，并把关键 resolved/downloaded/reused/linked/added、warning/error 行转换为 progress detail。可重试 warning 必须使用黄色 `WARNING` 事件，不能冒充红色 `FAILED`；真正 error 才使用失败语义。Registry 搜索完成后立即报告候选数，再以最多四个并发请求逐包校验 metadata。TTY 保留已完成阶段并只动态刷新当前任务；非 TTY 每个事件输出一行。
+
+## 10.1 Terminal renderer
+
+Help、Install、Status、Docs、Setup、Start、Stop、Uninstall 共用统一 TerminalRenderer。语义色固定为标题青色、信息蓝色、成功绿色、待处理黄色、失败红色、辅助灰色；支持 `NO_COLOR` 与窄终端折行，不尝试改变终端字号，也不恢复 JSON 输出。
 
 ## 11. Module command binding
 

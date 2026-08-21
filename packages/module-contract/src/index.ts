@@ -199,7 +199,8 @@ export const moduleSetupStepSchema = z
 	.strictObject({
 		id: z.string().regex(/^STEP-[A-Z0-9-]+-[0-9]{2}$/),
 		title: z.string().min(1),
-		state: z.enum(["TODO", "BLOCKED"]),
+		description: z.string().min(1).optional(),
+		state: z.enum(["DONE", "TODO", "BLOCKED"]),
 		responsible: z.enum(["AI", "USER", "EXTERNAL"]),
 		execution: z.strictObject({
 			interactive: z.string().min(1),
@@ -214,6 +215,7 @@ export const moduleSetupStepSchema = z
 		),
 		verify: z.string().min(1),
 		successCondition: z.string().min(1),
+		humanAction: z.string().min(1).optional(),
 		blockedReason: z.string().min(1).optional(),
 	})
 	.superRefine((step, context) => {

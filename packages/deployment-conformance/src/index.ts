@@ -123,6 +123,57 @@ function containsPlaintextSecret(input: unknown, key = ""): boolean {
 	);
 }
 
+const requiredDocsHeadings = [
+	"模块定位与作用",
+	"主要能力",
+	"提供的 API 与 Public Contract",
+	"依赖的 Module、Contract 和外部资源",
+	"运行形态与生命周期",
+	"使用方式",
+	"职责边界与限制",
+	"术语",
+] as const;
+
+function validateModuleDocs(
+	docs: string,
+	descriptor: ModuleDescriptor,
+): ConformanceIssue[] {
+	const issues: ConformanceIssue[] = [];
+	const normalized = `${docs.trimEnd()}\n## __END__\n`;
+	for (const heading of requiredDocsHeadings) {
+		const section = normalized.match(
+			new RegExp(`^## ${heading}\\s*$([\\s\\S]*?)(?=^## )`, "m"),
+		);
+		if (!section?.[1]?.trim()) {
+			issues.push({
+				code: "DOCS_SECTION_MISSING",
+				message: `DOCS.md requires a non-empty section: ${heading}`,
+			});
+		}
+	}
+	if (!/[\u3400-\u9fff]/u.test(docs)) {
+		issues.push({
+			code: "DOCS_CHINESE_CONTENT_MISSING",
+			message: "DOCS.md must explain the Module in Chinese",
+		});
+	}
+	if (/Document the Module|TODO|TBD|待补充|待完善/i.test(docs)) {
+		issues.push({
+			code: "DOCS_PLACEHOLDER_FORBIDDEN",
+			message: "DOCS.md contains unfinished placeholder prose",
+		});
+	}
+	for (const contract of [...descriptor.provides, ...descriptor.requires]) {
+		if (!docs.includes(`\`${contract.contractRef}\``)) {
+			issues.push({
+				code: "DOCS_CONTRACT_MISMATCH",
+				message: `DOCS.md must name declared Contract ${contract.contractRef}`,
+			});
+		}
+	}
+	return issues;
+}
+
 async function pathExists(path: string): Promise<boolean> {
 	try {
 		const value = await stat(path);
@@ -485,6 +536,12 @@ export async function runPackageConformance(
 				message: `${documentationFile} must be included in the npm files allowlist`,
 			});
 		}
+	}
+	const docsPath = join(packageDirectory, descriptor.documentation.docs);
+	if (await pathExists(docsPath)) {
+		issues.push(
+			...validateModuleDocs(await readFile(docsPath, "utf8"), descriptor),
+		);
 	}
 	const cliEntry = exportEntry(metadata, "./cli");
 	if (

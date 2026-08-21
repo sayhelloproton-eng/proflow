@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -92,6 +92,37 @@ async function main(): Promise<void> {
 		? resolve(option("--workspace") as string)
 		: process.cwd();
 	if (args[0] === "setup") {
+		const step = args[1]?.startsWith("--") ? undefined : args[1];
+		if (step === "01") {
+			const prepared = await behaviorAdapter.install({ workspaceRoot });
+			const loadDir = String(prepared.result.data.loadDir);
+			const command =
+				process.platform === "darwin"
+					? "pbcopy"
+					: process.platform === "win32"
+						? "clip"
+						: "xclip";
+			const parameters =
+				process.platform === "linux" ? ["-selection", "clipboard"] : [];
+			spawnSync(command, parameters, { input: loadDir, encoding: "utf8" });
+			openChromeExtensions();
+			process.stdout.write(
+				`\n✓ 扩展目录已准备并复制到剪贴板\n  ${loadDir}\n  启用开发者模式并加载该目录，然后运行 setup 02。\n`,
+			);
+			return;
+		}
+		if (step === "03") {
+			const result = await behaviorAdapter.status({ workspaceRoot });
+			process.stdout.write(
+				result.result.data.setupStatus === "READY"
+					? "✓ Service Worker 与 Bridge 验证通过\n"
+					: "✕ 扩展尚未就绪，请检查 Reload 和后台错误\n",
+			);
+			if (result.result.data.setupStatus !== "READY") process.exitCode = 1;
+			return;
+		}
+		if (step !== undefined && step !== "02")
+			throw new Error(`UNSUPPORTED_SETUP_STEP:${step}`);
 		let extensionId = option("--extension-id");
 		if (!extensionId && !process.stdin.isTTY)
 			throw new Error("非交互环境必须提供 --extension-id");

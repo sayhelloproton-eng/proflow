@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 123,
-    "testCalls": 513
+    "files": 124,
+    "testCalls": 518
   },
   "tests": [
     {
@@ -4650,7 +4650,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 76,
+      "line": 82,
       "title": "CP-DPL-CON-01 parses a complete descriptor and rejects an incomplete boundary",
       "ids": [
         "CP-DPL-CON-01"
@@ -4663,7 +4663,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 111,
+      "line": 117,
       "title": "CP-DPL-CON-02 distinguishes moduleRef and secretRef and rejects unsafe combinations",
       "ids": [
         "CP-DPL-CON-02"
@@ -4676,7 +4676,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 149,
+      "line": 155,
       "title": "CP-DPL-CON-03 requirement queries are deterministic and side-effect free",
       "ids": [
         "CP-DPL-CON-03"
@@ -4689,7 +4689,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 159,
+      "line": 165,
       "title": "CP-DPL-CON-04 standard management is fixed at seven commands and legacy lifecycle fields are rejected",
       "ids": [
         "CP-DPL-CON-04"
@@ -4702,7 +4702,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 188,
+      "line": 194,
       "title": "CP-DPL-CON-04 Module results reject Platform-only BLOCKED outcomes",
       "ids": [
         "CP-DPL-CON-04"
@@ -4715,7 +4715,7 @@
     {
       "package": "module-contract",
       "path": "packages/module-contract/tests/module-contract.test.ts",
-      "line": 201,
+      "line": 207,
       "title": "CP-DPL-CON-05 compatibility distinguishes additive and breaking changes",
       "ids": [
         "CP-DPL-CON-05"
@@ -5117,6 +5117,42 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
       "line": 115,
+      "title": "TTY progress keeps completed phases and restores the current task after subprocess logs",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 152,
+      "title": "NO_COLOR disables semantic ANSI colors",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 167,
+      "title": "retryable package-manager warnings are yellow warnings, not failed events",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 189,
       "title": "stop summary does not count a no-effect module as both success and skipped",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5128,7 +5164,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 118,
+      "line": 125,
       "title": "install rejects invalid existing Workspace metadata before external discovery or mutation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5139,7 +5175,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 189,
+      "line": 196,
       "title": "install synchronizes the complete Registry package set in one transaction",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5150,7 +5186,18 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 266,
+      "line": 274,
+      "title": "install classifies retryable package-manager warnings without reporting failure",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/install-uninstall.test.ts",
+      "line": 309,
       "title": "uninstall removes ProFlow dependencies and preserves .proflow",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5161,7 +5208,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 298,
+      "line": 341,
       "title": "uninstall never removes packages after a Module.uninstall failure",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5172,7 +5219,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/install-uninstall.test.ts",
-      "line": 354,
+      "line": 397,
       "title": "all operational commands accept --workspace while positional module arguments remain invalid",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5456,6 +5503,17 @@
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/package-manager-stream.test.ts",
+      "line": 6,
+      "title": "package command runner streams complete stdout and stderr lines before completion",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/install/package-manager.ts"
       ]
     },
     {

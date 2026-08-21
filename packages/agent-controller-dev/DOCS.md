@@ -1,16 +1,39 @@
-# agent-controller-dev
+# agent-controller-dev — 总控与研发角色包
 
-为 ProFlow 准备总控与研发角色使用的 Custom GPT。它负责理解任务、组织研发工作，并通过受控的 Execution（执行服务）完成真实代码操作。
+## 模块定位与作用
 
-## 什么时候需要
+为 ProFlow 提供固定的 Controller/Dev（总控与研发）Custom GPT 角色定义、配置材料和本地 Role 注册入口。该角色负责理解任务、组织研发协作，并通过受控 Execution 完成真实代码操作。
 
-首次部署总控/研发角色，或者角色的 Instructions（指令）、Actions（动作接口）发生升级时使用。
+## 主要能力
 
-## 如何配置
+- 提供角色名称、描述、Instructions（指令）、对话开场白和静态 Action Schema。
+- 创建或更新真实 Custom GPT，并把 GPT URL 注册为稳定 Role。
+- 校验角色包版本、Role 注册和 Actions Carrier 的一致性。
 
-运行 `pnpm exec -- proflow-agent-controller-dev setup`。向导会准备角色资料，引导你打开 Custom GPT 编辑页面，最后登记 GPT 地址并验证角色状态。
+## 提供的 API 与 Public Contract
 
-## 相关术语
+- 不向 Module Graph 提供新的逻辑 Contract。
+- 包级 CLI 提供 `setup`、`custom-gpt`、`role` 与 `verify` 等角色管理能力。
 
-- Custom GPT（自定义 GPT）：承载角色指令和 Actions 的 ChatGPT 应用。
-- Worker（工作角色实例）：任务中实际参与协作的角色实例。
+## 依赖的 Module、Contract 和外部资源
+
+- 依赖 `custom-gpt-actions-gateway`，兼容版本 `>=1.0.0 <2.0.0`。
+- 依赖 ChatGPT Custom GPT、公开 HTTPS Gateway 和可用的 ChatGPT 登录状态。
+
+## 运行形态与生命周期
+
+类型为 Agent Package（智能体角色包），没有独立常驻进程；运行状态显示为“无独立进程”。
+
+## 使用方式
+
+运行 `pnpm exec -- proflow-agent-controller-dev setup`，向导会准备角色资料、打开编辑页、复制 Instructions 与 Action Schema，并在保存后登记 GPT URL。
+
+## 职责边界与限制
+
+本模块不保存 Task 业务事实，不直接执行 Shell/Git，也不拥有 Browser Carrier。真实 Effect（副作用）必须交给 Execution。
+
+## 术语
+
+- Controller/Dev（总控与研发）：负责研发组织、实现与技术决策的固定角色。
+- Role（角色）：注册到 ProFlow 的稳定 Custom GPT 身份。
+- Action Schema（动作接口定义）：限制该角色可调用能力的 OpenAPI 描述。

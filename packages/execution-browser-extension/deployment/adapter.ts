@@ -24,13 +24,32 @@ const setupPlan = {
 	steps: [
 		{
 			id: "STEP-EXECUTION-BROWSER-EXTENSION-01",
-			title: "加载 Chrome 扩展",
+			title: "准备扩展并打开 Chrome",
+			description: "生成 unpacked 目录，复制路径并打开扩展管理页。",
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "pnpm exec -- proflow-execution-browser-extension setup",
+				interactive:
+					"pnpm exec -- proflow-execution-browser-extension setup 01",
 				nonInteractive:
-					"pnpm exec -- proflow-execution-browser-extension setup --extension-id <id>",
+					"pnpm exec -- proflow-execution-browser-extension setup 01",
+			},
+			requiredInputs: [],
+			verify: "pnpm exec -- proflow-execution-browser-extension setup 01",
+			successCondition: "扩展目录已生成并可选择",
+			humanAction: "启用开发者模式并选择脚本复制的目录。",
+		},
+		{
+			id: "STEP-EXECUTION-BROWSER-EXTENSION-02",
+			title: "登记 Extension ID 并生成配置",
+			description: "保存扩展 ID，生成 Bridge 配置并提示 Reload。",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive:
+					"pnpm exec -- proflow-execution-browser-extension setup 02",
+				nonInteractive:
+					"pnpm exec -- proflow-execution-browser-extension setup 02 --extension-id <id>",
 			},
 			requiredInputs: [
 				{
@@ -40,14 +59,31 @@ const setupPlan = {
 				},
 			],
 			verify: "pnpm exec -- proflow-execution-browser-extension verify",
-			successCondition: "配置状态变为“已就绪”",
+			successCondition: "Extension ID 和运行配置已保存",
+			humanAction: "复制扩展 ID，并在配置生成后点击 Reload。",
+		},
+		{
+			id: "STEP-EXECUTION-BROWSER-EXTENSION-03",
+			title: "验证 Service Worker 与 Bridge",
+			description: "重新观察扩展后台和本地 Bridge。",
+			state: "TODO",
+			responsible: "AI",
+			execution: {
+				interactive:
+					"pnpm exec -- proflow-execution-browser-extension setup 03",
+				nonInteractive:
+					"pnpm exec -- proflow-execution-browser-extension verify",
+			},
+			requiredInputs: [],
+			verify: "pnpm exec -- proflow-execution-browser-extension verify",
+			successCondition: "execution-browser-extension.setupStatus=READY",
 		},
 	],
 } as const;
 const blockedSetupPlan = {
 	steps: [
 		{
-			id: "STEP-EXECUTION-BROWSER-EXTENSION-02",
+			id: "STEP-EXECUTION-BROWSER-EXTENSION-04",
 			title: "修复扩展配置",
 			state: "BLOCKED",
 			responsible: "EXTERNAL",

@@ -1,13 +1,10 @@
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import { accessSync, constants } from "node:fs";
 import { access, readFile } from "node:fs/promises";
 import { delimiter, join } from "node:path";
-import { promisify } from "node:util";
 
 import { PlatformError } from "../errors.ts";
 import { atomicWrite } from "../paths.ts";
-
-const execFileAsync = promisify(execFile);
 
 export type SupportedWorkspacePackageManager = "npm" | "yarn" | "pnpm";
 export type PackageManagerSelectionSource =
@@ -22,18 +19,67 @@ export interface WorkspacePackageManagerSelection {
 }
 
 export interface PackageCommandRunner {
-	run(command: string, args: readonly string[], cwd: string): Promise<string>;
+	run(
+		command: string,
+		args: readonly string[],
+		cwd: string,
+		onOutput?: (line: PackageCommandOutput) => void,
+	): Promise<string>;
+}
+
+export interface PackageCommandOutput {
+	stream: "stdout" | "stderr";
+	line: string;
 }
 
 export function systemPackageCommandRunner(): PackageCommandRunner {
 	return {
-		async run(command, args, cwd) {
-			const result = await execFileAsync(command, [...args], {
-				cwd,
-				encoding: "utf8",
-				maxBuffer: 4 * 1024 * 1024,
+		async run(command, args, cwd, onOutput) {
+			return new Promise<string>((resolvePromise, rejectPromise) => {
+				const child = spawn(command, [...args], {
+					cwd,
+					stdio: ["ignore", "pipe", "pipe"],
+				});
+				let stdout = "";
+				let stderr = "";
+				const pending: Record<"stdout" | "stderr", string> = {
+					stdout: "",
+					stderr: "",
+				};
+				const consume = (stream: "stdout" | "stderr", chunk: Buffer) => {
+					const text = chunk.toString("utf8");
+					if (stream === "stdout") stdout += text;
+					else stderr += text;
+					const parts = `${pending[stream]}${text}`.split(/\r?\n|\r/);
+					pending[stream] = parts.pop() ?? "";
+					for (const line of parts) {
+						const normalized = line.trim();
+						if (normalized) onOutput?.({ stream, line: normalized });
+					}
+				};
+				const flush = () => {
+					for (const stream of ["stdout", "stderr"] as const) {
+						const line = pending[stream].trim();
+						if (line) onOutput?.({ stream, line });
+						pending[stream] = "";
+					}
+				};
+				child.stdout.on("data", (chunk: Buffer) => consume("stdout", chunk));
+				child.stderr.on("data", (chunk: Buffer) => consume("stderr", chunk));
+				child.once("error", rejectPromise);
+				child.once("close", (code, signal) => {
+					flush();
+					if (code === 0) resolvePromise(stdout);
+					else {
+						const detail = stderr.trim() || stdout.trim();
+						rejectPromise(
+							new Error(
+								`${command} exited with ${code ?? signal ?? "unknown"}${detail ? `: ${detail}` : ""}`,
+							),
+						);
+					}
+				});
 			});
-			return result.stdout;
 		},
 	};
 }
@@ -178,6 +224,7 @@ export async function syncWorkspacePackages(options: {
 	packages: readonly WorkspacePackageTarget[];
 	runner?: PackageCommandRunner;
 	executableAvailable?: (command: string) => boolean;
+	onOutput?: (line: PackageCommandOutput) => void;
 }): Promise<WorkspacePackageMutationResult> {
 	if (options.packages.length === 0) {
 		return { packageManager: "npm", packages: [] };
@@ -199,7 +246,12 @@ export async function syncWorkspacePackages(options: {
 		options.workspaceRoot,
 	);
 	try {
-		await runner.run(manager.name, args, options.workspaceRoot);
+		await runner.run(
+			manager.name,
+			args,
+			options.workspaceRoot,
+			options.onOutput,
+		);
 	} catch (error) {
 		throw new PlatformError(
 			"COMMAND_FAILED",
@@ -259,6 +311,7 @@ export async function removeWorkspacePackages(options: {
 	packageNames: readonly string[];
 	runner?: PackageCommandRunner;
 	executableAvailable?: (command: string) => boolean;
+	onOutput?: (line: PackageCommandOutput) => void;
 }): Promise<WorkspacePackageMutationResult> {
 	const packageNames = [...new Set(options.packageNames)].sort();
 	if (packageNames.length === 0) {
@@ -277,7 +330,12 @@ export async function removeWorkspacePackages(options: {
 		packageNames,
 	);
 	try {
-		await runner.run(manager.name, args, options.workspaceRoot);
+		await runner.run(
+			manager.name,
+			args,
+			options.workspaceRoot,
+			options.onOutput,
+		);
 	} catch (error) {
 		throw new PlatformError(
 			"UNINSTALL_FAILED",

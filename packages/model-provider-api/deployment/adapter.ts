@@ -27,12 +27,13 @@ const setupPlan = {
 		{
 			id: "STEP-MODEL-PROVIDER-API-01",
 			title: "配置模型服务地址",
+			description: "说明 Base URL 格式，探测连通性与认证后再保存。",
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "pnpm exec -- proflow-model-provider-api setup",
+				interactive: "pnpm exec -- proflow-model-provider-api setup 01",
 				nonInteractive:
-					"pnpm exec -- proflow-model-provider-api setup --provider-base-url <url>",
+					"pnpm exec -- proflow-model-provider-api setup 01 --provider-base-url <url>",
 			},
 			requiredInputs: [
 				{
@@ -42,14 +43,28 @@ const setupPlan = {
 				},
 			],
 			verify: "pnpm exec -- proflow-model-provider-api verify",
-			successCondition: "配置状态变为“已就绪”",
+			successCondition: "Provider Base URL 已通过连接与认证探测",
+		},
+		{
+			id: "STEP-MODEL-PROVIDER-API-02",
+			title: "验证模型服务",
+			description: "重新观察当前 Provider 配置和服务状态。",
+			state: "TODO",
+			responsible: "AI",
+			execution: {
+				interactive: "pnpm exec -- proflow-model-provider-api setup 02",
+				nonInteractive: "pnpm exec -- proflow-model-provider-api verify",
+			},
+			requiredInputs: [],
+			verify: "pnpm exec -- proflow-model-provider-api verify",
+			successCondition: "model-provider-api.setupStatus=READY",
 		},
 	],
 } as const;
 const blockedSetupPlan = {
 	steps: [
 		{
-			id: "STEP-MODEL-PROVIDER-API-02",
+			id: "STEP-MODEL-PROVIDER-API-03",
 			title: "修复模型服务认证",
 			state: "BLOCKED",
 			responsible: "EXTERNAL",

@@ -1,11 +1,38 @@
-# module-template
+# module-template — Module 工程模板
 
-Module Template（模块模板）提供 ProFlow 模块的标准工程骨架，支持库、服务、CLI、浏览器扩展、角色包和外部资源等类型。
+## 模块定位与作用
 
-## 主要用途
+把标准 Module Contract 机械生成 TypeScript/npm 工程骨架，为六种 Module kind 提供一致、可发布的起点。
 
-- 生成最小可运行的 TypeScript 包结构。
-- 带上标准管理入口、测试和发布配置。
-- 降低不同模块之间的工程差异。
+## 主要能力
 
-模板只生成起点，不替模块填写真实业务逻辑或伪造外部资源状态。
+- 生成 descriptor、adapter、package metadata、测试和标准七命令管理面。
+- 生成结构化 DOCS.md 与可执行 SETUP.md。
+- 根据 Library、Service、CLI、Browser Extension、Agent Package、External Resource 生成最小差异。
+
+## 提供的 API 与 Public Contract
+
+- 不提供业务逻辑 Contract。
+- 公开 `materializeModule` API 与 `proflow-module-template create` CLI。
+
+## 依赖的 Module、Contract 和外部资源
+
+- 无上游 Module Contract 依赖。
+- 依赖文件系统写入目标目录和当前 Module Contract 类型。
+
+## 运行形态与生命周期
+
+类型为 Library，CLI 按需生成文件后退出，无常驻进程。
+
+## 使用方式
+
+提供 moduleRef、package、kind、domain 和 summary 创建骨架；随后由领域 Owner 补齐真实能力与 Setup。
+
+## 职责边界与限制
+
+不生成领域业务、不发明 Provides/Requires，也不让通用模板成为 Platform-specific workflow。
+
+## 术语
+
+- Scaffold（工程骨架）：满足公共结构但仍需 Owner 实现业务的初始文件集合。
+- Profile（模板类型）：与 Module kind 对应的最小工程差异。

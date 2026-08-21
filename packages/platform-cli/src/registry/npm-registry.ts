@@ -112,6 +112,12 @@ export async function discoverRegistryModules(options: {
 	packageName?: string;
 	runner?: NpmCommandRunner;
 	nodeVersion?: string;
+	onSearchComplete?: (total: number) => void;
+	onPackageChecked?: (input: {
+		current: number;
+		total: number;
+		packageName: string;
+	}) => void;
 }): Promise<RegistryDiscoveryResult> {
 	const runner = options.runner ?? systemNpmRunner();
 	const registry = await resolveScopeRegistry(options.workspaceRoot, runner);
@@ -119,23 +125,40 @@ export async function discoverRegistryModules(options: {
 		options.packageName === undefined
 			? await searchPackageNames(options.workspaceRoot, registry, runner)
 			: [validateRequestedPackageName(options.packageName)];
+	options.onSearchComplete?.(names.length);
 	const candidates: RegistryModuleCandidate[] = [];
 	const rejected: RegistryRejectedPackage[] = [];
-	for (const packageName of names) {
-		const manifest = await viewManifest(
-			options.workspaceRoot,
-			registry,
-			packageName,
-			runner,
-		);
-		const assessed = assessManifest(
-			manifest,
-			registry,
-			options.nodeVersion ?? process.versions.node,
-		);
-		if ("candidate" in assessed) candidates.push(assessed.candidate);
-		else rejected.push(assessed.rejected);
-	}
+	let nextIndex = 0;
+	let completed = 0;
+	const worker = async () => {
+		while (nextIndex < names.length) {
+			const index = nextIndex++;
+			const packageName = names[index];
+			if (packageName === undefined) return;
+			const manifest = await viewManifest(
+				options.workspaceRoot,
+				registry,
+				packageName,
+				runner,
+			);
+			const assessed = assessManifest(
+				manifest,
+				registry,
+				options.nodeVersion ?? process.versions.node,
+			);
+			if ("candidate" in assessed) candidates.push(assessed.candidate);
+			else rejected.push(assessed.rejected);
+			completed += 1;
+			options.onPackageChecked?.({
+				current: completed,
+				total: names.length,
+				packageName,
+			});
+		}
+	};
+	await Promise.all(
+		Array.from({ length: Math.min(4, names.length) }, () => worker()),
+	);
 	candidates.sort((left, right) =>
 		left.packageName.localeCompare(right.packageName),
 	);

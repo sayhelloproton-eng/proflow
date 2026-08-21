@@ -144,6 +144,18 @@ export async function createWorkspaceRoleSetupClient(workspaceRoot: string) {
 		}) {
 			return inspectDurableRoleRegistration({ proflowRoot, ...input });
 		},
+		async showRoleCredential(input: {
+			agentPackageRef: string;
+			expectedPackageVersion: string;
+		}) {
+			const inspected = inspectDurableRoleRegistration({
+				proflowRoot,
+				...input,
+			});
+			if (inspected.status !== "READY" || !inspected.role)
+				throw new Error("ROLE_NOT_READY");
+			return runtime.showCredential(inspected.role.roleRef);
+		},
 		async gatewayUrl() {
 			const facts = await readModuleSharedFacts(
 				{ workspaceRoot: workspace },

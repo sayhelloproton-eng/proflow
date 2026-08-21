@@ -19,7 +19,11 @@ export interface ModuleBatchResult {
 	results: ModuleDispatchResult[];
 	completed: boolean;
 	blockedBy?: { moduleRef: string; setupStatus: ModuleSetupStatus };
-	blockers?: Array<{ moduleRef: string; setupStatus: ModuleSetupStatus }>;
+	blockers?: Array<{
+		moduleRef: string;
+		setupStatus: ModuleSetupStatus;
+		reason?: string;
+	}>;
 	skipped?: Array<{
 		moduleRef: string;
 		reason: "READY" | "RUNNING" | "STOPPED" | "NOT_APPLICABLE" | "NO_EFFECT";
@@ -367,7 +371,11 @@ export async function startModulesThin(
 			message: `${module.moduleRef}`,
 		});
 		if (!succeeded(status.result)) {
-			blockers.push({ moduleRef: module.moduleRef, setupStatus: "FAILED" });
+			blockers.push({
+				moduleRef: module.moduleRef,
+				setupStatus: "FAILED",
+				reason: status.result.error?.message ?? "模块状态检查失败",
+			});
 			continue;
 		}
 		const observed = moduleStatusObservationSchema.parse(status.result.data);

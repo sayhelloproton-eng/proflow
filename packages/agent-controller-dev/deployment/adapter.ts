@@ -17,19 +17,67 @@ const setupPlan = {
 	steps: [
 		{
 			id: "STEP-AGENT-CONTROLLER-DEV-01",
-			title: "创建并注册 Custom GPT",
+			title: "创建 Custom GPT 并注册 Role URL",
+			description: "打开编辑器并准备角色资料，保存后登记真实 GPT URL。",
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "pnpm exec -- proflow-agent-controller-dev setup",
+				interactive: "pnpm exec -- proflow-agent-controller-dev setup 01",
 				nonInteractive:
-					"pnpm exec -- proflow-agent-controller-dev setup --carrier-url <url>",
+					"pnpm exec -- proflow-agent-controller-dev setup 01 --carrier-url <url>",
 			},
 			requiredInputs: [
 				{ name: "carrierUrl", description: "Custom GPT URL", sensitive: false },
 			],
+			verify: "pnpm exec -- proflow-agent-controller-dev setup 01",
+			successCondition: "Role URL 已写入 Module-owned 注册表",
+			humanAction: "保存 GPT 并复制公开 URL。",
+		},
+		{
+			id: "STEP-AGENT-CONTROLLER-DEV-02",
+			title: "配置角色 Instructions",
+			description: "复制当前包版本的完整角色指令。",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "pnpm exec -- proflow-agent-controller-dev setup 02",
+				nonInteractive:
+					"pnpm exec -- proflow-agent-controller-dev custom-gpt show-instructions",
+			},
+			requiredInputs: [],
+			verify: "pnpm exec -- proflow-agent-controller-dev setup 02",
+			successCondition: "当前 Instructions 已保存到 Custom GPT",
+			humanAction: "粘贴剪贴板内容并保存。",
+		},
+		{
+			id: "STEP-AGENT-CONTROLLER-DEV-03",
+			title: "配置 Action Schema 与认证",
+			description: "生成 Gateway OpenAPI，并安全复制 Role Bearer Key。",
+			state: "TODO",
+			responsible: "USER",
+			execution: {
+				interactive: "pnpm exec -- proflow-agent-controller-dev setup 03",
+				nonInteractive:
+					"pnpm exec -- proflow-agent-controller-dev setup 03 --gateway-url <url>",
+			},
+			requiredInputs: [],
+			verify: "pnpm exec -- proflow-agent-controller-dev role validate",
+			successCondition: "Action Schema 和 Bearer 认证已保存",
+			humanAction: "在 Custom GPT Action 页面粘贴 Schema 和 Bearer Key。",
+		},
+		{
+			id: "STEP-AGENT-CONTROLLER-DEV-04",
+			title: "验证 Role 配置",
+			description: "检查注册版本和角色状态。",
+			state: "TODO",
+			responsible: "AI",
+			execution: {
+				interactive: "pnpm exec -- proflow-agent-controller-dev setup 04",
+				nonInteractive: "pnpm exec -- proflow-agent-controller-dev verify",
+			},
+			requiredInputs: [],
 			verify: "pnpm exec -- proflow-agent-controller-dev verify",
-			successCondition: "配置状态变为“已就绪”",
+			successCondition: "agent-controller-dev.setupStatus=READY",
 		},
 	],
 } as const;
