@@ -35,9 +35,19 @@ contractRefs: []
 
 ## 2026-08-14 Domain-level Carrier Closure
 
-- [ ] Agent Package carrier requirements 与 `chatgpt-carrier/chrome-runtime` verify/doctor 对齐 File Bridge / Code Interpreter / Web Search / Action Auth / Always Allow。
-- [ ] 三 Role credentialRef 独立映射；credential 不进入 Browser/Task/log plaintext。
-- [ ] Product static Action surface 不再包含 New Task create/discovery 主链。
-- [ ] Role READY 使用 behavior/capability/auth/current verification，不 pin exact model id。
-- [ ] Web-only GPT/workspace/auth/domain/privacy requirements 未满足时输出可恢复 `ACTION_REQUIRED(_WEB)`，完成后重新观察 reality。
-- [ ] System Observer 只消费 Deployment bounded summaries；Deployment 不保存/接受 System Assessment 作为 READY 真源。
+- [x] Agent Package carrier requirements 与 `chatgpt-carrier/chrome-runtime` verification 对齐 File Bridge / Code Interpreter / Web Search / Action Auth / Always Allow。
+- [x] 三 Role credentialRef 独立映射；credential 不进入 Browser/Task/log plaintext。
+- [x] Product static Action surface 不再包含 New Task create/discovery 主链。
+- [x] Role READY 使用 behavior/capability/auth/current verification，不 pin exact model id。
+- [x] Web-only GPT/workspace/auth/domain/privacy requirements 未满足时输出可恢复 `ACTION_REQUIRED`，完成后重新观察 reality。
+- [x] System Observer 只消费 Deployment bounded summaries；Deployment 不保存/接受 System Assessment 作为 READY 真源。
+
+上述为合同和实现闭环，不代表真实 Custom GPT/Browser/Provider 外部验收已经完成；外部现实仍按 `KNOWN-LIMITATIONS-AND-SPIKES.md` 与对应 blocker evidence 处理。
+
+## 2026-08-21 Deployment CLI release freeze
+
+- [x] `@tomflow/proflow-platform-cli@0.1.36` 与 24 个 Module 的 Registry latest 回读一致。
+- [x] 523 个 executable tests、架构、类型、Biome、Conformance 与 tarball publishability 全部通过。
+- [x] Fresh Workspace 验收覆盖七命令，Status 为 `14 READY / 7 ACTION_REQUIRED / 3 BLOCKED / 0 FAILED`。
+- [x] 冻结证据已写入 `../08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json`。
+- [ ] Git release commits 推送到 `origin/main`（未获本轮明确 Push 授权，不作为 npm 0.1.36 已发布事实的伪装条件）。

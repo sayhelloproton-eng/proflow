@@ -55,11 +55,11 @@ Conformance 只验证存在性、结构化结果和基础语义，不替 Module 
 ## 5. Status contract
 
 ```text
-setupStatus: READY | ACTION_REQUIRED | FAILED
+setupStatus: READY | ACTION_REQUIRED | BLOCKED | FAILED
 runtimeStatus: RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 ```
 
-禁止标准 status 再暴露 `configStatus/missingConfig`；禁止用 `UNKNOWN` 代替 Module 自己的观察责任。
+`BLOCKED` 表示等待其它 Module 或外部依赖，不得降级为 `FAILED`。任何非健康 setup 状态以及 `runtimeStatus=FAILED` 都必须提供具体 issue、关联 Module 和下一条可执行命令。禁止标准 status 再暴露 `configStatus/missingConfig`；禁止用 `UNKNOWN` 或通用占位原因代替 Module 自己的观察责任。
 ## 6. Documentation contract
 
 标准知识文件必须且只按统一入口提供：

@@ -44,4 +44,4 @@ FUTURE = 不属于 v1 当前范围
 
 ## 当前 Setup 基线
 
-“逐个 Module 才能发现下一项配置”不再视为可接受限制。当前基线要求 `platform setup` 一次遍历全部 discovered Module，并一次性聚合所有 `ACTION_REQUIRED/FAILED`。每个 owning Module 必须提供最短 `SETUP.md` Step、package-owned executable/verify 与 Success Condition；真正无法自动化的外部现实才允许保留为 limitation/spike。
+“逐个 Module 才能发现下一项配置”不再视为可接受限制。当前基线要求 `platform setup` 一次遍历全部 discovered Module，并一次性聚合所有非 READY 状态对应的可执行步骤或阻塞原因；`BLOCKED` 必须明确上游依赖，不能伪装成 `FAILED`。每个 owning Module 必须提供最短 `SETUP.md` Step、package-owned executable/verify 与 Success Condition；真正无法自动化的外部现实才允许保留为 limitation/spike。

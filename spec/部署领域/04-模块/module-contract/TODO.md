@@ -21,13 +21,14 @@ contractRefs:
 
 ## R2 scoped work
 
-- [ ] 定义七标准能力：`install/uninstall/status/setup/docs/start/stop`。
-- [ ] 删除标准 status 中的 `configStatus/missingConfig`。
-- [ ] `runtimeStatus` 改为 `RUNNING|STOPPED|FAILED|NOT_APPLICABLE`。
-- [ ] `configSlots` 只保留真正 public/user setup value；deterministic/private/shared-fact 不得暴露。
-- [ ] 标准知识文档固定 `DOCS.md/SETUP.md`。
-- [ ] 保留 `provides/requires` runtime Contract semantics。
-- [ ] 更新 compatibility/conformance tests，删除旧 preflight/verification lifecycle 假设。
+- [x] 定义七标准能力：`install/uninstall/status/setup/docs/start/stop`。
+- [x] 删除标准 status 中的 `configStatus/missingConfig`。
+- [x] `setupStatus` 固定为 `READY|ACTION_REQUIRED|BLOCKED|FAILED`，非健康状态提供 typed issue。
+- [x] `runtimeStatus` 改为 `RUNNING|STOPPED|FAILED|NOT_APPLICABLE`。
+- [x] `configSlots` 只保留真正 public/user setup value；deterministic/private/shared-fact 不得暴露。
+- [x] 标准知识文档固定 `DOCS.md/SETUP.md`。
+- [x] 保留 `provides/requires` runtime Contract semantics。
+- [x] 更新 compatibility/conformance tests，删除旧 preflight/verification lifecycle 假设。
 
 ## Acceptance
 
@@ -48,7 +49,7 @@ runtime provides/requires semantics unchanged
 
 ## Setup Contract 验收
 
-- [ ] `Module.setup` 只要求真实人工/外部输入，machine-owned 步骤先自动闭环。
-- [ ] `ACTION_REQUIRED` 必须包含可直接执行的动作、最小人工输入、package-owned executable/verify。
-- [ ] `SETUP.md` 为最短 Step 路径，每个状态推进 Step 有 Success Condition。
-- [ ] Platform 可对全部非 READY Module 做全量转发/聚合，不需要理解包内步骤。
+- [x] `Module.setup` 只要求真实人工/外部输入，machine-owned 步骤先自动闭环。
+- [x] `ACTION_REQUIRED` 必须包含可直接执行的动作、最小人工输入、package-owned executable/verify。
+- [x] `SETUP.md` 为最短 Step 路径，每个状态推进 Step 有 Success Condition。
+- [x] Platform 可对全部非 READY Module 做全量转发/聚合，不需要理解包内步骤。

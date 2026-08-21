@@ -26,7 +26,7 @@ testPlanAuthoringOrder: 1
 
 ```text
 Module Governance
-+ six-command Platform CLI
++ seven-command Platform CLI
 ```
 
 ## Module governance plans
@@ -42,4 +42,4 @@ Module Governance
 
 旧 command/engine 测试只能作为历史参考，不能作为当前产品 acceptance truth。
 
-最终验证路径固定为：`install → modules → docs → configure via Module docs → start → modules → stop → uninstall`。
+最终验证路径固定为：`install → status → docs → setup → start → status → stop → uninstall`。

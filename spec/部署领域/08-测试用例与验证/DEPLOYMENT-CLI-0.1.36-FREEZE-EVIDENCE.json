@@ -1,0 +1,52 @@
+{
+  "contract": "proflow.deployment-cli-release-freeze-evidence.v1",
+  "status": "FROZEN",
+  "recordedAt": "2026-08-21T18:37:14+08:00",
+  "scope": "Deployment Module Governance and the seven-command Platform CLI release",
+  "platformPackage": "@tomflow/proflow-platform-cli@0.1.36",
+  "implementationCommit": "ebdfd9e",
+  "releaseCommit": "06133dd",
+  "releaseIntent": "status-diagnostics-terminal-closure",
+  "publishedPackages": {
+    "count": 24,
+    "registryLatestMatchesRepository": true,
+    "platformPublishedLast": true
+  },
+  "gates": {
+    "testGovernance": "PASS: 37 plans, 265 formal cases, 124 executable files, 523 executable calls, 0 unmapped",
+    "surfaceGovernance": "PASS: 24 packages, 93 exports, 16 binaries, 0 errors",
+    "tests": "PASS: 523 passed, 0 failed",
+    "typecheck": "PASS",
+    "biome": "PASS",
+    "architecture": "PASS: 24 Modules, 20 dependency edges",
+    "publishability": "PASS: 24 package tarballs and 16 binaries consumed from isolated installs",
+    "specManifest": "PASS: all 226 declared normative files exist and match recorded bytes/SHA-256",
+    "diffCheck": "PASS"
+  },
+  "freshWorkspaceAcceptance": {
+    "install": "PASS: Registry discovery, package synchronization and 24 Module.install operations reported live progress",
+    "help": "PASS: seven commands, complete options, status legend and 80-column wrapping",
+    "status": "PASS: 14 READY, 7 ACTION_REQUIRED, 3 BLOCKED, 0 FAILED",
+    "docs": "PASS: 24 Module documents rendered continuously without a pager",
+    "setup": "PASS: complete executable steps aggregated without raw JSON input",
+    "start": "PASS: all 24 statuses checked, blockers rendered once, 0 Module.start calls",
+    "uninstall": "PASS: package removal completed and all terminal wording uses 已经卸载"
+  },
+  "statusSemantics": {
+    "ready": "configuration and verification complete",
+    "actionRequired": "the current Module requires a user action",
+    "blocked": "the current Module is waiting for another Module or external dependency",
+    "failed": "a performed validation confirmed damage, invalid configuration or runtime failure",
+    "issueRequired": true
+  },
+  "sourceControl": {
+    "branch": "main",
+    "releaseCommitsPushed": false,
+    "boundary": "npm artifacts are published and immutable; the release commits remain local until an explicit Git push is authorized"
+  },
+  "nonClaims": [
+    "This freeze does not claim that real Custom GPT, Provider, Tunnel or Browser external setup is complete.",
+    "This freeze does not convert ACTION_REQUIRED or BLOCKED external reality into PASS.",
+    "This freeze does not authorize rewriting or republishing version 0.1.36; further changes require a new patch release and evidence."
+  ]
+}

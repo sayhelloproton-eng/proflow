@@ -7,6 +7,7 @@
   "nonDeploymentServiceClosure": "NON-DEPLOYMENT-SERVICE-CLOSURE-EVIDENCE.json",
   "nonDeploymentCoverageAudit": "NON-DEPLOYMENT-COVERAGE-AUDIT.json",
   "nonDeploymentRuntimeIntegration": "平台架构与公共约定/08-测试用例与验证/NON-DEPLOYMENT-RUNTIME-INTEGRATION-EVIDENCE.json",
+  "deploymentCliReleaseFreeze": "部署领域/08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json",
   "domains": [
     {
       "domain": "deployment-foundation",

@@ -19,13 +19,13 @@ contractRefs:
 
 ## R2 scoped work
 
-- [ ] 删除 `MaterializeModuleInput.installClass` 与 CLI `--install-class`。
-- [ ] 删除 generated `installClass/installRequires`。
-- [ ] 更新 `lifecycleByKind` 与 status skeleton，使其符合薄 Platform contract。
-- [ ] 删除 generated package-owned self-install / install delegation。
-- [ ] configSlots 非空时生成配置指导。
-- [ ] 保持 `proflow.module.json` 与 runtime descriptor 同源。
-- [ ] 更新 Template tests，只证明新治理表面。
+- [x] 删除 `MaterializeModuleInput.installClass` 与 CLI `--install-class`。
+- [x] 删除 generated `installClass/installRequires`。
+- [x] 更新 `lifecycleByKind` 与 status skeleton，使其符合薄 Platform contract。
+- [x] 删除 generated package-owned self-install / install delegation。
+- [x] configSlots 非空时生成配置指导。
+- [x] 保持 `proflow.module.json` 与 runtime descriptor 同源。
+- [x] 更新 Template tests，只证明新治理表面。
 
 ## Acceptance
 

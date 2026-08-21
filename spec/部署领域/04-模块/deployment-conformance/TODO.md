@@ -19,12 +19,12 @@ contractRefs:
 
 ## R2 scoped work
 
-- [ ] 删除 installClass/installRequires/Core closure checks。
-- [ ] 增加/归一 ModuleStatusObservation conformance。
-- [ ] 校验 config-bearing Module documentation guidance。
-- [ ] 保留 static descriptor ↔ runtime descriptor 一致性。
-- [ ] 保留 Runtime provides/requires graph consistency。
-- [ ] 更新 conformance tests，不恢复旧 Platform workflow。
+- [x] 删除 installClass/installRequires/Core closure checks。
+- [x] 增加/归一 ModuleStatusObservation conformance，包括 `BLOCKED` 与 typed issue。
+- [x] 校验 config-bearing Module documentation guidance。
+- [x] 保留 static descriptor ↔ runtime descriptor 一致性。
+- [x] 保留 Runtime provides/requires graph consistency。
+- [x] 更新 conformance tests，不恢复旧 Platform workflow。
 
 ## Acceptance
 

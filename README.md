@@ -17,7 +17,7 @@ This repository is the new ProFlow product repository. It is an independent mult
 - Biome `2.5.6` for lint/format
 - No NestJS / Hono / Fastify by default
 - No ORM/query builder by default
-- Runtime validation library is intentionally not selected until a real boundary requires one
+- Runtime boundary validation uses Zod `4.1.12`
 
 ## Repository boundary
 
@@ -53,11 +53,11 @@ pnpm release:publish
 
 Canonical release/version rules: `spec/平台架构与公共约定/02-契约/03-版本与兼容性约定.md`.
 
-## Implementation gate
+## Implementation and release gate
 
-Do not begin Phase 3 implementation merely because this repository exists.
+The FINAL FROZEN Phase 3 DDD/SDD baseline and FINAL FROZEN pre-development Test Plan are available through the [Frozen truth entrypoint](spec/README.md). This landing used an independently verified directory fallback because the original ZIP artifacts were unavailable; provenance records that their expected SHA values were not reverified.
 
-The FINAL FROZEN Phase 3 DDD/SDD baseline and FINAL FROZEN pre-development Test Plan are available through the [Frozen truth entrypoint](spec/README.md). This landing used an independently verified directory fallback because the original ZIP artifacts were unavailable; provenance records that their expected SHA values were not reverified. Implementation proceeds TDD-first only when a separate task opens the applicable Wave/TDD gate.
+Phase 3 implementation now exists and remains governed by `Frozen Spec → Frozen Test Plan → RED → GREEN → Evidence`. The Deployment CLI release line is frozen at `@tomflow/proflow-platform-cli@0.1.36`; its scoped closure evidence is recorded in [`DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json`](spec/部署领域/08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json). This freezes the published Deployment CLI behavior, not unresolved real Custom GPT, Provider, Tunnel, or Browser external acceptance.
 
 ## v1 Task Journey / Carrier / Observer baseline
 
