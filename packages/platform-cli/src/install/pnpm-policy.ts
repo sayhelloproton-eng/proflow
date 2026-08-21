@@ -15,16 +15,21 @@ async function text(root: string): Promise<string | undefined> {
 	}
 }
 
+export interface PnpmPolicySnapshot {
+	keyPresent: boolean;
+	values: string[];
+}
+
 export async function observeMinimumReleaseAgeExclude(
 	root: string,
-): Promise<string[]> {
+): Promise<PnpmPolicySnapshot> {
 	const source = await text(root);
-	if (!source) return [];
+	if (!source) return { keyPresent: false, values: [] };
 	const lines = source.split(/\r?\n/);
 	const start = lines.findIndex((line) =>
 		/^minimumReleaseAgeExclude:\s*$/.test(line),
 	);
-	if (start < 0) return [];
+	if (start < 0) return { keyPresent: false, values: [] };
 	const values: string[] = [];
 	for (let index = start + 1; index < lines.length; index += 1) {
 		const line = lines[index] ?? "";
@@ -32,46 +37,62 @@ export async function observeMinimumReleaseAgeExclude(
 		const match = line.match(/^\s+-\s+['"]?([^'"]+)['"]?\s*$/);
 		if (match?.[1]) values.push(match[1]);
 	}
-	return values;
+	return { keyPresent: true, values };
 }
 
 export async function recordPnpmPolicyOwnership(
 	root: string,
-	before: readonly string[],
+	before: PnpmPolicySnapshot,
 ): Promise<void> {
 	const after = await observeMinimumReleaseAgeExclude(root);
-	const newlyIntroduced = after.filter((value) => !before.includes(value));
-	if (newlyIntroduced.length === 0) return;
+	const newlyIntroduced = after.values.filter(
+		(value) => !before.values.includes(value),
+	);
+	const previous = await readOwnership(root);
+	const introducedKey =
+		previous.introducedKey || (!before.keyPresent && after.keyPresent);
+	if (newlyIntroduced.length === 0 && !introducedKey) return;
 	const introduced = [
-		...new Set([...(await readOwnedValues(root)), ...newlyIntroduced]),
+		...new Set([...previous.introduced, ...newlyIntroduced]),
 	].sort();
 	await mkdir(join(root, ".proflow", "deployment"), { recursive: true });
 	await atomicWrite(
 		ownershipFile(root),
-		`${JSON.stringify({ contract: "proflow.pnpm-policy-ownership.v1", introduced }, null, 2)}\n`,
+		`${JSON.stringify({ contract: "proflow.pnpm-policy-ownership.v1", introduced, introducedKey }, null, 2)}\n`,
 	);
 }
 
-async function readOwnedValues(root: string): Promise<string[]> {
+async function readOwnership(
+	root: string,
+): Promise<{ introduced: string[]; introducedKey: boolean }> {
 	try {
 		const parsed: unknown = JSON.parse(
 			await readFile(ownershipFile(root), "utf8"),
 		);
-		return typeof parsed === "object" &&
+		const introduced =
+			typeof parsed === "object" &&
 			parsed !== null &&
 			Array.isArray(Reflect.get(parsed, "introduced"))
-			? Reflect.get(parsed, "introduced").filter(
-					(value: unknown): value is string => typeof value === "string",
-				)
-			: [];
+				? Reflect.get(parsed, "introduced").filter(
+						(value: unknown): value is string => typeof value === "string",
+					)
+				: [];
+		return {
+			introduced,
+			introducedKey:
+				typeof parsed === "object" &&
+				parsed !== null &&
+				Reflect.get(parsed, "introducedKey") === true,
+		};
 	} catch {
-		return [];
+		return { introduced: [], introducedKey: false };
 	}
 }
 
 export async function cleanOwnedPnpmPolicy(root: string): Promise<string[]> {
-	const introduced = await readOwnedValues(root);
-	if (introduced.length === 0) return [];
+	const ownership = await readOwnership(root);
+	const introduced = ownership.introduced;
+	if (introduced.length === 0 && !ownership.introducedKey) return [];
 	const source = await text(root);
 	if (!source) return [];
 	const owned = new Set(introduced);
@@ -80,6 +101,20 @@ export async function cleanOwnedPnpmPolicy(root: string): Promise<string[]> {
 		const match = line.match(/^\s+-\s+['"]?([^'"]+)['"]?\s*$/);
 		return !match?.[1] || !owned.has(match[1]);
 	});
+	if (ownership.introducedKey) {
+		const keyIndex = next.findIndex((line) =>
+			/^minimumReleaseAgeExclude:\s*$/.test(line),
+		);
+		if (keyIndex >= 0) {
+			let hasValues = false;
+			for (let index = keyIndex + 1; index < next.length; index += 1) {
+				const line = next[index] ?? "";
+				if (/^\S/.test(line) && line.trim() !== "") break;
+				if (/^\s+-\s+/.test(line)) hasValues = true;
+			}
+			if (!hasValues) next.splice(keyIndex, 1);
+		}
+	}
 	await atomicWrite(join(root, policyFileName), next.join("\n"));
 	return introduced;
 }

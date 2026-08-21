@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 122,
-    "testCalls": 507
+    "testCalls": 508
   },
   "tests": [
     {
@@ -5399,6 +5399,17 @@
       "path": "packages/platform-cli/tests/pnpm-policy.test.ts",
       "line": 13,
       "title": "uninstall policy cleanup removes only install-introduced pnpm exclusions",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/install/pnpm-policy.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/pnpm-policy.test.ts",
+      "line": 50,
+      "title": "uninstall removes an empty pnpm policy key introduced by install",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [

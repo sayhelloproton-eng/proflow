@@ -349,6 +349,15 @@ export async function startModulesThin(
 			context(workspaceRoot),
 		);
 		results.push(status);
+		reportProgress(reporter, {
+			command: "start",
+			phase: "status",
+			current: index + 1,
+			total: modulesInOrder.length,
+			moduleRef: module.moduleRef,
+			status: succeeded(status.result) ? "SUCCEEDED" : "FAILED",
+			message: `${module.moduleRef}`,
+		});
 		if (!succeeded(status.result)) {
 			blockers.push({ moduleRef: module.moduleRef, setupStatus: "FAILED" });
 			continue;

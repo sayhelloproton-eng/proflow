@@ -19,6 +19,10 @@ test("uninstall policy cleanup removes only install-introduced pnpm exclusions",
 			"packages: []\nminimumReleaseAgeExclude:\n  - 'user-owned@1.0.0'\n",
 		);
 		const before = await observeMinimumReleaseAgeExclude(root);
+		assert.deepEqual(before, {
+			keyPresent: true,
+			values: ["user-owned@1.0.0"],
+		});
 		await writeFile(
 			policy,
 			"packages: []\nminimumReleaseAgeExclude:\n  - 'user-owned@1.0.0'\n  - '@tomflow/proflow-platform-cli@0.1.22'\n",
@@ -38,6 +42,24 @@ test("uninstall policy cleanup removes only install-introduced pnpm exclusions",
 		const final = await readFile(policy, "utf8");
 		assert.match(final, /user-owned@1\.0\.0/);
 		assert.doesNotMatch(final, /proflow-platform-cli/);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("uninstall removes an empty pnpm policy key introduced by install", async () => {
+	const root = await tempWorkspace();
+	try {
+		const policy = join(root, "pnpm-workspace.yaml");
+		await writeFile(policy, "packages: []\n");
+		const before = await observeMinimumReleaseAgeExclude(root);
+		await writeFile(
+			policy,
+			"packages: []\nminimumReleaseAgeExclude:\n  - '@tomflow/proflow-platform-cli@0.1.27'\n",
+		);
+		await recordPnpmPolicyOwnership(root, before);
+		await cleanOwnedPnpmPolicy(root);
+		assert.equal(await readFile(policy, "utf8"), "packages: []\n");
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
