@@ -8,7 +8,7 @@
 
 ## 如何配置
 
-运行 `proflow-agent-product setup`。向导会准备需要填写的内容、打开 Custom GPT 编辑入口，并在完成后登记和验证 GPT 地址。
+运行 `pnpm exec -- proflow-agent-product setup`。向导会准备需要填写的内容、打开 Custom GPT 编辑入口，并在完成后登记和验证 GPT 地址。
 
 ## 相关术语
 

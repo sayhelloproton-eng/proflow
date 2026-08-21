@@ -4,6 +4,15 @@ import { createInterface } from "node:readline/promises";
 
 import { behaviorAdapter } from "../deployment/adapter.ts";
 
+function reportFatal(error: unknown) {
+	process.stderr.write(
+		`✕ 配置失败\n  ${error instanceof Error ? error.message : String(error)}\n`,
+	);
+	process.exitCode = 1;
+}
+process.on("uncaughtException", reportFatal);
+process.on("unhandledRejection", reportFatal);
+
 function option(args: readonly string[], name: string) {
 	const index = args.indexOf(name);
 	return index >= 0 ? args[index + 1] : undefined;

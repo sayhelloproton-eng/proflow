@@ -8,6 +8,6 @@ Execution Browser Extension（浏览器执行扩展）让 ProFlow 在 Chrome 中
 
 ## 如何配置
 
-运行 `proflow-execution-browser-extension setup`。向导会准备扩展目录、打开 Chrome 扩展管理页，并说明如何加载已解压扩展；完成后收集 Extension ID（扩展标识）并验证连接状态。
+运行 `pnpm exec -- proflow-execution-browser-extension setup`。向导会准备扩展目录、打开 Chrome 扩展管理页，并说明如何加载已解压扩展；完成后收集 Extension ID（扩展标识）并验证连接状态。
 
 扩展不保存 Task（任务）或 Approval（审批）的业务真相，只负责浏览器侧交互。

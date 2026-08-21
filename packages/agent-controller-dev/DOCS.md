@@ -8,7 +8,7 @@
 
 ## 如何配置
 
-运行 `proflow-agent-controller-dev setup`。向导会准备角色资料，引导你打开 Custom GPT 编辑页面，最后登记 GPT 地址并验证角色状态。
+运行 `pnpm exec -- proflow-agent-controller-dev setup`。向导会准备角色资料，引导你打开 Custom GPT 编辑页面，最后登记 GPT 地址并验证角色状态。
 
 ## 相关术语
 

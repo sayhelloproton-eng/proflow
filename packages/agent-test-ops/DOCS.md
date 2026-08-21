@@ -8,7 +8,7 @@
 
 ## 如何配置
 
-运行 `proflow-agent-test-ops setup`。向导会准备角色资料、打开 Custom GPT 编辑入口，并在完成后登记和验证 GPT 地址。
+运行 `pnpm exec -- proflow-agent-test-ops setup`。向导会准备角色资料、打开 Custom GPT 编辑入口，并在完成后登记和验证 GPT 地址。
 
 ## 相关术语
 

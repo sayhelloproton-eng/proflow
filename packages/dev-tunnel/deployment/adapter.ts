@@ -24,9 +24,9 @@ const setupPlan = {
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "proflow-dev-tunnel setup",
+				interactive: "pnpm exec -- proflow-dev-tunnel setup",
 				nonInteractive:
-					"proflow-dev-tunnel setup --tunnel-id <id> --public-base-url <url>",
+					"pnpm exec -- proflow-dev-tunnel setup --tunnel-id <id> --public-base-url <url>",
 			},
 			requiredInputs: [
 				{ name: "tunnelId", description: "Tunnel ID", sensitive: false },
@@ -36,7 +36,7 @@ const setupPlan = {
 					sensitive: false,
 				},
 			],
-			verify: "proflow-dev-tunnel verify",
+			verify: "pnpm exec -- proflow-dev-tunnel verify",
 			successCondition: "配置状态变为“已就绪”",
 		},
 	],

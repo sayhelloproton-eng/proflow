@@ -21,13 +21,14 @@ const setupPlan = {
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "proflow-agent-test-ops setup",
-				nonInteractive: "proflow-agent-test-ops setup --carrier-url <url>",
+				interactive: "pnpm exec -- proflow-agent-test-ops setup",
+				nonInteractive:
+					"pnpm exec -- proflow-agent-test-ops setup --carrier-url <url>",
 			},
 			requiredInputs: [
 				{ name: "carrierUrl", description: "Custom GPT URL", sensitive: false },
 			],
-			verify: "proflow-agent-test-ops verify",
+			verify: "pnpm exec -- proflow-agent-test-ops verify",
 			successCondition: "配置状态变为“已就绪”",
 		},
 	],

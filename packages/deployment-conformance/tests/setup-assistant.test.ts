@@ -23,6 +23,7 @@ test("interactive setup CLIs contain concrete guided operations", async () => {
 		assert.match(source, /[\u4e00-\u9fff]/, moduleRef);
 		assert.match(source, /process\.stdin\.isTTY/, moduleRef);
 		assert.match(source, /--json/, moduleRef);
+		assert.match(source, /reportFatal/, moduleRef);
 	}
 	assert.match(
 		await readFile(new URL("chatgpt-carrier/src/cli.ts", packagesRoot), "utf8"),

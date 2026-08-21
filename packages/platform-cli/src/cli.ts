@@ -716,35 +716,35 @@ function renderDocs(data: unknown) {
 }
 const setupCommands: Record<string, { ai: string; inputs: string }> = {
 	"chatgpt-carrier": {
-		ai: "proflow-chatgpt-carrier setup --carrier-url <url>",
+		ai: "pnpm exec -- proflow-chatgpt-carrier setup --carrier-url <url>",
 		inputs: "Custom GPT URL",
 	},
 	"dev-tunnel": {
-		ai: "proflow-dev-tunnel setup --tunnel-id <id> --public-base-url <url>",
+		ai: "pnpm exec -- proflow-dev-tunnel setup --tunnel-id <id> --public-base-url <url>",
 		inputs: "Tunnel ID、公开 HTTPS URL",
 	},
 	"model-provider-api": {
-		ai: "proflow-model-provider-api setup --provider-base-url <url>",
+		ai: "pnpm exec -- proflow-model-provider-api setup --provider-base-url <url>",
 		inputs: "模型服务 Base URL",
 	},
 	"model-runtime": {
-		ai: "proflow-model-runtime setup --fast-model <id> --reason-model <id>",
+		ai: "pnpm exec -- proflow-model-runtime setup --fast-model <id> --reason-model <id>",
 		inputs: "FAST 模型 ID、REASON 模型 ID",
 	},
 	"execution-browser-extension": {
-		ai: "proflow-execution-browser-extension setup --extension-id <id>",
+		ai: "pnpm exec -- proflow-execution-browser-extension setup --extension-id <id>",
 		inputs: "Chrome Extension ID",
 	},
 	"agent-controller-dev": {
-		ai: "proflow-agent-controller-dev setup --carrier-url <url>",
+		ai: "pnpm exec -- proflow-agent-controller-dev setup --carrier-url <url>",
 		inputs: "Custom GPT URL",
 	},
 	"agent-product": {
-		ai: "proflow-agent-product setup --carrier-url <url>",
+		ai: "pnpm exec -- proflow-agent-product setup --carrier-url <url>",
 		inputs: "Custom GPT URL",
 	},
 	"agent-test-ops": {
-		ai: "proflow-agent-test-ops setup --carrier-url <url>",
+		ai: "pnpm exec -- proflow-agent-test-ops setup --carrier-url <url>",
 		inputs: "Custom GPT URL",
 	},
 };
@@ -797,7 +797,7 @@ function renderSetup(data: unknown) {
 				ai: `proflow-${moduleRef} setup`,
 				inputs: "按命令提示提供",
 			};
-			lines.push(`  人工执行：proflow-${moduleRef} setup`);
+			lines.push(`  人工执行：pnpm exec -- proflow-${moduleRef} setup`);
 			lines.push(`  AI 执行：${commands.ai}`);
 			lines.push(`  需要输入：${commands.inputs}`);
 			lines.push(`  验证：proflow-${moduleRef} verify`);
@@ -859,8 +859,8 @@ export function renderHumanResult(result: CliOutcome): string {
 			"",
 			"常用参数：--workspace <路径>；setup 还支持 --module <模块名>",
 			"推荐流程：install → status → docs → setup → start → status → stop",
-			"人工配置示例：proflow-chatgpt-carrier setup",
-			"AI 配置示例：proflow-chatgpt-carrier setup --carrier-url <url>",
+			"人工配置示例：pnpm exec -- proflow-chatgpt-carrier setup",
+			"AI 配置示例：pnpm exec -- proflow-chatgpt-carrier setup --carrier-url <url>",
 			"状态图例：已就绪＝配置完成；需要操作＝需运行 setup；失败＝存在系统阻塞；无独立进程＝无需启动",
 		].join("\n");
 	if (result.command === "version" && isRecord(result.data))

@@ -28,9 +28,9 @@ const setupPlan = {
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "proflow-execution-browser-extension setup",
+				interactive: "pnpm exec -- proflow-execution-browser-extension setup",
 				nonInteractive:
-					"proflow-execution-browser-extension setup --extension-id <id>",
+					"pnpm exec -- proflow-execution-browser-extension setup --extension-id <id>",
 			},
 			requiredInputs: [
 				{
@@ -39,7 +39,7 @@ const setupPlan = {
 					sensitive: false,
 				},
 			],
-			verify: "proflow-execution-browser-extension verify",
+			verify: "pnpm exec -- proflow-execution-browser-extension verify",
 			successCondition: "配置状态变为“已就绪”",
 		},
 	],
@@ -52,12 +52,12 @@ const blockedSetupPlan = {
 			state: "BLOCKED",
 			responsible: "EXTERNAL",
 			execution: {
-				interactive: "proflow-execution-browser-extension setup",
+				interactive: "pnpm exec -- proflow-execution-browser-extension setup",
 				nonInteractive:
-					"proflow-execution-browser-extension setup --extension-id <id>",
+					"pnpm exec -- proflow-execution-browser-extension setup --extension-id <id>",
 			},
 			requiredInputs: [],
-			verify: "proflow-execution-browser-extension verify",
+			verify: "pnpm exec -- proflow-execution-browser-extension verify",
 			successCondition: "配置状态变为“已就绪”",
 			blockedReason: "Extension ID 或生成配置无效",
 		},

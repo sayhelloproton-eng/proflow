@@ -26,13 +26,14 @@ const setupPlan = {
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "proflow-chatgpt-carrier setup",
-				nonInteractive: "proflow-chatgpt-carrier setup --carrier-url <url>",
+				interactive: "pnpm exec -- proflow-chatgpt-carrier setup",
+				nonInteractive:
+					"pnpm exec -- proflow-chatgpt-carrier setup --carrier-url <url>",
 			},
 			requiredInputs: [
 				{ name: "carrierUrl", description: "Custom GPT URL", sensitive: false },
 			],
-			verify: "proflow-chatgpt-carrier verify",
+			verify: "pnpm exec -- proflow-chatgpt-carrier verify",
 			successCondition: "配置状态变为“已就绪”",
 		},
 	],

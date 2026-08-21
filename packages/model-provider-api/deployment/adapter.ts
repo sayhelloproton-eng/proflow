@@ -30,9 +30,9 @@ const setupPlan = {
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "proflow-model-provider-api setup",
+				interactive: "pnpm exec -- proflow-model-provider-api setup",
 				nonInteractive:
-					"proflow-model-provider-api setup --provider-base-url <url>",
+					"pnpm exec -- proflow-model-provider-api setup --provider-base-url <url>",
 			},
 			requiredInputs: [
 				{
@@ -41,7 +41,7 @@ const setupPlan = {
 					sensitive: false,
 				},
 			],
-			verify: "proflow-model-provider-api verify",
+			verify: "pnpm exec -- proflow-model-provider-api verify",
 			successCondition: "配置状态变为“已就绪”",
 		},
 	],
@@ -54,12 +54,12 @@ const blockedSetupPlan = {
 			state: "BLOCKED",
 			responsible: "EXTERNAL",
 			execution: {
-				interactive: "proflow-model-provider-api setup",
+				interactive: "pnpm exec -- proflow-model-provider-api setup",
 				nonInteractive:
-					"proflow-model-provider-api setup --provider-base-url <url>",
+					"pnpm exec -- proflow-model-provider-api setup --provider-base-url <url>",
 			},
 			requiredInputs: [],
-			verify: "proflow-model-provider-api verify",
+			verify: "pnpm exec -- proflow-model-provider-api verify",
 			successCondition: "配置状态变为“已就绪”",
 			blockedReason: "Credential resolver 合同尚不可用",
 		},

@@ -34,9 +34,9 @@ const setupPlan = {
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive: "proflow-model-runtime setup",
+				interactive: "pnpm exec -- proflow-model-runtime setup",
 				nonInteractive:
-					"proflow-model-runtime setup --fast-model <id> --reason-model <id>",
+					"pnpm exec -- proflow-model-runtime setup --fast-model <id> --reason-model <id>",
 			},
 			requiredInputs: [
 				{ name: "fastModel", description: "FAST 模型 ID", sensitive: false },
@@ -46,7 +46,7 @@ const setupPlan = {
 					sensitive: false,
 				},
 			],
-			verify: "proflow-model-runtime verify",
+			verify: "pnpm exec -- proflow-model-runtime verify",
 			successCondition: "配置状态变为“已就绪”",
 		},
 	],
@@ -63,7 +63,7 @@ const blockedSetupPlan = {
 				nonInteractive: "platform setup --module model-runtime",
 			},
 			requiredInputs: [],
-			verify: "proflow-model-runtime verify",
+			verify: "pnpm exec -- proflow-model-runtime verify",
 			successCondition: "配置状态变为“已就绪”",
 			blockedReason: "模型服务共享事实或模型能力验证尚不可用",
 		},

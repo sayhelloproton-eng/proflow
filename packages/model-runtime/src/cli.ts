@@ -6,6 +6,15 @@ import {
 	loadModelRuntimeProcessConfig,
 } from "./process.ts";
 
+function reportFatal(error: unknown) {
+	process.stderr.write(
+		`✕ 配置失败\n  ${error instanceof Error ? error.message : String(error)}\n`,
+	);
+	process.exitCode = 1;
+}
+process.on("uncaughtException", reportFatal);
+process.on("unhandledRejection", reportFatal);
+
 async function main(): Promise<void> {
 	const args = process.argv.slice(2);
 	const [command, configPath] = args;
