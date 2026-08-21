@@ -14,6 +14,10 @@
   dir: packages/agent-controller-dev
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-agent-controller-dev@0.1.13":
+  dir: packages/agent-controller-dev
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-agent-controller-dev@0.1.2":
   dir: packages/agent-controller-dev
   intents:
@@ -50,6 +54,10 @@
   dir: packages/agent-gateway
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-agent-gateway@0.1.12":
+  dir: packages/agent-gateway
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-agent-gateway@0.1.2":
   dir: packages/agent-gateway
   intents:
@@ -86,6 +94,10 @@
   dir: packages/agent-product
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-agent-product@0.1.13":
+  dir: packages/agent-product
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-agent-product@0.1.2":
   dir: packages/agent-product
   intents:
@@ -154,6 +166,10 @@
   dir: packages/agent-test-ops
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-agent-test-ops@0.1.13":
+  dir: packages/agent-test-ops
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-agent-test-ops@0.1.2":
   dir: packages/agent-test-ops
   intents:
@@ -190,6 +206,10 @@
   dir: packages/chatgpt-carrier
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-chatgpt-carrier@0.1.12":
+  dir: packages/chatgpt-carrier
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-chatgpt-carrier@0.1.2":
   dir: packages/chatgpt-carrier
   intents:
@@ -230,6 +250,10 @@
   dir: packages/chrome-runtime
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-chrome-runtime@0.1.13":
+  dir: packages/chrome-runtime
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-chrome-runtime@0.1.2":
   dir: packages/chrome-runtime
   intents:
@@ -258,6 +282,10 @@
   dir: packages/deployment-conformance
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-deployment-conformance@0.1.10":
+  dir: packages/deployment-conformance
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-deployment-conformance@0.1.2":
   dir: packages/deployment-conformance
   intents:
@@ -302,6 +330,10 @@
   dir: packages/dev-tunnel
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-dev-tunnel@0.1.14":
+  dir: packages/dev-tunnel
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-dev-tunnel@0.1.2":
   dir: packages/dev-tunnel
   intents:
@@ -338,6 +370,10 @@
   dir: packages/execution-browser-extension
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-execution-browser-extension@0.1.12":
+  dir: packages/execution-browser-extension
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-execution-browser-extension@0.1.2":
   dir: packages/execution-browser-extension
   intents:
@@ -398,6 +434,10 @@
   dir: packages/execution-local
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-execution-local@0.1.11":
+  dir: packages/execution-local
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-execution-local@0.1.2":
   dir: packages/execution-local
   intents:
@@ -438,6 +478,10 @@
   dir: packages/execution-runtime
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-execution-runtime@0.1.13":
+  dir: packages/execution-runtime
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-execution-runtime@0.1.2":
   dir: packages/execution-runtime
   intents:
@@ -494,6 +538,10 @@
   dir: packages/model-provider-api
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-model-provider-api@0.1.11":
+  dir: packages/model-provider-api
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-model-provider-api@0.1.2":
   dir: packages/model-provider-api
   intents:
@@ -538,6 +586,10 @@
   dir: packages/model-runtime
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-model-runtime@0.1.14":
+  dir: packages/model-runtime
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-model-runtime@0.1.2":
   dir: packages/model-runtime
   intents:
@@ -570,6 +622,10 @@
   dir: packages/module-contract
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-module-contract@0.1.12":
+  dir: packages/module-contract
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-module-contract@0.1.5":
   dir: packages/module-contract
   intents:
@@ -754,6 +810,10 @@
   dir: packages/platform-cli
   intents:
     - package-warning-semantics
+"@tomflow/proflow-platform-cli@0.1.36":
+  dir: packages/platform-cli
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-platform-cli@0.1.4":
   dir: packages/platform-cli
   intents:
@@ -790,6 +850,10 @@
   dir: packages/platform-host
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-platform-host@0.1.12":
+  dir: packages/platform-host
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-platform-host@0.1.2":
   dir: packages/platform-host
   intents:
@@ -814,6 +878,10 @@
   dir: packages/task-migration-runner
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-task-migration-runner@0.1.10":
+  dir: packages/task-migration-runner
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-task-migration-runner@0.1.2":
   dir: packages/task-migration-runner
   intents:
@@ -866,6 +934,10 @@
   dir: packages/task-store-sqlite
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-task-store-sqlite@0.1.10":
+  dir: packages/task-store-sqlite
+  intents:
+    - status-diagnostics-terminal-closure
 "@tomflow/proflow-task-store-sqlite@0.1.2":
   dir: packages/task-store-sqlite
   intents:
