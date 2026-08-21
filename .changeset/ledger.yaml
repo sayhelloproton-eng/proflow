@@ -666,6 +666,10 @@
   dir: packages/platform-cli
   intents:
     - slimy-rabbits-slide
+"@tomflow/proflow-platform-cli@0.1.33":
+  dir: packages/platform-cli
+  intents:
+    - late-breads-turn
 "@tomflow/proflow-platform-cli@0.1.4":
   dir: packages/platform-cli
   intents:
