@@ -282,6 +282,10 @@
   dir: packages/module-contract
   intents:
     - purple-dogs-raise
+"@tomflow/proflow-module-contract@0.1.7":
+  dir: packages/module-contract
+  intents:
+    - ninety-terms-talk
 "@tomflow/proflow-module-skill@0.1.1":
   dir: packages/module-skill
   intents:
@@ -350,6 +354,10 @@
   dir: packages/platform-cli
   intents:
     - purple-dogs-raise
+"@tomflow/proflow-platform-cli@0.1.21":
+  dir: packages/platform-cli
+  intents:
+    - ninety-terms-talk
 "@tomflow/proflow-platform-cli@0.1.3":
   dir: packages/platform-cli
   intents:
