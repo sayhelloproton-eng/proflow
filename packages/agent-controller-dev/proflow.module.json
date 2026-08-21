@@ -3,7 +3,7 @@
 	"contractVersion": "1.0.0",
 	"moduleRef": "agent-controller-dev",
 	"packageName": "@tomflow/proflow-agent-controller-dev",
-	"moduleVersion": "0.1.9",
+	"moduleVersion": "0.1.10",
 	"kind": "agent-package",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",

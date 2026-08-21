@@ -3,7 +3,7 @@ export const descriptor = {
 	contractVersion: "1.0.0",
 	moduleRef: "task-migration-runner",
 	packageName: "@tomflow/proflow-task-migration-runner",
-	moduleVersion: "0.1.7",
+	moduleVersion: "0.1.8",
 	kind: "cli",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",

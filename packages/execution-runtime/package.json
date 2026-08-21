@@ -1,6 +1,6 @@
 {
 	"name": "@tomflow/proflow-execution-runtime",
-	"version": "0.1.10",
+	"version": "0.1.11",
 	"type": "module",
 	"publishConfig": {
 		"access": "public"
