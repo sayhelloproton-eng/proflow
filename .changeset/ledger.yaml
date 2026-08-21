@@ -22,6 +22,10 @@
   dir: packages/agent-controller-dev
   intents:
     - calm-cli-closure
+"@tomflow/proflow-agent-controller-dev@0.1.9":
+  dir: packages/agent-controller-dev
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-agent-gateway@0.1.1":
   dir: packages/agent-gateway
   intents:
@@ -42,6 +46,10 @@
   dir: packages/agent-gateway
   intents:
     - calm-cli-closure
+"@tomflow/proflow-agent-gateway@0.1.9":
+  dir: packages/agent-gateway
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-agent-product@0.1.1":
   dir: packages/agent-product
   intents:
@@ -66,6 +74,10 @@
   dir: packages/agent-product
   intents:
     - calm-cli-closure
+"@tomflow/proflow-agent-product@0.1.9":
+  dir: packages/agent-product
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-agent-runtime@0.1.1":
   dir: packages/agent-runtime
   intents:
@@ -82,6 +94,10 @@
   dir: packages/agent-runtime
   intents:
     - calm-cli-closure
+"@tomflow/proflow-agent-runtime@0.1.7":
+  dir: packages/agent-runtime
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-agent-test-ops@0.1.1":
   dir: packages/agent-test-ops
   intents:
@@ -106,6 +122,10 @@
   dir: packages/agent-test-ops
   intents:
     - calm-cli-closure
+"@tomflow/proflow-agent-test-ops@0.1.9":
+  dir: packages/agent-test-ops
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-chatgpt-carrier@0.1.1":
   dir: packages/chatgpt-carrier
   intents:
@@ -126,10 +146,18 @@
   dir: packages/chatgpt-carrier
   intents:
     - calm-cli-closure
+"@tomflow/proflow-chatgpt-carrier@0.1.8":
+  dir: packages/chatgpt-carrier
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-chrome-runtime@0.1.1":
   dir: packages/chrome-runtime
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-chrome-runtime@0.1.10":
+  dir: packages/chrome-runtime
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-chrome-runtime@0.1.2":
   dir: packages/chrome-runtime
   intents:
@@ -170,10 +198,18 @@
   dir: packages/deployment-conformance
   intents:
     - calm-cli-closure
+"@tomflow/proflow-deployment-conformance@0.1.7":
+  dir: packages/deployment-conformance
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-dev-tunnel@0.1.1":
   dir: packages/dev-tunnel
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-dev-tunnel@0.1.10":
+  dir: packages/dev-tunnel
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-dev-tunnel@0.1.2":
   dir: packages/dev-tunnel
   intents:
@@ -218,6 +254,10 @@
   dir: packages/execution-browser-extension
   intents:
     - calm-cli-closure
+"@tomflow/proflow-execution-browser-extension@0.1.8":
+  dir: packages/execution-browser-extension
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-execution-contracts@0.1.1":
   dir: packages/execution-contracts
   intents:
@@ -234,6 +274,10 @@
   dir: packages/execution-contracts
   intents:
     - calm-cli-closure
+"@tomflow/proflow-execution-contracts@0.1.7":
+  dir: packages/execution-contracts
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-execution-local@0.1.1":
   dir: packages/execution-local
   intents:
@@ -254,10 +298,18 @@
   dir: packages/execution-local
   intents:
     - calm-cli-closure
+"@tomflow/proflow-execution-local@0.1.8":
+  dir: packages/execution-local
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-execution-runtime@0.1.1":
   dir: packages/execution-runtime
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-execution-runtime@0.1.10":
+  dir: packages/execution-runtime
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-execution-runtime@0.1.2":
   dir: packages/execution-runtime
   intents:
@@ -294,6 +346,10 @@
   dir: packages/model-contracts
   intents:
     - calm-cli-closure
+"@tomflow/proflow-model-contracts@0.1.7":
+  dir: packages/model-contracts
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-model-provider-api@0.1.1":
   dir: packages/model-provider-api
   intents:
@@ -310,10 +366,18 @@
   dir: packages/model-provider-api
   intents:
     - calm-cli-closure
+"@tomflow/proflow-model-provider-api@0.1.7":
+  dir: packages/model-provider-api
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-model-runtime@0.1.1":
   dir: packages/model-runtime
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-model-runtime@0.1.10":
+  dir: packages/model-runtime
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-model-runtime@0.1.2":
   dir: packages/model-runtime
   intents:
@@ -354,6 +418,10 @@
   dir: packages/module-contract
   intents:
     - calm-cli-closure
+"@tomflow/proflow-module-contract@0.1.9":
+  dir: packages/module-contract
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-module-skill@0.1.1":
   dir: packages/module-skill
   intents:
@@ -374,6 +442,10 @@
   dir: packages/module-skill
   intents:
     - calm-cli-closure
+"@tomflow/proflow-module-skill@0.1.8":
+  dir: packages/module-skill
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-module-template@0.1.1":
   dir: packages/module-template
   intents:
@@ -390,6 +462,10 @@
   dir: packages/module-template
   intents:
     - calm-cli-closure
+"@tomflow/proflow-module-template@0.1.7":
+  dir: packages/module-template
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-platform-cli@0.1.1":
   dir: packages/platform-cli
   intents:
@@ -438,6 +514,10 @@
   dir: packages/platform-cli
   intents:
     - calm-cli-closure
+"@tomflow/proflow-platform-cli@0.1.23":
+  dir: packages/platform-cli
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-platform-cli@0.1.3":
   dir: packages/platform-cli
   intents:
@@ -486,6 +566,10 @@
   dir: packages/platform-host
   intents:
     - calm-cli-closure
+"@tomflow/proflow-platform-host@0.1.9":
+  dir: packages/platform-host
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-task-migration-runner@0.1.1":
   dir: packages/task-migration-runner
   intents:
@@ -502,6 +586,10 @@
   dir: packages/task-migration-runner
   intents:
     - calm-cli-closure
+"@tomflow/proflow-task-migration-runner@0.1.7":
+  dir: packages/task-migration-runner
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-task-orchestration@0.1.1":
   dir: packages/task-orchestration
   intents:
@@ -514,6 +602,10 @@
   dir: packages/task-orchestration
   intents:
     - calm-cli-closure
+"@tomflow/proflow-task-orchestration@0.1.6":
+  dir: packages/task-orchestration
+  intents:
+    - published-docs-hotfix
 "@tomflow/proflow-task-store-sqlite@0.1.1":
   dir: packages/task-store-sqlite
   intents:
@@ -530,3 +622,7 @@
   dir: packages/task-store-sqlite
   intents:
     - calm-cli-closure
+"@tomflow/proflow-task-store-sqlite@0.1.7":
+  dir: packages/task-store-sqlite
+  intents:
+    - published-docs-hotfix
