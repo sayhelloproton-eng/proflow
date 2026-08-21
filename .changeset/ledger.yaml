@@ -662,6 +662,10 @@
   dir: packages/platform-cli
   intents:
     - funny-gifts-design
+"@tomflow/proflow-platform-cli@0.1.32":
+  dir: packages/platform-cli
+  intents:
+    - slimy-rabbits-slide
 "@tomflow/proflow-platform-cli@0.1.4":
   dir: packages/platform-cli
   intents:
