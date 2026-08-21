@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 123,
-    "testCalls": 510
+    "testCalls": 511
   },
   "tests": [
     {
@@ -5056,45 +5056,61 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 6,
+      "line": 8,
       "title": "public --json is rejected and runCli returns a typed object",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/platform-cli/src/cli.ts"
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 13,
+      "line": 15,
       "title": "human status output translates every public status enum",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/platform-cli/src/cli.ts"
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 64,
+      "line": 66,
       "title": "status reports one aggregate progress phase instead of printing every module",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/platform-cli/src/cli.ts"
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 84,
+      "line": 86,
       "title": "help contains explanations and no raw JSON input route",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/platform-cli/src/cli.ts"
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 94,
+      "title": "non-TTY progress uses a stable marker instead of a frozen spinner",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
       ]
     },
     {

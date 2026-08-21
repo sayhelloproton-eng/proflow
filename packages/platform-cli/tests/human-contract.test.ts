@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { PassThrough } from "node:stream";
 import { test } from "node:test";
 
 import { renderHumanResult, runCli } from "../src/cli.ts";
+import { createTerminalProgressReporter } from "../src/terminal.ts";
 
 test("public --json is rejected and runCli returns a typed object", async () => {
 	const result = await runCli(["--json"]);
@@ -87,4 +89,25 @@ test("help contains explanations and no raw JSON input route", () => {
 	assert.match(rendered, /人工配置示例/);
 	assert.match(rendered, /状态图例/);
 	assert.equal(rendered.includes("--input"), false);
+});
+
+test("non-TTY progress uses a stable marker instead of a frozen spinner", () => {
+	const stream = new PassThrough();
+	Object.defineProperty(stream, "isTTY", { value: false });
+	let output = "";
+	stream.on("data", (chunk) => {
+		output += chunk.toString();
+	});
+	const reporter = createTerminalProgressReporter(
+		stream as unknown as NodeJS.WriteStream,
+	);
+	reporter({
+		command: "install",
+		phase: "registry",
+		status: "STARTED",
+		message: "正在发现 Registry 模块",
+	});
+	reporter.close();
+	assert.match(output, /^› 正在发现 Registry 模块\n$/);
+	assert.doesNotMatch(output, /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
 });

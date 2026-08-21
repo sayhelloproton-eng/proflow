@@ -90,7 +90,7 @@ export function createTerminalProgressReporter(
 		const line = progressLine(
 			event,
 			color,
-			spinnerFrames[frame++ % spinnerFrames.length],
+			interactive ? spinnerFrames[frame++ % spinnerFrames.length] : "›",
 		);
 		if (!interactive) {
 			stream.write(`${line}\n`);
