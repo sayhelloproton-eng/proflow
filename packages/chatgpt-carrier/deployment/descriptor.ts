@@ -3,7 +3,7 @@ export const descriptor = {
 	contractVersion: "1.0.0",
 	moduleRef: "chatgpt-carrier",
 	packageName: "@tomflow/proflow-chatgpt-carrier",
-	moduleVersion: "0.1.6",
+	moduleVersion: "0.1.7",
 	kind: "external-resource",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",

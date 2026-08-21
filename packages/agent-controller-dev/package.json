@@ -1,6 +1,6 @@
 {
 	"name": "@tomflow/proflow-agent-controller-dev",
-	"version": "0.1.7",
+	"version": "0.1.8",
 	"description": "Versioned Controller/Development Custom GPT materialization package for the fixed Controller-Dev role.",
 	"type": "module",
 	"publishConfig": {

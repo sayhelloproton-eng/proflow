@@ -3,7 +3,7 @@ export const descriptor = {
 	contractVersion: "1.0.0",
 	moduleRef: "deployment-conformance",
 	packageName: "@tomflow/proflow-deployment-conformance",
-	moduleVersion: "0.1.5",
+	moduleVersion: "0.1.6",
 	kind: "cli",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",

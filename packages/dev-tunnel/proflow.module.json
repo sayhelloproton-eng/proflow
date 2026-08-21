@@ -3,7 +3,7 @@
 	"contractVersion": "1.0.0",
 	"moduleRef": "dev-tunnel",
 	"packageName": "@tomflow/proflow-dev-tunnel",
-	"moduleVersion": "0.1.8",
+	"moduleVersion": "0.1.9",
 	"kind": "external-resource",
 	"templateVersion": "1.0.0",
 	"platformCompatibility": ">=1.0.0 <2.0.0",
