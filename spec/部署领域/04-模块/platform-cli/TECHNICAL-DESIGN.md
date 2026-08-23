@@ -74,10 +74,13 @@ runtimeStatus = RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 ```text
 Discover all Modules
 → dependency order
-→ observe Module.status
+→ observe current Module.status
 → READY: skip
-→ non-READY: invoke Module.setup
-→ continue after ACTION_REQUIRED / FAILED
+→ required provider not READY: record generic BLOCKED, do not invoke current Module.setup
+→ all required providers READY: invoke current Module.setup
+→ re-observe current Module.status after setup and record its actual setupStatus
+→ use only this invocation's observed setupStatus for downstream generic gating
+→ continue after ACTION_REQUIRED / BLOCKED / FAILED
 → aggregate every result once
 ```
 
@@ -86,6 +89,10 @@ Discover all Modules
 Platform 原样保留并校验 Module 返回的结构化 setup steps，但不理解 Microsoft、Chrome、Custom GPT、Tunnel、Model 等业务事实。`platform setup --module <moduleRef>` 只定向重新观察某个 Module；人工或 AI 输入由 Module-owning setup CLI 通过明确参数收集，Platform 不接受原始 JSON input。
 
 Module 的 setup 实现必须优先自动执行所有 machine-owned 步骤，只把真正的用户/外部选择留给 `ACTION_REQUIRED`。Platform 不允许因“方便引导”重新变成 config bus。
+
+允许 package-owned `Module.setup` 在 TTY 中进行 **bounded interactive wait**：例如 `execution-browser-extension` 打开 `chrome://extensions` 后等待用户完成“加载已解压扩展”，再根据真实 authenticated hello/heartbeat 在同一次 Module.setup 调用中继续。该等待属于 Module 内部实现，不是 Platform resume/workflow engine；超时或非 TTY 必须返回 ACTION_REQUIRED，下一次 `platform setup` 重新观察现实。
+
+`provides/requires` 必须表达 deployment capability ordering，而不是靠 Platform 特判。当前 Browser Extension 提供 `custom-gpt-web-provisioning`；三个 Agent Package 依赖该 capability 与 `custom-gpt-actions-gateway`，因此 Platform 只按 generic graph 保证 Extension provisioning READY 后再调用对应 Agent setup。Platform 不认识 GPT editor、Knowledge、model、Auth 或 g-id。
 
 终端把完整步骤渲染为 `✓ 已完成 / → 当前步骤 / ○ 后续步骤 / ✕ 阻塞`，并始终给出最短下一条命令；Platform 不持久化进度，重复执行时重新观察 Module-owned evidence。
 

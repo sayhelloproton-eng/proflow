@@ -26,6 +26,9 @@ importers:
       '@tomflow/proflow-agent-runtime':
         specifier: workspace:^
         version: link:../agent-runtime
+      '@tomflow/proflow-execution-browser-extension':
+        specifier: workspace:^
+        version: link:../execution-browser-extension
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract
@@ -79,6 +82,9 @@ importers:
       '@tomflow/proflow-agent-runtime':
         specifier: workspace:^
         version: link:../agent-runtime
+      '@tomflow/proflow-execution-browser-extension':
+        specifier: workspace:^
+        version: link:../execution-browser-extension
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract
@@ -111,6 +117,9 @@ importers:
       '@tomflow/proflow-agent-runtime':
         specifier: workspace:^
         version: link:../agent-runtime
+      '@tomflow/proflow-execution-browser-extension':
+        specifier: workspace:^
+        version: link:../execution-browser-extension
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract

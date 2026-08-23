@@ -13,6 +13,11 @@
 			"matches": ["https://chatgpt.com/g/*"],
 			"js": ["dist/extension/content.js"],
 			"run_at": "document_idle"
+		},
+		{
+			"matches": ["https://chatgpt.com/gpts/editor/*"],
+			"js": ["dist/extension/provisioning-content.js"],
+			"run_at": "document_idle"
 		}
 	],
 	"side_panel": {

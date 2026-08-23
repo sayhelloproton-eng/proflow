@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { parse } from "yaml";
+import { materializeAgentPackage } from "../src/index.ts";
 
 const metadata = JSON.parse(
 	await readFile(new URL("../package.json", import.meta.url), "utf8"),
-) as { proflowAgent: { instructions: string } };
+) as { description: string; proflowAgent: { instructions: string } };
 const openapi = await readFile(
 	new URL("../actions/custom-gpt.openapi.yaml", import.meta.url),
 	"utf8",
@@ -90,4 +92,49 @@ test("CP-AGT-DEV-04 provisioning/reopen real evidence remains external ACTION_RE
 		metadata.proflowAgent.instructions,
 		/REOPEN 使用原 Task-bound worker/,
 	);
+});
+
+test("CP-REAL2-PROV-01 Controller/Dev package owns complete Custom GPT provisioning material", async () => {
+	const material = materializeAgentPackage(metadata);
+	assert.equal(material.description, metadata.description);
+	assert.equal(material.recommendedModel, "gpt-5-6");
+	assert.deepEqual(material.capabilities, {
+		webSearch: true,
+		imageGeneration: false,
+		codeInterpreter: true,
+	});
+	assert.equal(material.actionSchema, "actions/custom-gpt.openapi.yaml");
+	assert.equal(material.knowledgeBundle, "knowledge/custom-gpt-knowledge.zip");
+	assert.equal("knowledgeFiles" in material, false);
+	const bundle = await readFile(
+		new URL(`../${material.knowledgeBundle}`, import.meta.url),
+	);
+	assert.equal(bundle.subarray(0, 2).toString("ascii"), "PK");
+});
+
+test("CP-REAL2-PROV-01 custom-gpt setup exposes complete Controller/Dev provisioning material", () => {
+	const result = spawnSync(
+		process.execPath,
+		[
+			new URL("../dist/src/cli.js", import.meta.url).pathname,
+			"custom-gpt",
+			"setup",
+			"--gateway-url",
+			"https://gateway.example.com",
+		],
+		{ encoding: "utf8" },
+	);
+	assert.equal(result.status, 0, result.stderr);
+	const setup = JSON.parse(result.stdout) as Record<string, unknown>;
+	assert.equal(setup.description, metadata.description);
+	assert.equal(setup.recommendedModel, "gpt-5-6");
+	assert.deepEqual(setup.capabilities, {
+		webSearch: true,
+		imageGeneration: false,
+		codeInterpreter: true,
+	});
+	assert.equal(setup.knowledgeBundle, "knowledge/custom-gpt-knowledge.zip");
+	assert.equal(setup.actionSchema, "actions/custom-gpt.openapi.yaml");
+	assert.equal(setup.gatewayUrl, "https://gateway.example.com");
+	assert.equal("knowledgeFiles" in setup, false);
 });

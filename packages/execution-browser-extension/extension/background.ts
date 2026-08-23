@@ -67,6 +67,19 @@ type ContentCommand = {
 	value?: string;
 	fingerprint?: string;
 };
+type ProvisioningOperation =
+	| "PROVISION_CUSTOM_GPT"
+	| "FINALIZE_CUSTOM_GPT_AUTH";
+type ProvisioningBridgeCommand = {
+	commandId: string;
+	type: ProvisioningOperation;
+	request: Record<string, unknown>;
+};
+type ProvisioningContentCommand = {
+	type: "PROFLOW_PROVISIONING_COMMAND";
+	operation: ProvisioningOperation;
+	request: Record<string, unknown>;
+};
 type ChromeTab = { id?: number; windowId?: number; url?: string };
 type ChromeRuntime = {
 	runtime: {
@@ -103,7 +116,10 @@ type ChromeRuntime = {
 			tabId: number,
 			update: { url?: string; active?: boolean },
 		): Promise<ChromeTab>;
-		sendMessage(tabId: number, message: ContentCommand): Promise<unknown>;
+		sendMessage(
+			tabId: number,
+			message: ContentCommand | ProvisioningContentCommand,
+		): Promise<unknown>;
 		captureVisibleTab(
 			windowId: number,
 			options: { format: "png" },
@@ -158,6 +174,7 @@ function parseConfig(value: unknown): BridgeConfig | null {
 
 type ManagedRuntimeConfig = {
 	proflowRuntimeBridge?: unknown;
+	proflowProvisioningBridge?: unknown;
 	proflowTaskApplication?: unknown;
 	proflowApprovalApplication?: unknown;
 };
@@ -176,6 +193,7 @@ async function bootstrapManagedRuntimeConfig(): Promise<void> {
 	if (!isRecord(raw)) return;
 	const managed = raw as ManagedRuntimeConfig;
 	const bridge = parseConfig(managed.proflowRuntimeBridge);
+	const provisioning = parseConfig(managed.proflowProvisioningBridge);
 	const task = parseConfig(managed.proflowTaskApplication);
 	const approval = parseConfig(managed.proflowApprovalApplication);
 	if (!bridge || !task || !approval) {
@@ -183,6 +201,7 @@ async function bootstrapManagedRuntimeConfig(): Promise<void> {
 	}
 	await chrome.storage.local.set({
 		proflowRuntimeBridge: bridge,
+		...(provisioning ? { proflowProvisioningBridge: provisioning } : {}),
 		proflowTaskApplication: task,
 		proflowApprovalApplication: approval,
 	});
@@ -191,6 +210,11 @@ async function bootstrapManagedRuntimeConfig(): Promise<void> {
 async function bridgeConfig(): Promise<BridgeConfig | null> {
 	const stored = await chrome.storage.local.get("proflowRuntimeBridge");
 	return parseConfig(stored.proflowRuntimeBridge);
+}
+
+async function provisioningBridgeConfig(): Promise<BridgeConfig | null> {
+	const stored = await chrome.storage.local.get("proflowProvisioningBridge");
+	return parseConfig(stored.proflowProvisioningBridge);
 }
 
 async function taskApplicationConfig(): Promise<BridgeConfig | null> {
@@ -804,6 +828,73 @@ async function executeCommand(command: BridgeCommand): Promise<unknown> {
 	throw new Error("BROWSER_PRIMITIVE_UNAVAILABLE");
 }
 
+async function provisioningContentCommand(
+	tabId: number,
+	operation: ProvisioningOperation,
+	request: Record<string, unknown>,
+): Promise<unknown> {
+	for (let attempt = 0; attempt < 60; attempt += 1) {
+		try {
+			const response = await chrome.tabs.sendMessage(tabId, {
+				type: "PROFLOW_PROVISIONING_COMMAND",
+				operation,
+				request,
+			});
+			if (!isRecord(response) || response.ok !== true) {
+				const detail =
+					isRecord(response) && typeof response.error === "string"
+						? response.error
+						: "PROVISIONING_CONTENT_FAILED";
+				throw new Error(detail);
+			}
+			return response.value;
+		} catch (error) {
+			if (attempt === 59) throw error;
+			await sleep(250);
+		}
+	}
+	throw new Error("PROVISIONING_CONTENT_TIMEOUT");
+}
+
+async function executeProvisioningCommand(
+	command: ProvisioningBridgeCommand,
+): Promise<unknown> {
+	if (!isRecord(command.request))
+		throw new Error("PROVISIONING_COMMAND_INVALID");
+	let editorUrl: string;
+	if (command.type === "PROVISION_CUSTOM_GPT") {
+		const requestedUrl = command.request.editorUrl;
+		editorUrl =
+			typeof requestedUrl === "string" && requestedUrl.length > 0
+				? requestedUrl
+				: "https://chatgpt.com/gpts/editor/";
+		const parsed = new URL(editorUrl);
+		if (
+			parsed.protocol !== "https:" ||
+			parsed.hostname !== "chatgpt.com" ||
+			!parsed.pathname.startsWith("/gpts/editor")
+		)
+			throw new Error("PROVISIONING_EDITOR_URL_SCOPE_DENIED");
+	} else {
+		const carrierUrl = new URL(text(command.request.carrierUrl, "CARRIER_URL"));
+		const match = /^\/g\/(g-[A-Za-z0-9_-]+)$/.exec(carrierUrl.pathname);
+		if (
+			carrierUrl.origin !== "https://chatgpt.com" ||
+			carrierUrl.search !== "" ||
+			carrierUrl.hash !== "" ||
+			!match?.[1]
+		)
+			throw new Error("PROVISIONING_CARRIER_URL_INVALID");
+		editorUrl = `https://chatgpt.com/gpts/editor/${match[1]}`;
+	}
+	const tab = await chrome.tabs.create({ url: editorUrl, active: true });
+	return provisioningContentCommand(
+		numeric(tab.id, "TAB_ID"),
+		command.type,
+		command.request,
+	);
+}
+
 async function bridgeFetch(
 	config: BridgeConfig,
 	path: string,
@@ -904,6 +995,83 @@ async function runBridgeLoop() {
 					{ method: "POST", body: JSON.stringify(result) },
 				);
 				if (!reported.ok) throw new Error("BRIDGE_RESULT_REJECTED");
+			}
+		} catch {
+			await sleep(1_000);
+		}
+	}
+}
+
+let provisioningBridgeLoopStarted = false;
+async function runProvisioningBridgeLoop() {
+	if (provisioningBridgeLoopStarted) return;
+	provisioningBridgeLoopStarted = true;
+	while (true) {
+		const config = await provisioningBridgeConfig();
+		if (!config) {
+			await sleep(1_000);
+			continue;
+		}
+		const query = `?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`;
+		try {
+			const hello = await bridgeFetch(
+				config,
+				"/v1/provisioning/session/hello",
+				{
+					method: "POST",
+					body: JSON.stringify({
+						extensionId: chrome.runtime.id,
+						extensionInstanceId,
+					}),
+				},
+			);
+			if (!hello.ok) throw new Error("PROVISIONING_BRIDGE_HELLO_REJECTED");
+			let lastHeartbeatAt = 0;
+			while (true) {
+				if (Date.now() - lastHeartbeatAt >= 5_000) {
+					const heartbeat = await bridgeFetch(
+						config,
+						`/v1/provisioning/session/heartbeat${query}`,
+						{ method: "POST", body: "{}" },
+					);
+					if (!heartbeat.ok)
+						throw new Error("PROVISIONING_BRIDGE_HEARTBEAT_REJECTED");
+					lastHeartbeatAt = Date.now();
+				}
+				const response = await bridgeFetch(
+					config,
+					`/v1/provisioning/commands/next${query}`,
+				);
+				if (response.status === 204) {
+					await sleep(250);
+					continue;
+				}
+				if (!response.ok) throw new Error("PROVISIONING_BRIDGE_POLL_REJECTED");
+				const command = (await response.json()) as ProvisioningBridgeCommand;
+				let result: Record<string, unknown>;
+				try {
+					result = {
+						commandId: command.commandId,
+						ok: true,
+						value: await executeProvisioningCommand(command),
+					};
+				} catch (error) {
+					result = {
+						commandId: command.commandId,
+						ok: false,
+						error:
+							error instanceof Error
+								? error.message
+								: "PROVISIONING_EXTENSION_COMMAND_FAILED",
+					};
+				}
+				const reported = await bridgeFetch(
+					config,
+					`/v1/provisioning/commands/result${query}`,
+					{ method: "POST", body: JSON.stringify(result) },
+				);
+				if (!reported.ok)
+					throw new Error("PROVISIONING_BRIDGE_RESULT_REJECTED");
 			}
 		} catch {
 			await sleep(1_000);
@@ -1020,6 +1188,7 @@ async function startBackgroundRuntime(): Promise<void> {
 	await bootstrapManagedRuntimeConfig();
 	await persistSnapshot();
 	void runBridgeLoop();
+	void runProvisioningBridgeLoop();
 	void runObserverRecovery();
 }
 

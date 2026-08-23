@@ -21,6 +21,8 @@ contractRefs:
 # 04 · execution-browser-extension 详细技术方案
 
 > 2026-08-14 对齐：Extension 不再被描述为一个“Task Driver 万能调度器”。同一 package 内明确分离 Task UI / Approval-Alert UI / Task Observer / System Observer / Background Carrier Controller。Browser Carrier 降为可靠页面载体；Task progression 与 system assessment 分开。
+>
+> 2026-08-23 Deployment Provisioning 增量：同一 Chrome Extension package 新增 **Deployment-only Custom GPT Provisioning** 分支，用于平台 setup 期间确定性操作 `/gpts/editor/*`。它与运行期 `/g/*` Task/Worker Carrier 在 command namespace、content script、state machine、DTO 与 verification 上隔离，只允许共享底层 Chrome API、authenticated loopback transport、heartbeat/session 与通用日志设施。
 
 ---
 
@@ -31,14 +33,17 @@ Browser Extension 完全归 Execution Domain 的 Browser capability，但内部�
 它负责：
 
 ```text
+Deployment Provisioning Web Adapter（setup 期间的 Custom GPT editor 自动化）
 Task UI / New Task入口（application composition）
 Approval/Alert UI（interaction channel）
 Task Observer（deterministic progression detection）
 System Observer（lowest-priority whole-system assessment coordination）
-Background Carrier Controller（real page operations）
+Background Carrier Controller（runtime real page operations）
 P0 Side Panel
 Browser Effect / Evidence
 ```
+
+Deployment Provisioning 只拥有“如何在真实浏览器页面完成部署期 Web materialization”的执行机制；Agent Package material、Role、credential 与 Deployment Module 状态仍分别属于其 owning domain。
 
 它不是：
 
@@ -58,25 +63,67 @@ Agent Runtime
 
 ```text
 extension/
-├── ui/
-│   ├── task-list-new-task
-│   ├── approval-alert
-│   └── side-panel
-├── background/
-│   ├── runtime-session
-│   ├── task-observer
-│   ├── system-observer
-│   ├── carrier-controller
-│   ├── recovery
-│   └── evidence-log-client
-├── content/
-│   ├── chatgpt-page-adapter
-│   ├── deterministic-dom-observer
-│   └── screenshot-capture
+├── provisioning/                     # Deployment-only；不得 import runtime Task/Worker state machine
+│   ├── provisioning-session
+│   ├── custom-gpt-editor-driver
+│   ├── provisioning-content          # https://chatgpt.com/gpts/editor/*
+│   ├── knowledge-upload
+│   └── provisioning-verification
+├── runtime/
+│   ├── ui/
+│   │   ├── task-list-new-task
+│   │   ├── approval-alert
+│   │   └── side-panel
+│   ├── background/
+│   │   ├── task-observer
+│   │   ├── system-observer
+│   │   ├── carrier-controller
+│   │   ├── recovery
+│   │   └── evidence-log-client
+│   └── content/
+│       ├── chatgpt-page-adapter       # https://chatgpt.com/g/*
+│       ├── deterministic-dom-observer
+│       └── screenshot-capture
 └── shared/
+    ├── runtime-session / heartbeat
+    ├── authenticated-loopback-transport
+    └── bounded logging utilities
 ```
 
 物理目录不要求完全一致，但职责不得重新合并成一个“万能 task-driver”。
+
+### 2.1 Deployment Provisioning 独立流程
+
+Deployment Provisioning 只在 Module setup / Agent Package setup 期间工作，使用高层 typed command（概念名 `PROVISION_CUSTOM_GPT` / `FINALIZE_CUSTOM_GPT_AUTH`），不得通过运行期 `ExecuteCapabilityRequest`、Task Observer 或 Browser Effect state machine 拼装。
+
+```text
+Extension install + authenticated hello/heartbeat
+→ receive Agent Package provisioning material
+→ OPEN/RESTORE /gpts/editor/*
+→ FILL identity / Instructions / starters
+→ UPLOAD staged Knowledge files
+→ SELECT recommended model / capabilities
+→ INSTALL Action Schema
+→ VERIFY draft
+→ private CREATE / promote
+→ VERIFY live g-id / carrier URL
+→ return result to Agent setup
+→ Agent Domain registerRole + generate role credential
+→ receive ephemeral Auth material
+→ REOPEN editor / materialize API Key + Bearer
+→ UPDATE + verify
+→ discard ephemeral Auth material
+```
+
+硬边界：
+
+- Provisioning DTO 不得出现 `taskId/nodeId/workerRef/conversationLocator/executionRef`；
+- Provisioning 不创建或修改 Task/Worker/Execution Record/Collaboration fact；
+- Auth ownership、Key 生成与 secret persistence 不属于 Extension；Extension 只机械输入本次动态 secret，且不得写入 `chrome.storage`、runtime config、日志或 Evidence；
+- Knowledge ZIP 的解包、path traversal/symlink/大小/MIME/hash 校验发生在可信 Mac setup 侧；Extension 只获取经过 staging 的 bounded files/bytes；
+- command JSON 不承载大型文件 base64；部署期文件 bytes 使用受认证、短时、opaque 的 loopback file transport；
+- 页面 selector/DOM contract 不匹配时 fail closed，返回 typed UI-contract failure，禁止坐标猜测或模型自由点击；
+- setup 必须可重入：已存在且绑定正确的 live GPT 优先 UPDATE/verify，只补缺失或 drift，不因重跑 setup 创建第二个 Role GPT。
 
 ---
 
@@ -458,14 +505,16 @@ no blind replay。
 
 ## 18. File Bridge / Context Pack
 
-普通文件不由 Browser DOM 搬运。
+运行期普通 Task/Artifact 文件不由 Browser DOM 搬运：
 
 ```text
 Conversation → openaiFileIdRefs → Gateway → Execution materialize
 Task/Execution Artifact → Gateway openaiFileResponse → Conversation
 ```
 
-Context Pack / Patch 都是 Execution Artifact subtype。
+唯一独立例外是 **Deployment Provisioning 的静态 Role Knowledge 上传**：它不是 Task File Bridge，也不是运行时 Artifact transport。可信 Mac setup 侧从 Agent Package ZIP 解包并安全校验后，通过短时 authenticated loopback file transport 向 Extension 提供 bounded bytes；Provisioning content script 只负责把这些静态部署文件写入 GPT editor 的 Knowledge file input。
+
+Context Pack / Patch 都是 Execution Artifact subtype；Deployment Knowledge 不因此变成 Execution Artifact 或新 File Domain。
 
 截图因 OpenAI image return asymmetry继续走 Browser/Execution → Model Vision。
 

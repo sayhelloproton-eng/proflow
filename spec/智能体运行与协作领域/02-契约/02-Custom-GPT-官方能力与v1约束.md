@@ -65,18 +65,21 @@ Knowledge
 → 上传文件中的长期 Knowledge 材料
 ```
 
-因此必须区分“OpenAI 官方支持”与“ProFlow v1 是否采用”：
+因此必须区分“行为规则”“静态 Role Knowledge”“动态 Task Context”：
 
 ```text
 package.json agent.instructions
-→ Web Instructions                  # v1 REQUIRED
+→ Web Instructions                                      # v1 REQUIRED
 
-Web Knowledge
-→ official capability               # ProFlow v1 DEFERRED
-→ future generic-role specialization only
+knowledge/custom-gpt-knowledge.zip
+→ Mac deployment staging
+→ Web Knowledge 中的受支持解包文件                     # v1 REQUIRED deployment baseline
+
+TaskDocument / Artifact / File Bridge
+→ 当前 Worker 动态上下文                                # 永不进入 permanent Knowledge
 ```
 
-`fixed-context.md` / `memory.md` 在 v1 是 package authoring/reference material，不自动映射成 Web Knowledge。Task/Node/reopen 动态事实永远不进入 permanent Knowledge，而通过 Task/Artifact/File Bridge 进入当前 Worker。
+`fixed-context.md` / `memory.md` 继续是 package authoring/reference material；是否吸收到 Knowledge Bundle 由 Agent Package author 决定，不由 Extension 推理。部署代码只消费版本化 ZIP 资产，不解释角色知识语义。
 
 ---
 
@@ -88,8 +91,9 @@ Capabilities 是 GPT 内置能力开关，具体可用项取决于账号/工作�
 
 因此 Agent Package：
 
-- 可以给出推荐值；
-- CLI 应明确提示人工选择；
+- 必须给出部署期推荐值；三个固定 Agent 当前统一为 `gpt-5-6`；
+- Provisioning Driver 应自动选择 package material 声明的推荐模型并做页面 readback；
+- Capabilities 同样按 package carrier profile 自动设置；
 - 不应把“推荐模型一定被强制使用”写成平台安全前提；
 - 关键边界仍靠 Actions/Owner 服务端校验。
 
@@ -191,46 +195,52 @@ routine query/control/intent operation
 
 # 9. v1 不依赖 Custom GPT management API
 
-当前官方资料描述的创建/编辑流程是 GPT editor。
+当前官方资料描述的创建/编辑主流程仍是 GPT editor。本设计没有把“通过官方 API 自动 create/update/publish Custom GPT”作为 v1 依赖，也没有找到可作为本项目硬依赖的公开管理 Contract。
 
-本设计没有把“通过 API 自动 create/update/publish Custom GPT”作为 v1 能力，也没有找到可作为本项目硬依赖的官方公开管理 Contract。
-
-因此：
+v1 自动化因此明确采用 **真实 Web editor + 本地已安装 Browser Extension**：
 
 ```text
-Agent Package/CLI
-→ 提供字段内容/上传文件/Schema/Auth 指引
-→ 用户在 ChatGPT Web 人工创建/更新
+Agent Package material
+→ Mac deployment setup
+→ execution-browser-extension Deployment Provisioning
+→ ChatGPT /gpts/editor/*
+→ deterministic DOM/Web materialization
+→ private create/update
+→ real g-id / carrier reality
 ```
 
-如果未来 OpenAI 提供稳定官方管理接口，可以新增 Carrier automation Adapter，但不改变 Agent Package / Role / Worker 核心语义。
+这不是 Custom GPT management API，也不是模型控制浏览器。页面合同变化、账号/工作区不允许创建、未登录或其它 Carrier reality 不满足时必须显式失败/ACTION_REQUIRED，不得伪造成功。
+
+如果未来 OpenAI 提供稳定官方管理接口，可以替换 Deployment Provisioning Adapter，但不改变 Agent Package / Role / Worker 核心语义。
 
 ---
 
 # 10. validate-role 的现实边界
 
-因为 v1 不依赖官方管理读回接口，CLI 自动验证不能声称读取完整 GPT Web 配置。
+因为 v1 不依赖官方管理读回接口，Agent CLI 不能声称通过 OpenAI management API 读取完整 GPT 配置；但 Deployment Provisioning Driver 可以对当前真实 editor 做 bounded DOM/reality verification。
 
-必须区分：
+必须联合验证：
 
 ```text
-可自动：
+Agent/Runtime owner checks:
 roleRef/url 格式
 package version
+Role Registry
 key/config
 Gateway reachability
 auth probe
 local OpenAPI validation
 
-需人工：
-Instructions 是否最新
-推荐模型/Capabilities 是否满足 capability requirements
-Web Action Schema 是否已更新
-
-Knowledge 在 v1 deferred，不进入当前 verify/READY checklist。
+Browser Provisioning checks:
+live GPT reality
+Instructions readback
+recommended model / required Capabilities readback
+Knowledge upload + processing completion + file presence
+Action Schema materialization
+Auth Update 已提交
 ```
 
-这也是 v1 setup CLI 要逐步引导用户的原因。
+任何 Browser check 无法确定时均不得将 Role 标为 READY；最终仍需要真实 GPT → Gateway 身份探针证明 Carrier 可工作。
 
 
 ---
@@ -416,7 +426,7 @@ real Preview/E2E PASS
 
 而不是 `recommendedModel == 某精确 model id`。
 
-Custom GPT 创建/编辑仍按 Web-only 流程处理；Deployment 继续使用既有 `ACTION_REQUIRED`，并以 `actionRequired.kind=WEB` 表达 Web 人工步骤，不能承诺 CLI 全自动修改 GPT。
+Custom GPT 创建/编辑仍是 Web-only Carrier 流程，但正常部署 happy path 由已安装 Browser Extension 的 Deployment Provisioning 自动完成，而不是要求用户逐字段操作。`ACTION_REQUIRED` 仅用于真正的人机前置或外部 blocker（例如首次加载扩展、未登录、Carrier capability 不可用、页面合同变化），不能把机器可完成的 Web 配置重新推给用户。
 
 ### B. PENDING_SPIKE｜官方能力存在，但本平台使用方式仍需真实 E2E
 

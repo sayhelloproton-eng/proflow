@@ -20,7 +20,7 @@ contractRefs:
 
 ## Responsibility
 
-产品 Role Agent Package；包含 Custom GPT 创建材料、Instructions、static Actions/capability requirements 与 role registration 管理。Knowledge specialization 为 future/deferred，不是 v1 创建/READY 前置。
+产品 Role Agent Package；包含 Custom GPT 创建材料、Instructions、static Actions/capability requirements、版本化 `knowledge/custom-gpt-knowledge.zip` 与 role registration 管理。静态 Role Knowledge 是 v1 Deployment/READY 的必要材料；动态 Task 文档仍不进入永久 Knowledge。
 
 ## Existing detailed sources
 
@@ -40,7 +40,7 @@ contractRefs:
 
 ### Role package scope
 
-The package defines the generic Product role, Instructions and static business-purpose Action surface. v1 does not add Product subtypes, Persona service, dynamic capability matching or permanent Role Knowledge specialization. Future Knowledge may specialize the generic role but is outside this batch.
+The package defines the generic Product role, Instructions, static business-purpose Action surface and versioned static Role Knowledge bundle. v1 does not add Product subtypes, Persona service, dynamic capability matching or a Knowledge Service/Router; richer specialization only replaces package-owned Knowledge content and does not create a new runtime subsystem.
 
 ### GPT-native capability boundary
 

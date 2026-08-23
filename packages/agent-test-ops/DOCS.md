@@ -7,8 +7,8 @@
 ## 主要能力
 
 - 提供角色 Instructions、开场白和角色专属静态 Action Schema。
-- 引导创建或更新真实 Custom GPT，并注册 Role URL。
-- 校验角色包版本、角色注册和 Actions 接入状态。
+- 通过 owning `Module.setup` + `custom-gpt-web-provisioning` 自动创建/更新真实 Private Custom GPT，并由 Agent Domain 注册稳定 Role。
+- 校验角色包版本、Role、动态 Auth 与 Actions 接入状态。
 
 ## 提供的 API 与 Public Contract
 
@@ -18,6 +18,7 @@
 ## 依赖的 Module、Contract 和外部资源
 
 - 依赖 `custom-gpt-actions-gateway`，兼容版本 `>=1.0.0 <2.0.0`。
+- 依赖 `custom-gpt-web-provisioning`，兼容版本 `>=1.0.0 <2.0.0`，由 Browser Extension 承担部署期 Custom GPT 自动配置。
 - 依赖 ChatGPT Custom GPT、Gateway 与可用网络。
 
 ## 运行形态与生命周期
@@ -26,7 +27,7 @@
 
 ## 使用方式
 
-运行 `pnpm exec -- proflow-agent-test-ops setup`，向导会逐步准备并验证角色配置。
+B1～B5 已提供完整 Agent Package material、Browser Provisioning primitive 与 Role/Auth finalization capability；当前 `Module.setup` 仍只观察 durable Role reality。最终正常路径由 B6 将这些 primitive 接入 `platform setup --module agent-test-ops` 并证明重入/no-duplicate/Fresh Workspace。`custom-gpt setup` / `custom-gpt finalize-role` / `role ...` 保留为 package-specific 诊断、恢复或显式本地管理入口；不得把用户手工复制 GPT URL、Schema 或 Bearer 重新当作 happy path。
 
 ## 职责边界与限制
 

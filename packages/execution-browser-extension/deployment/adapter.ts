@@ -11,6 +11,7 @@ import {
 	readModuleSharedFacts,
 	writeModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
+import { createBrowserExtensionPairingServer } from "../src/pairing.ts";
 import { descriptor } from "./descriptor.ts";
 
 const base = {
@@ -24,53 +25,31 @@ const setupPlan = {
 	steps: [
 		{
 			id: "STEP-EXECUTION-BROWSER-EXTENSION-01",
-			title: "准备扩展并打开 Chrome",
-			description: "生成 unpacked 目录，复制路径并打开扩展管理页。",
+			title: "加载扩展并自动配对",
+			description:
+				"准备 unpacked 目录和本地 Bridge，等待 Chrome Extension 的真实 hello + heartbeat。",
 			state: "TODO",
 			responsible: "USER",
 			execution: {
-				interactive:
-					"pnpm exec -- proflow-execution-browser-extension setup 01",
+				interactive: "pnpm exec -- proflow-execution-browser-extension setup",
 				nonInteractive:
-					"pnpm exec -- proflow-execution-browser-extension setup 01",
+					"pnpm exec -- proflow-execution-browser-extension setup",
 			},
 			requiredInputs: [],
-			verify: "pnpm exec -- proflow-execution-browser-extension setup 01",
-			successCondition: "扩展目录已生成并可选择",
-			humanAction: "启用开发者模式并选择脚本复制的目录。",
+			verify: "pnpm exec -- proflow-execution-browser-extension verify",
+			successCondition:
+				"Extension hello + heartbeat 已被本地 pairing listener 验证并持久化",
+			humanAction:
+				"启用开发者模式并加载脚本准备的 unpacked 目录；其余身份发现与验证自动完成。",
 		},
 		{
 			id: "STEP-EXECUTION-BROWSER-EXTENSION-02",
-			title: "登记 Extension ID 并生成配置",
-			description: "保存扩展 ID，生成 Bridge 配置并提示 Reload。",
-			state: "TODO",
-			responsible: "USER",
-			execution: {
-				interactive:
-					"pnpm exec -- proflow-execution-browser-extension setup 02",
-				nonInteractive:
-					"pnpm exec -- proflow-execution-browser-extension setup 02 --extension-id <id>",
-			},
-			requiredInputs: [
-				{
-					name: "extensionId",
-					description: "Chrome Extension ID",
-					sensitive: false,
-				},
-			],
-			verify: "pnpm exec -- proflow-execution-browser-extension verify",
-			successCondition: "Extension ID 和运行配置已保存",
-			humanAction: "复制扩展 ID，并在配置生成后点击 Reload。",
-		},
-		{
-			id: "STEP-EXECUTION-BROWSER-EXTENSION-03",
-			title: "验证 Service Worker 与 Bridge",
-			description: "重新观察扩展后台和本地 Bridge。",
+			title: "验证扩展部署状态",
+			description: "读取 heartbeat 形成的持久化部署证据。",
 			state: "TODO",
 			responsible: "AI",
 			execution: {
-				interactive:
-					"pnpm exec -- proflow-execution-browser-extension setup 03",
+				interactive: "pnpm exec -- proflow-execution-browser-extension verify",
 				nonInteractive:
 					"pnpm exec -- proflow-execution-browser-extension verify",
 			},
@@ -83,19 +62,19 @@ const setupPlan = {
 const blockedSetupPlan = {
 	steps: [
 		{
-			id: "STEP-EXECUTION-BROWSER-EXTENSION-04",
-			title: "修复扩展配置",
+			id: "STEP-EXECUTION-BROWSER-EXTENSION-RECOVER",
+			title: "重新加载并自动配对扩展",
 			state: "BLOCKED",
 			responsible: "EXTERNAL",
 			execution: {
 				interactive: "pnpm exec -- proflow-execution-browser-extension setup",
 				nonInteractive:
-					"pnpm exec -- proflow-execution-browser-extension setup --extension-id <id>",
+					"pnpm exec -- proflow-execution-browser-extension setup",
 			},
 			requiredInputs: [],
 			verify: "pnpm exec -- proflow-execution-browser-extension verify",
 			successCondition: "配置状态变为“已就绪”",
-			blockedReason: "Extension ID 或生成配置无效",
+			blockedReason: "真实 Extension heartbeat 未到达或本地 pairing 失败",
 		},
 	],
 } as const;
@@ -105,7 +84,9 @@ type BrowserVerificationEvidence = {
 	moduleVersion: string;
 	loadDir: string;
 	extensionId: string;
+	extensionInstanceId: string;
 	serviceWorker: "RUNNING";
+	evidenceSource: "PAIRING_HEARTBEAT";
 	observedAt: string;
 };
 const factString = (
@@ -243,7 +224,10 @@ async function readEvidence(
 			raw.loadDir === loadDir &&
 			typeof raw.extensionId === "string" &&
 			/^[a-z]{32}$/.test(raw.extensionId) &&
+			typeof raw.extensionInstanceId === "string" &&
+			raw.extensionInstanceId.length > 0 &&
 			raw.serviceWorker === "RUNNING" &&
+			raw.evidenceSource === "PAIRING_HEARTBEAT" &&
 			typeof raw.observedAt === "string" &&
 			!Number.isNaN(Date.parse(raw.observedAt))
 			? (raw as BrowserVerificationEvidence)
@@ -251,21 +235,6 @@ async function readEvidence(
 	} catch {
 		return undefined;
 	}
-}
-function input(context: ModuleCommandContext) {
-	const value = context.input;
-	if (typeof value !== "object" || value === null || Array.isArray(value))
-		return {};
-	const extensionId = Reflect.get(value, "extensionId"),
-		serviceWorker = Reflect.get(value, "serviceWorker"),
-		observedAt = Reflect.get(value, "observedAt");
-	return {
-		...(typeof extensionId === "string" ? { extensionId } : {}),
-		...(serviceWorker === "RUNNING"
-			? { serviceWorker: "RUNNING" as const }
-			: {}),
-		...(typeof observedAt === "string" ? { observedAt } : {}),
-	};
 }
 async function ownFacts(context: ModuleCommandContext) {
 	await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
@@ -280,10 +249,22 @@ async function ownFacts(context: ModuleCommandContext) {
 		descriptor.moduleRef,
 		"bridge",
 	);
+	const provisioningBridgeTokenFile = await ensureModuleSecretFile(
+		context,
+		descriptor.moduleRef,
+		"provisioning",
+	);
+	const provisioningBridgePort = deterministicLoopbackPort(
+		context,
+		descriptor.moduleRef,
+		"provisioning",
+	);
 	const facts: Record<string, unknown> = {
 		loadDir,
 		bridgeTokenFile,
 		bridgeEndpoint: `http://127.0.0.1:${bridgePort}`,
+		provisioningBridgeTokenFile,
+		provisioningBridgeEndpoint: `http://127.0.0.1:${provisioningBridgePort}`,
 		verificationEvidenceFile: verificationFile(context),
 	};
 	const setup = await readSetup(context);
@@ -295,10 +276,7 @@ async function ownFacts(context: ModuleCommandContext) {
 	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
 	return facts;
 }
-async function materialize(
-	context: ModuleCommandContext,
-	setup: BrowserSetupState,
-) {
+async function materializeRuntimeConfig(context: ModuleCommandContext) {
 	const host = await readModuleSharedFacts(context, "platform-host");
 	const endpoint = factString(host, "endpoint"),
 		taskTokenFile = factString(host, "taskApplicationTokenFile"),
@@ -309,35 +287,138 @@ async function materialize(
 	const loadDir = String(facts.loadDir);
 	const bridgeTokenFile = String(facts.bridgeTokenFile);
 	const bridgeEndpoint = String(facts.bridgeEndpoint);
-	const runtimeConfig = {
-		proflowRuntimeBridge: {
-			endpoint: bridgeEndpoint,
-			token: await credential(bridgeTokenFile),
-		},
-		proflowTaskApplication: {
-			endpoint,
-			token: await credential(taskTokenFile),
-		},
-		proflowApprovalApplication: {
-			endpoint,
-			token: await credential(approvalTokenFile),
-		},
-	};
+	const provisioningBridgeTokenFile = String(facts.provisioningBridgeTokenFile);
+	const provisioningBridgeEndpoint = String(facts.provisioningBridgeEndpoint);
 	await writeFile(
 		join(loadDir, "runtime-config.json"),
-		`${JSON.stringify(runtimeConfig, null, 2)}\n`,
+		`${JSON.stringify(
+			{
+				proflowRuntimeBridge: {
+					endpoint: bridgeEndpoint,
+					token: await credential(bridgeTokenFile),
+				},
+				proflowProvisioningBridge: {
+					endpoint: provisioningBridgeEndpoint,
+					token: await credential(provisioningBridgeTokenFile),
+				},
+				proflowTaskApplication: {
+					endpoint,
+					token: await credential(taskTokenFile),
+				},
+				proflowApprovalApplication: {
+					endpoint,
+					token: await credential(approvalTokenFile),
+				},
+			},
+			null,
+			2,
+		)}\n`,
 		{ mode: 0o600 },
 	);
+	return {
+		facts,
+		loadDir,
+		bridgeTokenFile,
+		bridgeEndpoint,
+		provisioningBridgeTokenFile,
+		provisioningBridgeEndpoint,
+		endpoint,
+		taskTokenFile,
+	};
+}
+
+async function materializeExecutorConfig(
+	context: ModuleCommandContext,
+	setup: BrowserSetupState,
+	prepared?: Awaited<ReturnType<typeof materializeRuntimeConfig>>,
+) {
+	const resolved = prepared ?? (await materializeRuntimeConfig(context));
 	await writeFile(
 		executorConfigFile(context),
-		`${JSON.stringify({ platformHost: { endpoint, tokenFile: taskTokenFile }, bridge: { extensionId: setup.extensionId, tokenFile: bridgeTokenFile, host: "127.0.0.1", port: Number(new URL(bridgeEndpoint).port) } }, null, 2)}\n`,
+		`${JSON.stringify({ platformHost: { endpoint: resolved.endpoint, tokenFile: resolved.taskTokenFile }, bridge: { extensionId: setup.extensionId, tokenFile: resolved.bridgeTokenFile, host: "127.0.0.1", port: Number(new URL(resolved.bridgeEndpoint).port) } }, null, 2)}\n`,
 		{ mode: 0o600 },
 	);
 	await writeModuleSharedFacts(context, descriptor.moduleRef, {
-		...facts,
+		...resolved.facts,
 		extensionId: setup.extensionId,
 		browserExecutorConfigPath: executorConfigFile(context),
 	});
+}
+
+async function materialize(
+	context: ModuleCommandContext,
+	setup: BrowserSetupState,
+) {
+	const prepared = await materializeRuntimeConfig(context);
+	await materializeExecutorConfig(context, setup, prepared);
+}
+
+export async function pairBrowserExtensionSetup(
+	context: ModuleCommandContext,
+	options: {
+		timeoutMs?: number;
+		onWaiting?: (input: {
+			loadDir: string;
+			endpoint: string;
+		}) => void | Promise<void>;
+	} = {},
+): Promise<{ extensionId: string; extensionInstanceId: string }> {
+	await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+	await installPackage(context);
+	const existingSetup = await readSetup(context);
+	const existingEvidence = await readEvidence(
+		context,
+		browserExtensionLoadDir(context.workspaceRoot),
+	);
+	if (
+		existingSetup &&
+		existingEvidence &&
+		existingSetup.extensionId === existingEvidence.extensionId
+	) {
+		await materialize(context, existingSetup);
+		return {
+			extensionId: existingEvidence.extensionId,
+			extensionInstanceId: existingEvidence.extensionInstanceId,
+		};
+	}
+
+	const prepared = await materializeRuntimeConfig(context);
+	const pairing = await createBrowserExtensionPairingServer({
+		token: await credential(prepared.bridgeTokenFile),
+		host: "127.0.0.1",
+		port: Number(new URL(prepared.bridgeEndpoint).port),
+		pairingTimeoutMs: options.timeoutMs ?? 120_000,
+	});
+	try {
+		await options.onWaiting?.({
+			loadDir: prepared.loadDir,
+			endpoint: pairing.endpoint,
+		});
+		const identity = await pairing.waitForPairing();
+		const setup: BrowserSetupState = { extensionId: identity.extensionId };
+		await writeFile(setupFile(context), `${JSON.stringify(setup, null, 2)}\n`, {
+			mode: 0o600,
+		});
+		await materializeExecutorConfig(context, setup, prepared);
+		const evidence: BrowserVerificationEvidence = {
+			contract: "proflow.browser-extension-verification.v1",
+			moduleVersion: descriptor.moduleVersion,
+			loadDir: prepared.loadDir,
+			extensionId: identity.extensionId,
+			extensionInstanceId: identity.extensionInstanceId,
+			serviceWorker: "RUNNING",
+			evidenceSource: "PAIRING_HEARTBEAT",
+			observedAt: new Date().toISOString(),
+		};
+		await writeFile(
+			verificationFile(context),
+			`${JSON.stringify(evidence, null, 2)}\n`,
+			{ mode: 0o600 },
+		);
+		return identity;
+	} finally {
+		await pairing.close();
+	}
 }
 const failed = (
 	code: "SETUP_FAILED" | "START_FAILED",
@@ -365,7 +446,9 @@ export const behaviorAdapter = {
 		const loadDir = browserExtensionLoadDir(context.workspaceRoot);
 		const setup = await readSetup(context);
 		const evidence = await readEvidence(context, loadDir);
-		const setupReady = Boolean(setup && evidence);
+		const setupReady = Boolean(
+			setup && evidence && setup.extensionId === evidence.extensionId,
+		);
 		return {
 			result: {
 				...base,
@@ -397,75 +480,32 @@ export const behaviorAdapter = {
 	},
 	setup: async (context: ModuleCommandContext) => {
 		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
-		const supplied = input(context);
-		let setup = await readSetup(context);
-		if (supplied.extensionId) {
-			if (!/^[a-z]{32}$/.test(supplied.extensionId))
+		await installPackage(context);
+		const setup = await readSetup(context);
+		const evidence = await readEvidence(
+			context,
+			browserExtensionLoadDir(context.workspaceRoot),
+		);
+		if (setup && evidence && setup.extensionId === evidence.extensionId) {
+			try {
+				await materialize(context, setup);
+			} catch (error) {
 				return {
 					result: {
 						...failed(
 							"SETUP_FAILED",
-							"extensionId must be a canonical 32-character Chromium extension id",
-							false,
+							error instanceof Error
+								? error.message
+								: "browser extension config materialization failed",
 						),
 						data: blockedSetupPlan,
 					},
 					observedEffects: [],
 				};
-			setup = { extensionId: supplied.extensionId };
-			await writeFile(
-				setupFile(context),
-				`${JSON.stringify(setup, null, 2)}\n`,
-				{ mode: 0o600 },
-			);
-		}
-		if (!setup)
-			return {
-				result: {
-					...base,
-					ok: false as const,
-					status: "ACTION_REQUIRED" as const,
-					data: setupPlan,
-					actionRequired: {
-						action: "load-unpacked-extension",
-						description: `Load ${browserExtensionLoadDir(context.workspaceRoot)} in Chrome, copy its extensionId, then run proflow-execution-browser-extension setup --extension-id <id>.`,
-					},
-				},
-				observedEffects: [],
-			};
-		try {
-			await materialize(context, setup);
-		} catch (error) {
-			return {
-				result: {
-					...failed(
-						"SETUP_FAILED",
-						error instanceof Error
-							? error.message
-							: "browser extension config materialization failed",
-					),
-					data: blockedSetupPlan,
-				},
-				observedEffects: [],
-			};
-		}
-		if (supplied.serviceWorker === "RUNNING") {
-			const evidence: BrowserVerificationEvidence = {
-				contract: "proflow.browser-extension-verification.v1",
-				moduleVersion: descriptor.moduleVersion,
-				loadDir: browserExtensionLoadDir(context.workspaceRoot),
-				extensionId: setup.extensionId,
-				serviceWorker: "RUNNING",
-				observedAt: supplied.observedAt ?? new Date().toISOString(),
-			};
-			await writeFile(
-				verificationFile(context),
-				`${JSON.stringify(evidence, null, 2)}\n`,
-				{ mode: 0o600 },
-			);
+			}
 			return {
 				result: base,
-				observedEffects: ["Records real Chrome MV3 load evidence"],
+				observedEffects: ["Uses heartbeat-proven Chrome MV3 pairing evidence"],
 			};
 		}
 		return {
@@ -475,9 +515,8 @@ export const behaviorAdapter = {
 				status: "ACTION_REQUIRED" as const,
 				data: setupPlan,
 				actionRequired: {
-					action: "reload-and-verify-extension",
-					description:
-						"Reload the unpacked extension, confirm its MV3 service worker is RUNNING, then rerun proflow-execution-browser-extension setup --extension-id <id>.",
+					action: "load-unpacked-extension",
+					description: `Run pnpm exec -- proflow-execution-browser-extension setup --workspace ${context.workspaceRoot}; then enable Developer Mode and load ${browserExtensionLoadDir(context.workspaceRoot)}. The package CLI materializes bootstrap config, discovers the extension and verifies its heartbeat automatically.`,
 				},
 			},
 			observedEffects: [],

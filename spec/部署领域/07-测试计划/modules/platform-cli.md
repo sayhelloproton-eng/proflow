@@ -91,3 +91,18 @@ Fresh Workspace 必须呈现 `14 已就绪 / 7 需要操作 / 3 等待依赖 / 0
 - 证明首个 `ACTION_REQUIRED` 或 `FAILED` 不终止后续 Module setup。
 - 证明最终一次性聚合所有未 READY Module 的 action/error/data。
 - 证明 Platform 不解释 package-owned Step、executable/verify 或 opaque input。
+
+
+## 2026-08-23 Real-2｜Setup Dependency Readiness Addendum
+
+- [ ] **CP-DEP-CLI-REAL2-01** — `platform setup` 仍全量扫描，但在调用某 Module.setup 前 generic 检查其 required providers 的本次真实 `setupStatus`；provider 非 READY 时 dependent 标记 `BLOCKED` 且 setup 调用次数为 0。
+- [ ] **CP-DEP-CLI-REAL2-02** — provider 的 Module.setup 返回后必须重新观察 provider `Module.status`；若同一次调用中已 READY，则排序在后的 dependent 可以继续 setup，无需用户再启动第二个 Platform workflow。
+- [ ] **CP-DEP-CLI-REAL2-03** — provider ACTION_REQUIRED/FAILED/BLOCKED 不终止全量扫描；其 downstream 被 generic BLOCKED，完全独立的 Module 仍继续 setup 并被聚合。
+- [ ] **CP-DEP-CLI-REAL2-04** — gating 只使用 dependency graph + 标准 Module.status，不出现 `execution-browser-extension`、Agent Package、GPT、Chrome 等 module-specific branch，也不持久化 dependency setup state。
+- [ ] **CP-DEP-CLI-REAL2-05** — `custom-gpt-web-provisioning` provider READY 前三个 Agent Package setup 均不会被调用；READY 后由同一 generic graph 自动解除阻塞。
+
+- [ ] **RF-DEP-CLI-REAL2-01** — 仅排序但不 gate，导致 provider 未 READY 时 dependent setup 抢跑。
+- [ ] **RF-DEP-CLI-REAL2-02** — 用 setup command 返回 `SUCCEEDED` 直接猜 provider READY，而不重新读取 Module.status。
+- [ ] **RF-DEP-CLI-REAL2-03** — 为 Real-2 增加 moduleRef-specific if/else、config bus、持久化 resume state 或新的 Platform 顶层命令。
+
+上述 proof 属 Platform generic orchestration；Custom GPT 页面本身仍由 owning Agent Package + Browser Extension 专项计划验收。

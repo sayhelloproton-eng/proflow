@@ -55,6 +55,8 @@ Module install
 
 AI 通过 `DOCS.md` 理解能力，通过 `SETUP.md + Module.setup` 一次获得完整未 READY 清单。各 Module 的 setup 以最少用户操作、最少往返、最快 READY 为目标：能自动就自动；必须人工时给出明确 Human Action；每个状态推进 Step 都有 package-owned executable/verify 与成功条件。Platform 不再读取 configSlots 后自行解释“缺什么配置”。
 
+Browser Extension / Custom GPT 的当前 Golden Path 进一步收敛为：用户只执行首次“加载已解压的扩展程序”；随后 Extension hello/heartbeat、Extension ID/session reality、三个 Agent 的 GPT editor materialization、Knowledge 上传、`gpt-5-6`、Capabilities、Action Schema、真实 g-id、Role register 与动态 Auth 回填均由 owning Module + Deployment Provisioning 自动完成。TTY Module.setup 可以 bounded wait 用户完成这一个人工动作并在同一次调用中继续；非 TTY 或超时则返回 ACTION_REQUIRED，重跑 setup 重新观察现实。
+
 ## 5. Config ownership
 
 Module 能唯一确定的配置由 `Module.install` 自闭环；跨 Module 值走 Producer-owned Contract/shared fact；只有真实用户选择或外部现实才进入 `Module.setup`。

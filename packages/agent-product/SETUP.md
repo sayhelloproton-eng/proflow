@@ -1,33 +1,13 @@
 # agent-product Setup
 
-## STEP-AGENT-PRODUCT-01 — 创建 Custom GPT 并注册 Role URL
-Responsible: USER
-Interactive executable: `pnpm exec -- proflow-agent-product setup 01`
-Non-interactive executable: `pnpm exec -- proflow-agent-product setup 01 --carrier-url <url>`
-Required inputs: Custom GPT URL
-Verify: `pnpm exec -- proflow-agent-product setup 01`
-Success condition: Role URL 已写入 Module-owned 注册表。
+> B1～B5 封板状态：本包已经提供完整 Provisioning material 与 Role/Auth finalization primitive；当前 `Module.setup` 仍只观察 durable Role reality，缺失/漂移时返回 `ACTION_REQUIRED`。B6 负责把下述最终合同接入 `platform setup` 并验证重入/no-duplicate/Fresh Workspace。该边界不允许恢复人工复制 URL / Schema / Bearer 作为 happy path。
 
-## STEP-AGENT-PRODUCT-02 — 配置角色 Instructions
-Responsible: USER
-Interactive executable: `pnpm exec -- proflow-agent-product setup 02`
-Non-interactive executable: `pnpm exec -- proflow-agent-product custom-gpt show-instructions`
-Required inputs: none
-Verify: `pnpm exec -- proflow-agent-product setup 02`
-Success condition: 当前 Instructions 已保存。
-
-## STEP-AGENT-PRODUCT-03 — 配置 Action Schema 与认证
-Responsible: USER
-Interactive executable: `pnpm exec -- proflow-agent-product setup 03`
-Non-interactive executable: `pnpm exec -- proflow-agent-product setup 03 --gateway-url <url>`
-Required inputs: Gateway URL
-Verify: `pnpm exec -- proflow-agent-product role validate`
-Success condition: Actions 与认证已保存。
-
-## STEP-AGENT-PRODUCT-04 — 验证 Role 配置
+## STEP-AGENT-PRODUCT-01 — 最终 Module.setup 自动部署合同（B6 集成/验收）
 Responsible: AI
-Interactive executable: `pnpm exec -- proflow-agent-product setup 04`
-Non-interactive executable: `pnpm exec -- proflow-agent-product verify`
+Interactive executable: `platform setup --module agent-product`
+Non-interactive executable: `platform setup --module agent-product --workspace <workspace>`
 Required inputs: none
-Verify: `pnpm exec -- proflow-agent-product verify`
-Success condition: `agent-product.setupStatus=READY`.
+Verify: `pnpm exec -- proflow-agent-product verify --workspace <workspace>`
+Success condition: `agent-product.setupStatus=READY`，且真实 GPT、Role、Auth 与 Gateway probe 均已通过 owning Module 验证。
+
+Package-specific extra capability 只用于诊断/恢复：`custom-gpt setup` 输出版本化 Provisioning material；`custom-gpt finalize-role --workspace <workspace> --carrier-url <url>` 接收机器产生的 live carrier URL，调用 Agent owner 完成 Role/Auth 最终化。Extension 未 READY 时先处理 `execution-browser-extension` 的唯一人工动作“加载已解压的扩展程序”，不回退到手工 Web 配置。

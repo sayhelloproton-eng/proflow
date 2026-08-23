@@ -88,11 +88,13 @@ Collaboration logical message 属于 Agent；physical delivery 通过 Execution 
 以下是本地管理/Deployment surface，不是 GPT runtime Actions：
 
 ```text
-custom-gpt setup/materialize/show
-role register
-role show/list/validate/delete
+custom-gpt setup / show-* / action-schema
+custom-gpt finalize-role
+role register/show/list/validate/delete
 role key show/rotate
 ```
+
+Role/credential 的 canonical owner API 属于 Agent Domain；CLI 是显式本地 wrapper。正常 Deployment setup 可以直接组合 owner capability 与 `custom-gpt-web-provisioning`，不要求通过 CLI 文本输出重新解析业务状态。
 
 ---
 
@@ -217,7 +219,7 @@ File Bridge 是 transport，不改变 Owner。
 
 Agent 只依赖 Deployment 的通用 Module Governance：package install/uninstall、Module discovery/topology，以及 `install/status/setup/docs/start/stop` 标准调用。Agent Package / Gateway / Carrier 的私有 config、Role readiness、Actions/Auth/Capabilities verification 均由 owning Module 自己实现。
 
-需要 Web-only 人工动作时由 `Module.setup` 返回 `ACTION_REQUIRED`；Role READY 仍按 behavior/capability/auth verification，不按 exact model id。Platform 不提供 verify/doctor/upgrade 第二套业务真源。
+需要真实外部人工动作时由 `Module.setup` 返回 `ACTION_REQUIRED`；Real-2 正常 Golden Path 默认只保留 Browser Extension 首次“加载已解压的扩展程序”这一人工动作。Custom GPT 字段、Knowledge、Schema、Role/Auth 不以人工复制粘贴作为 happy path。Role READY 仍按 behavior/capability/auth verification，不按 exact model id。Platform 不提供 verify/doctor/upgrade 第二套业务真源。
 
 ---
 
@@ -249,7 +251,7 @@ physical collaboration delivery
 Browser Effect Result/Evidence
 ```
 
-Browser 不持有 Role Bearer credential，也不直接写 Task/Agent Store。
+Browser 不拥有或持久化 Role Bearer credential，也不直接写 Task/Agent Store；仅 deployment-only Auth finalization command 可以在内存中短暂接收 credential，完成 Web 输入后立即丢弃。
 
 ---
 

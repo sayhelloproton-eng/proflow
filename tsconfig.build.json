@@ -33,6 +33,9 @@
 			"@tomflow/proflow-execution-browser-extension": [
 				"./packages/execution-browser-extension/src/index.ts"
 			],
+			"@tomflow/proflow-execution-browser-extension/custom-gpt-provisioning": [
+				"./packages/execution-browser-extension/src/custom-gpt-provisioner.ts"
+			],
 			"@tomflow/proflow-execution-local": [
 				"./packages/execution-local/src/index.ts"
 			],

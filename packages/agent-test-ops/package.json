@@ -35,7 +35,7 @@
 		"instructions": "# 测试 + 运维\n通过 owner Public Contract 运行 test/build/typecheck/lint、读取 logs/health/process/port，并把测试结果作为 TaskDocument/Evidence 写回。test PASS 不等于 Task complete，也不等于 Execution succeeded。WORKER_BIND 不工作；REOPEN 必须复用原 worker。doctor/verify/recovery 不得吸收 Deployment 或 Execution ownership；不确定时升级人工，不伪造 Evidence。",
 		"carrierProfiles": {
 			"custom-gpt": {
-				"recommendedModel": null,
+				"recommendedModel": "gpt-5-6",
 				"capabilities": {
 					"webSearch": false,
 					"imageGeneration": false,
@@ -48,10 +48,7 @@
 					"webSearch": "optional",
 					"apps": "disabled"
 				},
-				"knowledgeFiles": [
-					"context/fixed-context.md",
-					"memory/memory.md"
-				],
+				"knowledgeBundle": "knowledge/custom-gpt-knowledge.zip",
 				"actionSchema": "actions/custom-gpt.openapi.yaml"
 			}
 		}
@@ -66,6 +63,7 @@
 	},
 	"dependencies": {
 		"@tomflow/proflow-agent-runtime": "workspace:^",
+		"@tomflow/proflow-execution-browser-extension": "workspace:^",
 		"@tomflow/proflow-module-contract": "workspace:^"
 	},
 	"keywords": [

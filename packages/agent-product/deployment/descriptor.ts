@@ -18,6 +18,10 @@ export const descriptor = {
 			contractRef: "custom-gpt-actions-gateway",
 			versionRange: ">=1.0.0 <2.0.0",
 		},
+		{
+			contractRef: "custom-gpt-web-provisioning",
+			versionRange: ">=1.0.0 <2.0.0",
+		},
 	],
 	requirements: [
 		{

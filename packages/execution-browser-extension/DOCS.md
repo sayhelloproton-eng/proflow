@@ -6,13 +6,16 @@ Execution 领域拥有的 Chrome MV3 Extension，负责 Task UI、审批提醒�
 
 ## 主要能力
 
-- 提供 New Task 与 Side Panel UI、Task Observer 和 System Observer。
-- 创建、恢复和唤醒 Custom GPT Conversation，稳定观察 workerRef/c-id。
+- 运行期提供 New Task 与 Side Panel UI、Task Observer、System Observer 和 Browser Effect。
+- 运行期创建、恢复和唤醒 Custom GPT Conversation，稳定观察 workerRef/c-id。
+- 部署期通过独立 `/gpts/editor/*` Provisioning Surface 物化 Custom GPT；该分支不进入 Task/Worker 状态机。
 - 执行 DOM-first 浏览器操作，必要时使用截图与 Vision 辅助观察。
 
 ## 提供的 API 与 Public Contract
 
-- 提供 `execution-browser-executor` Contract，版本 `1.0.0`。
+- 提供 `execution-browser-executor` Contract，版本 `1.0.0`，仅用于运行期 Browser Execution。
+- 提供 `custom-gpt-web-provisioning` Contract，版本 `1.0.0`，仅用于部署期 Custom GPT Web Provisioning。
+- 两条能力只共享 Extension/loopback transport 等底层设施，不共享业务状态机。
 - 通过本地 Bridge 接收 typed Browser operation 并返回 Evidence。
 
 ## 依赖的 Module、Contract 和外部资源
@@ -26,7 +29,7 @@ Execution 领域拥有的 Chrome MV3 Extension，负责 Task UI、审批提醒�
 
 ## 使用方式
 
-运行 `pnpm exec -- proflow-execution-browser-extension setup`，加载准备好的目录、登记 Extension ID、Reload 并验证 Bridge。
+运行 `pnpm exec -- proflow-execution-browser-extension setup`。ProFlow 自动准备 unpacked 目录和本地 Bridge；用户只需在 Chrome 首次执行“加载已解压的扩展程序”。Extension ID、session、hello/heartbeat 与 setup evidence 均由机器自动发现/验证，不需要人工复制标识或声明 Service Worker 状态。Agent setup 随后通过 `custom-gpt-web-provisioning` 使用同一 Extension package 的部署期分支。
 
 ## 职责边界与限制
 

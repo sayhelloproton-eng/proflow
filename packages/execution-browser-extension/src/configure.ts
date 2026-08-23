@@ -2,11 +2,11 @@
 import { spawn, spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { createInterface } from "node:readline/promises";
 
 import {
 	behaviorAdapter,
 	materializeProductionConfig,
+	pairBrowserExtensionSetup,
 } from "../deployment/adapter.ts";
 
 function reportFatal(error: unknown) {
@@ -92,69 +92,33 @@ async function main(): Promise<void> {
 		? resolve(option("--workspace") as string)
 		: process.cwd();
 	if (args[0] === "setup") {
-		const step = args[1]?.startsWith("--") ? undefined : args[1];
-		if (step === "01") {
-			const prepared = await behaviorAdapter.install({ workspaceRoot });
-			const loadDir = String(prepared.result.data.loadDir);
-			const command =
-				process.platform === "darwin"
-					? "pbcopy"
-					: process.platform === "win32"
-						? "clip"
-						: "xclip";
-			const parameters =
-				process.platform === "linux" ? ["-selection", "clipboard"] : [];
-			spawnSync(command, parameters, { input: loadDir, encoding: "utf8" });
-			openChromeExtensions();
-			process.stdout.write(
-				`\n✓ 扩展目录已准备并复制到剪贴板\n  ${loadDir}\n  启用开发者模式并加载该目录，然后运行 setup 02。\n`,
-			);
-			return;
-		}
-		if (step === "03") {
-			const result = await behaviorAdapter.status({ workspaceRoot });
-			process.stdout.write(
-				result.result.data.setupStatus === "READY"
-					? "✓ Service Worker 与 Bridge 验证通过\n"
-					: "✕ 扩展尚未就绪，请检查 Reload 和后台错误\n",
-			);
-			if (result.result.data.setupStatus !== "READY") process.exitCode = 1;
-			return;
-		}
-		if (step !== undefined && step !== "02")
-			throw new Error(`UNSUPPORTED_SETUP_STEP:${step}`);
-		let extensionId = option("--extension-id");
-		if (!extensionId && !process.stdin.isTTY)
-			throw new Error("非交互环境必须提供 --extension-id");
-		if (!extensionId) {
-			const prepared = await behaviorAdapter.install({ workspaceRoot });
-			const loadDir = String(prepared.result.data.loadDir);
-			const prompt = createInterface({
-				input: process.stdin,
-				output: process.stdout,
-			});
-			try {
-				process.stdout.write(
-					`\nChrome 扩展配置\n\n  1. 已准备扩展目录：${loadDir}\n  2. 在 Chrome 打开“扩展程序”，启用“开发者模式”。\n  3. 点击“加载已解压的扩展程序”，选择上面的目录。\n  4. 确认 Service Worker（后台服务）显示正常，再复制扩展 ID。\n\n`,
-				);
-				openChromeExtensions();
-				extensionId = await prompt.question(
-					"◆ Chrome Extension ID（32 位小写字母）\n> ",
-				);
-			} finally {
-				prompt.close();
-			}
-		}
-		const result = await behaviorAdapter.setup({
-			workspaceRoot,
-			input: { extensionId, serviceWorker: "RUNNING" },
-		});
-		process.stdout.write(
-			result.result.status === "SUCCEEDED"
-				? "\n✓ Extension ID 已保存\n✓ Service Worker 运行证据已记录\n"
-				: "\n✕ 浏览器扩展尚未就绪，请检查扩展错误后重试。\n",
+		const positional = args.slice(1).filter((value) => !value.startsWith("--"));
+		if (positional.length > 0)
+			throw new Error(`UNSUPPORTED_SETUP_STEP:${positional[0]}`);
+		const paired = await pairBrowserExtensionSetup(
+			{ workspaceRoot },
+			{
+				timeoutMs: 120_000,
+				async onWaiting({ loadDir }) {
+					const command =
+						process.platform === "darwin"
+							? "pbcopy"
+							: process.platform === "win32"
+								? "clip"
+								: "xclip";
+					const parameters =
+						process.platform === "linux" ? ["-selection", "clipboard"] : [];
+					spawnSync(command, parameters, { input: loadDir, encoding: "utf8" });
+					process.stdout.write(
+						`\nChrome 扩展自动配对\n\n  扩展目录已复制到剪贴板：\n  ${loadDir}\n\n  请只完成一个人工动作：启用开发者模式并“加载已解压的扩展程序”。\n  ProFlow 正在等待真实 hello + heartbeat；无需复制任何 ID，也无需手工确认后台状态。\n\n`,
+					);
+					openChromeExtensions();
+				},
+			},
 		);
-		if (result.result.status === "FAILED") process.exitCode = 1;
+		process.stdout.write(
+			`\n✓ Chrome Extension 已自动发现并通过 heartbeat 验证\n  ${paired.extensionId}\n✓ execution-browser-extension setup READY\n`,
+		);
 		return;
 	}
 	if (args[0] === "verify") {

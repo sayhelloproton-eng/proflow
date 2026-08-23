@@ -51,6 +51,11 @@ Task Runtime、Agent Runtime 保持独立 npm package并由 host in-process 装�
 | `execution-contracts` | — | — |
 | `execution-local` | `execution-local` | — |
 | `execution-runtime` | `execution` | `execution-local` |
+| `execution-browser-extension` | `execution-browser-executor`, `custom-gpt-web-provisioning` | `execution`, `task-orchestration`, `agent-runtime` |
+| `agent-gateway` | `custom-gpt-actions-gateway` | `agent-runtime`, `task-orchestration`, `execution`, `platform-host`, `public-ingress` |
+| `agent-product` | — | `custom-gpt-actions-gateway`, `custom-gpt-web-provisioning` |
+| `agent-controller-dev` | — | `custom-gpt-actions-gateway`, `custom-gpt-web-provisioning` |
+| `agent-test-ops` | — | `custom-gpt-actions-gateway`, `custom-gpt-web-provisioning` |
 | `model-contracts` | — | — |
 | `model-provider-api` | `model.provider.api` | — |
 | `model-runtime` | `model-inference` | `model.provider.api` |
@@ -61,6 +66,8 @@ Task Runtime、Agent Runtime 保持独立 npm package并由 host in-process 装�
 ## 5. 外部资源
 
 Chrome Runtime、ChatGPT Carrier、Dev Tunnel、Model Provider 等由对应 Module 自描述。deterministic preparation 归 `Module.install`；`platform setup` 一次遍历全部非 READY Module。Module 内部能自动完成的步骤必须自动完成；只有真实人工/外部动作返回 `ACTION_REQUIRED`，并给出 package-owned executable/verify 与成功条件；Platform 只聚合，不建立独立 Human Action workflow engine。
+
+Browser Extension 的首次安装是一个明确例子：用户只负责在真实 Chrome profile 执行“加载已解压的扩展程序”。Extension ID、Service Worker 是否真实上线、session identity、heartbeat freshness 均是 machine-owned reality，必须由 Extension/Module.setup 自动观察，不允许要求用户复制 ID 或声明 `RUNNING` 作为证据。`custom-gpt-web-provisioning` READY 后，依赖它的三个 Agent Package 才进入自动 GPT Provisioning。
 
 ## 6. Composition boundary
 

@@ -18,17 +18,17 @@ contractRefs: []
 
 # 1. Role Registry 的目的
 
-Agent Package 发布时不知道用户最终在 ChatGPT Web 创建出的真实 Custom GPT `g-id`。
-
-因此需要部署后本地映射：
+Agent Package 发布时不知道工作区部署后真实 Custom GPT 的 `g-id`，因此必须在真实 Web Provisioning 完成后建立本地映射：
 
 ```text
-Agent Package
-→ 用户按包引导创建 Custom GPT
-→ 获得 real g-id / GPT URL
-→ local role register
+Agent Package material
+→ Browser Extension Provisioning 创建/更新并确认 live GPT
+→ 返回 real g-id / carrierUrl
+→ Agent Domain registerRole
 → Role Registry
 ```
+
+`role register` CLI 是显式本地管理/恢复入口，不是正常 Deployment happy path，也不是 Role 事实 Owner。
 
 Role Registry 是：
 
@@ -69,10 +69,12 @@ update/replace binding
 需要换 GPT：
 
 ```text
-delete-role
-→ new/existing GPT prepared by user
-→ register-role new g-id
+owner delete-role
+→ Provisioning Driver 创建/确认新的 live GPT
+→ Agent Domain registerRole(new g-id)
 ```
+
+正常部署仍由 owning setup 编排；CLI 只保留显式管理/恢复能力。
 
 ---
 
@@ -122,7 +124,7 @@ replaceRole
 deleteRole
 ```
 
-Role 创建/删除/凭据管理属于本机 package CLI 管理面，不是 GPT Action Runtime API。
+Role 创建/删除/凭据管理属于 Agent Domain 本地 management surface，不是 GPT Action Runtime API。Package CLI 是该 management surface 的显式入口之一；Deployment setup 可直接调用 owner capability，不需要绕回 CLI 文本协议。
 
 ---
 
@@ -180,28 +182,23 @@ Browser Extension 不直接解析 `.proflow` Registry 文件。
 
 # 7. Role 注册与 Key 生成
 
-本地 Agent Package CLI：
+Canonical owner capability 是 Agent Domain 的 `registerRole` / credential management；`role register <gpt-url>` 只是显式 CLI wrapper。
+
+正常部署顺序：
 
 ```text
-role register <gpt-url>
-```
-
-必须机械完成：
-
-```text
-1. 解析/规范化真实 g-id
-2. 校验当前 Agent Package 尚无注册 Role
-3. 校验该 roleRef 未被其他 Agent Package 使用
+1. Provisioning Driver 返回已确认的 real g-id / carrierUrl
+2. Agent Domain 解析并规范化 roleRef
+3. 校验当前 Agent Package 与 roleRef 的一对一约束
 4. 持久化 RegisteredRole
-5. 立即生成 role-scoped Bearer/API Key
-6. 安全保存 secret
-7. 指引用户回 Custom GPT Web → Action Authentication 填写 Key
-8. 提供 validate/verify
+5. 生成 role-scoped Bearer credential
+6. 仅在 Agent-owned secret store 持久化 credential
+7. owning setup 临时读取 credential
+8. Extension 通过独立 Provisioning command 机械填写 Action Authentication 并立即丢弃临时值
+9. owner inspect + Gateway authenticated probe
 ```
 
-一个 Role 一个 Key。
-
-Role Key 不属于 npm 静态材料。
+一个 Role 一个 Key。Role Key 不属于 npm 静态材料，不属于 Browser Extension identity，也不得写入 Extension storage/runtime config/log/evidence。
 
 ---
 
@@ -266,7 +263,7 @@ Git ignore
 禁止错误对象泄露完整 Key
 ```
 
-明文 Key 需要能够由用户本机管理命令在明确动作下重新查看/复制，以适应 Custom GPT Web 的人工认证配置。
+明文 Key 只允许在用户明确执行本机管理命令时短暂查看；正常 Deployment 不要求用户复制 Key。Owning setup 直接从 Agent-owned secret store 读取本次 credential，经受限 Provisioning transport 临时交给 Extension 完成 Auth finalization。
 
 ---
 
@@ -277,14 +274,16 @@ v1 支持独立凭据轮换，不等同于 Role update。
 ```text
 rotate-role-key <roleRef>
 → 校验 Role 存在
-→ 生成 new Key
+→ Agent Domain 生成 new Key
 → 原 Key revoke/replace
-→ 本地 secret store 更新
+→ Agent-owned secret store 更新
 → roleRef 不变
 → Task 历史不变
-→ CLI 引导用户回 GPT Web 更新 Action Authentication
+→ owning setup / Provisioning Auth finalization 更新对应 GPT
 → validate
 ```
+
+CLI 可显式触发轮换，但正常 Auth 更新仍不要求用户手工进入 GPT Web。
 
 Key 泄露时不需要删除整个 Role。
 
@@ -364,12 +363,17 @@ Custom GPT
 Browser Extension 是本地平台组件：
 
 ```text
-Browser Extension
-→ Execution Runtime Browser protocol surface（通过 runtime/app layer 再走 Public Contract）
-→ local-platform-token
+Browser Extension runtime
+→ Execution Runtime Browser protocol surface
+→ local-platform-token / runtime bridge credential
+
+Browser Extension provisioning
+→ deployment-only provisioning bridge credential
+→ 可在单次 Auth finalization command 内短暂接收 Role credential
+→ 不拥有、不持久化、不记录该 Role credential
 ```
 
-两类身份必须分开，避免把平台组件伪装成某个 Agent Role。
+两类身份必须分开，避免把平台组件伪装成某个 Agent Role。Role credential 的 transient handoff 不改变 ownership。
 
 ---
 
@@ -377,7 +381,7 @@ Browser Extension
 
 - 一个 Role 一个 Gateway Bearer/API key 的 v1 方向保持；Authentication 与 authorization/policy 分离。
 - Browser Extension 使用独立 local-platform credential，不复用 Role Bearer。
-- raw secret 只由 Deployment 安全材料化；Role Registry 不保存明文 secret，Public DTO/log/evidence/model context 不泄露 secret。
+- Role credential 只由 Agent Domain owner 生成/持久化；Deployment 只协调 owner setup，Browser Extension 只做 ephemeral materialization；Public DTO/log/evidence/model context 不泄露 secret。
 
 
 ---
@@ -393,4 +397,4 @@ workerRef        = Task Worker Conversation
 credential       = GPT→Gateway secret
 ```
 
-Browser 不持有 Role credential；Task/Agent 不持久化 tab/frame。
+Browser 不拥有或持久化 Role credential；仅 Deployment Provisioning 的单次 Auth finalization 可以在内存中短暂接收。Task/Agent 不持久化 tab/frame。

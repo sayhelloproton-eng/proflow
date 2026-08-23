@@ -151,3 +151,23 @@ Batch 3 不通过越权补实现来强行关闭以下跨批依赖：
 | single formal runtime Browser injection | `../execution-runtime/tests/execution-runtime-service.test.ts` | shipped execution-runtime requires Browser composition; Browser package does not create a second Execution runtime |
 
 普通同步 `executeCapability()` completion 仍不得制造额外 Browser Worker Turn。
+
+
+## 2026-08-23 Real-2｜Deployment Provisioning Addendum
+
+本增量只覆盖 `/gpts/editor/*` 部署分支；既有 `/g/*` Task/Worker Browser Carrier CP/RF 原样保留。
+
+- [ ] **CP-EXE-BR-15** — Extension manifest/content routing 能让 Deployment Provisioning 独立覆盖 `/gpts/editor/*`，且运行期 `/g/*` script/command/state machine 不被复用或污染。
+- [ ] **CP-EXE-BR-16** — setup 使用真实 authenticated hello/heartbeat 判断 extension online；用户只负责加载 unpacked extension，machine-owned extension/session reality 不要求用户手抄证明。
+- [ ] **CP-EXE-BR-17** — `CustomGptEditorDriver` 使用 deterministic semantic/DOM selector + readback，完成字段、Knowledge、model/capabilities、Action Schema、private create/update；不使用固定坐标或模型自由决策。
+- [ ] **CP-EXE-BR-18** — Provisioning file transport 与 command JSON 分离；只接受 Mac 侧已安全 staging 的 bounded files，Knowledge upload 等待真实 processing completion。
+- [ ] **CP-EXE-BR-19** — role credential 仅作为 ephemeral Auth material 输入；Extension 不生成、不持久化、不记录；Auth update 后 secret buffer/reference 被清除。
+- [ ] **CP-EXE-BR-20** — Extension reload、editor close/reopen、CLI retry 后按 live GPT/Role reality 恢复，只补 missing/drift，禁止 duplicate GPT。
+
+- [ ] **RF-EXE-BR-14** — Provisioning DTO/代码依赖 Task Observer、worker binding、Execution Record 或 runtime Browser Effect state machine。
+- [ ] **RF-EXE-BR-15** — selector/DOM mismatch 后坐标猜测、Vision/model 自由点击或把 UNKNOWN 当成功。
+- [ ] **RF-EXE-BR-16** — Knowledge bytes 走大 JSON/base64 command、未做 Mac staging 安全校验，或 Extension 获得任意本地路径读取能力。
+- [ ] **RF-EXE-BR-17** — credential 泄漏到 `chrome.storage`、runtime config、log、Evidence、snapshot 或错误对象。
+- [ ] **RF-EXE-BR-18** — Provisioning 变更导致现有 J1-J6 Browser/Observer/Collaboration executable regression。
+
+跨域完整验收统一服从 [`TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING`](../../../智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md)。

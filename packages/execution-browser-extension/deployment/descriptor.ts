@@ -17,6 +17,10 @@ export const descriptor = {
 			contractRef: "execution-browser-executor",
 			version: "1.0.0",
 		},
+		{
+			contractRef: "custom-gpt-web-provisioning",
+			version: "1.0.0",
+		},
 	],
 	requires: [
 		{

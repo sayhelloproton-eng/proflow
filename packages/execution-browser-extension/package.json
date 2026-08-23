@@ -12,6 +12,7 @@
 		"./deployment/adapter": "./dist/deployment/adapter.js",
 		"./deployment/descriptor": "./dist/deployment/descriptor.js",
 		"./runtime-composition": "./dist/src/runtime-composition.js",
+		"./custom-gpt-provisioning": "./dist/src/custom-gpt-provisioner.js",
 		"./configure": "./dist/src/configure.js"
 	},
 	"files": [
