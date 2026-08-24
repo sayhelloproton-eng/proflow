@@ -1,6 +1,6 @@
 # 当前总控状态、验证总纲总控职责与 Real 路线
 
-> 更新时间：2026-08-23。这里记录 Phase 3 最终验收的 operational control state，不替代 Git / Registry / runtime 的实时事实检查，也不替代 Frozen Spec / Test Plan。
+> 更新时间：2026-08-25。这里记录 Phase 3 最终验收的 operational control state，不替代 Git / Registry / runtime 的实时事实检查，也不替代 Frozen Spec / Test Plan。Real-2 最终冻结事实见 `13-Real2-最终冻结与Real3交接.md`。
 
 ## 当前阶段
 
@@ -8,7 +8,10 @@
 - `SYSTEMATIC_NON_E2E_REMEDIATION = CLOSED`
 - `READY_FOR_SMOKE = YES`
 - `REAL_1 = PASS`
-- `CURRENT_STAGE = REAL_2`
+- `REAL_2 = PASS`
+- `REAL2_PROVISIONING_GO = YES`
+- `READY_FOR_REAL_3 = YES`
+- `CURRENT_STAGE = REAL_3`
 - `PHASE3_FINAL_GO = NO`
 
 当前工作性质是 **最终真实验收**，不是继续开发 Phase 3，也不是重新寻找全仓问题。
@@ -51,9 +54,9 @@
 ```text
 Real-1  Deployment / Registry / Fresh Workspace      PASS
   ↓
-Real-2  Real Custom GPT / Worker Identity            CURRENT
+Real-2  Real Custom GPT / Worker Identity            PASS
   ↓
-Real-3  Task Journey J0～J4
+Real-3  Task Journey J0～J4                           CURRENT
   ↓
 Real-4  Collaboration + Approval + Effect
   ↓

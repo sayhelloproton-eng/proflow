@@ -3,11 +3,13 @@ docId: AGENT-DOC-05-04
 title: Real-2｜B1～B5 封板基线
 docType: quality-gate
 authority: normative
-lifecycle: active
+lifecycle: superseded
 domain: agent-runtime-collaboration
 ---
 
 # Real-2｜B1～B5 封板基线
+
+> **SUPERSEDED QUALITY GATE**：本文仅保留 B1～B5 当时的 primitive 封板事实。最终 Real-2 Golden Path 已在后续收敛为 Auth-before-Create、ZIP 本体上传与 `saveCurrentRole` activation rollback；当前合同以 `REAL2-Custom-GPT-Deployment-Provisioning.md` 和公共上下文 `13-Real2-最终冻结与Real3交接.md` 为准。
 
 封板日期：2026-08-24。基线 HEAD：`e5da6d28b357`。
 

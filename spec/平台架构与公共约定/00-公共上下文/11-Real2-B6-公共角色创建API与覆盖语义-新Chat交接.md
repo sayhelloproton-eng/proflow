@@ -1,5 +1,7 @@
 # Real-2 B6｜公共角色创建 API、同角色覆盖语义与新 Chat 交接
 
+> **HISTORICAL / SUPERSEDED**：本文保留公共 API 与覆盖语义形成过程。真实 3× 覆盖、Auth-before-Create、事务 rollback、ZIP Knowledge、三角色最终验收均已在后续完成；当前状态以 `13-Real2-最终冻结与Real3交接.md` 为准。
+
 更新时间：2026-08-24
 仓库：`/Users/agent/Desktop/proton-workspace/repos/proflow`
 主工作区：`/Users/agent/Desktop/proton-workspace`

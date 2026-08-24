@@ -1,5 +1,7 @@
 # Real-2 B6｜同角色连续 3 次真实覆盖 PASS 与合同收口
 
+> **HISTORICAL / SUPERSEDED**：本文保留同 package 3× 覆盖的真实证据。后续又完成 Auth-before-Create、activation rollback、ZIP Knowledge、三角色最终配置与 Real-2 全量收口；当前阶段状态与最终合同以 `13-Real2-最终冻结与Real3交接.md` 为准。
+
 更新时间：2026-08-24
 仓库：`/Users/agent/Desktop/proton-workspace/repos/proflow`
 临时真实测试工作区：`/Users/agent/Desktop/proton-workspace/.real2-create-workspace-smoke`
