@@ -87,11 +87,12 @@ test("CP-AGT-TEST-04 provisioning/reopen real evidence remains external ACTION_R
 
 test("CP-REAL2-PROV-01 Test/Ops package owns complete Custom GPT provisioning material", async () => {
 	const material = materializeAgentPackage(metadata);
+	assert.equal(material.displayName, "部署 + 测试验收");
 	assert.equal(material.description, metadata.description);
 	assert.equal(material.recommendedModel, "gpt-5-6");
 	assert.deepEqual(material.capabilities, {
-		webSearch: false,
-		imageGeneration: false,
+		webSearch: true,
+		imageGeneration: true,
 		codeInterpreter: true,
 	});
 	assert.equal(material.actionSchema, "actions/custom-gpt.openapi.yaml");
@@ -120,8 +121,8 @@ test("CP-REAL2-PROV-01 custom-gpt setup exposes complete Test/Ops provisioning m
 	assert.equal(setup.description, metadata.description);
 	assert.equal(setup.recommendedModel, "gpt-5-6");
 	assert.deepEqual(setup.capabilities, {
-		webSearch: false,
-		imageGeneration: false,
+		webSearch: true,
+		imageGeneration: true,
 		codeInterpreter: true,
 	});
 	assert.equal(setup.knowledgeBundle, "knowledge/custom-gpt-knowledge.zip");

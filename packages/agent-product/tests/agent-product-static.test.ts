@@ -166,12 +166,13 @@ test("CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked b
 
 test("CP-REAL2-PROV-01 Product package owns complete Custom GPT provisioning material", async () => {
 	const { metadata, material } = await artifacts();
+	assert.equal(material.displayName, "运营 + 产品经理");
 	assert.equal(material.description, metadata.description);
 	assert.equal(material.recommendedModel, "gpt-5-6");
 	assert.deepEqual(material.capabilities, {
 		webSearch: true,
-		imageGeneration: false,
-		codeInterpreter: false,
+		imageGeneration: true,
+		codeInterpreter: true,
 	});
 	assert.equal(material.actionSchema, "actions/custom-gpt.openapi.yaml");
 	assert.equal(material.knowledgeBundle, "knowledge/custom-gpt-knowledge.zip");
@@ -201,8 +202,8 @@ test("CP-REAL2-PROV-01 custom-gpt setup exposes complete Product provisioning ma
 	assert.equal(setup.recommendedModel, "gpt-5-6");
 	assert.deepEqual(setup.capabilities, {
 		webSearch: true,
-		imageGeneration: false,
-		codeInterpreter: false,
+		imageGeneration: true,
+		codeInterpreter: true,
 	});
 	assert.equal(setup.knowledgeBundle, "knowledge/custom-gpt-knowledge.zip");
 	assert.equal(setup.actionSchema, "actions/custom-gpt.openapi.yaml");
