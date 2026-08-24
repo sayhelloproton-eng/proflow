@@ -1,5 +1,7 @@
 # Real-2 B6｜Extension 实测计划与新 Chat 交接
 
+> **HISTORICAL / SUPERSEDED**：本文保留 2026-08-24 B6 开始前的计划与过程状态，只作为历史证据，不再代表当前 Real-2 合同或阶段状态。最终真源以 `REAL2-Custom-GPT-Deployment-Provisioning.md` 与后续 Real-2 最终冻结上下文为准；文中的 post-create `FINALIZE_CUSTOM_GPT_AUTH`、no-duplicate/reuse 等旧 Golden Path 不得恢复。
+
 日期：2026-08-24
 
 ## 1. 当前最高优先级状态

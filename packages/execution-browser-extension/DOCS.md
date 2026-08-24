@@ -8,7 +8,10 @@ Execution 领域拥有的 Chrome MV3 Extension，负责 Task UI、审批提醒�
 
 - 运行期提供 New Task 与 Side Panel UI、Task Observer、System Observer 和 Browser Effect。
 - 运行期创建、恢复和唤醒 Custom GPT Conversation，稳定观察 workerRef/c-id。
-- 部署期通过独立 `/gpts/editor/*` Provisioning Surface 物化 Custom GPT；该分支不进入 Task/Worker 状态机。
+- 部署期通过独立 `/gpts/editor` / `/gpts/editor/*` Provisioning Surface 物化 Custom GPT；该分支不进入 Task/Worker 状态机。
+- 正常创建路径在单一 GPT Editor 会话中完成字段、Action Schema、API Key/Bearer、Knowledge ZIP、模型与 Capabilities 配置，再创建 Private GPT；不在 Create 后重新打开同一 GPT 做 Auth。
+- Knowledge Bundle 在 Mac 侧先做 ZIP traversal/大小/内部类型校验，最终向 GPT Knowledge 上传 `custom-gpt-knowledge.zip` 本体；不把解包后的 `.md` 逐文件作为正常上传物。
+- `FINALIZE_CUSTOM_GPT_AUTH` 只保留为显式 recovery/repair primitive，不属于正常 `createCustomGptRole` Golden Path。
 - 执行 DOM-first 浏览器操作，必要时使用截图与 Vision 辅助观察。
 
 ## 提供的 API 与 Public Contract

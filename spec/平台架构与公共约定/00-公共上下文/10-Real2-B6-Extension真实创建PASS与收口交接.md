@@ -1,5 +1,7 @@
 # Real-2 B6｜Extension 真实创建 PASS 与收口交接
 
+> **HISTORICAL / SUPERSEDED**：本文记录 2026-08-24 首次真实 Product 创建 PASS 时的过程状态，只作为历史证据。后续已完成公共创建 API、同 package 覆盖、Auth-before-Create、事务回滚、ZIP Knowledge、三角色能力与最终 Real-2 验收；本文中的 `.md` Knowledge、过程态 Role/Auth、`REAL2_PROVISIONING_GO = NO` 等均不得作为当前真源。
+
 更新时间：2026-08-24 15:27 +08:00
 仓库：`/Users/agent/Desktop/proton-workspace/repos/proflow`
 工作区：`/Users/agent/Desktop/proton-workspace`
