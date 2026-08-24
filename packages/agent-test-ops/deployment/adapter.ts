@@ -3,7 +3,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { inspectDurableRoleRegistration } from "@tomflow/proflow-agent-runtime";
-import { createWorkspaceRoleSetupClient } from "@tomflow/proflow-agent-runtime/role-management-client";
+import {
+	createWorkspaceRoleSetupClient,
+	validateRoleCarrier,
+} from "@tomflow/proflow-agent-runtime/role-management-client";
 import { createCustomGptRole } from "@tomflow/proflow-execution-browser-extension/custom-gpt-role";
 import {
 	type ModuleCommandContext,
@@ -150,6 +153,11 @@ export const behaviorAdapter = {
 				const roleClient = await createWorkspaceRoleSetupClient(
 					context.workspaceRoot,
 				);
+				const material = packageMaterial();
+				const openApiText = readFileSync(
+					join(packageRoot(), material.actionSchema),
+					"utf8",
+				);
 				const result = await createCustomGptRole(
 					{
 						workspaceRoot: context.workspaceRoot,
@@ -162,12 +170,27 @@ export const behaviorAdapter = {
 							descriptor.moduleRef,
 						),
 						gatewayUrl,
-						material: packageMaterial(),
+						material,
 					},
 					{
 						roleRegistry: {
 							saveRole: (input) => roleClient.saveCurrentRole(input),
+							deleteRole: (roleRef) => roleClient.deleteRole(roleRef),
 							inspectRole: (input) => roleClient.inspectRole(input),
+						},
+						async verifyCarrier({
+							credential,
+							gatewayUrl: verifiedGatewayUrl,
+						}) {
+							const validation = await validateRoleCarrier({
+								gatewayUrl: verifiedGatewayUrl,
+								credential,
+								openApiText,
+							});
+							if (validation.status !== "PASS")
+								throw new Error(
+									`ROLE_CARRIER_VALIDATION_FAILED:${validation.issues.join("|")}`,
+								);
 						},
 					},
 				);
@@ -181,7 +204,7 @@ export const behaviorAdapter = {
 						},
 					},
 					observedEffects: [
-						"Create the declared Private Custom GPT and register its workspace Role",
+						"Create the declared Private Custom GPT, finalize Role bearer auth, and verify Gateway ingress",
 					],
 				};
 			} catch (error) {
