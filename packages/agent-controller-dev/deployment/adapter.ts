@@ -174,7 +174,9 @@ export const behaviorAdapter = {
 					},
 					{
 						roleRegistry: {
-							saveRole: (input) => roleClient.saveCurrentRole(input),
+							prepareCredential: () => roleClient.prepareRoleCredential(),
+							saveRole: (input, preparedCredential) =>
+								roleClient.saveCurrentRole(input, preparedCredential),
 							deleteRole: (roleRef) => roleClient.deleteRole(roleRef),
 							inspectRole: (input) => roleClient.inspectRole(input),
 						},

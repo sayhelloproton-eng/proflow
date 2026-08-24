@@ -54,19 +54,14 @@ function registry(
 		onSave?: () => void;
 		onInspect?: () => void;
 		onDelete?: (roleRef: string) => void;
-		legacyAuth?: boolean;
 	} = {},
 ) {
 	const saved = new Map<string, { roleRef: string; carrierUrl: string }>();
 	const port: CustomGptRoleRegistryPort = {
-		...(options.legacyAuth
-			? {}
-			: {
-					prepareCredential() {
-						options.onPrepare?.();
-						return { credential };
-					},
-				}),
+		prepareCredential() {
+			options.onPrepare?.();
+			return { credential };
+		},
 		async saveRole(value, preparedCredential) {
 			options.onSave?.();
 			saved.set(value.agentPackageRef, {
@@ -170,36 +165,6 @@ test("createCustomGptRole does not persist or finalize auth when provisioning fa
 			verifyCalls: 0,
 		},
 	);
-});
-
-test("createCustomGptRole removes the newly saved current role when auth finalization fails", async () => {
-	const deleted: string[] = [];
-	const state = registry({
-		onDelete: (roleRef) => deleted.push(roleRef),
-		legacyAuth: true,
-	});
-	await assert.rejects(
-		createCustomGptRole(input(), {
-			roleRegistry: state.port,
-			async verifyCarrier() {
-				throw new Error("VERIFY_MUST_NOT_RUN");
-			},
-			async createProvisioningHost() {
-				return {
-					async provisionPackage() {
-						return liveResult();
-					},
-					async finalizeRoleAuth() {
-						throw new Error("AUTH_FAILED");
-					},
-					async close() {},
-				};
-			},
-		}),
-		/AUTH_FAILED/,
-	);
-	assert.deepEqual(deleted, ["g-example-agent"]);
-	assert.equal(state.saved.size, 0);
 });
 
 test("createCustomGptRole removes the newly saved current role when carrier verification fails", async () => {

@@ -621,13 +621,29 @@ async function configureBearerAuthDraft(credential: string) {
 	await returnFromActionEditor();
 }
 
+function savedConfirmationVisible(): boolean {
+	const labels = [
+		"Settings saved",
+		"设置已保存",
+		"GPT updated",
+		"GPT 已更新",
+	] as const;
+	return [...document.querySelectorAll<HTMLElement>('[role="dialog"]')].some(
+		(dialog) =>
+			available(dialog) &&
+			labels.some((label) =>
+				normalize(dialog.textContent).includes(normalize(label)),
+			),
+	);
+}
+
 async function finalizeBearerAuth(credential: string) {
 	await configureBearerAuthDraft(credential);
 	(await waitForAuthSemantic(document, ["Update", "更新"])).click();
-	await waitForReadback("GPT_EDITOR_AUTH_UPDATE_TIMEOUT", () => {
-		const text = normalize(document.body.textContent);
-		return text.includes("settings saved") || text.includes("设置已保存");
-	});
+	await waitForReadback(
+		"GPT_EDITOR_AUTH_UPDATE_TIMEOUT",
+		savedConfirmationVisible,
+	);
 	const gptId = currentGptId();
 	if (!gptId) throw new Error("GPT_EDITOR_GPT_ID_MISSING");
 	return { status: "AUTH_UPDATED" as const, gptId };
@@ -833,10 +849,7 @@ async function openPrivateCreateSurface(
 async function waitForLiveCreatedResult() {
 	for (let attempt = 0; attempt < 320; attempt += 1) {
 		const gptId = currentGptId();
-		const text = normalize(document.body.textContent);
-		const saved =
-			text.includes("settings saved") || text.includes("设置已保存");
-		if (gptId && saved)
+		if (gptId && savedConfirmationVisible())
 			return { gptId, carrierUrl: `https://chatgpt.com/g/${gptId}` };
 		await sleep(125);
 	}
