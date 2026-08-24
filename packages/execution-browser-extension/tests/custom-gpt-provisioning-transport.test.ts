@@ -207,6 +207,10 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 		/waitForNewEditorTab|finalizeProvisioningCreate|PROFLOW_PROVISIONING_FINALIZE_CREATE/,
 	);
 	assert.doesNotMatch(provisioningFunction, /chrome\.tabs\.update/);
+	assert.match(background, /missingProvisioningReceiver/);
+	assert.match(background, /receiverReloaded/);
+	assert.match(background, /chrome\.tabs\.get\(tabId\)/);
+	assert.match(background, /chrome\.tabs\.reload\(tabId\)/);
 	assert.match(content, /PROFLOW_PROVISIONING_COMMAND/);
 	assert.doesNotMatch(content, /PROFLOW_PROVISIONING_FINALIZE_CREATE/);
 	assert.match(content, /chrome\.runtime\.onMessage\.addListener/);

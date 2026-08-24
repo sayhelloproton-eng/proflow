@@ -80,7 +80,12 @@ type ProvisioningContentCommand = {
 	operation: ProvisioningOperation;
 	request: Record<string, unknown>;
 };
-type ChromeTab = { id?: number; windowId?: number; url?: string };
+type ChromeTab = {
+	id?: number;
+	windowId?: number;
+	url?: string;
+	status?: "loading" | "complete";
+};
 type ChromeRuntime = {
 	runtime: {
 		id: string;
@@ -111,7 +116,9 @@ type ChromeRuntime = {
 	};
 	tabs: {
 		query(query: { url?: string }): Promise<ChromeTab[]>;
+		get(tabId: number): Promise<ChromeTab>;
 		create(create: { url: string; active: boolean }): Promise<ChromeTab>;
+		reload(tabId: number): Promise<void>;
 		update(
 			tabId: number,
 			update: { url?: string; active?: boolean },
@@ -828,11 +835,27 @@ async function executeCommand(command: BridgeCommand): Promise<unknown> {
 	throw new Error("BROWSER_PRIMITIVE_UNAVAILABLE");
 }
 
+function missingProvisioningReceiver(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error);
+	return (
+		message.includes("Could not establish connection") ||
+		message.includes("Receiving end does not exist")
+	);
+}
+
+function isEditorUrl(url: string | undefined): boolean {
+	return (
+		url === "https://chatgpt.com/gpts/editor" ||
+		Boolean(url?.startsWith("https://chatgpt.com/gpts/editor/"))
+	);
+}
+
 async function provisioningContentCommand(
 	tabId: number,
 	operation: ProvisioningOperation,
 	request: Record<string, unknown>,
 ): Promise<unknown> {
+	let receiverReloaded = false;
 	for (let attempt = 0; attempt < 60; attempt += 1) {
 		let response: unknown;
 		try {
@@ -842,6 +865,15 @@ async function provisioningContentCommand(
 				request,
 			});
 		} catch (error) {
+			if (!receiverReloaded && missingProvisioningReceiver(error)) {
+				try {
+					const tab = await chrome.tabs.get(tabId);
+					if (tab.status === "complete" && isEditorUrl(tab.url)) {
+						await chrome.tabs.reload(tabId);
+						receiverReloaded = true;
+					}
+				} catch {}
+			}
 			if (attempt === 59) throw error;
 			await sleep(250);
 			continue;
