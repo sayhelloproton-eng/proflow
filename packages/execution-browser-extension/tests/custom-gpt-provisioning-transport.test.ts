@@ -212,6 +212,8 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /GPT_EDITOR_CREATE_BUTTON_NOT_FOUND/);
 	assert.match(content, /matchesExactSemantic/);
 	assert.match(content, /waitForPublishCreateButton/);
+	assert.match(content, /getClientRects\(\)\.length > 0/);
+	assert.match(content, /getComputedStyle\(element\)/);
 	assert.doesNotMatch(content, /matchesAny\(element, \["Create", "创建"\]\)/);
 	assert.match(content, /candidate\.value === value/);
 	assert.match(content, /attempt < 150/);

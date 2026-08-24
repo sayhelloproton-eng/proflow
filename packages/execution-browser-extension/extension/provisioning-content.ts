@@ -373,7 +373,11 @@ function matchesBoundedSemantic(
 }
 
 function available(element: HTMLElement): boolean {
+	const style = getComputedStyle(element);
 	return (
+		element.getClientRects().length > 0 &&
+		style.display !== "none" &&
+		style.visibility !== "hidden" &&
 		element.getAttribute("aria-hidden") !== "true" &&
 		!element.hasAttribute("disabled") &&
 		element.getAttribute("aria-disabled") !== "true"
