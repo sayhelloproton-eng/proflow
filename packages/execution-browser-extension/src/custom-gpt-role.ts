@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+
 import {
 	type CustomGptPackageProvisioningMaterial,
 	type CustomGptProvisioningResult,
@@ -50,6 +52,26 @@ export type CreateCustomGptRolePorts = {
 	}) => Promise<CustomGptProvisioningHostPort>;
 };
 
+const workspaceCreateTails = new Map<string, Promise<void>>();
+
+function enqueueWorkspaceCreate<T>(
+	workspaceRoot: string,
+	operation: () => Promise<T>,
+): Promise<T> {
+	const key = resolve(workspaceRoot);
+	const previous = workspaceCreateTails.get(key) ?? Promise.resolve();
+	const current = previous.catch(() => undefined).then(operation);
+	const settled = current.then(
+		() => undefined,
+		() => undefined,
+	);
+	workspaceCreateTails.set(key, settled);
+	return current.finally(() => {
+		if (workspaceCreateTails.get(key) === settled)
+			workspaceCreateTails.delete(key);
+	});
+}
+
 function assertLiveCreated(
 	result: CustomGptProvisioningResult,
 	material: CustomGptPackageProvisioningMaterial,
@@ -68,45 +90,47 @@ export async function createCustomGptRole(
 	input: CreateCustomGptRoleInput,
 	ports: CreateCustomGptRolePorts,
 ): Promise<CustomGptProvisioningResult> {
-	const createHost =
-		ports.createProvisioningHost ?? createWorkspaceCustomGptProvisioningHost;
-	const host = await createHost({
-		workspaceRoot: input.workspaceRoot,
-		...(input.commandTimeoutMs === undefined
-			? {}
-			: { commandTimeoutMs: input.commandTimeoutMs }),
-		...(input.onlineTimeoutMs === undefined
-			? {}
-			: { onlineTimeoutMs: input.onlineTimeoutMs }),
-	});
-	let result: CustomGptProvisioningResult;
-	try {
-		result = await host.provisionPackage({
-			packageRoot: input.packageRoot,
-			stagingRoot: input.stagingRoot,
-			gatewayUrl: input.gatewayUrl,
-			material: input.material,
+	return enqueueWorkspaceCreate(input.workspaceRoot, async () => {
+		const createHost =
+			ports.createProvisioningHost ?? createWorkspaceCustomGptProvisioningHost;
+		const host = await createHost({
+			workspaceRoot: input.workspaceRoot,
+			...(input.commandTimeoutMs === undefined
+				? {}
+				: { commandTimeoutMs: input.commandTimeoutMs }),
+			...(input.onlineTimeoutMs === undefined
+				? {}
+				: { onlineTimeoutMs: input.onlineTimeoutMs }),
 		});
-		assertLiveCreated(result, input.material);
-	} finally {
-		await host.close();
-	}
+		let result: CustomGptProvisioningResult;
+		try {
+			result = await host.provisionPackage({
+				packageRoot: input.packageRoot,
+				stagingRoot: input.stagingRoot,
+				gatewayUrl: input.gatewayUrl,
+				material: input.material,
+			});
+			assertLiveCreated(result, input.material);
+		} finally {
+			await host.close();
+		}
 
-	await ports.roleRegistry.saveRole({
-		agentPackageRef: result.packageName,
-		registeredPackageVersion: result.version,
-		roleRef: result.gptId,
-		carrierUrl: result.carrierUrl,
+		await ports.roleRegistry.saveRole({
+			agentPackageRef: result.packageName,
+			registeredPackageVersion: result.version,
+			roleRef: result.gptId,
+			carrierUrl: result.carrierUrl,
+		});
+		const persisted = ports.roleRegistry.inspectRole({
+			agentPackageRef: result.packageName,
+			expectedPackageVersion: result.version,
+		});
+		if (
+			persisted.status !== "READY" ||
+			persisted.role?.roleRef !== result.gptId ||
+			persisted.role.carrierUrl !== result.carrierUrl
+		)
+			throw new Error("WORKSPACE_ROLE_PERSISTENCE_NOT_READY");
+		return result;
 	});
-	const persisted = ports.roleRegistry.inspectRole({
-		agentPackageRef: result.packageName,
-		expectedPackageVersion: result.version,
-	});
-	if (
-		persisted.status !== "READY" ||
-		persisted.role?.roleRef !== result.gptId ||
-		persisted.role.carrierUrl !== result.carrierUrl
-	)
-		throw new Error("WORKSPACE_ROLE_PERSISTENCE_NOT_READY");
-	return result;
 }

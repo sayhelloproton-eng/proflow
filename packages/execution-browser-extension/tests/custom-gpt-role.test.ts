@@ -112,3 +112,60 @@ test("createCustomGptRole does not persist when provisioning fails", async () =>
 	assert.equal(saveCalls, 0);
 	assert.equal(closed, true);
 });
+
+test("createCustomGptRole serializes simultaneous creates inside one workspace", async () => {
+	let activeHosts = 0;
+	let maxActiveHosts = 0;
+	const saved = new Map<string, { roleRef: string; carrierUrl: string }>();
+	const registry: CustomGptRoleRegistryPort = {
+		async saveRole(value) {
+			saved.set(value.agentPackageRef, {
+				roleRef: value.roleRef,
+				carrierUrl: value.carrierUrl,
+			});
+		},
+		inspectRole(value) {
+			const role = saved.get(value.agentPackageRef);
+			return role ? { status: "READY", role } : { status: "MISSING" };
+		},
+	};
+	const packageNames = ["agent-a", "agent-b", "agent-c"];
+	const results = await Promise.all(
+		packageNames.map((name) =>
+			createCustomGptRole(
+				{
+					...input(),
+					material: { ...material, packageName: `@tomflow/${name}` },
+				},
+				{
+					roleRegistry: registry,
+					async createProvisioningHost() {
+						activeHosts += 1;
+						maxActiveHosts = Math.max(maxActiveHosts, activeHosts);
+						return {
+							async provisionPackage(value) {
+								await new Promise((resolveWait) => setTimeout(resolveWait, 10));
+								const gptId = `g-${value.material.packageName.split("/").at(-1)}`;
+								return {
+									status: "LIVE_CREATED" as const,
+									packageName: value.material.packageName,
+									version: value.material.version,
+									gptId,
+									carrierUrl: `https://chatgpt.com/g/${gptId}`,
+									knowledgeBundleSha256: `sha256:${"a".repeat(64)}`,
+									knowledgeFiles: [],
+								};
+							},
+							async close() {
+								activeHosts -= 1;
+							},
+						};
+					},
+				},
+			),
+		),
+	);
+	assert.equal(maxActiveHosts, 1);
+	assert.equal(results.length, 3);
+	assert.equal(saved.size, 3);
+});
