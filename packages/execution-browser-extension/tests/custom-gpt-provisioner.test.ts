@@ -98,6 +98,7 @@ test("CP-EXE-BR-20 Mac provisioner hydrates package assets before sending one pr
 	assert.equal(heartbeat.status, 200);
 	const pending = host.provisionPackage({
 		packageRoot,
+		credential: "role-secret-that-is-long-enough-for-create",
 		stagingRoot: join(root, "stage"),
 		gatewayUrl: "https://gateway.example.test",
 		material: {
@@ -132,6 +133,10 @@ test("CP-EXE-BR-20 Mac provisioner hydrates package assets before sending one pr
 		/https:\/\/gateway\.example\.test/,
 	);
 	assert.doesNotMatch(String(hydrated.actionSchema), /GATEWAY_PUBLIC_HOST/);
+	assert.equal(
+		hydrated.bearerCredential,
+		"role-secret-that-is-long-enough-for-create",
+	);
 	const files = hydrated.knowledgeFiles as Array<Record<string, unknown>>;
 	assert.equal(files.length, 1);
 	const fileResponse = await fetch(String(files[0]?.url), {

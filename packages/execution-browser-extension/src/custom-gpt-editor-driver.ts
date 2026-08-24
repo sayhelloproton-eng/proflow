@@ -23,6 +23,7 @@ export type CustomGptProvisioningRequest = {
 	knowledgeBundle: string;
 	actionSchema: string;
 	knowledgeFiles: CustomGptKnowledgeFile[];
+	bearerCredential?: string;
 };
 
 export interface CustomGptEditorPort {
@@ -37,6 +38,7 @@ export interface CustomGptEditorPort {
 		enabled: boolean,
 	): Promise<void>;
 	installActionSchema(value: string): Promise<void>;
+	configureBearerAuth(value: string): Promise<void>;
 	uploadKnowledge(files: readonly CustomGptKnowledgeFile[]): Promise<void>;
 	verifyReady(material: CustomGptProvisioningRequest): Promise<void>;
 	createPrivate(): Promise<{ gptId: string; carrierUrl: string }>;
@@ -126,6 +128,9 @@ export function parseCustomGptProvisioningRequest(
 		knowledgeBundle: requiredString(source.knowledgeBundle),
 		actionSchema: requiredString(source.actionSchema),
 		knowledgeFiles: knowledgeFiles(source.knowledgeFiles),
+		...(source.bearerCredential === undefined
+			? {}
+			: { bearerCredential: requiredString(source.bearerCredential) }),
 	};
 }
 
@@ -143,6 +148,8 @@ export function createCustomGptEditorDriver(port: CustomGptEditorPort) {
 		] as const)
 			await port.setCapability(capability, material.capabilities[capability]);
 		await port.installActionSchema(material.actionSchema);
+		if (material.bearerCredential)
+			await port.configureBearerAuth(material.bearerCredential);
 		return {
 			status: "DRAFT_CONFIGURED" as const,
 			packageName: material.packageName,

@@ -534,7 +534,36 @@ async function waitForAuthSettingsButton(): Promise<HTMLElement> {
 	throw new Error("GPT_EDITOR_AUTH_SETTINGS_BUTTON_NOT_FOUND");
 }
 
-async function finalizeBearerAuth(credential: string) {
+async function returnFromActionEditor(): Promise<void> {
+	let back: HTMLButtonElement | undefined;
+	for (let attempt = 0; attempt < 80; attempt += 1) {
+		back = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+			(button) => {
+				if ((button.textContent ?? "").trim().length > 0) return false;
+				const context = normalize(
+					button.parentElement?.parentElement?.textContent ?? "",
+				);
+				return (
+					context.includes("add action") ||
+					context.includes("添加操作") ||
+					context.includes("edit action") ||
+					context.includes("编辑操作")
+				);
+			},
+		);
+		if (back) break;
+		await sleep(100);
+	}
+	if (!back) throw new Error("GPT_EDITOR_ACTION_BACK_NOT_FOUND");
+	back.click();
+	await waitForReadback("GPT_EDITOR_CONFIGURE_RETURN_TIMEOUT", () =>
+		[...document.querySelectorAll("label")].some((label) =>
+			matchesAny(label, ["Knowledge", "知识"]),
+		),
+	);
+}
+
+async function configureBearerAuthDraft(credential: string) {
 	if (credential.length < 32) throw new Error("ROLE_CREDENTIAL_INVALID");
 	await openExistingActionEditor();
 	(await waitForAuthSettingsButton()).click();
@@ -585,15 +614,19 @@ async function finalizeBearerAuth(credential: string) {
 	if (controlValue(keyInput) !== credential)
 		throw new Error("GPT_EDITOR_AUTH_KEY_READBACK_MISMATCH");
 	(await waitForAuthSemantic(dialog, ["Save", "保存"])).click();
+	await waitForReadback(
+		"GPT_EDITOR_AUTH_SAVE_TIMEOUT",
+		() => !available(dialog),
+	);
+	await returnFromActionEditor();
+}
+
+async function finalizeBearerAuth(credential: string) {
+	await configureBearerAuthDraft(credential);
 	(await waitForAuthSemantic(document, ["Update", "更新"])).click();
 	await waitForReadback("GPT_EDITOR_AUTH_UPDATE_TIMEOUT", () => {
 		const text = normalize(document.body.textContent);
-		return (
-			text.includes("settings saved") ||
-			text.includes("设置已保存") ||
-			text.includes("gpt updated") ||
-			text.includes("gpt 已更新")
-		);
+		return text.includes("settings saved") || text.includes("设置已保存");
 	});
 	const gptId = currentGptId();
 	if (!gptId) throw new Error("GPT_EDITOR_GPT_ID_MISSING");
@@ -881,6 +914,9 @@ const domPort: CustomGptEditorPort = {
 		if ((control.getAttribute("aria-checked") === "true") !== enabled)
 			throw new Error(`GPT_EDITOR_CAPABILITY_READBACK_MISMATCH:${capability}`);
 	},
+	async configureBearerAuth(value) {
+		await configureBearerAuthDraft(value);
+	},
 	async uploadKnowledge(files) {
 		await uploadKnowledge(files);
 	},
@@ -924,37 +960,7 @@ const domPort: CustomGptEditorPort = {
 			"GPT_EDITOR_ACTION_SCHEMA_READBACK_MISMATCH",
 			() => controlValue(schema as HTMLElement) === value,
 		);
-		let back: HTMLButtonElement | undefined;
-		for (let attempt = 0; attempt < 80; attempt += 1) {
-			back = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
-				(button) => {
-					if ((button.textContent ?? "").trim().length > 0) return false;
-					const context = normalize(
-						button.parentElement?.parentElement?.textContent ?? "",
-					);
-					return (
-						context.includes("add action") ||
-						context.includes("添加操作") ||
-						context.includes("edit action") ||
-						context.includes("编辑操作")
-					);
-				},
-			);
-			if (back) break;
-			await sleep(100);
-		}
-		if (!back) throw new Error("GPT_EDITOR_ACTION_BACK_NOT_FOUND");
-		back.click();
-		for (let attempt = 0; attempt < 80; attempt += 1) {
-			if (
-				[...document.querySelectorAll("label")].some((label) =>
-					matchesAny(label, ["Knowledge", "知识"]),
-				)
-			)
-				return;
-			await sleep(100);
-		}
-		throw new Error("GPT_EDITOR_CONFIGURE_RETURN_TIMEOUT");
+		await returnFromActionEditor();
 	},
 	async createPrivate() {
 		return createPrivateGpt();

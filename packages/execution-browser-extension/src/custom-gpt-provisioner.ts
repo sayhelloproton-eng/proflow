@@ -14,7 +14,7 @@ import {
 
 export type CustomGptPackageProvisioningMaterial = Omit<
 	CustomGptProvisioningRequest,
-	"actionSchema" | "knowledgeFiles"
+	"actionSchema" | "knowledgeFiles" | "bearerCredential"
 > & {
 	actionSchema: string;
 };
@@ -171,8 +171,11 @@ export async function createCustomGptProvisioningHost(
 		stagingRoot: string;
 		gatewayUrl: string;
 		material: CustomGptPackageProvisioningMaterial;
+		credential?: string;
 	}): Promise<CustomGptProvisioningResult> {
 		await waitUntilOnline();
+		if (input.credential !== undefined && input.credential.length < 32)
+			throw new Error("PROVISIONING_ROLE_CREDENTIAL_INVALID");
 		const schemaPath = packageAsset(
 			input.packageRoot,
 			input.material.actionSchema,
@@ -202,6 +205,9 @@ export async function createCustomGptProvisioningHost(
 			const request = {
 				...input.material,
 				actionSchema: schema,
+				...(input.credential === undefined
+					? {}
+					: { bearerCredential: input.credential }),
 				knowledgeFiles: relayFiles.map(
 					({ name, mime, sizeBytes, sha256, url }) => ({
 						name,

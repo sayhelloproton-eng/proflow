@@ -22,6 +22,7 @@ const request = {
 	},
 	knowledgeBundle: "knowledge/custom-gpt-knowledge.zip",
 	actionSchema: "openapi: 3.1.0\ninfo:\n  title: test\n",
+	bearerCredential: "role-secret-that-is-long-enough-for-create",
 	knowledgeFiles: [
 		{
 			name: "proflow-knowledge-smoke.md",
@@ -50,6 +51,9 @@ test("CP-EXE-BR-19 editor driver applies package-owned draft material without in
 		},
 		async installActionSchema(value) {
 			calls.push({ operation: "actionSchema", value });
+		},
+		async configureBearerAuth(value) {
+			calls.push({ operation: "bearerAuth", value });
 		},
 		async uploadKnowledge(files) {
 			calls.push({ operation: "knowledge", value: files });
@@ -80,6 +84,7 @@ test("CP-EXE-BR-19 editor driver applies package-owned draft material without in
 		{ operation: "capability", key: "imageGeneration", value: false },
 		{ operation: "capability", key: "codeInterpreter", value: true },
 		{ operation: "actionSchema", value: request.actionSchema },
+		{ operation: "bearerAuth", value: request.bearerCredential },
 		{ operation: "knowledge", value: request.knowledgeFiles },
 		{ operation: "verifyReady", value: material },
 		{ operation: "createPrivate", value: true },
