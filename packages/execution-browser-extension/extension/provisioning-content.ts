@@ -495,8 +495,7 @@ async function waitForLiveCreatedResult() {
 		const text = normalize(document.body.textContent);
 		const saved =
 			text.includes("settings saved") || text.includes("设置已保存");
-		const liveMarker = clickable(["Update", "更新", "Share", "分享"]);
-		if (gptId && (saved || liveMarker))
+		if (gptId && saved)
 			return { gptId, carrierUrl: `https://chatgpt.com/g/${gptId}` };
 		await sleep(125);
 	}
