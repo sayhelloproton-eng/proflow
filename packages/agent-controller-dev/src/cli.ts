@@ -1,8 +1,6 @@
 #!/usr/bin/env node
-import { spawn, spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -74,36 +72,6 @@ function roleRefFromCarrierUrl(carrierUrl: string) {
 	if (!/^g-[A-Za-z0-9_-]+$/.test(roleRef) || url.pathname !== `/g/${roleRef}`)
 		throw new Error("INVALID_CUSTOM_GPT_URL");
 	return roleRef;
-}
-
-function openCustomGptEditor() {
-	const url = "https://chatgpt.com/gpts/editor";
-	const command =
-		process.platform === "darwin"
-			? "open"
-			: process.platform === "win32"
-				? "cmd"
-				: "xdg-open";
-	const parameters =
-		process.platform === "win32" ? ["/c", "start", "", url] : [url];
-	const child = spawn(command, parameters, { detached: true, stdio: "ignore" });
-	child.unref();
-}
-
-function copyToClipboard(value: string) {
-	const command =
-		process.platform === "darwin"
-			? "pbcopy"
-			: process.platform === "win32"
-				? "clip"
-				: "xclip";
-	const parameters =
-		process.platform === "linux" ? ["-selection", "clipboard"] : [];
-	const copied = spawnSync(command, parameters, {
-		input: value,
-		encoding: "utf8",
-	});
-	if (copied.status !== 0) throw new Error("CLIPBOARD_UNAVAILABLE");
 }
 
 async function runRoleCommand() {
@@ -185,91 +153,6 @@ async function runRoleCommand() {
 if (args.includes("--json")) throw new Error("不支持的选项 --json");
 if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 	help();
-} else if (args[0] === "setup") {
-	const workspace = workspaceRoot() ?? process.cwd();
-	const step = args[1]?.startsWith("--") ? undefined : args[1];
-	if (step === "02") {
-		copyToClipboard(material.instructions);
-		process.stdout.write(
-			"\n✓ Instructions 已复制到剪贴板\n  请粘贴到 Custom GPT 的 Instructions 字段，保存后运行 setup 03。\n",
-		);
-		process.exit(0);
-	}
-	if (step === "03") {
-		const client = await createWorkspaceRoleSetupClient(workspace);
-		const gatewayUrl = option("--gateway-url") ?? (await client.gatewayUrl());
-		if (!gatewayUrl) throw new Error("GATEWAY_NOT_READY");
-		const schema = (
-			await readFile(
-				new URL(`../../${material.actionSchema}`, import.meta.url),
-				"utf8",
-			)
-		).replace("https://GATEWAY_PUBLIC_HOST", gatewayUrl);
-		copyToClipboard(schema);
-		process.stdout.write(
-			"\n✓ Action Schema（动作接口）已复制到剪贴板\n  在 Custom GPT 中新建 Action 并粘贴 Schema。\n",
-		);
-		if (process.stdin.isTTY) {
-			const prompt = createInterface({
-				input: process.stdin,
-				output: process.stdout,
-			});
-			try {
-				await prompt.question("  Schema 保存后按回车，脚本将复制 Bearer Key… ");
-			} finally {
-				prompt.close();
-			}
-			const credential = await client.showRoleCredential({
-				agentPackageRef: material.packageName,
-				expectedPackageVersion: material.version,
-			});
-			copyToClipboard(credential.credential);
-			process.stdout.write(
-				"✓ Bearer Key 已复制到剪贴板（不会显示在终端）\n  选择 Bearer 认证并粘贴 Key，保存后运行 setup 04。\n",
-			);
-		}
-		process.exit(0);
-	}
-	if (step === "04") {
-		const result = behaviorAdapter.status({ workspaceRoot: workspace });
-		process.stdout.write(
-			result.result.data.setupStatus === "READY"
-				? "\n✓ Role 注册和版本验证通过\n"
-				: "\n✕ Role 尚未就绪，请从未完成步骤继续。\n",
-		);
-		if (result.result.data.setupStatus !== "READY") process.exitCode = 1;
-		process.exit();
-	}
-	if (step !== undefined && step !== "01")
-		throw new Error(`UNSUPPORTED_SETUP_STEP:${step}`);
-	let carrierUrl = option("--carrier-url");
-	if (!carrierUrl && !process.stdin.isTTY)
-		throw new Error("非交互环境必须提供 --carrier-url");
-	if (!carrierUrl) {
-		const prompt = createInterface({
-			input: process.stdin,
-			output: process.stdout,
-		});
-		try {
-			process.stdout.write(
-				`\n${material.displayName} · Step 01/04\n\n  1. 浏览器将打开 Custom GPT（自定义 GPT）编辑器。\n  2. 名称：${material.displayName}\n  3. 说明：${String(metadata.description)}\n  4. 先保存 GPT，再复制公开 URL。\n\n`,
-			);
-			openCustomGptEditor();
-			carrierUrl = await prompt.question("◆ Custom GPT URL\n> ");
-		} finally {
-			prompt.close();
-		}
-	}
-	const roleRef = roleRefFromCarrierUrl(carrierUrl);
-	await (await createWorkspaceRoleSetupClient(workspace)).registerRole({
-		agentPackageRef: material.packageName,
-		registeredPackageVersion: material.version,
-		roleRef,
-		carrierUrl,
-	});
-	process.stdout.write(
-		"\n✓ Custom GPT Role（角色）已注册\n→ 下一步：setup 02（复制 Instructions）\n",
-	);
 } else if (args[0] === "verify") {
 	const result = behaviorAdapter.status({
 		workspaceRoot: workspaceRoot() ?? process.cwd(),
