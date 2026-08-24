@@ -1,4 +1,4 @@
-# agent-product — 产品角色包
+# agent-product — 运营 + 产品经理角色包
 
 ## 模块定位与作用
 
@@ -27,7 +27,9 @@
 
 ## 使用方式
 
-B1～B5 已提供完整 Agent Package material、Browser Provisioning primitive 与 Role/Auth finalization capability；当前 `Module.setup` 仍只观察 durable Role reality。最终正常路径由 B6 将这些 primitive 接入 `platform setup --module agent-product` 并证明重入/no-duplicate/Fresh Workspace。`custom-gpt setup` / `custom-gpt finalize-role` / `role ...` 保留为 package-specific 诊断、恢复或显式本地管理入口；不得把用户手工复制 GPT URL、Schema 或 Bearer 重新当作 happy path。
+`Module.setup` 已接入正式自动创建路径：Role 为 `READY` 时直接复用当前绑定；Role 为 `MISSING` 时由 Agent Runtime 预生成 candidate credential，Extension 在同一个 GPT Editor 内完成 Action Schema、API Key/Bearer、Knowledge ZIP、模型与三项 Capabilities 配置后创建 Private GPT，再由 `saveCurrentRole` 持久化最新 g-id / carrierUrl / credential 并执行 Gateway authenticated probe。`DRIFT` 不自动 Edit 旧 GPT，必须 fail closed 进入显式处理。
+
+当前角色名固定为 `运营 + 产品经理`；`webSearch / imageGeneration / codeInterpreter` 全部开启；Knowledge 固定上传 `knowledge/custom-gpt-knowledge.zip` 本体。`custom-gpt setup`、`role ...` 与 `verify` 只用于 material 检查、诊断、恢复或显式本地管理，不承担正常部署的人工复制 URL / Schema / Bearer 流程。
 
 ## 职责边界与限制
 
