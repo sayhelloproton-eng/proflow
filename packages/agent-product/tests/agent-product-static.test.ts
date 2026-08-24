@@ -118,7 +118,12 @@ test("CP-AGT-PROD-03 + CP-AGT-PROD-04 Extension-first Task ownership is reflecte
 			},
 		],
 	});
-	assert.equal(behaviorAdapter.setup(context).result.status, "ACTION_REQUIRED");
+	const setup = (await behaviorAdapter.setup(context)).result;
+	assert.equal(setup.status, "FAILED");
+	assert.match(
+		setup.error?.message ?? "",
+		/agent-gateway publicBaseUrl is unavailable/,
+	);
 });
 
 test("CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browser continue protocol", async () => {
@@ -151,7 +156,12 @@ test("CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked b
 			},
 		],
 	});
-	assert.equal(behaviorAdapter.setup(context).result.status, "ACTION_REQUIRED");
+	const setup = (await behaviorAdapter.setup(context)).result;
+	assert.equal(setup.status, "FAILED");
+	assert.match(
+		setup.error?.message ?? "",
+		/agent-gateway publicBaseUrl is unavailable/,
+	);
 });
 
 test("CP-REAL2-PROV-01 Product package owns complete Custom GPT provisioning material", async () => {
