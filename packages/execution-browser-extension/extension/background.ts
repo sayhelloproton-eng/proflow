@@ -75,13 +75,11 @@ type ProvisioningBridgeCommand = {
 	type: ProvisioningOperation;
 	request: Record<string, unknown>;
 };
-type ProvisioningContentCommand =
-	| {
-			type: "PROFLOW_PROVISIONING_COMMAND";
-			operation: ProvisioningOperation;
-			request: Record<string, unknown>;
-	  }
-	| { type: "PROFLOW_PROVISIONING_FINALIZE_CREATE" };
+type ProvisioningContentCommand = {
+	type: "PROFLOW_PROVISIONING_COMMAND";
+	operation: ProvisioningOperation;
+	request: Record<string, unknown>;
+};
 type ChromeTab = { id?: number; windowId?: number; url?: string };
 type ChromeRuntime = {
 	runtime: {
@@ -864,91 +862,19 @@ async function provisioningContentCommand(
 	throw new Error("PROVISIONING_CONTENT_TIMEOUT");
 }
 
-async function finalizeProvisioningCreate(tabId: number): Promise<unknown> {
-	for (let attempt = 0; attempt < 60; attempt += 1) {
-		let response: unknown;
-		try {
-			response = await chrome.tabs.sendMessage(tabId, {
-				type: "PROFLOW_PROVISIONING_FINALIZE_CREATE",
-			});
-		} catch (error) {
-			if (attempt === 59) throw error;
-			await sleep(250);
-			continue;
-		}
-		if (!isRecord(response) || response.ok !== true) {
-			const detail =
-				isRecord(response) && typeof response.error === "string"
-					? response.error
-					: "PROVISIONING_CONTENT_FAILED";
-			if (detail === "PROVISIONING_SURFACE_NOT_READY" && attempt < 59) {
-				await sleep(250);
-				continue;
-			}
-			throw new Error(detail);
-		}
-		return response.value;
-	}
-	throw new Error("PROVISIONING_FINALIZE_CREATE_TIMEOUT");
-}
-
-async function waitForNewEditorTab(excludedTabIds: ReadonlySet<number>) {
-	for (let attempt = 0; attempt < 80; attempt += 1) {
-		const tabs = await chrome.tabs.query({});
-		const candidate = tabs.find(
-			(item) =>
-				typeof item.id === "number" &&
-				!excludedTabIds.has(item.id) &&
-				typeof item.url === "string" &&
-				item.url.startsWith("https://chatgpt.com/gpts/editor"),
-		);
-		if (candidate?.id !== undefined) return candidate.id;
-		await sleep(100);
-	}
-	throw new Error("GPT_EDITOR_PRIVATE_CREATE_TAB_NOT_FOUND");
-}
-
 async function executeProvisioningCommand(
 	command: ProvisioningBridgeCommand,
 ): Promise<unknown> {
 	if (!isRecord(command.request))
 		throw new Error("PROVISIONING_COMMAND_INVALID");
-	const tabsBefore = await chrome.tabs.query({});
-	const excludedTabIds = new Set(
-		tabsBefore.flatMap((item) =>
-			typeof item.id === "number" ? [item.id] : [],
-		),
-	);
 	const editorUrl = "https://chatgpt.com/gpts/editor";
 	const tab = await chrome.tabs.create({ url: editorUrl, active: true });
-	const tabId = numeric(tab.id, "TAB_ID");
-	excludedTabIds.add(tabId);
-	try {
-		return await provisioningContentCommand(
-			tabId,
-			command.type,
-			command.request,
-		);
-	} catch (error) {
-		if (
-			!(error instanceof Error) ||
-			error.message !== "GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND"
-		)
-			throw error;
-		try {
-			return await finalizeProvisioningCreate(tabId);
-		} catch (sameTabError) {
-			if (
-				!(sameTabError instanceof Error) ||
-				sameTabError.message !== "GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND"
-			)
-				throw sameTabError;
-		}
-		const privateCreateTabId = await waitForNewEditorTab(excludedTabIds);
-		return finalizeProvisioningCreate(privateCreateTabId);
-	}
+	return provisioningContentCommand(
+		numeric(tab.id, "TAB_ID"),
+		command.type,
+		command.request,
+	);
 }
-
 async function bridgeFetch(
 	config: BridgeConfig,
 	path: string,

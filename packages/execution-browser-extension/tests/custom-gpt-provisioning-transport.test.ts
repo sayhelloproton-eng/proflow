@@ -188,7 +188,7 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 		"async function executeProvisioningCommand",
 	);
 	const provisioningFunctionEnd = background.indexOf(
-		"\n}\n\nasync function bridgeFetch",
+		"async function bridgeFetch",
 		provisioningFunctionStart,
 	);
 	assert.ok(provisioningFunctionStart >= 0);
@@ -201,12 +201,12 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 		provisioningFunction,
 		/chrome\.tabs\.create\(\{ url: editorUrl, active: true \}\)/,
 	);
-	assert.match(provisioningFunction, /chrome\.tabs\.query\(\{\}\)/);
-	assert.match(provisioningFunction, /waitForNewEditorTab/);
-	assert.match(provisioningFunction, /finalizeProvisioningCreate/);
-	assert.ok(
-		provisioningFunction.indexOf("finalizeProvisioningCreate(tabId)") <
-			provisioningFunction.indexOf("waitForNewEditorTab(excludedTabIds)"),
+	assert.doesNotMatch(provisioningFunction, /chrome\.tabs\.query\(\{\}\)/);
+	assert.doesNotMatch(provisioningFunction, /waitForNewEditorTab/);
+	assert.doesNotMatch(provisioningFunction, /finalizeProvisioningCreate/);
+	assert.doesNotMatch(
+		provisioningFunction,
+		/PROFLOW_PROVISIONING_FINALIZE_CREATE/,
 	);
 	assert.doesNotMatch(provisioningFunction, /chrome\.tabs\.update/);
 	assert.match(provisioningFunction, /https:\/\/chatgpt\.com\/gpts\/editor/);
