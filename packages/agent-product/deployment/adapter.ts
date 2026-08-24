@@ -3,11 +3,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { inspectDurableRoleRegistration } from "@tomflow/proflow-agent-runtime";
+import { createWorkspaceRoleSetupClient } from "@tomflow/proflow-agent-runtime/role-management-client";
+import { createCustomGptRole } from "@tomflow/proflow-execution-browser-extension/custom-gpt-role";
 import {
 	type ModuleCommandContext,
 	readModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
-import { provisionWorkspaceCustomGptRole } from "../src/custom-gpt-deployment-provisioner.ts";
 import { materializeAgentPackage } from "../src/index.ts";
 
 import { descriptor } from "./descriptor.ts";
@@ -216,19 +217,30 @@ export const behaviorAdapter = {
 				};
 			}
 			try {
-				const result = await provisionWorkspaceCustomGptRole({
-					workspaceRoot: context.workspaceRoot,
-					packageRoot: packageRoot(),
-					stagingRoot: join(
-						context.workspaceRoot,
-						".proflow",
-						"runtime",
-						"custom-gpt-staging",
-						descriptor.moduleRef,
-					),
-					gatewayUrl,
-					material: packageMaterial(),
-				});
+				const roleClient = await createWorkspaceRoleSetupClient(
+					context.workspaceRoot,
+				);
+				const result = await createCustomGptRole(
+					{
+						workspaceRoot: context.workspaceRoot,
+						packageRoot: packageRoot(),
+						stagingRoot: join(
+							context.workspaceRoot,
+							".proflow",
+							"runtime",
+							"custom-gpt-staging",
+							descriptor.moduleRef,
+						),
+						gatewayUrl,
+						material: packageMaterial(),
+					},
+					{
+						roleRegistry: {
+							saveRole: (input) => roleClient.registerRole(input),
+							inspectRole: (input) => roleClient.inspectRole(input),
+						},
+					},
+				);
 				return {
 					result: {
 						...base,

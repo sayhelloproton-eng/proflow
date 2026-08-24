@@ -41,6 +41,9 @@
 			"@tomflow/proflow-execution-browser-extension/custom-gpt-provisioning": [
 				"./packages/execution-browser-extension/src/custom-gpt-provisioner.ts"
 			],
+			"@tomflow/proflow-execution-browser-extension/custom-gpt-role": [
+				"./packages/execution-browser-extension/src/custom-gpt-role.ts"
+			],
 			"@tomflow/proflow-execution-local": [
 				"./packages/execution-local/src/index.ts"
 			],
