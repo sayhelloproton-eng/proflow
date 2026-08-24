@@ -57,6 +57,7 @@ test("CP-AGT-DEV-01 instructions and Action allowlist are role-minimal", () => {
 		openapi,
 		/executeAnything|updateStatus|browser\.click|role register/i,
 	);
+	assert.doesNotMatch(openapi, /unevaluatedProperties|allOf:/);
 });
 test("CP-AGT-DEV-02 Task and Execution access is owner Public Contract shaped", () => {
 	assert.ok(operations.includes("getNodeContext"));
