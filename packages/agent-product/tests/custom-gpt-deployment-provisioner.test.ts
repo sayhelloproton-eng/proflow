@@ -24,6 +24,10 @@ test("Real-2 agent-product Module.setup uses the reusable Custom GPT role API", 
 	assert.match(adapter, /reality\.status === "MISSING"/);
 	assert.match(adapter, /provisioningStatus: result\.status/);
 	assert.doesNotMatch(adapter, /gpts\/editor\/\$\{|editExisting|fallbackEdit/i);
+	assert.doesNotMatch(
+		adapter,
+		/setupPlan|setup 0[1-4]|openCustomGptEditor|打开编辑器|复制公开 URL/,
+	);
 });
 
 test("Real-2 agent-product no longer owns a private Custom GPT provisioner", async () => {
