@@ -18,7 +18,7 @@ contractRefs: []
 
 | Resource | Owner/Governance | 典型能力 | 不能假装拥有的 lifecycle |
 |---|---|---|---|
-| ChatGPT Web / Custom GPT Carrier | Deployment governance + Agent Carrier contract | Actions、File Bridge、Code Interpreter/Web Search requirements、Role setup/verification | Module 不能假装完全自动创建/编辑 GPT；Web-only 动作通过标准 `ACTION_REQUIRED` + package-owned prepare/verify 闭环 |
+| ChatGPT Web / Custom GPT Carrier | Deployment governance 只观察 ChatGPT Web 外部可用性；Agent Package + Browser Extension 拥有具体 Role materialization | ChatGPT Web reachability；具体 GPT 的 Role/Auth/Actions/Knowledge/Capabilities 由 owning Agent setup 验证 | Deployment 不保存第二份 GPT URL / capability truth；`MISSING` Role 可由 owning setup 自动创建，只有登录、网络、Carrier 安全边界等真正外部 blocker 才 `ACTION_REQUIRED` |
 | Chrome Runtime | Deployment governance + Execution Browser use | Extension load/runtime/page access | 不虚构平台不能控制的浏览器生命周期 |
 | Microsoft Dev Tunnel | Deployment External Resource Module | public ingress / bind / status / setup；可保留 package-owned probe/verification extra | 七标准能力只表达真实可观察/可控制行为，不把 verification extra 升级成 Platform lifecycle |
 | Model Provider API | Deployment External Resource Module + Model Provider Adapter | `model.provider.api` | 远端 API 不伪造 start/stop |

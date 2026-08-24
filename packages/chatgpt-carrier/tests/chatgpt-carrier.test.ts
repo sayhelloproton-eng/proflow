@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -7,17 +7,6 @@ import { test } from "node:test";
 import { parseModuleDescriptor } from "@tomflow/proflow-module-contract";
 import { behaviorAdapter } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
-
-const verified = () => ({
-	reachable: "VERIFIED" as const,
-	actionsEnabled: "VERIFIED" as const,
-	openApiInstalled: "VERIFIED" as const,
-	actionAuthValid: "VERIFIED" as const,
-	fileBridge: "VERIFIED" as const,
-	codeInterpreter: "VERIFIED" as const,
-	webSearch: "VERIFIED" as const,
-	appsDisabledWhenRequired: "VERIFIED" as const,
-});
 
 async function workspace(
 	context: { after(fn: () => unknown): void },
@@ -28,49 +17,86 @@ async function workspace(
 	return root;
 }
 
-test("parseModuleDescriptor accepts the chatgpt-carrier descriptor without legacy lifecycle/verification fields", () => {
+async function withFetch(
+	status: number,
+	operation: () => Promise<void>,
+): Promise<void> {
+	const originalFetch = globalThis.fetch;
+	try {
+		globalThis.fetch = async () => new Response(null, { status });
+		await operation();
+	} finally {
+		globalThis.fetch = originalFetch;
+	}
+}
+
+test("descriptor declares only machine-observable ChatGPT Web prerequisites", () => {
 	const parsed = parseModuleDescriptor(descriptor);
 	assert.equal(parsed.moduleRef, "chatgpt-carrier");
 	assert.equal(parsed.kind, "external-resource");
 	assert.deepEqual(parsed.provides, []);
-	assert.deepEqual(parsed.documentation, {
-		docs: "DOCS.md",
-		setup: "SETUP.md",
-	});
-	assert.equal("lifecycle" in parsed, false);
-	assert.equal("verification" in parsed, false);
-});
-
-test("unconfigured carrier status is ACTION_REQUIRED truth and setup owns the human step", async (context) => {
-	const workspaceRoot = await workspace(
-		context,
-		"proflow-chatgpt-carrier-unconfigured-",
-	);
-	const commandContext = { workspaceRoot };
-	const status = await behaviorAdapter.status(commandContext);
-	assert.deepEqual(status.result.data, {
-		setupStatus: "ACTION_REQUIRED",
-		runtimeStatus: "STOPPED",
-		issues: [
-			{
-				scope: "SETUP",
-				code: "CARRIER_SETUP_REQUIRED",
-				message: "尚未登记可用的 Custom GPT Carrier",
-				relatedModuleRefs: [],
-				nextCommand: "platform setup --module chatgpt-carrier",
-			},
-		],
-	});
-	assert.equal(status.externalAvailabilityClaim, "UNKNOWN");
-	const setup = await behaviorAdapter.setup(commandContext);
-	assert.equal(setup.result.status, "ACTION_REQUIRED");
 	assert.equal(
-		setup.result.actionRequired?.action,
-		"materialize-custom-gpt-carrier",
+		parsed.requirements.some((requirement) => requirement.kind === "human"),
+		false,
 	);
 });
+test("reachable ChatGPT Web makes status and setup READY without user input", async (context) => {
+	const workspaceRoot = await workspace(context, "proflow-chatgpt-auto-ready-");
+	await withFetch(403, async () => {
+		const status = await behaviorAdapter.status({ workspaceRoot });
+		assert.deepEqual(status.result.data, {
+			setupStatus: "READY",
+			runtimeStatus: "RUNNING",
+		});
+		assert.equal(status.externalAvailabilityClaim, "AVAILABLE");
+		const setup = await behaviorAdapter.setup({ workspaceRoot });
+		assert.equal(setup.result.status, "SUCCEEDED");
+		assert.deepEqual(setup.result.data, {
+			setupStatus: "READY",
+			runtimeStatus: "RUNNING",
+		});
+	});
+});
 
-test("external-resource adapter exposes the fixed seven-command management surface", () => {
+test("unreachable ChatGPT Web remains ACTION_REQUIRED instead of fake READY", async (context) => {
+	const workspaceRoot = await workspace(context, "proflow-chatgpt-auto-down-");
+	await withFetch(503, async () => {
+		const status = await behaviorAdapter.status({ workspaceRoot });
+		assert.equal(status.result.status, "ACTION_REQUIRED");
+		assert.equal(status.result.data?.setupStatus, "ACTION_REQUIRED");
+		assert.equal(status.result.data?.runtimeStatus, "FAILED");
+		assert.equal(
+			status.result.data?.issues?.[0]?.code,
+			"CHATGPT_WEB_UNAVAILABLE",
+		);
+		assert.equal(status.externalAvailabilityClaim, "UNAVAILABLE");
+	});
+});
+test("setup never writes a second carrier URL or capability verification store", async (context) => {
+	const workspaceRoot = await workspace(context, "proflow-chatgpt-no-mirror-");
+	await withFetch(200, async () => {
+		assert.equal(
+			(await behaviorAdapter.setup({ workspaceRoot })).result.status,
+			"SUCCEEDED",
+		);
+	});
+	for (const file of ["setup.json", "verification.json"]) {
+		await assert.rejects(
+			access(
+				join(
+					workspaceRoot,
+					".proflow",
+					"runtime",
+					"external-resources",
+					"chatgpt-carrier",
+					file,
+				),
+			),
+		);
+	}
+});
+
+test("external-resource adapter keeps the fixed seven-command management surface", () => {
 	assert.deepEqual(Object.keys(behaviorAdapter).sort(), [
 		"docs",
 		"install",
@@ -80,67 +106,4 @@ test("external-resource adapter exposes the fixed seven-command management surfa
 		"stop",
 		"uninstall",
 	]);
-});
-
-test("reachability alone never makes incomplete Action/auth verification READY", async (context) => {
-	const workspaceRoot = await workspace(
-		context,
-		"proflow-chatgpt-carrier-incomplete-",
-	);
-	const setup = await behaviorAdapter.setup({
-		workspaceRoot,
-		input: {
-			carrierUrl: "https://chatgpt.com/g/g-carrier-test",
-			verification: {
-				...verified(),
-				actionAuthValid: "UNVERIFIED",
-			},
-		},
-	});
-	assert.equal(setup.result.status, "ACTION_REQUIRED");
-	assert.equal(setup.result.actionRequired?.action, "verify-carrier");
-});
-
-test("production status accepts protected 401/403 only with healthy Web verification evidence", async (context) => {
-	const workspaceRoot = await workspace(
-		context,
-		"proflow-chatgpt-carrier-status-",
-	);
-	const originalFetch = globalThis.fetch;
-	try {
-		globalThis.fetch = async () => new Response(null, { status: 403 });
-		const setup = await behaviorAdapter.setup({
-			workspaceRoot,
-			input: {
-				carrierUrl: "https://chatgpt.com/g/g-carrier-test",
-				verification: verified(),
-			},
-		});
-		assert.equal(setup.result.status, "SUCCEEDED");
-		const protectedStatus = await behaviorAdapter.status({ workspaceRoot });
-		assert.deepEqual(protectedStatus.result.data, {
-			setupStatus: "READY",
-			runtimeStatus: "RUNNING",
-		});
-		assert.equal(protectedStatus.externalAvailabilityClaim, "AVAILABLE");
-
-		globalThis.fetch = async () => new Response(null, { status: 404 });
-		const missingStatus = await behaviorAdapter.status({ workspaceRoot });
-		assert.deepEqual(missingStatus.result.data, {
-			setupStatus: "READY",
-			runtimeStatus: "FAILED",
-			issues: [
-				{
-					scope: "RUNTIME",
-					code: "CARRIER_UNREACHABLE",
-					message: "已登记的 Custom GPT Carrier 当前不可达",
-					relatedModuleRefs: [],
-					nextCommand: "pnpm exec -- proflow-chatgpt-carrier verify",
-				},
-			],
-		});
-		assert.equal(missingStatus.externalAvailabilityClaim, "UNAVAILABLE");
-	} finally {
-		globalThis.fetch = originalFetch;
-	}
 });

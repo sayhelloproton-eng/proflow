@@ -10,7 +10,7 @@ export const descriptor = {
 	identity: {
 		domain: "deployment-governance",
 		summary:
-			"Governs and verifies the real-world ChatGPT Custom GPT carrier without faking readiness.",
+			"Observes ChatGPT Web external availability without duplicating Agent-owned Role or capability truth.",
 	},
 	provides: [],
 	requires: [],
@@ -24,16 +24,12 @@ export const descriptor = {
 			kind: "network",
 			url: "https://chatgpt.com/",
 		},
-		{
-			kind: "human",
-			action: "Materialize and verify the Custom GPT carrier",
-		},
 	],
 	configSlots: [],
 	effects: [
 		{
 			kind: "external-resource",
-			description: "Observes the ChatGPT Custom GPT carrier",
+			description: "Observes ChatGPT Web external availability",
 			retention: "preserve",
 		},
 	],
