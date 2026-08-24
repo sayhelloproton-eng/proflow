@@ -402,7 +402,7 @@ function selected(element: HTMLElement): boolean {
 
 async function selectPrivateVisibility(): Promise<void> {
 	let control: HTMLElement | null = null;
-	for (let attempt = 0; attempt < 40; attempt += 1) {
+	for (let attempt = 0; attempt < 80; attempt += 1) {
 		control = privateVisibilityControl();
 		if (control) break;
 		await sleep(100);
@@ -436,6 +436,22 @@ async function waitForPrivateCreateAction(
 	throw new Error("GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND");
 }
 
+async function openPrivateCreateSurface(
+	initialCreateButton: HTMLElement,
+): Promise<void> {
+	const initialGptId = currentGptId();
+	initialCreateButton.click();
+	if (initialGptId) return;
+	for (let attempt = 0; attempt < 80; attempt += 1) {
+		if (privateVisibilityControl()) return;
+		if (currentGptId()) {
+			(await waitForClickable(["Create", "创建"], 80)).click();
+			return;
+		}
+		await sleep(100);
+	}
+}
+
 async function createPrivateGpt() {
 	let createButton: HTMLElement | null = null;
 	for (let attempt = 0; attempt < 80; attempt += 1) {
@@ -452,7 +468,7 @@ async function createPrivateGpt() {
 		await sleep(100);
 	}
 	if (!createButton) throw new Error("GPT_EDITOR_CREATE_BUTTON_NOT_FOUND");
-	createButton.click();
+	await openPrivateCreateSurface(createButton);
 	await selectPrivateVisibility();
 	(await waitForPrivateCreateAction(createButton)).click();
 	for (let attempt = 0; attempt < 80; attempt += 1) {
