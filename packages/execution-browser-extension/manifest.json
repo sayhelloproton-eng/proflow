@@ -15,7 +15,10 @@
 			"run_at": "document_idle"
 		},
 		{
-			"matches": ["https://chatgpt.com/gpts/editor/*"],
+			"matches": [
+				"https://chatgpt.com/gpts/editor",
+				"https://chatgpt.com/gpts/editor/*"
+			],
 			"js": ["dist/extension/provisioning-content.js"],
 			"run_at": "document_idle"
 		}

@@ -10,7 +10,6 @@ import {
 	createWorkspaceRoleSetupClient,
 	validateRoleCarrier,
 } from "@tomflow/proflow-agent-runtime/role-management-client";
-import { createWorkspaceCustomGptProvisioningHost } from "@tomflow/proflow-execution-browser-extension/custom-gpt-provisioning";
 import { behaviorAdapter } from "../deployment/adapter.ts";
 import { materializeAgentPackage } from "./index.ts";
 
@@ -40,8 +39,6 @@ function help() {
 	  ${binary} custom-gpt show-description
 	  ${binary} custom-gpt show-instructions
 	  ${binary} custom-gpt action-schema --gateway-url https://public.example
-	  ${binary} custom-gpt finalize-role --workspace /absolute/workspace --carrier-url https://chatgpt.com/g/g-...
-
 	  ${binary} role register https://chatgpt.com/g/g-... --workspace /absolute/workspace
 	  ${binary} role show --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow
 	  ${binary} role list --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow
@@ -107,67 +104,6 @@ function copyToClipboard(value: string) {
 		encoding: "utf8",
 	});
 	if (copied.status !== 0) throw new Error("CLIPBOARD_UNAVAILABLE");
-}
-
-async function finalizeProvisionedRole(workspace: string, carrierUrl: string) {
-	const roleRef = roleRefFromCarrierUrl(carrierUrl);
-	const client = await createWorkspaceRoleSetupClient(workspace);
-	await client.registerRole({
-		agentPackageRef: material.packageName,
-		registeredPackageVersion: material.version,
-		roleRef,
-		carrierUrl,
-	});
-	const registered = client.inspectRole({
-		agentPackageRef: material.packageName,
-		expectedPackageVersion: material.version,
-	});
-	if (registered.status !== "READY" || registered.role?.roleRef !== roleRef)
-		throw new Error("ROLE_REGISTRATION_NOT_READY");
-	const gatewayUrl = await client.gatewayUrl();
-	if (!gatewayUrl) throw new Error("GATEWAY_NOT_READY");
-	const openApiText = await readFile(
-		new URL(`../../${material.actionSchema}`, import.meta.url),
-		"utf8",
-	);
-	const host = await createWorkspaceCustomGptProvisioningHost({
-		workspaceRoot: workspace,
-	});
-	let credential = "";
-	try {
-		credential = (
-			await client.showRoleCredential({
-				agentPackageRef: material.packageName,
-				expectedPackageVersion: material.version,
-			})
-		).credential;
-		const auth = await host.finalizeRoleAuth({ carrierUrl, credential });
-		const carrier = await validateRoleCarrier({
-			gatewayUrl,
-			credential,
-			openApiText,
-		});
-		if (carrier.status !== "PASS")
-			throw new Error(
-				`ROLE_CARRIER_VALIDATION_FAILED:${carrier.issues.join("|")}`,
-			);
-		const owner = client.inspectRole({
-			agentPackageRef: material.packageName,
-			expectedPackageVersion: material.version,
-		});
-		if (owner.status !== "READY" || owner.role?.roleRef !== roleRef)
-			throw new Error("ROLE_OWNER_VALIDATION_FAILED");
-		return {
-			status: "READY" as const,
-			roleRef,
-			carrierUrl,
-			authStatus: auth.status,
-			checks: { owner: "PASS" as const, carrier: "PASS" as const },
-		};
-	} finally {
-		credential = "";
-		await host.close();
-	}
 }
 
 async function runRoleCommand() {
@@ -348,15 +284,6 @@ if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 	await runRoleCommand();
 } else if (args[0] === "custom-gpt") {
 	const command = args[1];
-	if (command === "finalize-role") {
-		const workspace = workspaceRoot();
-		if (!workspace) throw new Error("WORKSPACE_REQUIRED");
-		const carrierUrl = option("--carrier-url");
-		if (!carrierUrl) throw new Error("CUSTOM_GPT_URL_REQUIRED");
-		const result = await finalizeProvisionedRole(workspace, carrierUrl);
-		process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-		process.exit(0);
-	}
 	let gatewayUrl = option("--gateway-url");
 	if (!gatewayUrl && workspaceRoot())
 		gatewayUrl = await (

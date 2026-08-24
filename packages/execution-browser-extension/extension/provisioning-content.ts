@@ -14,12 +14,13 @@ type ProvisioningSurface = {
 
 type ProvisioningCommand = {
 	type: "PROFLOW_PROVISIONING_COMMAND";
-	operation: "PROVISION_CUSTOM_GPT" | "FINALIZE_CUSTOM_GPT_AUTH";
+	operation: "PROVISION_CUSTOM_GPT";
 	request: Record<string, unknown>;
 };
 
 type ChromeRuntime = {
 	runtime: {
+		sendMessage(message: unknown): Promise<unknown>;
 		onMessage: {
 			addListener(
 				listener: (
@@ -79,10 +80,17 @@ function controlFromLabel(label: HTMLLabelElement): HTMLElement | null {
 		const linked = document.getElementById(label.htmlFor);
 		if (linked instanceof HTMLElement) return linked;
 	}
-	const nested = label.querySelector<HTMLElement>(
-		'input, textarea, [contenteditable="true"], [role="textbox"], [role="combobox"]',
-	);
-	return nested;
+	const selector =
+		'input:not([type="file"]), textarea, select, [contenteditable="true"], [role="textbox"], [role="combobox"]';
+	const nested = label.querySelector<HTMLElement>(selector);
+	if (nested) return nested;
+	let scope: HTMLElement | null = label.parentElement;
+	for (let depth = 0; depth < 4 && scope; depth += 1) {
+		const controls = [...scope.querySelectorAll<HTMLElement>(selector)];
+		if (controls.length === 1) return controls[0] ?? null;
+		scope = scope.parentElement;
+	}
+	return null;
 }
 
 function findControl(candidates: readonly string[]): HTMLElement {
@@ -92,7 +100,7 @@ function findControl(candidates: readonly string[]): HTMLElement {
 			if (control) return control;
 		}
 	for (const element of document.querySelectorAll<HTMLElement>(
-		'input, textarea, [contenteditable="true"], [role="textbox"], [role="combobox"]',
+		'input, textarea, select, [contenteditable="true"], [role="textbox"], [role="combobox"]',
 	))
 		if (matchesAny(element, candidates)) return element;
 	throw new Error(`GPT_EDITOR_CONTROL_NOT_FOUND:${candidates[0] ?? "unknown"}`);
@@ -101,12 +109,15 @@ function findControl(candidates: readonly string[]): HTMLElement {
 function setControlValue(element: HTMLElement, value: string): void {
 	if (
 		element instanceof HTMLInputElement ||
-		element instanceof HTMLTextAreaElement
+		element instanceof HTMLTextAreaElement ||
+		element instanceof HTMLSelectElement
 	) {
 		const prototype =
 			element instanceof HTMLInputElement
 				? HTMLInputElement.prototype
-				: HTMLTextAreaElement.prototype;
+				: element instanceof HTMLTextAreaElement
+					? HTMLTextAreaElement.prototype
+					: HTMLSelectElement.prototype;
 		const setter = Object.getOwnPropertyDescriptor(prototype, "value")?.set;
 		if (setter) setter.call(element, value);
 		else element.value = value;
@@ -140,46 +151,65 @@ async function waitForClickable(
 }
 
 const fieldLabels = {
-	displayName: ["Name", "名称"],
-	description: ["Description", "描述"],
+	displayName: ["Name", "名称", "Name your GPT", "为你的 GPT 命名"],
+	description: [
+		"Description",
+		"描述",
+		"Add a short description about what this GPT does",
+		"添加有关此 GPT 的功能的简短描述",
+	],
 	instructions: ["Instructions", "指令"],
 } as const;
 
+async function ensureConfigureMode(): Promise<void> {
+	try {
+		findControl(fieldLabels.displayName);
+		return;
+	} catch {}
+	const configure = await waitForClickable(["Configure", "配置"], 60);
+	configure.click();
+	for (let attempt = 0; attempt < 80; attempt += 1) {
+		try {
+			findControl(fieldLabels.displayName);
+			return;
+		} catch {
+			await sleep(100);
+		}
+	}
+	throw new Error("GPT_EDITOR_CONFIGURE_SURFACE_NOT_READY");
+}
+
 const capabilityLabels: Record<CustomGptCapability, readonly string[]> = {
-	webSearch: ["Web search", "网页搜索", "网络搜索"],
-	imageGeneration: ["Image generation", "图像生成"],
+	webSearch: ["Web search", "网页搜索", "网络搜索", "浏览网页"],
+	imageGeneration: ["Image generation", "图像生成", "图片生成"],
 	codeInterpreter: [
 		"Code Interpreter & Data Analysis",
 		"Code Interpreter",
 		"Data Analysis",
 		"代码解释器",
+		"代码解译器",
 	],
 };
 
 async function replaceConversationStarters(values: readonly string[]) {
-	let controls = [
-		...document.querySelectorAll<HTMLElement>("input, textarea"),
-	].filter((element) =>
-		matchesAny(element, ["Conversation starter", "对话开场白"]),
+	const label = [...document.querySelectorAll<HTMLLabelElement>("label")].find(
+		(element) => matchesAny(element, ["Conversation starter", "对话开场白"]),
 	);
-	while (controls.length < values.length) {
-		const add = clickable([
-			"Add conversation starter",
-			"Add starter",
-			"添加对话开场白",
-		]);
-		if (!add) break;
-		add.click();
-		await sleep(100);
+	if (!label) throw new Error("GPT_EDITOR_STARTER_CONTROL_NOT_FOUND");
+	let scope: HTMLElement | null = label.parentElement;
+	let controls: HTMLElement[] = [];
+	for (let depth = 0; depth < 4 && scope; depth += 1) {
 		controls = [
-			...document.querySelectorAll<HTMLElement>("input, textarea"),
-		].filter((element) =>
-			matchesAny(element, ["Conversation starter", "对话开场白"]),
-		);
+			...scope.querySelectorAll<HTMLElement>(
+				'input[type="text"], textarea:not([data-testid="gizmo-instructions-input"])',
+			),
+		];
+		if (controls.length >= values.length) break;
+		scope = scope.parentElement;
 	}
 	if (controls.length < values.length)
 		throw new Error("GPT_EDITOR_STARTER_CONTROL_NOT_FOUND");
-	for (let index = 0; index < controls.length; index += 1)
+	for (let index = 0; index < values.length; index += 1)
 		setControlValue(controls[index] as HTMLElement, values[index] ?? "");
 }
 
@@ -188,25 +218,20 @@ function currentGptId(): string | null {
 	return match?.[1] ?? null;
 }
 
-function carrierGptId(value: unknown): string {
-	if (typeof value !== "string") throw new Error("ROLE_CARRIER_URL_INVALID");
-	const url = new URL(value);
-	const match = /^\/g\/(g-[A-Za-z0-9_-]+)$/.exec(url.pathname);
-	if (
-		url.origin !== "https://chatgpt.com" ||
-		url.username !== "" ||
-		url.password !== "" ||
-		url.search !== "" ||
-		url.hash !== "" ||
-		!match?.[1]
-	)
-		throw new Error("ROLE_CARRIER_URL_INVALID");
-	return match[1];
-}
-
 async function knowledgeFileInput(): Promise<HTMLInputElement> {
-	let input = document.querySelector<HTMLInputElement>('input[type="file"]');
-	if (input) return input;
+	const label = [...document.querySelectorAll<HTMLLabelElement>("label")].find(
+		(element) => matchesAny(element, ["Knowledge", "知识"]),
+	);
+	if (label) {
+		let scope: HTMLElement | null = label.parentElement;
+		for (let depth = 0; depth < 4 && scope; depth += 1) {
+			const inputs = [
+				...scope.querySelectorAll<HTMLInputElement>('input[type="file"]'),
+			];
+			if (inputs.length === 1) return inputs[0] as HTMLInputElement;
+			scope = scope.parentElement;
+		}
+	}
 	const upload = clickable([
 		"Upload files",
 		"Upload file",
@@ -216,11 +241,34 @@ async function knowledgeFileInput(): Promise<HTMLInputElement> {
 	]);
 	if (upload) upload.click();
 	for (let attempt = 0; attempt < 40; attempt += 1) {
-		input = document.querySelector<HTMLInputElement>('input[type="file"]');
-		if (input) return input;
+		const candidates = [
+			...document.querySelectorAll<HTMLInputElement>('input[type="file"]'),
+		];
+		if (candidates.length === 1) return candidates[0] as HTMLInputElement;
 		await sleep(100);
 	}
 	throw new Error("GPT_EDITOR_KNOWLEDGE_INPUT_NOT_FOUND");
+}
+
+async function fetchKnowledgeRelay(url: string): Promise<ArrayBuffer> {
+	const result = await chrome.runtime.sendMessage({
+		type: "PROFLOW_PROVISIONING_RELAY_FETCH",
+		url,
+	});
+	if (typeof result !== "object" || result === null)
+		throw new Error("KNOWLEDGE_RELAY_BACKGROUND_INVALID");
+	const record = result as Record<string, unknown>;
+	if (record.ok !== true || typeof record.base64 !== "string")
+		throw new Error(
+			typeof record.error === "string"
+				? record.error
+				: "KNOWLEDGE_RELAY_BACKGROUND_FAILED",
+		);
+	const binary = atob(record.base64);
+	const bytes = new Uint8Array(binary.length);
+	for (let index = 0; index < binary.length; index += 1)
+		bytes[index] = binary.charCodeAt(index);
+	return bytes.buffer;
 }
 
 async function sha256Bytes(bytes: ArrayBuffer): Promise<string> {
@@ -241,10 +289,7 @@ async function waitForKnowledgeName(name: string): Promise<void> {
 async function uploadKnowledge(files: readonly CustomGptKnowledgeFile[]) {
 	for (const descriptor of files) {
 		const input = await knowledgeFileInput();
-		const response = await fetch(descriptor.url, { cache: "no-store" });
-		if (!response.ok)
-			throw new Error(`KNOWLEDGE_RELAY_FETCH_FAILED:${response.status}`);
-		const bytes = await response.arrayBuffer();
+		const bytes = await fetchKnowledgeRelay(descriptor.url);
 		if (bytes.byteLength !== descriptor.sizeBytes)
 			throw new Error("KNOWLEDGE_RELAY_SIZE_MISMATCH");
 		if ((await sha256Bytes(bytes)) !== descriptor.sha256)
@@ -260,15 +305,32 @@ async function uploadKnowledge(files: readonly CustomGptKnowledgeFile[]) {
 }
 
 async function createPrivateGpt() {
-	(await waitForClickable(["Create", "创建"])).click();
-	const onlyMe = await waitForClickable(["Only me", "只有我"]);
-	const checked = onlyMe.getAttribute("aria-checked");
-	if (checked !== "true") onlyMe.click();
-	(await waitForClickable(["Save", "保存"])).click();
+	let createButton: HTMLElement | null = null;
+	for (let attempt = 0; attempt < 80; attempt += 1) {
+		createButton =
+			[
+				...document.querySelectorAll<HTMLElement>('button, [role="button"]'),
+			].find(
+				(element) =>
+					matchesAny(element, ["Create", "创建"]) &&
+					!element.hasAttribute("disabled") &&
+					element.getAttribute("aria-disabled") !== "true",
+			) ?? null;
+		if (createButton) break;
+		await sleep(100);
+	}
+	if (!createButton) throw new Error("GPT_EDITOR_CREATE_BUTTON_NOT_FOUND");
+	createButton.click();
+	const onlyMe = await waitForDialogClickable(["Only me", "只有我"]);
+	if (onlyMe.getAttribute("aria-checked") !== "true") onlyMe.click();
+	(await waitForDialogClickable(["Save", "保存"])).click();
 	for (let attempt = 0; attempt < 80; attempt += 1) {
 		const gptId = currentGptId();
+		const text = normalize(document.body.textContent);
+		const saved =
+			text.includes("settings saved") || text.includes("设置已保存");
 		const liveMarker = clickable(["Update", "更新", "Share", "分享"]);
-		if (gptId && liveMarker)
+		if (gptId && (saved || liveMarker))
 			return { gptId, carrierUrl: `https://chatgpt.com/g/${gptId}` };
 		await sleep(125);
 	}
@@ -296,34 +358,6 @@ async function waitForDialogClickable(candidates: readonly string[]) {
 	);
 }
 
-async function finalizeBearerAuth(credential: string) {
-	if (credential.length < 32) throw new Error("ROLE_CREDENTIAL_INVALID");
-	(await waitForClickable(["Authentication", "身份验证", "认证"])).click();
-	const apiKey = await waitForDialogClickable(["API Key", "API 密钥"]);
-	if (apiKey.getAttribute("aria-checked") !== "true") apiKey.click();
-	const bearer = await waitForDialogClickable(["Bearer"]);
-	if (bearer.getAttribute("aria-checked") !== "true") bearer.click();
-	const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-	if (!dialog) throw new Error("GPT_EDITOR_AUTH_DIALOG_NOT_FOUND");
-	const keyInput = dialog.querySelector<HTMLInputElement>(
-		'input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"])',
-	);
-	if (!keyInput) throw new Error("GPT_EDITOR_AUTH_KEY_INPUT_NOT_FOUND");
-	setControlValue(keyInput, credential);
-	(await waitForDialogClickable(["Save", "保存"])).click();
-	(await waitForClickable(["Update", "更新"])).click();
-	for (let attempt = 0; attempt < 80; attempt += 1) {
-		const text = normalize(document.body.textContent);
-		if (text.includes("settings saved") || text.includes("设置已保存")) {
-			const gptId = currentGptId();
-			if (!gptId) throw new Error("GPT_EDITOR_GPT_ID_MISSING");
-			return { status: "AUTH_UPDATED" as const, gptId };
-		}
-		await sleep(125);
-	}
-	throw new Error("GPT_EDITOR_AUTH_UPDATE_TIMEOUT");
-}
-
 const domPort: CustomGptEditorPort = {
 	async setTextField(field, value) {
 		setControlValue(findControl(fieldLabels[field]), value);
@@ -332,10 +366,34 @@ const domPort: CustomGptEditorPort = {
 		await replaceConversationStarters(values);
 	},
 	async selectRecommendedModel(value) {
-		const selector = findControl(["Recommended model", "推荐模型", value]);
+		const selector = findControl([
+			"Recommended model",
+			"推荐模型",
+			"推荐的模型",
+			value,
+		]);
+		if (selector instanceof HTMLSelectElement) {
+			let option: HTMLOptionElement | undefined;
+			const normalizedValue = normalize(value);
+			for (let attempt = 0; attempt < 150; attempt += 1) {
+				option = [...selector.options].find((candidate) => {
+					const optionText = normalize(candidate.textContent);
+					return (
+						candidate.value === value ||
+						optionText === normalizedValue ||
+						optionText.endsWith(`(${normalizedValue})`)
+					);
+				});
+				if (option) break;
+				await sleep(100);
+			}
+			if (!option)
+				throw new Error(`GPT_EDITOR_MODEL_OPTION_NOT_FOUND:${value}`);
+			setControlValue(selector, option.value);
+			return;
+		}
 		selector.click();
-		const option = await waitForClickable([value]);
-		option.click();
+		(await waitForClickable([value])).click();
 	},
 	async setCapability(capability, enabled) {
 		const labels = capabilityLabels[capability];
@@ -347,10 +405,16 @@ const domPort: CustomGptEditorPort = {
 		}
 		if (control instanceof HTMLInputElement && control.type === "checkbox") {
 			if (control.checked !== enabled) control.click();
+			if (control.checked !== enabled)
+				throw new Error(
+					`GPT_EDITOR_CAPABILITY_READBACK_MISMATCH:${capability}`,
+				);
 			return;
 		}
-		const checked = control.getAttribute("aria-checked");
-		if ((checked === "true") !== enabled) control.click();
+		if ((control.getAttribute("aria-checked") === "true") !== enabled)
+			control.click();
+		if ((control.getAttribute("aria-checked") === "true") !== enabled)
+			throw new Error(`GPT_EDITOR_CAPABILITY_READBACK_MISMATCH:${capability}`);
 	},
 	async uploadKnowledge(files) {
 		await uploadKnowledge(files);
@@ -358,21 +422,68 @@ const domPort: CustomGptEditorPort = {
 	async installActionSchema(value) {
 		let schema: HTMLElement | null = null;
 		try {
-			schema = findControl(["OpenAPI schema", "Schema", "OpenAPI"]);
+			schema = findControl(["OpenAPI schema", "Schema", "OpenAPI", "架构"]);
 		} catch {
 			const create = clickable([
 				"Create new action",
 				"New action",
 				"创建新操作",
 			]);
-			if (create) {
-				create.click();
-				await sleep(150);
-				schema = findControl(["OpenAPI schema", "Schema", "OpenAPI"]);
+			if (!create) throw new Error("GPT_EDITOR_ACTION_CREATE_NOT_FOUND");
+			create.click();
+			for (let attempt = 0; attempt < 200; attempt += 1) {
+				schema = document.querySelector<HTMLElement>(
+					'textarea[placeholder*="OpenAPI"]',
+				);
+				if (schema) break;
+				try {
+					schema = findControl([
+						"在此处输入你的 OpenAPI 架构",
+						"OpenAPI schema",
+						"Schema",
+						"OpenAPI",
+						"架构",
+					]);
+					break;
+				} catch {
+					await sleep(100);
+				}
 			}
 		}
 		if (!schema) throw new Error("GPT_EDITOR_ACTION_SCHEMA_NOT_FOUND");
 		setControlValue(schema, value);
+		await sleep(250);
+		let back: HTMLButtonElement | undefined;
+		for (let attempt = 0; attempt < 80; attempt += 1) {
+			back = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+				(button) => {
+					if ((button.textContent ?? "").trim().length > 0) return false;
+					const context = normalize(
+						button.parentElement?.parentElement?.textContent ?? "",
+					);
+					return (
+						context.includes("add action") ||
+						context.includes("添加操作") ||
+						context.includes("edit action") ||
+						context.includes("编辑操作")
+					);
+				},
+			);
+			if (back) break;
+			await sleep(100);
+		}
+		if (!back) throw new Error("GPT_EDITOR_ACTION_BACK_NOT_FOUND");
+		back.click();
+		for (let attempt = 0; attempt < 80; attempt += 1) {
+			if (
+				[...document.querySelectorAll("label")].some((label) =>
+					matchesAny(label, ["Knowledge", "知识"]),
+				)
+			)
+				return;
+			await sleep(100);
+		}
+		throw new Error("GPT_EDITOR_CONFIGURE_RETURN_TIMEOUT");
 	},
 	async createPrivate() {
 		return createPrivateGpt();
@@ -389,34 +500,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 	}
 	void (async () => {
 		try {
-			if (message.operation === "PROVISION_CUSTOM_GPT") {
-				const material = parseCustomGptProvisioningRequest(message.request);
-				const result = await editorDriver.provision(material);
-				sendResponse({
-					ok: true,
-					value: {
-						...result,
-						provisioningInstanceId: provisioningSurface.instanceId,
-						url: location.href,
-					},
-				});
-				return;
-			}
-			if (message.operation !== "FINALIZE_CUSTOM_GPT_AUTH")
-				throw new Error("PROVISIONING_OPERATION_UNSUPPORTED");
-			const expectedGptId = carrierGptId(message.request.carrierUrl);
-			let credential = message.request.credential;
-			delete message.request.credential;
-			if (typeof credential !== "string" || credential.length < 32)
-				throw new Error("ROLE_CREDENTIAL_INVALID");
-			try {
-				const result = await finalizeBearerAuth(credential);
-				if (result.gptId !== expectedGptId)
-					throw new Error("GPT_EDITOR_AUTH_TARGET_MISMATCH");
-				sendResponse({ ok: true, value: result });
-			} finally {
-				credential = "";
-			}
+			await ensureConfigureMode();
+			const material = parseCustomGptProvisioningRequest(message.request);
+			const result = await editorDriver.provision(material);
+			sendResponse({
+				ok: true,
+				value: {
+					...result,
+					provisioningInstanceId: provisioningSurface.instanceId,
+					url: location.href,
+				},
+			});
 		} catch (error) {
 			sendResponse({
 				ok: false,

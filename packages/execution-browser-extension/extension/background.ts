@@ -36,10 +36,12 @@ type RuntimeMessage = {
 		| "PROFLOW_CONTENT_OBSERVATION"
 		| "PROFLOW_SIDE_PANEL_SNAPSHOT"
 		| "PROFLOW_TASK_APPLICATION"
-		| "PROFLOW_APPROVAL_APPLICATION";
+		| "PROFLOW_APPROVAL_APPLICATION"
+		| "PROFLOW_PROVISIONING_RELAY_FETCH";
 	observation?: Omit<ContentObservation, "tabId" | "windowId">;
 	operation?: string;
 	input?: Record<string, unknown>;
+	url?: string;
 };
 type BridgeConfig = { endpoint: string; token: string };
 type BridgeCommand = {
@@ -67,9 +69,7 @@ type ContentCommand = {
 	value?: string;
 	fingerprint?: string;
 };
-type ProvisioningOperation =
-	| "PROVISION_CUSTOM_GPT"
-	| "FINALIZE_CUSTOM_GPT_AUTH";
+type ProvisioningOperation = "PROVISION_CUSTOM_GPT";
 type ProvisioningBridgeCommand = {
 	commandId: string;
 	type: ProvisioningOperation;
@@ -834,24 +834,30 @@ async function provisioningContentCommand(
 	request: Record<string, unknown>,
 ): Promise<unknown> {
 	for (let attempt = 0; attempt < 60; attempt += 1) {
+		let response: unknown;
 		try {
-			const response = await chrome.tabs.sendMessage(tabId, {
+			response = await chrome.tabs.sendMessage(tabId, {
 				type: "PROFLOW_PROVISIONING_COMMAND",
 				operation,
 				request,
 			});
-			if (!isRecord(response) || response.ok !== true) {
-				const detail =
-					isRecord(response) && typeof response.error === "string"
-						? response.error
-						: "PROVISIONING_CONTENT_FAILED";
-				throw new Error(detail);
-			}
-			return response.value;
 		} catch (error) {
 			if (attempt === 59) throw error;
 			await sleep(250);
+			continue;
 		}
+		if (!isRecord(response) || response.ok !== true) {
+			const detail =
+				isRecord(response) && typeof response.error === "string"
+					? response.error
+					: "PROVISIONING_CONTENT_FAILED";
+			if (detail === "PROVISIONING_SURFACE_NOT_READY" && attempt < 59) {
+				await sleep(250);
+				continue;
+			}
+			throw new Error(detail);
+		}
+		return response.value;
 	}
 	throw new Error("PROVISIONING_CONTENT_TIMEOUT");
 }
@@ -861,32 +867,7 @@ async function executeProvisioningCommand(
 ): Promise<unknown> {
 	if (!isRecord(command.request))
 		throw new Error("PROVISIONING_COMMAND_INVALID");
-	let editorUrl: string;
-	if (command.type === "PROVISION_CUSTOM_GPT") {
-		const requestedUrl = command.request.editorUrl;
-		editorUrl =
-			typeof requestedUrl === "string" && requestedUrl.length > 0
-				? requestedUrl
-				: "https://chatgpt.com/gpts/editor/";
-		const parsed = new URL(editorUrl);
-		if (
-			parsed.protocol !== "https:" ||
-			parsed.hostname !== "chatgpt.com" ||
-			!parsed.pathname.startsWith("/gpts/editor")
-		)
-			throw new Error("PROVISIONING_EDITOR_URL_SCOPE_DENIED");
-	} else {
-		const carrierUrl = new URL(text(command.request.carrierUrl, "CARRIER_URL"));
-		const match = /^\/g\/(g-[A-Za-z0-9_-]+)$/.exec(carrierUrl.pathname);
-		if (
-			carrierUrl.origin !== "https://chatgpt.com" ||
-			carrierUrl.search !== "" ||
-			carrierUrl.hash !== "" ||
-			!match?.[1]
-		)
-			throw new Error("PROVISIONING_CARRIER_URL_INVALID");
-		editorUrl = `https://chatgpt.com/gpts/editor/${match[1]}`;
-	}
+	const editorUrl = "https://chatgpt.com/gpts/editor";
 	const tab = await chrome.tabs.create({ url: editorUrl, active: true });
 	return provisioningContentCommand(
 		numeric(tab.id, "TAB_ID"),
@@ -1048,6 +1029,13 @@ async function runProvisioningBridgeLoop() {
 				}
 				if (!response.ok) throw new Error("PROVISIONING_BRIDGE_POLL_REJECTED");
 				const command = (await response.json()) as ProvisioningBridgeCommand;
+				const commandHeartbeat = setInterval(() => {
+					void bridgeFetch(
+						config,
+						`/v1/provisioning/session/heartbeat${query}`,
+						{ method: "POST", body: "{}" },
+					).catch(() => undefined);
+				}, 2_000);
 				let result: Record<string, unknown>;
 				try {
 					result = {
@@ -1064,6 +1052,8 @@ async function runProvisioningBridgeLoop() {
 								? error.message
 								: "PROVISIONING_EXTENSION_COMMAND_FAILED",
 					};
+				} finally {
+					clearInterval(commandHeartbeat);
 				}
 				const reported = await bridgeFetch(
 					config,
@@ -1079,7 +1069,58 @@ async function runProvisioningBridgeLoop() {
 	}
 }
 
+function provisioningRelayBase64(bytes: Uint8Array): string {
+	let binary = "";
+	for (let offset = 0; offset < bytes.length; offset += 0x8000)
+		binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+	return btoa(binary);
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	if (message.type === "PROFLOW_PROVISIONING_RELAY_FETCH") {
+		const rawUrl = typeof message.url === "string" ? message.url : "";
+		let parsed: URL;
+		try {
+			parsed = new URL(rawUrl);
+		} catch {
+			sendResponse({ ok: false, error: "KNOWLEDGE_RELAY_URL_INVALID" });
+			return;
+		}
+		if (
+			parsed.protocol !== "http:" ||
+			parsed.hostname !== "127.0.0.1" ||
+			!parsed.pathname.startsWith("/v1/provisioning/files/") ||
+			parsed.username !== "" ||
+			parsed.password !== "" ||
+			parsed.search !== "" ||
+			parsed.hash !== ""
+		) {
+			sendResponse({ ok: false, error: "KNOWLEDGE_RELAY_URL_INVALID" });
+			return;
+		}
+		void fetch(parsed.toString(), { cache: "no-store" }).then(
+			async (response) => {
+				if (!response.ok) {
+					sendResponse({
+						ok: false,
+						error: `KNOWLEDGE_RELAY_FETCH_FAILED:${response.status}`,
+					});
+					return;
+				}
+				const bytes = new Uint8Array(await response.arrayBuffer());
+				sendResponse({ ok: true, base64: provisioningRelayBase64(bytes) });
+			},
+			(error: unknown) =>
+				sendResponse({
+					ok: false,
+					error:
+						error instanceof Error
+							? `KNOWLEDGE_RELAY_FETCH_FAILED:${error.message}`
+							: "KNOWLEDGE_RELAY_FETCH_FAILED",
+				}),
+		);
+		return true;
+	}
 	if (
 		message.type === "PROFLOW_CONTENT_OBSERVATION" &&
 		message.observation &&

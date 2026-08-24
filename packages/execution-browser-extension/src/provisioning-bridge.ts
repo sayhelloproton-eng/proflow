@@ -7,7 +7,7 @@ import {
 } from "node:http";
 
 export type CustomGptProvisioningCommandInput = {
-	type: "PROVISION_CUSTOM_GPT" | "FINALIZE_CUSTOM_GPT_AUTH";
+	type: "PROVISION_CUSTOM_GPT";
 	request: Record<string, unknown>;
 };
 
@@ -164,13 +164,17 @@ export async function createCustomGptProvisioningBridgeServer(
 		| undefined;
 	let closed = false;
 
-	const authenticate = (request: IncomingMessage) => {
+	const authenticate = (request: IncomingMessage, url: URL) => {
 		const authorization = request.headers.authorization;
 		const origin = request.headers.origin;
+		const originlessCommandPoll =
+			request.method === "GET" &&
+			url.pathname === "/v1/provisioning/commands/next" &&
+			(origin === undefined || origin === "null");
 		if (
 			!authorization?.startsWith("Bearer ") ||
 			!safeEqual(authorization.slice(7), options.token) ||
-			origin !== expectedOrigin
+			(!originlessCommandPoll && origin !== expectedOrigin)
 		) {
 			throw new CustomGptProvisioningBridgeError(
 				"PROVISIONING_AUTH_INVALID",
@@ -209,7 +213,11 @@ export async function createCustomGptProvisioningBridgeServer(
 					"https://chatgpt.com",
 				);
 				response.setHeader("vary", "origin");
-				if (request.headers.origin !== "https://chatgpt.com")
+				if (
+					request.headers.origin !== undefined &&
+					request.headers.origin !== "https://chatgpt.com" &&
+					request.headers.origin !== expectedOrigin
+				)
 					throw new CustomGptProvisioningBridgeError(
 						"PROVISIONING_AUTH_INVALID",
 						"provisioning file relay origin is invalid",
@@ -260,7 +268,7 @@ export async function createCustomGptProvisioningBridgeServer(
 				response.end();
 				return;
 			}
-			authenticate(request);
+			authenticate(request, url);
 			if (
 				request.method === "POST" &&
 				url.pathname === "/v1/provisioning/session/hello"
@@ -376,12 +384,7 @@ export async function createCustomGptProvisioningBridgeServer(
 		now().getTime() - session.lastHeartbeatAt <= freshnessMs;
 
 	const requestProvisioning = (input: CustomGptProvisioningCommandInput) => {
-		if (
-			!new Set(["PROVISION_CUSTOM_GPT", "FINALIZE_CUSTOM_GPT_AUTH"]).has(
-				input.type,
-			) ||
-			!isRecord(input.request)
-		) {
+		if (input.type !== "PROVISION_CUSTOM_GPT" || !isRecord(input.request)) {
 			return Promise.reject(
 				new CustomGptProvisioningBridgeError(
 					"PROVISIONING_INPUT_INVALID",

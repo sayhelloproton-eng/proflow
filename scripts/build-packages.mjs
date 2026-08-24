@@ -71,6 +71,36 @@ try {
 		);
 	}
 
+	// GPT provisioning is also a manifest content script, but it imports the
+	// shared editor driver. Bundle it as a classic IIFE so Chrome never sees ESM.
+	const provisioningContent = join(
+		packagesRoot,
+		"execution-browser-extension",
+		"dist",
+		"extension",
+		"provisioning-content.js",
+	);
+	execFileSync(
+		"pnpm",
+		[
+			"exec",
+			"esbuild",
+			"packages/execution-browser-extension/extension/provisioning-content.ts",
+			"--bundle",
+			"--platform=browser",
+			"--format=iife",
+			"--target=chrome120",
+			"--tsconfig=tsconfig.build.json",
+			`--outfile=${provisioningContent}`,
+			"--log-level=warning",
+		],
+		{ cwd: repositoryRoot, stdio: "inherit" },
+	);
+	const provisioningBundle = readFileSync(provisioningContent, "utf8");
+	if (/(?:^|\n)\s*(?:import|export)\s/m.test(provisioningBundle)) {
+		throw new Error("browser provisioning content bundle contains ESM syntax");
+	}
+
 	// MV3 content scripts are loaded as classic scripts (no `type: module`), so
 	// they must not contain ES module syntax. The monorepo compiles under
 	// `module: NodeNext`, which appends an `export {};` marker to files that have
