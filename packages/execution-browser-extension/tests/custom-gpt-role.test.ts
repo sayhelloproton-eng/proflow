@@ -215,10 +215,6 @@ test("createCustomGptRole serializes simultaneous creates inside one workspace t
 							await new Promise((resolveWait) => setTimeout(resolveWait, 10));
 							return liveResult(value.material.packageName);
 						},
-						async finalizeRoleAuth(value) {
-							const gptId = value.carrierUrl.split("/").at(-1) ?? "";
-							return { status: "AUTH_UPDATED" as const, gptId };
-						},
 						async close() {
 							activeHosts--;
 						},
@@ -246,10 +242,6 @@ test("createCustomGptRole continues the workspace queue after a failed create", 
 					async provisionPackage(value) {
 						if (call === 1) throw new Error("FIRST_CREATE_FAILED");
 						return liveResult(value.material.packageName);
-					},
-					async finalizeRoleAuth(value) {
-						const gptId = value.carrierUrl.split("/").at(-1) ?? "";
-						return { status: "AUTH_UPDATED" as const, gptId };
 					},
 					async close() {},
 				};

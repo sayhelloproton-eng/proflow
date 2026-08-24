@@ -885,7 +885,11 @@ async function provisioningContentCommand(
 				isRecord(response) && typeof response.error === "string"
 					? response.error
 					: "PROVISIONING_CONTENT_FAILED";
-			if (detail === "PROVISIONING_SURFACE_NOT_READY" && attempt < 59) {
+			if (
+				(detail === "PROVISIONING_SURFACE_NOT_READY" ||
+					detail === "GPT_EDITOR_CONFIGURE_SURFACE_NOT_READY") &&
+				attempt < 59
+			) {
 				await sleep(250);
 				continue;
 			}
