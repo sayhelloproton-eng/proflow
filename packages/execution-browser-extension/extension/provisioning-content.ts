@@ -348,6 +348,14 @@ function semanticValues(element: Element): string[] {
 		.map(normalize);
 }
 
+function matchesExactSemantic(
+	element: Element,
+	candidates: readonly string[],
+): boolean {
+	const expected = new Set(candidates.map(normalize));
+	return semanticValues(element).some((value) => expected.has(value));
+}
+
 function matchesBoundedSemantic(
 	element: Element,
 	candidates: readonly string[],
@@ -448,6 +456,20 @@ async function waitForPrivateCreateAction(
 	throw new Error("GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND");
 }
 
+async function waitForPublishCreateButton(attempts = 80): Promise<HTMLElement> {
+	for (let attempt = 0; attempt < attempts; attempt += 1) {
+		const button = [
+			...document.querySelectorAll<HTMLElement>('button, [role="button"]'),
+		].find(
+			(element) =>
+				available(element) && matchesExactSemantic(element, ["Create", "创建"]),
+		);
+		if (button) return button;
+		await sleep(100);
+	}
+	throw new Error("GPT_EDITOR_CREATE_BUTTON_NOT_FOUND");
+}
+
 async function openPrivateCreateSurface(
 	initialCreateButton: HTMLElement,
 ): Promise<void> {
@@ -457,7 +479,7 @@ async function openPrivateCreateSurface(
 	for (let attempt = 0; attempt < 80; attempt += 1) {
 		if (privateVisibilityControl()) return;
 		if (currentGptId()) {
-			(await waitForClickable(["Create", "创建"], 80)).click();
+			(await waitForPublishCreateButton()).click();
 			return;
 		}
 		await sleep(100);
@@ -485,21 +507,7 @@ async function finalizePrivateCreateSurface(initialCreateButton?: HTMLElement) {
 }
 
 async function createPrivateGpt() {
-	let createButton: HTMLElement | null = null;
-	for (let attempt = 0; attempt < 80; attempt += 1) {
-		createButton =
-			[
-				...document.querySelectorAll<HTMLElement>('button, [role="button"]'),
-			].find(
-				(element) =>
-					matchesAny(element, ["Create", "创建"]) &&
-					!element.hasAttribute("disabled") &&
-					element.getAttribute("aria-disabled") !== "true",
-			) ?? null;
-		if (createButton) break;
-		await sleep(100);
-	}
-	if (!createButton) throw new Error("GPT_EDITOR_CREATE_BUTTON_NOT_FOUND");
+	const createButton = await waitForPublishCreateButton();
 	await openPrivateCreateSurface(createButton);
 	return finalizePrivateCreateSurface(createButton);
 }

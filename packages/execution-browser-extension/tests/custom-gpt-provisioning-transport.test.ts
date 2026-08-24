@@ -210,6 +210,9 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /PROFLOW_PROVISIONING_FINALIZE_CREATE/);
 	assert.match(content, /chrome\.runtime\.onMessage\.addListener/);
 	assert.match(content, /GPT_EDITOR_CREATE_BUTTON_NOT_FOUND/);
+	assert.match(content, /matchesExactSemantic/);
+	assert.match(content, /waitForPublishCreateButton/);
+	assert.doesNotMatch(content, /matchesAny\(element, \["Create", "创建"\]\)/);
 	assert.match(content, /candidate\.value === value/);
 	assert.match(content, /attempt < 150/);
 	assert.match(content, /"Only me"/);
@@ -229,7 +232,7 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /async function openPrivateCreateSurface/);
 	assert.match(content, /const initialGptId = currentGptId\(\)/);
 	assert.match(content, /if \(currentGptId\(\)\) \{/);
-	assert.match(content, /waitForClickable\(\["Create", "创建"\], 80\)/);
+	assert.match(content, /waitForPublishCreateButton/);
 	assert.match(build, /provisioning-content\.ts/);
 	assert.match(build, /--format=iife/);
 	assert.doesNotMatch(
