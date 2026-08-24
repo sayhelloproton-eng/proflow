@@ -608,10 +608,36 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 				}
 				throw error;
 			}
+			let rollbackAvailable = true;
 			return {
 				role,
 				credential,
 				replacedRoleRef: previousRole?.roleRef ?? null,
+				async rollback() {
+					if (!rollbackAvailable)
+						throw new AgentRuntimeError("ROLE_ROLLBACK_CONSUMED");
+					const currentRole = [...roles.values()].find(
+						(candidate) => candidate.agentPackageRef === input.agentPackageRef,
+					);
+					if (currentRole?.roleRef !== role.roleRef)
+						throw new AgentRuntimeError("ROLE_ROLLBACK_STALE");
+					roles.clear();
+					for (const [roleRef, value] of previousRoles)
+						roles.set(roleRef, value);
+					credentials.clear();
+					for (const [roleRef, value] of previousCredentials)
+						credentials.set(roleRef, value);
+					try {
+						await persistCredentialSnapshot(previousCredentials);
+						await persistRoles();
+					} catch {
+						throw new AgentRuntimeError(
+							"ROLE_STORE_HALF_STATE",
+							"Durable role/credential stores diverged while rolling back current-role activation.",
+						);
+					}
+					rollbackAvailable = false;
+				},
 			};
 		},
 		async deleteRole(roleRef: string) {

@@ -28,7 +28,7 @@ export type CustomGptRoleRegistryPort = {
 	saveRole(
 		input: CustomGptRoleRecordInput,
 		preparedCredential: string,
-	): Promise<{ credential: string }>;
+	): Promise<{ credential: string; rollback(): Promise<void> }>;
 	deleteRole(roleRef: string): Promise<void>;
 	inspectRole(input: {
 		agentPackageRef: string;
@@ -117,7 +117,7 @@ export async function createCustomGptRole(
 				: { onlineTimeoutMs: input.onlineTimeoutMs }),
 		});
 		let result: CustomGptProvisioningResult | undefined;
-		let persistedRoleRef: string | undefined;
+		let rollbackSavedRole: (() => Promise<void>) | undefined;
 		let credential = "";
 		try {
 			const prepared = await ports.roleRegistry.prepareCredential();
@@ -145,12 +145,12 @@ export async function createCustomGptRole(
 				},
 				credential,
 			);
+			rollbackSavedRole = saved.rollback;
 			if (typeof saved.credential !== "string" || saved.credential.length < 32)
 				throw new Error("WORKSPACE_ROLE_CREDENTIAL_INVALID");
 			if (saved.credential !== credential)
 				throw new Error("WORKSPACE_ROLE_CREDENTIAL_MISMATCH");
 			credential = saved.credential;
-			persistedRoleRef = result.gptId;
 
 			const persisted = ports.roleRegistry.inspectRole({
 				agentPackageRef: result.packageName,
@@ -173,9 +173,9 @@ export async function createCustomGptRole(
 			});
 			return result;
 		} catch (error) {
-			if (persistedRoleRef !== undefined) {
+			if (rollbackSavedRole) {
 				try {
-					await ports.roleRegistry.deleteRole(persistedRoleRef);
+					await rollbackSavedRole();
 				} catch {
 					throw new Error("WORKSPACE_ROLE_ROLLBACK_FAILED");
 				}

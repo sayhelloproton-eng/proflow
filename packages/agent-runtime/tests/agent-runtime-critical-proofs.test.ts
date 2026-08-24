@@ -187,6 +187,37 @@ test("CP-AGT-RUNTIME-01A deployment save replaces only the package current role"
 	) as Record<string, string>;
 	assert.equal(credentials["g-dev"], undefined);
 	assert.equal(credentials["g-dev-2"], saved.credential);
+
+	await saved.rollback();
+	assert.equal(runtime.getRegisteredRole("g-dev").roleRef, "g-dev");
+	assert.throws(() => runtime.getRegisteredRole("g-dev-2"), /ROLE_NOT_FOUND/);
+	assert.equal(
+		await runtime.authenticateBearer(oldCredential.credential),
+		"g-dev",
+	);
+	await assert.rejects(
+		() => runtime.authenticateBearer(saved.credential),
+		/AUTHENTICATION_FAILED/,
+	);
+	const rolledBackRoles = JSON.parse(
+		await readFile(join(proflowRoot, "agent/roles.json"), "utf8"),
+	) as Array<{ agentPackageRef: string; roleRef: string }>;
+	assert.equal(
+		rolledBackRoles.find(
+			(role) =>
+				role.agentPackageRef === "@tomflow/proflow-agent-controller-dev",
+		)?.roleRef,
+		"g-dev",
+	);
+	const rolledBackCredentials = JSON.parse(
+		await readFile(
+			join(proflowRoot, "agent/secrets/role-credentials.json"),
+			"utf8",
+		),
+	) as Record<string, string>;
+	assert.equal(rolledBackCredentials["g-dev"], oldCredential.credential);
+	assert.equal(rolledBackCredentials["g-dev-2"], undefined);
+	await assert.rejects(() => saved.rollback(), /ROLE_ROLLBACK_CONSUMED/);
 });
 test("CP-AGT-RUNTIME-02 one credential rotates without role identity or secret leakage", async (context) => {
 	const { runtime, proflowRoot } = await fixture(context);

@@ -54,6 +54,7 @@ function registry(
 		onSave?: () => void;
 		onInspect?: () => void;
 		onDelete?: (roleRef: string) => void;
+		onRollback?: () => void;
 	} = {},
 ) {
 	const saved = new Map<string, { roleRef: string; carrierUrl: string }>();
@@ -64,11 +65,22 @@ function registry(
 		},
 		async saveRole(value, preparedCredential) {
 			options.onSave?.();
+			const previous = saved.get(value.agentPackageRef);
 			saved.set(value.agentPackageRef, {
 				roleRef: value.roleRef,
 				carrierUrl: value.carrierUrl,
 			});
-			return { credential: preparedCredential ?? credential };
+			let rollbackAvailable = true;
+			return {
+				credential: preparedCredential,
+				async rollback() {
+					if (!rollbackAvailable) throw new Error("ROLLBACK_CONSUMED");
+					options.onRollback?.();
+					if (previous) saved.set(value.agentPackageRef, previous);
+					else saved.delete(value.agentPackageRef);
+					rollbackAvailable = false;
+				},
+			};
 		},
 		async deleteRole(roleRef) {
 			options.onDelete?.(roleRef);
@@ -167,9 +179,13 @@ test("createCustomGptRole does not persist or finalize auth when provisioning fa
 	);
 });
 
-test("createCustomGptRole removes the newly saved current role when carrier verification fails", async () => {
-	const deleted: string[] = [];
-	const state = registry({ onDelete: (roleRef) => deleted.push(roleRef) });
+test("createCustomGptRole restores the previous current role when carrier verification fails", async () => {
+	let rollbackCalls = 0;
+	const state = registry({ onRollback: () => rollbackCalls++ });
+	state.saved.set(material.packageName, {
+		roleRef: "g-previous",
+		carrierUrl: "https://chatgpt.com/g/g-previous",
+	});
 	await assert.rejects(
 		createCustomGptRole(input(), {
 			roleRegistry: state.port,
@@ -181,20 +197,17 @@ test("createCustomGptRole removes the newly saved current role when carrier veri
 					async provisionPackage() {
 						return liveResult();
 					},
-					async finalizeRoleAuth() {
-						return {
-							status: "AUTH_UPDATED" as const,
-							gptId: "g-example-agent",
-						};
-					},
 					async close() {},
 				};
 			},
 		}),
 		/GATEWAY_PROBE_FAILED/,
 	);
-	assert.deepEqual(deleted, ["g-example-agent"]);
-	assert.equal(state.saved.size, 0);
+	assert.equal(rollbackCalls, 1);
+	assert.deepEqual(state.saved.get(material.packageName), {
+		roleRef: "g-previous",
+		carrierUrl: "https://chatgpt.com/g/g-previous",
+	});
 });
 
 test("createCustomGptRole serializes simultaneous creates inside one workspace through auth and verification", async () => {
