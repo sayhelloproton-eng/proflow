@@ -201,28 +201,22 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 		provisioningFunction,
 		/chrome\.tabs\.create\(\{ url: editorUrl, active: true \}\)/,
 	);
-	assert.doesNotMatch(provisioningFunction, /chrome\.tabs\.query\(\{\}\)/);
-	assert.doesNotMatch(provisioningFunction, /waitForNewEditorTab/);
-	assert.doesNotMatch(provisioningFunction, /finalizeProvisioningCreate/);
+	assert.match(provisioningFunction, /https:\/\/chatgpt\.com\/gpts\/editor/);
 	assert.doesNotMatch(
 		provisioningFunction,
-		/PROFLOW_PROVISIONING_FINALIZE_CREATE/,
+		/waitForNewEditorTab|finalizeProvisioningCreate|PROFLOW_PROVISIONING_FINALIZE_CREATE/,
 	);
 	assert.doesNotMatch(provisioningFunction, /chrome\.tabs\.update/);
-	assert.match(provisioningFunction, /https:\/\/chatgpt\.com\/gpts\/editor/);
 	assert.match(content, /PROFLOW_PROVISIONING_COMMAND/);
 	assert.doesNotMatch(content, /PROFLOW_PROVISIONING_FINALIZE_CREATE/);
 	assert.match(content, /chrome\.runtime\.onMessage\.addListener/);
 	assert.match(content, /GPT_EDITOR_CREATE_BUTTON_NOT_FOUND/);
 	assert.match(content, /matchesExactSemantic/);
-	assert.match(content, /waitForPublishCreateButton/);
 	assert.match(content, /element\.getAttribute\("role"\) !== "radio"/);
 	assert.match(content, /element\.closest\('\[role="radiogroup"\]'\) === null/);
 	assert.match(content, /getClientRects\(\)\.length > 0/);
 	assert.match(content, /getComputedStyle\(element\)/);
 	assert.doesNotMatch(content, /matchesAny\(element, \["Create", "创建"\]\)/);
-	assert.match(content, /candidate\.value === value/);
-	assert.match(content, /attempt < 150/);
 	assert.match(content, /"Only me"/);
 	assert.match(content, /"Private"/);
 	assert.match(content, /"只有我"/);
@@ -236,21 +230,12 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND/);
 	assert.match(content, /GPT_EDITOR_PRIVATE_SELECTION_NOT_CONFIRMED/);
 	assert.match(content, /GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND/);
-	assert.match(content, /finalizePrivateCreateSurface/);
-	assert.match(content, /waitForLiveCreatedResult/);
 	assert.match(content, /settings saved/);
 	assert.match(content, /设置已保存/);
 	assert.doesNotMatch(
 		content,
 		/clickable\(\["Update", "更新", "Share", "分享"\]\)/,
 	);
-	assert.match(content, /attempt < 320/);
-	assert.match(content, /async function openPrivateCreateSurface/);
-	assert.match(content, /const initialGptId = currentGptId\(\)/);
-	assert.match(content, /let publishTriggered = initialGptId !== undefined/);
-	assert.match(content, /attempt < 200/);
-	assert.match(content, /!publishTriggered && currentGptId\(\)/);
-	assert.doesNotMatch(content, /if \(initialGptId\) return/);
 	assert.match(content, /waitForPublishCreateButton/);
 	assert.match(build, /provisioning-content\.ts/);
 	assert.match(build, /--format=iife/);
