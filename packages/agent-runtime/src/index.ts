@@ -560,7 +560,10 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 			}
 			return { role, credential };
 		},
-		async saveCurrentRole(raw: unknown) {
+		prepareRoleCredential() {
+			return { credential: credentialFactory() };
+		},
+		async saveCurrentRole(raw: unknown, preparedCredential?: string) {
 			const input = roleRegistrationSchema.parse(raw);
 			const sameRef = roles.get(input.roleRef);
 			if (sameRef && sameRef.agentPackageRef !== input.agentPackageRef)
@@ -570,7 +573,10 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 			);
 			const previousRoles = new Map(roles);
 			const previousCredentials = new Map(credentials);
-			const credential = credentialFactory();
+			const credential =
+				preparedCredential === undefined
+					? credentialFactory()
+					: identifier.parse(preparedCredential);
 			const role: RegisteredRole = {
 				...input,
 				carrierType: "custom-gpt",

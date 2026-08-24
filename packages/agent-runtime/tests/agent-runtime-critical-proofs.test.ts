@@ -128,12 +128,27 @@ test("CP-AGT-RUNTIME-01 registry is one-package-one-current-role and ROLE_IN_USE
 test("CP-AGT-RUNTIME-01A deployment save replaces only the package current role", async (context) => {
 	const { runtime, proflowRoot } = await fixture(context);
 	const oldCredential = await runtime.showCredential("g-dev");
-	const saved = await runtime.saveCurrentRole({
-		agentPackageRef: "@tomflow/proflow-agent-controller-dev",
-		registeredPackageVersion: "0.2.0",
-		roleRef: "g-dev-2",
-		carrierUrl: "https://chatgpt.com/g/g-dev-2",
-	});
+	const prepared = runtime.prepareRoleCredential();
+	const beforeCredentials = JSON.parse(
+		await readFile(
+			join(proflowRoot, "agent/secrets/role-credentials.json"),
+			"utf8",
+		),
+	) as Record<string, string>;
+	assert.equal(
+		Object.values(beforeCredentials).includes(prepared.credential),
+		false,
+	);
+	const saved = await runtime.saveCurrentRole(
+		{
+			agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+			registeredPackageVersion: "0.2.0",
+			roleRef: "g-dev-2",
+			carrierUrl: "https://chatgpt.com/g/g-dev-2",
+		},
+		prepared.credential,
+	);
+	assert.equal(saved.credential, prepared.credential);
 	assert.equal(saved.replacedRoleRef, "g-dev");
 	assert.equal(saved.role.roleRef, "g-dev-2");
 	assert.equal(runtime.listRegisteredRoles().length, 3);
