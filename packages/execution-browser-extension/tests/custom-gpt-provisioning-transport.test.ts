@@ -234,7 +234,10 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /attempt < 320/);
 	assert.match(content, /async function openPrivateCreateSurface/);
 	assert.match(content, /const initialGptId = currentGptId\(\)/);
-	assert.match(content, /if \(currentGptId\(\)\) \{/);
+	assert.match(content, /let publishTriggered = initialGptId !== undefined/);
+	assert.match(content, /attempt < 200/);
+	assert.match(content, /!publishTriggered && currentGptId\(\)/);
+	assert.doesNotMatch(content, /if \(initialGptId\) return/);
 	assert.match(content, /waitForPublishCreateButton/);
 	assert.match(build, /provisioning-content\.ts/);
 	assert.match(build, /--format=iife/);

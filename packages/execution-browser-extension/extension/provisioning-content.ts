@@ -478,16 +478,17 @@ async function openPrivateCreateSurface(
 	initialCreateButton: HTMLElement,
 ): Promise<void> {
 	const initialGptId = currentGptId();
+	let publishTriggered = initialGptId !== undefined;
 	initialCreateButton.click();
-	if (initialGptId) return;
-	for (let attempt = 0; attempt < 80; attempt += 1) {
+	for (let attempt = 0; attempt < 200; attempt += 1) {
 		if (privateVisibilityControl()) return;
-		if (currentGptId()) {
+		if (!publishTriggered && currentGptId()) {
 			(await waitForPublishCreateButton()).click();
-			return;
+			publishTriggered = true;
 		}
 		await sleep(100);
 	}
+	throw new Error("GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND");
 }
 
 async function waitForLiveCreatedResult() {
