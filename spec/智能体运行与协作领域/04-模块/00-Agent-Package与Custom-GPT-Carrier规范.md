@@ -14,7 +14,7 @@ contractRefs: []
 
 # 智能体运行与协作领域｜Agent Package 与 Custom GPT Carrier 规范
 
-> v1 目标：让三个 Agent Package 提供完整、版本化的 Custom GPT Provisioning material；在平台部署期，由已安装的 ProFlow Browser Extension 通过真实 ChatGPT GPT editor 确定性创建/更新三个 Private Custom GPT，并把真实角色注册到平台。当前仍不依赖任何 Custom GPT management API；自动化发生在真实 Web editor，而不是未公开管理接口。
+> v1 目标：让三个 Agent Package 提供完整、版本化的 Custom GPT Provisioning material；在平台部署期，由已安装的 ProFlow Browser Extension 通过真实 ChatGPT GPT editor 确定性物化 Private Custom GPT，并把真实角色注册到平台。`Module.setup` 对 `READY` Role 直接复用，对 `MISSING` 自动创建新 GPT，对 `DRIFT` fail closed；显式 recreate 每次创建新的 carrier，再用 `saveCurrentRole` 替换同 package 当前绑定。当前仍不依赖任何 Custom GPT management API；自动化发生在真实 Web editor，而不是未公开管理接口。
 
 ---
 
@@ -57,11 +57,11 @@ Agent manifest 信息放入 npm `package.json` 的平台命名字段中，避免
 {
   "name": "<agent-package-id>",
   "version": "1.0.0",
-  "description": "总控、项目管理与研发角色",
+  "description": "研发与项目总控角色",
   "aiAgentPlatform": {
     "kind": "agent-package",
     "agent": {
-      "displayName": "总控 = 项目管理 + 研发",
+      "displayName": "研发 + 项目总控",
       "conversationStarters": [
         "查看我当前可以处理的任务"
       ],
@@ -71,7 +71,7 @@ Agent manifest 信息放入 npm `package.json` 的平台命名字段中，避免
           "recommendedModel": "gpt-5-6",
           "capabilities": {
             "webSearch": true,
-            "imageGeneration": false,
+            "imageGeneration": true,
             "codeInterpreter": true
           },
           "requirements": {
@@ -116,22 +116,22 @@ TaskDocument / Artifact / File Bridge      # runtime dynamic context；绝不进
 
 ## knowledge/custom-gpt-knowledge.zip
 
-三个固定 Agent Package 都必须携带同一路径的 `knowledge/custom-gpt-knowledge.zip`。ZIP 是 **Agent Package 的版本化部署资产**，不是直接上传给 ChatGPT 的最终文件格式。
+三个固定 Agent Package 都必须携带同一路径的 `knowledge/custom-gpt-knowledge.zip`。ZIP 是 **Agent Package 的版本化部署资产，也是当前 GPT Knowledge 的最终上传 artifact**。
 
 部署时由 Agent Package / Mac setup 侧：
 
 ```text
 读取 ZIP
-→ 安全解压到临时 staging
-→ 拒绝 zip traversal / symlink escape / 不支持的文件类型 / 越界大小
-→ 生成文件名、MIME、size、hash 清单
-→ 通过 Deployment Provisioning file transport 把 bytes 提供给 Browser Extension
-→ Extension 将解压后的受支持文件上传到 GPT Knowledge
-→ 等待 Carrier processing completed
-→ 校验编辑器中对应 Knowledge 文件存在
+→ 校验 ZIP 结构与内部 entry 完整性
+→ 拒绝 zip traversal / 加密或不支持压缩 / 不支持的内部文件类型 / 单项或总大小越界
+→ 在隔离 staging 中保留原 ZIP 本体
+→ 生成 ZIP 本体的 MIME / size / hash evidence
+→ 通过 Deployment Provisioning file transport 提供原 ZIP bytes
+→ Extension 上传 `custom-gpt-knowledge.zip` 到 GPT Knowledge
+→ 等待并读回编辑器中的 ZIP 文件存在
 ```
 
-当前基线允许 ZIP 内仅放一个稳定 smoke-test 文件，用于证明 Knowledge 在真实 GPT 中可检索；未来只需替换 ZIP 内容并发布新的 Agent Package 版本，不要求修改 Provisioning 代码。
+ZIP 内部 entry 解析只用于安全与完整性校验，不再把解包后的 `.md` / `.txt` 等文件逐个作为正常 Knowledge 上传物。未来只需替换 ZIP 内容并发布新的 Agent Package 版本，不要求修改 Provisioning 代码。
 
 Custom GPT 的行为规则、职责、流程和安全边界仍必须由 Instructions 提供；Knowledge 只保存静态长期参考材料。Task Requirement / PRD / Technical Design / Test Result 等动态正文永远禁止进入永久 Role Knowledge，它们继续通过 TaskDocument / Artifact / File Bridge 按当前 Worker 需要获取。
 
@@ -214,13 +214,15 @@ interface CustomGptCarrierRequirements {
 }
 ```
 
-推荐第一版：
+三个固定 Agent 的当前 Real-2 冻结基线统一为：
 
 ```text
-产品：Actions required；File Bridge required；Web Search required；Code Interpreter optional
-总控/研发：Actions required；File Bridge required；Code Interpreter required；Web Search required
-测试/运维：Actions required；File Bridge required；Code Interpreter required；Web Search optional
+运营 + 产品经理：Web Search / Image Generation / Code Interpreter 全部开启
+研发 + 项目总控：Web Search / Image Generation / Code Interpreter 全部开启
+部署 + 测试验收：Web Search / Image Generation / Code Interpreter 全部开启
 ```
+
+对应 package carrier profile 中 `webSearch / imageGeneration / codeInterpreter = true`；`requirements.webSearch / requirements.codeInterpreter = required`。
 
 三个固定 Agent Package 的当前部署基线统一声明 `recommendedModel = "gpt-5-6"`（GPT-5.6 Sol 高级思考模型），由 Agent Package 真源提供、由 Provisioning Driver 确定性选择；Extension 不写死角色模型。该字段仍是 Carrier recommendation，而不是服务端安全前提：Role READY 依据真实 GPT/Role、required capabilities、Knowledge、Actions/auth、Gateway 与真实 E2E，不把精确 model id 当授权或业务正确性依据。
 
@@ -248,13 +250,13 @@ CLI 必须逐项对应真实 Web 配置：
 | 描述 | package.json | Provisioning Driver 自动填写 |
 | 对话开场白 | package.json | Provisioning Driver 自动填写 |
 | Instructions | package.json Markdown field | Provisioning Driver 自动填写并读回校验 |
-| Knowledge | `knowledge/custom-gpt-knowledge.zip` | Mac 安全解压后由 Provisioning Driver 上传受支持文件并等待处理完成 |
+| Knowledge | `knowledge/custom-gpt-knowledge.zip` | Mac 校验 ZIP 内部安全边界后，Provisioning Driver 上传 ZIP 本体并读回文件存在 |
 | 推荐模型 | package.json carrier profile | 自动选择当前 material 声明值；三个固定 Agent 当前为 `gpt-5-6` |
-| 功能开关 | package.json carrier profile | 自动设置并校验 |
-| Actions Schema | static OpenAPI + current Gateway URL | 自动创建/更新 Action 并写入 Schema |
-| Action Auth | Agent Domain 生成的 role-scoped Bearer key | Role 注册后由 Driver 机械填入；Extension 不拥有、不生成、不持久化 Key |
+| 功能开关 | package.json carrier profile | Web Search / Image Generation / Code Interpreter 三项全部自动开启并校验 |
+| Actions Schema | static OpenAPI + current Gateway URL | 在同一 Editor 创建流程中自动写入并读回 |
+| Action Auth | Agent Runtime 预生成的 candidate Bearer credential | Create 前由 Driver 机械填入 API Key / Bearer 并保存；Extension 不生成、不持久化 Key |
 | File Bridge | OpenAPI `openaiFileIdRefs/openaiFileResponse` contract | Preview/E2E verify |
-| Code Interpreter / Web Search | carrier profile requirements | 自动按角色 requirements 设置 |
+| Code Interpreter / Web Search / Image Generation | carrier profile capabilities | 三个固定角色当前全部开启 |
 | Apps | `disabled`（v1 使用 Actions） | Provisioning 必须保持禁用 |
 
 Provisioning 默认将新 GPT 保存为 `private / 只有我`；不把公开分享、Marketplace 发布或组织分发作为部署完成条件。
@@ -267,9 +269,9 @@ Provisioning 默认将新 GPT 保存为 `private / 只有我`；不把公开分�
 
 标准部署主路径是 `Module.setup`；Platform 只按依赖顺序转发。Agent Package 的 extra CLI 用于 material inspection、诊断、恢复和显式本地管理，**不是另一套人工部署流程**。
 
-## 6.1 Custom GPT material / finalization
+## 6.1 Custom GPT material / diagnostics
 
-当前 v1 机器能力收敛为：
+当前 package-specific 机器能力收敛为：
 
 ```text
 custom-gpt setup [--workspace ...] [--gateway-url ...]
@@ -277,12 +279,13 @@ custom-gpt show-name
 custom-gpt show-description
 custom-gpt show-instructions
 custom-gpt action-schema --gateway-url ...
-custom-gpt finalize-role --workspace ... --carrier-url ...
+role ...
+verify
 ```
 
-`custom-gpt setup` 的职责是输出完整、版本化 Provisioning material；它不自行伪装成完整 Web 自动化。`Module.setup` 组合 Agent Package material 与 `custom-gpt-web-provisioning` Contract，完成真实 GPT materialization。
+`custom-gpt setup` 的职责是输出完整、版本化 Provisioning material；正式 Web 自动化由 owning `Module.setup` 组合 Agent Package material 与 `custom-gpt-web-provisioning` Contract 完成。正常部署不再存在 package CLI `custom-gpt finalize-role` happy path。
 
-`custom-gpt finalize-role` 接收 Provisioning Driver 返回的 live `carrierUrl`，调用 Agent owner 完成 Role 注册、读取 owner-managed credential、通过 Extension 做一次 ephemeral Auth finalization，并执行 owner/Gateway validation。该命令不得输出 credential。
+Extension 内部的 `FINALIZE_CUSTOM_GPT_AUTH` 仅保留为显式 recovery/repair primitive；不得从诊断 CLI 或普通 setup retry 恢复成 Create 后第二次打开 GPT 的正常步骤。
 
 若 Extension 未安装、未登录 ChatGPT、页面合同变化、Knowledge 处理失败或 Carrier 不允许创建 GPT，必须返回明确的 ACTION_REQUIRED / FAILED reality；禁止静默降级回人工复制 URL / Schema / Bearer 后假装 READY。
 
@@ -307,25 +310,30 @@ role key rotate
 
 ---
 
-# 7. Role 注册后的两阶段认证流程
+# 7. Create 前 Auth + 创建后 Role activation
 
-因为 Key 与真实 `roleRef` 绑定，Provisioning 必须保持真实顺序：
+Role credential 不依赖最终 g-id，因此正常 Provisioning 采用单事务、单 Editor 的真实顺序：
 
 ```text
-Provisioning Driver 创建/更新并确认 live GPT
-→ 返回真实 g-id / carrierUrl
-→ Agent Domain 持久化当前 Role（严格 registerRole 或 deployment-only saveCurrentRole）
-→ 生成并持久化 Role 专属 Bearer Key
-→ owning setup 临时读取本次 credential
-→ 通过受限 Provisioning transport 交给 Extension
-→ Extension 重新打开对应 GPT editor
+Agent Runtime prepareRoleCredential
+→ candidate credential 仅存在内存，尚未取得 Gateway 身份
+→ Provisioning Driver 打开一个新 GPT editor
+→ 字段 / model / capabilities / Action Schema
 → Action Authentication = API Key / Bearer
-→ 机械填 Key 并 Update
-→ 丢弃 Extension / command 中的临时 secret material
-→ owner inspect + Gateway authenticated probe
+→ 机械填 candidate credential、readback、Save
+→ 上传并确认 Knowledge ZIP
+→ FORM_READY
+→ Private Create
+→ 返回真实 g-id / carrierUrl
+→ saveCurrentRole(g-id, candidate credential)
+→ owner inspect/readback
+→ Gateway authenticated probe
+→ READY
 ```
 
-Auth 语义、Key 生成与 secret persistence 始终属于 Agent Domain；Browser Extension 只执行 Web materialization，不得把 Role Key 写入扩展静态资源、`chrome.storage`、runtime config、日志或 Evidence。
+Create 失败时 candidate credential 直接丢弃且不落盘；Role activation 后的 Gateway/verification 失败时使用 `saveCurrentRole` 返回的一次性 rollback 恢复替换前 Role + credential。正常 Golden Path 不重新打开新 GPT 做 Auth。
+
+Auth 语义、credential 生成与 secret persistence 始终属于 Agent Runtime；Browser Extension 只在本次 Web materialization 中短暂处理 candidate credential，不得写入扩展静态资源、`chrome.storage`、runtime config、日志或 Evidence。
 
 ---
 
@@ -342,7 +350,7 @@ Auth 语义、Key 生成与 secret persistence 始终属于 Agent Domain；Brows
 - Action endpoint / health 可达；
 - static OpenAPI 本地校验通过；
 - package version 与 registry 记录一致；
-- Provisioning 对 Instructions / recommendedModel / required Capabilities / Knowledge files / Action Schema / Auth Update 的实际页面写入已完成并通过对应 readback/reality check；
+- Provisioning 对 Instructions / recommendedModel / 三项 Capabilities / Knowledge ZIP / Action Schema / Create 前 API Key/Bearer 的实际页面写入已完成并通过对应 readback/reality check；
 - 至少一次真实 Carrier → Gateway 身份探针 PASS。
 
 若 editor 页面合同变化导致某字段无法确定验证，必须明确失败或 ACTION_REQUIRED；不能把未知配置当 READY。
@@ -371,19 +379,20 @@ Auth 语义、Key 生成与 secret persistence 始终属于 Agent Domain；Brows
 - Action Contract 不兼容变化；
 - Carrier 配置出现不兼容变化。
 
-升级 Agent Package 不创建新的“逻辑 Agent”，也不自动生成新 roleRef。
+升级 Agent Package 不创建新的“逻辑 Agent”。当前 v1 不提供 Edit-existing Carrier 的自动升级 happy path。
 
-包升级后：
+包版本与 current Role 发生 drift 时：
 
 ```text
-CLI 检查 registry registeredPackageVersion
-→ materialize 新版本 Provisioning material
-→ Browser Provisioning 自动 Update 现有 GPT
-→ 对变更字段/Knowledge/Action 做真实 readback/reality check
-→ 本地确认 registeredPackageVersion
+Module.setup / status 检测 registeredPackageVersion drift
+→ fail closed / ACTION_REQUIRED: resolve-custom-gpt-role-drift
+→ 不自动 Edit 旧 GPT
+→ 若明确要求重新物化该角色，则显式 recreate
+→ 创建新 GPT + 新 g-id + candidate credential
+→ saveCurrentRole 原子替换同 package current binding
 ```
 
-升级同步必须优先复用现有 roleRef；不得因普通 package upgrade 自动创建第二个 GPT。
+普通 setup retry 在 `READY` 时继续复用现有 current Role；只有显式 recreate 才产生新的 carrier identity。
 
 ---
 
@@ -403,9 +412,9 @@ start
 stop
 ```
 
-其中 `Module.setup` 的最终 Real-2 合同是自身 Custom GPT 的完整、可重入部署闭环：materialize Agent Package → 请求 Browser Extension 的 deployment provisioning capability → 创建/更新真实 Private GPT → 注册 Role → 动态生成 Role credential → 完成 Web Auth materialization → validate。`Module.status` 仍是唯一 management 状态真源。`custom-gpt ...`、`role register/show/validate/delete`、`role key ...` 等命令仍是 Agent Package 自身真实 extra capability，可以被 AI/用户直接调用，但 Platform 不代理、不解释其业务语义。
+其中 `Module.setup` 的最终 Real-2 合同是自身 Custom GPT 的完整、可重入部署闭环：materialize Agent Package → `READY` 复用 / `MISSING` 请求 Browser Extension provisioning → 预生成 candidate credential → 同一 Editor 完成 Schema/Auth/ZIP/Capabilities → 创建真实 Private GPT → `saveCurrentRole` → validate/Gateway probe。`DRIFT` fail closed，不自动 Edit 旧 GPT。`Module.status` 仍是唯一 management 状态真源。`custom-gpt ...`、`role register/show/validate/delete`、`role key ...` 等命令仍是 Agent Package 自身真实 extra capability，可以被 AI/用户直接调用，但 Platform 不代理、不解释其业务语义。
 
-B1～B5 封板只冻结上述链路的 package material、Provisioning transport/driver、Role owner 与 Auth finalization primitive；**完整 `Module.setup` 编排、重入/中断恢复与 no-duplicate reality proof 属于 Real-2 B6 验收范围**。B6 未 PASS 前不得因为底层 primitive 已 GREEN 就宣称整条 `platform setup` 已真实验收通过，也不得为了绕过该缺口恢复人工复制粘贴 happy path。
+Real-2 已完成最终真实验收并冻结：三个真实 Agent Role、Auth-before-Create、ZIP Knowledge、显式 recreate 覆盖、workspace queue 与 activation rollback 均有 executable/real evidence。历史 B1～B6 过程文档不得恢复人工复制粘贴或 post-create Auth happy path。
 
 总 Deployment 只做：
 

@@ -72,8 +72,8 @@ package.json agent.instructions
 → Web Instructions                                      # v1 REQUIRED
 
 knowledge/custom-gpt-knowledge.zip
-→ Mac deployment staging
-→ Web Knowledge 中的受支持解包文件                     # v1 REQUIRED deployment baseline
+→ Mac deployment validation / isolated staging
+→ Web Knowledge 上传 ZIP 本体 `custom-gpt-knowledge.zip`  # v1 REQUIRED deployment baseline
 
 TaskDocument / Artifact / File Bridge
 → 当前 Worker 动态上下文                                # 永不进入 permanent Knowledge
@@ -146,7 +146,7 @@ v1 决策仍然是：
 
 > 每个 Agent Package 静态维护一份 Action Schema。
 
-即使使用 URL 导入，也不假设 GPT 会自动持续同步 URL 内容。包升级后仍由 CLI 提示用户更新 Web 配置并人工确认。
+即使使用 URL 导入，也不假设 GPT 会自动持续同步 URL 内容。包升级后的 Web materialization 仍由 owning `Module.setup` / Browser Extension 依据真实 Role 状态处理；机器可以完成的字段配置不得重新退回人工复制粘贴。当前 `DRIFT` 不自动 Edit 既有 GPT，而是 fail closed；需要更新 Carrier 时走显式 recreate，新 GPT 成功后再替换 current binding。
 
 ---
 
@@ -203,9 +203,10 @@ v1 自动化因此明确采用 **真实 Web editor + 本地已安装 Browser Ext
 Agent Package material
 → Mac deployment setup
 → execution-browser-extension Deployment Provisioning
-→ ChatGPT /gpts/editor/*
+→ ChatGPT /gpts/editor / /gpts/editor/*
 → deterministic DOM/Web materialization
-→ private create/update
+→ MISSING 时 private create；READY 时复用；DRIFT fail closed
+→ explicit recreate 时创建新 g-id 并替换 current binding
 → real g-id / carrier reality
 ```
 
@@ -235,9 +236,9 @@ Browser Provisioning checks:
 live GPT reality
 Instructions readback
 recommended model / required Capabilities readback
-Knowledge upload + processing completion + file presence
+Knowledge ZIP upload + file presence
 Action Schema materialization
-Auth Update 已提交
+Create 前 API Key/Bearer 已保存并通过 bounded UI readback；重开 secret 仅显示 `[HIDDEN]`
 ```
 
 任何 Browser check 无法确定时均不得将 Role 标为 READY；最终仍需要真实 GPT → Gateway 身份探针证明 Carrier 可工作。
