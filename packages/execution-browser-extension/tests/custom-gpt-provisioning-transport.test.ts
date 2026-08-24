@@ -211,7 +211,18 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /GPT_EDITOR_CREATE_BUTTON_NOT_FOUND/);
 	assert.match(content, /candidate\.value === value/);
 	assert.match(content, /attempt < 150/);
-	assert.match(content, /waitForDialogClickable\(\["Only me", "只有我"\]\)/);
+	assert.match(content, /"Only me"/);
+	assert.match(content, /"Private"/);
+	assert.match(content, /"只有我"/);
+	assert.match(content, /"私有"/);
+	assert.doesNotMatch(content, /waitForDialogClickable/);
+	assert.doesNotMatch(
+		content,
+		/querySelector<HTMLElement>\('\[role="dialog"\]'\)/,
+	);
+	assert.match(content, /GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND/);
+	assert.match(content, /GPT_EDITOR_PRIVATE_SELECTION_NOT_CONFIRMED/);
+	assert.match(content, /GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND/);
 	assert.match(build, /provisioning-content\.ts/);
 	assert.match(build, /--format=iife/);
 	assert.doesNotMatch(

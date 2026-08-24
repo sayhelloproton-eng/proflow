@@ -1,8 +1,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { inspectDurableRoleRegistration } from "@tomflow/proflow-agent-runtime";
-import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
+import {
+	type ModuleCommandContext,
+	readModuleSharedFacts,
+} from "@tomflow/proflow-module-contract";
+import { provisionWorkspaceCustomGptRole } from "../src/custom-gpt-deployment-provisioner.ts";
+import { materializeAgentPackage } from "../src/index.ts";
 
 import { descriptor } from "./descriptor.ts";
 
@@ -82,6 +88,35 @@ const setupPlan = {
 	],
 } as const;
 
+function packageRoot(): string {
+	return fileURLToPath(
+		new URL(
+			import.meta.url.includes("/dist/") ? "../../" : "../",
+			import.meta.url,
+		),
+	);
+}
+
+function packageMaterial() {
+	return materializeAgentPackage(
+		JSON.parse(readFileSync(join(packageRoot(), "package.json"), "utf8")),
+	);
+}
+
+async function gatewayPublicUrl(
+	context: ModuleCommandContext,
+): Promise<string | undefined> {
+	const gateway = await readModuleSharedFacts(context, "agent-gateway");
+	const value = gateway?.publicBaseUrl;
+	if (typeof value !== "string") return undefined;
+	try {
+		const parsed = new URL(value);
+		return parsed.protocol === "https:" ? parsed.toString() : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 function observeRole(context: ModuleCommandContext) {
 	return inspectDurableRoleRegistration({
 		proflowRoot: join(context.workspaceRoot, ".proflow"),
@@ -132,19 +167,21 @@ export const behaviorAdapter = {
 			observedEffects: [] as string[],
 		};
 	},
-	setup: (context: ModuleCommandContext) => {
+	setup: async (context: ModuleCommandContext) => {
 		const reality = observeRole(context);
 		if (reality.status === "READY") {
 			return {
-				result: { ...base, data: { roleRef: reality.role?.roleRef } },
+				result: {
+					...base,
+					data: {
+						roleRef: reality.role?.roleRef,
+						carrierUrl: reality.role?.carrierUrl,
+					},
+				},
 				observedEffects: [] as string[],
 			};
 		}
-		if (reality.status === "MISSING" || reality.status === "DRIFT") {
-			const action =
-				reality.status === "MISSING"
-					? "materialize-custom-gpt"
-					: "refresh-custom-gpt-role-registration";
+		if (reality.status === "DRIFT") {
 			return {
 				result: {
 					...base,
@@ -152,12 +189,77 @@ export const behaviorAdapter = {
 					status: "ACTION_REQUIRED" as const,
 					data: setupPlan,
 					actionRequired: {
-						action,
-						description: `${descriptor.packageName}@${descriptor.moduleVersion} Role is ${reality.status.toLowerCase()}: ${reality.issues.join(", ")}. Run ${descriptor.packageName.replace("@tomflow/", "")} custom-gpt setup --workspace ${JSON.stringify(context.workspaceRoot)}; create/update the real Custom GPT; then run ${descriptor.packageName.replace("@tomflow/", "")} role register <gpt-url> --workspace ${JSON.stringify(context.workspaceRoot)} and rerun platform setup.`,
+						action: "resolve-custom-gpt-role-drift",
+						description:
+							"Existing Custom GPT Role is drifted. Automatic setup only creates a new GPT for a missing Role and never edits an existing GPT.",
 					},
 				},
 				observedEffects: [] as string[],
 			};
+		}
+		if (reality.status === "MISSING") {
+			const gatewayUrl = await gatewayPublicUrl(context);
+			if (!gatewayUrl) {
+				return {
+					result: {
+						...base,
+						ok: false as const,
+						status: "FAILED" as const,
+						error: {
+							code: "SETUP_FAILED" as const,
+							message:
+								"agent-gateway publicBaseUrl is unavailable for Custom GPT provisioning",
+							retryable: true,
+						},
+					},
+					observedEffects: [] as string[],
+				};
+			}
+			try {
+				const result = await provisionWorkspaceCustomGptRole({
+					workspaceRoot: context.workspaceRoot,
+					packageRoot: packageRoot(),
+					stagingRoot: join(
+						context.workspaceRoot,
+						".proflow",
+						"runtime",
+						"custom-gpt-staging",
+						descriptor.moduleRef,
+					),
+					gatewayUrl,
+					material: packageMaterial(),
+				});
+				return {
+					result: {
+						...base,
+						data: {
+							provisioningStatus: result.status,
+							roleRef: result.gptId,
+							carrierUrl: result.carrierUrl,
+						},
+					},
+					observedEffects: [
+						"Create the declared Private Custom GPT and register its workspace Role",
+					],
+				};
+			} catch (error) {
+				return {
+					result: {
+						...base,
+						ok: false as const,
+						status: "FAILED" as const,
+						error: {
+							code: "SETUP_FAILED" as const,
+							message:
+								error instanceof Error
+									? error.message
+									: "Custom GPT provisioning failed",
+							retryable: true,
+						},
+					},
+					observedEffects: [] as string[],
+				};
+			}
 		}
 		return {
 			result: {

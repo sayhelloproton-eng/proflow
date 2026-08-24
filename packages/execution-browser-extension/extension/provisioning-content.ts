@@ -304,6 +304,138 @@ async function uploadKnowledge(files: readonly CustomGptKnowledgeFile[]) {
 	}
 }
 
+const privateVisibilityLabels = [
+	"Only me",
+	"Private",
+	"Invite-only",
+	"Invite only",
+	"只有我",
+	"私有",
+	"仅限受邀者",
+	"仅自己",
+] as const;
+
+const nonPrivateVisibilityLabels = [
+	"Anyone",
+	"Public",
+	"Link",
+	"GPT Store",
+	"Workspace",
+	"所有人",
+	"公开",
+	"链接",
+	"工作区",
+] as const;
+
+function semanticValues(element: Element): string[] {
+	const referencedText = (attribute: "aria-labelledby" | "aria-describedby") =>
+		(element.getAttribute(attribute) ?? "")
+			.split(/\s+/)
+			.filter(Boolean)
+			.map((id) => document.getElementById(id)?.textContent ?? "")
+			.join(" ");
+	return [
+		element.getAttribute("aria-label"),
+		referencedText("aria-labelledby"),
+		referencedText("aria-describedby"),
+		element.getAttribute("data-value"),
+		element.getAttribute("value"),
+		element.textContent,
+	]
+		.filter((value): value is string => Boolean(value))
+		.map(normalize);
+}
+
+function matchesBoundedSemantic(
+	element: Element,
+	candidates: readonly string[],
+): boolean {
+	const values = semanticValues(element);
+	return candidates.some((candidate) => {
+		const expected = normalize(candidate);
+		return values.some(
+			(value) =>
+				value === expected ||
+				value.startsWith(`${expected} `) ||
+				value.endsWith(` ${expected}`),
+		);
+	});
+}
+
+function available(element: HTMLElement): boolean {
+	return (
+		element.getAttribute("aria-hidden") !== "true" &&
+		!element.hasAttribute("disabled") &&
+		element.getAttribute("aria-disabled") !== "true"
+	);
+}
+
+function privateVisibilityControl(): HTMLElement | null {
+	const selector =
+		'input[type="radio"], label, button, [role="button"], [role="radio"], [role="option"], [role="menuitem"], [role="menuitemradio"]';
+	for (const element of document.querySelectorAll<HTMLElement>(selector)) {
+		if (
+			available(element) &&
+			matchesBoundedSemantic(element, privateVisibilityLabels) &&
+			!matchesBoundedSemantic(element, nonPrivateVisibilityLabels)
+		)
+			return element;
+	}
+	return null;
+}
+
+function selected(element: HTMLElement): boolean {
+	if (element instanceof HTMLInputElement && element.type === "radio")
+		return element.checked;
+	if (element instanceof HTMLLabelElement && element.htmlFor) {
+		const control = document.getElementById(element.htmlFor);
+		if (control instanceof HTMLInputElement && control.type === "radio")
+			return control.checked;
+	}
+	return (
+		element.getAttribute("aria-checked") === "true" ||
+		element.getAttribute("aria-selected") === "true" ||
+		element.getAttribute("aria-pressed") === "true" ||
+		element.getAttribute("data-state") === "checked"
+	);
+}
+
+async function selectPrivateVisibility(): Promise<void> {
+	let control: HTMLElement | null = null;
+	for (let attempt = 0; attempt < 40; attempt += 1) {
+		control = privateVisibilityControl();
+		if (control) break;
+		await sleep(100);
+	}
+	if (!control) throw new Error("GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND");
+	if (!selected(control)) control.click();
+	for (let attempt = 0; attempt < 40; attempt += 1) {
+		const current = privateVisibilityControl();
+		if (current && selected(current)) return;
+		await sleep(100);
+	}
+	throw new Error("GPT_EDITOR_PRIVATE_SELECTION_NOT_CONFIRMED");
+}
+
+async function waitForPrivateCreateAction(
+	initialCreateButton: HTMLElement,
+): Promise<HTMLElement> {
+	const labels = ["Save", "Create", "Publish", "保存", "创建", "发布"];
+	for (let attempt = 0; attempt < 40; attempt += 1) {
+		for (const element of document.querySelectorAll<HTMLElement>(
+			'button, [role="button"]',
+		))
+			if (
+				element !== initialCreateButton &&
+				available(element) &&
+				matchesBoundedSemantic(element, labels)
+			)
+				return element;
+		await sleep(100);
+	}
+	throw new Error("GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND");
+}
+
 async function createPrivateGpt() {
 	let createButton: HTMLElement | null = null;
 	for (let attempt = 0; attempt < 80; attempt += 1) {
@@ -321,9 +453,8 @@ async function createPrivateGpt() {
 	}
 	if (!createButton) throw new Error("GPT_EDITOR_CREATE_BUTTON_NOT_FOUND");
 	createButton.click();
-	const onlyMe = await waitForDialogClickable(["Only me", "只有我"]);
-	if (onlyMe.getAttribute("aria-checked") !== "true") onlyMe.click();
-	(await waitForDialogClickable(["Save", "保存"])).click();
+	await selectPrivateVisibility();
+	(await waitForPrivateCreateAction(createButton)).click();
 	for (let attempt = 0; attempt < 80; attempt += 1) {
 		const gptId = currentGptId();
 		const text = normalize(document.body.textContent);
@@ -335,27 +466,6 @@ async function createPrivateGpt() {
 		await sleep(125);
 	}
 	throw new Error("GPT_EDITOR_PRIVATE_CREATE_TIMEOUT");
-}
-
-function dialogClickable(candidates: readonly string[]): HTMLElement | null {
-	const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-	if (!dialog) return null;
-	for (const element of dialog.querySelectorAll<HTMLElement>(
-		'button, [role="button"], [role="radio"]',
-	))
-		if (matchesAny(element, candidates)) return element;
-	return null;
-}
-
-async function waitForDialogClickable(candidates: readonly string[]) {
-	for (let attempt = 0; attempt < 40; attempt += 1) {
-		const element = dialogClickable(candidates);
-		if (element) return element;
-		await sleep(100);
-	}
-	throw new Error(
-		`GPT_EDITOR_AUTH_CONTROL_NOT_FOUND:${candidates[0] ?? "unknown"}`,
-	);
 }
 
 const domPort: CustomGptEditorPort = {
