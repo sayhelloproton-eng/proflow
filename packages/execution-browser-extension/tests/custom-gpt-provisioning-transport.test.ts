@@ -229,6 +229,7 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND/);
 	assert.match(content, /finalizePrivateCreateSurface/);
 	assert.match(content, /waitForLiveCreatedResult/);
+	assert.match(content, /attempt < 320/);
 	assert.match(content, /async function openPrivateCreateSurface/);
 	assert.match(content, /const initialGptId = currentGptId\(\)/);
 	assert.match(content, /if \(currentGptId\(\)\) \{/);

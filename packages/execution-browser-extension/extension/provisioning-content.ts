@@ -487,7 +487,7 @@ async function openPrivateCreateSurface(
 }
 
 async function waitForLiveCreatedResult() {
-	for (let attempt = 0; attempt < 80; attempt += 1) {
+	for (let attempt = 0; attempt < 320; attempt += 1) {
 		const gptId = currentGptId();
 		const text = normalize(document.body.textContent);
 		const saved =
