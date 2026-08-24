@@ -300,10 +300,10 @@ role key rotate
 
 确认：
 
-- Role/credential 的 canonical owner 是 Agent Domain；`registerRole/showCredential/...` 是 owner capability；
+- Role/credential 的 canonical owner 是 Agent Domain；严格 `registerRole`、deployment-only `saveCurrentRole`、`showCredential/...` 都是 owner capability；
 - CLI 只是该本地管理能力的显式入口之一，不是 Deployment 唯一调用方式；
 - `role delete` / `role key ...` 是本地管理命令，不是 GPT Action；
-- v1 没有 role update / replace；需要更换时按 owner 规则删除旧注册并重新注册真实 GPT。
+- v1 不提供通用 role update / replace API；普通 `registerRole` 继续拒绝同 package 重复注册。只有明确重新创建角色且新 GPT 已真实 `LIVE_CREATED` 后，Deployment 才可用 `saveCurrentRole` 原子替换同 package 当前 Role/credential；该能力不是 active Task Role migration，也不改变正常 setup retry / package upgrade 复用现有 roleRef 的规则。
 
 ---
 
@@ -314,7 +314,7 @@ role key rotate
 ```text
 Provisioning Driver 创建/更新并确认 live GPT
 → 返回真实 g-id / carrierUrl
-→ Agent Domain registerRole
+→ Agent Domain 持久化当前 Role（严格 registerRole 或 deployment-only saveCurrentRole）
 → 生成并持久化 Role 专属 Bearer Key
 → owning setup 临时读取本次 credential
 → 通过受限 Provisioning transport 交给 Extension
