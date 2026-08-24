@@ -263,6 +263,9 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.doesNotMatch(content, /Invite-only|Invite only|仅限受邀者/);
 	assert.doesNotMatch(content, /waitForDialogClickable/);
 	assert.match(content, /FINALIZE_CUSTOM_GPT_AUTH/);
+	assert.match(content, /existingActionEditButton/);
+	assert.match(content, /openExistingActionEditor/);
+	assert.match(content, /GPT_EDITOR_ACTION_EDIT_NOT_FOUND/);
 	assert.match(content, /finalizeBearerAuth/);
 	assert.match(content, /GPT_EDITOR_AUTH_DIALOG_NOT_FOUND/);
 	assert.match(content, /GPT_EDITOR_AUTH_KEY_READBACK_MISMATCH/);

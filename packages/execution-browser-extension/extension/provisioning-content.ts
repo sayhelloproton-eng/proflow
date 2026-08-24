@@ -465,8 +465,58 @@ async function waitForAuthSemantic(
 	);
 }
 
+function existingActionEditButton(): HTMLElement | null {
+	const actionLabel = [...document.querySelectorAll<HTMLElement>("label")].find(
+		(element) => matchesExactSemantic(element, ["Actions", "操作"]),
+	);
+	let scope: HTMLElement | null = actionLabel?.parentElement ?? null;
+	for (let depth = 0; depth < 5 && scope; depth += 1) {
+		const buttons = [
+			...scope.querySelectorAll<HTMLElement>('button, [role="button"]'),
+		].filter(available);
+		const create = buttons.find((element) =>
+			matchesBoundedSemantic(element, [
+				"Create new action",
+				"New action",
+				"创建新操作",
+			]),
+		);
+		if (create) {
+			return (
+				buttons.find(
+					(element) =>
+						element !== create &&
+						elementSemanticText(element) === "" &&
+						normalize(element.parentElement?.parentElement?.textContent)
+							.length > 0,
+				) ?? null
+			);
+		}
+		scope = scope.parentElement;
+	}
+	return null;
+}
+
+async function openExistingActionEditor(): Promise<void> {
+	const authLabels = ["Authentication", "身份验证", "认证"] as const;
+	if (clickable(authLabels)) return;
+	const edit = existingActionEditButton();
+	if (!edit) throw new Error("GPT_EDITOR_ACTION_EDIT_NOT_FOUND");
+	edit.click();
+	for (let attempt = 0; attempt < 120; attempt += 1) {
+		if (clickable(authLabels)) return;
+		try {
+			findControl(["OpenAPI schema", "Schema", "OpenAPI", "架构"]);
+			return;
+		} catch {}
+		await sleep(100);
+	}
+	throw new Error("GPT_EDITOR_ACTION_EDITOR_NOT_READY");
+}
+
 async function finalizeBearerAuth(credential: string) {
 	if (credential.length < 32) throw new Error("ROLE_CREDENTIAL_INVALID");
+	await openExistingActionEditor();
 	(
 		await waitForAuthSemantic(document, ["Authentication", "身份验证", "认证"])
 	).click();
