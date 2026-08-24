@@ -12,13 +12,11 @@ type ProvisioningSurface = {
 	url: string;
 };
 
-type ProvisioningCommand =
-	| {
-			type: "PROFLOW_PROVISIONING_COMMAND";
-			operation: "PROVISION_CUSTOM_GPT";
-			request: Record<string, unknown>;
-	  }
-	| { type: "PROFLOW_PROVISIONING_FINALIZE_CREATE" };
+type ProvisioningCommand = {
+	type: "PROFLOW_PROVISIONING_COMMAND";
+	operation: "PROVISION_CUSTOM_GPT";
+	request: Record<string, unknown>;
+};
 
 type ChromeRuntime = {
 	runtime: {
@@ -655,27 +653,16 @@ const domPort: CustomGptEditorPort = {
 const editorDriver = createCustomGptEditorDriver(domPort);
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-	if (
-		message.type !== "PROFLOW_PROVISIONING_COMMAND" &&
-		message.type !== "PROFLOW_PROVISIONING_FINALIZE_CREATE"
-	)
-		return;
+	if (message.type !== "PROFLOW_PROVISIONING_COMMAND") return;
 	if (!editorSurfaceReady()) {
 		sendResponse({ ok: false, error: "PROVISIONING_SURFACE_NOT_READY" });
 		return;
 	}
 	void (async () => {
 		try {
-			const result =
-				message.type === "PROFLOW_PROVISIONING_FINALIZE_CREATE"
-					? await finalizePrivateCreateSurface()
-					: await (async () => {
-							await ensureConfigureMode();
-							const material = parseCustomGptProvisioningRequest(
-								message.request,
-							);
-							return editorDriver.provision(material);
-						})();
+			await ensureConfigureMode();
+			const material = parseCustomGptProvisioningRequest(message.request);
+			const result = await editorDriver.provision(material);
 			sendResponse({
 				ok: true,
 				value: {
