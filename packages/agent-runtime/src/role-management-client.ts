@@ -138,6 +138,7 @@ export async function createWorkspaceRoleSetupClient(workspaceRoot: string) {
 	});
 	return Object.freeze({
 		registerRole: (input: unknown) => runtime.registerRole(input),
+		saveCurrentRole: (input: unknown) => runtime.saveCurrentRole(input),
 		inspectRole(input: {
 			agentPackageRef: string;
 			expectedPackageVersion: string;

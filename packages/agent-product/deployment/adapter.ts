@@ -236,7 +236,7 @@ export const behaviorAdapter = {
 					},
 					{
 						roleRegistry: {
-							saveRole: (input) => roleClient.registerRole(input),
+							saveRole: (input) => roleClient.saveCurrentRole(input),
 							inspectRole: (input) => roleClient.inspectRole(input),
 						},
 					},

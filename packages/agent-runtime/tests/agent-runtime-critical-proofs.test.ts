@@ -125,6 +125,54 @@ test("CP-AGT-RUNTIME-01 registry is one-package-one-current-role and ROLE_IN_USE
 	await assert.rejects(() => runtime.deleteRole("g-dev"), /ROLE_IN_USE/);
 	assert.deepEqual(runtime.listRegisteredRoles(), before);
 });
+test("CP-AGT-RUNTIME-01A deployment save replaces only the package current role", async (context) => {
+	const { runtime, proflowRoot } = await fixture(context);
+	const oldCredential = await runtime.showCredential("g-dev");
+	const saved = await runtime.saveCurrentRole({
+		agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+		registeredPackageVersion: "0.2.0",
+		roleRef: "g-dev-2",
+		carrierUrl: "https://chatgpt.com/g/g-dev-2",
+	});
+	assert.equal(saved.replacedRoleRef, "g-dev");
+	assert.equal(saved.role.roleRef, "g-dev-2");
+	assert.equal(runtime.listRegisteredRoles().length, 3);
+	assert.throws(() => runtime.getRegisteredRole("g-dev"), /ROLE_NOT_FOUND/);
+	assert.equal(
+		runtime.getRegisteredRole("g-dev-2").registeredPackageVersion,
+		"0.2.0",
+	);
+	assert.equal(runtime.getRegisteredRole("g-product").roleRef, "g-product");
+	assert.equal(runtime.getRegisteredRole("g-test").roleRef, "g-test");
+	await assert.rejects(
+		() => runtime.authenticateBearer(oldCredential.credential),
+		/AUTHENTICATION_FAILED/,
+	);
+	assert.equal(await runtime.authenticateBearer(saved.credential), "g-dev-2");
+	assert.deepEqual(runtime.doctorRoleStore(), { status: "PASS", issues: [] });
+	const roles = JSON.parse(
+		await readFile(join(proflowRoot, "agent/roles.json"), "utf8"),
+	) as Array<{ agentPackageRef: string; roleRef: string }>;
+	assert.equal(
+		roles.find(
+			(role) =>
+				role.agentPackageRef === "@tomflow/proflow-agent-controller-dev",
+		)?.roleRef,
+		"g-dev-2",
+	);
+	assert.equal(
+		roles.some((role) => role.roleRef === "g-dev"),
+		false,
+	);
+	const credentials = JSON.parse(
+		await readFile(
+			join(proflowRoot, "agent/secrets/role-credentials.json"),
+			"utf8",
+		),
+	) as Record<string, string>;
+	assert.equal(credentials["g-dev"], undefined);
+	assert.equal(credentials["g-dev-2"], saved.credential);
+});
 test("CP-AGT-RUNTIME-02 one credential rotates without role identity or secret leakage", async (context) => {
 	const { runtime, proflowRoot } = await fixture(context);
 	const oldCredential = await runtime.showCredential("g-dev");

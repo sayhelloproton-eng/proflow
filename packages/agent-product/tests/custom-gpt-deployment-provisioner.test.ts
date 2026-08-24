@@ -15,7 +15,7 @@ test("Real-2 agent-product Module.setup uses the reusable Custom GPT role API", 
 	assert.match(adapter, /createWorkspaceRoleSetupClient\(/);
 	assert.match(
 		adapter,
-		/saveRole: \(input\) => roleClient\.registerRole\(input\)/,
+		/saveRole: \(input\) => roleClient\.saveCurrentRole\(input\)/,
 	);
 	assert.match(
 		adapter,

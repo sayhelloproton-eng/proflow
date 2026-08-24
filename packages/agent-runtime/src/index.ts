@@ -560,6 +560,54 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 			}
 			return { role, credential };
 		},
+		async saveCurrentRole(raw: unknown) {
+			const input = roleRegistrationSchema.parse(raw);
+			const sameRef = roles.get(input.roleRef);
+			if (sameRef && sameRef.agentPackageRef !== input.agentPackageRef)
+				throw new AgentRuntimeError("ROLE_ALREADY_REGISTERED");
+			const previousRole = [...roles.values()].find(
+				(role) => role.agentPackageRef === input.agentPackageRef,
+			);
+			const previousRoles = new Map(roles);
+			const previousCredentials = new Map(credentials);
+			const credential = credentialFactory();
+			const role: RegisteredRole = {
+				...input,
+				carrierType: "custom-gpt",
+				registeredAt: now().toISOString(),
+			};
+			if (previousRole) {
+				roles.delete(previousRole.roleRef);
+				credentials.delete(previousRole.roleRef);
+			}
+			roles.set(role.roleRef, role);
+			credentials.set(role.roleRef, credential);
+			try {
+				await persistCredentials();
+				await persistRoles();
+			} catch (error) {
+				roles.clear();
+				for (const [roleRef, value] of previousRoles) roles.set(roleRef, value);
+				credentials.clear();
+				for (const [roleRef, value] of previousCredentials)
+					credentials.set(roleRef, value);
+				try {
+					await persistCredentialSnapshot(previousCredentials);
+					await persistRoles();
+				} catch {
+					throw new AgentRuntimeError(
+						"ROLE_STORE_HALF_STATE",
+						"Durable role/credential stores diverged after a failed current-role save.",
+					);
+				}
+				throw error;
+			}
+			return {
+				role,
+				credential,
+				replacedRoleRef: previousRole?.roleRef ?? null,
+			};
+		},
 		async deleteRole(roleRef: string) {
 			if (!roles.has(roleRef)) throw new AgentRuntimeError("ROLE_NOT_FOUND");
 			if (await options.task.hasNonTerminalRoleUsage(roleRef))
