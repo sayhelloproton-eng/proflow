@@ -307,11 +307,8 @@ async function uploadKnowledge(files: readonly CustomGptKnowledgeFile[]) {
 const privateVisibilityLabels = [
 	"Only me",
 	"Private",
-	"Invite-only",
-	"Invite only",
 	"只有我",
 	"私有",
-	"仅限受邀者",
 	"仅自己",
 ] as const;
 

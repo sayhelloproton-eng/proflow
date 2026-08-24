@@ -227,6 +227,7 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /"Private"/);
 	assert.match(content, /"只有我"/);
 	assert.match(content, /"私有"/);
+	assert.doesNotMatch(content, /Invite-only|Invite only|仅限受邀者/);
 	assert.doesNotMatch(content, /waitForDialogClickable/);
 	assert.doesNotMatch(
 		content,
