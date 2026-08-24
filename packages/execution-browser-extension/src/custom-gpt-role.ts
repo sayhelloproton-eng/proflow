@@ -24,7 +24,13 @@ export type CustomGptRoleRecordInput = {
 };
 
 export type CustomGptRoleRegistryPort = {
-	saveRole(input: CustomGptRoleRecordInput): Promise<{ credential: string }>;
+	prepareCredential?():
+		| Promise<{ credential: string }>
+		| { credential: string };
+	saveRole(
+		input: CustomGptRoleRecordInput,
+		preparedCredential?: string,
+	): Promise<{ credential: string }>;
 	deleteRole(roleRef: string): Promise<void>;
 	inspectRole(input: {
 		agentPackageRef: string;
@@ -40,8 +46,9 @@ type CustomGptProvisioningHostPort = {
 		stagingRoot: string;
 		gatewayUrl: string;
 		material: CustomGptPackageProvisioningMaterial;
+		credential?: string;
 	}): Promise<CustomGptProvisioningResult>;
-	finalizeRoleAuth(input: {
+	finalizeRoleAuth?(input: {
 		carrierUrl: string;
 		credential: string;
 	}): Promise<{ status: "AUTH_UPDATED"; gptId: string }>;
@@ -119,22 +126,39 @@ export async function createCustomGptRole(
 		let persistedRoleRef: string | undefined;
 		let credential = "";
 		try {
+			const prepared = ports.roleRegistry.prepareCredential
+				? await ports.roleRegistry.prepareCredential()
+				: undefined;
+			if (prepared !== undefined) {
+				if (
+					typeof prepared.credential !== "string" ||
+					prepared.credential.length < 32
+				)
+					throw new Error("WORKSPACE_ROLE_CREDENTIAL_INVALID");
+				credential = prepared.credential;
+			}
 			result = await host.provisionPackage({
 				packageRoot: input.packageRoot,
 				stagingRoot: input.stagingRoot,
 				gatewayUrl: input.gatewayUrl,
 				material: input.material,
+				...(credential ? { credential } : {}),
 			});
 			assertLiveCreated(result, input.material);
 
-			const saved = await ports.roleRegistry.saveRole({
-				agentPackageRef: result.packageName,
-				registeredPackageVersion: result.version,
-				roleRef: result.gptId,
-				carrierUrl: result.carrierUrl,
-			});
+			const saved = await ports.roleRegistry.saveRole(
+				{
+					agentPackageRef: result.packageName,
+					registeredPackageVersion: result.version,
+					roleRef: result.gptId,
+					carrierUrl: result.carrierUrl,
+				},
+				credential || undefined,
+			);
 			if (typeof saved.credential !== "string" || saved.credential.length < 32)
 				throw new Error("WORKSPACE_ROLE_CREDENTIAL_INVALID");
+			if (credential && saved.credential !== credential)
+				throw new Error("WORKSPACE_ROLE_CREDENTIAL_MISMATCH");
 			credential = saved.credential;
 			persistedRoleRef = result.gptId;
 
@@ -149,12 +173,16 @@ export async function createCustomGptRole(
 			)
 				throw new Error("WORKSPACE_ROLE_PERSISTENCE_NOT_READY");
 
-			const auth = await host.finalizeRoleAuth({
-				carrierUrl: result.carrierUrl,
-				credential,
-			});
-			if (auth.status !== "AUTH_UPDATED" || auth.gptId !== result.gptId)
-				throw new Error("CUSTOM_GPT_AUTH_NOT_READY");
+			if (!ports.roleRegistry.prepareCredential) {
+				if (!host.finalizeRoleAuth)
+					throw new Error("CUSTOM_GPT_AUTH_NOT_AVAILABLE");
+				const auth = await host.finalizeRoleAuth({
+					carrierUrl: result.carrierUrl,
+					credential,
+				});
+				if (auth.status !== "AUTH_UPDATED" || auth.gptId !== result.gptId)
+					throw new Error("CUSTOM_GPT_AUTH_NOT_READY");
+			}
 
 			await ports.verifyCarrier({
 				agentPackageRef: result.packageName,
