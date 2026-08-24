@@ -78,21 +78,20 @@ test("CP-EXE-BR-20 knowledge ZIP materialization is traversal-safe and hashed", 
 	const root = await mkdtemp(join(tmpdir(), "proflow-knowledge-"));
 	context.after(() => rm(root, { recursive: true, force: true }));
 	const bundle = join(root, "knowledge.zip");
-	await writeFile(
-		bundle,
-		storedZip("proflow-knowledge-smoke.md", "PF-KNOWLEDGE-REAL2-001"),
+	const archive = storedZip(
+		"proflow-knowledge-smoke.md",
+		"PF-KNOWLEDGE-REAL2-001",
 	);
+	await writeFile(bundle, archive);
 	const result = await materializeCustomGptKnowledgeBundle({
 		bundlePath: bundle,
 		stagingRoot: join(root, "stage"),
 	});
 	assert.equal(result.files.length, 1);
-	assert.equal(result.files[0]?.name, "proflow-knowledge-smoke.md");
+	assert.equal(result.files[0]?.name, "knowledge.zip");
+	assert.equal(result.files[0]?.mime, "application/zip");
 	assert.match(result.files[0]?.sha256 ?? "", /^sha256:[0-9a-f]{64}$/);
-	assert.equal(
-		await readFile(result.files[0]?.path ?? "", "utf8"),
-		"PF-KNOWLEDGE-REAL2-001",
-	);
+	assert.deepEqual(await readFile(result.files[0]?.path ?? ""), archive);
 
 	const malicious = join(root, "malicious.zip");
 	await writeFile(malicious, storedZip("../escape.md", "escape"));

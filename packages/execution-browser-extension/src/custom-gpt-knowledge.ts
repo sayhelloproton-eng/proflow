@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { basename, dirname, extname, join, resolve, sep } from "node:path";
+import { basename, extname, join, resolve } from "node:path";
 import { inflateRawSync } from "node:zlib";
 
 export type MaterializedKnowledgeFile = {
@@ -144,18 +144,12 @@ export async function materializeCustomGptKnowledgeBundle(input: {
 	const maxEntries = input.maxEntries ?? 64;
 	const maxEntryBytes = input.maxEntryBytes ?? 32 * 1024 * 1024;
 	const maxTotalBytes = input.maxTotalBytes ?? 128 * 1024 * 1024;
-	const archive = await readFile(resolve(input.bundlePath));
+	const bundlePath = resolve(input.bundlePath);
+	const archive = await readFile(bundlePath);
 	const bundleSha256 = sha256(archive);
 	const entries = parseEntries(archive, maxEntries);
-	const stagingDirectory = join(
-		resolve(input.stagingRoot),
-		bundleSha256.slice("sha256:".length, "sha256:".length + 24),
-	);
-	await rm(stagingDirectory, { recursive: true, force: true });
-	await mkdir(stagingDirectory, { recursive: true, mode: 0o700 });
-	const files: MaterializedKnowledgeFile[] = [];
-	const names = new Set<string>();
 	let totalBytes = 0;
+	let knowledgeEntryCount = 0;
 	for (const entry of entries) {
 		if (entry.name.endsWith("/")) continue;
 		if (unsafeEntry(entry.name)) throw new Error("KNOWLEDGE_ZIP_ENTRY_UNSAFE");
@@ -164,33 +158,34 @@ export async function materializeCustomGptKnowledgeBundle(input: {
 		totalBytes += entry.uncompressedSize;
 		if (totalBytes > maxTotalBytes)
 			throw new Error("KNOWLEDGE_ZIP_TOTAL_TOO_LARGE");
-		const extension = extname(entry.name).toLowerCase();
-		const mime = MIME_BY_EXTENSION[extension];
-		if (!mime) throw new Error("KNOWLEDGE_FILE_TYPE_UNSUPPORTED");
-		const fileName = basename(entry.name);
-		if (names.has(fileName)) throw new Error("KNOWLEDGE_FILE_NAME_DUPLICATE");
-		names.add(fileName);
-		const bytes = extractEntry(archive, entry);
-		const relativePath = entry.name;
-		const outputPath = resolve(stagingDirectory, relativePath);
-		if (!outputPath.startsWith(`${stagingDirectory}${sep}`))
-			throw new Error("KNOWLEDGE_ZIP_ENTRY_UNSAFE");
-		await mkdir(dirname(outputPath), { recursive: true, mode: 0o700 });
-		await writeFile(outputPath, bytes, { mode: 0o600 });
-		files.push({
-			name: fileName,
-			relativePath,
-			path: outputPath,
-			mime,
-			sizeBytes: bytes.length,
-			sha256: sha256(bytes),
-		});
+		if (!MIME_BY_EXTENSION[extname(entry.name).toLowerCase()])
+			throw new Error("KNOWLEDGE_FILE_TYPE_UNSUPPORTED");
+		extractEntry(archive, entry);
+		knowledgeEntryCount += 1;
 	}
-	if (files.length === 0) throw new Error("KNOWLEDGE_ZIP_EMPTY");
+	if (knowledgeEntryCount === 0) throw new Error("KNOWLEDGE_ZIP_EMPTY");
+	const stagingDirectory = join(
+		resolve(input.stagingRoot),
+		bundleSha256.slice("sha256:".length, "sha256:".length + 24),
+	);
+	await rm(stagingDirectory, { recursive: true, force: true });
+	await mkdir(stagingDirectory, { recursive: true, mode: 0o700 });
+	const fileName = basename(bundlePath);
+	const stagedBundlePath = join(stagingDirectory, fileName);
+	await writeFile(stagedBundlePath, archive, { mode: 0o600 });
 	return {
-		bundlePath: resolve(input.bundlePath),
+		bundlePath,
 		bundleSha256,
 		stagingDirectory,
-		files,
+		files: [
+			{
+				name: fileName,
+				relativePath: fileName,
+				path: stagedBundlePath,
+				mime: "application/zip",
+				sizeBytes: archive.length,
+				sha256: bundleSha256,
+			},
+		],
 	};
 }

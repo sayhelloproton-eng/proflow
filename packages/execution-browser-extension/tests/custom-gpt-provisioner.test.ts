@@ -70,9 +70,13 @@ test("CP-EXE-BR-20 Mac provisioner hydrates package assets before sending one pr
 		join(packageRoot, "actions/custom-gpt.openapi.yaml"),
 		"openapi: 3.1.0\nservers:\n  - url: https://GATEWAY_PUBLIC_HOST\n",
 	);
+	const knowledgeArchive = storedZip(
+		"proflow-knowledge-smoke.md",
+		"PF-KNOWLEDGE-REAL2-001",
+	);
 	await writeFile(
 		join(packageRoot, "knowledge/custom-gpt-knowledge.zip"),
-		storedZip("proflow-knowledge-smoke.md", "PF-KNOWLEDGE-REAL2-001"),
+		knowledgeArchive,
 	);
 	const host = await createCustomGptProvisioningHost({
 		token,
@@ -143,7 +147,11 @@ test("CP-EXE-BR-20 Mac provisioner hydrates package assets before sending one pr
 		headers: { origin: "https://chatgpt.com" },
 	});
 	assert.equal(fileResponse.status, 200);
-	assert.equal(await fileResponse.text(), "PF-KNOWLEDGE-REAL2-001");
+	assert.equal(fileResponse.headers.get("content-type"), "application/zip");
+	assert.deepEqual(
+		Buffer.from(await fileResponse.arrayBuffer()),
+		knowledgeArchive,
+	);
 	const report = await extensionFetch(
 		host.endpoint,
 		`/v1/provisioning/commands/result?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`,
@@ -176,7 +184,7 @@ test("CP-EXE-BR-20 Mac provisioner hydrates package assets before sending one pr
 	assert.match(result.knowledgeBundleSha256, /^sha256:[0-9a-f]{64}$/);
 	assert.deepEqual(
 		result.knowledgeFiles.map((file) => file.name),
-		["proflow-knowledge-smoke.md"],
+		["custom-gpt-knowledge.zip"],
 	);
 });
 
