@@ -514,28 +514,73 @@ async function openExistingActionEditor(): Promise<void> {
 	throw new Error("GPT_EDITOR_ACTION_EDITOR_NOT_READY");
 }
 
+async function waitForAuthSettingsButton(): Promise<HTMLElement> {
+	const labels = ["Authentication", "身份验证", "认证"] as const;
+	for (let attempt = 0; attempt < 120; attempt += 1) {
+		for (const label of document.querySelectorAll<HTMLElement>("label")) {
+			if (!available(label) || !matchesExactSemantic(label, labels)) continue;
+			let container: HTMLElement | null = label.parentElement;
+			for (let depth = 0; depth < 4 && container; depth += 1) {
+				const buttons = [
+					...container.querySelectorAll<HTMLElement>("button"),
+				].filter(available);
+				const [button] = buttons;
+				if (buttons.length === 1 && button) return button;
+				container = container.parentElement;
+			}
+		}
+		await sleep(100);
+	}
+	throw new Error("GPT_EDITOR_AUTH_SETTINGS_BUTTON_NOT_FOUND");
+}
+
 async function finalizeBearerAuth(credential: string) {
 	if (credential.length < 32) throw new Error("ROLE_CREDENTIAL_INVALID");
 	await openExistingActionEditor();
-	(
-		await waitForAuthSemantic(document, ["Authentication", "身份验证", "认证"])
-	).click();
+	(await waitForAuthSettingsButton()).click();
 	let dialog: HTMLElement | null = null;
-	for (let attempt = 0; attempt < 120; attempt += 1) {
-		dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-		if (dialog && available(dialog)) break;
+	for (let attempt = 0; attempt < 600; attempt += 1) {
+		dialog =
+			[...document.querySelectorAll<HTMLElement>('[role="dialog"]')].find(
+				(candidate) => available(candidate),
+			) ?? null;
+		if (dialog) break;
 		await sleep(100);
 	}
 	if (!dialog) throw new Error("GPT_EDITOR_AUTH_DIALOG_NOT_FOUND");
-	const apiKey = await waitForAuthSemantic(dialog, ["API Key", "API 密钥"]);
+	const authRadio = async (labels: readonly string[]) => {
+		for (let attempt = 0; attempt < 120; attempt += 1) {
+			for (const radio of dialog.querySelectorAll<HTMLElement>(
+				'input[type="radio"], [role="radio"]',
+			)) {
+				let container: HTMLElement | null = radio.parentElement;
+				for (let depth = 0; depth < 3 && container; depth += 1) {
+					if (matchesBoundedSemantic(container, labels)) return radio;
+					container = container.parentElement;
+				}
+			}
+			await sleep(100);
+		}
+		throw new Error(
+			`GPT_EDITOR_AUTH_RADIO_NOT_FOUND:${labels[0] ?? "unknown"}`,
+		);
+	};
+	const apiKey = await authRadio(["API Key", "API 密钥"]);
 	if (!selected(apiKey)) apiKey.click();
-	const bearer = await waitForAuthSemantic(dialog, ["Bearer"]);
+	const bearer = await authRadio(["Bearer"]);
 	if (!selected(bearer)) bearer.click();
-	const keyInput = await waitForAuthSemantic(
-		dialog,
-		["API Key", "API 密钥", "Key", "密钥"],
-		'input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"])',
-	);
+	let keyInput: HTMLInputElement | null = null;
+	for (let attempt = 0; attempt < 120; attempt += 1) {
+		const candidate = dialog.querySelector<HTMLInputElement>(
+			'input[type="password"]',
+		);
+		if (candidate && available(candidate)) {
+			keyInput = candidate;
+			break;
+		}
+		await sleep(100);
+	}
+	if (!keyInput) throw new Error("GPT_EDITOR_AUTH_KEY_INPUT_NOT_FOUND");
 	setControlValue(keyInput, credential);
 	if (controlValue(keyInput) !== credential)
 		throw new Error("GPT_EDITOR_AUTH_KEY_READBACK_MISMATCH");
