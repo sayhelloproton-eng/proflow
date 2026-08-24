@@ -169,3 +169,58 @@ test("createCustomGptRole serializes simultaneous creates inside one workspace",
 	assert.equal(results.length, 3);
 	assert.equal(saved.size, 3);
 });
+
+test("createCustomGptRole continues the workspace queue after a failed create", async () => {
+	let hostCalls = 0;
+	const saved = new Map<string, { roleRef: string; carrierUrl: string }>();
+	const registry: CustomGptRoleRegistryPort = {
+		async saveRole(value) {
+			saved.set(value.agentPackageRef, {
+				roleRef: value.roleRef,
+				carrierUrl: value.carrierUrl,
+			});
+		},
+		inspectRole(value) {
+			const role = saved.get(value.agentPackageRef);
+			return role ? { status: "READY", role } : { status: "MISSING" };
+		},
+	};
+	const create = (name: string) =>
+		createCustomGptRole(
+			{
+				...input(),
+				material: { ...material, packageName: `@tomflow/${name}` },
+			},
+			{
+				roleRegistry: registry,
+				async createProvisioningHost() {
+					hostCalls += 1;
+					const call = hostCalls;
+					return {
+						async provisionPackage(value) {
+							if (call === 1) throw new Error("FIRST_CREATE_FAILED");
+							const gptId = `g-${value.material.packageName.split("/").at(-1)}`;
+							return {
+								status: "LIVE_CREATED" as const,
+								packageName: value.material.packageName,
+								version: value.material.version,
+								gptId,
+								carrierUrl: `https://chatgpt.com/g/${gptId}`,
+								knowledgeBundleSha256: `sha256:${"a".repeat(64)}`,
+								knowledgeFiles: [],
+							};
+						},
+						async close() {},
+					};
+				},
+			},
+		);
+	const [first, second] = await Promise.allSettled([
+		create("queue-fail"),
+		create("queue-next"),
+	]);
+	assert.equal(first.status, "rejected");
+	assert.equal(second.status, "fulfilled");
+	assert.equal(hostCalls, 2);
+	assert.equal(saved.get("@tomflow/queue-next")?.roleRef, "g-queue-next");
+});
