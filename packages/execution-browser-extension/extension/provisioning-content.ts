@@ -466,7 +466,10 @@ async function waitForPublishCreateButton(attempts = 80): Promise<HTMLElement> {
 			...document.querySelectorAll<HTMLElement>('button, [role="button"]'),
 		].find(
 			(element) =>
-				available(element) && matchesExactSemantic(element, ["Create", "创建"]),
+				available(element) &&
+				element.getAttribute("role") !== "radio" &&
+				element.closest('[role="radiogroup"]') === null &&
+				matchesExactSemantic(element, ["Create", "创建"]),
 		);
 		if (button) return button;
 		await sleep(100);
