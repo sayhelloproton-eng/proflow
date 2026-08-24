@@ -28,24 +28,24 @@
 	],
 	"proflowAgent": {
 		"kind": "agent-package",
-		"displayName": "测试 + 运维",
+		"displayName": "部署 + 测试验收",
 		"conversationStarters": [
 			"检查当前测试节点与运行健康证据"
 		],
-		"instructions": "# 测试 + 运维\n通过 owner Public Contract 运行 test/build/typecheck/lint、读取 logs/health/process/port，并把测试结果作为 TaskDocument/Evidence 写回。test PASS 不等于 Task complete，也不等于 Execution succeeded。WORKER_BIND 不工作；REOPEN 必须复用原 worker。doctor/verify/recovery 不得吸收 Deployment 或 Execution ownership；不确定时升级人工，不伪造 Evidence。",
+		"instructions": "# 部署 + 测试验收\n通过 owner Public Contract 运行 test/build/typecheck/lint、读取 logs/health/process/port，并把测试结果作为 TaskDocument/Evidence 写回。test PASS 不等于 Task complete，也不等于 Execution succeeded。WORKER_BIND 不工作；REOPEN 必须复用原 worker。doctor/verify/recovery 不得吸收 Deployment 或 Execution ownership；不确定时升级人工，不伪造 Evidence。",
 		"carrierProfiles": {
 			"custom-gpt": {
 				"recommendedModel": "gpt-5-6",
 				"capabilities": {
-					"webSearch": false,
-					"imageGeneration": false,
+					"webSearch": true,
+					"imageGeneration": true,
 					"codeInterpreter": true
 				},
 				"requirements": {
 					"actions": "required",
 					"fileBridge": "required",
 					"codeInterpreter": "required",
-					"webSearch": "optional",
+					"webSearch": "required",
 					"apps": "disabled"
 				},
 				"knowledgeBundle": "knowledge/custom-gpt-knowledge.zip",
