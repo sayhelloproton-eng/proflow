@@ -69,7 +69,9 @@ type ContentCommand = {
 	value?: string;
 	fingerprint?: string;
 };
-type ProvisioningOperation = "PROVISION_CUSTOM_GPT";
+type ProvisioningOperation =
+	| "PROVISION_CUSTOM_GPT"
+	| "FINALIZE_CUSTOM_GPT_AUTH";
 type ProvisioningBridgeCommand = {
 	commandId: string;
 	type: ProvisioningOperation;
@@ -899,7 +901,21 @@ async function executeProvisioningCommand(
 ): Promise<unknown> {
 	if (!isRecord(command.request))
 		throw new Error("PROVISIONING_COMMAND_INVALID");
-	const editorUrl = "https://chatgpt.com/gpts/editor";
+	let editorUrl = "https://chatgpt.com/gpts/editor";
+	if (command.type === "FINALIZE_CUSTOM_GPT_AUTH") {
+		const carrierUrl = new URL(text(command.request.carrierUrl, "CARRIER_URL"));
+		const match = /^\/g\/(g-[A-Za-z0-9_-]+)$/.exec(carrierUrl.pathname);
+		if (
+			carrierUrl.origin !== "https://chatgpt.com" ||
+			carrierUrl.username !== "" ||
+			carrierUrl.password !== "" ||
+			carrierUrl.search !== "" ||
+			carrierUrl.hash !== "" ||
+			!match?.[1]
+		)
+			throw new Error("PROVISIONING_CARRIER_URL_INVALID");
+		editorUrl = `https://chatgpt.com/gpts/editor/${match[1]}`;
+	}
 	const tab = await chrome.tabs.create({ url: editorUrl, active: true });
 	return provisioningContentCommand(
 		numeric(tab.id, "TAB_ID"),

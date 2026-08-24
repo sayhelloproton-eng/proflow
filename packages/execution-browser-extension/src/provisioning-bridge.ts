@@ -7,7 +7,7 @@ import {
 } from "node:http";
 
 export type CustomGptProvisioningCommandInput = {
-	type: "PROVISION_CUSTOM_GPT";
+	type: "PROVISION_CUSTOM_GPT" | "FINALIZE_CUSTOM_GPT_AUTH";
 	request: Record<string, unknown>;
 };
 
@@ -384,7 +384,11 @@ export async function createCustomGptProvisioningBridgeServer(
 		now().getTime() - session.lastHeartbeatAt <= freshnessMs;
 
 	const requestProvisioning = (input: CustomGptProvisioningCommandInput) => {
-		if (input.type !== "PROVISION_CUSTOM_GPT" || !isRecord(input.request)) {
+		if (
+			(input.type !== "PROVISION_CUSTOM_GPT" &&
+				input.type !== "FINALIZE_CUSTOM_GPT_AUTH") ||
+			!isRecord(input.request)
+		) {
 			return Promise.reject(
 				new CustomGptProvisioningBridgeError(
 					"PROVISIONING_INPUT_INVALID",

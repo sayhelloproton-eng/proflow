@@ -124,6 +124,31 @@ function liveResult(
 	};
 }
 
+function carrierGptId(carrierUrl: string): string {
+	const url = new URL(carrierUrl);
+	const match = /^\/g\/(g-[A-Za-z0-9_-]+)$/.exec(url.pathname);
+	if (
+		url.origin !== "https://chatgpt.com" ||
+		url.username !== "" ||
+		url.password !== "" ||
+		url.search !== "" ||
+		url.hash !== "" ||
+		!match?.[1]
+	)
+		throw new Error("PROVISIONING_CARRIER_URL_INVALID");
+	return match[1];
+}
+
+function authResult(value: unknown, carrierUrl: string) {
+	if (typeof value !== "object" || value === null || Array.isArray(value))
+		throw new Error("PROVISIONING_AUTH_RESULT_INVALID");
+	const result = value as Record<string, unknown>;
+	const expectedGptId = carrierGptId(carrierUrl);
+	if (result.status !== "AUTH_UPDATED" || result.gptId !== expectedGptId)
+		throw new Error("PROVISIONING_AUTH_RESULT_INVALID");
+	return { status: "AUTH_UPDATED" as const, gptId: expectedGptId, carrierUrl };
+}
+
 const sleep = (milliseconds: number) =>
 	new Promise<void>((resolveWait) => setTimeout(resolveWait, milliseconds));
 
@@ -203,10 +228,31 @@ export async function createCustomGptProvisioningHost(
 		}
 	}
 
+	async function finalizeRoleAuth(input: {
+		carrierUrl: string;
+		credential: string;
+	}) {
+		await waitUntilOnline();
+		carrierGptId(input.carrierUrl);
+		if (input.credential.length < 32)
+			throw new Error("PROVISIONING_ROLE_CREDENTIAL_INVALID");
+		let credential = input.credential;
+		try {
+			const value = await bridge.provisioning.request({
+				type: "FINALIZE_CUSTOM_GPT_AUTH",
+				request: { carrierUrl: input.carrierUrl, credential },
+			});
+			return authResult(value, input.carrierUrl);
+		} finally {
+			credential = "";
+		}
+	}
+
 	return Object.freeze({
 		endpoint: bridge.endpoint,
 		status: bridge.status,
 		provisionPackage,
+		finalizeRoleAuth,
 		close: bridge.close,
 	});
 }

@@ -100,6 +100,38 @@ test("CP-EXE-BR-17 provisioning uses an independent authenticated command transp
 		);
 		assert.equal(result.status, 200);
 		assert.deepEqual(await pending, { gptId: "g-test" });
+
+		const authPending = server.provisioning.request({
+			type: "FINALIZE_CUSTOM_GPT_AUTH",
+			request: {
+				carrierUrl: "https://chatgpt.com/g/g-test",
+				credential: "role-credential-".padEnd(40, "x"),
+			},
+		});
+		const authNext = await callWithoutOrigin(
+			server.endpoint,
+			`/v1/provisioning/commands/next?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`,
+		);
+		assert.equal(authNext.status, 200);
+		const authCommand = (await authNext.json()) as Record<string, unknown>;
+		assert.equal(authCommand.type, "FINALIZE_CUSTOM_GPT_AUTH");
+		const authResult = await call(
+			server.endpoint,
+			`/v1/provisioning/commands/result?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`,
+			{
+				method: "POST",
+				body: JSON.stringify({
+					commandId: authCommand.commandId,
+					ok: true,
+					value: { status: "AUTH_UPDATED", gptId: "g-test" },
+				}),
+			},
+		);
+		assert.equal(authResult.status, 200);
+		assert.deepEqual(await authPending, {
+			status: "AUTH_UPDATED",
+			gptId: "g-test",
+		});
 	} finally {
 		await server.close();
 	}
@@ -202,6 +234,9 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 		/chrome\.tabs\.create\(\{ url: editorUrl, active: true \}\)/,
 	);
 	assert.match(provisioningFunction, /https:\/\/chatgpt\.com\/gpts\/editor/);
+	assert.match(provisioningFunction, /FINALIZE_CUSTOM_GPT_AUTH/);
+	assert.match(provisioningFunction, /PROVISIONING_CARRIER_URL_INVALID/);
+	assert.match(provisioningFunction, /gpts\/editor\/\$\{match\[1\]\}/);
 	assert.doesNotMatch(
 		provisioningFunction,
 		/waitForNewEditorTab|finalizeProvisioningCreate|PROFLOW_PROVISIONING_FINALIZE_CREATE/,
@@ -227,10 +262,10 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /"私有"/);
 	assert.doesNotMatch(content, /Invite-only|Invite only|仅限受邀者/);
 	assert.doesNotMatch(content, /waitForDialogClickable/);
-	assert.doesNotMatch(
-		content,
-		/querySelector<HTMLElement>\('\[role="dialog"\]'\)/,
-	);
+	assert.match(content, /FINALIZE_CUSTOM_GPT_AUTH/);
+	assert.match(content, /finalizeBearerAuth/);
+	assert.match(content, /GPT_EDITOR_AUTH_DIALOG_NOT_FOUND/);
+	assert.match(content, /GPT_EDITOR_AUTH_KEY_READBACK_MISMATCH/);
 	assert.match(content, /GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND/);
 	assert.match(content, /GPT_EDITOR_PRIVATE_SELECTION_NOT_CONFIRMED/);
 	assert.match(content, /GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND/);

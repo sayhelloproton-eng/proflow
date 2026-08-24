@@ -15,7 +15,7 @@ type ProvisioningSurface = {
 
 type ProvisioningCommand = {
 	type: "PROFLOW_PROVISIONING_COMMAND";
-	operation: "PROVISION_CUSTOM_GPT";
+	operation: "PROVISION_CUSTOM_GPT" | "FINALIZE_CUSTOM_GPT_AUTH";
 	request: Record<string, unknown>;
 };
 
@@ -433,6 +433,73 @@ function selected(element: HTMLElement): boolean {
 	);
 }
 
+function carrierGptId(value: unknown): string {
+	if (typeof value !== "string") throw new Error("ROLE_CARRIER_URL_INVALID");
+	const url = new URL(value);
+	const match = /^\/g\/(g-[A-Za-z0-9_-]+)$/.exec(url.pathname);
+	if (
+		url.origin !== "https://chatgpt.com" ||
+		url.username !== "" ||
+		url.password !== "" ||
+		url.search !== "" ||
+		url.hash !== "" ||
+		!match?.[1]
+	)
+		throw new Error("ROLE_CARRIER_URL_INVALID");
+	return match[1];
+}
+
+async function waitForAuthSemantic(
+	root: ParentNode,
+	candidates: readonly string[],
+	selector = 'button, [role="button"], [role="radio"], [role="option"], label',
+): Promise<HTMLElement> {
+	for (let attempt = 0; attempt < 120; attempt += 1) {
+		for (const element of root.querySelectorAll<HTMLElement>(selector))
+			if (available(element) && matchesBoundedSemantic(element, candidates))
+				return element;
+		await sleep(100);
+	}
+	throw new Error(
+		`GPT_EDITOR_AUTH_CONTROL_NOT_FOUND:${candidates[0] ?? "unknown"}`,
+	);
+}
+
+async function finalizeBearerAuth(credential: string) {
+	if (credential.length < 32) throw new Error("ROLE_CREDENTIAL_INVALID");
+	(
+		await waitForAuthSemantic(document, ["Authentication", "身份验证", "认证"])
+	).click();
+	let dialog: HTMLElement | null = null;
+	for (let attempt = 0; attempt < 120; attempt += 1) {
+		dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+		if (dialog && available(dialog)) break;
+		await sleep(100);
+	}
+	if (!dialog) throw new Error("GPT_EDITOR_AUTH_DIALOG_NOT_FOUND");
+	const apiKey = await waitForAuthSemantic(dialog, ["API Key", "API 密钥"]);
+	if (!selected(apiKey)) apiKey.click();
+	const bearer = await waitForAuthSemantic(dialog, ["Bearer"]);
+	if (!selected(bearer)) bearer.click();
+	const keyInput = await waitForAuthSemantic(
+		dialog,
+		["API Key", "API 密钥", "Key", "密钥"],
+		'input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"])',
+	);
+	setControlValue(keyInput, credential);
+	if (controlValue(keyInput) !== credential)
+		throw new Error("GPT_EDITOR_AUTH_KEY_READBACK_MISMATCH");
+	(await waitForAuthSemantic(dialog, ["Save", "保存"])).click();
+	(await waitForAuthSemantic(document, ["Update", "更新"])).click();
+	await waitForReadback("GPT_EDITOR_AUTH_UPDATE_TIMEOUT", () => {
+		const text = normalize(document.body.textContent);
+		return text.includes("settings saved") || text.includes("设置已保存");
+	});
+	const gptId = currentGptId();
+	if (!gptId) throw new Error("GPT_EDITOR_GPT_ID_MISSING");
+	return { status: "AUTH_UPDATED" as const, gptId };
+}
+
 async function selectPrivateVisibility(): Promise<void> {
 	let control: HTMLElement | null = null;
 	for (let attempt = 0; attempt < 80; attempt += 1) {
@@ -805,16 +872,34 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 	void (async () => {
 		try {
 			await ensureConfigureMode();
-			const material = parseCustomGptProvisioningRequest(message.request);
-			const result = await editorDriver.provision(material);
-			sendResponse({
-				ok: true,
-				value: {
-					...result,
-					provisioningInstanceId: provisioningSurface.instanceId,
-					url: location.href,
-				},
-			});
+			if (message.operation === "PROVISION_CUSTOM_GPT") {
+				const material = parseCustomGptProvisioningRequest(message.request);
+				const result = await editorDriver.provision(material);
+				sendResponse({
+					ok: true,
+					value: {
+						...result,
+						provisioningInstanceId: provisioningSurface.instanceId,
+						url: location.href,
+					},
+				});
+				return;
+			}
+			if (message.operation !== "FINALIZE_CUSTOM_GPT_AUTH")
+				throw new Error("PROVISIONING_OPERATION_UNSUPPORTED");
+			const expectedGptId = carrierGptId(message.request.carrierUrl);
+			let credential = message.request.credential;
+			delete message.request.credential;
+			if (typeof credential !== "string" || credential.length < 32)
+				throw new Error("ROLE_CREDENTIAL_INVALID");
+			try {
+				const result = await finalizeBearerAuth(credential);
+				if (result.gptId !== expectedGptId)
+					throw new Error("GPT_EDITOR_AUTH_TARGET_MISMATCH");
+				sendResponse({ ok: true, value: result });
+			} finally {
+				credential = "";
+			}
 		} catch (error) {
 			sendResponse({
 				ok: false,
