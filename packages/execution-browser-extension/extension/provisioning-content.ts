@@ -588,7 +588,12 @@ async function finalizeBearerAuth(credential: string) {
 	(await waitForAuthSemantic(document, ["Update", "更新"])).click();
 	await waitForReadback("GPT_EDITOR_AUTH_UPDATE_TIMEOUT", () => {
 		const text = normalize(document.body.textContent);
-		return text.includes("settings saved") || text.includes("设置已保存");
+		return (
+			text.includes("settings saved") ||
+			text.includes("设置已保存") ||
+			text.includes("gpt updated") ||
+			text.includes("gpt 已更新")
+		);
 	});
 	const gptId = currentGptId();
 	if (!gptId) throw new Error("GPT_EDITOR_GPT_ID_MISSING");

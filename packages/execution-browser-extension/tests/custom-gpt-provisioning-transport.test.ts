@@ -280,6 +280,8 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND/);
 	assert.match(content, /settings saved/);
 	assert.match(content, /设置已保存/);
+	assert.match(content, /gpt updated/);
+	assert.match(content, /gpt 已更新/);
 	assert.doesNotMatch(
 		content,
 		/clickable\(\["Update", "更新", "Share", "分享"\]\)/,
