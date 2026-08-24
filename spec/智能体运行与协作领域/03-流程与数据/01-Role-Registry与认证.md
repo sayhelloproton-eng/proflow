@@ -63,18 +63,19 @@ Role Pool
 Role alias
 multiple active Roles for same Agent Package
 automatic failover
-update/replace binding
+通用 runtime updateRole/replaceRole binding
 ```
 
-需要换 GPT：
+普通 `registerRole` 继续拒绝同一 Agent Package 的重复注册。正常 setup retry / package upgrade 优先复用现有 Role；只有明确重新创建该角色且新的 live GPT 已由 Provisioning 确认成功后，Deployment 才可调用 Agent owner 的 deployment-only `saveCurrentRole`：
 
 ```text
-owner delete-role
-→ Provisioning Driver 创建/确认新的 live GPT
-→ Agent Domain registerRole(new g-id)
+Provisioning Driver 创建/确认新的 live GPT
+→ Agent Domain saveCurrentRole(new g-id)
+→ 原子替换同一 Agent Package 的当前 Role + credential
+→ 其他 Agent Package Role 不变
 ```
 
-正常部署仍由 owning setup 编排；CLI 只保留显式管理/恢复能力。
+`saveCurrentRole` 不是 active Task Role migration，也不删除 ChatGPT 中旧 GPT。正常部署仍由 owning setup 编排；CLI 只保留显式管理/恢复能力。
 
 ---
 
@@ -182,7 +183,7 @@ Browser Extension 不直接解析 `.proflow` Registry 文件。
 
 # 7. Role 注册与 Key 生成
 
-Canonical owner capability 是 Agent Domain 的 `registerRole` / credential management；`role register <gpt-url>` 只是显式 CLI wrapper。
+Canonical owner capability 是 Agent Domain 的严格 `registerRole`、deployment-only `saveCurrentRole` 与 credential management；`role register <gpt-url>` 只是显式 CLI wrapper。`saveCurrentRole` 不属于 Runtime Public API，也不等价于通用 `replaceRole`。
 
 正常部署顺序：
 
@@ -190,7 +191,7 @@ Canonical owner capability 是 Agent Domain 的 `registerRole` / credential mana
 1. Provisioning Driver 返回已确认的 real g-id / carrierUrl
 2. Agent Domain 解析并规范化 roleRef
 3. 校验当前 Agent Package 与 roleRef 的一对一约束
-4. 持久化 RegisteredRole
+4. 由 Deployment owner path 持久化当前 RegisteredRole；显式重部署可替换同 package 当前绑定
 5. 生成 role-scoped Bearer credential
 6. 仅在 Agent-owned secret store 持久化 credential
 7. owning setup 临时读取 credential
