@@ -237,6 +237,13 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 		/clickable\(\["Update", "更新", "Share", "分享"\]\)/,
 	);
 	assert.match(content, /waitForPublishCreateButton/);
+	assert.match(content, /verifyConfiguredMaterial/);
+	assert.match(content, /GPT_EDITOR_CREATE_NOT_READY/);
+	assert.match(content, /GPT_EDITOR_FORM_READY_STATE_LOST/);
+	assert.match(content, /GPT_EDITOR_ACTION_SCHEMA_READBACK_MISMATCH/);
+	assert.match(content, /GPT_EDITOR_KNOWLEDGE_READBACK_MISMATCH/);
+	assert.match(content, /waitForKnowledgeName/);
+	assert.match(content, /knowledgeReadbackMatches\(name\)/);
 	assert.match(build, /provisioning-content\.ts/);
 	assert.match(build, /--format=iife/);
 	assert.doesNotMatch(

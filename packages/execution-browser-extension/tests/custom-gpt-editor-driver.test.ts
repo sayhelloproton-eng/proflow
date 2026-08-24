@@ -54,6 +54,9 @@ test("CP-EXE-BR-19 editor driver applies package-owned draft material without in
 		async uploadKnowledge(files) {
 			calls.push({ operation: "knowledge", value: files });
 		},
+		async verifyReady(material) {
+			calls.push({ operation: "verifyReady", value: material });
+		},
 		async createPrivate() {
 			calls.push({ operation: "createPrivate", value: true });
 			return {
@@ -78,6 +81,7 @@ test("CP-EXE-BR-19 editor driver applies package-owned draft material without in
 		{ operation: "capability", key: "codeInterpreter", value: true },
 		{ operation: "actionSchema", value: request.actionSchema },
 		{ operation: "knowledge", value: request.knowledgeFiles },
+		{ operation: "verifyReady", value: material },
 		{ operation: "createPrivate", value: true },
 	]);
 });

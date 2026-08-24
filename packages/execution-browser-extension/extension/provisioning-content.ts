@@ -2,6 +2,7 @@ import {
 	type CustomGptCapability,
 	type CustomGptEditorPort,
 	type CustomGptKnowledgeFile,
+	type CustomGptProvisioningRequest,
 	createCustomGptEditorDriver,
 	parseCustomGptProvisioningRequest,
 } from "../src/custom-gpt-editor-driver.js";
@@ -130,6 +131,27 @@ function setControlValue(element: HTMLElement, value: string): void {
 	element.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
+function controlValue(element: HTMLElement): string {
+	if (
+		element instanceof HTMLInputElement ||
+		element instanceof HTMLTextAreaElement ||
+		element instanceof HTMLSelectElement
+	)
+		return element.value.replaceAll("\r\n", "\n");
+	return (element.textContent ?? "").replaceAll("\r\n", "\n");
+}
+
+async function waitForReadback(
+	code: string,
+	predicate: () => boolean,
+): Promise<void> {
+	for (let attempt = 0; attempt < 600; attempt += 1) {
+		if (predicate()) return;
+		await sleep(100);
+	}
+	throw new Error(code);
+}
+
 function clickable(candidates: readonly string[]): HTMLElement | null {
 	for (const element of document.querySelectorAll<HTMLElement>(
 		'button, [role="button"], [role="option"], [role="menuitem"], [role="radio"]',
@@ -191,22 +213,26 @@ const capabilityLabels: Record<CustomGptCapability, readonly string[]> = {
 	],
 };
 
-async function replaceConversationStarters(values: readonly string[]) {
+function conversationStarterControls(minimum: number): HTMLElement[] {
 	const label = [...document.querySelectorAll<HTMLLabelElement>("label")].find(
 		(element) => matchesAny(element, ["Conversation starter", "对话开场白"]),
 	);
-	if (!label) throw new Error("GPT_EDITOR_STARTER_CONTROL_NOT_FOUND");
+	if (!label) return [];
 	let scope: HTMLElement | null = label.parentElement;
-	let controls: HTMLElement[] = [];
 	for (let depth = 0; depth < 4 && scope; depth += 1) {
-		controls = [
+		const controls = [
 			...scope.querySelectorAll<HTMLElement>(
 				'input[type="text"], textarea:not([data-testid="gizmo-instructions-input"])',
 			),
 		];
-		if (controls.length >= values.length) break;
+		if (controls.length >= minimum) return controls;
 		scope = scope.parentElement;
 	}
+	return [];
+}
+
+async function replaceConversationStarters(values: readonly string[]) {
+	const controls = conversationStarterControls(values.length);
 	if (controls.length < values.length)
 		throw new Error("GPT_EDITOR_STARTER_CONTROL_NOT_FOUND");
 	for (let index = 0; index < values.length; index += 1)
@@ -279,11 +305,9 @@ async function sha256Bytes(bytes: ArrayBuffer): Promise<string> {
 }
 
 async function waitForKnowledgeName(name: string): Promise<void> {
-	for (let attempt = 0; attempt < 80; attempt += 1) {
-		if ((document.body.textContent ?? "").includes(name)) return;
-		await sleep(125);
-	}
-	throw new Error(`GPT_EDITOR_KNOWLEDGE_UPLOAD_TIMEOUT:${name}`);
+	await waitForReadback(`GPT_EDITOR_KNOWLEDGE_UPLOAD_TIMEOUT:${name}`, () =>
+		knowledgeReadbackMatches(name),
+	);
 }
 
 async function uploadKnowledge(files: readonly CustomGptKnowledgeFile[]) {
@@ -455,21 +479,153 @@ async function waitForPrivateCreateAction(
 	throw new Error("GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND");
 }
 
-async function waitForPublishCreateButton(attempts = 80): Promise<HTMLElement> {
-	for (let attempt = 0; attempt < attempts; attempt += 1) {
-		const button = [
-			...document.querySelectorAll<HTMLElement>('button, [role="button"]'),
-		].find(
+function publishCreateButton(): HTMLElement | null {
+	return (
+		[...document.querySelectorAll<HTMLElement>('button, [role="button"]')].find(
 			(element) =>
 				available(element) &&
 				element.getAttribute("role") !== "radio" &&
 				element.closest('[role="radiogroup"]') === null &&
 				matchesExactSemantic(element, ["Create", "创建"]),
-		);
+		) ?? null
+	);
+}
+
+async function waitForPublishCreateButton(attempts = 80): Promise<HTMLElement> {
+	for (let attempt = 0; attempt < attempts; attempt += 1) {
+		const button = publishCreateButton();
 		if (button) return button;
 		await sleep(100);
 	}
 	throw new Error("GPT_EDITOR_CREATE_BUTTON_NOT_FOUND");
+}
+
+function fieldReadbackMatches(
+	field: keyof typeof fieldLabels,
+	expected: string,
+): boolean {
+	try {
+		return controlValue(findControl(fieldLabels[field])) === expected;
+	} catch {
+		return false;
+	}
+}
+
+function starterReadbackMatches(values: readonly string[]): boolean {
+	const controls = conversationStarterControls(values.length);
+	if (controls.length < values.length) return false;
+	return values.every(
+		(value, index) => controlValue(controls[index] as HTMLElement) === value,
+	);
+}
+
+function modelReadbackMatches(value: string): boolean {
+	try {
+		const selector = findControl([
+			"Recommended model",
+			"推荐模型",
+			"推荐的模型",
+			value,
+		]);
+		if (selector instanceof HTMLSelectElement) {
+			const option = selector.selectedOptions[0];
+			return Boolean(
+				option &&
+					(option.value === value ||
+						normalize(option.textContent).endsWith(`(${normalize(value)})`)),
+			);
+		}
+		return semanticValues(selector).some((candidate) =>
+			candidate.includes(normalize(value)),
+		);
+	} catch {
+		return false;
+	}
+}
+
+function capabilityReadbackMatches(
+	capability: CustomGptCapability,
+	expected: boolean,
+): boolean {
+	try {
+		const control = findControl(capabilityLabels[capability]);
+		if (control instanceof HTMLInputElement && control.type === "checkbox")
+			return control.checked === expected;
+		return (control.getAttribute("aria-checked") === "true") === expected;
+	} catch {
+		return false;
+	}
+}
+
+function knowledgeReadbackMatches(name: string): boolean {
+	const expected = normalize(name);
+	return [
+		...document.querySelectorAll<HTMLElement>('[role="group"], button'),
+	].some(
+		(element) =>
+			normalize(element.getAttribute("aria-label")) === expected ||
+			normalize(element.textContent) === expected,
+	);
+}
+
+function actionReadbackMatches(schema: string): boolean {
+	const match = /servers:\s*\n\s*-\s*url:\s*([^\s]+)/m.exec(schema);
+	if (!match?.[1]) return false;
+	try {
+		const host = new URL(match[1]).host;
+		return normalize(document.body.textContent).includes(normalize(host));
+	} catch {
+		return false;
+	}
+}
+
+async function verifyConfiguredMaterial(
+	material: CustomGptProvisioningRequest,
+): Promise<void> {
+	await waitForReadback("GPT_EDITOR_NAME_READBACK_MISMATCH", () =>
+		fieldReadbackMatches("displayName", material.displayName),
+	);
+	await waitForReadback("GPT_EDITOR_DESCRIPTION_READBACK_MISMATCH", () =>
+		fieldReadbackMatches("description", material.description),
+	);
+	await waitForReadback("GPT_EDITOR_INSTRUCTIONS_READBACK_MISMATCH", () =>
+		fieldReadbackMatches("instructions", material.instructions),
+	);
+	await waitForReadback("GPT_EDITOR_STARTERS_READBACK_MISMATCH", () =>
+		starterReadbackMatches(material.conversationStarters),
+	);
+	await waitForReadback("GPT_EDITOR_MODEL_READBACK_MISMATCH", () =>
+		modelReadbackMatches(material.recommendedModel),
+	);
+	for (const capability of [
+		"webSearch",
+		"imageGeneration",
+		"codeInterpreter",
+	] as const)
+		await waitForReadback(
+			`GPT_EDITOR_CAPABILITY_READBACK_MISMATCH:${capability}`,
+			() =>
+				capabilityReadbackMatches(
+					capability,
+					material.capabilities[capability],
+				),
+		);
+	await waitForReadback("GPT_EDITOR_ACTION_READBACK_MISMATCH", () =>
+		actionReadbackMatches(material.actionSchema),
+	);
+	for (const file of material.knowledgeFiles)
+		await waitForReadback(
+			`GPT_EDITOR_KNOWLEDGE_READBACK_MISMATCH:${file.name}`,
+			() => knowledgeReadbackMatches(file.name),
+		);
+	await waitForReadback(
+		"GPT_EDITOR_DRAFT_ID_NOT_READY",
+		() => currentGptId() !== null,
+	);
+	await waitForReadback(
+		"GPT_EDITOR_CREATE_NOT_READY",
+		() => publishCreateButton() !== null,
+	);
 }
 
 async function openPrivateCreateSurface(
@@ -509,7 +665,8 @@ async function finalizePrivateCreateSurface(initialCreateButton?: HTMLElement) {
 }
 
 async function createPrivateGpt() {
-	const createButton = await waitForPublishCreateButton();
+	const createButton = publishCreateButton();
+	if (!createButton) throw new Error("GPT_EDITOR_FORM_READY_STATE_LOST");
 	await openPrivateCreateSurface(createButton);
 	return finalizePrivateCreateSurface(createButton);
 }
@@ -575,6 +732,9 @@ const domPort: CustomGptEditorPort = {
 	async uploadKnowledge(files) {
 		await uploadKnowledge(files);
 	},
+	async verifyReady(material) {
+		await verifyConfiguredMaterial(material);
+	},
 	async installActionSchema(value) {
 		let schema: HTMLElement | null = null;
 		try {
@@ -608,7 +768,10 @@ const domPort: CustomGptEditorPort = {
 		}
 		if (!schema) throw new Error("GPT_EDITOR_ACTION_SCHEMA_NOT_FOUND");
 		setControlValue(schema, value);
-		await sleep(250);
+		await waitForReadback(
+			"GPT_EDITOR_ACTION_SCHEMA_READBACK_MISMATCH",
+			() => controlValue(schema as HTMLElement) === value,
+		);
 		let back: HTMLButtonElement | undefined;
 		for (let attempt = 0; attempt < 80; attempt += 1) {
 			back = [...document.querySelectorAll<HTMLButtonElement>("button")].find(

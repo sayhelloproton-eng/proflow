@@ -38,6 +38,7 @@ export interface CustomGptEditorPort {
 	): Promise<void>;
 	installActionSchema(value: string): Promise<void>;
 	uploadKnowledge(files: readonly CustomGptKnowledgeFile[]): Promise<void>;
+	verifyReady(material: CustomGptProvisioningRequest): Promise<void>;
 	createPrivate(): Promise<{ gptId: string; carrierUrl: string }>;
 }
 
@@ -153,6 +154,7 @@ export function createCustomGptEditorDriver(port: CustomGptEditorPort) {
 		async provision(material: CustomGptProvisioningRequest) {
 			await configureDraft(material);
 			await port.uploadKnowledge(material.knowledgeFiles);
+			await port.verifyReady(material);
 			const live = await port.createPrivate();
 			return {
 				status: "LIVE_CREATED" as const,
