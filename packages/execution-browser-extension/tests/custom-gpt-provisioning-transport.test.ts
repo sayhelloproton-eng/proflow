@@ -204,6 +204,10 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(provisioningFunction, /chrome\.tabs\.query\(\{\}\)/);
 	assert.match(provisioningFunction, /waitForNewEditorTab/);
 	assert.match(provisioningFunction, /finalizeProvisioningCreate/);
+	assert.ok(
+		provisioningFunction.indexOf("finalizeProvisioningCreate(tabId)") <
+			provisioningFunction.indexOf("waitForNewEditorTab(excludedTabIds)"),
+	);
 	assert.doesNotMatch(provisioningFunction, /chrome\.tabs\.update/);
 	assert.match(provisioningFunction, /https:\/\/chatgpt\.com\/gpts\/editor/);
 	assert.match(content, /PROFLOW_PROVISIONING_COMMAND/);

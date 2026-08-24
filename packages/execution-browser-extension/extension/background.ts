@@ -935,6 +935,15 @@ async function executeProvisioningCommand(
 			error.message !== "GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND"
 		)
 			throw error;
+		try {
+			return await finalizeProvisioningCreate(tabId);
+		} catch (sameTabError) {
+			if (
+				!(sameTabError instanceof Error) ||
+				sameTabError.message !== "GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND"
+			)
+				throw sameTabError;
+		}
 		const privateCreateTabId = await waitForNewEditorTab(excludedTabIds);
 		return finalizeProvisioningCreate(privateCreateTabId);
 	}
