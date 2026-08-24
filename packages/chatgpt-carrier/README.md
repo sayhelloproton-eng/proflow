@@ -6,30 +6,39 @@ Service: none
 Process: none
 Business Fact Owner: none
 
-## Owner
+## Purpose
 
-Deployment Governance
+`chatgpt-carrier` is the Deployment-owned observer for **ChatGPT Web availability**. It does not own or mirror any concrete Agent Role, GPT URL, Action schema, Bearer credential, Knowledge or capability verification.
 
-## Consumers
+Current setup is machine-observed:
 
-- agent-product
-- agent-controller-dev
-- agent-test-ops
-- execution-browser-extension
+```text
+platform setup --module chatgpt-carrier
+→ probe current ChatGPT Web availability
+→ READY or ACTION_REQUIRED
+```
+
+No GPT URL paste or capability confirmation is required.
 
 ## Does NOT own
 
-- Agent roles, role-specific Instructions / future Knowledge specialization / OpenAPI, or role registration
-- Custom GPT materialization (Web-only, human-driven)
+- Agent Role / roleRef / carrierUrl truth.
+- GPT Instructions / Actions / Auth / Knowledge / Capabilities truth.
+- Worker or Conversation identity.
+- Custom GPT materialization state.
+## Owning flow for concrete GPTs
 
-## Purpose
+Concrete GPT readiness is established elsewhere:
 
-Governs the real-world ChatGPT Custom GPT carrier: reachability and the
-per-check evidence required before any consumer may treat the carrier as
-verified. Verification is honest — reachability alone never implies
-schema / auth / File Bridge correctness.
+```text
+Agent Package material
+→ Browser Extension provisioning
+→ Agent Runtime Role Registry / credential
+→ Gateway authenticated probe
+```
 
+That flow owns behavior/capability readiness. Exact ChatGPT model id remains advisory. Stable Conversation c-id is not supplied by Actions and is observed later by the Browser Carrier during Worker creation.
 
-## 2026-08-14 v1 readiness alignment
+## Failure boundary
 
-Carrier readiness is behavior/capability based: role-scoped Action auth, static OpenAPI, required File Bridge/Code Interpreter/Web Search and Web-only GPT setup. Exact ChatGPT model id is advisory only. Routine Actions target `x-openai-isConsequential:false` + user Always Allow; unexpected permission remains a recovery condition. Stable Conversation c-id is not supplied by Actions and is observed later by the Chrome/Browser Carrier during Task Worker creation.
+A reachable ChatGPT Web page does **not** independently prove any Agent Role is READY. Conversely, a concrete Role setup problem is not copied into this external-resource module. This module only reports current ChatGPT Web external availability.
