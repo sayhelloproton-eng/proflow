@@ -491,15 +491,6 @@ function publishCreateButton(): HTMLElement | null {
 	);
 }
 
-async function waitForPublishCreateButton(attempts = 80): Promise<HTMLElement> {
-	for (let attempt = 0; attempt < attempts; attempt += 1) {
-		const button = publishCreateButton();
-		if (button) return button;
-		await sleep(100);
-	}
-	throw new Error("GPT_EDITOR_CREATE_BUTTON_NOT_FOUND");
-}
-
 function fieldReadbackMatches(
 	field: keyof typeof fieldLabels,
 	expected: string,
@@ -631,15 +622,9 @@ async function verifyConfiguredMaterial(
 async function openPrivateCreateSurface(
 	initialCreateButton: HTMLElement,
 ): Promise<void> {
-	const initialGptId = currentGptId();
-	let publishTriggered = initialGptId !== undefined;
 	initialCreateButton.click();
 	for (let attempt = 0; attempt < 200; attempt += 1) {
 		if (privateVisibilityControl()) return;
-		if (!publishTriggered && currentGptId()) {
-			(await waitForPublishCreateButton()).click();
-			publishTriggered = true;
-		}
 		await sleep(100);
 	}
 	throw new Error("GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND");

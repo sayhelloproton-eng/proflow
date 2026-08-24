@@ -214,7 +214,7 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /PROFLOW_PROVISIONING_COMMAND/);
 	assert.doesNotMatch(content, /PROFLOW_PROVISIONING_FINALIZE_CREATE/);
 	assert.match(content, /chrome\.runtime\.onMessage\.addListener/);
-	assert.match(content, /GPT_EDITOR_CREATE_BUTTON_NOT_FOUND/);
+	assert.doesNotMatch(content, /GPT_EDITOR_CREATE_BUTTON_NOT_FOUND/);
 	assert.match(content, /matchesExactSemantic/);
 	assert.match(content, /element\.getAttribute\("role"\) !== "radio"/);
 	assert.match(content, /element\.closest\('\[role="radiogroup"\]'\) === null/);
@@ -240,7 +240,7 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 		content,
 		/clickable\(\["Update", "更新", "Share", "分享"\]\)/,
 	);
-	assert.match(content, /waitForPublishCreateButton/);
+	assert.doesNotMatch(content, /waitForPublishCreateButton|publishTriggered/);
 	assert.match(content, /verifyConfiguredMaterial/);
 	assert.match(content, /GPT_EDITOR_CREATE_NOT_READY/);
 	assert.match(content, /GPT_EDITOR_FORM_READY_STATE_LOST/);
