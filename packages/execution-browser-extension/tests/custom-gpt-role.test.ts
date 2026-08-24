@@ -6,6 +6,7 @@ import {
 	createCustomGptRole,
 } from "../src/custom-gpt-role.ts";
 
+const credential = "role-credential-".padEnd(40, "x");
 const material = {
 	packageName: "@tomflow/example-agent",
 	version: "1.2.3",
@@ -23,198 +24,259 @@ const material = {
 	actionSchema: "actions/custom-gpt.openapi.yaml",
 };
 
-function input() {
+function input(packageName = material.packageName) {
 	return {
 		workspaceRoot: "/workspace",
 		packageRoot: "/package",
 		stagingRoot: "/workspace/.proflow/staging/example-agent",
 		gatewayUrl: "https://gateway.example.test",
-		material,
+		material: { ...material, packageName },
 	};
 }
-test("createCustomGptRole persists the exact LIVE_CREATED role", async () => {
-	const gptId = "g-public-role-123";
-	let saved: unknown;
-	let closed = false;
-	const registry: CustomGptRoleRegistryPort = {
+
+function liveResult(packageName = material.packageName) {
+	const suffix = packageName.split("/").at(-1) ?? "agent";
+	const gptId = `g-${suffix}`;
+	return {
+		status: "LIVE_CREATED" as const,
+		packageName,
+		version: material.version,
+		gptId,
+		carrierUrl: `https://chatgpt.com/g/${gptId}`,
+		knowledgeBundleSha256: `sha256:${"a".repeat(64)}`,
+		knowledgeFiles: [],
+	};
+}
+
+function registry(
+	options: {
+		onSave?: () => void;
+		onInspect?: () => void;
+		onDelete?: (roleRef: string) => void;
+	} = {},
+) {
+	const saved = new Map<string, { roleRef: string; carrierUrl: string }>();
+	const port: CustomGptRoleRegistryPort = {
 		async saveRole(value) {
-			saved = value;
+			options.onSave?.();
+			saved.set(value.agentPackageRef, {
+				roleRef: value.roleRef,
+				carrierUrl: value.carrierUrl,
+			});
+			return { credential };
 		},
-		inspectRole() {
-			return {
-				status: "READY",
-				role: {
-					roleRef: gptId,
-					carrierUrl: `https://chatgpt.com/g/${gptId}`,
-				},
-			};
+		async deleteRole(roleRef) {
+			options.onDelete?.(roleRef);
+			for (const [packageRef, role] of saved)
+				if (role.roleRef === roleRef) saved.delete(packageRef);
+		},
+		inspectRole(value) {
+			options.onInspect?.();
+			const role = saved.get(value.agentPackageRef);
+			return role ? { status: "READY", role } : { status: "MISSING" };
 		},
 	};
+	return { port, saved };
+}
+
+test("createCustomGptRole completes persist → auth → carrier verification before success", async () => {
+	const order: string[] = [];
+	const state = registry({
+		onSave: () => order.push("save"),
+		onInspect: () => order.push("inspect"),
+	});
 	const result = await createCustomGptRole(input(), {
-		roleRegistry: registry,
+		roleRegistry: state.port,
+		async verifyCarrier(value) {
+			order.push("verify");
+			assert.equal(value.credential, credential);
+			assert.equal(value.roleRef, "g-example-agent");
+		},
 		async createProvisioningHost() {
 			return {
 				async provisionPackage() {
-					return {
-						status: "LIVE_CREATED" as const,
-						packageName: material.packageName,
-						version: material.version,
-						gptId,
-						carrierUrl: `https://chatgpt.com/g/${gptId}`,
-						knowledgeBundleSha256: `sha256:${"a".repeat(64)}`,
-						knowledgeFiles: [],
-					};
+					order.push("provision");
+					return liveResult();
+				},
+				async finalizeRoleAuth(value) {
+					order.push("auth");
+					assert.equal(value.credential, credential);
+					return { status: "AUTH_UPDATED" as const, gptId: "g-example-agent" };
 				},
 				async close() {
-					closed = true;
+					order.push("close");
 				},
 			};
 		},
 	});
-	assert.equal(result.status, "LIVE_CREATED");
-	assert.equal(result.gptId, gptId);
-	assert.equal(closed, true);
-	assert.deepEqual(saved, {
-		agentPackageRef: material.packageName,
-		registeredPackageVersion: material.version,
-		roleRef: gptId,
-		carrierUrl: `https://chatgpt.com/g/${gptId}`,
-	});
+	assert.deepEqual(order, [
+		"provision",
+		"save",
+		"inspect",
+		"auth",
+		"verify",
+		"close",
+	]);
+	assert.equal(result.gptId, "g-example-agent");
+	assert.equal("credential" in result, false);
 });
 
-test("createCustomGptRole does not persist when provisioning fails", async () => {
+test("createCustomGptRole does not persist or finalize auth when provisioning fails", async () => {
 	let saveCalls = 0;
-	let closed = false;
-	const registry: CustomGptRoleRegistryPort = {
-		async saveRole() {
-			saveCalls += 1;
-		},
-		inspectRole() {
-			throw new Error("INSPECT_MUST_NOT_RUN");
-		},
-	};
+	let deleteCalls = 0;
+	let authCalls = 0;
+	let verifyCalls = 0;
+	const state = registry({
+		onSave: () => saveCalls++,
+		onDelete: () => deleteCalls++,
+	});
 	await assert.rejects(
 		createCustomGptRole(input(), {
-			roleRegistry: registry,
+			roleRegistry: state.port,
+			async verifyCarrier() {
+				verifyCalls++;
+			},
 			async createProvisioningHost() {
 				return {
 					async provisionPackage() {
 						throw new Error("CREATE_FAILED");
 					},
-					async close() {
-						closed = true;
+					async finalizeRoleAuth() {
+						authCalls++;
+						return { status: "AUTH_UPDATED" as const, gptId: "g-never" };
 					},
+					async close() {},
 				};
 			},
 		}),
 		/CREATE_FAILED/,
 	);
-	assert.equal(saveCalls, 0);
-	assert.equal(closed, true);
+	assert.deepEqual(
+		{ saveCalls, deleteCalls, authCalls, verifyCalls },
+		{
+			saveCalls: 0,
+			deleteCalls: 0,
+			authCalls: 0,
+			verifyCalls: 0,
+		},
+	);
 });
 
-test("createCustomGptRole serializes simultaneous creates inside one workspace", async () => {
-	let activeHosts = 0;
-	let maxActiveHosts = 0;
-	const saved = new Map<string, { roleRef: string; carrierUrl: string }>();
-	const registry: CustomGptRoleRegistryPort = {
-		async saveRole(value) {
-			saved.set(value.agentPackageRef, {
-				roleRef: value.roleRef,
-				carrierUrl: value.carrierUrl,
-			});
-		},
-		inspectRole(value) {
-			const role = saved.get(value.agentPackageRef);
-			return role ? { status: "READY", role } : { status: "MISSING" };
-		},
-	};
-	const packageNames = ["agent-a", "agent-b", "agent-c"];
-	const results = await Promise.all(
-		packageNames.map((name) =>
-			createCustomGptRole(
-				{
-					...input(),
-					material: { ...material, packageName: `@tomflow/${name}` },
-				},
-				{
-					roleRegistry: registry,
-					async createProvisioningHost() {
-						activeHosts += 1;
-						maxActiveHosts = Math.max(maxActiveHosts, activeHosts);
+test("createCustomGptRole removes the newly saved current role when auth finalization fails", async () => {
+	const deleted: string[] = [];
+	const state = registry({ onDelete: (roleRef) => deleted.push(roleRef) });
+	await assert.rejects(
+		createCustomGptRole(input(), {
+			roleRegistry: state.port,
+			async verifyCarrier() {
+				throw new Error("VERIFY_MUST_NOT_RUN");
+			},
+			async createProvisioningHost() {
+				return {
+					async provisionPackage() {
+						return liveResult();
+					},
+					async finalizeRoleAuth() {
+						throw new Error("AUTH_FAILED");
+					},
+					async close() {},
+				};
+			},
+		}),
+		/AUTH_FAILED/,
+	);
+	assert.deepEqual(deleted, ["g-example-agent"]);
+	assert.equal(state.saved.size, 0);
+});
+
+test("createCustomGptRole removes the newly saved current role when carrier verification fails", async () => {
+	const deleted: string[] = [];
+	const state = registry({ onDelete: (roleRef) => deleted.push(roleRef) });
+	await assert.rejects(
+		createCustomGptRole(input(), {
+			roleRegistry: state.port,
+			async verifyCarrier() {
+				throw new Error("GATEWAY_PROBE_FAILED");
+			},
+			async createProvisioningHost() {
+				return {
+					async provisionPackage() {
+						return liveResult();
+					},
+					async finalizeRoleAuth() {
 						return {
-							async provisionPackage(value) {
-								await new Promise((resolveWait) => setTimeout(resolveWait, 10));
-								const gptId = `g-${value.material.packageName.split("/").at(-1)}`;
-								return {
-									status: "LIVE_CREATED" as const,
-									packageName: value.material.packageName,
-									version: value.material.version,
-									gptId,
-									carrierUrl: `https://chatgpt.com/g/${gptId}`,
-									knowledgeBundleSha256: `sha256:${"a".repeat(64)}`,
-									knowledgeFiles: [],
-								};
-							},
-							async close() {
-								activeHosts -= 1;
-							},
+							status: "AUTH_UPDATED" as const,
+							gptId: "g-example-agent",
 						};
 					},
+					async close() {},
+				};
+			},
+		}),
+		/GATEWAY_PROBE_FAILED/,
+	);
+	assert.deepEqual(deleted, ["g-example-agent"]);
+	assert.equal(state.saved.size, 0);
+});
+
+test("createCustomGptRole serializes simultaneous creates inside one workspace through auth and verification", async () => {
+	let activeHosts = 0;
+	let maxActiveHosts = 0;
+	const state = registry();
+	const names = ["agent-a", "agent-b", "agent-c"];
+	const results = await Promise.all(
+		names.map((name) =>
+			createCustomGptRole(input(`@tomflow/${name}`), {
+				roleRegistry: state.port,
+				async verifyCarrier() {},
+				async createProvisioningHost() {
+					activeHosts++;
+					maxActiveHosts = Math.max(maxActiveHosts, activeHosts);
+					return {
+						async provisionPackage(value) {
+							await new Promise((resolveWait) => setTimeout(resolveWait, 10));
+							return liveResult(value.material.packageName);
+						},
+						async finalizeRoleAuth(value) {
+							const gptId = value.carrierUrl.split("/").at(-1) ?? "";
+							return { status: "AUTH_UPDATED" as const, gptId };
+						},
+						async close() {
+							activeHosts--;
+						},
+					};
 				},
-			),
+			}),
 		),
 	);
 	assert.equal(maxActiveHosts, 1);
 	assert.equal(results.length, 3);
-	assert.equal(saved.size, 3);
+	assert.equal(state.saved.size, 3);
 });
 
 test("createCustomGptRole continues the workspace queue after a failed create", async () => {
 	let hostCalls = 0;
-	const saved = new Map<string, { roleRef: string; carrierUrl: string }>();
-	const registry: CustomGptRoleRegistryPort = {
-		async saveRole(value) {
-			saved.set(value.agentPackageRef, {
-				roleRef: value.roleRef,
-				carrierUrl: value.carrierUrl,
-			});
-		},
-		inspectRole(value) {
-			const role = saved.get(value.agentPackageRef);
-			return role ? { status: "READY", role } : { status: "MISSING" };
-		},
-	};
+	const state = registry();
 	const create = (name: string) =>
-		createCustomGptRole(
-			{
-				...input(),
-				material: { ...material, packageName: `@tomflow/${name}` },
+		createCustomGptRole(input(`@tomflow/${name}`), {
+			roleRegistry: state.port,
+			async verifyCarrier() {},
+			async createProvisioningHost() {
+				hostCalls++;
+				const call = hostCalls;
+				return {
+					async provisionPackage(value) {
+						if (call === 1) throw new Error("FIRST_CREATE_FAILED");
+						return liveResult(value.material.packageName);
+					},
+					async finalizeRoleAuth(value) {
+						const gptId = value.carrierUrl.split("/").at(-1) ?? "";
+						return { status: "AUTH_UPDATED" as const, gptId };
+					},
+					async close() {},
+				};
 			},
-			{
-				roleRegistry: registry,
-				async createProvisioningHost() {
-					hostCalls += 1;
-					const call = hostCalls;
-					return {
-						async provisionPackage(value) {
-							if (call === 1) throw new Error("FIRST_CREATE_FAILED");
-							const gptId = `g-${value.material.packageName.split("/").at(-1)}`;
-							return {
-								status: "LIVE_CREATED" as const,
-								packageName: value.material.packageName,
-								version: value.material.version,
-								gptId,
-								carrierUrl: `https://chatgpt.com/g/${gptId}`,
-								knowledgeBundleSha256: `sha256:${"a".repeat(64)}`,
-								knowledgeFiles: [],
-							};
-						},
-						async close() {},
-					};
-				},
-			},
-		);
+		});
 	const [first, second] = await Promise.allSettled([
 		create("queue-fail"),
 		create("queue-next"),
@@ -222,5 +284,5 @@ test("createCustomGptRole continues the workspace queue after a failed create", 
 	assert.equal(first.status, "rejected");
 	assert.equal(second.status, "fulfilled");
 	assert.equal(hostCalls, 2);
-	assert.equal(saved.get("@tomflow/queue-next")?.roleRef, "g-queue-next");
+	assert.equal(state.saved.get("@tomflow/queue-next")?.roleRef, "g-queue-next");
 });
