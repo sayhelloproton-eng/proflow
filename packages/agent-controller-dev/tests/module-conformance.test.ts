@@ -32,11 +32,11 @@ test("Module.setup observes durable Role registration reality", async () => {
 	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-role-binding-"));
 	const context = { workspaceRoot };
 	try {
-		const missing = behaviorAdapter.setup(context).result;
-		assert.equal(missing.status, "ACTION_REQUIRED");
+		const missing = (await behaviorAdapter.setup(context)).result;
+		assert.equal(missing.status, "FAILED");
 		assert.match(
-			missing.actionRequired?.description ?? "",
-			new RegExp(descriptor.packageName),
+			missing.error?.message ?? "",
+			/agent-gateway publicBaseUrl is unavailable/,
 		);
 
 		const roleRef = `g-${descriptor.moduleRef}-real1`;
@@ -50,7 +50,10 @@ test("Module.setup observes durable Role registration reality", async () => {
 			join(agentRoot, "secrets", "role-credentials.json"),
 			`${JSON.stringify({ [roleRef]: "credential-role-binding-0123456789abcdef" }, null, 2)}\n`,
 		);
-		assert.equal(behaviorAdapter.setup(context).result.status, "SUCCEEDED");
+		assert.equal(
+			(await behaviorAdapter.setup(context)).result.status,
+			"SUCCEEDED",
+		);
 	} finally {
 		await rm(workspaceRoot, { recursive: true, force: true });
 	}

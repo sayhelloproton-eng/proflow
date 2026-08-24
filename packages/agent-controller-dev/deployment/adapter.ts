@@ -1,8 +1,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { inspectDurableRoleRegistration } from "@tomflow/proflow-agent-runtime";
-import type { ModuleCommandContext } from "@tomflow/proflow-module-contract";
+import { createWorkspaceRoleSetupClient } from "@tomflow/proflow-agent-runtime/role-management-client";
+import { createCustomGptRole } from "@tomflow/proflow-execution-browser-extension/custom-gpt-role";
+import {
+	type ModuleCommandContext,
+	readModuleSharedFacts,
+} from "@tomflow/proflow-module-contract";
+import { materializeAgentPackage } from "../src/index.ts";
 
 import { descriptor } from "./descriptor.ts";
 
@@ -13,74 +20,34 @@ const base = {
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
-const setupPlan = {
-	steps: [
-		{
-			id: "STEP-AGENT-CONTROLLER-DEV-01",
-			title: "创建 Custom GPT 并注册 Role URL",
-			description: "打开编辑器并准备角色资料，保存后登记真实 GPT URL。",
-			state: "TODO",
-			responsible: "USER",
-			execution: {
-				interactive: "pnpm exec -- proflow-agent-controller-dev setup 01",
-				nonInteractive:
-					"pnpm exec -- proflow-agent-controller-dev setup 01 --carrier-url <url>",
-			},
-			requiredInputs: [
-				{ name: "carrierUrl", description: "Custom GPT URL", sensitive: false },
-			],
-			verify: "pnpm exec -- proflow-agent-controller-dev setup 01",
-			successCondition: "Role URL 已写入 Module-owned 注册表",
-			humanAction: "保存 GPT 并复制公开 URL。",
-		},
-		{
-			id: "STEP-AGENT-CONTROLLER-DEV-02",
-			title: "配置角色 Instructions",
-			description: "复制当前包版本的完整角色指令。",
-			state: "TODO",
-			responsible: "USER",
-			execution: {
-				interactive: "pnpm exec -- proflow-agent-controller-dev setup 02",
-				nonInteractive:
-					"pnpm exec -- proflow-agent-controller-dev custom-gpt show-instructions",
-			},
-			requiredInputs: [],
-			verify: "pnpm exec -- proflow-agent-controller-dev setup 02",
-			successCondition: "当前 Instructions 已保存到 Custom GPT",
-			humanAction: "粘贴剪贴板内容并保存。",
-		},
-		{
-			id: "STEP-AGENT-CONTROLLER-DEV-03",
-			title: "配置 Action Schema 与认证",
-			description: "生成 Gateway OpenAPI，并安全复制 Role Bearer Key。",
-			state: "TODO",
-			responsible: "USER",
-			execution: {
-				interactive: "pnpm exec -- proflow-agent-controller-dev setup 03",
-				nonInteractive:
-					"pnpm exec -- proflow-agent-controller-dev setup 03 --gateway-url <url>",
-			},
-			requiredInputs: [],
-			verify: "pnpm exec -- proflow-agent-controller-dev role validate",
-			successCondition: "Action Schema 和 Bearer 认证已保存",
-			humanAction: "在 Custom GPT Action 页面粘贴 Schema 和 Bearer Key。",
-		},
-		{
-			id: "STEP-AGENT-CONTROLLER-DEV-04",
-			title: "验证 Role 配置",
-			description: "检查注册版本和角色状态。",
-			state: "TODO",
-			responsible: "AI",
-			execution: {
-				interactive: "pnpm exec -- proflow-agent-controller-dev setup 04",
-				nonInteractive: "pnpm exec -- proflow-agent-controller-dev verify",
-			},
-			requiredInputs: [],
-			verify: "pnpm exec -- proflow-agent-controller-dev verify",
-			successCondition: "agent-controller-dev.setupStatus=READY",
-		},
-	],
-} as const;
+function packageRoot(): string {
+	return fileURLToPath(
+		new URL(
+			import.meta.url.includes("/dist/") ? "../../" : "../",
+			import.meta.url,
+		),
+	);
+}
+
+function packageMaterial() {
+	return materializeAgentPackage(
+		JSON.parse(readFileSync(join(packageRoot(), "package.json"), "utf8")),
+	);
+}
+
+async function gatewayPublicUrl(
+	context: ModuleCommandContext,
+): Promise<string | undefined> {
+	const gateway = await readModuleSharedFacts(context, "agent-gateway");
+	const value = gateway?.publicBaseUrl;
+	if (typeof value !== "string") return undefined;
+	try {
+		const parsed = new URL(value);
+		return parsed.protocol === "https:" ? parsed.toString() : undefined;
+	} catch {
+		return undefined;
+	}
+}
 
 function observeRole(context: ModuleCommandContext) {
 	return inspectDurableRoleRegistration({
@@ -132,32 +99,109 @@ export const behaviorAdapter = {
 			observedEffects: [] as string[],
 		};
 	},
-	setup: (context: ModuleCommandContext) => {
+	setup: async (context: ModuleCommandContext) => {
 		const reality = observeRole(context);
 		if (reality.status === "READY") {
 			return {
-				result: { ...base, data: { roleRef: reality.role?.roleRef } },
+				result: {
+					...base,
+					data: {
+						roleRef: reality.role?.roleRef,
+						carrierUrl: reality.role?.carrierUrl,
+					},
+				},
 				observedEffects: [] as string[],
 			};
 		}
-		if (reality.status === "MISSING" || reality.status === "DRIFT") {
-			const action =
-				reality.status === "MISSING"
-					? "materialize-custom-gpt"
-					: "refresh-custom-gpt-role-registration";
+		if (reality.status === "DRIFT") {
 			return {
 				result: {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
-					data: setupPlan,
 					actionRequired: {
-						action,
-						description: `${descriptor.packageName}@${descriptor.moduleVersion} Role is ${reality.status.toLowerCase()}: ${reality.issues.join(", ")}. Run ${descriptor.packageName.replace("@tomflow/", "")} custom-gpt setup --workspace ${JSON.stringify(context.workspaceRoot)}; create/update the real Custom GPT; then run ${descriptor.packageName.replace("@tomflow/", "")} role register <gpt-url> --workspace ${JSON.stringify(context.workspaceRoot)} and rerun platform setup.`,
+						action: "resolve-custom-gpt-role-drift",
+						description:
+							"Existing Custom GPT Role is drifted. Automatic setup does not edit an existing GPT.",
 					},
 				},
 				observedEffects: [] as string[],
 			};
+		}
+		if (reality.status === "MISSING") {
+			const gatewayUrl = await gatewayPublicUrl(context);
+			if (!gatewayUrl) {
+				return {
+					result: {
+						...base,
+						ok: false as const,
+						status: "FAILED" as const,
+						error: {
+							code: "SETUP_FAILED" as const,
+							message:
+								"agent-gateway publicBaseUrl is unavailable for Custom GPT provisioning",
+							retryable: true,
+						},
+					},
+					observedEffects: [] as string[],
+				};
+			}
+			try {
+				const roleClient = await createWorkspaceRoleSetupClient(
+					context.workspaceRoot,
+				);
+				const result = await createCustomGptRole(
+					{
+						workspaceRoot: context.workspaceRoot,
+						packageRoot: packageRoot(),
+						stagingRoot: join(
+							context.workspaceRoot,
+							".proflow",
+							"runtime",
+							"custom-gpt-staging",
+							descriptor.moduleRef,
+						),
+						gatewayUrl,
+						material: packageMaterial(),
+					},
+					{
+						roleRegistry: {
+							saveRole: (input) => roleClient.saveCurrentRole(input),
+							inspectRole: (input) => roleClient.inspectRole(input),
+						},
+					},
+				);
+				return {
+					result: {
+						...base,
+						data: {
+							provisioningStatus: result.status,
+							roleRef: result.gptId,
+							carrierUrl: result.carrierUrl,
+						},
+					},
+					observedEffects: [
+						"Create the declared Private Custom GPT and register its workspace Role",
+					],
+				};
+			} catch (error) {
+				return {
+					result: {
+						...base,
+						ok: false as const,
+						status: "FAILED" as const,
+						error: {
+							code: "SETUP_FAILED" as const,
+							message:
+								error instanceof Error
+									? error.message
+									: "Custom GPT provisioning failed",
+							retryable: true,
+						},
+					},
+					observedEffects: [] as string[],
+				};
+			}
 		}
 		return {
 			result: {
