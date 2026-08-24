@@ -76,7 +76,12 @@ test("CP-AGT-TEST-04 provisioning/reopen real evidence remains external ACTION_R
 			},
 		],
 	});
-	assert.equal(behaviorAdapter.setup(context).result.status, "ACTION_REQUIRED");
+	const setup = (await behaviorAdapter.setup(context)).result;
+	assert.equal(setup.status, "FAILED");
+	assert.match(
+		setup.error?.message ?? "",
+		/agent-gateway publicBaseUrl is unavailable/,
+	);
 	assert.match(metadata.proflowAgent.instructions, /REOPEN 必须复用原 worker/);
 });
 
@@ -123,4 +128,25 @@ test("CP-REAL2-PROV-01 custom-gpt setup exposes complete Test/Ops provisioning m
 	assert.equal(setup.actionSchema, "actions/custom-gpt.openapi.yaml");
 	assert.equal(setup.gatewayUrl, "https://gateway.example.com");
 	assert.equal("knowledgeFiles" in setup, false);
+});
+
+test("Real-2 Test/Ops Module.setup uses the reusable Custom GPT role API", async () => {
+	const adapter = await readFile(
+		new URL("../deployment/adapter.ts", import.meta.url),
+		"utf8",
+	);
+	assert.match(
+		adapter,
+		/@tomflow\/proflow-execution-browser-extension\/custom-gpt-role/,
+	);
+	assert.match(adapter, /createCustomGptRole\(/);
+	assert.match(adapter, /createWorkspaceRoleSetupClient\(/);
+	assert.match(
+		adapter,
+		/saveRole: \(input\) => roleClient\.saveCurrentRole\(input\)/,
+	);
+	assert.doesNotMatch(
+		adapter,
+		/setup 0[1-4]|openCustomGptEditor|create\/update the real Custom GPT/,
+	);
 });
