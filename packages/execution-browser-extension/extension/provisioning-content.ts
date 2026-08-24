@@ -12,11 +12,13 @@ type ProvisioningSurface = {
 	url: string;
 };
 
-type ProvisioningCommand = {
-	type: "PROFLOW_PROVISIONING_COMMAND";
-	operation: "PROVISION_CUSTOM_GPT";
-	request: Record<string, unknown>;
-};
+type ProvisioningCommand =
+	| {
+			type: "PROFLOW_PROVISIONING_COMMAND";
+			operation: "PROVISION_CUSTOM_GPT";
+			request: Record<string, unknown>;
+	  }
+	| { type: "PROFLOW_PROVISIONING_FINALIZE_CREATE" };
 
 type ChromeRuntime = {
 	runtime: {
@@ -418,19 +420,29 @@ async function selectPrivateVisibility(): Promise<void> {
 }
 
 async function waitForPrivateCreateAction(
-	initialCreateButton: HTMLElement,
+	initialCreateButton?: HTMLElement,
 ): Promise<HTMLElement> {
-	const labels = ["Save", "Create", "Publish", "保存", "创建", "发布"];
+	const control = privateVisibilityControl();
+	const scopedRoot =
+		control?.closest<HTMLElement>(
+			'[role="dialog"], [role="menu"], [role="listbox"]',
+		) ?? document;
+	const labelGroups = [
+		["Save", "保存"],
+		["Publish", "发布"],
+		["Create", "创建"],
+	] as const;
 	for (let attempt = 0; attempt < 40; attempt += 1) {
-		for (const element of document.querySelectorAll<HTMLElement>(
-			'button, [role="button"]',
-		))
-			if (
-				element !== initialCreateButton &&
-				available(element) &&
-				matchesBoundedSemantic(element, labels)
-			)
-				return element;
+		for (const labels of labelGroups)
+			for (const element of scopedRoot.querySelectorAll<HTMLElement>(
+				'button, [role="button"]',
+			))
+				if (
+					element !== initialCreateButton &&
+					available(element) &&
+					matchesBoundedSemantic(element, labels)
+				)
+					return element;
 		await sleep(100);
 	}
 	throw new Error("GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND");
@@ -452,6 +464,26 @@ async function openPrivateCreateSurface(
 	}
 }
 
+async function waitForLiveCreatedResult() {
+	for (let attempt = 0; attempt < 80; attempt += 1) {
+		const gptId = currentGptId();
+		const text = normalize(document.body.textContent);
+		const saved =
+			text.includes("settings saved") || text.includes("设置已保存");
+		const liveMarker = clickable(["Update", "更新", "Share", "分享"]);
+		if (gptId && (saved || liveMarker))
+			return { gptId, carrierUrl: `https://chatgpt.com/g/${gptId}` };
+		await sleep(125);
+	}
+	throw new Error("GPT_EDITOR_PRIVATE_CREATE_TIMEOUT");
+}
+
+async function finalizePrivateCreateSurface(initialCreateButton?: HTMLElement) {
+	await selectPrivateVisibility();
+	(await waitForPrivateCreateAction(initialCreateButton)).click();
+	return waitForLiveCreatedResult();
+}
+
 async function createPrivateGpt() {
 	let createButton: HTMLElement | null = null;
 	for (let attempt = 0; attempt < 80; attempt += 1) {
@@ -469,19 +501,7 @@ async function createPrivateGpt() {
 	}
 	if (!createButton) throw new Error("GPT_EDITOR_CREATE_BUTTON_NOT_FOUND");
 	await openPrivateCreateSurface(createButton);
-	await selectPrivateVisibility();
-	(await waitForPrivateCreateAction(createButton)).click();
-	for (let attempt = 0; attempt < 80; attempt += 1) {
-		const gptId = currentGptId();
-		const text = normalize(document.body.textContent);
-		const saved =
-			text.includes("settings saved") || text.includes("设置已保存");
-		const liveMarker = clickable(["Update", "更新", "Share", "分享"]);
-		if (gptId && (saved || liveMarker))
-			return { gptId, carrierUrl: `https://chatgpt.com/g/${gptId}` };
-		await sleep(125);
-	}
-	throw new Error("GPT_EDITOR_PRIVATE_CREATE_TIMEOUT");
+	return finalizePrivateCreateSurface(createButton);
 }
 
 const domPort: CustomGptEditorPort = {
@@ -619,16 +639,27 @@ const domPort: CustomGptEditorPort = {
 const editorDriver = createCustomGptEditorDriver(domPort);
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-	if (message.type !== "PROFLOW_PROVISIONING_COMMAND") return;
+	if (
+		message.type !== "PROFLOW_PROVISIONING_COMMAND" &&
+		message.type !== "PROFLOW_PROVISIONING_FINALIZE_CREATE"
+	)
+		return;
 	if (!editorSurfaceReady()) {
 		sendResponse({ ok: false, error: "PROVISIONING_SURFACE_NOT_READY" });
 		return;
 	}
 	void (async () => {
 		try {
-			await ensureConfigureMode();
-			const material = parseCustomGptProvisioningRequest(message.request);
-			const result = await editorDriver.provision(material);
+			const result =
+				message.type === "PROFLOW_PROVISIONING_FINALIZE_CREATE"
+					? await finalizePrivateCreateSurface()
+					: await (async () => {
+							await ensureConfigureMode();
+							const material = parseCustomGptProvisioningRequest(
+								message.request,
+							);
+							return editorDriver.provision(material);
+						})();
 			sendResponse({
 				ok: true,
 				value: {

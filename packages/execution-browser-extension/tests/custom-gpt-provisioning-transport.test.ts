@@ -201,12 +201,13 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 		provisioningFunction,
 		/chrome\.tabs\.create\(\{ url: editorUrl, active: true \}\)/,
 	);
-	assert.doesNotMatch(
-		provisioningFunction,
-		/chrome\.tabs\.query|chrome\.tabs\.update/,
-	);
+	assert.match(provisioningFunction, /chrome\.tabs\.query\(\{\}\)/);
+	assert.match(provisioningFunction, /waitForNewEditorTab/);
+	assert.match(provisioningFunction, /finalizeProvisioningCreate/);
+	assert.doesNotMatch(provisioningFunction, /chrome\.tabs\.update/);
 	assert.match(provisioningFunction, /https:\/\/chatgpt\.com\/gpts\/editor/);
 	assert.match(content, /PROFLOW_PROVISIONING_COMMAND/);
+	assert.match(content, /PROFLOW_PROVISIONING_FINALIZE_CREATE/);
 	assert.match(content, /chrome\.runtime\.onMessage\.addListener/);
 	assert.match(content, /GPT_EDITOR_CREATE_BUTTON_NOT_FOUND/);
 	assert.match(content, /candidate\.value === value/);
@@ -223,6 +224,8 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /GPT_EDITOR_PRIVATE_CONTROL_NOT_FOUND/);
 	assert.match(content, /GPT_EDITOR_PRIVATE_SELECTION_NOT_CONFIRMED/);
 	assert.match(content, /GPT_EDITOR_PRIVATE_CREATE_ACTION_NOT_FOUND/);
+	assert.match(content, /finalizePrivateCreateSurface/);
+	assert.match(content, /waitForLiveCreatedResult/);
 	assert.match(content, /async function openPrivateCreateSurface/);
 	assert.match(content, /const initialGptId = currentGptId\(\)/);
 	assert.match(content, /if \(currentGptId\(\)\) \{/);
