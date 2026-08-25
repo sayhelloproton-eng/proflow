@@ -28,7 +28,7 @@
 	"devDependencies": {
 		"@tomflow/proflow-deployment-conformance": "workspace:^"
 	},
-	"description": "Observes the real Chrome runtime and MV3 extension load prerequisite.",
+	"description": "Ensures and observes the real Google Chrome runtime required by browser-owned modules.",
 	"keywords": [
 		"proflow",
 		"proflow-module",

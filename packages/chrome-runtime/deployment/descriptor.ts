@@ -10,7 +10,7 @@ export const descriptor = {
 	identity: {
 		domain: "deployment-governance",
 		summary:
-			"Observes the real Chrome runtime required by browser-owned modules.",
+			"Ensures and observes the real Google Chrome runtime required by browser-owned modules.",
 	},
 	provides: [],
 	requires: [],
@@ -21,19 +21,12 @@ export const descriptor = {
 			versionRange: ">=24.19.0",
 		},
 	],
-	configSlots: [
-		{
-			key: "chromeExecutablePath",
-			type: "path",
-			required: false,
-			description:
-				"Absolute path to the Chrome/Chromium executable; when unset, probes macOS candidates then PATH commands",
-		},
-	],
+	configSlots: [],
 	effects: [
 		{
 			kind: "external-resource",
-			description: "Observes the Chrome runtime availability",
+			description:
+				"Ensures and observes the Google Chrome runtime availability",
 			retention: "preserve",
 		},
 	],
