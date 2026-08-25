@@ -32,7 +32,7 @@ Execution 领域拥有的 Chrome MV3 Extension，负责 Task UI、审批提醒�
 
 ## 使用方式
 
-运行 `pnpm exec -- proflow-execution-browser-extension setup`。ProFlow 自动准备 unpacked 目录和本地 Bridge；用户只需在 Chrome 首次执行“加载已解压的扩展程序”。Extension ID、session、hello/heartbeat 与 setup evidence 均由机器自动发现/验证，不需要人工复制标识或声明 Service Worker 状态。Agent setup 随后通过 `custom-gpt-web-provisioning` 使用同一 Extension package 的部署期分支。
+运行 `pnpm exec -- proflow-execution-browser-extension setup --workspace <workspace>`。ProFlow 会在提示用户之前准备好 unpacked 目录、运行配置和本地 Bridge，把正确目录复制到剪贴板并打开 `chrome://extensions/`。用户只需完成一次浏览器安装确认：如果开发者模式尚未开启则先开启，然后点击“加载未打包的扩展程序”，在目录选择窗口中粘贴并确认目录。完成后无需回终端输入任何标识或状态；扩展身份、session、hello/heartbeat、Browser Executor 配置和 setup evidence 都由机器自动发现、生成并验证。Agent setup 随后通过 `custom-gpt-web-provisioning` 使用同一 Extension package 的部署期分支。
 
 ## 职责边界与限制
 

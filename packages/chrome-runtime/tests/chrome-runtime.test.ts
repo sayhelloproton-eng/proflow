@@ -17,12 +17,10 @@ import {
 
 const unavailable: ChromeRuntimeObservation = {
 	available: false,
-	extensionLoaded: false,
 };
-const availableWithoutExtension: ChromeRuntimeObservation = {
+const available: ChromeRuntimeObservation = {
 	available: true,
 	resourceVersion: "Chrome 150.0.0.0",
-	extensionLoaded: false,
 };
 
 async function workspace(
@@ -39,6 +37,10 @@ test("parseModuleDescriptor accepts the chrome-runtime descriptor", () => {
 	assert.equal(parsed.moduleRef, "chrome-runtime");
 	assert.equal(parsed.kind, "external-resource");
 	assert.deepEqual(parsed.provides, []);
+	assert.equal(
+		parsed.requirements.some((item) => item.kind === "human"),
+		false,
+	);
 	assert.equal("lifecycle" in parsed, false);
 });
 
@@ -66,9 +68,7 @@ test("adapter status/setup report only Chrome runtime prerequisite truth", async
 		"ACTION_REQUIRED",
 	);
 
-	const availableAdapter = createBehaviorAdapter(
-		async () => availableWithoutExtension,
-	);
+	const availableAdapter = createBehaviorAdapter(async () => available);
 	const status = await availableAdapter.status({ workspaceRoot });
 	assert.deepEqual(status.result.data, {
 		setupStatus: "READY",

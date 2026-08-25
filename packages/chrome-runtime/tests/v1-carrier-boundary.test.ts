@@ -38,7 +38,6 @@ test("EXT-CHROME-03 Chrome availability establishes only chrome-runtime readines
 	const adapter = createBehaviorAdapter(async () => ({
 		available: true,
 		resourceVersion: "Chrome 150.0.0.0",
-		extensionLoaded: false,
 	}));
 	const status = await adapter.status({ workspaceRoot });
 	assert.deepEqual(status.result.data, {

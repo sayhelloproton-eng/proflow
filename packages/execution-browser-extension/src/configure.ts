@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-import { spawn, spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
 	behaviorAdapter,
 	materializeProductionConfig,
-	pairBrowserExtensionSetup,
 } from "../deployment/adapter.ts";
+import { parseBrowserExtensionSetupArgs } from "./configure-args.ts";
+import { runInteractiveBrowserExtensionSetup } from "./install-workflow.ts";
 
 function reportFatal(error: unknown) {
 	process.stderr.write(
@@ -63,24 +63,6 @@ export async function materializeBrowserExtensionConfig(
 	});
 }
 
-function openChromeExtensions() {
-	const url = "chrome://extensions";
-	const command =
-		process.platform === "darwin"
-			? "open"
-			: process.platform === "win32"
-				? "cmd"
-				: "xdg-open";
-	const parameters =
-		process.platform === "darwin"
-			? ["-a", "Google Chrome", url]
-			: process.platform === "win32"
-				? ["/c", "start", "", url]
-				: [url];
-	const child = spawn(command, parameters, { detached: true, stdio: "ignore" });
-	child.unref();
-}
-
 async function main(): Promise<void> {
 	const args = process.argv.slice(2);
 	if (args.includes("--json")) throw new Error("不支持的选项 --json");
@@ -92,32 +74,13 @@ async function main(): Promise<void> {
 		? resolve(option("--workspace") as string)
 		: process.cwd();
 	if (args[0] === "setup") {
-		const positional = args.slice(1).filter((value) => !value.startsWith("--"));
-		if (positional.length > 0)
-			throw new Error(`UNSUPPORTED_SETUP_STEP:${positional[0]}`);
-		const paired = await pairBrowserExtensionSetup(
-			{ workspaceRoot },
-			{
-				timeoutMs: 120_000,
-				async onWaiting({ loadDir }) {
-					const command =
-						process.platform === "darwin"
-							? "pbcopy"
-							: process.platform === "win32"
-								? "clip"
-								: "xclip";
-					const parameters =
-						process.platform === "linux" ? ["-selection", "clipboard"] : [];
-					spawnSync(command, parameters, { input: loadDir, encoding: "utf8" });
-					process.stdout.write(
-						`\nChrome 扩展自动配对\n\n  扩展目录已复制到剪贴板：\n  ${loadDir}\n\n  请只完成一个人工动作：启用开发者模式并“加载已解压的扩展程序”。\n  ProFlow 正在等待真实 hello + heartbeat；无需复制任何 ID，也无需手工确认后台状态。\n\n`,
-					);
-					openChromeExtensions();
-				},
-			},
-		);
+		const setup = parseBrowserExtensionSetupArgs(args, process.cwd());
+		await runInteractiveBrowserExtensionSetup({
+			workspaceRoot: setup.workspaceRoot,
+			timeoutMs: 120_000,
+		});
 		process.stdout.write(
-			`\n✓ Chrome Extension 已自动发现并通过 heartbeat 验证\n  ${paired.extensionId}\n✓ execution-browser-extension setup READY\n`,
+			"\n✓ Chrome 浏览器扩展已连接并通过验证\n✓ execution-browser-extension setup READY\n",
 		);
 		return;
 	}

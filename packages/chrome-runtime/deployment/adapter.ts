@@ -14,8 +14,7 @@ const base = {
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
-const observedEffect =
-	"Observes the Chrome runtime and MV3 extension prerequisite";
+const observedEffect = "Observes the Chrome runtime availability";
 const configPath = (context: ModuleCommandContext) =>
 	join(
 		resolve(context.workspaceRoot),

@@ -10,7 +10,7 @@ export const descriptor = {
 	identity: {
 		domain: "deployment-governance",
 		summary:
-			"Observes the real Chrome runtime and MV3 extension load prerequisite.",
+			"Observes the real Chrome runtime required by browser-owned modules.",
 	},
 	provides: [],
 	requires: [],
@@ -19,11 +19,6 @@ export const descriptor = {
 			kind: "runtime",
 			runtime: "node",
 			versionRange: ">=24.19.0",
-		},
-		{
-			kind: "human",
-			action:
-				"Load and verify the unpacked MV3 extension in the real Chrome profile",
 		},
 	],
 	configSlots: [
@@ -38,7 +33,7 @@ export const descriptor = {
 	effects: [
 		{
 			kind: "external-resource",
-			description: "Observes the Chrome runtime and MV3 extension prerequisite",
+			description: "Observes the Chrome runtime availability",
 			retention: "preserve",
 		},
 	],

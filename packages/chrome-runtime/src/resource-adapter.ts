@@ -4,7 +4,6 @@ import { platform } from "node:os";
 export interface ChromeRuntimeObservation {
 	available: boolean;
 	resourceVersion?: string;
-	extensionLoaded: boolean;
 }
 
 export type ChromeRuntimeProbe = () => Promise<ChromeRuntimeObservation>;
@@ -60,8 +59,8 @@ export async function probeChromeRuntime(
 	for (const command of candidateCommands(chromeExecutablePath)) {
 		const resourceVersion = await readVersion(command);
 		if (resourceVersion !== undefined) {
-			return { available: true, resourceVersion, extensionLoaded: false };
+			return { available: true, resourceVersion };
 		}
 	}
-	return { available: false, extensionLoaded: false };
+	return { available: false };
 }
