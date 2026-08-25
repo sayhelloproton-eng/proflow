@@ -23,6 +23,6 @@ Success condition: `model-runtime.setupStatus=READY`.
 Responsible: USER
 Interactive executable: `platform setup --module execution-browser-extension`
 Non-interactive executable: `platform setup --module execution-browser-extension`
-Required inputs: loaded Chrome Extension ID
+Required inputs: none
 Verify: `platform status`
 Success condition: `execution-browser-extension.setupStatus=READY`.

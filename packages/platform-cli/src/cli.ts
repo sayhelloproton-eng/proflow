@@ -924,8 +924,8 @@ const setupCommands: Record<string, { ai: string; inputs: string }> = {
 		inputs: "FAST 模型 ID、REASON 模型 ID",
 	},
 	"execution-browser-extension": {
-		ai: "pnpm exec -- proflow-execution-browser-extension setup --extension-id <id>",
-		inputs: "Chrome Extension ID",
+		ai: "pnpm exec -- proflow-execution-browser-extension setup",
+		inputs: "无",
 	},
 	"agent-controller-dev": {
 		ai: "pnpm exec -- proflow-agent-controller-dev setup --carrier-url <url>",
