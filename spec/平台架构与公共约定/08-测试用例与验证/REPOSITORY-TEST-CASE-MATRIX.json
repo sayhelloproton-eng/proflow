@@ -4264,7 +4264,7 @@
       "moduleRef": "platform-cli",
       "sourceTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "sourceDocId": "TP-MODULE-PLATFORM-CLI",
-      "requirement": "install 在 metadata 前置门禁后同步完整 Registry package set 并 dependency-order Module.install；uninstall reverse-order Module.uninstall 后才移除 package。",
+      "requirement": "install 在 metadata 前置门禁后同步完整 Registry package set，并按冻结的 Deployment Install Order 调用 Module.install；uninstall reverse-order Module.uninstall 后才移除 package。",
       "testLayers": [
         "Domain Behavior",
         "Package-local Integration",
@@ -4282,12 +4282,18 @@
         "Run the mapped package-local executable tests"
       ],
       "expected": [
-        "install 在 metadata 前置门禁后同步完整 Registry package set 并 dependency-order Module.install；uninstall reverse-order Module.uninstall 后才移除 package。"
+        "install 在 metadata 前置门禁后同步完整 Registry package set，并按冻结的 Deployment Install Order 调用 Module.install；uninstall reverse-order Module.uninstall 后才移除 package。"
       ],
       "forbidden": [
         "Current implementation behavior may not redefine the frozen seven-command result"
       ],
       "executableRefs": [
+        {
+          "path": "packages/platform-cli/tests/deployment-install-order.test.ts",
+          "line": 65,
+          "title": "installModulesThin uses deployment order while still validating dependencies",
+          "disposition": "ADD"
+        },
         {
           "path": "packages/platform-cli/tests/install-uninstall.test.ts",
           "line": 115,

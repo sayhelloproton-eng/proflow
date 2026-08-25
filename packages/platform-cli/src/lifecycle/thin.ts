@@ -5,6 +5,7 @@ import {
 } from "@tomflow/proflow-module-contract";
 
 import type { ResolvedModule } from "../contracts.ts";
+import { orderModuleRefsForInstall } from "../deployment-order.ts";
 import { PlatformError } from "../errors.ts";
 import { buildDependencyGraph } from "../graph/graph.ts";
 import type { ModuleCatalog } from "../modules.ts";
@@ -37,6 +38,18 @@ const context = (workspaceRoot: string, input?: unknown) =>
 function ordered(modules: readonly ResolvedModule[], reverse = false) {
 	const graph = buildDependencyGraph(modules);
 	const refs = reverse ? [...graph.order].reverse() : [...graph.order];
+	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
+	return refs
+		.map((ref) => byRef.get(ref))
+		.filter((item): item is ResolvedModule => item !== undefined);
+}
+function orderedForInstall(modules: readonly ResolvedModule[]) {
+	// Keep dependency validation, but do not let dependency depth/alphabetical order
+	// dictate the user-facing package installation trajectory.
+	buildDependencyGraph(modules);
+	const refs = orderModuleRefsForInstall(
+		modules.map((module) => module.moduleRef),
+	);
 	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
 	return refs
 		.map((ref) => byRef.get(ref))
@@ -129,7 +142,10 @@ async function runOrdered(
 	reporter?: PlatformProgressReporter,
 ): Promise<ModuleBatchResult> {
 	const results: ModuleDispatchResult[] = [];
-	const modulesInOrder = ordered(modules, reverse);
+	const modulesInOrder =
+		command === "install"
+			? orderedForInstall(modules)
+			: ordered(modules, reverse);
 	for (const [index, module] of modulesInOrder.entries()) {
 		reportProgress(reporter, {
 			command,

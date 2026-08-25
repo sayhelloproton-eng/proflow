@@ -30,13 +30,14 @@ Platform 不把领域私有 `health/config/verification` 逻辑复制进自身�
 
 ## 2. Runtime topology
 
-`provides/requires` 只表示 Module contract 与顺序关系：
+`provides/requires` 表示 Module contract 与 **Runtime setup/start dependency topology**：
 
-- `platform install/setup/start` 可用于依赖顺序；
+- `platform install` 先用 graph 校验 unresolved / incompatible / cycle，再按独立冻结的产品部署顺序调用 `Module.install`，不得让 dependency depth 或字母序决定安装轨迹；
+- `platform setup/start` 使用 dependency graph 做 ordering/readiness gating；
 - `platform stop/uninstall` 使用逆依赖顺序；
 - `platform docs` 只聚合 Module.docs，不把 topology 翻译成配置值。
 
-它们不参与 npm package dependency closure；不存在 `installRequires`，也不得被 Platform 用作 shared-fact config copy。
+固定 install order 不是新的 `installRequires`，不参与 npm package dependency closure，也不得被 Platform 用作 shared-fact config copy。Package manager 仍一次性同步完整 package set；真正有产品顺序语义的是随后各 owner 的 `Module.install` 调用。
 
 ## 3. Application Composition Root
 

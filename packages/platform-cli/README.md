@@ -32,7 +32,7 @@ Platform does not interpret Module-private configuration or recreate a cross-Mod
 
 ## Install / Uninstall
 
-`platform install` validates or creates the minimal Workspace metadata, discovers the complete governed package set from the Registry, synchronizes that set, validates the installed descriptors, then invokes `Module.install` in dependency order. It does not perform human setup work.
+`platform install` validates or creates the minimal Workspace metadata, discovers the complete governed package set from the Registry, synchronizes that set, validates the installed descriptors, then invokes `Module.install` in the frozen Deployment Install Order. This product deployment order is distinct from Runtime dependency topology: Chrome is first, followed by Browser Extension, Agent packages, Gateway/Tunnel, runtime/data foundations and governance packages. It does not perform human setup work.
 
 `platform uninstall` invokes `Module.uninstall` in reverse dependency order before package removal. `.proflow` is Workspace/user data and is preserved unless an owning Module explicitly removes its own artifacts.
 

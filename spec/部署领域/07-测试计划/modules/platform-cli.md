@@ -50,7 +50,16 @@ stop
 
 ### install / uninstall
 
-Install 先完成 Registry/package-manager sync，再 dependency-order 调用 Module.install，并持续发送 Workspace/Registry/package-manager/Module progress event。Uninstall 先 reverse-order Module.uninstall，再 package remove，只清理由本次 install 引入的 pnpm minimumReleaseAgeExclude，保留用户 policy 与 `.proflow`。
+Install 先完成 Registry/package-manager 的一次性 package-set sync，再校验 dependency graph，随后按冻结 Deployment Install Order 调用 Module.install；不得使用 Registry 返回顺序、packageName 字母序或 dependency depth 作为 install 产品顺序。Uninstall 仍先 reverse dependency-order Module.uninstall，再 package remove，只清理由本次 install 引入的 pnpm minimumReleaseAgeExclude，保留用户 policy 与 `.proflow`。
+
+### deployment install order
+
+- [x] **CP-DEP-CLI-INSTALL-ORDER-01** — 冻结前序必须为 `chrome-runtime → execution-browser-extension → agent-controller-dev → agent-product → agent-test-ops → agent-gateway → dev-tunnel`。
+- [x] **CP-DEP-CLI-INSTALL-ORDER-02** — 同一组 Module 无论 discovery/Registry 输入顺序如何，`Module.install` 调用序列保持一致。
+- [x] **CP-DEP-CLI-INSTALL-ORDER-03** — Platform 在固定 install order 前仍运行 dependency graph 校验；unresolved/incompatible/cycle 不得因固定顺序被绕过。
+- [x] **CP-DEP-CLI-INSTALL-ORDER-04** — 未进入冻结表的未来 Module 必须排在已知 Module 之后并按稳定 `moduleRef` 排序。
+- [x] **RF-DEP-CLI-INSTALL-ORDER-01** — 把 `setup/start` 也切到 Deployment Install Order，破坏真实 Runtime dependency topology。
+- [x] **RF-DEP-CLI-INSTALL-ORDER-02** — 继续把 npm/Registry 字母序或 graph depth 当作用户部署顺序。
 
 ### start / stop
 

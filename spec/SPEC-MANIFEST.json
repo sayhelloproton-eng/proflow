@@ -946,8 +946,8 @@
     },
     {
       "path": "部署领域/01-领域/03-当前设计原则与不变量.md",
-      "sha256": "238c090e1e415b2b9e2427261a9e39b30ce5d5e94ceccbb6c7d46211268f37aa",
-      "bytes": 4689
+      "sha256": "384c9917707b3d7d7e528a59b617df377e534d86e3dde10635c3ce66db5ea276",
+      "bytes": 5454
     },
     {
       "path": "部署领域/01-领域/contexts/deployment-governance/README.md",
@@ -956,8 +956,8 @@
     },
     {
       "path": "部署领域/02-契约/01-跨领域Deployment-Matrix与Composition-Root边界.md",
-      "sha256": "51135bdf12ddb7ff80c92971b95f37c4bd1bfe98e6a83c58f842fe720f87a2b3",
-      "bytes": 3647
+      "sha256": "43ad9a6fc400d2f907c5d51d8318df7a6636a038e6f0e985b055892adcca24ed",
+      "bytes": 5104
     },
     {
       "path": "部署领域/03-流程与数据/01-Deployment-Plan-Apply-ACTION_REQUIRED与恢复.md",
@@ -966,8 +966,8 @@
     },
     {
       "path": "部署领域/03-流程与数据/02-版本-升级-兼容性-模板迁移.md",
-      "sha256": "1c6f816ba293bda57e03ccdd55d0f0dfe263a10cc9466267705b5296308b76ea",
-      "bytes": 2911
+      "sha256": "01bf11671f19940ea4943ad90235dfade37de15cdc6c14964dc822b61877225a",
+      "bytes": 3016
     },
     {
       "path": "部署领域/03-流程与数据/03-Verify-Doctor-Manifest与Platform-READY.md",
@@ -1071,8 +1071,8 @@
     },
     {
       "path": "部署领域/05-质量与部署/01-INSTALL与AI-native部署.md",
-      "sha256": "171e0e1c525ba36baaeb5e171b37f1ceea1052ebaf319dfdb23ea732e16fd6db",
-      "bytes": 2682
+      "sha256": "4528c855615a180fe45555bd8d87123c6d85f71817af30bbf72b607edd4a681a",
+      "bytes": 4451
     },
     {
       "path": "部署领域/05-质量与部署/02-测试门禁与真实验收.md",
@@ -1131,8 +1131,8 @@
     },
     {
       "path": "部署领域/07-测试计划/modules/platform-cli.md",
-      "sha256": "07c669bd3b0c26d0e273942f17707de388306d1399210e88df0e9b339ace77c3",
-      "bytes": 3796
+      "sha256": "9c253e0f7d3608c1b4f131e6d17dbf07c63d379ad33bd4f21466153dc4913ec6",
+      "bytes": 6609
     },
     {
       "path": "部署领域/README.md",

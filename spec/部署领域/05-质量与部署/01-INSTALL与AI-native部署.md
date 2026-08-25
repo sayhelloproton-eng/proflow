@@ -38,8 +38,41 @@ package install
 → Registry discovery + package-manager sync
 
 Module install
-→ discover/order → Module.install
+→ validate dependency graph
+→ frozen deployment install order
+→ Module.install
 ```
+
+package-manager sync 是一次完整 package-set mutation，本身没有用户部署顺序语义。完成 package set 后，Platform 必须使用下列冻结 `Module.install` 顺序，Registry/npm 返回顺序不得影响结果：
+
+```text
+01 chrome-runtime
+02 execution-browser-extension
+03 agent-controller-dev
+04 agent-product
+05 agent-test-ops
+06 agent-gateway
+07 dev-tunnel
+08 agent-runtime
+09 platform-host
+10 execution-runtime
+11 execution-local
+12 model-provider-api
+13 model-runtime
+14 task-orchestration
+15 task-store-sqlite
+16 task-migration-runner
+17 execution-contracts
+18 model-contracts
+19 module-contract
+20 module-skill
+21 module-template
+22 deployment-conformance
+23 platform-cli
+24 chatgpt-carrier
+```
+
+`chrome-runtime` 是第一个真实部署动作：已有 Chrome 则复用，macOS 缺失则 owner 自动安装并验证。Browser Extension 第二，三个 Agent Package 随后物化，再进入 Gateway / Tunnel 等后续依赖。该顺序只治理 `Module.install`；`setup/start` 仍服从真实 dependency graph。未知未来 Module 排在冻结序列之后并按稳定 `moduleRef` 排序。
 
 `Module.install` 自己 materialize 所有可确定的 Module-owned state/config/artifact。Platform 不替 Module 创建私有配置，也不把 deterministic 值暴露给用户。
 
