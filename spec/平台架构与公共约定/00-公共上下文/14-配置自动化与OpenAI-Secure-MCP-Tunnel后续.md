@@ -17,7 +17,7 @@ P1 `model-provider-api`：`BOUNDARY_CONFIRMED`。当前没有正式 mDNS / Bonjo
 
 P1 `model-runtime`：`DEFER_TO_MODEL_DOMAIN`。`/models` 可发现候选，但当前 deployment `profiles()` 仍缺 producer-owned capability profile；FAST/REASON 又明确不得按模型名或固定 ID 猜测。应在模型领域以真实 bounded capability probe 闭环后再自动选型。
 
-P2 `execution-runtime`：`PENDING_SMALL_CLEANUP`。删除“人工提供 loaded Chrome Extension ID”的过时 setup 文案/合同；Extension ID 已由 hello/pairing/heartbeat 机器发现。
+P2 `execution-runtime`：`DONE`。已删除“人工提供 loaded Chrome Extension ID”的过时 setup 文案/合同；Extension ID 由 hello/pairing/heartbeat 机器发现。
 
 P2 `execution-browser-extension`：保持 Extension ID / Bridge / heartbeat 自动发现；普通 Chrome 首次安装仍尊重浏览器安全边界。
 ## 3. dev-tunnel 替换意图与当前裁决状态
