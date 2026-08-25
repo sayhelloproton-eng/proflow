@@ -10,7 +10,7 @@ export const descriptor = {
 	identity: {
 		domain: "deployment-governance",
 		summary:
-			"Governs and probes the configured OpenAI-compatible model provider API as an external resource.",
+			"Governs and verifies a configured OpenAI-compatible model provider API as an external resource.",
 	},
 	provides: [
 		{
@@ -31,15 +31,16 @@ export const descriptor = {
 			key: "providerBaseUrl",
 			type: "url",
 			required: true,
-			description: "OpenAI-compatible provider API base URL",
+			description:
+				"OpenAI-compatible provider API base URL resolved by deployment",
 		},
 		{
-			key: "providerCredential",
+			key: "providerCredentialFile",
 			type: "secretRef",
 			required: false,
 			sensitive: true,
 			description:
-				"Optional credential reference; absent for unauthenticated providers",
+				"Optional owner-only credential file; absent for unauthenticated providers",
 		},
 	],
 	effects: [

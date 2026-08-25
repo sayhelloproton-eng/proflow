@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -7,10 +7,14 @@ import { test } from "node:test";
 import {
 	moduleOperationResultSchema,
 	parseModuleDescriptor,
+	readModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
-import { behaviorAdapter } from "../deployment/adapter.ts";
+import {
+	behaviorAdapter,
+	createProviderBehaviorAdapter,
+} from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
-import { createProviderProbe } from "../src/resource-adapter.ts";
+import type { ProviderProbeResult } from "../src/resource-adapter.ts";
 
 async function workspace(
 	context: { after(fn: () => unknown): void },
@@ -21,87 +25,227 @@ async function workspace(
 	return root;
 }
 
-test("parseModuleDescriptor accepts the frozen external-resource descriptor", () => {
+const ready = (
+	baseUrl: string,
+	models = ["fast", "reason"],
+): ProviderProbeResult => ({
+	status: "READY",
+	baseUrl,
+	models: models.map((id) => ({ id, object: "model" })),
+	reachable: true,
+	authenticated: true,
+	message: "provider OpenAI-compatible inventory verified",
+});
+
+test("descriptor exposes only a generic provider URL and optional credential reference", () => {
 	const parsed = parseModuleDescriptor(descriptor);
-	assert.equal(parsed.contract, "module");
 	assert.equal(parsed.moduleRef, "model-provider-api");
 	assert.equal(parsed.kind, "external-resource");
 	assert.equal(parsed.provides[0]?.contractRef, "model.provider.api");
 	assert.deepEqual(parsed.requires, []);
 	assert.equal("lifecycle" in parsed, false);
-	assert.equal("verification" in parsed, false);
+	const keys = parsed.configSlots.map((slot) => slot.key).sort();
+	assert.deepEqual(keys, ["providerBaseUrl", "providerCredentialFile"]);
+	assert.doesNotMatch(
+		JSON.stringify(parsed),
+		/providerIdentity|serviceType|hostname|providerInstance|discovery/i,
+	);
 });
 
 test("all seven management command results satisfy the structured result contract", async (context) => {
 	const workspaceRoot = await workspace(context, "proflow-provider-contract-");
+	const adapter = createProviderBehaviorAdapter();
 	const observations = [
-		await behaviorAdapter.install({ workspaceRoot }),
-		await behaviorAdapter.uninstall({ workspaceRoot }),
-		await behaviorAdapter.status({ workspaceRoot }),
-		await behaviorAdapter.setup({ workspaceRoot }),
-		await behaviorAdapter.docs({ workspaceRoot }),
-		await behaviorAdapter.start({ workspaceRoot }),
-		await behaviorAdapter.stop({ workspaceRoot }),
+		await adapter.install({ workspaceRoot }),
+		await adapter.uninstall({ workspaceRoot }),
+		await adapter.status({ workspaceRoot }),
+		await adapter.setup({ workspaceRoot }),
+		await adapter.docs({ workspaceRoot }),
+		await adapter.start({ workspaceRoot }),
+		await adapter.stop({ workspaceRoot }),
 	];
-	for (const observation of observations) {
-		const parsed = moduleOperationResultSchema.safeParse(observation.result);
-		assert.equal(parsed.success, true);
-		if (parsed.success) {
-			assert.equal(parsed.data.moduleRef, descriptor.moduleRef);
-			assert.equal(parsed.data.moduleVersion, descriptor.moduleVersion);
-		}
-	}
-});
-
-test("unconfigured adapter reports ACTION_REQUIRED through status/setup, not missingConfig", async (context) => {
-	const workspaceRoot = await workspace(
-		context,
-		"proflow-provider-unconfigured-",
-	);
-	assert.deepEqual(
-		(await behaviorAdapter.status({ workspaceRoot })).result.data,
-		{
-			setupStatus: "ACTION_REQUIRED",
-			runtimeStatus: "STOPPED",
-			issues: [
-				{
-					scope: "SETUP",
-					code: "PROVIDER_SETUP_REQUIRED",
-					message: "尚未配置模型服务 Base URL",
-					relatedModuleRefs: [],
-					nextCommand: "platform setup --module model-provider-api",
-				},
-			],
-		},
-	);
-	const setup = await behaviorAdapter.setup({ workspaceRoot });
-	assert.equal(setup.result.status, "ACTION_REQUIRED");
-	assert.equal(setup.result.actionRequired?.action, "configure-provider");
-});
-
-test("configured adapter owns reachability/auth only and publishes READY provider truth", async (context) => {
-	const workspaceRoot = await workspace(context, "proflow-provider-ready-");
-	const originalFetch = globalThis.fetch;
-	try {
-		globalThis.fetch = async () => new Response("{}", { status: 200 });
-		const setup = await behaviorAdapter.setup({
-			workspaceRoot,
-			input: { providerBaseUrl: "http://127.0.0.1:4400/v1/" },
-		});
-		assert.equal(setup.result.status, "SUCCEEDED");
-		const status = await behaviorAdapter.status({ workspaceRoot });
-		assert.deepEqual(status.result.data, {
-			setupStatus: "READY",
-			runtimeStatus: "RUNNING",
-		});
-		assert.equal(status.externalAvailabilityClaim, "AVAILABLE");
-		assert.doesNotMatch(
-			JSON.stringify(status.result.data),
-			/fast|reason|capability/i,
+	for (const observation of observations)
+		assert.equal(
+			moduleOperationResultSchema.safeParse(observation.result).success,
+			true,
 		);
-	} finally {
-		globalThis.fetch = originalFetch;
+});
+
+test("missing URL is generic endpoint-required and never starts device discovery", async (context) => {
+	const workspaceRoot = await workspace(context, "proflow-provider-missing-");
+	const adapter = createProviderBehaviorAdapter();
+	const status = await adapter.status({ workspaceRoot });
+	assert.equal(status.result.data.setupStatus, "ACTION_REQUIRED");
+	assert.equal(status.result.data.runtimeStatus, "NOT_APPLICABLE");
+	assert.equal(
+		status.result.data.issues?.[0]?.code,
+		"PROVIDER_ENDPOINT_REQUIRED",
+	);
+	const setup = await adapter.setup({ workspaceRoot });
+	assert.equal(setup.result.status, "ACTION_REQUIRED");
+	assert.equal(
+		setup.result.actionRequired?.action,
+		"provide-provider-endpoint",
+	);
+	assert.doesNotMatch(
+		JSON.stringify(setup),
+		/providerIdentity|serviceType|hostname|providerInstance|discover/i,
+	);
+});
+
+test("generic URL is probed and only validated provider facts are published", async (context) => {
+	const workspaceRoot = await workspace(context, "proflow-provider-ready-");
+	const adapter = createProviderBehaviorAdapter({
+		probe: async ({ baseUrl }) =>
+			ready(`${baseUrl.replace(/\/v1\/?$/, "").replace(/\/$/, "")}/v1`),
+	});
+	const setup = await adapter.setup({
+		workspaceRoot,
+		input: { providerBaseUrl: "https://provider.example" },
+	});
+	assert.equal(setup.result.status, "SUCCEEDED");
+	assert.deepEqual((await adapter.status({ workspaceRoot })).result.data, {
+		setupStatus: "READY",
+		runtimeStatus: "NOT_APPLICABLE",
+	});
+	const facts = await readModuleSharedFacts(
+		{ workspaceRoot },
+		"model-provider-api",
+	);
+	assert.equal(facts?.providerBaseUrl, "https://provider.example/v1");
+	assert.deepEqual(facts?.models, [
+		{ id: "fast", object: "model" },
+		{ id: "reason", object: "model" },
+	]);
+	assert.equal("providerIdentity" in (facts ?? {}), false);
+	assert.equal("providerCredential" in (facts ?? {}), false);
+});
+
+test("saved URL is re-probed and unreachable reality never re-discovers a device", async (context) => {
+	const workspaceRoot = await workspace(context, "proflow-provider-reprobe-");
+	let reachable = true;
+	let probes = 0;
+	const adapter = createProviderBehaviorAdapter({
+		probe: async ({ baseUrl }) => {
+			probes += 1;
+			return reachable
+				? ready(`${baseUrl.replace(/\/v1$/, "")}/v1`)
+				: {
+						status: "UNREACHABLE",
+						reachable: false,
+						authenticated: false,
+						message: "provider API request failed",
+					};
+		},
+	});
+	await adapter.setup({
+		workspaceRoot,
+		input: { providerBaseUrl: "https://provider.example" },
+	});
+	reachable = false;
+	const status = await adapter.status({ workspaceRoot });
+	assert.equal(status.result.data.setupStatus, "ACTION_REQUIRED");
+	assert.equal(status.result.data.issues?.[0]?.code, "PROVIDER_UNREACHABLE");
+	assert.equal(probes, 2);
+	assert.doesNotMatch(
+		JSON.stringify(status),
+		/providerIdentity|serviceType|hostname|providerInstance/i,
+	);
+});
+
+test("credential is stored owner-only and shared facts contain only its file reference", async (context) => {
+	const workspaceRoot = await workspace(context, "proflow-provider-secret-");
+	const secret = "GENERIC_PROVIDER_SECRET";
+	const adapter = createProviderBehaviorAdapter({
+		probe: async ({ baseUrl, credential }) => {
+			assert.equal(credential, secret);
+			return ready(`${baseUrl.replace(/\/$/, "")}/v1`);
+		},
+	});
+	const setup = await adapter.setup({
+		workspaceRoot,
+		input: {
+			providerBaseUrl: "https://provider.example",
+			providerCredential: secret,
+		},
+	});
+	assert.equal(setup.result.status, "SUCCEEDED");
+	const facts = await readModuleSharedFacts(
+		{ workspaceRoot },
+		"model-provider-api",
+	);
+	assert.doesNotMatch(JSON.stringify(facts), new RegExp(secret));
+	const path = String(facts?.providerCredentialFile);
+	assert.equal((await readFile(path, "utf8")).trim(), secret);
+	if (process.platform !== "win32")
+		assert.equal((await stat(path)).mode & 0o077, 0);
+	if (process.platform !== "win32") {
+		await chmod(path, 0o644);
+		const hardened = createProviderBehaviorAdapter({
+			probe: async ({ baseUrl, credential }) =>
+				credential
+					? ready(baseUrl)
+					: {
+							status: "AUTH_REQUIRED",
+							reachable: true,
+							authenticated: false,
+							message: "provider requires authentication",
+						},
+		});
+		const unsafe = await hardened.status({ workspaceRoot });
+		assert.equal(unsafe.result.data.setupStatus, "ACTION_REQUIRED");
+		assert.equal(
+			unsafe.result.data.issues?.[0]?.code,
+			"PROVIDER_AUTH_REQUIRED",
+		);
+		assert.equal(
+			(
+				await hardened.setup({
+					workspaceRoot,
+					input: { providerCredential: secret },
+				})
+			).result.status,
+			"SUCCEEDED",
+		);
+		assert.equal((await stat(path)).mode & 0o077, 0);
 	}
+});
+
+test("invalid protocol and auth-required endpoint never become fake READY", async (context) => {
+	const invalidRoot = await workspace(context, "proflow-provider-invalid-");
+	const invalid = createProviderBehaviorAdapter({
+		probe: async () => ({
+			status: "PROTOCOL_INVALID",
+			reachable: true,
+			authenticated: false,
+			message: "invalid protocol",
+		}),
+	});
+	const invalidSetup = await invalid.setup({
+		workspaceRoot: invalidRoot,
+		input: { providerBaseUrl: "https://provider.example" },
+	});
+	assert.equal(invalidSetup.result.status, "FAILED");
+
+	const authRoot = await workspace(context, "proflow-provider-auth-");
+	const auth = createProviderBehaviorAdapter({
+		probe: async () => ({
+			status: "AUTH_REQUIRED",
+			reachable: true,
+			authenticated: false,
+			message: "provider API requires authentication",
+		}),
+	});
+	const result = await auth.setup({
+		workspaceRoot: authRoot,
+		input: { providerBaseUrl: "https://provider.example" },
+	});
+	assert.equal(result.result.status, "ACTION_REQUIRED");
+	assert.equal(
+		result.result.actionRequired?.action,
+		"provide-provider-credential",
+	);
+	assert.doesNotMatch(JSON.stringify(result), /Bearer|token=/i);
 });
 
 test("adapter exposes exactly the fixed seven management commands", () => {
@@ -116,16 +260,9 @@ test("adapter exposes exactly the fixed seven management commands", () => {
 	]);
 });
 
-test("low-level probe is honest about an unreachable provider", async () => {
-	const probe = createProviderProbe({ baseUrl: "http://127.0.0.1:1" });
-	const result = await probe();
-	assert.equal(result.reachable, false);
-	assert.equal(result.authenticated, false);
-});
-
-test("providerCredential is optional (unauthenticated providers allowed)", () => {
-	const credential = descriptor.configSlots.find(
-		(slot) => slot.key === "providerCredential",
+test("provider public contract contains no implementation-specific discovery identity", () => {
+	assert.doesNotMatch(
+		JSON.stringify(descriptor),
+		/providerIdentity|serviceType|hostname|providerInstance|discovery/i,
 	);
-	assert.equal(credential?.required, false);
 });

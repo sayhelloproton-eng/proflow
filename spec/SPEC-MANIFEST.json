@@ -801,8 +801,8 @@
     },
     {
       "path": "模型与推理领域/03-流程与数据/02-Model-Capability-Profile与Provider适配.md",
-      "sha256": "5f4479003af197e6e35520b67bd2bca1550e694085e223be1f75f525f1d2b177",
-      "bytes": 2323
+      "sha256": "25d8e4604e1b7955725d3a24345000fea417df16443e82e7f8cebe47dbc73cc2",
+      "bytes": 3576
     },
     {
       "path": "模型与推理领域/03-流程与数据/03-路由-单Lane-队列-超时-取消.md",
@@ -926,8 +926,8 @@
     },
     {
       "path": "模型与推理领域/07-测试计划/modules/model-runtime.md",
-      "sha256": "e0920774f32535a7a94e11ec472e0b5a4b1624009b135cecfe761f7465dc32db",
-      "bytes": 18662
+      "sha256": "33ba2c6a47f742fd335526e1a2b097eb614fbd60f2b60a38a819029ce517f11a",
+      "bytes": 20351
     },
     {
       "path": "模型与推理领域/README.md",

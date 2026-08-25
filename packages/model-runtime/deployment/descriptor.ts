@@ -31,20 +31,7 @@ export const descriptor = {
 			versionRange: ">=24.19.0",
 		},
 	],
-	configSlots: [
-		{
-			key: "fastModel",
-			type: "string",
-			required: true,
-			description: "Provider model identifier for FAST",
-		},
-		{
-			key: "reasonModel",
-			type: "string",
-			required: true,
-			description: "Provider model identifier for REASON",
-		},
-	],
+	configSlots: [],
 	effects: [
 		{
 			kind: "process",

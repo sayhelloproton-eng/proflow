@@ -1,57 +1,56 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { behaviorAdapter } from "../deployment/adapter.ts";
+import { createProviderBehaviorAdapter } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
 
-const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
-
-test("EXT-MODEL-PROVIDER-01 provider adapter owns reachability/auth, not FAST/REASON capability judgment", () => {
-	assert.match(readme, /Does NOT own/i);
-	assert.match(readme, /FAST \/ REASON logical roles/i);
-	assert.match(readme, /Model capability judgment/i);
+test("EXT-MODEL-PROVIDER-01 provider owns URL reachability/auth/inventory, not FAST/REASON judgment", () => {
 	assert.doesNotMatch(
 		JSON.stringify(descriptor),
-		/fastModel|reasonModel|systemAssessment|taskDiagnostic/,
+		/fastModel|reasonModel|systemAssessment|taskDiagnostic|providerIdentity|serviceType|hostname|providerInstance/i,
 	);
 });
 
-test("EXT-MODEL-PROVIDER-02 provider-owned setup stops at reachability/auth and leaves capability truth to Model Domain", async (context) => {
+test("EXT-MODEL-PROVIDER-02 generic endpoint setup stops at validated inventory", async (context) => {
 	const workspaceRoot = await mkdtemp(
 		join(tmpdir(), "proflow-provider-boundary-"),
 	);
 	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
-	const originalFetch = globalThis.fetch;
-	try {
-		globalThis.fetch = async () => new Response("{}", { status: 200 });
-		assert.equal(
-			(
-				await behaviorAdapter.setup({
-					workspaceRoot,
-					input: { providerBaseUrl: "http://127.0.0.1:4400/v1/" },
-				})
-			).result.status,
-			"SUCCEEDED",
-		);
-		const status = await behaviorAdapter.status({ workspaceRoot });
-		assert.equal(status.result.data.setupStatus, "READY");
-		assert.doesNotMatch(
-			JSON.stringify(status.result.data),
-			/fast|reason|capability/i,
-		);
-	} finally {
-		globalThis.fetch = originalFetch;
-	}
+	const adapter = createProviderBehaviorAdapter({
+		probe: async ({ baseUrl }) => ({
+			status: "READY",
+			baseUrl: `${baseUrl.replace(/\/$/, "")}/v1`,
+			models: [{ id: "model-a" }],
+			reachable: true,
+			authenticated: true,
+			message: "provider OpenAI-compatible inventory verified",
+		}),
+	});
+	assert.equal(
+		(
+			await adapter.setup({
+				workspaceRoot,
+				input: { providerBaseUrl: "https://provider.example" },
+			})
+		).result.status,
+		"SUCCEEDED",
+	);
+	const status = await adapter.status({ workspaceRoot });
+	assert.equal(status.result.data.setupStatus, "READY");
+	assert.doesNotMatch(
+		JSON.stringify(status.result.data),
+		/fast|reason|capability|device|vendor|discovery/i,
+	);
 });
 
-test("EXT-MODEL-PROVIDER-03 external provider has no descriptor lifecycle/system-assessment truth", () => {
+test("EXT-MODEL-PROVIDER-03 external provider has no lifecycle or implementation-specific identity truth", () => {
 	assert.equal("lifecycle" in descriptor, false);
 	assert.equal("verification" in descriptor, false);
 	assert.doesNotMatch(
 		JSON.stringify(descriptor),
-		/assessmentRef|findingRef|taskId|workerRef/,
+		/assessmentRef|findingRef|taskId|workerRef|providerIdentity|serviceType|hostname|providerInstance/i,
 	);
 });

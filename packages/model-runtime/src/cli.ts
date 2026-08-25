@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createInterface } from "node:readline/promises";
-import { readModuleSharedFacts } from "@tomflow/proflow-module-contract";
+
 import { behaviorAdapter } from "../deployment/adapter.ts";
 import {
 	createModelRuntimeProcess,
@@ -26,91 +26,67 @@ async function main(): Promise<void> {
 	if (args.includes("--json")) throw new Error("不支持的选项 --json");
 	if (command === "--help" || command === "-h") {
 		process.stdout.write(
-			"用法：proflow-model-runtime setup [--fast-model <id> --reason-model <id>]\n      proflow-model-runtime verify\n      proflow-model-runtime start /absolute/config.json\n",
+			"用法：proflow-model-runtime setup\n      proflow-model-runtime verify\n      proflow-model-runtime start /absolute/config.json\n\n仅当能力证据无法消除等价候选时，setup 才接受 --fast-model 或 --reason-model。\n",
 		);
-		process.exit(0);
+		return;
 	}
 	if (command === "setup") {
-		const step = args[1]?.startsWith("--") ? undefined : args[1];
 		const workspaceRoot = option("--workspace") ?? process.cwd();
-		if (step === "02") {
-			const result = await behaviorAdapter.status({ workspaceRoot });
-			process.stdout.write(
-				result.result.data.setupStatus === "READY"
-					? "✓ 模型角色验证通过\n"
-					: "✕ 模型角色尚未就绪\n",
-			);
-			if (result.result.data.setupStatus !== "READY") process.exitCode = 1;
-			process.exit();
-		}
-		if (step !== undefined && step !== "01")
-			throw new Error(`UNSUPPORTED_SETUP_STEP:${step}`);
-		let fastModel = option("--fast-model"),
-			reasonModel = option("--reason-model");
-		if ((!fastModel || !reasonModel) && !process.stdin.isTTY)
-			throw new Error("非交互环境必须提供 --fast-model 和 --reason-model");
-		if (!fastModel || !reasonModel) {
-			const facts = await readModuleSharedFacts(
-				{ workspaceRoot },
-				"model-provider-api",
-			);
-			const baseUrl =
-				typeof facts?.providerBaseUrl === "string"
-					? facts.providerBaseUrl
-					: undefined;
-			if (baseUrl) {
-				try {
-					const response = await fetch(`${baseUrl.replace(/\/$/, "")}/models`, {
-						signal: AbortSignal.timeout(5_000),
-					});
-					const payload: unknown = await response.json();
-					const data =
-						typeof payload === "object" && payload !== null
-							? Reflect.get(payload, "data")
-							: undefined;
-					if (Array.isArray(data)) {
-						const ids = data
-							.map((item) =>
-								typeof item === "object" && item !== null
-									? Reflect.get(item, "id")
-									: undefined,
-							)
-							.filter((id): id is string => typeof id === "string");
-						if (ids.length > 0)
-							process.stdout.write(
-								`\nProvider 可用模型：\n${ids.map((id) => `  • ${id}`).join("\n")}\n`,
-							);
-					}
-				} catch {
-					process.stdout.write(
-						"\n◆ 暂时无法读取模型列表，可继续手动输入模型 ID。\n",
-					);
-				}
-			}
+		const supplied = {
+			...(option("--fast-model") ? { fastModel: option("--fast-model") } : {}),
+			...(option("--reason-model")
+				? { reasonModel: option("--reason-model") }
+				: {}),
+		};
+		process.stdout.write(
+			"\n模型能力\n\n正在读取 Provider model inventory……\n正在验证 FAST / REASON 能力……\n",
+		);
+		let result = await behaviorAdapter.setup({
+			workspaceRoot,
+			...(Object.keys(supplied).length > 0 ? { input: supplied } : {}),
+		});
+		if (
+			result.result.status === "ACTION_REQUIRED" &&
+			result.result.actionRequired?.action.startsWith("select-") &&
+			process.stdin.isTTY
+		) {
+			const role = result.result.actionRequired.action.includes("fast")
+				? "fast"
+				: "reason";
 			const prompt = createInterface({
 				input: process.stdin,
 				output: process.stdout,
 			});
 			try {
-				process.stdout.write(
-					"\n模型角色配置\n\n  FAST（快速模型）处理低延迟任务。\n  REASON（推理模型）处理复杂分析任务。\n  输入 Provider（模型服务商）实际提供的模型 ID。\n\n",
+				process.stdout.write(`\n${result.result.actionRequired.description}\n`);
+				const selected = await prompt.question(
+					`◆ 请选择 ${role.toUpperCase()} 候选\n> `,
 				);
-				fastModel ||= await prompt.question("◆ FAST 模型 ID\n> ");
-				reasonModel ||= await prompt.question("◆ REASON 模型 ID\n> ");
+				result = await behaviorAdapter.setup({
+					workspaceRoot,
+					input:
+						role === "fast"
+							? { fastModel: selected }
+							: { reasonModel: selected },
+				});
 			} finally {
 				prompt.close();
 			}
 		}
-		const result = await behaviorAdapter.setup({
-			workspaceRoot,
-			input: { fastModel, reasonModel },
-		});
-		process.stdout.write(
-			result.result.status === "SUCCEEDED"
-				? "\n✓ 两个模型角色已保存\n✓ Provider 探测与角色验证通过\n"
-				: "\n✕ 模型角色尚未就绪\n  请先运行 proflow-model-provider-api setup\n",
-		);
-		if (result.result.status === "FAILED") process.exitCode = 1;
+		if (result.result.status === "SUCCEEDED")
+			process.stdout.write(
+				"\n✓ FAST 已自动配置\n✓ REASON 已自动配置\n\n模型能力：READY\n",
+			);
+		else {
+			const detail =
+				"actionRequired" in result.result
+					? result.result.actionRequired.description
+					: "error" in result.result
+						? result.result.error.message
+						: "模型能力尚未就绪";
+			process.stdout.write(`\n模型能力尚未就绪。\n${detail}\n`);
+			if (result.result.status === "FAILED") process.exitCode = 1;
+		}
 		return;
 	}
 	if (command === "verify") {
@@ -119,8 +95,8 @@ async function main(): Promise<void> {
 		});
 		process.stdout.write(
 			result.result.data.setupStatus === "READY"
-				? "验证通过。\n"
-				: "验证未通过：配置尚未就绪。\n",
+				? `模型能力：READY\n本地 Runtime：${result.result.data.runtimeStatus}\n`
+				: `模型能力：${result.result.data.setupStatus}\n${result.result.data.issues?.[0]?.message ?? "模型能力尚未就绪"}\n`,
 		);
 		if (result.result.data.setupStatus !== "READY") process.exitCode = 1;
 		return;
@@ -151,6 +127,4 @@ async function main(): Promise<void> {
 	await new Promise(() => {});
 }
 
-if (import.meta.main) {
-	await main();
-}
+if (import.meta.main) await main();

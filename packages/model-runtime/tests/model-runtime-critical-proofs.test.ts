@@ -9,7 +9,6 @@ import {
 	fakeProvider,
 	healthMatrix,
 	inferenceTimeoutProof,
-	nextTurn,
 	queueTimeoutProof,
 	verifiedTestRoles,
 } from "./fixtures.ts";
@@ -75,40 +74,53 @@ test("CP-MODEL-RT-02 one real lane prioritizes queued business and distinguishes
 	const api = await runtimeApi();
 	const order: string[] = [];
 	const releases: Array<() => void> = [];
+	const startedResolvers: Array<() => void> = [];
+	const started = Array.from(
+		{ length: 3 },
+		() =>
+			new Promise<void>((resolve) => {
+				startedResolvers.push(resolve);
+			}),
+	);
 	const runtime = api.createModelRuntime({
 		specs: [api.createReasoningSpec(specInput)],
 		roles: verifiedTestRoles(),
 		provider: fakeProvider(
 			({ request: input }: { request: { trace: { callerRef: string } } }) =>
 				new Promise<string>((resolve) => {
+					const callIndex = order.length;
 					order.push(input.trace.callerRef);
 					releases.push(() => resolve('{"decision":"ALLOW"}'));
+					startedResolvers[callIndex]?.();
 				}),
 		),
 	});
 	const active = runtime.infer({
 		...request("fast", "background"),
 		trace: { callerRef: "active" },
+		timeoutMs: 30_000,
 	});
-	await nextTurn();
+	await started[0];
 	const background = runtime.infer({
 		...request("fast", "background"),
 		trace: { callerRef: "background" },
+		timeoutMs: 30_000,
 	});
 	const business = runtime.infer({
 		...request("fast"),
 		trace: { callerRef: "business" },
+		timeoutMs: 30_000,
 	});
 	releases.shift()?.();
-	await active;
-	await nextTurn();
+	await started[1];
 	assert.deepEqual(order, ["active", "business"]);
+	await active;
 	releases.shift()?.();
+	await started[2];
+	assert.deepEqual(order, ["active", "business", "background"]);
 	await business;
-	await nextTurn();
 	releases.shift()?.();
 	await background;
-	assert.deepEqual(order, ["active", "business", "background"]);
 	assert.equal((await queueTimeoutProof()).error?.code, "QUEUE_TIMEOUT");
 	assert.equal(
 		(await inferenceTimeoutProof()).error?.code,

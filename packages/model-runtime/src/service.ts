@@ -116,7 +116,7 @@ export function createModelRuntimeService(input: {
 					}
 					if (request.method === "GET" && request.url === "/ready") {
 						const dependency = await currentDependency();
-						const ready = accepting && dependency.runtime !== "UNAVAILABLE";
+						const ready = accepting && dependency.runtime === "READY";
 						response.statusCode = ready ? 200 : 503;
 						response.end(
 							JSON.stringify({
@@ -189,9 +189,7 @@ export function createModelRuntimeService(input: {
 				process: lifecycle,
 				liveness: lifecycle === "STOPPED" ? "DOWN" : "UP",
 				readiness:
-					accepting && dependency.runtime !== "UNAVAILABLE"
-						? "READY"
-						: "NOT_READY",
+					accepting && dependency.runtime === "READY" ? "READY" : "NOT_READY",
 				accepting,
 				inFlight: inferenceControllers.size,
 				dependency,

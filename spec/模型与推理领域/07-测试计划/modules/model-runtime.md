@@ -231,3 +231,14 @@ Batch 3 只补正式 caller/application wiring 与 bounded schema proof；真实
 - Executable proof: `packages/model-runtime/tests/execution-command-risk-alignment.test.ts`.
 - Model-side registration alone is insufficient for P1-18 closure; the formal `proflow-execution-runtime` production caller, consumer-specific readiness, and Execution/Approval authority checks must also pass.
 - Real phone FAST/REASON/load evidence remains `REAL_EXTERNAL`; mock/fake-provider tests do not satisfy `CP-MODEL-RT-13`.
+
+## 12. 2026-08-25 模型域部署自动化 executable mapping
+
+本节只登记 §5 已冻结 Critical Proof 的新增可执行路径，不把 fake 测试提升为 Real External Evidence：
+
+- `CP-MODEL-RT-03`：`packages/model-provider-api/tests/provider-probe.test.ts` 证明 generic HTTP(S) endpoint 验证、OpenAI-compatible inventory contract、认证错误语义、credential reference 不泄露，且 Provider 不拥有 discovery/device identity；`packages/model-runtime/tests/model-deployment-automation.test.ts` 证明证据优先映射、歧义/缺角色 fail closed、5 秒 case cooldown、持久化复用及 inventory drift/runtime freshness 验证。
+- `CP-MODEL-RT-07`：同一 runtime 测试以真实本地 HTTP 进程证明 `/ready`、start/status/stop 与 Provider 离线诊断不产生假 READY。
+- `CP-MODEL-RT-08`：fake Provider 只用于确定性 TDD；真实外部 Provider（当前环境可能是 iPhone 上的 MLXHub）只是 `REAL_EXTERNAL` evidence context，不进入生产合同。必须通过已裁决的 Deployment composition 提供 endpoint，再单独验证 inventory、FAST/REASON、Vision、reasoning、重复 setup/status 和 server-off 恢复；未执行、失败或 resolver owner 未冻结时保持 `ACTION_REQUIRED` / `FAILED`。
+- Security evidence：凭据只能落到 owner-only secret file；shared facts、持久化 mapping、命令结果与日志不得含明文。
+
+专项验收矩阵至少包含：零/一/多候选、地址漂移、`/v1/models` 与 `/models`、auth required/failed、协议错误、能力验证超时、FAST/REASON 唯一/歧义/缺失、inventory drift、evidence 过期、Provider 离线和真实进程生命周期。

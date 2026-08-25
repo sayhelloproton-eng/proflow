@@ -1,20 +1,53 @@
 import { readFileSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import {
+	chmod,
+	mkdir,
+	readFile,
+	rename,
+	stat,
+	writeFile,
+} from "node:fs/promises";
+import { dirname, join } from "node:path";
 
 import {
 	type ModuleCommandContext,
+	moduleWorkspaceStateDirectory,
 	writeModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
-import type { ProviderProbeResult } from "../src/resource-adapter.ts";
-import { createProviderProbe } from "../src/resource-adapter.ts";
+import {
+	type ProviderModel,
+	type ProviderProbeConfig,
+	type ProviderProbeResult,
+	probeProvider,
+} from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
 
-export type ProviderProbe = () => Promise<ProviderProbeResult>;
-type ProviderSetupConfig = {
+type ProviderObservation = {
+	contract: "proflow.model-provider-observation.v1";
 	providerBaseUrl: string;
-	providerCredential?: string;
+	models: readonly ProviderModel[];
+	verifiedAt: string;
+	providerCredentialFile?: string;
 };
+
+type ProviderAdapterDependencies = {
+	probe?: (config: ProviderProbeConfig) => Promise<ProviderProbeResult>;
+	now?: () => string;
+};
+
+type Resolution =
+	| { status: "READY"; observation: ProviderObservation }
+	| {
+			status:
+				| "PROVIDER_ENDPOINT_REQUIRED"
+				| "PROVIDER_ENDPOINT_INVALID"
+				| "PROVIDER_UNREACHABLE"
+				| "PROVIDER_PROTOCOL_INVALID"
+				| "PROVIDER_AUTH_REQUIRED"
+				| "PROVIDER_AUTH_FAILED";
+			message: string;
+	  };
+
 const base = {
 	contract: "deployment.result.v1",
 	ok: true,
@@ -22,282 +55,407 @@ const base = {
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
-const setupPlan = {
-	steps: [
-		{
-			id: "STEP-MODEL-PROVIDER-API-01",
-			title: "配置模型服务地址",
-			description: "说明 Base URL 格式，探测连通性与认证后再保存。",
-			state: "TODO",
-			responsible: "USER",
-			execution: {
-				interactive: "pnpm exec -- proflow-model-provider-api setup 01",
-				nonInteractive:
-					"pnpm exec -- proflow-model-provider-api setup 01 --provider-base-url <url>",
-			},
-			requiredInputs: [
-				{
-					name: "providerBaseUrl",
-					description: "模型服务 Base URL",
-					sensitive: false,
-				},
-			],
-			verify: "pnpm exec -- proflow-model-provider-api verify",
-			successCondition: "Provider Base URL 已通过连接与认证探测",
-		},
-		{
-			id: "STEP-MODEL-PROVIDER-API-02",
-			title: "验证模型服务",
-			description: "重新观察当前 Provider 配置和服务状态。",
-			state: "TODO",
-			responsible: "AI",
-			execution: {
-				interactive: "pnpm exec -- proflow-model-provider-api setup 02",
-				nonInteractive: "pnpm exec -- proflow-model-provider-api verify",
-			},
-			requiredInputs: [],
-			verify: "pnpm exec -- proflow-model-provider-api verify",
-			successCondition: "model-provider-api.setupStatus=READY",
-		},
-	],
-} as const;
-const blockedSetupPlan = {
-	steps: [
-		{
-			id: "STEP-MODEL-PROVIDER-API-03",
-			title: "修复模型服务认证",
-			state: "BLOCKED",
-			responsible: "EXTERNAL",
-			execution: {
-				interactive: "pnpm exec -- proflow-model-provider-api setup",
-				nonInteractive:
-					"pnpm exec -- proflow-model-provider-api setup --provider-base-url <url>",
-			},
-			requiredInputs: [],
-			verify: "pnpm exec -- proflow-model-provider-api verify",
-			successCondition: "配置状态变为“已就绪”",
-			blockedReason: "Credential resolver 合同尚不可用",
-		},
-	],
-} as const;
 const effect = "Probes the configured OpenAI-compatible model provider API";
-const configPath = (context: ModuleCommandContext) =>
-	join(
-		resolve(context.workspaceRoot),
-		".proflow",
-		"config",
-		"model-provider-api.json",
-	);
-async function readConfig(
-	context: ModuleCommandContext,
-): Promise<ProviderSetupConfig | undefined> {
+
+const stateDirectory = (context: ModuleCommandContext) =>
+	moduleWorkspaceStateDirectory(context, descriptor.moduleRef);
+const observationPath = (context: ModuleCommandContext) =>
+	join(stateDirectory(context), "provider-observation.json");
+const credentialPath = (context: ModuleCommandContext) =>
+	join(stateDirectory(context), "secrets", "provider.token");
+
+function text(value: unknown): string | undefined {
+	return typeof value === "string" && value.trim().length > 0
+		? value.trim()
+		: undefined;
+}
+
+function endpoint(value: unknown): string | undefined {
+	const candidate = text(value);
+	if (!candidate) return undefined;
 	try {
-		const raw: unknown = JSON.parse(
-			await readFile(configPath(context), "utf8"),
-		);
-		if (typeof raw !== "object" || raw === null || Array.isArray(raw))
-			return undefined;
-		const providerBaseUrl = Reflect.get(raw, "providerBaseUrl");
-		const providerCredential = Reflect.get(raw, "providerCredential");
-		if (typeof providerBaseUrl !== "string" || providerBaseUrl.length === 0)
-			return undefined;
-		return {
-			providerBaseUrl,
-			...(typeof providerCredential === "string" &&
-			providerCredential.length > 0
-				? { providerCredential }
-				: {}),
-		};
+		const url = new URL(candidate);
+		return url.protocol === "http:" || url.protocol === "https:"
+			? candidate
+			: undefined;
 	} catch {
 		return undefined;
 	}
 }
-function inputConfig(
-	context: ModuleCommandContext,
-): ProviderSetupConfig | undefined {
-	const input = context.input;
-	if (typeof input !== "object" || input === null || Array.isArray(input))
+
+function models(value: unknown): readonly ProviderModel[] | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const parsed: ProviderModel[] = [];
+	for (const item of value) {
+		if (typeof item !== "object" || item === null || Array.isArray(item))
+			return undefined;
+		const id = text(Reflect.get(item, "id"));
+		if (!id) return undefined;
+		const object = text(Reflect.get(item, "object"));
+		const ownedBy = text(Reflect.get(item, "ownedBy"));
+		const created = Reflect.get(item, "created");
+		if (created !== undefined && !Number.isSafeInteger(created))
+			return undefined;
+		parsed.push({
+			id,
+			...(object ? { object } : {}),
+			...(typeof created === "number" ? { created } : {}),
+			...(ownedBy ? { ownedBy } : {}),
+		});
+	}
+	return parsed;
+}
+
+function parseObservation(value: unknown): ProviderObservation | undefined {
+	if (typeof value !== "object" || value === null || Array.isArray(value))
 		return undefined;
-	const providerBaseUrl = Reflect.get(input, "providerBaseUrl");
-	const providerCredential = Reflect.get(input, "providerCredential");
-	if (typeof providerBaseUrl !== "string" || providerBaseUrl.length === 0)
+	if (
+		Reflect.get(value, "contract") !== "proflow.model-provider-observation.v1"
+	)
 		return undefined;
+	const providerBaseUrl = endpoint(Reflect.get(value, "providerBaseUrl"));
+	const inventory = models(Reflect.get(value, "models"));
+	const verifiedAt = text(Reflect.get(value, "verifiedAt"));
+	const providerCredentialFile = text(
+		Reflect.get(value, "providerCredentialFile"),
+	);
+	if (!providerBaseUrl || !inventory || !verifiedAt) return undefined;
+	if (!Number.isFinite(Date.parse(verifiedAt))) return undefined;
 	return {
+		contract: "proflow.model-provider-observation.v1",
 		providerBaseUrl,
-		...(typeof providerCredential === "string" && providerCredential.length > 0
-			? { providerCredential }
-			: {}),
+		models: inventory,
+		verifiedAt,
+		...(providerCredentialFile ? { providerCredentialFile } : {}),
 	};
 }
-async function probe(
-	config: ProviderSetupConfig,
-): Promise<ProviderProbeResult> {
-	return createProviderProbe({ baseUrl: config.providerBaseUrl })();
+
+async function readObservation(
+	context: ModuleCommandContext,
+): Promise<ProviderObservation | undefined> {
+	try {
+		return parseObservation(
+			JSON.parse(await readFile(observationPath(context), "utf8")),
+		);
+	} catch {
+		return undefined;
+	}
 }
-export const behaviorAdapter = {
-	install: async (context: ModuleCommandContext) => {
-		await mkdir(dirname(configPath(context)), { recursive: true, mode: 0o700 });
-		const config = await readConfig(context);
-		if (config)
-			await writeModuleSharedFacts(context, descriptor.moduleRef, config);
-		return { result: base, observedEffects: [] };
-	},
-	uninstall: async (_context: ModuleCommandContext) => ({
-		result: base,
-		observedEffects: [],
-	}),
-	status: async (context: ModuleCommandContext) => {
-		const config = await readConfig(context);
-		if (!config)
+
+async function publish(
+	context: ModuleCommandContext,
+	observation: ProviderObservation,
+): Promise<void> {
+	await mkdir(stateDirectory(context), { recursive: true, mode: 0o700 });
+	const target = observationPath(context);
+	const temporary = `${target}.${process.pid}.tmp`;
+	await writeFile(temporary, `${JSON.stringify(observation, null, 2)}\n`, {
+		encoding: "utf8",
+		mode: 0o600,
+	});
+	await rename(temporary, target);
+	await writeModuleSharedFacts(context, descriptor.moduleRef, {
+		providerBaseUrl: observation.providerBaseUrl,
+		protocol: "openai-compatible",
+		models: observation.models,
+		inventoryObservedAt: observation.verifiedAt,
+		...(observation.providerCredentialFile
+			? { providerCredentialFile: observation.providerCredentialFile }
+			: {}),
+	});
+}
+
+async function readCredential(
+	path: string | undefined,
+): Promise<string | undefined> {
+	if (!path) return undefined;
+	try {
+		const info = await stat(path);
+		if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
+			return undefined;
+		return text(await readFile(path, "utf8"));
+	} catch {
+		return undefined;
+	}
+}
+
+async function saveCredential(
+	context: ModuleCommandContext,
+	credential: string,
+): Promise<string> {
+	const path = credentialPath(context);
+	await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+	await writeFile(path, `${credential}\n`, { encoding: "utf8", mode: 0o600 });
+	if (process.platform !== "win32") await chmod(path, 0o600);
+	return path;
+}
+
+function inputRecord(
+	context: ModuleCommandContext,
+): Record<string, unknown> | undefined {
+	return typeof context.input === "object" &&
+		context.input !== null &&
+		!Array.isArray(context.input)
+		? (context.input as Record<string, unknown>)
+		: undefined;
+}
+
+function suppliedEndpoint(context: ModuleCommandContext): {
+	value?: string;
+	invalid: boolean;
+} {
+	const raw = inputRecord(context)?.providerBaseUrl;
+	if (raw === undefined) return { invalid: false };
+	const value = endpoint(raw);
+	return value ? { value, invalid: false } : { invalid: true };
+}
+
+function suppliedCredential(context: ModuleCommandContext): string | undefined {
+	return text(inputRecord(context)?.providerCredential);
+}
+
+function setupPlan(resolution: Exclude<Resolution, { status: "READY" }>) {
+	const auth = resolution.status === "PROVIDER_AUTH_REQUIRED";
+	const endpointRequired =
+		resolution.status === "PROVIDER_ENDPOINT_REQUIRED" ||
+		resolution.status === "PROVIDER_ENDPOINT_INVALID";
+	return {
+		steps: [
+			{
+				id: "STEP-MODEL-PROVIDER-API-01",
+				title: auth
+					? "提供模型服务凭据"
+					: endpointRequired
+						? "提供模型服务 URL"
+						: "恢复模型服务连接",
+				description: resolution.message,
+				state: "TODO" as const,
+				responsible: "USER" as const,
+				execution: {
+					interactive: "pnpm exec -- proflow-model-provider-api setup",
+					nonInteractive: endpointRequired
+						? "pnpm exec -- proflow-model-provider-api setup --provider-base-url <url>"
+						: "pnpm exec -- proflow-model-provider-api setup",
+				},
+				requiredInputs: auth
+					? [
+							{
+								name: "providerCredential",
+								description: "模型服务访问凭据",
+								sensitive: true,
+							},
+						]
+					: endpointRequired
+						? [
+								{
+									name: "providerBaseUrl",
+									description: "部署层解析出的 OpenAI-compatible 模型服务 URL",
+									sensitive: false,
+								},
+							]
+						: [],
+				verify: "pnpm exec -- proflow-model-provider-api verify",
+				successCondition: "model-provider-api.setupStatus=READY",
+				humanAction: auth
+					? "安全输入模型服务访问凭据"
+					: endpointRequired
+						? "提供部署层解析出的模型服务 URL"
+						: undefined,
+			},
+		],
+	};
+}
+
+function issue(resolution: Exclude<Resolution, { status: "READY" }>) {
+	return {
+		scope: "SETUP" as const,
+		code: resolution.status,
+		message: resolution.message,
+		relatedModuleRefs: [],
+		nextCommand: "platform setup --module model-provider-api",
+	};
+}
+
+export function createProviderBehaviorAdapter(
+	dependencies: ProviderAdapterDependencies = {},
+) {
+	const probe = dependencies.probe ?? probeProvider;
+	const now = dependencies.now ?? (() => new Date().toISOString());
+
+	const resolveCurrent = async (
+		context: ModuleCommandContext,
+	): Promise<Resolution> => {
+		const saved = await readObservation(context);
+		const supplied = suppliedEndpoint(context);
+		if (supplied.invalid)
+			return {
+				status: "PROVIDER_ENDPOINT_INVALID",
+				message: "模型服务 URL 必须是有效的 HTTP(S) URL。",
+			};
+		const providerBaseUrl = supplied.value ?? saved?.providerBaseUrl;
+		if (!providerBaseUrl)
+			return {
+				status: "PROVIDER_ENDPOINT_REQUIRED",
+				message:
+					"模型服务尚未绑定。model-provider-api 只消费部署层提供的 OpenAI-compatible URL，不识别具体设备、应用或 Provider 产品。",
+			};
+		const oneTimeCredential = suppliedCredential(context);
+		const storedCredential = await readCredential(
+			saved?.providerCredentialFile,
+		);
+		const credential = oneTimeCredential ?? storedCredential;
+		const result = await probe({
+			baseUrl: providerBaseUrl,
+			...(credential ? { credential } : {}),
+		});
+		if (result.status === "READY") {
+			const providerCredentialFile = oneTimeCredential
+				? await saveCredential(context, oneTimeCredential)
+				: saved?.providerCredentialFile;
+			const observation: ProviderObservation = {
+				contract: "proflow.model-provider-observation.v1",
+				providerBaseUrl: result.baseUrl,
+				models: result.models,
+				verifiedAt: now(),
+				...(providerCredentialFile ? { providerCredentialFile } : {}),
+			};
+			await publish(context, observation);
+			return { status: "READY", observation };
+		}
+		if (result.status === "AUTH_REQUIRED")
+			return {
+				status: "PROVIDER_AUTH_REQUIRED",
+				message: "模型服务要求认证。",
+			};
+		if (result.status === "AUTH_FAILED")
+			return {
+				status: "PROVIDER_AUTH_FAILED",
+				message: "模型服务拒绝了当前凭据。",
+			};
+		if (result.status === "PROTOCOL_INVALID")
+			return {
+				status: "PROVIDER_PROTOCOL_INVALID",
+				message: "模型服务没有通过 OpenAI-compatible models API 验证。",
+			};
+		return {
+			status: "PROVIDER_UNREACHABLE",
+			message: "当前无法连接已绑定的模型服务 URL。",
+		};
+	};
+
+	return {
+		install: async (context: ModuleCommandContext) => {
+			await mkdir(stateDirectory(context), { recursive: true, mode: 0o700 });
+			const saved = await readObservation(context);
+			if (saved) await publish(context, saved);
+			return { result: base, observedEffects: [] };
+		},
+		uninstall: async (_context: ModuleCommandContext) => ({
+			result: base,
+			observedEffects: [],
+		}),
+		status: async (context: ModuleCommandContext) => {
+			const resolution = await resolveCurrent(context);
+			if (resolution.status === "READY")
+				return {
+					result: {
+						...base,
+						data: {
+							setupStatus: "READY" as const,
+							runtimeStatus: "NOT_APPLICABLE" as const,
+						},
+					},
+					observedEffects: [effect],
+					externalAvailabilityClaim: "AVAILABLE" as const,
+					externalAvailabilityEvidence: "real" as const,
+				};
+			const failed = new Set([
+				"PROVIDER_ENDPOINT_INVALID",
+				"PROVIDER_PROTOCOL_INVALID",
+				"PROVIDER_AUTH_FAILED",
+			]).has(resolution.status);
 			return {
 				result: {
 					...base,
 					data: {
-						setupStatus: "ACTION_REQUIRED" as const,
-						runtimeStatus: "STOPPED" as const,
-						issues: [
-							{
-								scope: "SETUP" as const,
-								code: "PROVIDER_SETUP_REQUIRED",
-								message: "尚未配置模型服务 Base URL",
-								relatedModuleRefs: [],
-								nextCommand: "platform setup --module model-provider-api",
-							},
-						],
+						setupStatus: failed
+							? ("FAILED" as const)
+							: ("ACTION_REQUIRED" as const),
+						runtimeStatus: "NOT_APPLICABLE" as const,
+						issues: [issue(resolution)],
 					},
 				},
-				observedEffects: [],
+				observedEffects: [effect],
 			};
-		const observation = await probe(config);
-		const credentialResolverMissing =
-			Boolean(config.providerCredential) && !observation.authenticated;
-		const setupStatus =
-			observation.reachable && observation.authenticated
-				? ("READY" as const)
-				: credentialResolverMissing
-					? ("FAILED" as const)
-					: ("ACTION_REQUIRED" as const);
-		return {
-			result: {
-				...base,
-				data: {
-					setupStatus,
-					runtimeStatus:
-						observation.reachable && observation.authenticated
-							? ("RUNNING" as const)
-							: ("STOPPED" as const),
-					...(setupStatus === "READY"
-						? {}
-						: {
-								issues: [
-									{
-										scope: "SETUP" as const,
-										code:
-											setupStatus === "FAILED"
-												? "PROVIDER_CREDENTIAL_INVALID"
-												: "PROVIDER_UNREACHABLE",
-										message:
-											setupStatus === "FAILED"
-												? "模型服务凭据无法通过现有 Credential Resolver 验证"
-												: "模型服务地址当前不可达或需要继续配置认证",
-										relatedModuleRefs: [],
-										nextCommand: "platform setup --module model-provider-api",
-									},
-								],
-							}),
-				},
-			},
-			observedEffects: [effect],
-			externalAvailabilityClaim: observation.reachable
-				? ("AVAILABLE" as const)
-				: ("UNAVAILABLE" as const),
-			externalAvailabilityEvidence: "real" as const,
-		};
-	},
-	setup: async (context: ModuleCommandContext) => {
-		const supplied = inputConfig(context);
-		if (supplied) {
-			await mkdir(dirname(configPath(context)), {
-				recursive: true,
-				mode: 0o700,
-			});
-			await writeFile(
-				configPath(context),
-				`${JSON.stringify(supplied, null, 2)}\n`,
-				{ encoding: "utf8", mode: 0o600 },
-			);
-		}
-		const config = supplied ?? (await readConfig(context));
-		if (!config)
+		},
+		setup: async (context: ModuleCommandContext) => {
+			const resolution = await resolveCurrent(context);
+			if (resolution.status === "READY")
+				return { result: base, observedEffects: [effect] };
+			if (
+				resolution.status === "PROVIDER_ENDPOINT_INVALID" ||
+				resolution.status === "PROVIDER_PROTOCOL_INVALID" ||
+				resolution.status === "PROVIDER_AUTH_FAILED"
+			)
+				return {
+					result: {
+						...base,
+						ok: false as const,
+						status: "FAILED" as const,
+						error: {
+							code: "SETUP_FAILED" as const,
+							message: resolution.message,
+							retryable: true,
+						},
+					},
+					observedEffects: [effect],
+				};
+			const action =
+				resolution.status === "PROVIDER_ENDPOINT_REQUIRED"
+					? "provide-provider-endpoint"
+					: resolution.status === "PROVIDER_AUTH_REQUIRED"
+						? "provide-provider-credential"
+						: "retry-provider-connection";
 			return {
 				result: {
 					...base,
 					ok: false as const,
 					status: "ACTION_REQUIRED" as const,
-					data: setupPlan,
+					data: setupPlan(resolution),
 					actionRequired: {
-						action: "configure-provider",
-						description:
-							"Choose the real provider endpoint, then run proflow-model-provider-api setup --provider-base-url <url>.",
-					},
-				},
-				observedEffects: [],
-			};
-		await writeModuleSharedFacts(context, descriptor.moduleRef, config);
-		const observation = await probe(config);
-		if (observation.reachable && observation.authenticated)
-			return { result: base, observedEffects: [effect] };
-		if (config.providerCredential)
-			return {
-				result: {
-					...base,
-					ok: false as const,
-					status: "FAILED" as const,
-					data: blockedSetupPlan,
-					error: {
-						code: "SETUP_FAILED" as const,
-						message:
-							"providerCredential is a secretRef, but no provider credential resolver contract is available to this Module",
-						retryable: false,
+						action,
+						description: resolution.message,
 					},
 				},
 				observedEffects: [effect],
 			};
-		return {
+		},
+		docs: async (_context: ModuleCommandContext) => ({
 			result: {
 				...base,
-				ok: false as const,
-				status: "ACTION_REQUIRED" as const,
-				data: setupPlan,
-				actionRequired: {
-					action: "repair-provider",
-					description: observation.message,
+				data: {
+					docs: readFileSync(
+						new URL(
+							import.meta.url.includes("/dist/")
+								? "../../DOCS.md"
+								: "../DOCS.md",
+							import.meta.url,
+						),
+						"utf8",
+					),
 				},
 			},
-			observedEffects: [effect],
-		};
-	},
-	docs: async (_context: ModuleCommandContext) => ({
-		result: {
-			...base,
-			data: {
-				docs: readFileSync(
-					new URL(
-						import.meta.url.includes("/dist/") ? "../../DOCS.md" : "../DOCS.md",
-						import.meta.url,
-					),
-					"utf8",
-				),
-			},
-		},
-		observedEffects: [],
-	}),
-	start: async (_context: ModuleCommandContext) => ({
-		result: base,
-		observedEffects: [],
-	}),
-	stop: async (_context: ModuleCommandContext) => ({
-		result: base,
-		observedEffects: [],
-	}),
-} as const;
+			observedEffects: [],
+		}),
+		start: async (_context: ModuleCommandContext) => ({
+			result: base,
+			observedEffects: [],
+		}),
+		stop: async (_context: ModuleCommandContext) => ({
+			result: base,
+			observedEffects: [],
+		}),
+	} as const;
+}
+
+export const behaviorAdapter = createProviderBehaviorAdapter();

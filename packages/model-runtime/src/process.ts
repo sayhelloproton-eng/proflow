@@ -19,6 +19,9 @@ import { executionCommandRiskSpec } from "./specs/execution-command-risk.ts";
 import { systemHealthAssessmentSpec } from "./specs/system-health-assessment.ts";
 import { taskDiagnosticSpec } from "./specs/task-diagnostic.ts";
 
+const CAPABILITY_PROBE_IMAGE =
+	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
 const configSchema = z
 	.object({
 		host: z.string().min(1).default("127.0.0.1"),
@@ -113,6 +116,16 @@ export async function createModelRuntimeProcess(input: {
 			service: "model-runtime",
 			checks: [{ name: "probe", state: "PASS" }],
 		},
+		...(role === "fast"
+			? {
+					images: [
+						{
+							mimeType: "image/png" as const,
+							data: CAPABILITY_PROBE_IMAGE,
+						},
+					],
+				}
+			: {}),
 	});
 	const verify = () =>
 		verifyProviderCapabilities({

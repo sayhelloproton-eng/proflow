@@ -266,6 +266,33 @@ test("REAL1 /ready and /status refresh stale model capabilities in the same requ
 	}
 });
 
+test("/ready fails closed while either required model role is DEGRADED", async () => {
+	const runtime = {
+		async infer(): Promise<never> {
+			throw new Error("inference is not part of this readiness proof");
+		},
+		getRuntimeStatus: () => ({
+			runtime: "DEGRADED" as const,
+			lane: "IDLE" as const,
+			fast: "UNAVAILABLE" as const,
+			reason: "READY" as const,
+			businessQueueDepth: 0,
+			backgroundQueueDepth: 0,
+		}),
+	};
+	const service = createModelRuntimeService({ runtime });
+	const address = await service.start();
+	try {
+		assert.equal(
+			(await fetch(`http://${address.host}:${address.port}/ready`)).status,
+			503,
+		);
+		assert.equal(service.inspect().readiness, "NOT_READY");
+	} finally {
+		await service.stop();
+	}
+});
+
 test("deployment adapter exposes the fixed seven-command management surface without restart/verify/preflight", () => {
 	assert.deepEqual(Object.keys(behaviorAdapter).sort(), [
 		"docs",
@@ -383,20 +410,17 @@ test("deployment uninstall is idempotent when no Model Runtime service is bound"
 	assert.deepEqual(result.observedEffects, []);
 });
 
-test("model-runtime public setup surface is only fastModel/reasonModel and never asks the user for capabilityProfilesFile", async (context) => {
-	assert.deepEqual(
-		modelRuntimeDescriptor.configSlots.map((slot) => slot.key).sort(),
-		["fastModel", "reasonModel"],
-	);
+test("model-runtime normal setup surface has no manual model IDs or capability profile file", async (context) => {
+	assert.deepEqual(modelRuntimeDescriptor.configSlots, []);
 	const workspaceRoot = await mkdtemp(
 		join(tmpdir(), "proflow-model-setup-boundary-"),
 	);
 	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
-	const setup = await behaviorAdapter.setup({
-		workspaceRoot,
-		input: { fastModel: "fast-model", reasonModel: "reason-model" },
-	});
-	assert.doesNotMatch(JSON.stringify(setup.result), /capabilityProfilesFile/);
+	const setup = await behaviorAdapter.setup({ workspaceRoot });
+	assert.doesNotMatch(
+		JSON.stringify(setup.result),
+		/capabilityProfilesFile|请输入 FAST|请输入 REASON/,
+	);
 	assert.equal(
 		setup.result.status,
 		"FAILED",
