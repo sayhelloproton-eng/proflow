@@ -300,6 +300,15 @@
       "governanceStatus": "ACTIVE_BASELINE"
     },
     {
+      "path": "部署领域/07-测试计划/modules/dev-tunnel.md",
+      "docId": "TP-MODULE-DEV-TUNNEL",
+      "title": "dev-tunnel｜自动部署收口 Module Test Plan",
+      "domain": "deployment-governance",
+      "moduleRef": "dev-tunnel",
+      "implementationWave": "Real-3 setup automation",
+      "governanceStatus": "ACTIVE_BASELINE"
+    },
+    {
       "path": "部署领域/07-测试计划/modules/module-contract.md",
       "docId": "TP-MODULE-MODULE-CONTRACT",
       "title": "module-contract｜开发前 Module Test Plan",

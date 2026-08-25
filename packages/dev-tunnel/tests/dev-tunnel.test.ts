@@ -18,7 +18,7 @@ import {
 
 const loggedInRunner = async () => ({
 	exitCode: 0,
-	stdout: "user@example.com",
+	stdout: JSON.stringify({ status: "Logged in as user@example.com" }),
 	stderr: "",
 });
 
@@ -47,7 +47,7 @@ test("default behaviorAdapter reports setup truth without fabricating a tunnel",
 			{
 				scope: "SETUP",
 				code: "TUNNEL_SETUP_REQUIRED",
-				message: "尚未选择或创建持久 Tunnel",
+				message: "尚未完成持久 Tunnel 自动配置",
 				relatedModuleRefs: [],
 				nextCommand: "platform setup --module dev-tunnel",
 			},

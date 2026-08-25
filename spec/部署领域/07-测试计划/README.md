@@ -40,6 +40,10 @@ Module Governance
 
 - [platform-cli](modules/platform-cli.md)
 
+## External Resource plans
+
+- [dev-tunnel](modules/dev-tunnel.md)
+
 旧 command/engine 测试只能作为历史参考，不能作为当前产品 acceptance truth。
 
 最终验证路径固定为：`install → status → docs → setup → start → status → stop → uninstall`。

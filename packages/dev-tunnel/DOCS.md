@@ -6,9 +6,10 @@
 
 ## 主要能力
 
-- 检查 `devtunnel` CLI 与 Microsoft 登录状态。
-- 列出、选择或创建持久 Tunnel，并管理端口映射和运行进程。
-- 观察公开 HTTPS URL，将其发布为共享事实。
+- 检查 `devtunnel` CLI 与登录状态；缺失时启动 GitHub browser auth。
+- 按 workspace state 复用或自动创建持久 Tunnel，并自动管理端口映射和运行进程。
+- 从 `agent-gateway` producer-owned shared facts 获得本地端口。
+- 按当前端口自动发现公开 HTTPS URL，将其发布为共享事实。
 
 ## 提供的 API 与 Public Contract
 
@@ -17,8 +18,8 @@
 
 ## 依赖的 Module、Contract 和外部资源
 
-- 依赖 Microsoft `devtunnel` CLI、账号登录、网络和本地 Platform Host 端口。
-- 无上游 Module Contract 依赖。
+- 依赖 Microsoft `devtunnel` CLI、账号登录、网络和 `agent-gateway` 发布的 `localBaseUrl` shared fact。
+- 不建立对 `agent-gateway` 的运行时或包依赖；只消费 Platform Host 中由该 Module 持久化的 producer-owned fact。
 
 ## 运行形态与生命周期
 
@@ -26,7 +27,7 @@
 
 ## 使用方式
 
-运行 `pnpm exec -- proflow-dev-tunnel setup`，向导会完成登录检查、Tunnel 选择/创建、端口映射和 URL 验证。
+运行 `platform setup --module dev-tunnel`；除登录失效时的 GitHub 浏览器授权外，不需要输入 Tunnel ID、端口或 URL。
 
 ## 职责边界与限制
 

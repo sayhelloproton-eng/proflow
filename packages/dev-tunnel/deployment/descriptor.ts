@@ -26,7 +26,7 @@ export const descriptor = {
 		},
 		{
 			kind: "human",
-			action: "Complete Microsoft Dev Tunnel login when required",
+			action: "Complete GitHub browser authorization when login is required",
 		},
 	],
 	configSlots: [],

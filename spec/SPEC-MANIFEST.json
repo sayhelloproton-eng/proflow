@@ -1,8 +1,8 @@
 {
   "contract": "proflow.spec.manifest.v1",
   "status": "ACTIVE_BASELINE",
-  "generatedDate": "2026-08-21",
-  "fileCount": 226,
+  "generatedDate": "2026-08-25",
+  "fileCount": 227,
   "files": [
     {
       "path": "DOCUMENT-INDEX.json",
@@ -321,8 +321,8 @@
     },
     {
       "path": "平台架构与公共约定/06-测试计划/TEST-PLAN-INDEX.json",
-      "sha256": "27eecb6c68cf54d6fbed0cb2f59b9bb59c33e650341b9b87387d848a63a9a6d0",
-      "bytes": 12953
+      "sha256": "2db36966e98e3b9e0e18a51bb0db26eefde0d26fc3ada025ee5abef4a872e0c3",
+      "bytes": 13313
     },
     {
       "path": "平台架构与公共约定/06-测试计划/modules/platform-host.md",
@@ -1006,8 +1006,8 @@
     },
     {
       "path": "部署领域/04-模块/external-resources/统一治理.md",
-      "sha256": "d1e84d5a9747b1b216ed6420c3e20a0aa71eec0d4262ea0913c68af8bb89bf9e",
-      "bytes": 7008
+      "sha256": "004b0e95655f8c3a8c1a928f6b79d70e7b956f913ed737ecd8c527e8c455375a",
+      "bytes": 7145
     },
     {
       "path": "部署领域/04-模块/module-contract/README.md",
@@ -1101,13 +1101,18 @@
     },
     {
       "path": "部署领域/07-测试计划/README.md",
-      "sha256": "c68f4bd818b46921f0726b16930fc5b125d0e307aab9af60859e1b333a4c6ad2",
-      "bytes": 1100
+      "sha256": "04f321aae4360b4629a1dd14f2fe9dd3f899bc24f67e30d554b82e49695f0a43",
+      "bytes": 1167
     },
     {
       "path": "部署领域/07-测试计划/modules/deployment-conformance.md",
       "sha256": "596ee7230ddafc1673e47e23ac54fc13adf9e6e50767ae15f155b1fa9009d4cc",
       "bytes": 1029
+    },
+    {
+      "path": "部署领域/07-测试计划/modules/dev-tunnel.md",
+      "sha256": "815360fcbdb271048f2fcae0f118c36eecd1b7751ab53105ecb97e27731518fb",
+      "bytes": 3699
     },
     {
       "path": "部署领域/07-测试计划/modules/module-contract.md",

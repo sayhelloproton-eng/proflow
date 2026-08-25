@@ -3,6 +3,8 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { connect } from "node:tls";
 
+import { z } from "zod";
+
 export type DevTunnelState = "STOPPED" | "RUNNING" | "UNKNOWN";
 
 export type DevTunnelLoginStatus = "LOGGED_IN" | "NOT_LOGGED_IN" | "UNKNOWN";
@@ -22,8 +24,25 @@ export interface CommandResult {
 export type CommandRunner = (
 	command: string,
 	args: string[],
-	options?: { timeoutMs?: number },
+	options?: { timeoutMs?: number; interactive?: boolean },
 ) => Promise<CommandResult>;
+
+export type DevTunnelHostState = "STOPPED" | "RUNNING" | "UNKNOWN";
+
+export type DevTunnelInspection =
+	| { state: "EXISTS"; hostState: DevTunnelHostState }
+	| { state: "MISSING" | "UNKNOWN"; hostState: "UNKNOWN" };
+
+export interface DevTunnelAutomation {
+	ensureLogin(): Promise<"LOGGED_IN">;
+	inspectTunnel(tunnelId: string): Promise<DevTunnelInspection>;
+	createTunnel(): Promise<string>;
+	ensurePort(
+		tunnelId: string,
+		port: number,
+	): Promise<"REUSED" | "CREATED" | "UPDATED">;
+	discoverPublicBaseUrl(tunnelId: string, port: number): Promise<string>;
+}
 
 export interface DevTunnelRuntime {
 	readonly command: string;
@@ -35,15 +54,37 @@ export interface DevTunnelRuntime {
 	restart(): Promise<DevTunnelObservation>;
 }
 
-const LOGIN_ARGS = ["user", "show"];
+const LOGIN_ARGS = ["user", "show", "--json"];
 const LOGIN_TIMEOUT_MS = 10_000;
 const START_CONFIRM_MS = 500;
 
 function defaultCommandRunner(
 	command: string,
 	args: string[],
-	options?: { timeoutMs?: number },
+	options?: { timeoutMs?: number; interactive?: boolean },
 ): Promise<CommandResult> {
+	if (options?.interactive) {
+		return new Promise((resolve) => {
+			const child = spawn(command, args, { stdio: "inherit" });
+			let timedOut = false;
+			const timer = setTimeout(() => {
+				timedOut = true;
+				child.kill("SIGTERM");
+			}, options.timeoutMs ?? 600_000);
+			child.once("error", (error) => {
+				clearTimeout(timer);
+				resolve({ exitCode: null, stdout: "", stderr: error.message });
+			});
+			child.once("exit", (code) => {
+				clearTimeout(timer);
+				resolve({
+					exitCode: timedOut ? null : code,
+					stdout: "",
+					stderr: timedOut ? "command timed out" : "",
+				});
+			});
+		});
+	}
 	return new Promise((resolve) => {
 		execFile(
 			command,
@@ -75,6 +116,263 @@ function defaultCommandRunner(
 			},
 		);
 	});
+}
+
+const loginStatusSchema = z.object({ status: z.string().min(1) }).passthrough();
+const tunnelSchema = z
+	.object({
+		tunnelId: z.string().min(1),
+		endpoints: z.array(z.unknown()).optional(),
+	})
+	.passthrough();
+const tunnelPortSchema = z
+	.object({
+		portNumber: z.number().int().min(1).max(65_535),
+		protocol: z.string().min(1).optional(),
+		portForwardingUris: z.array(z.string()).optional(),
+	})
+	.passthrough();
+export type DevTunnelPort = z.infer<typeof tunnelPortSchema>;
+
+function parseJson(text: string, label: string): unknown {
+	try {
+		return JSON.parse(text) as unknown;
+	} catch {
+		throw new Error(`${label} returned malformed JSON`);
+	}
+}
+
+function parsePorts(input: unknown): DevTunnelPort[] {
+	if (Array.isArray(input)) return z.array(tunnelPortSchema).parse(input);
+	if (typeof input === "object" && input !== null) {
+		const ports = Reflect.get(input, "ports");
+		if (Array.isArray(ports)) return z.array(tunnelPortSchema).parse(ports);
+		const one = tunnelPortSchema.safeParse(input);
+		if (one.success) return [one.data];
+	}
+	throw new Error("devtunnel port JSON does not contain a valid port list");
+}
+
+export function parseDevTunnelLoginStatus(
+	input: unknown,
+): DevTunnelLoginStatus {
+	const parsed = loginStatusSchema.safeParse(input);
+	if (!parsed.success) return "UNKNOWN";
+	const status = parsed.data.status.trim().toLowerCase();
+	if (
+		/(expired|not logged|login required|sign[ -]?in required|not authenticated)/.test(
+			status,
+		)
+	)
+		return "NOT_LOGGED_IN";
+	if (/(logged in|authenticated)/.test(status)) return "LOGGED_IN";
+	return "UNKNOWN";
+}
+
+export function discoverPublicBaseUrl(input: unknown, port: number): string {
+	const matching = parsePorts(input).filter((item) => item.portNumber === port);
+	if (matching.length !== 1)
+		throw new Error(
+			"devtunnel JSON does not identify exactly one current Gateway port",
+		);
+	const uris = matching[0]?.portForwardingUris ?? [];
+	const httpsUris = uris.flatMap((raw) => {
+		try {
+			const url = new URL(raw);
+			return url.protocol === "https:" &&
+				(url.port === "" || url.port === "443")
+				? [url.href]
+				: [];
+		} catch {
+			return [];
+		}
+	});
+	if (httpsUris.length === 0)
+		throw new Error("current Gateway port has no valid HTTPS forwarding URI");
+	return httpsUris[0] as string;
+}
+
+function commandText(result: CommandResult): string {
+	return `${result.stdout}\n${result.stderr}`;
+}
+
+function assertCommandSucceeded(result: CommandResult, label: string): void {
+	if (result.exitCode !== 0)
+		throw new Error(
+			`${label} failed${result.exitCode === null ? " or timed out" : ""}`,
+		);
+}
+
+export function createDevTunnelAutomation(input?: {
+	command?: string;
+	runCommand?: CommandRunner;
+}): DevTunnelAutomation {
+	const command = input?.command ?? "devtunnel";
+	const run = input?.runCommand ?? defaultCommandRunner;
+	const loginStatus = async (): Promise<DevTunnelLoginStatus> => {
+		let result: CommandResult;
+		try {
+			result = await run(command, ["user", "show", "--json"], {
+				timeoutMs: LOGIN_TIMEOUT_MS,
+			});
+		} catch {
+			return "UNKNOWN";
+		}
+		if (result.exitCode === null) return "UNKNOWN";
+		try {
+			return parseDevTunnelLoginStatus(
+				parseJson(result.stdout, "devtunnel user show --json"),
+			);
+		} catch {
+			return "UNKNOWN";
+		}
+	};
+	return {
+		async ensureLogin() {
+			const version = await run(command, ["--version"], {
+				timeoutMs: LOGIN_TIMEOUT_MS,
+			});
+			assertCommandSucceeded(version, "devtunnel --version");
+			const before = await loginStatus();
+			if (before === "LOGGED_IN") return before;
+			if (before === "UNKNOWN")
+				throw new Error("Dev Tunnel login status is UNKNOWN");
+			const login = await run(
+				command,
+				["user", "login", "--github", "--use-browser-auth"],
+				{ timeoutMs: 600_000, interactive: true },
+			);
+			assertCommandSucceeded(login, "GitHub browser authentication");
+			const after = await loginStatus();
+			if (after !== "LOGGED_IN")
+				throw new Error(
+					"Dev Tunnel login was not confirmed after authentication",
+				);
+			return after;
+		},
+		async inspectTunnel(tunnelId) {
+			const result = await run(command, ["show", tunnelId, "--json"]);
+			if (result.exitCode !== 0) {
+				return /not found|does not exist|could not be found/i.test(
+					commandText(result),
+				)
+					? { state: "MISSING", hostState: "UNKNOWN" }
+					: { state: "UNKNOWN", hostState: "UNKNOWN" };
+			}
+			try {
+				const tunnel = tunnelSchema.parse(
+					parseJson(result.stdout, "devtunnel show --json"),
+				);
+				if (tunnel.tunnelId !== tunnelId)
+					return { state: "UNKNOWN", hostState: "UNKNOWN" };
+				return {
+					state: "EXISTS",
+					hostState:
+						tunnel.endpoints === undefined
+							? "UNKNOWN"
+							: tunnel.endpoints.length === 0
+								? "STOPPED"
+								: "RUNNING",
+				};
+			} catch {
+				return { state: "UNKNOWN", hostState: "UNKNOWN" };
+			}
+		},
+		async createTunnel() {
+			const result = await run(command, [
+				"create",
+				"--allow-anonymous",
+				"--json",
+			]);
+			assertCommandSucceeded(result, "devtunnel create --json");
+			const tunnel = tunnelSchema.parse(
+				parseJson(result.stdout, "devtunnel create --json"),
+			);
+			return tunnel.tunnelId;
+		},
+		async ensurePort(tunnelId, port) {
+			const listed = await run(command, ["port", "list", tunnelId, "--json"]);
+			assertCommandSucceeded(listed, "devtunnel port list --json");
+			const existing = parsePorts(
+				parseJson(listed.stdout, "devtunnel port list --json"),
+			).find((item) => item.portNumber === port);
+			if (existing?.protocol?.toLowerCase() === "http") return "REUSED";
+			if (existing) {
+				const removed = await run(command, [
+					"port",
+					"delete",
+					tunnelId,
+					"--port-number",
+					String(port),
+					"--json",
+				]);
+				assertCommandSucceeded(removed, "devtunnel port delete --json");
+			}
+			const mutation = await run(command, [
+				"port",
+				"create",
+				tunnelId,
+				"--port-number",
+				String(port),
+				"--protocol",
+				"http",
+				"--json",
+			]);
+			assertCommandSucceeded(mutation, "devtunnel port create --json");
+			const confirmed = tunnelPortSchema.parse(
+				parseJson(mutation.stdout, "devtunnel port create --json"),
+			);
+			if (
+				confirmed.portNumber !== port ||
+				confirmed.protocol?.toLowerCase() !== "http"
+			)
+				throw new Error(
+					"Dev Tunnel port mutation did not confirm the Gateway port",
+				);
+			return existing ? "UPDATED" : "CREATED";
+		},
+		async discoverPublicBaseUrl(tunnelId, port) {
+			let lastError: unknown;
+			for (let attempt = 0; attempt < 20; attempt += 1) {
+				const listed = await run(command, ["port", "list", tunnelId, "--json"]);
+				assertCommandSucceeded(listed, "devtunnel port list --json");
+				try {
+					return discoverPublicBaseUrl(
+						parseJson(listed.stdout, "devtunnel port list --json"),
+						port,
+					);
+				} catch (error) {
+					lastError = error;
+					if (attempt < 19)
+						await new Promise((resolve) => setTimeout(resolve, 250));
+				}
+			}
+			throw lastError instanceof Error
+				? lastError
+				: new Error("publicBaseUrl discovery failed");
+		},
+	};
+}
+
+export async function verifyProvisionedPublicBaseUrl(
+	publicBaseUrl: string,
+	timeoutMs = 10_000,
+): Promise<void> {
+	const url = new URL(publicBaseUrl);
+	const port = url.port === "" ? 443 : Number(url.port);
+	if (url.protocol !== "https:" || port !== 443)
+		throw new Error("publicBaseUrl must use HTTPS on port 443");
+	const protocol = await probeTlsProtocol(url.hostname, port, timeoutMs);
+	if (protocol === undefined || !tlsProtocolAtLeast(protocol, "TLSv1.2"))
+		throw new Error("publicBaseUrl did not negotiate TLS 1.2 or newer");
+	try {
+		await fetch(url, {
+			method: "GET",
+			signal: AbortSignal.timeout(timeoutMs),
+		});
+	} catch {
+		throw new Error("publicBaseUrl is not reachable over HTTPS");
+	}
 }
 
 interface DevTunnelProcessRecord {
@@ -201,10 +499,14 @@ export function createDevTunnelRuntime(input: {
 		} catch {
 			return "UNKNOWN";
 		}
-		if (result.exitCode === 0) {
-			return result.stdout.trim().length > 0 ? "LOGGED_IN" : "NOT_LOGGED_IN";
+		if (result.exitCode === null) return "UNKNOWN";
+		try {
+			return parseDevTunnelLoginStatus(
+				parseJson(result.stdout, "devtunnel user show --json"),
+			);
+		} catch {
+			return "UNKNOWN";
 		}
-		return result.exitCode === null ? "UNKNOWN" : "NOT_LOGGED_IN";
 	};
 
 	const observe = async (

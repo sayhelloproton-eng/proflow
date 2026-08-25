@@ -26,7 +26,8 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@tomflow/proflow-module-contract": "workspace:^"
+		"@tomflow/proflow-module-contract": "workspace:^",
+		"zod": "4.1.12"
 	},
 	"devDependencies": {
 		"@tomflow/proflow-deployment-conformance": "workspace:^"

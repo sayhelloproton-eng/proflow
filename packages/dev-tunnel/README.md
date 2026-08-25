@@ -23,5 +23,6 @@ Deployment Governance
 
 ## Purpose
 
-Manages the Microsoft Dev Tunnel (`devtunnel`) public HTTPS ingress. Login is a
-user external-account fact and is never faked.
+Manages the Microsoft Dev Tunnel (`devtunnel`) public HTTPS ingress. Existing
+login is reused; when login is unavailable, the only human action is GitHub
+browser authorization initiated by the provider CLI. Account state is never faked.

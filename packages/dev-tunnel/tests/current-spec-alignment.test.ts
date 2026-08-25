@@ -9,6 +9,10 @@ const externalRegistryUrl = new URL(
 	"spec/EXTERNAL-RESOURCE-REGISTRY.json",
 	repoUrl,
 );
+const testPlanIndexUrl = new URL(
+	"spec/平台架构与公共约定/06-测试计划/TEST-PLAN-INDEX.json",
+	repoUrl,
+);
 
 test("SPEC-ALIGN dev-tunnel remains an honest Deployment-owned external-resource adapter", async () => {
 	const registry = JSON.parse(
@@ -32,4 +36,18 @@ test("SPEC-ALIGN dev-tunnel remains an honest Deployment-owned external-resource
 	for (const forbidden of ["Task", "Worker", "Execution", "SystemAssessment"]) {
 		assert.equal(Object.hasOwn(descriptor, forbidden), false);
 	}
+
+	const index = JSON.parse(await readFile(testPlanIndexUrl, "utf8")) as {
+		documents: Array<{
+			moduleRef?: string | null;
+			path: string;
+			governanceStatus: string;
+		}>;
+	};
+	const plan = index.documents.find(
+		(entry) => entry.moduleRef === "dev-tunnel",
+	);
+	assert.ok(plan);
+	assert.equal(plan.governanceStatus, "ACTIVE_BASELINE");
+	assert.equal(plan.path, "部署领域/07-测试计划/modules/dev-tunnel.md");
 });

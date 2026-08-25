@@ -1,33 +1,30 @@
 # dev-tunnel Setup
 
-## STEP-DEV-TUNNEL-01 — 检查 Dev Tunnel CLI 与登录
-Responsible: USER
-Interactive executable: `pnpm exec -- proflow-dev-tunnel setup 01`
-Non-interactive executable: `pnpm exec -- proflow-dev-tunnel setup 01`
-Required inputs: Microsoft 登录
-Verify: `devtunnel user show`
-Success condition: Microsoft 登录状态可被 CLI 观察。
+## STEP-DEV-TUNNEL-01 — 自动准备 Microsoft Dev Tunnel
 
-## STEP-DEV-TUNNEL-02 — 选择或创建持久 Tunnel
-Responsible: USER
-Interactive executable: `pnpm exec -- proflow-dev-tunnel setup 02`
-Non-interactive executable: `pnpm exec -- proflow-dev-tunnel setup 02 --tunnel-id <id>`
-Required inputs: Tunnel ID
-Verify: `devtunnel show <id>`
-Success condition: 持久 Tunnel 可以被 devtunnel show 观察。
-
-## STEP-DEV-TUNNEL-03 — 配置入口并保存公开 URL
-Responsible: USER
-Interactive executable: `pnpm exec -- proflow-dev-tunnel setup 03`
-Non-interactive executable: `pnpm exec -- proflow-dev-tunnel setup 03 --tunnel-id <id> --public-base-url <url>`
-Required inputs: Tunnel ID、公开 HTTPS URL
-Verify: `pnpm exec -- proflow-dev-tunnel verify`
-Success condition: 公开 HTTPS URL 已保存并可验证。
-
-## STEP-DEV-TUNNEL-04 — 验证 Dev Tunnel
 Responsible: AI
-Interactive executable: `pnpm exec -- proflow-dev-tunnel setup 04`
-Non-interactive executable: `pnpm exec -- proflow-dev-tunnel verify`
+
+Interactive executable: `platform setup --module dev-tunnel`
+
+Non-interactive executable: `pnpm exec -- proflow-dev-tunnel setup --workspace <path>`
+
 Required inputs: none
+
+Human action: 仅当现有登录无效时，在 `devtunnel user login --github --use-browser-auth` 打开的浏览器页面完成 GitHub 授权。
+
+Automatic flow:
+
+```text
+检查 CLI 和登录
+→ 必要时完成 GitHub browser auth 并复核登录
+→ 复用 workspace-owned Tunnel 或自动创建
+→ 从 agent-gateway shared facts 读取本地端口
+→ 自动对齐 port mapping
+→ 启动或复用 host
+→ 自动发现当前端口的 HTTPS URL
+→ 持久化并发布 tunnelId/publicBaseUrl
+```
+
 Verify: `pnpm exec -- proflow-dev-tunnel verify`
+
 Success condition: `dev-tunnel.setupStatus=READY`.

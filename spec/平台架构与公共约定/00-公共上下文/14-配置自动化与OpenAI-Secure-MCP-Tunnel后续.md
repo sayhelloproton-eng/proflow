@@ -22,20 +22,23 @@ P2 `execution-runtime`：`PENDING_SMALL_CLEANUP`。删除“人工提供 loaded 
 P2 `execution-browser-extension`：保持 Extension ID / Bridge / heartbeat 自动发现；普通 Chrome 首次安装仍尊重浏览器安全边界。
 ## 3. dev-tunnel 替换意图与当前裁决状态
 
-用户希望评估：用 OpenAI Secure MCP Tunnel 替换当前 Microsoft Dev Tunnel。当前只做调研，不在本 Chat 实现。
+用户希望评估：用 OpenAI Secure MCP Tunnel 替换当前 Microsoft Dev Tunnel。两轮独立审计已经完成。
 
 第一次独立调研给出：`A. NOT_COMPATIBLE`、`OPENAI_TUNNEL_GENERAL_HTTP_INGRESS=NO`、`OPENAI_TUNNEL_GPT_ACTIONS_COMPATIBLE=NO`、源码零修改。核心解释是 Secure MCP Tunnel 暴露的是 OpenAI 产品到私有 MCP Server 的受控 MCP 通道，而非 GPT Actions 可直接填写 `servers.url` 的通用公网 HTTPS reverse proxy。
 
-但该结论**尚未冻结**。用户随后明确提出“既然都是 Tunnel，再重新调研一次”，因此当前正式状态为：
+第二轮独立审计再次确认：Secure MCP Tunnel 不提供现有 Custom GPT Actions REST Gateway 所需的通用公网 HTTPS ingress。当前正式状态为：
 
 ```text
 TUNNEL_FIRST_REVIEW = NOT_COMPATIBLE
-TUNNEL_FIRST_REVIEW_FROZEN = NO
-TUNNEL_SECOND_REVIEW_REQUIRED = YES
-SOURCE_CODE_MODIFICATIONS = 0
+TUNNEL_SECOND_REVIEW = CONFIRMED_NOT_COMPATIBLE
+OPENAI_SECURE_MCP_TUNNEL_DIRECT_REPLACEMENT = NO
+MCP_MIGRATION_NOW = NO
+MICROSOFT_DEV_TUNNEL = KEEP_FOR_PHASE3
 ```
 
-第二轮必须独立复核，不得把第一轮结论当作前提；重点调查 OpenAI 官方最新 Secure MCP Tunnel、Harpoon/advanced mode、HTTP MCP transport、hosted tunnel endpoint、developer mode/app integration 等是否存在能让**普通 Agent Gateway HTTP contract 原样工作**的入口。只有再次证明不存在，才可冻结 NOT_COMPATIBLE。
+当前实现方向只自动化 Microsoft Dev Tunnel，不修改 Custom GPT Actions、Agent Gateway REST contract 或 Real-2。
+
+Microsoft Dev Tunnel 自动化已经进入 implementation candidate：setup 复用有效登录，失效时启动 GitHub browser auth，并根据 workspace state 自动创建/复用 Tunnel、消费 `agent-gateway.localBaseUrl`、对齐端口、启动 host、发现并验证 HTTPS URL、持久化并发布 shared facts。真实远端 mutation/login E2E 仍由后续独立验收决定，不能由单元测试替代。
 
 ## 4. 人工边界
 

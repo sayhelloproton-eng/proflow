@@ -4,9 +4,16 @@ import { join, resolve } from "node:path";
 
 import {
 	type ModuleCommandContext,
+	readModuleSharedFacts,
 	writeModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
-import { createDevTunnelRuntime } from "../src/resource-adapter.ts";
+import {
+	createDevTunnelAutomation,
+	createDevTunnelRuntime,
+	type DevTunnelAutomation,
+	type DevTunnelRuntime,
+	verifyProvisionedPublicBaseUrl,
+} from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
 
 const base = {
@@ -15,79 +22,6 @@ const base = {
 	status: "SUCCEEDED",
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
-} as const;
-const setupPlan = {
-	steps: [
-		{
-			id: "STEP-DEV-TUNNEL-01",
-			title: "检查 Dev Tunnel CLI 与登录",
-			description: "确认 CLI 可用，必要时启动 Microsoft 登录。",
-			state: "TODO",
-			responsible: "USER",
-			execution: {
-				interactive: "pnpm exec -- proflow-dev-tunnel setup 01",
-				nonInteractive: "pnpm exec -- proflow-dev-tunnel setup 01",
-			},
-			requiredInputs: [],
-			verify: "devtunnel user show",
-			successCondition: "Microsoft 登录状态可被 CLI 观察",
-			humanAction: "若浏览器打开 Microsoft 登录页，完成账号登录。",
-		},
-		{
-			id: "STEP-DEV-TUNNEL-02",
-			title: "选择或创建持久 Tunnel",
-			description: "列出现有 Tunnel；不存在时由脚本创建。",
-			state: "TODO",
-			responsible: "USER",
-			execution: {
-				interactive: "pnpm exec -- proflow-dev-tunnel setup 02",
-				nonInteractive:
-					"pnpm exec -- proflow-dev-tunnel setup 02 --tunnel-id <id>",
-			},
-			requiredInputs: [
-				{ name: "tunnelId", description: "Tunnel ID", sensitive: false },
-			],
-			verify: "devtunnel show <id>",
-			successCondition: "持久 Tunnel 可以被 devtunnel show 观察",
-		},
-		{
-			id: "STEP-DEV-TUNNEL-03",
-			title: "配置入口并保存公开 URL",
-			description: "为 Platform Host 建立映射，保存公开 HTTPS URL。",
-			state: "TODO",
-			responsible: "USER",
-			execution: {
-				interactive: "pnpm exec -- proflow-dev-tunnel setup 03",
-				nonInteractive:
-					"pnpm exec -- proflow-dev-tunnel setup 03 --tunnel-id <id> --public-base-url <url>",
-			},
-			requiredInputs: [
-				{ name: "tunnelId", description: "Tunnel ID", sensitive: false },
-				{
-					name: "publicBaseUrl",
-					description: "公开 HTTPS URL",
-					sensitive: false,
-				},
-			],
-			verify: "pnpm exec -- proflow-dev-tunnel verify",
-			successCondition: "公开 HTTPS URL 已保存并可验证",
-			humanAction: "确认 Dev Tunnel 门户或 CLI 显示的公开 HTTPS URL。",
-		},
-		{
-			id: "STEP-DEV-TUNNEL-04",
-			title: "验证 Dev Tunnel",
-			description: "检查登录、配置和公开入口。",
-			state: "TODO",
-			responsible: "AI",
-			execution: {
-				interactive: "pnpm exec -- proflow-dev-tunnel setup 04",
-				nonInteractive: "pnpm exec -- proflow-dev-tunnel verify",
-			},
-			requiredInputs: [],
-			verify: "pnpm exec -- proflow-dev-tunnel verify",
-			successCondition: "dev-tunnel.setupStatus=READY",
-		},
-	],
 } as const;
 const processEffect = "Manage the dev-tunnel public ingress process";
 type SetupState = {
@@ -142,22 +76,6 @@ async function writeState(
 	);
 	await rename(tmp, stateFile(context));
 }
-function setupInput(context: ModuleCommandContext): Partial<SetupState> {
-	if (
-		typeof context.input !== "object" ||
-		context.input === null ||
-		Array.isArray(context.input)
-	)
-		return {};
-	const tunnelId = Reflect.get(context.input, "tunnelId");
-	const publicBaseUrl = Reflect.get(context.input, "publicBaseUrl");
-	return {
-		...(typeof tunnelId === "string" && tunnelId ? { tunnelId } : {}),
-		...(typeof publicBaseUrl === "string" && publicBaseUrl
-			? { publicBaseUrl }
-			: {}),
-	};
-}
 function runtime(context: ModuleCommandContext, state?: SetupState) {
 	return createDevTunnelRuntime({
 		...(state
@@ -166,7 +84,7 @@ function runtime(context: ModuleCommandContext, state?: SetupState) {
 		processStateFile: processFile(context),
 	});
 }
-export const behaviorAdapter = {
+const baseBehaviorAdapter = {
 	install: async (context: ModuleCommandContext) => {
 		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
 		const state = await readState(context);
@@ -229,7 +147,7 @@ export const behaviorAdapter = {
 							{
 								scope: "SETUP" as const,
 								code: "TUNNEL_SETUP_REQUIRED",
-								message: "尚未选择或创建持久 Tunnel",
+								message: "尚未完成持久 Tunnel 自动配置",
 								relatedModuleRefs: [],
 								nextCommand: "platform setup --module dev-tunnel",
 							},
@@ -295,79 +213,6 @@ export const behaviorAdapter = {
 			},
 			observedEffects: [],
 		};
-	},
-	setup: async (context: ModuleCommandContext) => {
-		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
-		const previous = await readState(context);
-		const supplied = setupInput(context);
-		const candidate = { ...(previous ?? {}), ...supplied };
-		const rt = runtime(context, previous);
-		const login = await rt.loginStatus();
-		if (login !== "LOGGED_IN")
-			return {
-				result: {
-					...base,
-					ok: false as const,
-					status: "ACTION_REQUIRED" as const,
-					data: setupPlan,
-					actionRequired: {
-						action: "complete-tunnel-login",
-						description: `Run devtunnel user login, complete Microsoft authentication, then rerun platform setup --module dev-tunnel --workspace ${JSON.stringify(context.workspaceRoot)}.`,
-					},
-				},
-				observedEffects: [],
-			};
-		if (
-			typeof candidate.tunnelId !== "string" ||
-			typeof candidate.publicBaseUrl !== "string"
-		)
-			return {
-				result: {
-					...base,
-					ok: false as const,
-					status: "ACTION_REQUIRED" as const,
-					data: setupPlan,
-					actionRequired: {
-						action: "select-or-create-tunnel",
-						description:
-							"Create/select the persistent tunnel, then run proflow-dev-tunnel setup --tunnel-id <id> --public-base-url <url>.",
-					},
-				},
-				observedEffects: [],
-			};
-		try {
-			const url = new URL(candidate.publicBaseUrl);
-			if (url.protocol !== "https:")
-				throw new TypeError("publicBaseUrl must be HTTPS");
-			const state: SetupState = {
-				contract: "proflow.dev-tunnel-setup.v1",
-				tunnelId: candidate.tunnelId,
-				publicBaseUrl: url.href,
-			};
-			await writeState(context, state);
-			await writeModuleSharedFacts(context, descriptor.moduleRef, {
-				tunnelId: state.tunnelId,
-				publicBaseUrl: state.publicBaseUrl,
-			});
-			return { result: base, observedEffects: [] };
-		} catch (error) {
-			return {
-				result: {
-					...base,
-					ok: false as const,
-					status: "ACTION_REQUIRED" as const,
-					data: setupPlan,
-					actionRequired: {
-						action: "correct-tunnel-facts",
-						description:
-							error instanceof Error
-								? error.message
-								: "Tunnel setup facts are invalid",
-					},
-				},
-				observedEffects: [],
-			};
-		}
 	},
 	docs: async (_context: ModuleCommandContext) => ({
 		result: {
@@ -494,3 +339,137 @@ export const behaviorAdapter = {
 		}
 	},
 } as const;
+
+type RuntimeFactory = (input: {
+	command?: string;
+	tunnelId?: string;
+	publicBaseUrl?: string;
+	processStateFile?: string;
+}) => DevTunnelRuntime;
+
+function gatewayPort(facts: Record<string, unknown> | undefined): number {
+	const raw = facts?.localBaseUrl;
+	if (typeof raw !== "string")
+		throw new Error("agent-gateway localBaseUrl shared fact is unavailable");
+	const url = new URL(raw);
+	const port = Number(url.port);
+	if (
+		url.protocol !== "http:" ||
+		url.hostname !== "127.0.0.1" ||
+		!Number.isInteger(port) ||
+		port < 1 ||
+		port > 65_535
+	)
+		throw new Error("agent-gateway localBaseUrl shared fact is invalid");
+	return port;
+}
+
+const setupFailed = (error: unknown) => ({
+	result: {
+		...base,
+		ok: false as const,
+		status: "FAILED" as const,
+		error: {
+			code: "SETUP_FAILED" as const,
+			message:
+				error instanceof Error ? error.message : "Dev Tunnel setup failed",
+			retryable: true,
+		},
+	},
+	observedEffects: [],
+});
+
+export function createDevTunnelBehaviorAdapter(dependencies?: {
+	automation?: DevTunnelAutomation;
+	createRuntime?: RuntimeFactory;
+	verifyPublicBaseUrl?: (publicBaseUrl: string) => Promise<void>;
+}) {
+	const automation =
+		dependencies?.automation ??
+		createDevTunnelAutomation({ command: "devtunnel" });
+	const createRuntime = dependencies?.createRuntime ?? createDevTunnelRuntime;
+	const verifyPublicBaseUrl =
+		dependencies?.verifyPublicBaseUrl ?? verifyProvisionedPublicBaseUrl;
+	return {
+		...baseBehaviorAdapter,
+		setup: async (context: ModuleCommandContext) => {
+			try {
+				await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+				const port = gatewayPort(
+					await readModuleSharedFacts(context, "agent-gateway"),
+				);
+				await automation.ensureLogin();
+				const previous = await readState(context);
+				let tunnelId: string;
+				let safeToStartNewHost = false;
+				const createAndVerifyTunnel = async () => {
+					const createdTunnelId = await automation.createTunnel();
+					const created = await automation.inspectTunnel(createdTunnelId);
+					if (created.state !== "EXISTS")
+						throw new Error(
+							"new Dev Tunnel could not be verified by show --json",
+						);
+					return createdTunnelId;
+				};
+				if (previous) {
+					const inspected = await automation.inspectTunnel(previous.tunnelId);
+					if (inspected.state === "UNKNOWN")
+						throw new Error("workspace Tunnel remote state is UNKNOWN");
+					if (inspected.state === "EXISTS") {
+						tunnelId = previous.tunnelId;
+						safeToStartNewHost = inspected.hostState === "STOPPED";
+					} else {
+						tunnelId = await createAndVerifyTunnel();
+						safeToStartNewHost = true;
+					}
+				} else {
+					tunnelId = await createAndVerifyTunnel();
+					safeToStartNewHost = true;
+				}
+				await automation.ensurePort(tunnelId, port);
+				const host = createRuntime({
+					tunnelId,
+					processStateFile: processFile(context),
+				});
+				const observed = await host.status();
+				let started = false;
+				if (observed.state !== "RUNNING") {
+					if (observed.state === "UNKNOWN" && !safeToStartNewHost)
+						throw new Error(
+							"Tunnel host state is UNKNOWN; refusing to start a duplicate host",
+						);
+					const launched = await host.start();
+					if (launched.state !== "RUNNING")
+						throw new Error("Dev Tunnel host did not reach RUNNING");
+					started = true;
+				}
+				const publicBaseUrl = await automation.discoverPublicBaseUrl(
+					tunnelId,
+					port,
+				);
+				const url = new URL(publicBaseUrl);
+				if (url.protocol !== "https:")
+					throw new Error("discovered publicBaseUrl must be HTTPS");
+				await verifyPublicBaseUrl(url.href);
+				const state: SetupState = {
+					contract: "proflow.dev-tunnel-setup.v1",
+					tunnelId,
+					publicBaseUrl: url.href,
+				};
+				await writeState(context, state);
+				await writeModuleSharedFacts(context, descriptor.moduleRef, {
+					tunnelId,
+					publicBaseUrl: state.publicBaseUrl,
+				});
+				return {
+					result: { ...base, data: state },
+					observedEffects: started ? [processEffect] : [],
+				};
+			} catch (error) {
+				return setupFailed(error);
+			}
+		},
+	} as const;
+}
+
+export const behaviorAdapter = createDevTunnelBehaviorAdapter();
