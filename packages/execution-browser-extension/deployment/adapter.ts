@@ -353,6 +353,34 @@ async function materialize(
 	await materializeExecutorConfig(context, setup, prepared);
 }
 
+async function persistPairedBrowserExtension(
+	context: ModuleCommandContext,
+	prepared: Awaited<ReturnType<typeof materializeRuntimeConfig>>,
+	identity: { extensionId: string; extensionInstanceId: string },
+) {
+	const setup: BrowserSetupState = { extensionId: identity.extensionId };
+	await writeFile(setupFile(context), `${JSON.stringify(setup, null, 2)}\n`, {
+		mode: 0o600,
+	});
+	await materializeExecutorConfig(context, setup, prepared);
+	const evidence: BrowserVerificationEvidence = {
+		contract: "proflow.browser-extension-verification.v1",
+		moduleVersion: descriptor.moduleVersion,
+		loadDir: prepared.loadDir,
+		extensionId: identity.extensionId,
+		extensionInstanceId: identity.extensionInstanceId,
+		serviceWorker: "RUNNING",
+		evidenceSource: "PAIRING_HEARTBEAT",
+		observedAt: new Date().toISOString(),
+	};
+	await writeFile(
+		verificationFile(context),
+		`${JSON.stringify(evidence, null, 2)}\n`,
+		{ mode: 0o600 },
+	);
+	return identity;
+}
+
 export async function pairBrowserExtensionSetup(
 	context: ModuleCommandContext,
 	options: {
@@ -370,17 +398,11 @@ export async function pairBrowserExtensionSetup(
 		context,
 		browserExtensionLoadDir(context.workspaceRoot),
 	);
-	if (
+	const canRevalidateExisting = Boolean(
 		existingSetup &&
-		existingEvidence &&
-		existingSetup.extensionId === existingEvidence.extensionId
-	) {
-		await materialize(context, existingSetup);
-		return {
-			extensionId: existingEvidence.extensionId,
-			extensionInstanceId: existingEvidence.extensionInstanceId,
-		};
-	}
+			existingEvidence &&
+			existingSetup.extensionId === existingEvidence.extensionId,
+	);
 
 	const prepared = await materializeRuntimeConfig(context);
 	const pairing = await createBrowserExtensionPairingServer({
@@ -390,32 +412,40 @@ export async function pairBrowserExtensionSetup(
 		pairingTimeoutMs: options.timeoutMs ?? 120_000,
 	});
 	try {
+		const pairingPromise = pairing.waitForPairing();
+		if (canRevalidateExisting) {
+			const timeoutMs = options.timeoutMs ?? 120_000;
+			const revalidationGraceMs = Math.min(
+				2_000,
+				Math.max(25, Math.floor(timeoutMs / 4)),
+			);
+			const revalidated = await Promise.race([
+				pairingPromise.then((identity) => ({
+					kind: "PAIRED" as const,
+					identity,
+				})),
+				new Promise<{ kind: "WAITING" }>((resolve) =>
+					setTimeout(() => resolve({ kind: "WAITING" }), revalidationGraceMs),
+				),
+			]);
+			if (revalidated.kind === "PAIRED") {
+				return persistPairedBrowserExtension(
+					context,
+					prepared,
+					revalidated.identity,
+				);
+			}
+		}
+
 		await options.onWaiting?.({
 			loadDir: prepared.loadDir,
 			endpoint: pairing.endpoint,
 		});
-		const identity = await pairing.waitForPairing();
-		const setup: BrowserSetupState = { extensionId: identity.extensionId };
-		await writeFile(setupFile(context), `${JSON.stringify(setup, null, 2)}\n`, {
-			mode: 0o600,
-		});
-		await materializeExecutorConfig(context, setup, prepared);
-		const evidence: BrowserVerificationEvidence = {
-			contract: "proflow.browser-extension-verification.v1",
-			moduleVersion: descriptor.moduleVersion,
-			loadDir: prepared.loadDir,
-			extensionId: identity.extensionId,
-			extensionInstanceId: identity.extensionInstanceId,
-			serviceWorker: "RUNNING",
-			evidenceSource: "PAIRING_HEARTBEAT",
-			observedAt: new Date().toISOString(),
-		};
-		await writeFile(
-			verificationFile(context),
-			`${JSON.stringify(evidence, null, 2)}\n`,
-			{ mode: 0o600 },
+		return persistPairedBrowserExtension(
+			context,
+			prepared,
+			await pairingPromise,
 		);
-		return identity;
 	} finally {
 		await pairing.close();
 	}

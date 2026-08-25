@@ -7,12 +7,14 @@ import {
 	materializeProductionConfig,
 } from "../deployment/adapter.ts";
 import { parseBrowserExtensionSetupArgs } from "./configure-args.ts";
-import { runInteractiveBrowserExtensionSetup } from "./install-workflow.ts";
+import {
+	browserExtensionSetupFailureMessage,
+	browserExtensionSetupSuccessMessage,
+	runInteractiveBrowserExtensionSetup,
+} from "./install-workflow.ts";
 
 function reportFatal(error: unknown) {
-	process.stderr.write(
-		`✕ 配置失败\n  ${error instanceof Error ? error.message : String(error)}\n`,
-	);
+	process.stderr.write(browserExtensionSetupFailureMessage(error));
 	process.exitCode = 1;
 }
 process.on("uncaughtException", reportFatal);
@@ -79,9 +81,7 @@ async function main(): Promise<void> {
 			workspaceRoot: setup.workspaceRoot,
 			timeoutMs: 120_000,
 		});
-		process.stdout.write(
-			"\n✓ Chrome 浏览器扩展已连接并通过验证\n✓ execution-browser-extension setup READY\n",
-		);
+		process.stdout.write(browserExtensionSetupSuccessMessage());
 		return;
 	}
 	if (args[0] === "verify") {

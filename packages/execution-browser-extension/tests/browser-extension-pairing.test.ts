@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { once } from "node:events";
+import { createConnection } from "node:net";
 import { test } from "node:test";
 
 const token = "pairing-token-that-is-longer-than-thirty-two-characters";
@@ -77,6 +79,45 @@ test("CP-EXE-BR-16 pairing binds identity only after authenticated hello + heart
 		);
 		assert.equal(empty.status, 204);
 	} finally {
+		await pairing.close();
+	}
+});
+
+test("pairing close is bounded when a browser keeps an HTTP request active", async () => {
+	const { createBrowserExtensionPairingServer } = await pairingModule();
+	const pairing = await createBrowserExtensionPairingServer({ token });
+	const url = new URL(pairing.endpoint);
+	const socket = createConnection({
+		host: url.hostname,
+		port: Number(url.port),
+	});
+	try {
+		await once(socket, "connect");
+		socket.write(
+			[
+				"POST /v1/session/hello HTTP/1.1",
+				`Host: ${url.host}`,
+				`Origin: ${origin}`,
+				`Authorization: Bearer ${token}`,
+				"Content-Type: application/json",
+				"Content-Length: 1024",
+				"Connection: keep-alive",
+				"",
+				"{",
+			].join("\r\n"),
+		);
+		await new Promise((resolve) => setTimeout(resolve, 25));
+		await Promise.race([
+			pairing.close(),
+			new Promise((_, reject) =>
+				setTimeout(
+					() => reject(new Error("PAIRING_CLOSE_DID_NOT_FINISH")),
+					750,
+				),
+			),
+		]);
+	} finally {
+		socket.destroy();
 		await pairing.close();
 	}
 });

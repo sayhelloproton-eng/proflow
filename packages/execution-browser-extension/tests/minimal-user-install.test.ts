@@ -5,6 +5,8 @@ import { parseBrowserExtensionSetupArgs } from "../src/configure-args.ts";
 import {
 	type BrowserExtensionDesktop,
 	type BrowserExtensionPair,
+	browserExtensionSetupFailureMessage,
+	browserExtensionSetupSuccessMessage,
 	runInteractiveBrowserExtensionSetup,
 } from "../src/install-workflow.ts";
 
@@ -56,6 +58,21 @@ test("browser install workflow exposes one human installation confirmation", asy
 		instruction,
 		/Extension ID|extensionId|Service Worker|token|endpoint|verify/,
 	);
+});
+
+test("setup output is human-readable and keeps stable AI recovery semantics", () => {
+	const success = browserExtensionSetupSuccessMessage();
+	assert.match(success, /浏览器扩展：READY/);
+	assert.match(success, /真实 heartbeat 验证通过/);
+	assert.doesNotMatch(success, /extensionId|token|endpoint/);
+
+	const timeout = browserExtensionSetupFailureMessage(
+		new Error("PAIRING_TIMEOUT"),
+	);
+	assert.match(timeout, /暂未检测到浏览器扩展连接/);
+	assert.match(timeout, /重新执行 platform setup/);
+	assert.match(timeout, /错误代码：PAIRING_TIMEOUT/);
+	assert.doesNotMatch(timeout, /Extension ID|token|endpoint/);
 });
 
 test("setup accepts an explicit workspace without treating it as a setup step", () => {

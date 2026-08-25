@@ -32,7 +32,9 @@ Execution 领域拥有的 Chrome MV3 Extension，负责 Task UI、审批提醒�
 
 ## 使用方式
 
-运行 `pnpm exec -- proflow-execution-browser-extension setup --workspace <workspace>`。ProFlow 会在提示用户之前准备好 unpacked 目录、运行配置和本地 Bridge，把正确目录复制到剪贴板并打开 `chrome://extensions/`。用户只需完成一次浏览器安装确认：如果开发者模式尚未开启则先开启，然后点击“加载未打包的扩展程序”，在目录选择窗口中粘贴并确认目录。完成后无需回终端输入任何标识或状态；扩展身份、session、hello/heartbeat、Browser Executor 配置和 setup evidence 都由机器自动发现、生成并验证。Agent setup 随后通过 `custom-gpt-web-provisioning` 使用同一 Extension package 的部署期分支。
+运行 `pnpm exec -- proflow-execution-browser-extension setup --workspace <workspace>`。ProFlow 会先准备 unpacked 目录、运行配置和本地 Bridge，并用真实 hello + heartbeat 尝试重验证已有扩展；已有扩展仍在线时不会再次打扰用户。只有未检测到在线扩展时，ProFlow 才把正确目录复制到剪贴板并打开 `chrome://extensions/`，提示用户完成安装操作：如果开发者模式尚未开启则先开启，然后点击“加载未打包的扩展程序”，在目录选择窗口中粘贴并确认目录。完成后无需回终端输入任何标识或状态；扩展身份、session、hello/heartbeat、Browser Executor 配置和 setup evidence 都由机器自动发现、生成并验证。历史 pairing evidence 不能单独代替本次 live revalidation。
+
+若 pairing 等待超时，ProFlow 保留已经准备好的扩展文件和机器配置，不写伪 READY evidence，并输出稳定错误代码 `PAIRING_TIMEOUT`。用户确认 Chrome 已完成加载后重新执行 `platform setup` 即可。Agent setup 随后通过 `custom-gpt-web-provisioning` 使用同一 Extension package 的部署期分支。
 
 ## 职责边界与限制
 

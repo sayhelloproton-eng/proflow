@@ -97,6 +97,42 @@ function fakeDesktop(events: string[]): BrowserExtensionDesktop {
 	};
 }
 
+async function reconnectInstalledExtension(workspaceRoot: string) {
+	const runtime = JSON.parse(
+		await readFile(
+			join(browserExtensionLoadDir(workspaceRoot), "runtime-config.json"),
+			"utf8",
+		),
+	) as {
+		proflowRuntimeBridge: { endpoint: string; token: string };
+	};
+	for (let attempt = 0; attempt < 40; attempt += 1) {
+		try {
+			const hello = await callExtension(
+				runtime.proflowRuntimeBridge.endpoint,
+				runtime.proflowRuntimeBridge.token,
+				"/v1/session/hello",
+				{
+					method: "POST",
+					body: JSON.stringify({ extensionId, extensionInstanceId }),
+				},
+			);
+			if (!hello.ok) throw new Error("HELLO_REJECTED");
+			const heartbeat = await callExtension(
+				runtime.proflowRuntimeBridge.endpoint,
+				runtime.proflowRuntimeBridge.token,
+				`/v1/session/heartbeat?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`,
+				{ method: "POST", body: "{}" },
+			);
+			if (!heartbeat.ok) throw new Error("HEARTBEAT_REJECTED");
+			return;
+		} catch {
+			await new Promise((resolve) => setTimeout(resolve, 25));
+		}
+	}
+	throw new Error("SIMULATED_INSTALLED_EXTENSION_DID_NOT_RECONNECT");
+}
+
 test("minimal install journey reaches READY and repeated setup does not ask the user again", async () => {
 	const workspaceRoot = await prepareWorkspace();
 	const events: string[] = [];
@@ -115,14 +151,42 @@ test("minimal install journey reaches READY and repeated setup does not ask the 
 			"instruction",
 		]);
 
+		const reconnect = reconnectInstalledExtension(workspaceRoot);
 		const second = await runInteractiveBrowserExtensionSetup({
 			workspaceRoot,
 			desktop: fakeDesktop(events),
-			pair,
-			timeoutMs: 2_000,
+			timeoutMs: 1_000,
 		});
+		await reconnect;
 		assert.deepEqual(second, { extensionId, extensionInstanceId });
 		assert.equal(events.length, 3);
+	} finally {
+		await rm(workspaceRoot, { recursive: true, force: true });
+	}
+});
+
+test("stale READY evidence does not suppress the human reinstall path", async () => {
+	const workspaceRoot = await prepareWorkspace();
+	const events: string[] = [];
+	try {
+		await runInteractiveBrowserExtensionSetup({
+			workspaceRoot,
+			desktop: fakeDesktop(events),
+			pair: realPairWithSimulatedChrome(),
+			timeoutMs: 1_000,
+		});
+		assert.equal(events.length, 3);
+
+		await assert.rejects(
+			() =>
+				runInteractiveBrowserExtensionSetup({
+					workspaceRoot,
+					desktop: fakeDesktop(events),
+					timeoutMs: 100,
+				}),
+			/PAIRING_TIMEOUT/,
+		);
+		assert.equal(events.length, 6);
 	} finally {
 		await rm(workspaceRoot, { recursive: true, force: true });
 	}
