@@ -912,8 +912,8 @@ const setupCommands: Record<string, { ai: string; inputs: string }> = {
 		inputs: "Custom GPT URL",
 	},
 	"dev-tunnel": {
-		ai: "pnpm exec -- proflow-dev-tunnel setup --tunnel-id <id> --public-base-url <url>",
-		inputs: "Tunnel ID、公开 HTTPS URL",
+		ai: "pnpm exec -- proflow-dev-tunnel setup",
+		inputs: "无",
 	},
 	"model-provider-api": {
 		ai: "pnpm exec -- proflow-model-provider-api setup --provider-base-url <url>",

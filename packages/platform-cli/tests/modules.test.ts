@@ -139,3 +139,29 @@ test("platform setup human output preserves all actions when the aggregate also 
 	assert.match(rendered, /汇总：2 个已就绪，1 个需要操作，1 个系统阻塞/);
 	assert.notEqual(rendered, "SETUP FAILED");
 });
+
+test("Dev Tunnel setup guidance uses automatic discovery without manual tunnel facts", () => {
+	const rendered = renderHumanResult({
+		command: "setup",
+		status: "ACTION_REQUIRED",
+		data: {
+			phase: "setup",
+			completed: false,
+			results: [
+				{
+					moduleRef: "dev-tunnel",
+					result: {
+						status: "ACTION_REQUIRED",
+						actionRequired: {
+							action: "authenticate-dev-tunnel",
+							description: "Authenticate Microsoft Dev Tunnel.",
+						},
+					},
+				},
+			],
+		},
+	});
+	assert.match(rendered, /pnpm exec -- proflow-dev-tunnel setup/);
+	assert.match(rendered, /需要输入：无/);
+	assert.doesNotMatch(rendered, /--tunnel-id|--public-base-url/);
+});

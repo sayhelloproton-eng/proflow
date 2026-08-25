@@ -306,7 +306,7 @@ export async function setupModulesThin(
 			continue;
 		}
 		const observed = moduleStatusObservationSchema.parse(status.result.data);
-		if (observed.setupStatus === "READY" && target?.input === undefined) {
+		if (observed.setupStatus === "READY" && target === undefined) {
 			skipped.push({ moduleRef: module.moduleRef, reason: "READY" });
 			reportProgress(reporter, {
 				command: "setup",

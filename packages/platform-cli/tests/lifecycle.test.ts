@@ -459,6 +459,19 @@ test("targeted setup forwards opaque input without Platform interpretation", asy
 	]);
 });
 
+test("targeted setup reconciles a READY module even without explicit input", async () => {
+	const { catalog, calls } = recordingCatalog({});
+	const result = await setupModulesThin(catalog, modules, workspaceRoot, {
+		moduleRef: "provider",
+	});
+	assert.equal(result.completed, true);
+	assert.deepEqual(calls, [
+		{ call: "provider:status" },
+		{ call: "provider:setup" },
+	]);
+	assert.deepEqual(result.skipped, []);
+});
+
 test("setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run", async () => {
 	const { catalog, calls } = recordingCatalog(
 		{ consumer: "ACTION_REQUIRED", leaf: "FAILED" },
