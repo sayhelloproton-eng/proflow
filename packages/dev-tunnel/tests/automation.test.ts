@@ -21,13 +21,17 @@ const result = (stdout: string, exitCode: number | null = 0, stderr = "") => ({
 	stderr,
 });
 
-test("CP-DEV-TUNNEL-01 login JSON is authoritative and expired status is not misread from exit 0", async () => {
+test("CP-DEV-TUNNEL-01 login JSON is authoritative and logged-out statuses are not misread from exit 0", async () => {
 	assert.equal(
 		parseDevTunnelLoginStatus({ status: "Logged in as user@example.test" }),
 		"LOGGED_IN",
 	);
 	assert.equal(
 		parseDevTunnelLoginStatus({ status: "Login token expired" }),
+		"NOT_LOGGED_IN",
+	);
+	assert.equal(
+		parseDevTunnelLoginStatus({ status: "Not logged in" }),
 		"NOT_LOGGED_IN",
 	);
 	assert.equal(
@@ -39,10 +43,9 @@ test("CP-DEV-TUNNEL-01 login JSON is authoritative and expired status is not mis
 	const automation = createDevTunnelAutomation({
 		runCommand: async (_command, args) => {
 			calls.push(args);
-			if (args[0] === "--version") return result("1.0.2030");
-			if (calls.length === 2)
+			if (calls.length === 1)
 				return result(JSON.stringify({ status: "Login token expired" }));
-			if (calls.length === 3) return result("");
+			if (calls.length === 2) return result("");
 			return result(
 				JSON.stringify({ status: "Logged in as user@example.test" }),
 			);
@@ -50,7 +53,6 @@ test("CP-DEV-TUNNEL-01 login JSON is authoritative and expired status is not mis
 	});
 	assert.equal(await automation.ensureLogin(), "LOGGED_IN");
 	assert.deepEqual(calls, [
-		["--version"],
 		["user", "show", "--json"],
 		["user", "login", "--github", "--use-browser-auth"],
 		["user", "show", "--json"],
@@ -59,17 +61,19 @@ test("CP-DEV-TUNNEL-01 login JSON is authoritative and expired status is not mis
 
 test("CP-DEV-TUNNEL-01 valid login is reused without opening browser auth", async () => {
 	const calls: string[][] = [];
+	const timeouts: Array<number | undefined> = [];
 	const automation = createDevTunnelAutomation({
-		runCommand: async (_command, args) => {
+		runCommand: async (_command, args, options) => {
 			calls.push(args);
-			if (args[0] === "--version") return result("1.0.2030");
+			timeouts.push(options?.timeoutMs);
 			return result(
 				JSON.stringify({ status: "Logged in as user@example.test" }),
 			);
 		},
 	});
 	assert.equal(await automation.ensureLogin(), "LOGGED_IN");
-	assert.deepEqual(calls, [["--version"], ["user", "show", "--json"]]);
+	assert.deepEqual(calls, [["user", "show", "--json"]]);
+	assert.deepEqual(timeouts, [30_000]);
 });
 
 test("CP-DEV-TUNNEL-02 automatic creation is anonymous, randomly identified by the provider, and verified by exact show", async () => {
@@ -106,10 +110,7 @@ test("CP-DEV-TUNNEL-01 cancelled login and unknown login fail closed", async () 
 	] as const) {
 		let index = 0;
 		const automation = createDevTunnelAutomation({
-			runCommand: async (_command, args) =>
-				args[0] === "--version"
-					? result("1.0.2030")
-					: (fixture[index++] ?? result("not-json")),
+			runCommand: async () => fixture[index++] ?? result("not-json"),
 		});
 		await assert.rejects(() => automation.ensureLogin());
 	}

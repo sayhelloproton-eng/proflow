@@ -55,7 +55,8 @@ export interface DevTunnelRuntime {
 }
 
 const LOGIN_ARGS = ["user", "show", "--json"];
-const LOGIN_TIMEOUT_MS = 10_000;
+const LOGIN_TIMEOUT_MS = 30_000;
+const REMOTE_COMMAND_TIMEOUT_MS = 30_000;
 const START_CONFIRM_MS = 500;
 
 function defaultCommandRunner(
@@ -119,20 +120,31 @@ function defaultCommandRunner(
 }
 
 const loginStatusSchema = z.object({ status: z.string().min(1) }).passthrough();
-const tunnelSchema = z
-	.object({
-		tunnelId: z.string().min(1),
-		endpoints: z.array(z.unknown()).optional(),
-	})
-	.passthrough();
 const tunnelPortSchema = z
 	.object({
 		portNumber: z.number().int().min(1).max(65_535),
 		protocol: z.string().min(1).optional(),
 		portForwardingUris: z.array(z.string()).optional(),
+		portUri: z.string().optional(),
+		clientConnections: z.number().int().min(0).optional(),
+	})
+	.passthrough();
+const tunnelPayloadSchema = z
+	.object({
+		tunnelId: z.string().min(1),
+		endpoints: z.array(z.unknown()).optional(),
+		hostConnections: z.number().int().min(0).optional(),
+		ports: z.array(tunnelPortSchema).optional(),
 	})
 	.passthrough();
 export type DevTunnelPort = z.infer<typeof tunnelPortSchema>;
+
+function parseTunnel(input: unknown): z.infer<typeof tunnelPayloadSchema> {
+	const direct = tunnelPayloadSchema.safeParse(input);
+	if (direct.success) return direct.data;
+	return z.object({ tunnel: tunnelPayloadSchema }).passthrough().parse(input)
+		.tunnel;
+}
 
 function parseJson(text: string, label: string): unknown {
 	try {
@@ -147,6 +159,14 @@ function parsePorts(input: unknown): DevTunnelPort[] {
 	if (typeof input === "object" && input !== null) {
 		const ports = Reflect.get(input, "ports");
 		if (Array.isArray(ports)) return z.array(tunnelPortSchema).parse(ports);
+		const tunnel = Reflect.get(input, "tunnel");
+		if (typeof tunnel === "object" && tunnel !== null) {
+			const tunnelPorts = Reflect.get(tunnel, "ports");
+			if (Array.isArray(tunnelPorts))
+				return z.array(tunnelPortSchema).parse(tunnelPorts);
+		}
+		const port = Reflect.get(input, "port");
+		if (port !== undefined) return [tunnelPortSchema.parse(port)];
 		const one = tunnelPortSchema.safeParse(input);
 		if (one.success) return [one.data];
 	}
@@ -175,7 +195,11 @@ export function discoverPublicBaseUrl(input: unknown, port: number): string {
 		throw new Error(
 			"devtunnel JSON does not identify exactly one current Gateway port",
 		);
-	const uris = matching[0]?.portForwardingUris ?? [];
+	const current = matching[0];
+	const uris = [
+		...(current?.portUri ? [current.portUri] : []),
+		...(current?.portForwardingUris ?? []),
+	];
 	const httpsUris = uris.flatMap((raw) => {
 		try {
 			const url = new URL(raw);
@@ -229,10 +253,6 @@ export function createDevTunnelAutomation(input?: {
 	};
 	return {
 		async ensureLogin() {
-			const version = await run(command, ["--version"], {
-				timeoutMs: LOGIN_TIMEOUT_MS,
-			});
-			assertCommandSucceeded(version, "devtunnel --version");
 			const before = await loginStatus();
 			if (before === "LOGGED_IN") return before;
 			if (before === "UNKNOWN")
@@ -251,7 +271,9 @@ export function createDevTunnelAutomation(input?: {
 			return after;
 		},
 		async inspectTunnel(tunnelId) {
-			const result = await run(command, ["show", tunnelId, "--json"]);
+			const result = await run(command, ["show", tunnelId, "--json"], {
+				timeoutMs: REMOTE_COMMAND_TIMEOUT_MS,
+			});
 			if (result.exitCode !== 0) {
 				return /not found|does not exist|could not be found/i.test(
 					commandText(result),
@@ -260,69 +282,75 @@ export function createDevTunnelAutomation(input?: {
 					: { state: "UNKNOWN", hostState: "UNKNOWN" };
 			}
 			try {
-				const tunnel = tunnelSchema.parse(
+				const tunnel = parseTunnel(
 					parseJson(result.stdout, "devtunnel show --json"),
 				);
 				if (tunnel.tunnelId !== tunnelId)
 					return { state: "UNKNOWN", hostState: "UNKNOWN" };
-				return {
-					state: "EXISTS",
-					hostState:
-						tunnel.endpoints === undefined
-							? "UNKNOWN"
+				const hostState =
+					tunnel.hostConnections !== undefined
+						? tunnel.hostConnections > 0
+							? ("RUNNING" as const)
+							: ("STOPPED" as const)
+						: tunnel.endpoints === undefined
+							? ("UNKNOWN" as const)
 							: tunnel.endpoints.length === 0
-								? "STOPPED"
-								: "RUNNING",
-				};
+								? ("STOPPED" as const)
+								: ("RUNNING" as const);
+				return { state: "EXISTS", hostState };
 			} catch {
 				return { state: "UNKNOWN", hostState: "UNKNOWN" };
 			}
 		},
 		async createTunnel() {
-			const result = await run(command, [
-				"create",
-				"--allow-anonymous",
-				"--json",
-			]);
+			const result = await run(
+				command,
+				["create", "--allow-anonymous", "--json"],
+				{ timeoutMs: REMOTE_COMMAND_TIMEOUT_MS },
+			);
 			assertCommandSucceeded(result, "devtunnel create --json");
-			const tunnel = tunnelSchema.parse(
+			const tunnel = parseTunnel(
 				parseJson(result.stdout, "devtunnel create --json"),
 			);
 			return tunnel.tunnelId;
 		},
 		async ensurePort(tunnelId, port) {
-			const listed = await run(command, ["port", "list", tunnelId, "--json"]);
+			const listed = await run(command, ["port", "list", tunnelId, "--json"], {
+				timeoutMs: REMOTE_COMMAND_TIMEOUT_MS,
+			});
 			assertCommandSucceeded(listed, "devtunnel port list --json");
 			const existing = parsePorts(
 				parseJson(listed.stdout, "devtunnel port list --json"),
 			).find((item) => item.portNumber === port);
 			if (existing?.protocol?.toLowerCase() === "http") return "REUSED";
 			if (existing) {
-				const removed = await run(command, [
+				const removed = await run(
+					command,
+					["port", "delete", tunnelId, "--port-number", String(port), "--json"],
+					{ timeoutMs: REMOTE_COMMAND_TIMEOUT_MS },
+				);
+				assertCommandSucceeded(removed, "devtunnel port delete --json");
+			}
+			const mutation = await run(
+				command,
+				[
 					"port",
-					"delete",
+					"create",
 					tunnelId,
 					"--port-number",
 					String(port),
+					"--protocol",
+					"http",
 					"--json",
-				]);
-				assertCommandSucceeded(removed, "devtunnel port delete --json");
-			}
-			const mutation = await run(command, [
-				"port",
-				"create",
-				tunnelId,
-				"--port-number",
-				String(port),
-				"--protocol",
-				"http",
-				"--json",
-			]);
-			assertCommandSucceeded(mutation, "devtunnel port create --json");
-			const confirmed = tunnelPortSchema.parse(
-				parseJson(mutation.stdout, "devtunnel port create --json"),
+				],
+				{ timeoutMs: REMOTE_COMMAND_TIMEOUT_MS },
 			);
+			assertCommandSucceeded(mutation, "devtunnel port create --json");
+			const confirmed = parsePorts(
+				parseJson(mutation.stdout, "devtunnel port create --json"),
+			)[0];
 			if (
+				confirmed === undefined ||
 				confirmed.portNumber !== port ||
 				confirmed.protocol?.toLowerCase() !== "http"
 			)
@@ -333,17 +361,19 @@ export function createDevTunnelAutomation(input?: {
 		},
 		async discoverPublicBaseUrl(tunnelId, port) {
 			let lastError: unknown;
-			for (let attempt = 0; attempt < 20; attempt += 1) {
-				const listed = await run(command, ["port", "list", tunnelId, "--json"]);
-				assertCommandSucceeded(listed, "devtunnel port list --json");
+			for (let attempt = 0; attempt < 3; attempt += 1) {
+				const shown = await run(command, ["show", tunnelId, "--json"], {
+					timeoutMs: REMOTE_COMMAND_TIMEOUT_MS,
+				});
+				assertCommandSucceeded(shown, "devtunnel show --json");
 				try {
 					return discoverPublicBaseUrl(
-						parseJson(listed.stdout, "devtunnel port list --json"),
+						parseJson(shown.stdout, "devtunnel show --json"),
 						port,
 					);
 				} catch (error) {
 					lastError = error;
-					if (attempt < 19)
+					if (attempt < 2)
 						await new Promise((resolve) => setTimeout(resolve, 250));
 				}
 			}
