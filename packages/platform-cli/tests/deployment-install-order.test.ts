@@ -29,7 +29,7 @@ function moduleOf(
 	};
 }
 
-test("frozen deployment install order starts with Chrome, Extension, Agents, Gateway and Tunnel", () => {
+test("CP-DEP-CLI-INSTALL-ORDER-01 frozen deployment install order starts with Chrome, Extension, Agents, Gateway and Tunnel", () => {
 	assert.deepEqual(FROZEN_DEPLOYMENT_INSTALL_ORDER.slice(0, 7), [
 		"chrome-runtime",
 		"execution-browser-extension",
@@ -42,7 +42,7 @@ test("frozen deployment install order starts with Chrome, Extension, Agents, Gat
 	assert.equal(FROZEN_DEPLOYMENT_INSTALL_ORDER.at(-1), "chatgpt-carrier");
 });
 
-test("known modules follow product install order regardless of discovery order", () => {
+test("CP-DEP-CLI-INSTALL-ORDER-02 RF-DEP-CLI-INSTALL-ORDER-02 known modules follow product install order regardless of discovery order", () => {
 	assert.deepEqual(
 		orderModuleRefsForInstall([
 			"dev-tunnel",
@@ -61,14 +61,14 @@ test("known modules follow product install order regardless of discovery order",
 	);
 });
 
-test("unknown future modules are deterministic and run after the frozen known sequence", () => {
+test("CP-DEP-CLI-INSTALL-ORDER-04 unknown future modules are deterministic and run after the frozen known sequence", () => {
 	assert.deepEqual(
 		orderModuleRefsForInstall(["z-future", "chrome-runtime", "a-future"]),
 		["chrome-runtime", "a-future", "z-future"],
 	);
 });
 
-test("installModulesThin uses deployment order while still validating dependencies", async () => {
+test("CP-DEP-CLI-INSTALL-ORDER-03 RF-DEP-CLI-INSTALL-ORDER-01 install uses deployment order while still validating dependencies", async () => {
 	const calls: string[] = [];
 	const modules = [
 		moduleOf("dev-tunnel"),

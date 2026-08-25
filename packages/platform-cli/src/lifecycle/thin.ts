@@ -278,11 +278,36 @@ export async function setupModulesThin(
 ): Promise<ModuleBatchResult> {
 	const results: ModuleDispatchResult[] = [];
 	const skipped: NonNullable<ModuleBatchResult["skipped"]> = [];
-	let matched = target === undefined;
+	const blockers: NonNullable<ModuleBatchResult["blockers"]> = [];
+	const graph = buildDependencyGraph(modules);
+	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
+	const dependenciesByRef = new Map<string, string[]>();
+	for (const edge of graph.edges) {
+		const dependencies = dependenciesByRef.get(edge.from) ?? [];
+		dependencies.push(edge.to);
+		dependenciesByRef.set(edge.from, dependencies);
+	}
+	if (target !== undefined && !byRef.has(target.moduleRef))
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			`setup target module ${target.moduleRef} was not discovered`,
+		);
+	const visitedRefs = new Set<string>();
+	const includeWithDependencies = (moduleRef: string): void => {
+		if (visitedRefs.has(moduleRef)) return;
+		visitedRefs.add(moduleRef);
+		for (const dependency of dependenciesByRef.get(moduleRef) ?? [])
+			includeWithDependencies(dependency);
+	};
+	if (target !== undefined) includeWithDependencies(target.moduleRef);
+	else for (const moduleRef of graph.order) visitedRefs.add(moduleRef);
+	const modulesInOrder = graph.order
+		.filter((moduleRef) => visitedRefs.has(moduleRef))
+		.map((moduleRef) => byRef.get(moduleRef))
+		.filter((module): module is ResolvedModule => module !== undefined);
+	const setupStatusByRef = new Map<string, ModuleSetupStatus>();
 	let completed = true;
-	const modulesInOrder = ordered(modules);
 	for (const [index, module] of modulesInOrder.entries()) {
-		if (target !== undefined && module.moduleRef !== target.moduleRef) continue;
 		reportProgress(reporter, {
 			command: "setup",
 			phase: "setup",
@@ -292,7 +317,6 @@ export async function setupModulesThin(
 			status: "STARTED",
 			message: module.moduleRef,
 		});
-		matched = true;
 		const status = await dispatchModuleCommand(
 			catalog,
 			module,
@@ -301,11 +325,14 @@ export async function setupModulesThin(
 		);
 		if (!succeeded(status.result)) {
 			results.push(status);
+			setupStatusByRef.set(module.moduleRef, "FAILED");
 			completed = false;
-			if (target !== undefined) break;
+			if (target?.moduleRef === module.moduleRef) break;
 			continue;
 		}
 		const observed = moduleStatusObservationSchema.parse(status.result.data);
+		setupStatusByRef.set(module.moduleRef, observed.setupStatus);
+		if (target !== undefined && module.moduleRef !== target.moduleRef) continue;
 		if (observed.setupStatus === "READY" && target === undefined) {
 			skipped.push({ moduleRef: module.moduleRef, reason: "READY" });
 			reportProgress(reporter, {
@@ -317,6 +344,30 @@ export async function setupModulesThin(
 				status: "SKIPPED",
 				message: module.moduleRef,
 			});
+			continue;
+		}
+		const unavailableDependencies = (
+			dependenciesByRef.get(module.moduleRef) ?? []
+		).filter((moduleRef) => setupStatusByRef.get(moduleRef) !== "READY");
+		if (unavailableDependencies.length > 0) {
+			const first = unavailableDependencies[0] as string;
+			blockers.push({
+				moduleRef: module.moduleRef,
+				setupStatus: "BLOCKED",
+				reason: `等待依赖模块就绪：${unavailableDependencies.join(", ")}`,
+				nextCommand: `platform setup --module ${first}`,
+			});
+			completed = false;
+			reportProgress(reporter, {
+				command: "setup",
+				phase: "setup",
+				current: index + 1,
+				total: modulesInOrder.length,
+				moduleRef: module.moduleRef,
+				status: "SKIPPED",
+				message: `${module.moduleRef} 等待 ${unavailableDependencies.join(", ")}`,
+			});
+			if (target !== undefined) break;
 			continue;
 		}
 		const setup = await dispatchModuleCommand(
@@ -341,15 +392,32 @@ export async function setupModulesThin(
 		});
 		if (!succeeded(setup.result)) {
 			completed = false;
-			if (target !== undefined) break;
 		}
-	}
-	if (!matched)
-		throw new PlatformError(
-			"INVALID_REQUEST",
-			`setup target module ${target?.moduleRef ?? ""} was not discovered`,
+		const reconciled = await dispatchModuleCommand(
+			catalog,
+			module,
+			"status",
+			context(workspaceRoot),
 		);
-	return { phase: "setup", results, completed, skipped };
+		if (succeeded(reconciled.result))
+			setupStatusByRef.set(
+				module.moduleRef,
+				moduleStatusObservationSchema.parse(reconciled.result.data).setupStatus,
+			);
+		else {
+			results.push(reconciled);
+			setupStatusByRef.set(module.moduleRef, "FAILED");
+			completed = false;
+		}
+		if (target !== undefined && !succeeded(setup.result)) break;
+	}
+	return {
+		phase: "setup",
+		results,
+		completed,
+		...(blockers[0] ? { blockedBy: blockers[0], blockers } : {}),
+		skipped,
+	};
 }
 export async function startModulesThin(
 	catalog: ModuleCatalog,

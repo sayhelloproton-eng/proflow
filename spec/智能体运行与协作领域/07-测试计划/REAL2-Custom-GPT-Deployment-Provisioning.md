@@ -45,6 +45,8 @@ sourceRefs:
 - [x] **CP-REAL2-PROV-10** — Real-1 已独立证明 Registry/Fresh Workspace 部署合同；Real-2 在与 Gateway 相同 authoritative workspace scope 中真实创建三个 Private GPT，最终 `ROLE_COUNT=3`，三个 current Role 均使用 ZIP Knowledge、三项 capability 与 Bearer Auth，并通过 Role/Gateway 验证。Real-2 不重复承担 Real-1 的 Fresh Workspace 安装验收。
 - [x] **CP-REAL2-PROV-11** — Provisioning 增量对既有 `/g/*` Runtime Carrier、Task Observer、Worker CREATE/RESTORE/WAKE、Collaboration 与 Browser Effect/Recovery 回归零语义变化；Extension targeted suite 与三个 Agent package suites/typecheck 均通过。
 
+Executable mapping：`packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts`、`packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts`、`packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts`、`packages/execution-browser-extension/tests/custom-gpt-role.test.ts`、`packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts`、`packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts`、`packages/agent-product/tests/agent-product-static.test.ts`、`packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts`、`packages/agent-test-ops/tests/agent-test-ops-static.test.ts`。
+
 ## 4. Required Failure Boundaries
 
 - [x] **RF-REAL2-PROV-01** — Extension 未加载/heartbeat stale/bridge auth invalid 会阻塞 provisioning，不伪造 READY；pairing/bridge executable tests 已覆盖。
@@ -54,6 +56,8 @@ sourceRefs:
 - [x] **RF-REAL2-PROV-05** — Role credential 不进入日志、Evidence、runtime config、chrome.storage 或静态扩展包；真实验证只检查状态/掩码 `[HIDDEN]`，不读取或打印 secret。
 - [x] **RF-REAL2-PROV-06** — `Module.setup` READY 重跑不重复创建；显式 recreate 只覆盖同 package current binding，其他 Agent Package Role 不变；同 workspace queue 串行且失败不毒化后序。
 - [x] **RF-REAL2-PROV-07** — Provisioning 与 Task/Worker/Execution runtime 状态机保持隔离，Provisioning DTO 与 surface 静态测试持续禁止 runtime business vocabulary。
+
+Executable mapping：`packages/execution-browser-extension/tests/browser-extension-pairing.test.ts`、`packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts`、`packages/execution-browser-extension/tests/custom-gpt-role.test.ts`、`packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts`、`packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts`。
 ## 5. Real / Fake Boundary
 
 Unit/TDD 可 fake DOM、Chrome API、bridge transport 和 package files；最终验收已使用真实 Chrome Extension heartbeat、真实 `/gpts/editor` DOM、ZIP Knowledge upload、model/capability readback、private create、真实 g-id/live reality、真实 Role/credential、真实 Gateway probe 与失败回滚证据。

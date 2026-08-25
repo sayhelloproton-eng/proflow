@@ -6,12 +6,12 @@
     "crossDomain44": "TRACE_EVIDENCE_MAPPED_NOT_44_INDEPENDENT_REAL_E2E_JOURNEYS"
   },
   "currentMechanicalInventory": {
-    "testPlans": 37,
-    "formalCaseIdentities": 265,
-    "criticalProofs": 165,
-    "requiredFailureBoundaries": 100,
-    "executableTestFiles": 124,
-    "executableTestCalls": 523,
+    "testPlans": 39,
+    "formalCaseIdentities": 316,
+    "criticalProofs": 199,
+    "requiredFailureBoundaries": 117,
+    "executableTestFiles": 140,
+    "executableTestCalls": 615,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -37,9 +37,11 @@
         "agent-controller-dev"
       ],
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -62,9 +64,11 @@
         "agent-controller-dev"
       ],
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -87,9 +91,11 @@
         "agent-controller-dev"
       ],
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -112,9 +118,11 @@
         "agent-controller-dev"
       ],
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -640,6 +648,7 @@
         "packages/agent-product/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -665,6 +674,7 @@
         "packages/agent-product/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -690,6 +700,7 @@
         "packages/agent-product/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -715,6 +726,7 @@
         "packages/agent-product/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -740,6 +752,7 @@
         "packages/agent-product/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -765,6 +778,7 @@
         "packages/agent-product/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -1122,9 +1136,11 @@
         "agent-test-ops"
       ],
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -1147,9 +1163,11 @@
         "agent-test-ops"
       ],
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -1172,9 +1190,11 @@
         "agent-test-ops"
       ],
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -1197,9 +1217,11 @@
         "agent-test-ops"
       ],
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -1369,6 +1391,478 @@
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-INSTALL-ORDER-01",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/deployment-install-order.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/deployment-order.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-INSTALL-ORDER-02",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/deployment-install-order.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/deployment-order.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-INSTALL-ORDER-03",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/deployment-install-order.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/deployment-order.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-INSTALL-ORDER-04",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/deployment-install-order.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/deployment-order.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-REAL2-01",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-REAL2-02",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-REAL2-03",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-REAL2-04",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-REAL2-05",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEV-TUNNEL-01",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEV-TUNNEL",
+          "path": "spec/部署领域/07-测试计划/modules/dev-tunnel.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/dev-tunnel/tests/automation.test.ts"
+      ],
+      "ownerPackages": [
+        "dev-tunnel"
+      ],
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEV-TUNNEL-02",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEV-TUNNEL",
+          "path": "spec/部署领域/07-测试计划/modules/dev-tunnel.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/dev-tunnel/tests/automation.test.ts"
+      ],
+      "ownerPackages": [
+        "dev-tunnel"
+      ],
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEV-TUNNEL-03",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEV-TUNNEL",
+          "path": "spec/部署领域/07-测试计划/modules/dev-tunnel.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/dev-tunnel/tests/automation.test.ts"
+      ],
+      "ownerPackages": [
+        "dev-tunnel"
+      ],
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEV-TUNNEL-04",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEV-TUNNEL",
+          "path": "spec/部署领域/07-测试计划/modules/dev-tunnel.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/dev-tunnel/tests/automation.test.ts"
+      ],
+      "ownerPackages": [
+        "dev-tunnel"
+      ],
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEV-TUNNEL-05",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEV-TUNNEL",
+          "path": "spec/部署领域/07-测试计划/modules/dev-tunnel.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/dev-tunnel/tests/automation.test.ts"
+      ],
+      "ownerPackages": [
+        "dev-tunnel"
+      ],
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEV-TUNNEL-06",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEV-TUNNEL",
+          "path": "spec/部署领域/07-测试计划/modules/dev-tunnel.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/dev-tunnel/tests/automation.test.ts"
+      ],
+      "ownerPackages": [
+        "dev-tunnel"
+      ],
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEV-TUNNEL-07",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEV-TUNNEL",
+          "path": "spec/部署领域/07-测试计划/modules/dev-tunnel.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/dev-tunnel/tests/automation.test.ts"
+      ],
+      "ownerPackages": [
+        "dev-tunnel"
+      ],
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEV-TUNNEL-08",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEV-TUNNEL",
+          "path": "spec/部署领域/07-测试计划/modules/dev-tunnel.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/dev-tunnel/tests/v1-owner-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "dev-tunnel"
+      ],
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/cli.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -1738,6 +2232,165 @@
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
       ],
       "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-15",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-16",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
+        "packages/execution-browser-extension/tests/deployment-pairing-setup.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/src/configure.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-17",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/custom-gpt-provisioning-transport.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-18",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/custom-gpt-provisioning-transport.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-19",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-20",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -3780,19 +4433,591 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/model-runtime/tests/execution-command-risk-alignment.test.ts"
+        "packages/model-provider-api/tests/provider-probe.test.ts",
+        "packages/model-runtime/tests/execution-command-risk-alignment.test.ts",
+        "packages/model-runtime/tests/model-deployment-automation.test.ts"
       ],
       "ownerPackages": [
+        "model-provider-api",
         "model-runtime"
       ],
       "implementationRefs": [
+        "packages/model-provider-api/src/resource-adapter.ts",
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
         "packages/model-runtime/src/index.ts",
-        "packages/model-runtime/src/specs/execution-command-risk.ts"
+        "packages/model-runtime/src/specs/execution-command-risk.ts",
+        "packages/module-contract/src/index.ts"
       ],
       "proofStrengths": [
-        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
-      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-01",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-test-ops"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts"
+      ],
+      "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-02",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-03",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-04",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-05",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-06",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-07",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-08",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-09",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-10",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-REAL2-PROV-11",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -4406,9 +5631,11 @@
         "agent-controller-dev"
       ],
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -4431,9 +5658,11 @@
         "agent-controller-dev"
       ],
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -4456,9 +5685,11 @@
         "agent-controller-dev"
       ],
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -4481,9 +5712,11 @@
         "agent-controller-dev"
       ],
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -5039,9 +6272,11 @@
         "agent-test-ops"
       ],
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -5064,9 +6299,11 @@
         "agent-test-ops"
       ],
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -5089,9 +6326,11 @@
         "agent-test-ops"
       ],
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -5114,9 +6353,11 @@
         "agent-test-ops"
       ],
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
@@ -5153,6 +6394,149 @@
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-DEP-CLI-INSTALL-ORDER-01",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/deployment-install-order.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/deployment-order.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-DEP-CLI-INSTALL-ORDER-02",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/deployment-install-order.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/deployment-order.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-DEP-CLI-REAL2-01",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-DEP-CLI-REAL2-02",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-DEP-CLI-REAL2-03",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -5203,6 +6587,99 @@
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-EXE-BR-14",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/runtime-composition.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/runtime-composition.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-EXE-BR-15",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
+    },
+    {
+      "caseId": "RF-EXE-BR-16",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
+    },
+    {
+      "caseId": "RF-EXE-BR-17",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
+    },
+    {
+      "caseId": "RF-EXE-BR-18",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
     },
     {
       "caseId": "RF-EXE-CON-01",
@@ -6394,20 +7871,26 @@
           "path": "spec/模型与推理领域/07-测试计划/modules/model-runtime.md"
         }
       ],
-      "proofClass": "HISTORICAL_TRACE_REVALIDATED",
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts"
+        "packages/model-provider-api/tests/provider-probe.test.ts",
+        "packages/model-runtime/tests/model-deployment-automation.test.ts"
       ],
       "ownerPackages": [
+        "model-provider-api",
         "model-runtime"
       ],
       "implementationRefs": [
-        "packages/model-runtime/src/index.ts"
+        "packages/model-provider-api/src/resource-adapter.ts",
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
       ],
       "proofStrengths": [
-        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
-      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -6494,20 +7977,26 @@
           "path": "spec/模型与推理领域/07-测试计划/modules/model-runtime.md"
         }
       ],
-      "proofClass": "HISTORICAL_TRACE_REVALIDATED",
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts"
+        "packages/model-provider-api/tests/provider-probe.test.ts",
+        "packages/model-runtime/tests/model-deployment-automation.test.ts"
       ],
       "ownerPackages": [
+        "model-provider-api",
         "model-runtime"
       ],
       "implementationRefs": [
-        "packages/model-runtime/src/index.ts"
+        "packages/model-provider-api/src/resource-adapter.ts",
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
       ],
       "proofStrengths": [
-        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
-      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -6519,20 +8008,26 @@
           "path": "spec/模型与推理领域/07-测试计划/modules/model-runtime.md"
         }
       ],
-      "proofClass": "HISTORICAL_TRACE_REVALIDATED",
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts"
+        "packages/model-provider-api/tests/provider-probe.test.ts",
+        "packages/model-runtime/tests/model-deployment-automation.test.ts"
       ],
       "ownerPackages": [
+        "model-provider-api",
         "model-runtime"
       ],
       "implementationRefs": [
-        "packages/model-runtime/src/index.ts"
+        "packages/model-provider-api/src/resource-adapter.ts",
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
       ],
       "proofStrengths": [
-        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
-      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -6685,12 +8180,15 @@
         "packages/execution-browser-extension/tests/background-observer-application.test.ts",
         "packages/execution-browser-extension/tests/system-observer-runtime.test.ts",
         "packages/execution-browser-extension/tests/task-observer-runtime.test.ts",
+        "packages/model-provider-api/tests/provider-probe.test.ts",
         "packages/model-runtime/tests/execution-command-risk-alignment.test.ts",
+        "packages/model-runtime/tests/model-deployment-automation.test.ts",
         "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
         "packages/model-runtime/tests/observer-task-diagnostic-alignment.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension",
+        "model-provider-api",
         "model-runtime"
       ],
       "implementationRefs": [
@@ -6698,18 +8196,23 @@
         "packages/execution-browser-extension/extension/side-panel.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
         "packages/execution-browser-extension/src/task-observer.ts",
+        "packages/model-provider-api/src/resource-adapter.ts",
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/process.ts",
         "packages/model-runtime/src/specs/execution-command-risk.ts",
         "packages/model-runtime/src/specs/system-health-assessment.ts",
-        "packages/model-runtime/src/specs/task-diagnostic.ts"
+        "packages/model-runtime/src/specs/task-diagnostic.ts",
+        "packages/module-contract/src/index.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
         "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
-      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -6738,6 +8241,391 @@
         "packages/platform-host/src/index.ts"
       ],
       "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-REAL2-PROV-01",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-REAL2-PROV-02",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-REAL2-PROV-03",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-REAL2-PROV-04",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-REAL2-PROV-05",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-REAL2-PROV-06",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-REAL2-PROV-07",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+          "path": "spec/智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-product/tests/agent-product-static.test.ts",
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+        "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+        "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-product",
+        "agent-runtime",
+        "agent-test-ops",
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-product/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts",
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts",
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/execution-browser-extension/src/custom-gpt-role.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts",
+        "packages/module-contract/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
         "PROCESS_OR_TRANSPORT_BEHAVIOR",
         "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"

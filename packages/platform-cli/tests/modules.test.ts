@@ -165,3 +165,62 @@ test("Dev Tunnel setup guidance uses automatic discovery without manual tunnel f
 	assert.match(rendered, /需要输入：无/);
 	assert.doesNotMatch(rendered, /--tunnel-id|--public-base-url/);
 });
+
+test("Platform setup guidance does not request stale Carrier, Agent, or model facts", () => {
+	for (const moduleRef of [
+		"chatgpt-carrier",
+		"agent-controller-dev",
+		"agent-product",
+		"agent-test-ops",
+		"model-provider-api",
+		"model-runtime",
+	]) {
+		const rendered = renderHumanResult({
+			command: "setup",
+			status: "ACTION_REQUIRED",
+			data: {
+				phase: "setup",
+				completed: false,
+				results: [
+					{
+						moduleRef,
+						result: {
+							status: "ACTION_REQUIRED",
+							actionRequired: {
+								action: `configure-${moduleRef}`,
+								description: "Reconcile current reality.",
+							},
+						},
+					},
+				],
+			},
+		});
+		assert.doesNotMatch(
+			rendered,
+			/--carrier-url|--fast-model|--reason-model|--provider-base-url/,
+		);
+	}
+});
+
+test("Platform setup output shows dependency-blocked modules without inventing Module setup results", () => {
+	const rendered = renderHumanResult({
+		command: "setup",
+		status: "BLOCKED",
+		data: {
+			phase: "setup",
+			completed: false,
+			results: [],
+			blockers: [
+				{
+					moduleRef: "model-runtime",
+					setupStatus: "BLOCKED",
+					reason: "等待依赖模块就绪：model-provider-api",
+					nextCommand: "platform setup --module model-provider-api",
+				},
+			],
+		},
+	});
+	assert.match(rendered, /◇ model-runtime/);
+	assert.match(rendered, /等待依赖模块就绪：model-provider-api/);
+	assert.match(rendered, /platform setup --module model-provider-api/);
+});

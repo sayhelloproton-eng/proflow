@@ -61,9 +61,13 @@ function recordingCatalog(
 	startFailureByRef: Readonly<Record<string, boolean>> = {},
 	stopFailureByRef: Readonly<Record<string, boolean>> = {},
 	uninstallFailureByRef: Readonly<Record<string, boolean>> = {},
+	setupStatusAfterSetupByRef: Readonly<
+		Record<string, "READY" | "ACTION_REQUIRED" | "BLOCKED" | "FAILED">
+	> = {},
 ) {
 	const calls: Array<{ call: string; input?: unknown }> = [];
 	const runtimeByRef = new Map<string, "RUNNING" | "STOPPED">();
+	const currentSetupByRef = { ...setupByRef };
 	const catalog: ModuleCatalog = {
 		async sources() {
 			return [];
@@ -111,6 +115,8 @@ function recordingCatalog(
 								observedEffects: [],
 							};
 				}
+				if (command === "setup" && setupStatusAfterSetupByRef[moduleRef])
+					currentSetupByRef[moduleRef] = setupStatusAfterSetupByRef[moduleRef];
 				if (command === "start" && startFailureByRef[moduleRef]) {
 					return {
 						result: {
@@ -152,7 +158,7 @@ function recordingCatalog(
 					};
 				}
 				if (command === "stop") runtimeByRef.set(moduleRef, "STOPPED");
-				const setupStatus = setupByRef[moduleRef] ?? "READY";
+				const setupStatus = currentSetupByRef[moduleRef] ?? "READY";
 				const data =
 					command === "status"
 						? {
@@ -411,7 +417,13 @@ test("setup skips READY modules and invokes only ACTION_REQUIRED module", async 
 	assert.equal(result.completed, true);
 	assert.deepEqual(
 		calls.map((item) => item.call),
-		["provider:status", "consumer:status", "consumer:setup", "leaf:status"],
+		[
+			"provider:status",
+			"consumer:status",
+			"consumer:setup",
+			"consumer:status",
+			"leaf:status",
+		],
 	);
 	assert.deepEqual(result.skipped, [
 		{ moduleRef: "provider", reason: "READY" },
@@ -419,7 +431,7 @@ test("setup skips READY modules and invokes only ACTION_REQUIRED module", async 
 	]);
 });
 
-test("setup aggregates every non-ready Module instead of stopping at the first action", async () => {
+test("setup aggregates non-ready Modules while downstream setup waits for current provider truth", async () => {
 	const { catalog, calls } = recordingCatalog(
 		{ consumer: "ACTION_REQUIRED", leaf: "ACTION_REQUIRED" },
 		{ consumer: "ACTION_REQUIRED", leaf: "ACTION_REQUIRED" },
@@ -432,17 +444,15 @@ test("setup aggregates every non-ready Module instead of stopping at the first a
 			"provider:status",
 			"consumer:status",
 			"consumer:setup",
+			"consumer:status",
 			"leaf:status",
-			"leaf:setup",
 		],
 	);
 	assert.deepEqual(
 		result.results.map((item) => [item.moduleRef, item.result.status]),
-		[
-			["consumer", "ACTION_REQUIRED"],
-			["leaf", "ACTION_REQUIRED"],
-		],
+		[["consumer", "ACTION_REQUIRED"]],
 	);
+	assert.equal(result.blockers?.[0]?.moduleRef, "leaf");
 });
 
 test("targeted setup forwards opaque input without Platform interpretation", async () => {
@@ -454,8 +464,10 @@ test("targeted setup forwards opaque input without Platform interpretation", asy
 	});
 	assert.equal(result.completed, true);
 	assert.deepEqual(calls, [
+		{ call: "provider:status" },
 		{ call: "consumer:status" },
 		{ call: "consumer:setup", input },
+		{ call: "consumer:status" },
 	]);
 });
 
@@ -468,32 +480,105 @@ test("targeted setup reconciles a READY module even without explicit input", asy
 	assert.deepEqual(calls, [
 		{ call: "provider:status" },
 		{ call: "provider:setup" },
+		{ call: "provider:status" },
 	]);
 	assert.deepEqual(result.skipped, []);
 });
 
 test("setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run", async () => {
+	const independent = moduleFixture({ moduleRef: "independent" });
 	const { catalog, calls } = recordingCatalog(
-		{ consumer: "ACTION_REQUIRED", leaf: "FAILED" },
-		{ consumer: "ACTION_REQUIRED", leaf: "FAILED" },
+		{ consumer: "ACTION_REQUIRED", independent: "FAILED" },
+		{ consumer: "ACTION_REQUIRED", independent: "FAILED" },
 	);
-	const result = await setupModulesThin(catalog, modules, workspaceRoot);
+	const result = await setupModulesThin(
+		catalog,
+		[consumer, provider, independent],
+		workspaceRoot,
+	);
 	assert.equal(result.completed, false);
 	assert.deepEqual(
-		result.results.map((item) => [item.moduleRef, item.result.status]),
+		result.results
+			.map((item) => [item.moduleRef, item.result.status])
+			.sort((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		[
 			["consumer", "ACTION_REQUIRED"],
-			["leaf", "FAILED"],
+			["independent", "FAILED"],
 		],
 	);
+	assert.equal(
+		calls.some((item) => item.call === "consumer:setup"),
+		true,
+	);
+	assert.equal(
+		calls.some((item) => item.call === "independent:setup"),
+		true,
+	);
+});
+
+test("CP-DEP-CLI-REAL2-01 CP-DEP-CLI-REAL2-02 same-run provider readiness unlocks dependent setup", async () => {
+	const { catalog, calls } = recordingCatalog(
+		{ provider: "ACTION_REQUIRED", consumer: "ACTION_REQUIRED" },
+		{},
+		{},
+		{},
+		{},
+		{ provider: "READY", consumer: "READY" },
+	);
+	const result = await setupModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(result.completed, true);
 	assert.deepEqual(
 		calls.map((item) => item.call),
 		[
 			"provider:status",
+			"provider:setup",
+			"provider:status",
 			"consumer:status",
 			"consumer:setup",
+			"consumer:status",
 			"leaf:status",
-			"leaf:setup",
 		],
 	);
+});
+
+test("CP-DEP-CLI-REAL2-03 CP-DEP-CLI-REAL2-05 RF-DEP-CLI-REAL2-01 RF-DEP-CLI-REAL2-02 blocked dependencies never run setup while independent modules continue", async () => {
+	const independent = moduleFixture({ moduleRef: "independent" });
+	const { catalog, calls } = recordingCatalog({
+		provider: "ACTION_REQUIRED",
+		consumer: "ACTION_REQUIRED",
+		independent: "ACTION_REQUIRED",
+	});
+	const result = await setupModulesThin(
+		catalog,
+		[consumer, provider, independent],
+		workspaceRoot,
+	);
+	assert.equal(result.completed, false);
+	assert.deepEqual(result.blockers, [
+		{
+			moduleRef: "consumer",
+			setupStatus: "BLOCKED",
+			reason: "等待依赖模块就绪：provider",
+			nextCommand: "platform setup --module provider",
+		},
+	]);
+	assert.equal(
+		calls.some((item) => item.call === "consumer:setup"),
+		false,
+	);
+	assert.equal(
+		calls.some((item) => item.call === "independent:setup"),
+		true,
+	);
+});
+
+test("CP-DEP-CLI-REAL2-04 RF-DEP-CLI-REAL2-03 dependency setup gate is generic and stores no module-specific resume state", async () => {
+	const source = await import("node:fs/promises").then(({ readFile }) =>
+		readFile(new URL("../src/lifecycle/thin.ts", import.meta.url), "utf8"),
+	);
+	assert.doesNotMatch(
+		source,
+		/execution-browser-extension|custom-gpt|agent-product|agent-controller-dev|agent-test-ops/,
+	);
+	assert.doesNotMatch(source, /resumeState|setupCheckpoint|persist.*setup/i);
 });

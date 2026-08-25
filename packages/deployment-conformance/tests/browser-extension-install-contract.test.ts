@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-import { descriptor as chromeDescriptor } from "../../chrome-runtime/deployment/descriptor.ts";
-
 const packagesRoot = new URL("../../../packages/", import.meta.url);
 
 async function text(relative: string) {
@@ -14,7 +12,8 @@ test("browser extension install exposes no manual identity and Chrome runtime ow
 	const chromeManifest = JSON.parse(
 		await text("chrome-runtime/proflow.module.json"),
 	) as Record<string, unknown>;
-	assert.deepEqual(chromeManifest, chromeDescriptor);
+	assert.equal(chromeManifest.moduleRef, "chrome-runtime");
+	assert.deepEqual(chromeManifest.configSlots, []);
 
 	const platformCli = await text("platform-cli/src/cli.ts");
 	const executionSetup = await text("execution-runtime/SETUP.md");

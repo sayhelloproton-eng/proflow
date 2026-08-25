@@ -908,36 +908,36 @@ function renderDocs(data: unknown, theme: HumanTheme) {
 }
 const setupCommands: Record<string, { ai: string; inputs: string }> = {
 	"chatgpt-carrier": {
-		ai: "pnpm exec -- proflow-chatgpt-carrier setup --carrier-url <url>",
-		inputs: "Custom GPT URL",
+		ai: "pnpm exec -- proflow-chatgpt-carrier setup",
+		inputs: "无",
 	},
 	"dev-tunnel": {
 		ai: "pnpm exec -- proflow-dev-tunnel setup",
 		inputs: "无",
 	},
 	"model-provider-api": {
-		ai: "pnpm exec -- proflow-model-provider-api setup --provider-base-url <url>",
-		inputs: "模型服务 Base URL",
+		ai: "pnpm exec -- proflow-model-provider-api setup",
+		inputs: "无（等待 Deployment resolver 提供 endpoint）",
 	},
 	"model-runtime": {
-		ai: "pnpm exec -- proflow-model-runtime setup --fast-model <id> --reason-model <id>",
-		inputs: "FAST 模型 ID、REASON 模型 ID",
+		ai: "pnpm exec -- proflow-model-runtime setup",
+		inputs: "无（仅等价合格候选歧义时选择）",
 	},
 	"execution-browser-extension": {
 		ai: "pnpm exec -- proflow-execution-browser-extension setup",
 		inputs: "无",
 	},
 	"agent-controller-dev": {
-		ai: "pnpm exec -- proflow-agent-controller-dev setup --carrier-url <url>",
-		inputs: "Custom GPT URL",
+		ai: "pnpm exec -- proflow-agent-controller-dev setup",
+		inputs: "无",
 	},
 	"agent-product": {
-		ai: "pnpm exec -- proflow-agent-product setup --carrier-url <url>",
-		inputs: "Custom GPT URL",
+		ai: "pnpm exec -- proflow-agent-product setup",
+		inputs: "无",
 	},
 	"agent-test-ops": {
-		ai: "pnpm exec -- proflow-agent-test-ops setup --carrier-url <url>",
-		inputs: "Custom GPT URL",
+		ai: "pnpm exec -- proflow-agent-test-ops setup",
+		inputs: "无",
 	},
 };
 function renderSetup(data: unknown, theme: HumanTheme) {
@@ -950,11 +950,13 @@ function renderSetup(data: unknown, theme: HumanTheme) {
 	).length;
 	let needsAction = 0;
 	let blocked = 0;
+	const renderedModuleRefs = new Set<string>();
 	for (const raw of data.results) {
 		if (!isRecord(raw) || !isRecord(raw.result)) continue;
 		const moduleRef = String(
 			raw.moduleRef ?? raw.result.moduleRef ?? "unknown",
 		);
+		renderedModuleRefs.add(moduleRef);
 		const status = String(raw.result.status ?? "UNKNOWN");
 		if (status === "SUCCEEDED") {
 			ready += 1;
@@ -1024,6 +1026,20 @@ function renderSetup(data: unknown, theme: HumanTheme) {
 			lines.push("  完成条件：配置状态变为“已就绪”");
 		}
 		lines.push("");
+	}
+	const dependencyBlockers = Array.isArray(data.blockers)
+		? data.blockers.filter(isRecord)
+		: [];
+	for (const item of dependencyBlockers) {
+		const moduleRef = String(item.moduleRef ?? "unknown");
+		if (renderedModuleRefs.has(moduleRef)) continue;
+		blocked += 1;
+		lines.push(
+			`${theme.info("◇")} ${theme.section(moduleRef)}`,
+			`  原因：${typeof item.reason === "string" ? item.reason : "等待上游 Module 就绪"}`,
+			`  下一步：${theme.command(typeof item.nextCommand === "string" ? item.nextCommand : `platform setup --module ${moduleRef}`)}`,
+			"",
+		);
 	}
 	if (needsAction === 0 && blocked === 0) lines.push("全部模块均已就绪。");
 	lines.push(
@@ -1102,7 +1118,6 @@ function renderHelp(theme: HumanTheme, command?: Command): string {
 		theme.section("人工配置示例"),
 		`  人工：${theme.command("pnpm exec -- proflow-chatgpt-carrier setup")}`,
 		`  AI：  ${theme.command("pnpm exec -- proflow-chatgpt-carrier setup")}`,
-		`        ${theme.command("--carrier-url <url>")}`,
 		"",
 		theme.section("状态图例"),
 		`  ${theme.success("已就绪")}    配置与验证完成`,

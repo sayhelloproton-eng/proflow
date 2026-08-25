@@ -34,3 +34,8 @@
 ## 职责边界与限制
 
 不读取浏览历史，不擅自关闭或导航用户标签页，也不把“Chrome 已安装”误当成 Extension 已就绪。`uninstall` 不删除用户 Chrome。
+
+## 术语
+
+- **Chrome Runtime**：本机可被 ProFlow 确定性发现和验证的 Google Chrome 应用。
+- **External Resource**：由用户/厂商拥有、ProFlow 只负责确保存在并观察当前现实的部署资源。

@@ -2,59 +2,103 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 124,
-    "testCalls": 523
+    "files": 140,
+    "testCalls": 615
   },
   "tests": [
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
-      "line": 26,
+      "line": 28,
       "title": "CP-AGT-DEV-01 instructions and Action allowlist are role-minimal",
       "ids": [
         "CP-AGT-DEV-01"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
-      "line": 59,
+      "line": 62,
       "title": "CP-AGT-DEV-02 Task and Execution access is owner Public Contract shaped",
       "ids": [
         "CP-AGT-DEV-02"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
-      "line": 64,
+      "line": 67,
       "title": "CP-AGT-DEV-03 sandbox artifact is explicitly not real apply",
       "ids": [
         "CP-AGT-DEV-03"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
-      "line": 70,
+      "line": 73,
       "title": "CP-AGT-DEV-04 provisioning/reopen real evidence remains external ACTION_REQUIRED",
       "ids": [
         "CP-AGT-DEV-04"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-controller-dev",
+      "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+      "line": 103,
+      "title": "CP-REAL2-PROV-01 Controller/Dev package owns complete Custom GPT provisioning material",
+      "ids": [
+        "CP-REAL2-PROV-01"
+      ],
+      "proofStrength": "REAL_EXTERNAL_DECLARATION",
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-controller-dev",
+      "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+      "line": 122,
+      "title": "CP-REAL2-PROV-01 custom-gpt setup exposes complete Controller/Dev provisioning material",
+      "ids": [
+        "CP-REAL2-PROV-01"
+      ],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-controller-dev",
+      "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+      "line": 149,
+      "title": "Real-2 Controller/Dev Module.setup uses the reusable Custom GPT role API",
+      "ids": [],
+      "proofStrength": "REAL_EXTERNAL_DECLARATION",
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
@@ -140,7 +184,7 @@
       "line": 17,
       "title": "module contract C1/C2/C3",
       "ids": [],
-      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/deployment/descriptor.ts",
@@ -154,7 +198,7 @@
       "line": 31,
       "title": "Module.setup observes durable Role registration reality",
       "ids": [],
-      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/deployment/descriptor.ts",
@@ -538,8 +582,8 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 38,
-      "title": "CP-AGT-PROD-01 generic Product package does not own pre-Task creation or require Knowledge specialization in v1",
+      "line": 39,
+      "title": "CP-AGT-PROD-01 generic Product package keeps static Role Knowledge separate from dynamic Task facts",
       "ids": [
         "CP-AGT-PROD-01"
       ],
@@ -551,7 +595,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 65,
+      "line": 66,
       "title": "CP-AGT-PROD-02 Product GPT-facing OpenAPI is static and excludes New Task / dynamic Role discovery operations",
       "ids": [
         "CP-AGT-PROD-02"
@@ -564,7 +608,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 91,
+      "line": 92,
       "title": "CP-AGT-PROD-03 + CP-AGT-PROD-04 Extension-first Task ownership is reflected by the Product surface while real c-id binding remains external",
       "ids": [
         "CP-AGT-PROD-03",
@@ -578,7 +622,7 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 123,
+      "line": 129,
       "title": "CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browser continue protocol",
       "ids": [
         "CP-AGT-PROD-05"
@@ -591,10 +635,36 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/agent-product-static.test.ts",
-      "line": 135,
+      "line": 141,
       "title": "CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked by package-local fixtures",
       "ids": [
         "CP-AGT-PROD-06"
+      ],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/agent-product/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-product",
+      "path": "packages/agent-product/tests/agent-product-static.test.ts",
+      "line": 167,
+      "title": "CP-REAL2-PROV-01 Product package owns complete Custom GPT provisioning material",
+      "ids": [
+        "CP-REAL2-PROV-01"
+      ],
+      "proofStrength": "REAL_EXTERNAL_DECLARATION",
+      "implementationRefs": [
+        "packages/agent-product/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-product",
+      "path": "packages/agent-product/tests/agent-product-static.test.ts",
+      "line": 186,
+      "title": "CP-REAL2-PROV-01 custom-gpt setup exposes complete Product provisioning material",
+      "ids": [
+        "CP-REAL2-PROV-01"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -614,11 +684,35 @@
     },
     {
       "package": "agent-product",
+      "path": "packages/agent-product/tests/custom-gpt-deployment-provisioner.test.ts",
+      "line": 5,
+      "title": "Real-2 agent-product Module.setup uses the reusable Custom GPT role API",
+      "ids": [],
+      "proofStrength": "REAL_EXTERNAL_DECLARATION",
+      "implementationRefs": [
+        "packages/agent-product/deployment/adapter.ts",
+        "packages/agent-product/src/custom-gpt-deployment-provisioner.ts"
+      ]
+    },
+    {
+      "package": "agent-product",
+      "path": "packages/agent-product/tests/custom-gpt-deployment-provisioner.test.ts",
+      "line": 37,
+      "title": "Real-2 agent-product no longer owns a private Custom GPT provisioner",
+      "ids": [],
+      "proofStrength": "REAL_EXTERNAL_DECLARATION",
+      "implementationRefs": [
+        "packages/agent-product/deployment/adapter.ts",
+        "packages/agent-product/src/custom-gpt-deployment-provisioner.ts"
+      ]
+    },
+    {
+      "package": "agent-product",
       "path": "packages/agent-product/tests/module-conformance.test.ts",
       "line": 17,
       "title": "module contract C1/C2/C3",
       "ids": [],
-      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/agent-product/deployment/adapter.ts",
         "packages/agent-product/deployment/descriptor.ts",
@@ -632,7 +726,7 @@
       "line": 31,
       "title": "Module.setup observes durable Role registration reality",
       "ids": [],
-      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/agent-product/deployment/adapter.ts",
         "packages/agent-product/deployment/descriptor.ts",
@@ -657,6 +751,19 @@
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
       "line": 128,
+      "title": "CP-AGT-RUNTIME-01A deployment save replaces only the package current role",
+      "ids": [
+        "CP-AGT-RUNTIME-01A"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-runtime",
+      "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+      "line": 222,
       "title": "CP-AGT-RUNTIME-02 one credential rotates without role identity or secret leakage",
       "ids": [
         "CP-AGT-RUNTIME-02"
@@ -669,7 +776,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 175,
+      "line": 269,
       "title": "CP-AGT-RUNTIME-03 worker validation uses authenticated role plus Task owner facts without a binding copy",
       "ids": [
         "CP-AGT-RUNTIME-03"
@@ -682,7 +789,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 200,
+      "line": 294,
       "title": "CP-AGT-RUNTIME-04 ask/reply is idempotent and next question waits for physical reply delivery",
       "ids": [
         "CP-AGT-RUNTIME-04"
@@ -695,7 +802,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 320,
+      "line": 414,
       "title": "RF-AGT-RUNTIME-04 an existing pair thread cannot be retargeted to a third Task participant",
       "ids": [
         "RF-AGT-RUNTIME-04"
@@ -708,7 +815,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 370,
+      "line": 464,
       "title": "CP-AGT-RUNTIME-05 terminal, missing participant, duplicate and concurrency paths fail safe",
       "ids": [
         "CP-AGT-RUNTIME-05"
@@ -721,7 +828,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 427,
+      "line": 521,
       "title": "CP-AGT-RUNTIME-06 integration is through injected Public Contract ports only",
       "ids": [
         "CP-AGT-RUNTIME-06"
@@ -734,7 +841,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 446,
+      "line": 540,
       "title": "B2-AGT-01 DELIVERED outcome requires non-empty executionRef and evidenceRef",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -745,7 +852,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 500,
+      "line": 594,
       "title": "B2-AGT-02 reply DELIVERED thread transition is atomic and checks its own row",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -756,7 +863,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 553,
+      "line": 647,
       "title": "B2-AGT-03 FAILED/UNKNOWN delivery update refuses a silent stale no-op",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -767,7 +874,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 637,
+      "line": 731,
       "title": "B2-AGT-07 UNKNOWN delivery stays durable PENDING for external reconciliation without Agent-side replay",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -778,7 +885,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 677,
+      "line": 771,
       "title": "B2-AGT-04 terminal PENDING history never starves later active pending messages",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -789,7 +896,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 775,
+      "line": 869,
       "title": "B2-AGT-05 terminal task delivery report never mutates historical PENDING messages",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -800,7 +907,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 823,
+      "line": 917,
       "title": "B2-AGT-06 rotateCredential publishes only durable current authority",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -811,7 +918,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 850,
+      "line": 944,
       "title": "PRESMOKE-B6-AGT-01 register/delete cross-file failure converges or surfaces half-state in-process",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -934,52 +1041,96 @@
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
-      "line": 26,
+      "line": 28,
       "title": "CP-AGT-TEST-01 instructions and Action allowlist preserve test/ops least privilege",
       "ids": [
         "CP-AGT-TEST-01"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
-      "line": 43,
+      "line": 46,
       "title": "CP-AGT-TEST-02 test result and evidence remain owner contract facts",
       "ids": [
         "CP-AGT-TEST-02"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
-      "line": 48,
+      "line": 51,
       "title": "CP-AGT-TEST-03 doctor verify recovery keep Deployment and Execution ownership",
       "ids": [
         "CP-AGT-TEST-03"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
-      "line": 58,
+      "line": 61,
       "title": "CP-AGT-TEST-04 provisioning/reopen real evidence remains external ACTION_REQUIRED",
       "ids": [
         "CP-AGT-TEST-04"
       ],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-test-ops",
+      "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+      "line": 88,
+      "title": "CP-REAL2-PROV-01 Test/Ops package owns complete Custom GPT provisioning material",
+      "ids": [
+        "CP-REAL2-PROV-01"
+      ],
+      "proofStrength": "REAL_EXTERNAL_DECLARATION",
+      "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-test-ops",
+      "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+      "line": 107,
+      "title": "CP-REAL2-PROV-01 custom-gpt setup exposes complete Test/Ops provisioning material",
+      "ids": [
+        "CP-REAL2-PROV-01"
+      ],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-test-ops",
+      "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+      "line": 134,
+      "title": "Real-2 Test/Ops Module.setup uses the reusable Custom GPT role API",
+      "ids": [],
+      "proofStrength": "REAL_EXTERNAL_DECLARATION",
+      "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
@@ -1052,7 +1203,7 @@
       "line": 17,
       "title": "module contract C1/C2/C3",
       "ids": [],
-      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/deployment/descriptor.ts",
@@ -1066,7 +1217,7 @@
       "line": 31,
       "title": "Module.setup observes durable Role registration reality",
       "ids": [],
-      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/deployment/descriptor.ts",
@@ -1077,8 +1228,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 31,
-      "title": "parseModuleDescriptor accepts the chatgpt-carrier descriptor without legacy lifecycle/verification fields",
+      "line": 33,
+      "title": "descriptor declares only machine-observable ChatGPT Web prerequisites",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1090,8 +1241,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 44,
-      "title": "unconfigured carrier status is ACTION_REQUIRED truth and setup owns the human step",
+      "line": 43,
+      "title": "reachable ChatGPT Web makes status and setup READY without user input",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1103,8 +1254,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 73,
-      "title": "external-resource adapter exposes the fixed seven-command management surface",
+      "line": 61,
+      "title": "unreachable ChatGPT Web remains ACTION_REQUIRED instead of fake READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1116,8 +1267,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 85,
-      "title": "reachability alone never makes incomplete Action/auth verification READY",
+      "line": 75,
+      "title": "setup never writes a second carrier URL or capability verification store",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1129,8 +1280,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/chatgpt-carrier.test.ts",
-      "line": 104,
-      "title": "production status accepts protected 401/403 only with healthy Web verification evidence",
+      "line": 99,
+      "title": "external-resource adapter keeps the fixed seven-command management surface",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1153,8 +1304,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 34,
-      "title": "EXT-CHATGPT-01 v1 carrier readiness is capability/behavior based, never exact-model pinned",
+      "line": 24,
+      "title": "EXT-CHATGPT-01 deployment carrier observer owns no exact-model or concrete Role truth",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1165,8 +1316,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 43,
-      "title": "EXT-CHATGPT-02 Knowledge specialization is deferred and is not a setup prerequisite",
+      "line": 36,
+      "title": "EXT-CHATGPT-02 setup has no user-supplied GPT URL or capability confirmation",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1177,8 +1328,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 48,
-      "title": "EXT-CHATGPT-03 real Action auth/OpenAPI/File Bridge/native capabilities are independently accepted only as real setup evidence",
+      "line": 44,
+      "title": "EXT-CHATGPT-03 reachable Web is machine-observed as READY",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1189,8 +1340,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 70,
-      "title": "EXT-CHATGPT-04 stable Conversation c-id is not claimed from GPT Actions or persisted by Deployment adapter",
+      "line": 55,
+      "title": "EXT-CHATGPT-04 stable Conversation c-id remains outside Deployment carrier observation",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1201,8 +1352,8 @@
     {
       "package": "chatgpt-carrier",
       "path": "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts",
-      "line": 79,
-      "title": "EXT-CHATGPT-05 unmet Web-only setup remains ACTION_REQUIRED and never becomes fake READY",
+      "line": 63,
+      "title": "EXT-CHATGPT-05 unavailable Web remains ACTION_REQUIRED and never fake READY",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
@@ -1213,7 +1364,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 37,
+      "line": 35,
       "title": "parseModuleDescriptor accepts the chrome-runtime descriptor",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1227,8 +1378,8 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 45,
-      "title": "adapter status/setup report only Chrome runtime prerequisite truth",
+      "line": 47,
+      "title": "install is idempotent when Chrome is already available",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1241,7 +1392,77 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 84,
+      "line": 62,
+      "title": "install automatically installs missing Chrome and verifies it",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/chrome-runtime/deployment/adapter.ts",
+        "packages/chrome-runtime/deployment/descriptor.ts",
+        "packages/chrome-runtime/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "chrome-runtime",
+      "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
+      "line": 87,
+      "title": "install fails closed when automatic Chrome installation fails",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/chrome-runtime/deployment/adapter.ts",
+        "packages/chrome-runtime/deployment/descriptor.ts",
+        "packages/chrome-runtime/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "chrome-runtime",
+      "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
+      "line": 104,
+      "title": "status exposes one stable recovery command when Chrome is unavailable",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/chrome-runtime/deployment/adapter.ts",
+        "packages/chrome-runtime/deployment/descriptor.ts",
+        "packages/chrome-runtime/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "chrome-runtime",
+      "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
+      "line": 122,
+      "title": "macOS installer uses the official Chrome DMG and verifies the installed executable",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/chrome-runtime/deployment/adapter.ts",
+        "packages/chrome-runtime/deployment/descriptor.ts",
+        "packages/chrome-runtime/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "chrome-runtime",
+      "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
+      "line": 149,
+      "title": "automatic install fails closed on unsupported operating systems",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/chrome-runtime/deployment/adapter.ts",
+        "packages/chrome-runtime/deployment/descriptor.ts",
+        "packages/chrome-runtime/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "chrome-runtime",
+      "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
+      "line": 156,
       "title": "explicit Chrome probe tolerates a slow but healthy version response beyond five seconds",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1255,7 +1476,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/chrome-runtime.test.ts",
-      "line": 102,
+      "line": 174,
       "title": "adapter exposes exactly the fixed seven management commands without a restart primitive",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1316,7 +1537,7 @@
     {
       "package": "chrome-runtime",
       "path": "packages/chrome-runtime/tests/v1-carrier-boundary.test.ts",
-      "line": 54,
+      "line": 53,
       "title": "EXT-CHROME-04 external Chrome runtime uses the fixed seven-command management contract without descriptor lifecycle metadata",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1395,6 +1616,17 @@
         "packages/deployment-conformance/src/index.ts",
         "packages/module-contract/src/index.ts",
         "packages/module-template/src/index.ts"
+      ]
+    },
+    {
+      "package": "deployment-conformance",
+      "path": "packages/deployment-conformance/tests/browser-extension-install-contract.test.ts",
+      "line": 11,
+      "title": "browser extension install exposes no manual identity and Chrome runtime owns no Extension load action",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/deployment-conformance/src/index.ts"
       ]
     },
     {
@@ -1532,8 +1764,187 @@
     },
     {
       "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 24,
+      "title": "CP-DEV-TUNNEL-01 login JSON is authoritative and logged-out statuses are not misread from exit 0",
+      "ids": [
+        "CP-DEV-TUNNEL-01"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 62,
+      "title": "CP-DEV-TUNNEL-01 valid login is reused without opening browser auth",
+      "ids": [
+        "CP-DEV-TUNNEL-01"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 79,
+      "title": "CP-DEV-TUNNEL-02 automatic creation is anonymous, randomly identified by the provider, and verified by exact show",
+      "ids": [
+        "CP-DEV-TUNNEL-02"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 103,
+      "title": "CP-DEV-TUNNEL-01 cancelled login and unknown login fail closed",
+      "ids": [
+        "CP-DEV-TUNNEL-01"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 119,
+      "title": "CP-DEV-TUNNEL-04 port reconciliation is idempotent and bounded",
+      "ids": [
+        "CP-DEV-TUNNEL-04"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 188,
+      "title": "CP-DEV-TUNNEL-04 protocol drift stops after exact-port delete failure and never claims reconciliation",
+      "ids": [
+        "CP-DEV-TUNNEL-04"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 210,
+      "title": "CP-DEV-TUNNEL-05 public URL discovery selects the current Gateway port and rejects unsafe values",
+      "ids": [
+        "CP-DEV-TUNNEL-05"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 279,
+      "title": "CP-DEV-TUNNEL-03 single-call setup consumes the Gateway-owned endpoint fact",
+      "ids": [
+        "CP-DEV-TUNNEL-03"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 353,
+      "title": "CP-DEV-TUNNEL-06 repeated setup keeps Tunnel and port identity stable without login or host replay",
+      "ids": [
+        "CP-DEV-TUNNEL-06"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 432,
+      "title": "CP-DEV-TUNNEL-02 CP-DEV-TUNNEL-07 workspace reuse, remote rebind, and UNKNOWN host fail-closed",
+      "ids": [
+        "CP-DEV-TUNNEL-02",
+        "CP-DEV-TUNNEL-07"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 543,
+      "title": "missing Gateway producer fact and provisioning failure never write READY state",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 627,
+      "title": "CP-DEV-TUNNEL-01 failed browser login performs no Tunnel mutation",
+      "ids": [
+        "CP-DEV-TUNNEL-01"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/current-spec-alignment.test.ts",
-      "line": 13,
+      "line": 17,
       "title": "SPEC-ALIGN dev-tunnel remains an honest Deployment-owned external-resource adapter",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
@@ -1698,34 +2109,51 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/v1-owner-boundary.test.ts",
-      "line": 9,
+      "line": 11,
       "title": "EXT-TUNNEL-01 dev-tunnel owns ingress lifecycle only, never Gateway routing/auth or Task/Agent facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/dev-tunnel/deployment/descriptor.ts"
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/cli.ts"
       ]
     },
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/v1-owner-boundary.test.ts",
-      "line": 23,
+      "line": 25,
       "title": "EXT-TUNNEL-02 managed tunnel remains process-owning while standard lifecycle metadata is removed",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/dev-tunnel/deployment/descriptor.ts"
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/cli.ts"
       ]
     },
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/v1-owner-boundary.test.ts",
-      "line": 32,
+      "line": 34,
       "title": "EXT-TUNNEL-03 ingress diagnostics remain Module-owned instead of descriptor verification metadata",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/dev-tunnel/deployment/descriptor.ts"
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/cli.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/v1-owner-boundary.test.ts",
+      "line": 42,
+      "title": "CP-DEV-TUNNEL-08 setup exposes zero user-supplied Tunnel configuration and preserves contract",
+      "ids": [
+        "CP-DEV-TUNNEL-08"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/cli.ts"
       ]
     },
     {
@@ -1822,6 +2250,30 @@
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
         "packages/execution-browser-extension/extension/side-panel.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
+      "line": 31,
+      "title": "CP-EXE-BR-16 pairing binds identity only after authenticated hello + heartbeat",
+      "ids": [
+        "CP-EXE-BR-16"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
+      "line": 86,
+      "title": "pairing close is bounded when a browser keeps an HTTP request active",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts"
       ]
     },
     {
@@ -2080,6 +2532,182 @@
     },
     {
       "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+      "line": 37,
+      "title": "CP-EXE-BR-19 editor driver applies package-owned draft material without inventing defaults",
+      "ids": [
+        "CP-EXE-BR-19"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-editor-driver.test.ts",
+      "line": 94,
+      "title": "CP-EXE-BR-19 provisioning request rejects missing package-owned values",
+      "ids": [
+        "CP-EXE-BR-19"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-editor-driver.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+      "line": 77,
+      "title": "CP-EXE-BR-20 knowledge ZIP materialization is traversal-safe and hashed",
+      "ids": [
+        "CP-EXE-BR-20"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts",
+      "line": 107,
+      "title": "CP-EXE-BR-20 provisioning file relay is authenticated and one-time",
+      "ids": [
+        "CP-EXE-BR-20"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-knowledge.ts",
+        "packages/execution-browser-extension/src/provisioning-bridge.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+      "line": 63,
+      "title": "CP-EXE-BR-20 Mac provisioner hydrates package assets before sending one provisioning command",
+      "ids": [
+        "CP-EXE-BR-20"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-provisioner.test.ts",
+      "line": 191,
+      "title": "CP-EXE-BR-20 workspace factory binds the Extension-owned deterministic provisioning facts",
+      "ids": [
+        "CP-EXE-BR-20"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-provisioning-transport.test.ts",
+      "line": 38,
+      "title": "CP-EXE-BR-17 provisioning uses an independent authenticated command transport",
+      "ids": [
+        "CP-EXE-BR-17"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-provisioning-transport.test.ts",
+      "line": 140,
+      "title": "CP-EXE-BR-17A knowledge relay accepts the real originless GET once",
+      "ids": [
+        "CP-EXE-BR-17A"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-provisioning-transport.test.ts",
+      "line": 191,
+      "title": "CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content surface",
+      "ids": [
+        "CP-EXE-BR-18"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+      "line": 99,
+      "title": "createCustomGptRole configures prepared bearer before create and verifies the activated carrier",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-role.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+      "line": 141,
+      "title": "createCustomGptRole does not persist or finalize auth when provisioning fails",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-role.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+      "line": 182,
+      "title": "createCustomGptRole restores the previous current role when carrier verification fails",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-role.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+      "line": 213,
+      "title": "createCustomGptRole serializes simultaneous creates inside one workspace through auth and verification",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-role.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
+      "line": 244,
+      "title": "createCustomGptRole continues the workspace queue after a failed create",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/custom-gpt-role.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/deployment-adapter-packaged-layout.test.ts",
       "line": 7,
       "title": "published deployment adapter resolves the package root outside dist",
@@ -2087,6 +2715,78 @@
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-browser-extension/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/deployment-pairing-setup.test.ts",
+      "line": 31,
+      "title": "CP-EXE-BR-16 deployment pairing persists only heartbeat-proven Extension reality",
+      "ids": [
+        "CP-EXE-BR-16"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/src/configure.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/deployment-pairing-setup.test.ts",
+      "line": 121,
+      "title": "CP-EXE-BR-16 setup surface removes manual Extension ID and fake RUNNING evidence",
+      "ids": [
+        "CP-EXE-BR-16"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/src/configure.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts",
+      "line": 7,
+      "title": "CP-EXE-BR-15 deployment provisioning uses an isolated GPT editor content script",
+      "ids": [
+        "CP-EXE-BR-15"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts",
+      "line": 28,
+      "title": "CP-EXE-BR-15 provisioning surface has no Task/Worker runtime business vocabulary",
+      "ids": [
+        "CP-EXE-BR-15"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts",
+      "line": 39,
+      "title": "CP-EXE-BR-15 descriptor exposes deployment provisioning as a separate capability",
+      "ids": [
+        "CP-EXE-BR-15"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/extension/provisioning-content.ts"
       ]
     },
     {
@@ -2267,6 +2967,93 @@
       "implementationRefs": [
         "packages/execution-browser-extension/src/index.ts",
         "packages/execution-contracts/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
+      "line": 136,
+      "title": "minimal install journey reaches READY and repeated setup does not ask the user again",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
+      "line": 168,
+      "title": "stale READY evidence does not suppress the human reinstall path",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
+      "line": 195,
+      "title": "pairing timeout preserves prepared files but never writes fake READY evidence",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/minimal-user-install.test.ts",
+      "line": 17,
+      "title": "browser install workflow exposes one human installation confirmation",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/configure-args.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/minimal-user-install.test.ts",
+      "line": 63,
+      "title": "setup output is human-readable and keeps stable AI recovery semantics",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/configure-args.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/minimal-user-install.test.ts",
+      "line": 78,
+      "title": "setup accepts an explicit workspace without treating it as a setup step",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/configure-args.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/minimal-user-install.test.ts",
+      "line": 86,
+      "title": "setup still rejects real unsupported positional steps",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/configure-args.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts"
       ]
     },
     {
@@ -3883,8 +4670,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 24,
-      "title": "parseModuleDescriptor accepts the frozen external-resource descriptor",
+      "line": 40,
+      "title": "descriptor exposes only a generic provider URL and optional credential reference",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -3897,7 +4684,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 35,
+      "line": 55,
       "title": "all seven management command results satisfy the structured result contract",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3911,8 +4698,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 56,
-      "title": "unconfigured adapter reports ACTION_REQUIRED through status/setup, not missingConfig",
+      "line": 74,
+      "title": "missing URL is generic endpoint-required and never starts device discovery",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -3925,8 +4712,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 82,
-      "title": "configured adapter owns reachability/auth only and publishes READY provider truth",
+      "line": 96,
+      "title": "generic URL is probed and only validated provider facts are published",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -3939,7 +4726,49 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 107,
+      "line": 124,
+      "title": "saved URL is re-probed and unreachable reality never re-discovers a device",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/model-provider-api/deployment/adapter.ts",
+        "packages/model-provider-api/deployment/descriptor.ts",
+        "packages/model-provider-api/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-provider-api",
+      "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
+      "line": 156,
+      "title": "credential is stored owner-only and shared facts contain only its file reference",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/model-provider-api/deployment/adapter.ts",
+        "packages/model-provider-api/deployment/descriptor.ts",
+        "packages/model-provider-api/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-provider-api",
+      "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
+      "line": 214,
+      "title": "invalid protocol and auth-required endpoint never become fake READY",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/model-provider-api/deployment/adapter.ts",
+        "packages/model-provider-api/deployment/descriptor.ts",
+        "packages/model-provider-api/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-provider-api",
+      "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
+      "line": 251,
       "title": "adapter exposes exactly the fixed seven management commands",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3953,8 +4782,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 119,
-      "title": "low-level probe is honest about an unreachable provider",
+      "line": 263,
+      "title": "provider public contract contains no implementation-specific discovery identity",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -3966,23 +4795,53 @@
     },
     {
       "package": "model-provider-api",
-      "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 126,
-      "title": "providerCredential is optional (unauthenticated providers allowed)",
+      "path": "packages/model-provider-api/tests/provider-probe.test.ts",
+      "line": 6,
+      "title": "provider probe validates generic /v1/models inventory instead of trusting HTTP 200",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
-        "packages/model-provider-api/deployment/adapter.ts",
-        "packages/model-provider-api/deployment/descriptor.ts",
-        "packages/model-provider-api/src/resource-adapter.ts",
-        "packages/module-contract/src/index.ts"
+        "packages/model-provider-api/src/resource-adapter.ts"
+      ]
+    },
+    {
+      "package": "model-provider-api",
+      "path": "packages/model-provider-api/tests/provider-probe.test.ts",
+      "line": 33,
+      "title": "provider probe accepts a root /models inventory when /v1/models is absent",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/model-provider-api/src/resource-adapter.ts"
+      ]
+    },
+    {
+      "package": "model-provider-api",
+      "path": "packages/model-provider-api/tests/provider-probe.test.ts",
+      "line": 52,
+      "title": "provider probe distinguishes auth and transport failures without leaking credentials",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/model-provider-api/src/resource-adapter.ts"
+      ]
+    },
+    {
+      "package": "model-provider-api",
+      "path": "packages/model-provider-api/tests/provider-probe.test.ts",
+      "line": 77,
+      "title": "provider probe is implementation agnostic",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/model-provider-api/src/resource-adapter.ts"
       ]
     },
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/v1-provider-boundary.test.ts",
-      "line": 12,
-      "title": "EXT-MODEL-PROVIDER-01 provider adapter owns reachability/auth, not FAST/REASON capability judgment",
+      "line": 10,
+      "title": "EXT-MODEL-PROVIDER-01 provider owns URL reachability/auth/inventory, not FAST/REASON judgment",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -3993,8 +4852,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/v1-provider-boundary.test.ts",
-      "line": 22,
-      "title": "EXT-MODEL-PROVIDER-02 provider-owned setup stops at reachability/auth and leaves capability truth to Model Domain",
+      "line": 17,
+      "title": "EXT-MODEL-PROVIDER-02 generic endpoint setup stops at validated inventory",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4005,8 +4864,8 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/v1-provider-boundary.test.ts",
-      "line": 50,
-      "title": "EXT-MODEL-PROVIDER-03 external provider has no descriptor lifecycle/system-assessment truth",
+      "line": 49,
+      "title": "EXT-MODEL-PROVIDER-03 external provider has no lifecycle or implementation-specific identity truth",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -4051,8 +4910,216 @@
     },
     {
       "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 54,
+      "title": "unique evidence-qualified FAST and REASON candidates map automatically",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 69,
+      "title": "multiple equally qualified FAST candidates remain ambiguous instead of choosing list order",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 81,
+      "title": "model ID is only a ranking signal after real capability evidence qualifies candidates",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 92,
+      "title": "missing REASON and invalid Vision fail closed",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 114,
+      "title": "a still-valid previous mapping is reused idempotently across inventory ordering changes",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 129,
+      "title": "an irreducible single-role human choice only selects an already evidence-qualified candidate",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 143,
+      "title": "inventory verification is sequential, bounded, and applies the configured inter-case cooldown",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 171,
+      "title": "real deployment probe derives structured, reasoning, context and Vision evidence from bounded API calls",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 208,
+      "title": "real deployment probe recognizes closed thinking evidence and does not require Vision for REASON",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 232,
+      "title": "deployment probe rejects invalid JSON/protocol and never includes credential in errors",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 248,
+      "title": "deployment setup automatically persists role evidence and publishes local runtime facts",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 285,
+      "title": "ambiguous mapping requests only irreducible model choice while missing role fails closed",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 317,
+      "title": "provider inventory drift makes an existing mapping stale until automatic remap",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 352,
+      "title": "wall-clock age alone does not invalidate unchanged capability mapping",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 379,
+      "title": "deployment start runs the real local runtime and publishes an authenticated READY endpoint",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 471,
+      "title": "provider offline after READY is explicit and never reuses a fake runtime READY",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
-      "line": 51,
+      "line": 50,
       "title": "CP-MODEL-RT-01 FAST/REASON never fallback and AUTO escalates only by Spec",
       "ids": [
         "CP-MODEL-RT-01"
@@ -4065,7 +5132,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
-      "line": 74,
+      "line": 73,
       "title": "CP-MODEL-RT-02 one real lane prioritizes queued business and distinguishes timeouts",
       "ids": [
         "CP-MODEL-RT-02"
@@ -4078,7 +5145,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
-      "line": 119,
+      "line": 131,
       "title": "CP-MODEL-RT-03 capability verification mismatch makes role and health unavailable",
       "ids": [
         "CP-MODEL-RT-03"
@@ -4091,7 +5158,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
-      "line": 157,
+      "line": 169,
       "title": "CP-MODEL-RT-04 deterministic prompt and invalid output perform at most one repair",
       "ids": [
         "CP-MODEL-RT-04"
@@ -4104,7 +5171,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
-      "line": 177,
+      "line": 189,
       "title": "CP-MODEL-RT-05 proposal remains max-one data and Model exposes no Effect executor",
       "ids": [
         "CP-MODEL-RT-05"
@@ -4117,7 +5184,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
-      "line": 188,
+      "line": 200,
       "title": "CP-MODEL-RT-06 queued/running cancel and restart are explicit with no inference DB",
       "ids": [
         "CP-MODEL-RT-06"
@@ -4130,7 +5197,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
-      "line": 200,
+      "line": 212,
       "title": "CP-MODEL-RT-07 status reports fresh READY/DEGRADED/UNAVAILABLE lane and role diagnostics",
       "ids": [
         "CP-MODEL-RT-07"
@@ -4143,7 +5210,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-critical-proofs.test.ts",
-      "line": 207,
+      "line": 219,
       "title": "CP-MODEL-RT-08 M2/M3/M4 require committed real-provider evidence",
       "ids": [
         "CP-MODEL-RT-08"
@@ -4253,6 +5320,22 @@
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
       "line": 269,
+      "title": "/ready fails closed while either required model role is DEGRADED",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-contracts/src/index.ts",
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
+        "packages/model-runtime/src/index.ts",
+        "packages/model-runtime/src/provider.ts",
+        "packages/model-runtime/src/service.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
+      "line": 296,
       "title": "deployment adapter exposes the fixed seven-command management surface without restart/verify/preflight",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4268,7 +5351,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 284,
+      "line": 311,
       "title": "MOD-P1-06 HTTP client abort and explicit service restart cancel queued/running work without late success",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4284,7 +5367,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 375,
+      "line": 402,
       "title": "deployment uninstall is idempotent when no Model Runtime service is bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4300,8 +5383,8 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 386,
-      "title": "model-runtime public setup surface is only fastModel/reasonModel and never asks the user for capabilityProfilesFile",
+      "line": 413,
+      "title": "model-runtime normal setup surface has no manual model IDs or capability profile file",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
@@ -5055,6 +6138,72 @@
     },
     {
       "package": "platform-cli",
+      "path": "packages/platform-cli/tests/deployment-install-order.test.ts",
+      "line": 32,
+      "title": "CP-DEP-CLI-INSTALL-ORDER-01 frozen deployment install order starts with Chrome, Extension, Agents, Gateway and Tunnel",
+      "ids": [
+        "CP-DEP-CLI-INSTALL-ORDER-01"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/deployment-order.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/deployment-install-order.test.ts",
+      "line": 45,
+      "title": "CP-DEP-CLI-INSTALL-ORDER-02 RF-DEP-CLI-INSTALL-ORDER-02 known modules follow product install order regardless of discovery order",
+      "ids": [
+        "CP-DEP-CLI-INSTALL-ORDER-02",
+        "RF-DEP-CLI-INSTALL-ORDER-02"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/deployment-order.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/deployment-install-order.test.ts",
+      "line": 64,
+      "title": "CP-DEP-CLI-INSTALL-ORDER-04 unknown future modules are deterministic and run after the frozen known sequence",
+      "ids": [
+        "CP-DEP-CLI-INSTALL-ORDER-04"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/deployment-order.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/deployment-install-order.test.ts",
+      "line": 71,
+      "title": "CP-DEP-CLI-INSTALL-ORDER-03 RF-DEP-CLI-INSTALL-ORDER-01 install uses deployment order while still validating dependencies",
+      "ids": [
+        "CP-DEP-CLI-INSTALL-ORDER-03",
+        "RF-DEP-CLI-INSTALL-ORDER-01"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/deployment-order.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
       "path": "packages/platform-cli/tests/docs.test.ts",
       "line": 12,
       "title": "platform docs forwards Module.docs result instead of reading package prose itself",
@@ -5366,7 +6515,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 212,
+      "line": 218,
       "title": "start gates on Module.status setup READY and never runs preflight",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5374,13 +6523,14 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 257,
+      "line": 263,
       "title": "start and stop retries skip runtime states already reached",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5388,13 +6538,14 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 279,
+      "line": 285,
       "title": "successful start and stop preserve dependency and reverse dependency order",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5402,13 +6553,14 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 308,
+      "line": 314,
       "title": "start performs zero starts when a Module reports FAILED setup status",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5416,13 +6568,14 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 328,
+      "line": 334,
       "title": "start fails fast during execution without starting later Modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5430,13 +6583,14 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 344,
+      "line": 350,
       "title": "stop runs in reverse dependency order and fails fast",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5444,13 +6598,14 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 356,
+      "line": 362,
       "title": "stop reports a successful no-effect external runtime as skipped",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5458,13 +6613,14 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 392,
+      "line": 398,
       "title": "uninstall runs in reverse dependency order and fails fast",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5472,13 +6628,14 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 408,
+      "line": 414,
       "title": "setup skips READY modules and invokes only ACTION_REQUIRED module",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5486,27 +6643,29 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 422,
-      "title": "setup aggregates every non-ready Module instead of stopping at the first action",
+      "line": 434,
+      "title": "setup aggregates non-ready Modules while downstream setup waits for current provider truth",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 448,
+      "line": 458,
       "title": "targeted setup forwards opaque input without Platform interpretation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5514,13 +6673,29 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 462,
+      "line": 474,
+      "title": "targeted setup reconciles a READY module even without explicit input",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 488,
       "title": "setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -5528,6 +6703,63 @@
         "packages/module-contract/src/index.ts",
         "packages/platform-cli/src/contracts.ts",
         "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 519,
+      "title": "CP-DEP-CLI-REAL2-01 CP-DEP-CLI-REAL2-02 same-run provider readiness unlocks dependent setup",
+      "ids": [
+        "CP-DEP-CLI-REAL2-01",
+        "CP-DEP-CLI-REAL2-02"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 544,
+      "title": "CP-DEP-CLI-REAL2-03 CP-DEP-CLI-REAL2-05 RF-DEP-CLI-REAL2-01 RF-DEP-CLI-REAL2-02 blocked dependencies never run setup while independent modules continue",
+      "ids": [
+        "CP-DEP-CLI-REAL2-03",
+        "CP-DEP-CLI-REAL2-05",
+        "RF-DEP-CLI-REAL2-01",
+        "RF-DEP-CLI-REAL2-02"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 575,
+      "title": "CP-DEP-CLI-REAL2-04 RF-DEP-CLI-REAL2-03 dependency setup gate is generic and stores no module-specific resume state",
+      "ids": [
+        "CP-DEP-CLI-REAL2-04",
+        "RF-DEP-CLI-REAL2-03"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
         "packages/platform-cli/src/modules.ts"
       ]
     },
@@ -5558,6 +6790,39 @@
       "path": "packages/platform-cli/tests/modules.test.ts",
       "line": 95,
       "title": "platform setup human output preserves all actions when the aggregate also contains machine failures",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/modules.test.ts",
+      "line": 143,
+      "title": "Dev Tunnel setup guidance uses automatic discovery without manual tunnel facts",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/modules.test.ts",
+      "line": 169,
+      "title": "Platform setup guidance does not request stale Carrier, Agent, or model facts",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/modules.test.ts",
+      "line": 205,
+      "title": "Platform setup output shows dependency-blocked modules without inventing Module setup results",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [

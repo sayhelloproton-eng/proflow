@@ -34,6 +34,7 @@
       ],
       "publicIndexSymbols": [
         "AgentPackageMaterial",
+        "CustomGptCapabilities",
         "materializeAgentPackage"
       ],
       "classification": "CLASSIFIED"
@@ -123,6 +124,7 @@
       ],
       "publicIndexSymbols": [
         "AgentPackageMaterial",
+        "CustomGptCapabilities",
         "materializeAgentPackage"
       ],
       "classification": "CLASSIFIED"
@@ -203,6 +205,7 @@
       ],
       "publicIndexSymbols": [
         "AgentPackageMaterial",
+        "CustomGptCapabilities",
         "materializeAgentPackage"
       ],
       "classification": "CLASSIFIED"
@@ -405,6 +408,18 @@
           "key": "./runtime-composition",
           "target": "./dist/src/runtime-composition.js",
           "source": "packages/execution-browser-extension/src/runtime-composition.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./custom-gpt-provisioning",
+          "target": "./dist/src/custom-gpt-provisioner.js",
+          "source": "packages/execution-browser-extension/src/custom-gpt-provisioner.ts",
+          "classification": "SHIPPED_PUBLIC_EXPORT"
+        },
+        {
+          "key": "./custom-gpt-role",
+          "target": "./dist/src/custom-gpt-role.js",
+          "source": "packages/execution-browser-extension/src/custom-gpt-role.ts",
           "classification": "SHIPPED_PUBLIC_EXPORT"
         },
         {
@@ -1340,6 +1355,8 @@
       "PROFLOW_APPROVAL_APPLICATION",
       "PROFLOW_CONTENT_OBSERVATION",
       "PROFLOW_PAGE_COMMAND",
+      "PROFLOW_PROVISIONING_COMMAND",
+      "PROFLOW_PROVISIONING_RELAY_FETCH",
       "PROFLOW_SIDE_PANEL_SNAPSHOT",
       "PROFLOW_TASK_APPLICATION"
     ],

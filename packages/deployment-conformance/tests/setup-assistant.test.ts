@@ -21,36 +21,66 @@ test("interactive setup CLIs contain concrete guided operations", async () => {
 			"utf8",
 		);
 		assert.match(source, /[\u4e00-\u9fff]/, moduleRef);
-		assert.match(source, /process\.stdin\.isTTY/, moduleRef);
-		assert.match(source, /--json/, moduleRef);
 		assert.match(source, /reportFatal/, moduleRef);
 	}
-	assert.match(
+	for (const moduleRef of Object.keys(sources).filter(
+		(moduleRef) => moduleRef !== "dev-tunnel",
+	)) {
+		const source = await readFile(
+			new URL(
+				`${moduleRef}/${sources[moduleRef as keyof typeof sources]}`,
+				packagesRoot,
+			),
+			"utf8",
+		);
+		assert.match(source, /--json/, moduleRef);
+	}
+	for (const moduleRef of ["model-provider-api", "model-runtime"]) {
+		const source = await readFile(
+			new URL(`${moduleRef}/src/cli.ts`, packagesRoot),
+			"utf8",
+		);
+		assert.match(source, /process\.stdin\.isTTY/, moduleRef);
+	}
+	for (const moduleRef of ["chatgpt-carrier", "dev-tunnel"]) {
+		const source = await readFile(
+			new URL(`${moduleRef}/src/cli.ts`, packagesRoot),
+			"utf8",
+		);
+		assert.doesNotMatch(source, /process\.stdin\.isTTY/, moduleRef);
+	}
+	assert.doesNotMatch(
 		await readFile(new URL("chatgpt-carrier/src/cli.ts", packagesRoot), "utf8"),
-		/chatgpt\.com\/gpts\/mine/,
+		/carrierUrl|gpts\/mine/,
 	);
 	const tunnel = await readFile(
-		new URL("dev-tunnel/src/cli.ts", packagesRoot),
+		new URL("dev-tunnel/src/resource-adapter.ts", packagesRoot),
 		"utf8",
 	);
 	for (const action of ["user", "login", "list", "show", "create"])
 		assert.match(tunnel, new RegExp(`"${action}"`));
-	const extension = await readFile(
+	const extension = `${await readFile(
 		new URL("execution-browser-extension/src/configure.ts", packagesRoot),
 		"utf8",
-	);
+	)}\n${await readFile(
+		new URL(
+			"execution-browser-extension/src/install-workflow.ts",
+			packagesRoot,
+		),
+		"utf8",
+	)}`;
 	assert.match(extension, /chrome:\/\/extensions/);
-	assert.match(extension, /加载已解压的扩展程序/);
+	assert.match(extension, /加载未打包的扩展程序/);
 	for (const moduleRef of [
 		"agent-controller-dev",
 		"agent-product",
 		"agent-test-ops",
 	]) {
 		const source = await readFile(
-			new URL(`${moduleRef}/src/cli.ts`, packagesRoot),
+			new URL(`${moduleRef}/deployment/adapter.ts`, packagesRoot),
 			"utf8",
 		);
-		assert.match(source, /chatgpt\.com\/gpts\/editor/);
-		assert.match(source, /Action Schema（动作接口）/);
+		assert.match(source, /createWorkspaceRoleSetupClient/);
+		assert.match(source, /createCustomGptRole/);
 	}
 });

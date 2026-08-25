@@ -192,6 +192,15 @@
       "governanceStatus": "ACTIVE_BASELINE"
     },
     {
+      "path": "智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md",
+      "docId": "TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING",
+      "title": "Real-2｜Custom GPT Deployment Provisioning Test Plan",
+      "domain": "agent-runtime-collaboration",
+      "moduleRef": null,
+      "implementationWave": "Real-2",
+      "governanceStatus": "FINAL_FROZEN"
+    },
+    {
       "path": "智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md",
       "docId": "TP-MODULE-AGENT-CONTROLLER-DEV",
       "title": "agent-controller-dev｜开发前 Module Test Plan",
