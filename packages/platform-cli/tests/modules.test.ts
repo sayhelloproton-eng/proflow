@@ -58,6 +58,34 @@ test("platform status aggregates only Module-owned setup/runtime status", async 
 	}
 });
 
+test("platform status summary counts runtime failure as failure instead of ready", () => {
+	const rendered = renderHumanResult({
+		command: "status",
+		status: "SUCCEEDED",
+		data: {
+			modules: [
+				{
+					moduleRef: "dev-tunnel",
+					version: "0.1.14",
+					setupStatus: "READY",
+					runtimeStatus: "FAILED",
+					issues: [],
+				},
+				{
+					moduleRef: "module-contract",
+					version: "0.1.12",
+					setupStatus: "READY",
+					runtimeStatus: "NOT_APPLICABLE",
+					issues: [],
+				},
+			],
+		},
+	});
+	assert.match(rendered, /失败[\s\S]*dev-tunnel/);
+	assert.match(rendered, /1 已就绪.*1 失败/);
+	assert.doesNotMatch(rendered, /2 已就绪/);
+});
+
 test("platform status ignores obsolete config and all removed routes remain invalid", async () => {
 	const root = await tempWorkspace();
 	try {

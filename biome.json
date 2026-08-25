@@ -1,7 +1,14 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
 	"files": {
-		"includes": ["**", "!!spec", "!!**/dist", "!!.omo", "!!.codegraph"]
+		"includes": [
+			"**",
+			"!!spec",
+			"!!**/dist",
+			"!!**/.proflow",
+			"!!.omo",
+			"!!.codegraph"
+		]
 	},
 	"formatter": {
 		"enabled": true,

@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 140,
-    "testCalls": 615
+    "testCalls": 616
   },
   "tests": [
     {
@@ -6778,6 +6778,17 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
       "line": 61,
+      "title": "platform status summary counts runtime failure as failure instead of ready",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/modules.test.ts",
+      "line": 89,
       "title": "platform status ignores obsolete config and all removed routes remain invalid",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6788,7 +6799,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 95,
+      "line": 123,
       "title": "platform setup human output preserves all actions when the aggregate also contains machine failures",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6799,7 +6810,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 143,
+      "line": 171,
       "title": "Dev Tunnel setup guidance uses automatic discovery without manual tunnel facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6810,7 +6821,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 169,
+      "line": 197,
       "title": "Platform setup guidance does not request stale Carrier, Agent, or model facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6821,7 +6832,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 205,
+      "line": 233,
       "title": "Platform setup output shows dependency-blocked modules without inventing Module setup results",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

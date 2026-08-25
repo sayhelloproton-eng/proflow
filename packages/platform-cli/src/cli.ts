@@ -842,13 +842,14 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 	};
 	compact("运行中", running, "●");
 	compact("已就绪", healthy, "○");
-	const ready = modules.filter((item) => item.setupStatus === "READY").length;
+	const ready = healthy.length + running.length;
 	const action = modules.filter(
-		(item) => item.setupStatus === "ACTION_REQUIRED",
+		(item) =>
+			item.setupStatus === "ACTION_REQUIRED" && item.runtimeStatus !== "FAILED",
 	).length;
-	const failed = modules.filter((item) => item.setupStatus === "FAILED").length;
+	const failed = failedModules.length;
 	const blocked = modules.filter(
-		(item) => item.setupStatus === "BLOCKED",
+		(item) => item.setupStatus === "BLOCKED" && item.runtimeStatus !== "FAILED",
 	).length;
 	lines.push(
 		theme.section("汇总"),
