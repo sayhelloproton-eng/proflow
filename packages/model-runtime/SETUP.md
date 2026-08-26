@@ -25,10 +25,10 @@ Success condition: `model-runtime.setupStatus=READY`。
 ## STEP-MODEL-RUNTIME-03 — 启动和观察本地服务
 
 Responsible: AI
-Interactive executable: `platform start --module model-runtime`
-Non-interactive executable: `platform start --module model-runtime`
+Interactive executable: `platform start`
+Non-interactive executable: `platform start`
 Required inputs: none
-Verify: `platform status --module model-runtime`
+Verify: `platform status`
 Success condition: `model-runtime.runtimeStatus=RUNNING` 且认证 `/ready` 返回就绪。
 
-完成 setup 后由 Platform 生命周期启动 Service。运行态必须同时满足本地进程和上游 Provider 真实可用；`verify`、`status` 与 `/ready` 不把离线或依赖未就绪报告为 READY。
+完成 setup 后由 Platform 生命周期按依赖顺序启动 Service。Platform 的七命令合同不提供定向 `start/stop --module`；运行态必须同时满足本地进程和上游 Provider 真实可用，`verify`、`status` 与 `/ready` 不把离线或依赖未就绪报告为 READY。

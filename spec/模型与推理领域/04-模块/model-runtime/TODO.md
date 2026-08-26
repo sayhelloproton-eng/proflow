@@ -20,6 +20,18 @@ contractRefs:
 
 > 本文件是该 Module 的当前实施 backlog。`Status: READY` 保留原任务事实，表示任务已进入当前 backlog；`implementationReadiness: PLANNED` 表示**尚未冻结自动施工顺序**。Priority、dependsOn、逐任务 acceptance/verification 不允许由文档整理工具推断；没有可直接追溯的冻结依据时，分别保持 `PENDING_DECISION`、`NOT_FROZEN`、`ACCEPTANCE_NOT_FROZEN` / `verification: []`。
 
+## 2026-08-26 实施处置
+
+下方 YAML 是开发前历史任务定义，不应继续被解释为“全部尚未实现”。当前处置以本表为准：
+
+| TODO | 当前处置 | Evidence boundary |
+|---|---|---|
+| `MODEL-RT-001..006` | `CODE_CLOSED` | main `47bc8dc`；Provider 17/17、Runtime 61/61，Runtime 连续三次通过 |
+| `MODEL-RT-007` | `REAL_EXTERNAL_REQUIRED` | FAST→REASON、Vision、热负载、server-off recovery 必须使用真实 Provider |
+| `MODEL-RT-008` | `DETERMINISTIC_PROOFS_CLOSED / REAL_EXTERNAL_REQUIRED` | Observer authority/bounded payload 有代码 proof；真实手机 REASON load gate 未完成 |
+
+当前不再自动施工 `MODEL-RT-001..006`。下一步先由 Deployment 裁决 endpoint resolver owner；真实 Provider 可发现后执行 `MODEL-RT-007/008` 外部门。没有真实 evidence 时保持 `ACTION_REQUIRED`。
+
 ## Implementation Tasks
 ### MODEL-RT-001
 

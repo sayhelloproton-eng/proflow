@@ -51,10 +51,12 @@ contractRefs:
 ```text
 SIMULATED_HUMAN_E2E = PASS
 READY_FOR_HUMAN_ACCEPTANCE = YES
-→ STOP
+PLATFORM_REAL_E2E = NOT PASS
 ```
 
-任何非 Gate blocker 记录 `OUT_OF_SCOPE_DOMAIN`；缺 shared fact 记录 `SHARED_FACT_CONTRACT_MISSING`；两者都禁止向业务源码无限扩散。
+前两项只记录 0.1.36 冻结时的代码/模拟门，不能推导当前已安装产品或真实外部链 PASS。2026-08-26 父工作区真实 status 为 `20 READY / 2 ACTION_REQUIRED / 1 BLOCKED / 1 FAILED`，并确认 installed package 与 main 存在同版本内容漂移。当前仍需可区分版本的正式交付、安装回读和七命令真实重放。
+
+任何非 Gate blocker 记录 `OUT_OF_SCOPE_DOMAIN`；缺 shared fact 记录 `SHARED_FACT_CONTRACT_MISSING`；两者都禁止向业务源码无限扩散。缺少 Deployment-owned Provider endpoint resolver 时记录 `ARCHITECTURE_STOP`，不得让 Platform CLI 特判 Provider 或向用户索取机器可发现 URL。
 
 ## Setup 全量验收
 
@@ -65,3 +67,11 @@ READY_FOR_HUMAN_ACCEPTANCE = YES
 - [x] 最终目标以最少用户操作、最少往返达到 READY 并进入 `platform start`。
 
 冻结证据：`../../08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json`。后续功能变更必须以新 patch 版本重新打开 Gate。
+
+## 2026-08-26 Automation / delivery follow-up
+
+- [ ] 裁决 Deployment-owned Provider endpoint resolver；如需新增 Module 或改变 24 模块顺序，先做正式架构变更。
+- [ ] 以新 patch version 完成正式 release/publish/install；未经授权不执行 push/publish。
+- [ ] 安装后回读 24 个包版本和关键 dist SHA，确认不再加载旧 Carrier/Provider/Tunnel 语义。
+- [ ] 重跑完整七命令与 Chrome/HTTPS、真实模型、重复 setup、provider-off recovery。
+- [ ] 只有 authoritative states 与真实外部 evidence 一致时才更新 `PLATFORM_REAL_E2E`。

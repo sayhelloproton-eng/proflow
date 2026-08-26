@@ -32,6 +32,19 @@ contractRefs: []
 - [model-contracts](04-模块/model-contracts/README.md)
 - [model-runtime](04-模块/model-runtime/README.md)
 
+## 2026-08-26 当前实施状态
+
+```text
+MODEL_PROVIDER_BOUNDARY = PASS
+MODEL_RUNTIME_DETERMINISTIC_GATE = PASS
+MODEL_DOMAIN_CODE = PASS
+REAL_EXTERNAL = ACTION_REQUIRED
+```
+
+Provider 的 generic HTTP(S) probe、inventory/auth/secret reference，以及 Runtime 的能力探测、FAST/REASON 映射、drift/freshness、fail-closed 与本地进程生命周期已经进入 main（`47bc8dc`）。这只证明代码与确定性门，不证明当前机器存在可用外部 Provider。
+
+自动 endpoint discovery 的 Deployment owner 尚未裁决；在此之前不得把 Bonjour/DNS-SD、MLXHub/iPhone identity 塞入本领域，也不得要求用户手填机器可发现的 LAN IP、Base URL 或模型 ID。当前状态和自动化审计见平台公共上下文 `14-配置自动化与OpenAI-Secure-MCP-Tunnel后续.md`。
+
 ## 文档职责
 
 - `01-领域`：Why、Ownership、Ubiquitous Language、Bounded Context、当前设计不变量。

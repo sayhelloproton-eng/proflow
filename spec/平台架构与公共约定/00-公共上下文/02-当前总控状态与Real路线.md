@@ -14,6 +14,18 @@
 - `CURRENT_STAGE = REAL_3`
 - `PHASE3_FINAL_GO = NO`
 
+2026-08-26 补充状态：
+
+```text
+MODEL_DOMAIN_CODE = PASS
+REAL_EXTERNAL = ACTION_REQUIRED
+PLATFORM_END_TO_END = NOT PASS
+```
+
+模型域确定性代码门已收口，但 Deployment-owned Provider endpoint resolver 尚未裁决，父工作区 installed packages 与 main 源码存在同版本内容漂移，最终公网访问为 HTTP 502。因此当前仍是 Real-3 前置部署阻塞，不能由 `REAL_1/REAL_2 = PASS` 推导整个平台 READY。
+
+配置自动化的当前完成项、剩余自动化停止门、必须保留的人类动作与技术问答，统一见 `14-配置自动化与OpenAI-Secure-MCP-Tunnel后续.md`；不得从旧 setup 文案恢复人工搬运 URL、模型 ID、路径或 token 的流程。
+
 当前工作性质是 **最终真实验收**，不是继续开发 Phase 3，也不是重新寻找全仓问题。
 
 新 Chat 不允许把状态自动退回旧阶段；只有新的、可复现的真实 regression evidence 才能申请重开已通过阶段。

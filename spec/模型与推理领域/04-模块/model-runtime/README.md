@@ -57,3 +57,11 @@ process/deployment: model-runtime-process
 ## Testing
 
 见本领域 `05-质量与部署/` 和本 Module `TODO.md` 的 acceptance/verification。
+
+## Current implementation disposition
+
+- `47bc8dc` 已集成 Provider inventory 消费、能力证据优先的 FAST/REASON 映射、inventory drift/runtime freshness、歧义 fail-closed 与真实本地进程 `/ready`。
+- Provider 17/17、Runtime 61/61；Runtime 全包连续三次通过是确定性代码门，不是 Real External PASS。
+- 正常 setup 不要求模型 ID；只有多个能力合格候选仍无法消歧时，才允许在该集合内选择。
+- 完整产品仍被 Deployment-owned endpoint resolver 缺失阻塞；本 Module 不实现 Bonjour/DNS-SD 或设备/产品 discovery。
+- Platform 的 `start/stop` 不支持 `--module`；正常生命周期只能由完整 `platform start` / `platform stop` 统一编排。

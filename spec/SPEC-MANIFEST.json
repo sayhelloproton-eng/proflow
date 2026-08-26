@@ -866,8 +866,8 @@
     },
     {
       "path": "模型与推理领域/04-模块/model-runtime/README.md",
-      "sha256": "a4bfbbc9d95bba51c72dd2f6dc943ca732afde39ba8175789c87cb99c52b25ba",
-      "bytes": 1843
+      "sha256": "7c814f8d3852ee2ad7fe9f1e54278128e072878b6758e5aa21910de803f274c7",
+      "bytes": 2579
     },
     {
       "path": "模型与推理领域/04-模块/model-runtime/SERVICE-RUNTIME.md",
@@ -881,8 +881,8 @@
     },
     {
       "path": "模型与推理领域/04-模块/model-runtime/TODO.md",
-      "sha256": "a3fad764c3058489595f57f9e16e7da44e93d1a9ac27027457cae3072286f7fd",
-      "bytes": 7598
+      "sha256": "34abc4898ce1603ec4d2d015f440ad65dfd8989c8797c1791bf962e8e8721ece",
+      "bytes": 8463
     },
     {
       "path": "模型与推理领域/05-质量与部署/01-TypeScript-Node24-工程约束.md",
@@ -901,13 +901,13 @@
     },
     {
       "path": "模型与推理领域/06-状态与实施/KNOWN-LIMITATIONS-AND-SPIKES.md",
-      "sha256": "7cded152edd07ae3e3e19432dcf3527f4773d739a482b5e596b91d78b4622fae",
-      "bytes": 1479
+      "sha256": "10f82dab5be9fd105b52c22fc41dd086e35dd32dc5ac64198e146125ce5c0775",
+      "bytes": 2500
     },
     {
       "path": "模型与推理领域/06-状态与实施/TODO.md",
-      "sha256": "8cce83d7ecef3e4d7a259b2999f0a4aa3c89ae0bb332b1a51cead0754028d89e",
-      "bytes": 1014
+      "sha256": "234c7130ea41b5ca219b818aac560dde7eb1a01582752bb20fe21933a367072d",
+      "bytes": 2008
     },
     {
       "path": "模型与推理领域/07-测试计划/00-领域测试总计划.md",
@@ -931,8 +931,8 @@
     },
     {
       "path": "模型与推理领域/README.md",
-      "sha256": "ee2d82e32cc0f6f013da421927cae62459a75f2a3174c031f93c3190a40be8e0",
-      "bytes": 2270
+      "sha256": "38b9c639e1bb61ef66952f316dbe32a0a08a2a9613e0bd2c2d678fb906cfb295",
+      "bytes": 3088
     },
     {
       "path": "部署领域/01-领域/01-领域宪章与Bounded-Context-Map.md",
@@ -1066,8 +1066,8 @@
     },
     {
       "path": "部署领域/04-模块/platform-cli/TODO.md",
-      "sha256": "dcb473ff8cf79cf61e8320a10142daa06573f3c9a6fc96e6119cef26766fb8fa",
-      "bytes": 2533
+      "sha256": "db9646e55ac6fa671435de5b835bfb8a56e99ac7ee015913e29318c902bf79a5",
+      "bytes": 3684
     },
     {
       "path": "部署领域/05-质量与部署/01-INSTALL与AI-native部署.md",
@@ -1086,13 +1086,13 @@
     },
     {
       "path": "部署领域/06-状态与实施/KNOWN-LIMITATIONS-AND-SPIKES.md",
-      "sha256": "c5073fca5b8c49e8af693b5556e9e6833a6d75ea7a025ec6b60fae0bfedf5d8a",
-      "bytes": 2250
+      "sha256": "9e010791f8c9c86af92d3d4b22722575134e905eeaa40223ea419f46c93a33f2",
+      "bytes": 3587
     },
     {
       "path": "部署领域/06-状态与实施/TODO.md",
-      "sha256": "50e344bfcc4884b82e3a2770487f1ff6c7f564348f7f3e682766e9a456ba6f82",
-      "bytes": 2774
+      "sha256": "3023ddeb680c1bb2b820e1565653c3dff35425bbdf52af1998cef3364d59183e",
+      "bytes": 3959
     },
     {
       "path": "部署领域/07-测试计划/00-领域测试总计划.md",

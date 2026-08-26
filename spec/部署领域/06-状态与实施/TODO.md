@@ -51,3 +51,16 @@ contractRefs: []
 - [x] Fresh Workspace 验收覆盖七命令，Status 为 `14 READY / 7 ACTION_REQUIRED / 3 BLOCKED / 0 FAILED`。
 - [x] 冻结证据已写入 `../08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json`。
 - [ ] Git release commits 推送到 `origin/main`（未获本轮明确 Push 授权，不作为 npm 0.1.36 已发布事实的伪装条件）。
+
+## 2026-08-26 配置自动化与产品交付审计
+
+已确认源码完成：Chrome 自动安装、Extension 自动准备/重验证、Custom GPT owning flow、ChatGPT Web 机器观察、Dev Tunnel create/reuse/port/host/URL、Platform setup 全量聚合与依赖门、Provider probe、Model capability mapping/runtime lifecycle。
+
+仍需闭环：
+
+1. `ARCHITECTURE_STOP`：为机器可发现的 generic Provider endpoint 裁决 Deployment owner；Model Domain 不得接管 Bonjour/DNS-SD/设备识别。
+2. `DELIVERY_REQUIRED`：main 与父工作区 installed packages 存在同版本内容漂移；必须新 patch version 正式交付并回读 bytes。
+3. `REAL_E2E_REQUIRED`：交付后重跑七命令、Chrome/public HTTPS、模型能力与 provider-off recovery。
+4. `HUMAN_BOUNDARY`：只保留 GitHub/ChatGPT 授权、Chrome 首次 Load unpacked、Provider 真正要求的 credential 和已验证候选歧义选择。
+
+当前不得恢复人工填写 Tunnel ID/URL/port、Chrome path、Extension ID、Gateway URL、Provider LAN URL 或模型 ID 的旧正常流程。完整矩阵与技术问答见平台公共上下文 `14-配置自动化与OpenAI-Secure-MCP-Tunnel后续.md`。

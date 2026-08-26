@@ -35,6 +35,17 @@ FUTURE = 不属于 v1 当前范围
 - v1 不承诺多模型并行或抢占。
 - Current fallback: business/background 两级队列，串行执行。
 
-## MODEL-FUTURE-003｜并行推理/持久队列
+## MODEL-LIMIT-003｜Provider endpoint resolver 尚无 Deployment owner
+- Type: `KNOWN_LIMITATION / ARCHITECTURE_STOP`
+- Model Provider 只接受 generic HTTP(S) endpoint 与可选 credential reference；Model Runtime 只消费已验证 inventory/evidence。
+- Current fallback: 完整 Platform setup 保持 `ACTION_REQUIRED/BLOCKED`；独立 CLI 显式 URL 只用于诊断或 resolver 输出注入，不得被描述为正常用户流程。
+- Stop rule: 不把 Bonjour/DNS-SD、MLXHub、iPhone 或局域网盲扫引入 Model Domain；若需要新增 Module、改变 24 模块顺序或放宽边界，先做正式架构裁决。
+
+## MODEL-LIMIT-004｜真实外部模型证据未完成
+- Type: `KNOWN_LIMITATION`
+- 确定性 fake/local HTTP tests 已通过，但尚未形成当前真实 Provider 的 inventory、FAST/REASON、Vision、reasoning、runtime inference 与 server-off recovery evidence。
+- Current fallback: `MODEL_DOMAIN_CODE = PASS` 与 `REAL_EXTERNAL = ACTION_REQUIRED` 并存；不得宣布平台 READY。
+
+## MODEL-FUTURE-005｜并行推理/持久队列
 - Type: `FUTURE`
 - 只有真实吞吐量需求证明单 Lane 不够时才重新评估。
