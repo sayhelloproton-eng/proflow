@@ -18,6 +18,10 @@
   dir: packages/agent-controller-dev
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-agent-controller-dev@0.1.14":
+  dir: packages/agent-controller-dev
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-agent-controller-dev@0.1.2":
   dir: packages/agent-controller-dev
   intents:
@@ -58,6 +62,10 @@
   dir: packages/agent-gateway
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-agent-gateway@0.1.13":
+  dir: packages/agent-gateway
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-agent-gateway@0.1.2":
   dir: packages/agent-gateway
   intents:
@@ -98,6 +106,10 @@
   dir: packages/agent-product
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-agent-product@0.1.14":
+  dir: packages/agent-product
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-agent-product@0.1.2":
   dir: packages/agent-product
   intents:
@@ -126,6 +138,10 @@
   dir: packages/agent-runtime
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-agent-runtime@0.1.10":
+  dir: packages/agent-runtime
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-agent-runtime@0.1.2":
   dir: packages/agent-runtime
   intents:
@@ -170,6 +186,10 @@
   dir: packages/agent-test-ops
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-agent-test-ops@0.1.14":
+  dir: packages/agent-test-ops
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-agent-test-ops@0.1.2":
   dir: packages/agent-test-ops
   intents:
@@ -210,6 +230,10 @@
   dir: packages/chatgpt-carrier
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-chatgpt-carrier@0.1.13":
+  dir: packages/chatgpt-carrier
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-chatgpt-carrier@0.1.2":
   dir: packages/chatgpt-carrier
   intents:
@@ -254,6 +278,10 @@
   dir: packages/chrome-runtime
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-chrome-runtime@0.1.14":
+  dir: packages/chrome-runtime
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-chrome-runtime@0.1.2":
   dir: packages/chrome-runtime
   intents:
@@ -286,6 +314,10 @@
   dir: packages/deployment-conformance
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-deployment-conformance@0.1.11":
+  dir: packages/deployment-conformance
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-deployment-conformance@0.1.2":
   dir: packages/deployment-conformance
   intents:
@@ -334,6 +366,10 @@
   dir: packages/dev-tunnel
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-dev-tunnel@0.1.15":
+  dir: packages/dev-tunnel
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-dev-tunnel@0.1.2":
   dir: packages/dev-tunnel
   intents:
@@ -374,6 +410,10 @@
   dir: packages/execution-browser-extension
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-execution-browser-extension@0.1.13":
+  dir: packages/execution-browser-extension
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-execution-browser-extension@0.1.2":
   dir: packages/execution-browser-extension
   intents:
@@ -402,6 +442,10 @@
   dir: packages/execution-contracts
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-execution-contracts@0.1.10":
+  dir: packages/execution-contracts
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-execution-contracts@0.1.2":
   dir: packages/execution-contracts
   intents:
@@ -438,6 +482,10 @@
   dir: packages/execution-local
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-execution-local@0.1.12":
+  dir: packages/execution-local
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-execution-local@0.1.2":
   dir: packages/execution-local
   intents:
@@ -482,6 +530,10 @@
   dir: packages/execution-runtime
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-execution-runtime@0.1.14":
+  dir: packages/execution-runtime
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-execution-runtime@0.1.2":
   dir: packages/execution-runtime
   intents:
@@ -506,6 +558,10 @@
   dir: packages/model-contracts
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-model-contracts@0.1.10":
+  dir: packages/model-contracts
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-model-contracts@0.1.2":
   dir: packages/model-contracts
   intents:
@@ -542,6 +598,10 @@
   dir: packages/model-provider-api
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-model-provider-api@0.1.12":
+  dir: packages/model-provider-api
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-model-provider-api@0.1.2":
   dir: packages/model-provider-api
   intents:
@@ -590,6 +650,10 @@
   dir: packages/model-runtime
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-model-runtime@0.1.15":
+  dir: packages/model-runtime
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-model-runtime@0.1.2":
   dir: packages/model-runtime
   intents:
@@ -626,6 +690,10 @@
   dir: packages/module-contract
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-module-contract@0.1.13":
+  dir: packages/module-contract
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-module-contract@0.1.5":
   dir: packages/module-contract
   intents:
@@ -654,6 +722,10 @@
   dir: packages/module-skill
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-module-skill@0.1.11":
+  dir: packages/module-skill
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-module-skill@0.1.2":
   dir: packages/module-skill
   intents:
@@ -682,6 +754,10 @@
   dir: packages/module-template
   intents:
     - real1-deployment-graph-bootstrap-closure
+"@tomflow/proflow-module-template@0.1.10":
+  dir: packages/module-template
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-module-template@0.1.2":
   dir: packages/module-template
   intents:
@@ -814,6 +890,10 @@
   dir: packages/platform-cli
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-platform-cli@0.1.37":
+  dir: packages/platform-cli
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-platform-cli@0.1.4":
   dir: packages/platform-cli
   intents:
@@ -854,6 +934,10 @@
   dir: packages/platform-host
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-platform-host@0.1.13":
+  dir: packages/platform-host
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-platform-host@0.1.2":
   dir: packages/platform-host
   intents:
@@ -882,6 +966,10 @@
   dir: packages/task-migration-runner
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-task-migration-runner@0.1.11":
+  dir: packages/task-migration-runner
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-task-migration-runner@0.1.2":
   dir: packages/task-migration-runner
   intents:
@@ -930,6 +1018,10 @@
   dir: packages/task-orchestration
   intents:
     - terminal-guidance-polish
+"@tomflow/proflow-task-orchestration@0.1.9":
+  dir: packages/task-orchestration
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-task-store-sqlite@0.1.1":
   dir: packages/task-store-sqlite
   intents:
@@ -938,6 +1030,10 @@
   dir: packages/task-store-sqlite
   intents:
     - status-diagnostics-terminal-closure
+"@tomflow/proflow-task-store-sqlite@0.1.11":
+  dir: packages/task-store-sqlite
+  intents:
+    - breezy-grapes-own
 "@tomflow/proflow-task-store-sqlite@0.1.2":
   dir: packages/task-store-sqlite
   intents:

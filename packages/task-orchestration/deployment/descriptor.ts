@@ -3,7 +3,7 @@ export const descriptor = {
 	contractVersion: "1.0.0",
 	moduleRef: "task-orchestration",
 	packageName: "@tomflow/proflow-task-orchestration",
-	moduleVersion: "0.1.8",
+	moduleVersion: "0.1.9",
 	kind: "library",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
