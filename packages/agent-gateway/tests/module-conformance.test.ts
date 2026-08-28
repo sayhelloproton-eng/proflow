@@ -10,7 +10,10 @@ import {
 	runPackageConformance,
 	runStaticConformance,
 } from "@tomflow/proflow-deployment-conformance";
-import type { ModuleDescriptor } from "@tomflow/proflow-module-contract";
+import {
+	type ModuleDescriptor,
+	writeModuleSharedFacts,
+} from "@tomflow/proflow-module-contract";
 import { behaviorAdapter } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
 
@@ -59,8 +62,7 @@ test("Module.install owns deterministic Gateway config while producer dependenci
 				{
 					scope: "SETUP",
 					code: "UPSTREAM_NOT_READY",
-					message:
-						"等待 dev-tunnel 发布公开 HTTPS 地址，并等待 platform-host 发布下游端点与传输凭据",
+					message: "等待 dev-tunnel、platform-host 完成前置配置",
 					relatedModuleRefs: ["dev-tunnel", "platform-host"],
 					nextCommand: "platform setup --module dev-tunnel",
 				},
@@ -73,6 +75,28 @@ test("Module.install owns deterministic Gateway config while producer dependenci
 			waitingFor: ["dev-tunnel", "platform-host"],
 		});
 		assert.equal(descriptor.configSlots.length, 0);
+	} finally {
+		await rm(workspaceRoot, { recursive: true, force: true });
+	}
+});
+
+test("status reports only dev-tunnel when platform-host facts are already complete", async () => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-gateway-precise-"),
+	);
+	try {
+		await behaviorAdapter.install({ workspaceRoot });
+		await writeModuleSharedFacts({ workspaceRoot }, "platform-host", {
+			endpoint: "http://127.0.0.1:43100",
+			gatewayTransportCredentialFile: "/tmp/gateway.token",
+			stateRoot: "/tmp/proflow-state",
+		});
+		const observed = await behaviorAdapter.status({ workspaceRoot });
+		const data = observed.result.data as {
+			issues: Array<{ message: string; relatedModuleRefs: string[] }>;
+		};
+		assert.deepEqual(data.issues[0]?.relatedModuleRefs, ["dev-tunnel"]);
+		assert.doesNotMatch(data.issues[0]?.message ?? "", /platform-host/);
 	} finally {
 		await rm(workspaceRoot, { recursive: true, force: true });
 	}

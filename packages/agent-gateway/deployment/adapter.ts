@@ -39,7 +39,7 @@ async function readOwnFacts(context: ModuleCommandContext) {
 	const localBaseUrl = factString(facts, "localBaseUrl");
 	return localBaseUrl ? { localBaseUrl } : undefined;
 }
-async function dependencies(context: ModuleCommandContext) {
+async function dependencyObservation(context: ModuleCommandContext) {
 	const tunnel = await readModuleSharedFacts(context, "dev-tunnel");
 	const host = await readModuleSharedFacts(context, "platform-host");
 	const publicBaseUrl = factString(tunnel, "publicBaseUrl");
@@ -49,12 +49,25 @@ async function dependencies(context: ModuleCommandContext) {
 		"gatewayTransportCredentialFile",
 	);
 	const stateRoot = factString(host, "stateRoot");
-	return publicBaseUrl &&
-		downstreamBaseUrl &&
-		downstreamCredentialFile &&
-		stateRoot
-		? { publicBaseUrl, downstreamBaseUrl, downstreamCredentialFile, stateRoot }
-		: undefined;
+	const missing = [
+		...(!publicBaseUrl ? ["dev-tunnel"] : []),
+		...(!downstreamBaseUrl || !downstreamCredentialFile || !stateRoot
+			? ["platform-host"]
+			: []),
+	];
+	const value =
+		publicBaseUrl && downstreamBaseUrl && downstreamCredentialFile && stateRoot
+			? {
+					publicBaseUrl,
+					downstreamBaseUrl,
+					downstreamCredentialFile,
+					stateRoot,
+				}
+			: undefined;
+	return { value, missing };
+}
+async function dependencies(context: ModuleCommandContext) {
+	return (await dependencyObservation(context)).value;
 }
 async function running(context: ModuleCommandContext) {
 	const own = await readOwnFacts(context);
@@ -126,7 +139,8 @@ export const behaviorAdapter = {
 		};
 	},
 	status: async (context: ModuleCommandContext) => {
-		const ready = await dependencies(context);
+		const dependency = await dependencyObservation(context);
+		const ready = dependency.value;
 		return {
 			result: {
 				...base,
@@ -142,10 +156,12 @@ export const behaviorAdapter = {
 									{
 										scope: "SETUP" as const,
 										code: "UPSTREAM_NOT_READY",
-										message:
-											"等待 dev-tunnel 发布公开 HTTPS 地址，并等待 platform-host 发布下游端点与传输凭据",
-										relatedModuleRefs: ["dev-tunnel", "platform-host"],
-										nextCommand: "platform setup --module dev-tunnel",
+										message: `等待 ${dependency.missing.join("、")} 完成前置配置`,
+										relatedModuleRefs: dependency.missing,
+										nextCommand:
+											dependency.missing[0] === "dev-tunnel"
+												? "platform setup --module dev-tunnel"
+												: "platform setup",
 									},
 								],
 							}),
@@ -154,18 +170,21 @@ export const behaviorAdapter = {
 			observedEffects: [],
 		};
 	},
-	setup: async (context: ModuleCommandContext) => ({
-		result: {
-			...base,
-			data: {
-				...(await ownFacts(context)),
-				...((await dependencies(context)) === undefined
-					? { waitingFor: ["dev-tunnel", "platform-host"] }
-					: {}),
+	setup: async (context: ModuleCommandContext) => {
+		const dependency = await dependencyObservation(context);
+		return {
+			result: {
+				...base,
+				data: {
+					...(await ownFacts(context)),
+					...(dependency.value === undefined
+						? { waitingFor: dependency.missing }
+						: {}),
+				},
 			},
-		},
-		observedEffects: [],
-	}),
+			observedEffects: [],
+		};
+	},
 	docs: async (_context: ModuleCommandContext) => ({
 		result: {
 			...base,
