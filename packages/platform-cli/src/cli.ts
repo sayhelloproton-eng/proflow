@@ -7,6 +7,7 @@ import {
 	moduleDocsDataSchema,
 	moduleSetupPlanDataSchema,
 	moduleStatusObservationSchema,
+	readModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
 import { descriptor as platformCliDescriptor } from "../deployment/descriptor.ts";
 import { AutoModuleCatalog, discoverModules } from "./discovery/discover.ts";
@@ -41,6 +42,10 @@ import {
 	type NpmCommandRunner,
 	PRO_FLOW_PACKAGE_PREFIX,
 } from "./registry/index.ts";
+import {
+	createClackSetupInteraction,
+	type SetupInteraction,
+} from "./setup/interaction.ts";
 import { createTerminalProgressReporter } from "./terminal.ts";
 
 const COMMANDS = [
@@ -72,6 +77,7 @@ export interface CliRuntimeOptions {
 	packageRunner?: PackageCommandRunner;
 	executableAvailable?: (command: string) => boolean;
 	onProgress?: PlatformProgressReporter;
+	setupInteraction?: SetupInteraction;
 }
 interface ParsedArgs {
 	command: Command | "help" | "version";
@@ -131,10 +137,10 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 	if (!COMMANDS.includes(raw as Command))
 		throw new PlatformError("INVALID_REQUEST", `unknown command ${raw}`);
 	const command = raw as Command;
-	if (moduleRef !== undefined && command !== "setup")
+	if (moduleRef !== undefined && command !== "setup" && command !== "docs")
 		throw new PlatformError(
 			"INVALID_REQUEST",
-			"--module is only valid with setup",
+			"--module is only valid with setup or docs",
 		);
 	return {
 		command,
@@ -260,6 +266,7 @@ async function handleStatus(
 }
 async function handleDocs(
 	root: string,
+	parsed: ParsedArgs,
 	runtime: CliRuntimeOptions,
 ): Promise<CliOutcome> {
 	reportProgress(runtime.onProgress, {
@@ -269,7 +276,32 @@ async function handleDocs(
 		message: "正在整理模块文档",
 	});
 	const { catalog, modules: resolvedModules } = await buildContext(root);
-	const docs = await observeDocs(catalog, resolvedModules, root);
+	const selectedModules =
+		parsed.moduleRef === undefined
+			? resolvedModules
+			: resolvedModules.filter((item) => item.moduleRef === parsed.moduleRef);
+	if (parsed.moduleRef !== undefined && selectedModules.length === 0)
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			`docs target module ${parsed.moduleRef} was not discovered`,
+		);
+	if (parsed.moduleRef === undefined) {
+		reportProgress(runtime.onProgress, {
+			command: "docs",
+			phase: "docs",
+			status: "SUCCEEDED",
+			message: `已整理 ${selectedModules.length} 个模块的文档索引`,
+		});
+		return outcome("docs", "SUCCEEDED", root, {
+			indexOnly: true,
+			modules: selectedModules.map((module) => ({
+				moduleRef: module.moduleRef,
+				version: module.moduleVersion,
+			})),
+			errors: [],
+		});
+	}
+	const docs = await observeDocs(catalog, selectedModules, root);
 	const byRef = new Map(
 		resolvedModules.map((module) => [module.moduleRef, module]),
 	);
@@ -393,7 +425,7 @@ async function handleInstall(
 				kind: "detail",
 				status: "STARTED",
 				total,
-				message: `Registry 返回 ${total} 个候选模块，正在核验`,
+				message: `Registry 返回 ${total} 个候选模块，正在做安装前核验`,
 			}),
 		onPackageChecked: ({ current, total, packageName }) =>
 			reportProgress(runtime.onProgress, {
@@ -404,7 +436,7 @@ async function handleInstall(
 				current,
 				total,
 				moduleRef: packageName.replace(PRO_FLOW_PACKAGE_PREFIX, ""),
-				message: `核验 ${packageName.replace(PRO_FLOW_PACKAGE_PREFIX, "")}`,
+				message: `安装前核验 ${packageName.replace(PRO_FLOW_PACKAGE_PREFIX, "")}`,
 			}),
 		...(runtime.registryRunner === undefined
 			? {}
@@ -469,7 +501,7 @@ async function handleInstall(
 		phase: "validation",
 		kind: "phase",
 		status: "SUCCEEDED",
-		message: `已验证 ${modules.length} 个已安装模块`,
+		message: `安装完成，${modules.length} 个模块已从本地安装物验证`,
 	});
 	const moduleInstall = await installModulesThin(
 		catalog,
@@ -590,24 +622,100 @@ async function handleSetup(
 		message: "正在分析模块配置",
 	});
 	const { catalog, modules } = await buildContext(root);
-	const target =
+	const interaction = runtime.setupInteraction;
+	const inputByModule = new Map<string, Record<string, unknown>>();
+	const approvedSteps = new Set<string>();
+	const confirmSetupStep = interaction?.confirmStep
+		? async (moduleRef: string) => {
+				if (approvedSteps.has(moduleRef)) return;
+				if (!(await interaction.confirmStep?.(moduleRef)))
+					throw new PlatformError("INVALID_REQUEST", "配置已取消");
+				approvedSteps.add(moduleRef);
+			}
+		: undefined;
+	if (interaction) interaction.begin();
+	let target: { moduleRef: string; input?: unknown } | undefined =
 		parsed.moduleRef === undefined
 			? undefined
 			: { moduleRef: parsed.moduleRef };
-	const result = await setupModulesThin(
+	let result = await setupModulesThin(
 		catalog,
 		modules,
 		root,
 		target,
-		undefined,
+		runtime.onProgress,
+		confirmSetupStep,
 	);
+	for (
+		let attempt = 0;
+		interaction && !result.completed && attempt < 8;
+		attempt += 1
+	) {
+		const actionable = [...result.results]
+			.reverse()
+			.find((item) => item.result.status === "ACTION_REQUIRED");
+		const action = actionable?.result.actionRequired;
+		if (!actionable || !action) break;
+		let modelIds: string[] | undefined;
+		if (actionable.moduleRef === "model-runtime") {
+			const facts = await readModuleSharedFacts(
+				{ workspaceRoot: root },
+				"model-provider-api",
+			);
+			const inventory = facts?.models;
+			if (Array.isArray(inventory))
+				modelIds = inventory.flatMap((item) => {
+					if (typeof item === "string") return [item];
+					if (isRecord(item) && typeof item.id === "string") return [item.id];
+					return [];
+				});
+		}
+		const collected = await interaction.collect({
+			moduleRef: actionable.moduleRef,
+			action: action.action,
+			description: action.description,
+			...(modelIds?.length ? { modelIds } : {}),
+		});
+		if (!collected) break;
+		const previous = inputByModule.get(actionable.moduleRef) ?? {};
+		const input = { ...previous, ...collected };
+		inputByModule.set(actionable.moduleRef, input);
+		const targeted = await setupModulesThin(
+			catalog,
+			modules,
+			root,
+			{ moduleRef: actionable.moduleRef, input },
+			runtime.onProgress,
+			confirmSetupStep,
+		);
+		if (parsed.moduleRef !== undefined || !targeted.completed) {
+			result = targeted;
+			target = { moduleRef: actionable.moduleRef, input };
+			continue;
+		}
+		target = undefined;
+		result = await setupModulesThin(
+			catalog,
+			modules,
+			root,
+			undefined,
+			runtime.onProgress,
+			confirmSetupStep,
+		);
+	}
+	if (interaction && result.completed) interaction.finish("配置已完成");
 	reportProgress(runtime.onProgress, {
 		command: "setup",
 		phase: "setup",
 		status: result.completed ? "SUCCEEDED" : "ACTION_REQUIRED",
 		message: result.completed ? "模块配置已就绪" : "配置清单已生成",
 	});
-	return outcome("setup", batchStatus(result), root, result);
+	return outcome("setup", batchStatus(result), root, {
+		...result,
+		...(parsed.moduleRef === undefined
+			? {}
+			: { targetModuleRef: parsed.moduleRef }),
+	});
 }
 async function handleStart(
 	root: string,
@@ -677,7 +785,7 @@ export async function runCli(
 			case "setup":
 				return await handleSetup(root, parsed, runtime);
 			case "docs":
-				return await handleDocs(root, runtime);
+				return await handleDocs(root, parsed, runtime);
 			case "start":
 				return await handleStart(root, runtime);
 			case "stop":
@@ -916,6 +1024,21 @@ function renderTerminalMarkdown(source: string, theme: HumanTheme): string {
 function renderDocs(data: unknown, theme: HumanTheme) {
 	if (!isRecord(data) || !Array.isArray(data.modules))
 		return "未发现模块文档。";
+	if (data.indexOnly === true) {
+		const modules = data.modules.filter(isRecord);
+		return [
+			theme.title("ProFlow 帮助"),
+			"",
+			"先运行 platform status 查看当前状态；需要某项详细说明时使用：",
+			`  ${theme.command("platform docs --module <模块名>")}`,
+			"",
+			theme.section(`可用文档（${modules.length}）`),
+			...modules.map(
+				(item) =>
+					`  ${String(item.moduleRef).padEnd(34)} ${theme.muted(String(item.version ?? ""))}`,
+			),
+		].join("\n");
+	}
 	const lines = [theme.title("ProFlow 模块文档")];
 	for (const raw of data.modules)
 		if (isRecord(raw))
@@ -936,36 +1059,15 @@ function renderDocs(data: unknown, theme: HumanTheme) {
 		);
 	return lines.join("\n");
 }
-const setupCommands: Record<string, { ai: string; inputs: string }> = {
-	"dev-tunnel": {
-		ai: "platform setup --module dev-tunnel",
-		inputs: "无",
-	},
-	"model-provider-api": {
-		ai: "platform setup --module model-provider-api",
-		inputs: "无（等待 Deployment resolver 提供 endpoint）",
-	},
-	"model-runtime": {
-		ai: "platform setup --module model-runtime",
-		inputs: "无（仅等价合格候选歧义时选择）",
-	},
-	"execution-browser-extension": {
-		ai: "platform setup --module execution-browser-extension",
-		inputs: "无",
-	},
-	"agent-controller-dev": {
-		ai: "platform setup --module agent-controller-dev",
-		inputs: "无",
-	},
-	"agent-product": {
-		ai: "platform setup --module agent-product",
-		inputs: "无",
-	},
-	"agent-test-ops": {
-		ai: "platform setup --module agent-test-ops",
-		inputs: "无",
-	},
+const setupModuleLabels: Record<string, string> = {
+	"execution-browser-extension": "浏览器扩展",
+	"dev-tunnel": "远程连接",
+	"model-provider-api": "模型服务",
+	"model-runtime": "FAST / THINK 模型",
 };
+
+const setupModuleLabel = (moduleRef: string) =>
+	setupModuleLabels[moduleRef] ?? moduleRef;
 function renderSetup(data: unknown, theme: HumanTheme) {
 	if (!isRecord(data) || !Array.isArray(data.results))
 		return "没有需要执行的配置步骤。";
@@ -991,11 +1093,15 @@ function renderSetup(data: unknown, theme: HumanTheme) {
 		if (status === "FAILED") blocked += 1;
 		else needsAction += 1;
 		lines.push(
-			`${status === "FAILED" ? theme.failure("✕") : theme.warning("◆")} ${theme.section(moduleRef)}`,
+			`${status === "FAILED" ? theme.failure("✕") : theme.warning("◆")} ${theme.section(setupModuleLabel(moduleRef))}`,
 		);
 		const plan = moduleSetupPlanDataSchema.safeParse(raw.result.data);
 		if (plan.success) {
+			const currentStep =
+				plan.data.steps.find((step) => step.state === "BLOCKED") ??
+				plan.data.steps.find((step) => step.state === "TODO");
 			for (const [index, step] of plan.data.steps.entries()) {
+				if (step !== currentStep && step.state !== "DONE") continue;
 				const marker =
 					step.state === "DONE"
 						? theme.success("✓")
@@ -1009,17 +1115,12 @@ function renderSetup(data: unknown, theme: HumanTheme) {
 					`  ${marker} ${String(index + 1).padStart(2, "0")}  ${step.title}`,
 				);
 				if (step.description) lines.push(`       ${step.description}`);
-				lines.push(`       运行：${theme.command(step.execution.interactive)}`);
-				lines.push(
-					`       AI：${theme.command(step.execution.nonInteractive)}`,
-				);
 				if (step.requiredInputs.length > 0)
 					lines.push(
 						`       需要：${step.requiredInputs.map((item) => item.description).join("、")}`,
 					);
 				if (step.humanAction)
 					lines.push(`       人工操作：${step.humanAction}`);
-				lines.push(`       验证：${theme.command(step.verify)}`);
 				lines.push(`       完成：${step.successCondition}`);
 				if (step.blockedReason)
 					lines.push(`       原因：${theme.failure(step.blockedReason)}`);
@@ -1032,15 +1133,7 @@ function renderSetup(data: unknown, theme: HumanTheme) {
 		);
 		const error = raw.result.error;
 		if (status !== "FAILED") {
-			const commands = setupCommands[moduleRef] ?? {
-				ai: `platform setup --module ${moduleRef}`,
-				inputs: "按命令提示提供",
-			};
-			lines.push(`  人工执行：${commands.ai}`);
-			lines.push(`  AI 执行：${commands.ai}`);
-			lines.push(`  需要输入：${commands.inputs}`);
-			lines.push("  验证：platform status");
-			lines.push("  完成条件：配置状态变为“已就绪”");
+			lines.push("  请在当前 Platform 向导中完成这一项。完成后会自动验证。");
 		} else if (isRecord(error)) {
 			const code = error.code === undefined ? "FAILED" : String(error.code);
 			const message =
@@ -1048,8 +1141,7 @@ function renderSetup(data: unknown, theme: HumanTheme) {
 					? "Module setup failed."
 					: String(error.message);
 			lines.push(`  原因：${code} — ${message}`);
-			lines.push(`  执行：platform setup --module ${moduleRef}`);
-			lines.push("  完成条件：配置状态变为“已就绪”");
+			lines.push("  修复当前问题后重新运行 platform setup。");
 		}
 		lines.push("");
 	}
@@ -1067,7 +1159,14 @@ function renderSetup(data: unknown, theme: HumanTheme) {
 			"",
 		);
 	}
-	if (needsAction === 0 && blocked === 0) lines.push("全部模块均已就绪。");
+	const targetModuleRef =
+		typeof data.targetModuleRef === "string" ? data.targetModuleRef : undefined;
+	if (needsAction === 0 && blocked === 0)
+		lines.push(
+			targetModuleRef
+				? `${setupModuleLabel(targetModuleRef)}配置已就绪。`
+				: "全部模块均已就绪。",
+		);
 	lines.push(
 		theme.section("汇总"),
 		`汇总：${theme.success(`${ready} 个已就绪`)}，${theme.warning(`${needsAction} 个需要操作`)}，${blocked > 0 ? theme.failure(`${blocked} 个系统阻塞`) : `${blocked} 个系统阻塞`}`,
@@ -1094,8 +1193,8 @@ function renderHelp(theme: HumanTheme, command?: Command): string {
 			description: "自动配置并列出全部剩余步骤",
 		},
 		docs: {
-			usage: "platform docs [--workspace <路径>]",
-			description: "阅读全部模块能力文档",
+			usage: "platform docs [--workspace <路径>] [--module <模块名>]",
+			description: "查看文档索引，或阅读一个模块的详细文档",
 		},
 		start: {
 			usage: "platform start [--workspace <路径>]",
@@ -1294,7 +1393,12 @@ export function renderHumanResult(
 if (import.meta.main) {
 	const argv = process.argv.slice(2);
 	const reporter = createTerminalProgressReporter();
-	const result = await runCli(argv, { onProgress: reporter });
+	const result = await runCli(argv, {
+		onProgress: reporter,
+		...(process.stdin.isTTY && process.stdout.isTTY
+			? { setupInteraction: createClackSetupInteraction() }
+			: {}),
+	});
 	reporter.close();
 	const color =
 		process.stdout.isTTY === true &&

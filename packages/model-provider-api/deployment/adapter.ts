@@ -232,10 +232,8 @@ function setupPlan(resolution: Exclude<Resolution, { status: "READY" }>) {
 				state: "TODO" as const,
 				responsible: "USER" as const,
 				execution: {
-					interactive: "pnpm exec -- proflow-model-provider-api setup",
-					nonInteractive: endpointRequired
-						? "pnpm exec -- proflow-model-provider-api setup --provider-base-url <url>"
-						: "pnpm exec -- proflow-model-provider-api setup",
+					interactive: "platform setup",
+					nonInteractive: "platform setup",
 				},
 				requiredInputs: auth
 					? [
@@ -249,17 +247,17 @@ function setupPlan(resolution: Exclude<Resolution, { status: "READY" }>) {
 						? [
 								{
 									name: "providerBaseUrl",
-									description: "部署层解析出的 OpenAI-compatible 模型服务 URL",
+									description: "OpenAI-compatible 服务 Base URL",
 									sensitive: false,
 								},
 							]
 						: [],
-				verify: "pnpm exec -- proflow-model-provider-api verify",
+				verify: "platform status",
 				successCondition: "model-provider-api.setupStatus=READY",
 				humanAction: auth
 					? "安全输入模型服务访问凭据"
 					: endpointRequired
-						? "提供部署层解析出的模型服务 URL"
+						? "粘贴整个 OpenAI-compatible 服务的 Base URL"
 						: undefined,
 			},
 		],
@@ -298,7 +296,7 @@ export function createProviderBehaviorAdapter(
 			return {
 				status: "PROVIDER_ENDPOINT_REQUIRED",
 				message:
-					"模型服务尚未绑定。model-provider-api 只消费部署层提供的 OpenAI-compatible URL，不识别具体设备、应用或 Provider 产品。",
+					"模型服务尚未绑定。请填写整个 OpenAI-compatible 服务的 Base URL；不要填写网页、单个模型地址或 /chat/completions。",
 			};
 		const oneTimeCredential = suppliedCredential(context);
 		const storedCredential = await readCredential(

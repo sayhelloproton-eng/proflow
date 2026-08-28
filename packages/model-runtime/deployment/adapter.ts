@@ -479,6 +479,50 @@ export function createModelRuntimeBehaviorAdapter(
 			}
 			const providerSecret = await credential(provider.providerCredentialFile);
 			const selected = selectedRoles(context);
+			if (!selected?.fast || !selected.reason)
+				return {
+					result: {
+						...base,
+						ok: false as const,
+						status: "ACTION_REQUIRED" as const,
+						data: {
+							steps: [
+								{
+									id: "STEP-MODEL-RUNTIME-01",
+									title: "选择 FAST 与 THINK 模型",
+									description:
+										"从模型服务真实库存中分别选择快速模型与推理模型，随后由 Model Runtime 验证能力。",
+									state: "TODO" as const,
+									responsible: "USER" as const,
+									execution: {
+										interactive: "platform setup",
+										nonInteractive: "platform setup",
+									},
+									requiredInputs: [
+										{
+											name: "fastModel",
+											description: "FAST 模型",
+											sensitive: false,
+										},
+										{
+											name: "reasonModel",
+											description: "THINK 模型",
+											sensitive: false,
+										},
+									],
+									verify: "platform status",
+									successCondition: "FAST / THINK 能力验证通过",
+									humanAction: "选择 FAST 与 THINK 模型",
+								},
+							],
+						},
+						actionRequired: {
+							action: "select-model-roles",
+							description: "请选择 FAST 与 THINK 模型。",
+						},
+					},
+					observedEffects: [],
+				};
 			const preferred = {
 				...(existing?.mapping ?? {}),
 				...(selected ?? {}),

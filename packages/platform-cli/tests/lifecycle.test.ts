@@ -414,24 +414,33 @@ test("uninstall runs in reverse dependency order and fails fast", async () => {
 test("setup skips READY modules and invokes only ACTION_REQUIRED module", async () => {
 	const { catalog, calls } = recordingCatalog({ consumer: "ACTION_REQUIRED" });
 	const result = await setupModulesThin(catalog, modules, workspaceRoot);
-	assert.equal(result.completed, true);
+	assert.equal(result.completed, false);
 	assert.deepEqual(
 		calls.map((item) => item.call),
-		[
-			"provider:status",
-			"consumer:status",
-			"consumer:setup",
-			"consumer:status",
-			"leaf:status",
-		],
+		["provider:status", "consumer:status", "consumer:setup", "consumer:status"],
 	);
 	assert.deepEqual(result.skipped, [
 		{ moduleRef: "provider", reason: "READY" },
-		{ moduleRef: "leaf", reason: "READY" },
 	]);
 });
 
-test("setup gives every non-ready owner one setup opportunity", async () => {
+test("setup asks the Platform interaction shell only before a module that needs setup", async () => {
+	const { catalog } = recordingCatalog({ consumer: "ACTION_REQUIRED" });
+	const prompted: string[] = [];
+	await setupModulesThin(
+		catalog,
+		modules,
+		workspaceRoot,
+		undefined,
+		undefined,
+		async (moduleRef) => {
+			prompted.push(moduleRef);
+		},
+	);
+	assert.deepEqual(prompted, ["consumer"]);
+});
+
+test("RF-DEP-CLI-REAL2-01 full setup gates at the first owner that still needs human action", async () => {
 	const { catalog, calls } = recordingCatalog(
 		{ consumer: "ACTION_REQUIRED", leaf: "ACTION_REQUIRED" },
 		{ consumer: "ACTION_REQUIRED", leaf: "ACTION_REQUIRED" },
@@ -440,27 +449,51 @@ test("setup gives every non-ready owner one setup opportunity", async () => {
 	assert.equal(result.completed, false);
 	assert.deepEqual(
 		calls.map((item) => item.call),
-		[
-			"provider:status",
-			"consumer:status",
-			"consumer:setup",
-			"consumer:status",
-			"leaf:status",
-			"leaf:setup",
-			"leaf:status",
-		],
+		["provider:status", "consumer:status", "consumer:setup", "consumer:status"],
 	);
 	assert.deepEqual(
 		result.results.map((item) => [item.moduleRef, item.result.status]),
-		[
-			["consumer", "ACTION_REQUIRED"],
-			["leaf", "ACTION_REQUIRED"],
-		],
+		[["consumer", "ACTION_REQUIRED"]],
 	);
-	assert.deepEqual(result.blockers, undefined);
+	assert.deepEqual(result.blockers, [
+		{
+			moduleRef: "consumer",
+			setupStatus: "ACTION_REQUIRED",
+			reason: "consumer is not ready",
+			nextCommand: "platform setup --module consumer",
+		},
+	]);
 });
 
-test("setup reconciles owner-reported BLOCKED status without turning a no-op setup into FAILED", async () => {
+test("full setup presents Browser, Tunnel, then Provider as the user-visible frontier", async () => {
+	const browser = moduleFixture({ moduleRef: "execution-browser-extension" });
+	const tunnel = moduleFixture({ moduleRef: "dev-tunnel" });
+	const modelProvider = moduleFixture({ moduleRef: "model-provider-api" });
+	const { catalog, calls } = recordingCatalog(
+		{
+			"execution-browser-extension": "ACTION_REQUIRED",
+			"dev-tunnel": "ACTION_REQUIRED",
+			"model-provider-api": "ACTION_REQUIRED",
+		},
+		{ "execution-browser-extension": "ACTION_REQUIRED" },
+	);
+	const result = await setupModulesThin(
+		catalog,
+		[tunnel, modelProvider, browser],
+		workspaceRoot,
+	);
+	assert.equal(result.completed, false);
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		[
+			"execution-browser-extension:status",
+			"execution-browser-extension:setup",
+			"execution-browser-extension:status",
+		],
+	);
+});
+
+test("RF-DEP-CLI-REAL2-02 setup re-reads owner status instead of guessing readiness from SUCCEEDED", async () => {
 	const { catalog, calls } = recordingCatalog({ consumer: "BLOCKED" });
 	const result = await setupModulesThin(catalog, modules, workspaceRoot);
 	assert.equal(result.completed, false);
@@ -478,13 +511,7 @@ test("setup reconciles owner-reported BLOCKED status without turning a no-op set
 	);
 	assert.deepEqual(
 		calls.map((item) => item.call),
-		[
-			"provider:status",
-			"consumer:status",
-			"consumer:setup",
-			"consumer:status",
-			"leaf:status",
-		],
+		["provider:status", "consumer:status", "consumer:setup", "consumer:status"],
 	);
 });
 
@@ -495,7 +522,7 @@ test("targeted setup forwards opaque input without Platform interpretation", asy
 		moduleRef: "consumer",
 		input,
 	});
-	assert.equal(result.completed, true);
+	assert.equal(result.completed, false);
 	assert.deepEqual(calls, [
 		{ call: "consumer:status" },
 		{ call: "consumer:setup", input },
@@ -517,38 +544,28 @@ test("targeted setup reconciles a READY module even without explicit input", asy
 	assert.deepEqual(result.skipped, []);
 });
 
-test("setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run", async () => {
-	const independent = moduleFixture({ moduleRef: "independent" });
+test("setup never starts a later machine failure after the first human action", async () => {
 	const { catalog, calls } = recordingCatalog(
-		{ consumer: "ACTION_REQUIRED", independent: "FAILED" },
-		{ consumer: "ACTION_REQUIRED", independent: "FAILED" },
+		{ consumer: "ACTION_REQUIRED", leaf: "FAILED" },
+		{ consumer: "ACTION_REQUIRED", leaf: "FAILED" },
 	);
-	const result = await setupModulesThin(
-		catalog,
-		[consumer, provider, independent],
-		workspaceRoot,
-	);
+	const result = await setupModulesThin(catalog, modules, workspaceRoot);
 	assert.equal(result.completed, false);
 	assert.deepEqual(
-		result.results
-			.map((item) => [item.moduleRef, item.result.status])
-			.sort((left, right) => String(left[0]).localeCompare(String(right[0]))),
-		[
-			["consumer", "ACTION_REQUIRED"],
-			["independent", "FAILED"],
-		],
+		result.results.map((item) => [item.moduleRef, item.result.status]),
+		[["consumer", "ACTION_REQUIRED"]],
 	);
 	assert.equal(
 		calls.some((item) => item.call === "consumer:setup"),
 		true,
 	);
 	assert.equal(
-		calls.some((item) => item.call === "independent:setup"),
-		true,
+		calls.some((item) => item.call === "leaf:setup"),
+		false,
 	);
 });
 
-test("CP-DEP-CLI-REAL2-01 CP-DEP-CLI-REAL2-02 same-run provider readiness unlocks dependent setup", async () => {
+test("CP-DEP-CLI-REAL2-01 CP-DEP-CLI-REAL2-02 CP-DEP-CLI-REAL2-05 same-run provider readiness unlocks dependent setup", async () => {
 	const { catalog, calls } = recordingCatalog(
 		{ provider: "ACTION_REQUIRED", consumer: "ACTION_REQUIRED" },
 		{},
@@ -573,7 +590,7 @@ test("CP-DEP-CLI-REAL2-01 CP-DEP-CLI-REAL2-02 same-run provider readiness unlock
 	);
 });
 
-test("CP-DEP-CLI-REAL2-03 CP-DEP-CLI-REAL2-05 RF-DEP-CLI-REAL2-01 RF-DEP-CLI-REAL2-02 owners determine precise blocking while all non-ready modules run setup", async () => {
+test("CP-DEP-CLI-REAL2-03 owners determine the first actionable setup frontier", async () => {
 	const independent = moduleFixture({ moduleRef: "independent" });
 	const { catalog, calls } = recordingCatalog({
 		provider: "ACTION_REQUIRED",
@@ -585,11 +602,11 @@ test("CP-DEP-CLI-REAL2-03 CP-DEP-CLI-REAL2-05 RF-DEP-CLI-REAL2-01 RF-DEP-CLI-REA
 		[consumer, provider, independent],
 		workspaceRoot,
 	);
-	assert.equal(result.completed, true);
-	assert.deepEqual(result.blockers, undefined);
+	assert.equal(result.completed, false);
+	assert.equal(result.blockers?.[0]?.setupStatus, "ACTION_REQUIRED");
 	assert.equal(
 		calls.some((item) => item.call === "consumer:setup"),
-		true,
+		false,
 	);
 	assert.equal(
 		calls.some((item) => item.call === "independent:setup"),
@@ -597,13 +614,14 @@ test("CP-DEP-CLI-REAL2-03 CP-DEP-CLI-REAL2-05 RF-DEP-CLI-REAL2-01 RF-DEP-CLI-REA
 	);
 });
 
-test("CP-DEP-CLI-REAL2-04 RF-DEP-CLI-REAL2-03 dependency setup gate is generic and stores no module-specific resume state", async () => {
+test("CP-DEP-CLI-REAL2-04 RF-DEP-CLI-REAL2-03 setup priority is presentation-only and stores no module-specific resume state", async () => {
 	const source = await import("node:fs/promises").then(({ readFile }) =>
 		readFile(new URL("../src/lifecycle/thin.ts", import.meta.url), "utf8"),
 	);
+	assert.match(source, /execution-browser-extension/);
 	assert.doesNotMatch(
 		source,
-		/execution-browser-extension|custom-gpt|agent-product|agent-controller-dev|agent-test-ops/,
+		/custom-gpt|agent-product|agent-controller-dev|agent-test-ops/,
 	);
 	assert.doesNotMatch(source, /resumeState|setupCheckpoint|persist.*setup/i);
 });

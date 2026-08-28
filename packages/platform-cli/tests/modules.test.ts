@@ -209,12 +209,14 @@ test("platform setup human output preserves all actions when the aggregate also 
 		},
 	});
 	assert.match(rendered, /ProFlow 配置/);
-	assert.match(rendered, /execution-browser-extension/);
-	assert.match(rendered, /◆ execution-browser-extension/);
-	assert.match(rendered, /platform setup --module execution-browser-extension/);
-	assert.match(rendered, /AI 执行/);
-	assert.match(rendered, /model-runtime/);
-	assert.match(rendered, /✕ model-runtime/);
+	assert.match(rendered, /浏览器扩展/);
+	assert.match(rendered, /◆ 浏览器扩展/);
+	assert.doesNotMatch(
+		rendered,
+		/platform setup --module execution-browser-extension/,
+	);
+	assert.match(rendered, /FAST \/ THINK 模型/);
+	assert.match(rendered, /✕ FAST \/ THINK 模型/);
 	assert.match(rendered, /SETUP_FAILED/);
 	assert.match(rendered, /producer shared facts are unavailable/);
 	assert.match(rendered, /汇总：2 个已就绪，1 个需要操作，1 个系统阻塞/);
@@ -242,8 +244,9 @@ test("Dev Tunnel setup guidance uses automatic discovery without manual tunnel f
 			],
 		},
 	});
-	assert.match(rendered, /platform setup --module dev-tunnel/);
-	assert.match(rendered, /需要输入：无/);
+	assert.match(rendered, /远程连接/);
+	assert.match(rendered, /Platform 向导/);
+	assert.doesNotMatch(rendered, /platform setup --module dev-tunnel/);
 	assert.doesNotMatch(rendered, /--tunnel-id|--public-base-url/);
 });
 

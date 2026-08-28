@@ -28,6 +28,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@clack/prompts": "1.7.0",
 		"@tomflow/proflow-module-contract": "workspace:^"
 	},
 	"devDependencies": {

@@ -111,7 +111,7 @@ export async function readWorkspacePackageManagerSelection(
 	if (lockManagers.size > 1) {
 		throw new PlatformError(
 			"PACKAGE_MANAGER_CONFLICT",
-			`multiple package-manager lockfiles are present: ${[...lockManagers].sort().join(", ")}`,
+			`检测到多个包管理器的 lockfile（${[...lockManagers].sort().join(", ")}）。Platform 不会自动删除或替你选择；请先保留现场并明确工作区应使用的唯一包管理器。`,
 		);
 	}
 	const [fromLockfile] = lockManagers;

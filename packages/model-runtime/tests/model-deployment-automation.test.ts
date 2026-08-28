@@ -276,7 +276,12 @@ test("deployment setup automatically persists role evidence and publishes local 
 		observeInventory: async () => ["fast", "reason"],
 	});
 	assert.equal(
-		(await adapter.setup({ workspaceRoot })).result.status,
+		(
+			await adapter.setup({
+				workspaceRoot,
+				input: { fastModel: "fast", reasonModel: "reason" },
+			})
+		).result.status,
 		"SUCCEEDED",
 	);
 	assert.equal(
@@ -302,18 +307,27 @@ test("ambiguous mapping requests only irreducible model choice while missing rol
 	const ambiguousRoot = await workspace(context);
 	await providerFacts(ambiguousRoot, ["fast-a", "fast-b", "reason"]);
 	const ambiguous = createModelRuntimeBehaviorAdapter({
-		mapInventory: async () => ({
-			status: "AMBIGUOUS",
-			role: "fast",
-			candidates: ["fast-a", "fast-b"],
-		}),
+		mapInventory: async ({ previous }) =>
+			decideRoleMapping(
+				[
+					evidence("fast-a", "no-thinking"),
+					evidence("fast-b", "no-thinking"),
+					evidence("reason", "thinking"),
+				],
+				previous,
+			),
 	});
 	const choice = await ambiguous.setup({ workspaceRoot: ambiguousRoot });
 	assert.equal(choice.result.status, "ACTION_REQUIRED");
-	assert.equal(choice.result.actionRequired?.action, "select-fast-model");
-	assert.match(
-		choice.result.actionRequired?.description ?? "",
-		/fast-a.*fast-b/,
+	assert.equal(choice.result.actionRequired?.action, "select-model-roles");
+	assert.equal(
+		(
+			await ambiguous.setup({
+				workspaceRoot: ambiguousRoot,
+				input: { fastModel: "fast-b", reasonModel: "reason" },
+			})
+		).result.status,
+		"SUCCEEDED",
 	);
 
 	const missingRoot = await workspace(context);
@@ -325,7 +339,10 @@ test("ambiguous mapping requests only irreducible model choice while missing rol
 			candidates: [],
 		}),
 	});
-	const failure = await missing.setup({ workspaceRoot: missingRoot });
+	const failure = await missing.setup({
+		workspaceRoot: missingRoot,
+		input: { fastModel: "fast", reasonModel: "fast" },
+	});
 	assert.equal(failure.result.status, "FAILED");
 	assert.match(failure.result.error?.message ?? "", /REASON/);
 });
@@ -350,7 +367,12 @@ test("provider inventory drift makes an existing mapping stale until automatic r
 		observeInventory: async () => observed,
 	});
 	assert.equal(
-		(await adapter.setup({ workspaceRoot })).result.status,
+		(
+			await adapter.setup({
+				workspaceRoot,
+				input: { fastModel: "fast", reasonModel: "reason" },
+			})
+		).result.status,
 		"SUCCEEDED",
 	);
 	observed = ["fast-new", "reason-new"];
@@ -359,7 +381,12 @@ test("provider inventory drift makes an existing mapping stale until automatic r
 	assert.equal(stale.result.data.issues?.[0]?.code, "MODEL_MAPPING_STALE");
 	await providerFacts(workspaceRoot, observed);
 	assert.equal(
-		(await adapter.setup({ workspaceRoot })).result.status,
+		(
+			await adapter.setup({
+				workspaceRoot,
+				input: { fastModel: "fast-new", reasonModel: "reason-new" },
+			})
+		).result.status,
 		"SUCCEEDED",
 	);
 	assert.equal(mappingCalls, 2);
@@ -381,12 +408,20 @@ test("wall-clock age alone does not invalidate unchanged capability mapping", as
 		},
 		observeInventory: async () => ["fast", "reason"],
 	});
-	await adapter.setup({ workspaceRoot });
+	await adapter.setup({
+		workspaceRoot,
+		input: { fastModel: "fast", reasonModel: "reason" },
+	});
 	now = "2026-09-25T00:00:00.000Z";
 	const status = await adapter.status({ workspaceRoot });
 	assert.equal(status.result.data.setupStatus, "READY");
 	assert.equal(
-		(await adapter.setup({ workspaceRoot })).result.status,
+		(
+			await adapter.setup({
+				workspaceRoot,
+				input: { fastModel: "fast", reasonModel: "reason" },
+			})
+		).result.status,
 		"SUCCEEDED",
 	);
 	assert.equal(calls, 1);
@@ -450,7 +485,12 @@ test("deployment start runs the real local runtime and publishes an authenticate
 		observeInventory: async () => ["fast", "reason"],
 	});
 	assert.equal(
-		(await adapter.setup({ workspaceRoot })).result.status,
+		(
+			await adapter.setup({
+				workspaceRoot,
+				input: { fastModel: "fast", reasonModel: "reason" },
+			})
+		).result.status,
 		"SUCCEEDED",
 	);
 	assert.equal(
@@ -499,7 +539,10 @@ test("provider offline after READY is explicit and never reuses a fake runtime R
 			return ["fast", "reason"];
 		},
 	});
-	await adapter.setup({ workspaceRoot });
+	await adapter.setup({
+		workspaceRoot,
+		input: { fastModel: "fast", reasonModel: "reason" },
+	});
 	online = false;
 	const status = await adapter.status({ workspaceRoot });
 	assert.equal(status.result.data.setupStatus, "READY");

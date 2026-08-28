@@ -115,7 +115,7 @@ test("status reports one aggregate progress phase instead of printing every modu
 	);
 });
 
-test("browser setup guidance uses only the Platform public management entry", () => {
+test("targeted browser setup stays scoped to Browser instead of claiming the whole platform", () => {
 	const rendered = renderHumanResult({
 		command: "setup",
 		status: "ACTION_REQUIRED",
@@ -128,19 +128,30 @@ test("browser setup guidance uses only the Platform public management entry", ()
 			],
 		},
 	});
-	assert.match(
-		rendered,
-		/人工执行：platform setup --module execution-browser-extension/,
-	);
-	assert.match(
-		rendered,
-		/AI 执行：platform setup --module execution-browser-extension/,
-	);
-	assert.match(rendered, /验证：platform status/);
+	assert.match(rendered, /浏览器扩展/);
+	assert.doesNotMatch(rendered, /全部模块均已就绪/);
 	assert.doesNotMatch(
 		rendered,
 		/proflow-execution-browser-extension|pnpm exec/,
 	);
+});
+
+test("targeted successful setup names only its target", () => {
+	const rendered = renderHumanResult({
+		command: "setup",
+		status: "SUCCEEDED",
+		data: {
+			targetModuleRef: "execution-browser-extension",
+			results: [
+				{
+					moduleRef: "execution-browser-extension",
+					result: { status: "SUCCEEDED" },
+				},
+			],
+		},
+	});
+	assert.match(rendered, /浏览器扩展配置已就绪/);
+	assert.doesNotMatch(rendered, /全部模块/);
 });
 
 test("help contains explanations and no raw JSON input route", () => {

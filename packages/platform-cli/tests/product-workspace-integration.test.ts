@@ -144,7 +144,10 @@ test("simulated human Golden Path runs install → status → setup → docs →
 		assert.equal(ready.data?.modules?.[0]?.setupStatus, "READY");
 
 		const docs = parse(
-			await runCli(["docs", "--workspace", "."], { cwd: root }),
+			await runCli(
+				["docs", "--workspace", ".", "--module", "fixture-service"],
+				{ cwd: root },
+			),
 		);
 		assert.equal(docs.status, "SUCCEEDED");
 		assert.match(
