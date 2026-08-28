@@ -22,6 +22,10 @@
   dir: packages/agent-controller-dev
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-agent-controller-dev@0.1.15":
+  dir: packages/agent-controller-dev
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-agent-controller-dev@0.1.2":
   dir: packages/agent-controller-dev
   intents:
@@ -66,6 +70,10 @@
   dir: packages/agent-gateway
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-agent-gateway@0.1.14":
+  dir: packages/agent-gateway
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-agent-gateway@0.1.2":
   dir: packages/agent-gateway
   intents:
@@ -110,6 +118,10 @@
   dir: packages/agent-product
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-agent-product@0.1.15":
+  dir: packages/agent-product
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-agent-product@0.1.2":
   dir: packages/agent-product
   intents:
@@ -190,6 +202,10 @@
   dir: packages/agent-test-ops
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-agent-test-ops@0.1.15":
+  dir: packages/agent-test-ops
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-agent-test-ops@0.1.2":
   dir: packages/agent-test-ops
   intents:
@@ -282,6 +298,10 @@
   dir: packages/chrome-runtime
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-chrome-runtime@0.1.15":
+  dir: packages/chrome-runtime
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-chrome-runtime@0.1.2":
   dir: packages/chrome-runtime
   intents:
@@ -318,6 +338,10 @@
   dir: packages/deployment-conformance
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-deployment-conformance@0.1.12":
+  dir: packages/deployment-conformance
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-deployment-conformance@0.1.2":
   dir: packages/deployment-conformance
   intents:
@@ -370,6 +394,10 @@
   dir: packages/dev-tunnel
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-dev-tunnel@0.1.16":
+  dir: packages/dev-tunnel
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-dev-tunnel@0.1.2":
   dir: packages/dev-tunnel
   intents:
@@ -414,6 +442,10 @@
   dir: packages/execution-browser-extension
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-execution-browser-extension@0.1.14":
+  dir: packages/execution-browser-extension
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-execution-browser-extension@0.1.2":
   dir: packages/execution-browser-extension
   intents:
@@ -486,6 +518,10 @@
   dir: packages/execution-local
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-execution-local@0.1.13":
+  dir: packages/execution-local
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-execution-local@0.1.2":
   dir: packages/execution-local
   intents:
@@ -534,6 +570,10 @@
   dir: packages/execution-runtime
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-execution-runtime@0.1.15":
+  dir: packages/execution-runtime
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-execution-runtime@0.1.2":
   dir: packages/execution-runtime
   intents:
@@ -602,6 +642,10 @@
   dir: packages/model-provider-api
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-model-provider-api@0.1.13":
+  dir: packages/model-provider-api
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-model-provider-api@0.1.2":
   dir: packages/model-provider-api
   intents:
@@ -654,6 +698,10 @@
   dir: packages/model-runtime
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-model-runtime@0.1.16":
+  dir: packages/model-runtime
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-model-runtime@0.1.2":
   dir: packages/model-runtime
   intents:
@@ -894,6 +942,10 @@
   dir: packages/platform-cli
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-platform-cli@0.1.38":
+  dir: packages/platform-cli
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-platform-cli@0.1.4":
   dir: packages/platform-cli
   intents:
@@ -938,6 +990,10 @@
   dir: packages/platform-host
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-platform-host@0.1.14":
+  dir: packages/platform-host
+  intents:
+    - phase3-real3-browser-status-closeout
 "@tomflow/proflow-platform-host@0.1.2":
   dir: packages/platform-host
   intents:
