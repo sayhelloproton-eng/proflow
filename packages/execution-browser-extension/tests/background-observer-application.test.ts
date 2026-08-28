@@ -142,6 +142,8 @@ test("P1-18 bounded startup/event recovery replenishes missing Task Workers befo
 		),
 	);
 	assert.match(recovery, /task\.list/);
+	assert.match(recovery, /invokeTaskApplication\("task\.list", \{\}\)\.catch/);
+	assert.match(source, /observerRecoveryRetryCount/);
 	assert.match(recovery, /task\.ensureWorkers/);
 	assert.match(recovery, /taskObserver\.drive/);
 	assert.ok(

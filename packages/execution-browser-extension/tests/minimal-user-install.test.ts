@@ -86,6 +86,12 @@ test("browser install workflow exposes one human installation confirmation", asy
 	]);
 	assert.deepEqual(result, { extensionId, extensionInstanceId });
 	assert.match(instruction, /加载未打包的扩展程序/);
+	assert.match(instruction, /路径已复制/);
+	assert.match(instruction, /Cmd\+Shift\+G/);
+	assert.match(instruction, /Cmd\+V/);
+	assert.ok(
+		instruction.indexOf("开发者模式") < instruction.indexOf("Cmd+Shift+G"),
+	);
 	assert.match(instruction, /完成后无需返回输入任何内容/);
 	assert.match(instruction, new RegExp(loadDir.replaceAll("/", "\\/")));
 	assert.doesNotMatch(
@@ -105,6 +111,7 @@ test("setup output is human-readable and keeps stable AI recovery semantics", ()
 	);
 	assert.match(timeout, /暂未检测到浏览器扩展连接/);
 	assert.match(timeout, /重新执行 platform setup/);
+	assert.match(timeout, /再次复制路径|重新打开 Chrome|显示完整路径/);
 	assert.match(timeout, /错误代码：PAIRING_TIMEOUT/);
 	assert.doesNotMatch(timeout, /Extension ID|token|endpoint/);
 });

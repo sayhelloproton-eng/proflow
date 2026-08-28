@@ -18,7 +18,7 @@ export type BrowserExtensionPair = (
 ) => Promise<{ extensionId: string; extensionInstanceId: string }>;
 
 export function browserExtensionInstallInstruction(loadDir: string): string {
-	return `\nChrome 浏览器扩展\n\nProFlow 已准备好扩展文件，并已复制安装目录：\n${loadDir}\n\n请在已经打开的 Chrome 扩展管理页完成以下安装操作：\n1. 如果“开发者模式”尚未开启，请开启\n2. 点击“加载未打包的扩展程序”\n3. 在目录选择窗口中粘贴并确认刚刚复制的目录\n\n完成后无需返回输入任何内容。ProFlow 会自动检测扩展并继续。\n`;
+	return `\nChrome 浏览器扩展\n\n第一步｜开启开发者模式\n请在已经打开的 Chrome 扩展管理页开启右上角“开发者模式”。\n\n第二步｜加载扩展目录\n扩展目录路径已复制到剪贴板：\n${loadDir}\n\n1. 点击“加载未打包的扩展程序”\n2. 在目录选择窗口按 Cmd+Shift+G\n3. 按 Cmd+V 粘贴路径，然后按 Enter\n4. 点击 Select（选择）\n\n完成后无需返回输入任何内容。ProFlow 会自动检测 pairing 与 heartbeat 并继续。\n`;
 }
 
 export function browserExtensionSetupSuccessMessage(): string {
@@ -28,7 +28,7 @@ export function browserExtensionSetupSuccessMessage(): string {
 export function browserExtensionSetupFailureMessage(error: unknown): string {
 	const detail = error instanceof Error ? error.message : String(error);
 	if (detail === "PAIRING_TIMEOUT") {
-		return "✕ 暂未检测到浏览器扩展连接\n\n请确认扩展已经在 Chrome 中完成加载。已准备好的扩展文件和机器配置不会丢失。\n下一步：重新执行 platform setup\n错误代码：PAIRING_TIMEOUT\n";
+		return "✕ 暂未检测到浏览器扩展连接\n\n已准备好的扩展文件和机器配置不会丢失。重新执行 platform setup 后可以再次复制路径、重新打开 Chrome、显示完整路径或退出。\n错误代码：PAIRING_TIMEOUT\n";
 	}
 	const code = /^[A-Z][A-Z0-9_:-]*$/.test(detail)
 		? detail

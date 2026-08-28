@@ -583,6 +583,7 @@ async function persistSystemObserverState(
 }
 
 let observerRecoveryInFlight: Promise<void> | null = null;
+let observerRecoveryRetryCount = 0;
 function runObserverRecovery() {
 	if (observerRecoveryInFlight) return observerRecoveryInFlight;
 	observerRecoveryInFlight = (async () => {
@@ -636,7 +637,15 @@ function runObserverRecovery() {
 				}
 			}
 		}
-		const listed = await invokeTaskApplication("task.list", {});
+		const listed = await invokeTaskApplication("task.list", {}).catch(
+			() => null,
+		);
+		if (listed === null && observerRecoveryRetryCount < 6) {
+			observerRecoveryRetryCount += 1;
+			setTimeout(() => void runObserverRecovery(), 2_000);
+		} else if (listed !== null) {
+			observerRecoveryRetryCount = 0;
+		}
 		if (isRecord(listed) && Array.isArray(listed.tasks)) {
 			for (const candidate of listed.tasks.slice(0, 100)) {
 				if (!isRecord(candidate) || typeof candidate.taskId !== "string")
