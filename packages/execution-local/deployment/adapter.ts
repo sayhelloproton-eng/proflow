@@ -21,18 +21,28 @@ const roots = (context: ModuleCommandContext) => ({
 		"execution",
 	),
 });
-async function ready(context: ModuleCommandContext): Promise<boolean> {
+async function observeReady(context: ModuleCommandContext): Promise<boolean> {
 	const { projectRoot, artifactRoot } = roots(context);
 	try {
 		const project = await stat(projectRoot);
 		if (!project.isDirectory()) return false;
 		await access(projectRoot, constants.R_OK | constants.W_OK);
-		await mkdir(artifactRoot, { recursive: true, mode: 0o700 });
+		const artifacts = await stat(artifactRoot);
+		if (!artifacts.isDirectory()) return false;
 		await access(artifactRoot, constants.R_OK | constants.W_OK);
 		return true;
 	} catch {
 		return false;
 	}
+}
+async function ensureReady(context: ModuleCommandContext): Promise<boolean> {
+	const { artifactRoot } = roots(context);
+	try {
+		await mkdir(artifactRoot, { recursive: true, mode: 0o700 });
+	} catch {
+		return false;
+	}
+	return observeReady(context);
 }
 const noRuntime = {
 	setupStatus: "READY",
@@ -51,7 +61,7 @@ export const behaviorAdapter = {
 	status: async (context: ModuleCommandContext) => ({
 		result: {
 			...base,
-			data: (await ready(context))
+			data: (await observeReady(context))
 				? noRuntime
 				: {
 						setupStatus: "FAILED" as const,
@@ -70,7 +80,7 @@ export const behaviorAdapter = {
 		observedEffects: [],
 	}),
 	setup: async (context: ModuleCommandContext) => ({
-		result: (await ready(context))
+		result: (await ensureReady(context))
 			? base
 			: {
 					...base,

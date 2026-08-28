@@ -245,6 +245,9 @@ async function handleStatus(
 			...(parsed.data.issues === undefined
 				? {}
 				: { issues: parsed.data.issues }),
+			...(item.externalAvailabilityClaim === undefined
+				? {}
+				: { externalAvailabilityClaim: item.externalAvailabilityClaim }),
 		};
 	});
 	reportProgress(runtime.onProgress, {
@@ -767,15 +770,32 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 		NOT_APPLICABLE: "无独立进程",
 	};
 	const modules = data.modules.filter(isRecord);
+	const productOrder = new Map([
+		["execution-browser-extension", 0],
+		["dev-tunnel", 1],
+		["model-provider-api", 2],
+	]);
+	const orderedProblems = (entries: Record<string, unknown>[]) =>
+		[...entries].sort(
+			(a, b) =>
+				(productOrder.get(String(a.moduleRef)) ?? 100) -
+				(productOrder.get(String(b.moduleRef)) ?? 100),
+		);
 	const failedModules = modules.filter(
 		(item) => item.setupStatus === "FAILED" || item.runtimeStatus === "FAILED",
 	);
-	const actionModules = modules.filter(
-		(item) =>
-			item.setupStatus === "ACTION_REQUIRED" && item.runtimeStatus !== "FAILED",
+	const actionModules = orderedProblems(
+		modules.filter(
+			(item) =>
+				item.setupStatus === "ACTION_REQUIRED" &&
+				item.runtimeStatus !== "FAILED",
+		),
 	);
-	const blockedModules = modules.filter(
-		(item) => item.setupStatus === "BLOCKED" && item.runtimeStatus !== "FAILED",
+	const blockedModules = orderedProblems(
+		modules.filter(
+			(item) =>
+				item.setupStatus === "BLOCKED" && item.runtimeStatus !== "FAILED",
+		),
 	);
 	const running = modules.filter(
 		(item) => item.setupStatus === "READY" && item.runtimeStatus === "RUNNING",
@@ -799,11 +819,15 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 			const moduleRef = String(raw.moduleRef);
 			const setupStatus = String(raw.setupStatus);
 			const runtimeStatus = String(raw.runtimeStatus);
+			const runtimeLabel =
+				raw.externalAvailabilityClaim === "AVAILABLE"
+					? "外部资源可用"
+					: (runtimeLabels[runtimeStatus] ?? "未知");
 			lines.push(
 				`${tone(icon)} ${theme.section(moduleRef)}  ${theme.muted(String(raw.version))}`,
 			);
 			lines.push(
-				`  ${tone(setupLabels[setupStatus] ?? "未知")} · ${runtimeLabels[runtimeStatus] ?? "未知"}`,
+				`  ${tone(setupLabels[setupStatus] ?? "未知")} · ${runtimeLabel}`,
 			);
 			const issues = Array.isArray(raw.issues)
 				? raw.issues.filter(isRecord)
@@ -817,7 +841,8 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 					lines.push(
 						`  依赖：${issue.relatedModuleRefs.map(String).join("、")}`,
 					);
-				lines.push(`  下一步：${theme.command(String(issue.nextCommand))}`);
+				if (setupStatus !== "BLOCKED")
+					lines.push(`  下一步：${theme.command(String(issue.nextCommand))}`);
 			}
 			lines.push("");
 		}
@@ -833,7 +858,10 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 		if (entries.length === 0) return;
 		lines.push(theme.section(title), "");
 		for (const item of entries) {
-			const runtime = runtimeLabels[String(item.runtimeStatus)] ?? "未知";
+			const runtime =
+				item.externalAvailabilityClaim === "AVAILABLE"
+					? "外部资源可用"
+					: (runtimeLabels[String(item.runtimeStatus)] ?? "未知");
 			lines.push(
 				`${theme.success(symbol)} ${String(item.moduleRef).padEnd(32)} ${theme.muted(String(item.version).padEnd(9))} ${runtime}`,
 			);
@@ -853,7 +881,8 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 	).length;
 	lines.push(
 		theme.section("汇总"),
-		`${theme.success(`${ready} 已就绪`)} · ${theme.warning(`${action} 需要操作`)} · ${theme.info(`${blocked} 等待依赖`)} · ${failed > 0 ? theme.failure(`${failed} 失败`) : `${failed} 失败`}`,
+		`${theme.success(`${ready} 配置已完成`)} · ${theme.warning(`${action} 根阻塞`)} · ${theme.info(`${blocked} 下游等待`)} · ${failed > 0 ? theme.failure(`${failed} 失败`) : `${failed} 失败`} · ${running.length} 个真实进程运行中`,
+		`PLATFORM_READY=${action === 0 && blocked === 0 && failed === 0 ? "YES" : "NO"}`,
 	);
 	return lines.join("\n");
 }
@@ -908,36 +937,32 @@ function renderDocs(data: unknown, theme: HumanTheme) {
 	return lines.join("\n");
 }
 const setupCommands: Record<string, { ai: string; inputs: string }> = {
-	"chatgpt-carrier": {
-		ai: "pnpm exec -- proflow-chatgpt-carrier setup",
-		inputs: "无",
-	},
 	"dev-tunnel": {
-		ai: "pnpm exec -- proflow-dev-tunnel setup",
+		ai: "platform setup --module dev-tunnel",
 		inputs: "无",
 	},
 	"model-provider-api": {
-		ai: "pnpm exec -- proflow-model-provider-api setup",
+		ai: "platform setup --module model-provider-api",
 		inputs: "无（等待 Deployment resolver 提供 endpoint）",
 	},
 	"model-runtime": {
-		ai: "pnpm exec -- proflow-model-runtime setup",
+		ai: "platform setup --module model-runtime",
 		inputs: "无（仅等价合格候选歧义时选择）",
 	},
 	"execution-browser-extension": {
-		ai: "pnpm exec -- proflow-execution-browser-extension setup",
+		ai: "platform setup --module execution-browser-extension",
 		inputs: "无",
 	},
 	"agent-controller-dev": {
-		ai: "pnpm exec -- proflow-agent-controller-dev setup",
+		ai: "platform setup --module agent-controller-dev",
 		inputs: "无",
 	},
 	"agent-product": {
-		ai: "pnpm exec -- proflow-agent-product setup",
+		ai: "platform setup --module agent-product",
 		inputs: "无",
 	},
 	"agent-test-ops": {
-		ai: "pnpm exec -- proflow-agent-test-ops setup",
+		ai: "platform setup --module agent-test-ops",
 		inputs: "无",
 	},
 };
@@ -1008,13 +1033,13 @@ function renderSetup(data: unknown, theme: HumanTheme) {
 		const error = raw.result.error;
 		if (status !== "FAILED") {
 			const commands = setupCommands[moduleRef] ?? {
-				ai: `proflow-${moduleRef} setup`,
+				ai: `platform setup --module ${moduleRef}`,
 				inputs: "按命令提示提供",
 			};
-			lines.push(`  人工执行：pnpm exec -- proflow-${moduleRef} setup`);
+			lines.push(`  人工执行：${commands.ai}`);
 			lines.push(`  AI 执行：${commands.ai}`);
 			lines.push(`  需要输入：${commands.inputs}`);
-			lines.push(`  验证：proflow-${moduleRef} verify`);
+			lines.push("  验证：platform status");
 			lines.push("  完成条件：配置状态变为“已就绪”");
 		} else if (isRecord(error)) {
 			const code = error.code === undefined ? "FAILED" : String(error.code);
@@ -1116,17 +1141,17 @@ function renderHelp(theme: HumanTheme, command?: Command): string {
 		theme.section("推荐流程"),
 		`  ${theme.command("install → status → docs → setup → start → status → stop")}`,
 		"",
-		theme.section("人工配置示例"),
-		`  人工：${theme.command("pnpm exec -- proflow-chatgpt-carrier setup")}`,
-		`  AI：  ${theme.command("pnpm exec -- proflow-chatgpt-carrier setup")}`,
+		theme.section("配置入口"),
+		`  ${theme.command("platform setup")}`,
 		"",
 		theme.section("状态图例"),
 		`  ${theme.success("已就绪")}    配置与验证完成`,
 		`  ${theme.warning("需要操作")}  需要执行 setup 步骤`,
 		`  ${theme.info("等待依赖")}  等待上游 Module 或外部服务`,
 		`  ${theme.failure("失败")}      已确认配置或运行故障`,
-		"  运行中    服务进程正在运行",
-		"  无独立进程 该模块无需启动",
+		"  运行中      服务进程正在运行",
+		"  外部资源可用 Chrome 等外部资源已通过真实探测",
+		"  无独立进程  该模块无需启动",
 		"",
 		theme.section("遇到问题"),
 		`  先运行 ${theme.command("platform status")}；配置问题运行 ${theme.command("platform setup")}。`,
@@ -1148,29 +1173,42 @@ export function renderHumanResult(
 			? result.data.blockers.filter(isRecord)
 			: [];
 		if (blockers.length > 0) {
+			const productOrder = new Map([
+				["execution-browser-extension", 0],
+				["dev-tunnel", 1],
+				["model-provider-api", 2],
+			]);
 			const groups = [
 				{ status: "FAILED", title: "失败", icon: "✕", tone: theme.failure },
 				{
 					status: "ACTION_REQUIRED",
-					title: "需要操作",
+					title: "当前根阻塞",
 					icon: "◆",
 					tone: theme.warning,
 				},
-				{ status: "BLOCKED", title: "等待依赖", icon: "◇", tone: theme.info },
+				{ status: "BLOCKED", title: "下游等待", icon: "◇", tone: theme.info },
 			];
 			const lines = [theme.failure("平台未启动：存在未就绪模块"), ""];
 			for (const group of groups) {
-				const entries = blockers.filter(
-					(item) => item.setupStatus === group.status,
-				);
+				const entries = blockers
+					.filter((item) => item.setupStatus === group.status)
+					.sort(
+						(a, b) =>
+							(productOrder.get(String(a.moduleRef)) ?? 100) -
+							(productOrder.get(String(b.moduleRef)) ?? 100),
+					);
 				if (entries.length === 0) continue;
 				lines.push(theme.section(group.title));
-				for (const item of entries)
+				for (const item of entries) {
 					lines.push(
 						`${group.tone(group.icon)} ${theme.section(String(item.moduleRef))}`,
 						`  原因：${typeof item.reason === "string" ? item.reason : "模块尚未就绪"}`,
-						`  下一步：${theme.command(typeof item.nextCommand === "string" ? item.nextCommand : `platform setup --module ${String(item.moduleRef)}`)}`,
 					);
+					if (group.status !== "BLOCKED")
+						lines.push(
+							`  下一步：${theme.command(typeof item.nextCommand === "string" ? item.nextCommand : `platform setup --module ${String(item.moduleRef)}`)}`,
+						);
+				}
 				lines.push("");
 			}
 			const readyCount = Array.isArray(result.data.results)
@@ -1183,7 +1221,8 @@ export function renderHumanResult(
 				: 0;
 			lines.push(
 				theme.section("检查汇总"),
-				`${Math.max(0, readyCount)} 已就绪 · ${blockers.length} 未就绪 · 0 个模块已启动`,
+				`${Math.max(0, readyCount)} 配置已完成 · ${blockers.filter((item) => item.setupStatus === "ACTION_REQUIRED").length} 根阻塞 · ${blockers.filter((item) => item.setupStatus === "BLOCKED").length} 下游等待 · 0 个真实进程启动`,
+				"PLATFORM_READY=NO",
 				`处理方式：${theme.command(`platform setup${result.workspaceRoot ? ` --workspace "${result.workspaceRoot}"` : ""}`)}`,
 			);
 			return lines.join("\n");

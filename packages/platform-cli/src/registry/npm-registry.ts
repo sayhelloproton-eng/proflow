@@ -10,6 +10,9 @@ const execFileAsync = promisify(execFile);
 
 export const PRO_FLOW_SCOPE = "@tomflow";
 export const PRO_FLOW_PACKAGE_PREFIX = "@tomflow/proflow-";
+export const RETIRED_PRO_FLOW_PACKAGES = new Set([
+	"@tomflow/proflow-chatgpt-carrier",
+]);
 
 export interface NpmCommandResult {
 	stdout: string;
@@ -49,6 +52,7 @@ export interface RegistryDiscoveryResult {
 	registry: string;
 	candidates: RegistryModuleCandidate[];
 	rejected: RegistryRejectedPackage[];
+	retired: string[];
 }
 
 interface NpmSearchItem {
@@ -125,15 +129,19 @@ export async function discoverRegistryModules(options: {
 		options.packageName === undefined
 			? await searchPackageNames(options.workspaceRoot, registry, runner)
 			: [validateRequestedPackageName(options.packageName)];
-	options.onSearchComplete?.(names.length);
+	const retired = names.filter((name) => RETIRED_PRO_FLOW_PACKAGES.has(name));
+	const activeNames = names.filter(
+		(name) => !RETIRED_PRO_FLOW_PACKAGES.has(name),
+	);
+	options.onSearchComplete?.(activeNames.length);
 	const candidates: RegistryModuleCandidate[] = [];
 	const rejected: RegistryRejectedPackage[] = [];
 	let nextIndex = 0;
 	let completed = 0;
 	const worker = async () => {
-		while (nextIndex < names.length) {
+		while (nextIndex < activeNames.length) {
 			const index = nextIndex++;
-			const packageName = names[index];
+			const packageName = activeNames[index];
 			if (packageName === undefined) return;
 			const manifest = await viewManifest(
 				options.workspaceRoot,
@@ -151,13 +159,13 @@ export async function discoverRegistryModules(options: {
 			completed += 1;
 			options.onPackageChecked?.({
 				current: completed,
-				total: names.length,
+				total: activeNames.length,
 				packageName,
 			});
 		}
 	};
 	await Promise.all(
-		Array.from({ length: Math.min(4, names.length) }, () => worker()),
+		Array.from({ length: Math.min(4, activeNames.length) }, () => worker()),
 	);
 	candidates.sort((left, right) =>
 		left.packageName.localeCompare(right.packageName),
@@ -165,7 +173,7 @@ export async function discoverRegistryModules(options: {
 	rejected.sort((left, right) =>
 		left.packageName.localeCompare(right.packageName),
 	);
-	return { registry, candidates, rejected };
+	return { registry, candidates, rejected, retired };
 }
 
 async function searchPackageNames(

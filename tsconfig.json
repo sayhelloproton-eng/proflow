@@ -72,9 +72,6 @@
 				"./packages/task-store-sqlite/src/migrations.ts"
 			],
 			"@tomflow/proflow-platform-cli": ["./packages/platform-cli/src/index.ts"],
-			"@tomflow/proflow-chatgpt-carrier": [
-				"./packages/chatgpt-carrier/src/index.ts"
-			],
 			"@tomflow/proflow-chrome-runtime": [
 				"./packages/chrome-runtime/src/index.ts"
 			],

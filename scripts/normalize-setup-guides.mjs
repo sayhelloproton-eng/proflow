@@ -3,14 +3,6 @@ import { join } from "node:path";
 
 const packagesRoot = new URL("../packages/", import.meta.url);
 const special = {
-	"chatgpt-carrier": [
-		"USER",
-		"创建或选择并验证 Custom GPT",
-		"proflow-chatgpt-carrier setup",
-		"proflow-chatgpt-carrier setup --carrier-url <url>",
-		"Custom GPT URL",
-		"proflow-chatgpt-carrier verify",
-	],
 	"dev-tunnel": [
 		"USER",
 		"选择或创建持久 Tunnel",
@@ -38,10 +30,10 @@ const special = {
 	"execution-browser-extension": [
 		"USER",
 		"加载并验证 Chrome 扩展",
-		"proflow-execution-browser-extension setup",
-		"proflow-execution-browser-extension setup --extension-id <id>",
-		"Chrome Extension ID",
-		"proflow-execution-browser-extension verify",
+		"platform setup --module execution-browser-extension",
+		"platform setup --module execution-browser-extension",
+		"none",
+		"platform status",
 	],
 	"agent-controller-dev": [
 		"USER",

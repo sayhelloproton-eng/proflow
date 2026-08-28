@@ -39,7 +39,8 @@ test("CP-DEP-CLI-INSTALL-ORDER-01 frozen deployment install order starts with Ch
 		"agent-gateway",
 		"dev-tunnel",
 	]);
-	assert.equal(FROZEN_DEPLOYMENT_INSTALL_ORDER.at(-1), "chatgpt-carrier");
+	assert.equal(FROZEN_DEPLOYMENT_INSTALL_ORDER.length, 23);
+	assert.equal(FROZEN_DEPLOYMENT_INSTALL_ORDER.at(-1), "platform-cli");
 });
 
 test("CP-DEP-CLI-INSTALL-ORDER-02 RF-DEP-CLI-INSTALL-ORDER-02 known modules follow product install order regardless of discovery order", () => {

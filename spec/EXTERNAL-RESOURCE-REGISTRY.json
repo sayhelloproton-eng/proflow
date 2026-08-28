@@ -1,22 +1,5 @@
 [
   {
-    "moduleRef": "chatgpt-carrier",
-    "kind": "external-resource",
-    "owner": "deployment-governance",
-    "consumers": [
-      "agent-product",
-      "agent-controller-dev",
-      "agent-test-ops",
-      "execution-browser-extension"
-    ],
-    "provides": [],
-    "capabilityBindingStatus": "NOT_FROZEN",
-    "contractRefs": [
-      "PLATFORM-EXTERNAL-RESOURCE-MODULES",
-      "DEPLOYMENT-DOC-04"
-    ]
-  },
-  {
     "moduleRef": "chrome-runtime",
     "kind": "external-resource",
     "owner": "deployment-governance",

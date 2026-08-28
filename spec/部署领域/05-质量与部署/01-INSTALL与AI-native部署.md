@@ -69,7 +69,6 @@ package-manager sync 是一次完整 package-set mutation，本身没有用户�
 21 module-template
 22 deployment-conformance
 23 platform-cli
-24 chatgpt-carrier
 ```
 
 `chrome-runtime` 是第一个真实部署动作：已有 Chrome 则复用，macOS 缺失则 owner 自动安装并验证。Browser Extension 第二，三个 Agent Package 随后物化，再进入 Gateway / Tunnel 等后续依赖。该顺序只治理 `Module.install`；`setup/start` 仍服从真实 dependency graph。未知未来 Module 排在冻结序列之后并按稳定 `moduleRef` 排序。

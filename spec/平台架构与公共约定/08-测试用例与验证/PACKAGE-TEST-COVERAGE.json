@@ -1,7 +1,7 @@
 {
   "contract": "proflow.package-test-coverage.v2",
   "summary": {
-    "packages": 24,
+    "packages": 23,
     "allAuditedUpdated": true
   },
   "packages": [
@@ -11,7 +11,7 @@
       "baselineTestFiles": 2,
       "currentTestFiles": 4,
       "baselineExecutableCases": 5,
-      "currentExecutableCases": 11,
+      "currentExecutableCases": 15,
       "addedTestFiles": [
         "packages/agent-controller-dev/tests/current-spec-alignment.test.ts",
         "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts"
@@ -47,9 +47,9 @@
       "package": "agent-gateway",
       "formalModuleTestPlan": "智能体运行与协作领域/07-测试计划/modules/agent-gateway.md",
       "baselineTestFiles": 3,
-      "currentTestFiles": 5,
+      "currentTestFiles": 6,
       "baselineExecutableCases": 18,
-      "currentExecutableCases": 23,
+      "currentExecutableCases": 29,
       "addedTestFiles": [
         "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
         "packages/agent-gateway/tests/current-spec-alignment.test.ts"
@@ -93,9 +93,9 @@
       "package": "agent-product",
       "formalModuleTestPlan": "智能体运行与协作领域/07-测试计划/modules/agent-product.md",
       "baselineTestFiles": 2,
-      "currentTestFiles": 3,
+      "currentTestFiles": 4,
       "baselineExecutableCases": 5,
-      "currentExecutableCases": 7,
+      "currentExecutableCases": 12,
       "addedTestFiles": [
         "packages/agent-product/tests/current-spec-alignment.test.ts"
       ],
@@ -126,9 +126,9 @@
       "package": "agent-runtime",
       "formalModuleTestPlan": "智能体运行与协作领域/07-测试计划/modules/agent-runtime.md",
       "baselineTestFiles": 2,
-      "currentTestFiles": 4,
+      "currentTestFiles": 7,
       "baselineExecutableCases": 13,
-      "currentExecutableCases": 18,
+      "currentExecutableCases": 25,
       "addedTestFiles": [
         "packages/agent-runtime/tests/current-spec-alignment.test.ts",
         "packages/agent-runtime/tests/journey-collaboration-alignment.test.ts"
@@ -170,7 +170,7 @@
       "baselineTestFiles": 2,
       "currentTestFiles": 4,
       "baselineExecutableCases": 5,
-      "currentExecutableCases": 10,
+      "currentExecutableCases": 14,
       "addedTestFiles": [
         "packages/agent-test-ops/tests/current-spec-alignment.test.ts",
         "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts"
@@ -203,36 +203,12 @@
       "status": "AUDITED_UPDATED"
     },
     {
-      "package": "chatgpt-carrier",
-      "formalModuleTestPlan": null,
-      "baselineTestFiles": 1,
-      "currentTestFiles": 3,
-      "baselineExecutableCases": 8,
-      "currentExecutableCases": 14,
-      "addedTestFiles": [
-        "packages/chatgpt-carrier/tests/current-spec-alignment.test.ts",
-        "packages/chatgpt-carrier/tests/v1-readiness-alignment.test.ts"
-      ],
-      "modifiedTestFiles": [],
-      "removedHistoricalTestFiles": [],
-      "formalCriticalProofs": [],
-      "explicitCriticalProofCoverage": [],
-      "externalResourceCases": [
-        "EXT-CHATGPT-01",
-        "EXT-CHATGPT-02",
-        "EXT-CHATGPT-03",
-        "EXT-CHATGPT-04",
-        "EXT-CHATGPT-05"
-      ],
-      "status": "AUDITED_UPDATED"
-    },
-    {
       "package": "chrome-runtime",
       "formalModuleTestPlan": null,
       "baselineTestFiles": 1,
       "currentTestFiles": 3,
       "baselineExecutableCases": 3,
-      "currentExecutableCases": 8,
+      "currentExecutableCases": 14,
       "addedTestFiles": [
         "packages/chrome-runtime/tests/current-spec-alignment.test.ts",
         "packages/chrome-runtime/tests/v1-carrier-boundary.test.ts"
@@ -253,9 +229,9 @@
       "package": "deployment-conformance",
       "formalModuleTestPlan": "部署领域/07-测试计划/modules/deployment-conformance.md",
       "baselineTestFiles": 4,
-      "currentTestFiles": 5,
+      "currentTestFiles": 8,
       "baselineExecutableCases": 12,
-      "currentExecutableCases": 13,
+      "currentExecutableCases": 17,
       "addedTestFiles": [
         "packages/deployment-conformance/tests/current-spec-alignment.test.ts"
       ],
@@ -280,9 +256,9 @@
       "package": "dev-tunnel",
       "formalModuleTestPlan": null,
       "baselineTestFiles": 1,
-      "currentTestFiles": 3,
+      "currentTestFiles": 4,
       "baselineExecutableCases": 13,
-      "currentExecutableCases": 17,
+      "currentExecutableCases": 28,
       "addedTestFiles": [
         "packages/dev-tunnel/tests/current-spec-alignment.test.ts",
         "packages/dev-tunnel/tests/v1-owner-boundary.test.ts"
@@ -302,9 +278,9 @@
       "package": "execution-browser-extension",
       "formalModuleTestPlan": "执行领域/07-测试计划/modules/execution-browser-extension.md",
       "baselineTestFiles": 4,
-      "currentTestFiles": 6,
+      "currentTestFiles": 23,
       "baselineExecutableCases": 16,
-      "currentExecutableCases": 27,
+      "currentExecutableCases": 93,
       "addedTestFiles": [
         "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
         "packages/execution-browser-extension/tests/current-spec-alignment.test.ts",
@@ -386,9 +362,9 @@
       "package": "execution-local",
       "formalModuleTestPlan": "执行领域/07-测试计划/modules/execution-local.md",
       "baselineTestFiles": 2,
-      "currentTestFiles": 4,
+      "currentTestFiles": 5,
       "baselineExecutableCases": 18,
-      "currentExecutableCases": 23,
+      "currentExecutableCases": 34,
       "addedTestFiles": [
         "packages/execution-local/tests/artifact-context-pack-patch-alignment.test.ts",
         "packages/execution-local/tests/current-spec-alignment.test.ts"
@@ -426,9 +402,9 @@
       "package": "execution-runtime",
       "formalModuleTestPlan": "执行领域/07-测试计划/modules/execution-runtime.md",
       "baselineTestFiles": 2,
-      "currentTestFiles": 4,
+      "currentTestFiles": 10,
       "baselineExecutableCases": 19,
-      "currentExecutableCases": 24,
+      "currentExecutableCases": 54,
       "addedTestFiles": [
         "packages/execution-runtime/tests/current-spec-alignment.test.ts",
         "packages/execution-runtime/tests/journey-authority-artifact-alignment.test.ts"
@@ -502,9 +478,9 @@
       "package": "model-provider-api",
       "formalModuleTestPlan": null,
       "baselineTestFiles": 1,
-      "currentTestFiles": 3,
+      "currentTestFiles": 4,
       "baselineExecutableCases": 10,
-      "currentExecutableCases": 14,
+      "currentExecutableCases": 18,
       "addedTestFiles": [
         "packages/model-provider-api/tests/current-spec-alignment.test.ts",
         "packages/model-provider-api/tests/v1-provider-boundary.test.ts"
@@ -524,9 +500,9 @@
       "package": "model-runtime",
       "formalModuleTestPlan": "模型与推理领域/07-测试计划/modules/model-runtime.md",
       "baselineTestFiles": 4,
-      "currentTestFiles": 6,
+      "currentTestFiles": 9,
       "baselineExecutableCases": 28,
-      "currentExecutableCases": 35,
+      "currentExecutableCases": 62,
       "addedTestFiles": [
         "packages/model-runtime/tests/current-spec-alignment.test.ts",
         "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts"
@@ -572,7 +548,7 @@
       "baselineTestFiles": 2,
       "currentTestFiles": 3,
       "baselineExecutableCases": 6,
-      "currentExecutableCases": 7,
+      "currentExecutableCases": 10,
       "addedTestFiles": [
         "packages/module-contract/tests/current-spec-alignment.test.ts"
       ],
@@ -601,7 +577,7 @@
       "baselineTestFiles": 2,
       "currentTestFiles": 3,
       "baselineExecutableCases": 10,
-      "currentExecutableCases": 11,
+      "currentExecutableCases": 12,
       "addedTestFiles": [
         "packages/module-skill/tests/current-spec-alignment.test.ts"
       ],
@@ -653,9 +629,9 @@
       "package": "platform-cli",
       "formalModuleTestPlan": "部署领域/07-测试计划/modules/platform-cli.md",
       "baselineTestFiles": 16,
-      "currentTestFiles": 18,
+      "currentTestFiles": 12,
       "baselineExecutableCases": 201,
-      "currentExecutableCases": 205,
+      "currentExecutableCases": 63,
       "addedTestFiles": [
         "packages/platform-cli/tests/carrier-readiness-alignment.test.ts",
         "packages/platform-cli/tests/current-spec-alignment.test.ts"
@@ -692,9 +668,9 @@
       "package": "platform-host",
       "formalModuleTestPlan": "平台架构与公共约定/06-测试计划/modules/platform-host.md",
       "baselineTestFiles": 5,
-      "currentTestFiles": 5,
+      "currentTestFiles": 8,
       "baselineExecutableCases": 9,
-      "currentExecutableCases": 13,
+      "currentExecutableCases": 41,
       "addedTestFiles": [
         "packages/platform-host/tests/cross-domain-composition-integration.test.ts",
         "packages/platform-host/tests/current-spec-alignment.test.ts",
@@ -733,9 +709,9 @@
       "package": "task-migration-runner",
       "formalModuleTestPlan": "任务与编排领域/07-测试计划/modules/task-migration-runner.md",
       "baselineTestFiles": 1,
-      "currentTestFiles": 2,
+      "currentTestFiles": 3,
       "baselineExecutableCases": 5,
-      "currentExecutableCases": 6,
+      "currentExecutableCases": 9,
       "addedTestFiles": [
         "packages/task-migration-runner/tests/current-spec-alignment.test.ts"
       ],
@@ -762,7 +738,7 @@
       "baselineTestFiles": 3,
       "currentTestFiles": 5,
       "baselineExecutableCases": 15,
-      "currentExecutableCases": 20,
+      "currentExecutableCases": 24,
       "addedTestFiles": [
         "packages/task-orchestration/tests/current-spec-alignment.test.ts",
         "packages/task-orchestration/tests/journey-observer-contract.test.ts"
@@ -809,9 +785,9 @@
       "package": "task-store-sqlite",
       "formalModuleTestPlan": "任务与编排领域/07-测试计划/modules/task-store-sqlite.md",
       "baselineTestFiles": 1,
-      "currentTestFiles": 2,
+      "currentTestFiles": 3,
       "baselineExecutableCases": 6,
-      "currentExecutableCases": 7,
+      "currentExecutableCases": 8,
       "addedTestFiles": [
         "packages/task-store-sqlite/tests/current-spec-alignment.test.ts"
       ],

@@ -23,9 +23,9 @@ const PACKAGES = [
 ] as const;
 
 const STALE = {
-	moduleRef: "stale-fixture",
-	packageName: "@tomflow/proflow-stale-fixture",
-	version: "9.9.9",
+	moduleRef: "chatgpt-carrier",
+	packageName: "@tomflow/proflow-chatgpt-carrier",
+	version: "0.1.10",
 } as const;
 
 function registryRunner() {
@@ -193,7 +193,7 @@ export const behaviorAdapter = {
 	}
 });
 
-test("install synchronizes the complete Registry package set in one transaction", async () => {
+test("install synchronizes the active Registry set and removes a previously managed retired Carrier", async () => {
 	const root = await tempWorkspace();
 	const calls: string[][] = [];
 	const progress: Array<{ phase: string; moduleRef?: string; status: string }> =

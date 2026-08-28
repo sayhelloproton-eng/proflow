@@ -21,41 +21,6 @@ const base = {
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
-const blockedSetupPlan = {
-	steps: [
-		{
-			id: "STEP-AGENT-GATEWAY-01",
-			title: "等待 Public Ingress",
-			description: "Gateway 需要稳定的公开 HTTPS 地址。",
-			state: "BLOCKED",
-			responsible: "EXTERNAL",
-			execution: {
-				interactive: "platform setup --module dev-tunnel",
-				nonInteractive: "platform setup --module dev-tunnel",
-			},
-			requiredInputs: [],
-			verify: "platform status",
-			successCondition: "配置状态变为“已就绪”",
-			blockedReason: "dev-tunnel 尚未发布 publicBaseUrl",
-		},
-		{
-			id: "STEP-AGENT-GATEWAY-02",
-			title: "等待 Platform Host",
-			description: "Gateway 下游应用端点和凭据尚不可用。",
-			state: "BLOCKED",
-			responsible: "EXTERNAL",
-			execution: {
-				interactive: "platform setup --module platform-host",
-				nonInteractive: "platform setup --module platform-host",
-			},
-			requiredInputs: [],
-			verify: "platform status",
-			successCondition:
-				"platform-host 已发布 endpoint、stateRoot 和 transport credential",
-			blockedReason: "platform-host 尚未就绪",
-		},
-	],
-} as const;
 const key = (context: ModuleCommandContext) => resolve(context.workspaceRoot);
 const factString = (
 	facts: Record<string, unknown> | undefined,
@@ -68,6 +33,11 @@ async function ownFacts(context: ModuleCommandContext) {
 	const facts = { localBaseUrl, ...(publicBaseUrl ? { publicBaseUrl } : {}) };
 	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
 	return facts;
+}
+async function readOwnFacts(context: ModuleCommandContext) {
+	const facts = await readModuleSharedFacts(context, descriptor.moduleRef);
+	const localBaseUrl = factString(facts, "localBaseUrl");
+	return localBaseUrl ? { localBaseUrl } : undefined;
 }
 async function dependencies(context: ModuleCommandContext) {
 	const tunnel = await readModuleSharedFacts(context, "dev-tunnel");
@@ -87,7 +57,8 @@ async function dependencies(context: ModuleCommandContext) {
 		: undefined;
 }
 async function running(context: ModuleCommandContext) {
-	const own = await ownFacts(context);
+	const own = await readOwnFacts(context);
+	if (!own) return false;
 	try {
 		return (
 			await fetch(`${own.localBaseUrl}/ready`, {
@@ -184,15 +155,15 @@ export const behaviorAdapter = {
 		};
 	},
 	setup: async (context: ModuleCommandContext) => ({
-		result: (await dependencies(context))
-			? base
-			: {
-					...failed(
-						"SETUP_FAILED",
-						"public-ingress or platform-host producer shared facts are unavailable",
-					),
-					data: blockedSetupPlan,
-				},
+		result: {
+			...base,
+			data: {
+				...(await ownFacts(context)),
+				...((await dependencies(context)) === undefined
+					? { waitingFor: ["dev-tunnel", "platform-host"] }
+					: {}),
+			},
+		},
 		observedEffects: [],
 	}),
 	docs: async (_context: ModuleCommandContext) => ({

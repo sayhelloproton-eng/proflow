@@ -70,6 +70,11 @@ async function ownFacts(context: ModuleCommandContext) {
 	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
 	return facts;
 }
+async function readOwnFacts(context: ModuleCommandContext) {
+	const facts = await readModuleSharedFacts(context, descriptor.moduleRef);
+	const endpoint = factString(facts, "endpoint");
+	return endpoint ? { endpoint } : undefined;
+}
 async function dependencies(context: ModuleCommandContext) {
 	const execution = await readModuleSharedFacts(context, "execution-runtime");
 	const model = await readModuleSharedFacts(context, "model-runtime");
@@ -96,10 +101,13 @@ async function dependencies(context: ModuleCommandContext) {
 		: undefined;
 }
 async function running(context: ModuleCommandContext) {
-	const { endpoint } = await ownFacts(context);
+	const own = await readOwnFacts(context);
+	if (!own) return false;
 	try {
 		return (
-			await fetch(`${endpoint}/ready`, { signal: AbortSignal.timeout(500) })
+			await fetch(`${own.endpoint}/ready`, {
+				signal: AbortSignal.timeout(500),
+			})
 		).ok;
 	} catch {
 		return false;
@@ -156,25 +164,26 @@ export const behaviorAdapter = {
 		};
 	},
 	status: async (context: ModuleCommandContext) => {
-		const ready = await dependencies(context);
+		const runtimeDependencies = await dependencies(context);
 		return {
 			result: {
 				...base,
 				data: {
-					setupStatus: ready ? ("READY" as const) : ("BLOCKED" as const),
+					setupStatus: "READY" as const,
 					runtimeStatus: (await running(context))
 						? ("RUNNING" as const)
 						: ("STOPPED" as const),
-					...(ready
+					...(runtimeDependencies
 						? {}
 						: {
 								issues: [
 									{
-										scope: "SETUP" as const,
+										scope: "RUNTIME" as const,
 										code: "UPSTREAM_NOT_READY",
-										message: "等待 Execution 与 Model Runtime 发布服务信息",
+										message:
+											"等待 Execution 与 Model Runtime 发布运行所需服务信息",
 										relatedModuleRefs: ["execution-runtime", "model-runtime"],
-										nextCommand: "platform setup --module model-runtime",
+										nextCommand: "platform setup",
 									},
 								],
 							}),
@@ -184,12 +193,7 @@ export const behaviorAdapter = {
 		};
 	},
 	setup: async (context: ModuleCommandContext) => ({
-		result: (await dependencies(context))
-			? base
-			: failed(
-					"SETUP_FAILED",
-					"required Execution/Model producer shared facts are unavailable",
-				),
+		result: { ...base, data: await ownFacts(context) },
 		observedEffects: [],
 	}),
 	docs: async (_context: ModuleCommandContext) => ({

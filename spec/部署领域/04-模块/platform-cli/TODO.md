@@ -70,8 +70,8 @@ PLATFORM_REAL_E2E = NOT PASS
 
 ## 2026-08-26 Automation / delivery follow-up
 
-- [ ] 裁决 Deployment-owned Provider endpoint resolver；如需新增 Module 或改变 24 模块顺序，先做正式架构变更。
+- [ ] 裁决 Deployment-owned Provider endpoint resolver；如需新增 Module 或改变当前 23 模块顺序，先做正式架构变更。
 - [ ] 以新 patch version 完成正式 release/publish/install；未经授权不执行 push/publish。
-- [ ] 安装后回读 24 个包版本和关键 dist SHA，确认不再加载旧 Carrier/Provider/Tunnel 语义。
+- [ ] 安装后回读 23 个包版本和关键 dist SHA，确认不再加载旧 Carrier/Provider/Tunnel 语义。
 - [ ] 重跑完整七命令与 Chrome/HTTPS、真实模型、重复 setup、provider-off recovery。
 - [ ] 只有 authoritative states 与真实外部 evidence 一致时才更新 `PLATFORM_REAL_E2E`。

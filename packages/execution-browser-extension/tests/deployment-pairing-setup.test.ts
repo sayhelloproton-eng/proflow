@@ -118,11 +118,7 @@ test("CP-EXE-BR-16 deployment pairing persists only heartbeat-proven Extension r
 	}
 });
 
-test("CP-EXE-BR-16 setup surface removes manual Extension ID and fake RUNNING evidence", async () => {
-	const configure = await readFile(
-		new URL("../src/configure.ts", import.meta.url),
-		"utf8",
-	);
+test("CP-EXE-BR-16 Platform setup surface removes manual Extension ID and fake RUNNING evidence", async () => {
 	const setupDoc = await readFile(
 		new URL("../SETUP.md", import.meta.url),
 		"utf8",
@@ -131,8 +127,11 @@ test("CP-EXE-BR-16 setup surface removes manual Extension ID and fake RUNNING ev
 		new URL("../deployment/adapter.ts", import.meta.url),
 		"utf8",
 	);
-	assert.doesNotMatch(configure, /--extension-id/);
-	assert.doesNotMatch(configure, /serviceWorker:\s*["']RUNNING["']/);
-	assert.doesNotMatch(setupDoc, /Extension ID|--extension-id/);
+	assert.match(setupDoc, /platform setup --module execution-browser-extension/);
+	assert.match(setupDoc, /Verify: `platform status`/);
+	assert.doesNotMatch(
+		setupDoc,
+		/Extension ID|--extension-id|proflow-execution-browser-extension/,
+	);
 	assert.doesNotMatch(adapter, /supplied\.serviceWorker|copy its extensionId/);
 });

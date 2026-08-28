@@ -39,7 +39,7 @@ FUTURE = 不属于 v1 当前范围
 - Type: `KNOWN_LIMITATION / ARCHITECTURE_STOP`
 - Model Provider 只接受 generic HTTP(S) endpoint 与可选 credential reference；Model Runtime 只消费已验证 inventory/evidence。
 - Current fallback: 完整 Platform setup 保持 `ACTION_REQUIRED/BLOCKED`；独立 CLI 显式 URL 只用于诊断或 resolver 输出注入，不得被描述为正常用户流程。
-- Stop rule: 不把 Bonjour/DNS-SD、MLXHub、iPhone 或局域网盲扫引入 Model Domain；若需要新增 Module、改变 24 模块顺序或放宽边界，先做正式架构裁决。
+- Stop rule: 不把 Bonjour/DNS-SD、MLXHub、iPhone 或局域网盲扫引入 Model Domain；若需要新增 Module、改变当前 23 模块顺序或放宽边界，先做正式架构裁决。
 
 ## MODEL-LIMIT-004｜真实外部模型证据未完成
 - Type: `KNOWN_LIMITATION`

@@ -25,56 +25,6 @@ const base = {
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
-const blockedSetupPlan = {
-	steps: [
-		{
-			id: "STEP-EXECUTION-RUNTIME-01",
-			title: "等待 Platform Host",
-			state: "BLOCKED",
-			responsible: "EXTERNAL",
-			execution: {
-				interactive: "platform setup --module platform-host",
-				nonInteractive: "platform setup --module platform-host",
-			},
-			requiredInputs: [],
-			verify: "platform status",
-			successCondition: "配置状态变为“已就绪”",
-			blockedReason: "platform-host 尚未发布 endpoint 与 identityTokenFile",
-		},
-		{
-			id: "STEP-EXECUTION-RUNTIME-02",
-			title: "等待 Model Runtime",
-			description: "Execution 的模型决策入口尚不可用。",
-			state: "BLOCKED",
-			responsible: "EXTERNAL",
-			execution: {
-				interactive: "platform setup --module model-runtime",
-				nonInteractive: "platform setup --module model-runtime",
-			},
-			requiredInputs: [],
-			verify: "platform status",
-			successCondition:
-				"model-runtime 已发布 endpoint 与 transportCredentialFile",
-			blockedReason: "model-runtime 尚未就绪",
-		},
-		{
-			id: "STEP-EXECUTION-RUNTIME-03",
-			title: "等待 Browser Executor",
-			description: "Browser Effect 配置尚不可用。",
-			state: "BLOCKED",
-			responsible: "EXTERNAL",
-			execution: {
-				interactive: "platform setup --module execution-browser-extension",
-				nonInteractive: "platform setup --module execution-browser-extension",
-			},
-			requiredInputs: [],
-			verify: "platform status",
-			successCondition:
-				"execution-browser-extension 已发布 browserExecutorConfigPath",
-			blockedReason: "execution-browser-extension 尚未就绪",
-		},
-	],
-} as const;
 const key = (context: ModuleCommandContext) => resolve(context.workspaceRoot);
 const factString = (
 	facts: Record<string, unknown> | undefined,
@@ -97,6 +47,27 @@ async function ownFacts(context: ModuleCommandContext) {
 	await mkdir(facts.artifactRoot, { recursive: true, mode: 0o700 });
 	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
 	return facts;
+}
+async function readOwnFacts(context: ModuleCommandContext) {
+	const facts = await readModuleSharedFacts(context, descriptor.moduleRef);
+	const endpoint = factString(facts, "endpoint");
+	const transportCredentialFile = factString(facts, "transportCredentialFile");
+	const databasePath = factString(facts, "databasePath");
+	const projectRoot = factString(facts, "projectRoot");
+	const artifactRoot = factString(facts, "artifactRoot");
+	return endpoint &&
+		transportCredentialFile &&
+		databasePath &&
+		projectRoot &&
+		artifactRoot
+		? {
+				endpoint,
+				transportCredentialFile,
+				databasePath,
+				projectRoot,
+				artifactRoot,
+			}
+		: undefined;
 }
 async function baseDependencies(context: ModuleCommandContext) {
 	const host = await readModuleSharedFacts(context, "platform-host");
@@ -135,7 +106,8 @@ async function dependencies(context: ModuleCommandContext) {
 		: undefined;
 }
 async function running(context: ModuleCommandContext) {
-	const own = await ownFacts(context);
+	const own = await readOwnFacts(context);
+	if (!own) return false;
 	try {
 		const token = (await readFile(own.transportCredentialFile, "utf8")).trim();
 		return (
@@ -212,21 +184,20 @@ export const behaviorAdapter = {
 		};
 	},
 	status: async (context: ModuleCommandContext) => {
-		const ready = await dependencies(context);
+		const missingRuntimeDependencies = await dependencies(context);
 		return {
 			result: {
 				...base,
 				data: {
-					setupStatus: ready ? ("READY" as const) : ("BLOCKED" as const),
+					setupStatus: "READY" as const,
 					runtimeStatus: (await running(context))
 						? ("RUNNING" as const)
 						: ("STOPPED" as const),
-					...(ready
-						? {}
-						: {
+					...(!missingRuntimeDependencies
+						? {
 								issues: [
 									{
-										scope: "SETUP" as const,
+										scope: "RUNTIME" as const,
 										code: "UPSTREAM_NOT_READY",
 										message:
 											"等待 platform-host、model-runtime 与 execution-browser-extension 发布运行所需信息",
@@ -235,25 +206,18 @@ export const behaviorAdapter = {
 											"model-runtime",
 											"execution-browser-extension",
 										],
-										nextCommand: "platform setup --module model-runtime",
+										nextCommand: "platform setup",
 									},
 								],
-							}),
+							}
+						: {}),
 				},
 			},
 			observedEffects: [],
 		};
 	},
 	setup: async (context: ModuleCommandContext) => ({
-		result: (await dependencies(context))
-			? base
-			: {
-					...failed(
-						"SETUP_FAILED",
-						"required producer shared facts are unavailable",
-					),
-					data: blockedSetupPlan,
-				},
+		result: { ...base, data: await ownFacts(context) },
 		observedEffects: [],
 	}),
 	docs: async (_context: ModuleCommandContext) => ({

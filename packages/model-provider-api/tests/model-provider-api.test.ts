@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { chmod, mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -23,6 +23,27 @@ async function workspace(
 	const root = await mkdtemp(join(tmpdir(), prefix));
 	context.after(() => rm(root, { recursive: true, force: true }));
 	return root;
+}
+
+async function snapshotFiles(root: string) {
+	const snapshot: Record<string, { content: string; mtimeMs: number }> = {};
+	const visit = async (directory: string, prefix = "") => {
+		for (const entry of await readdir(directory, { withFileTypes: true })) {
+			const relative = prefix ? join(prefix, entry.name) : entry.name;
+			const path = join(directory, entry.name);
+			if (entry.isDirectory()) {
+				await visit(path, relative);
+				continue;
+			}
+			if (!entry.isFile()) continue;
+			snapshot[relative] = {
+				content: (await readFile(path)).toString("base64"),
+				mtimeMs: (await stat(path)).mtimeMs,
+			};
+		}
+	};
+	await visit(root);
+	return snapshot;
 }
 
 const ready = (
@@ -119,6 +140,41 @@ test("generic URL is probed and only validated provider facts are published", as
 	]);
 	assert.equal("providerIdentity" in (facts ?? {}), false);
 	assert.equal("providerCredential" in (facts ?? {}), false);
+});
+
+test("status re-probes Provider reality without mutating persisted state", async (context) => {
+	const workspaceRoot = await workspace(
+		context,
+		"proflow-provider-status-readonly-",
+	);
+	let clock = 0;
+	const timestamps = [
+		"2026-08-28T00:00:00.000Z",
+		"2026-08-28T00:00:01.000Z",
+		"2026-08-28T00:00:02.000Z",
+	];
+	const adapter = createProviderBehaviorAdapter({
+		now: () => timestamps[Math.min(clock++, timestamps.length - 1)] as string,
+		probe: async ({ baseUrl }) =>
+			ready(`${baseUrl.replace(/\/v1\/?$/, "").replace(/\/$/, "")}/v1`),
+	});
+	assert.equal(
+		(
+			await adapter.setup({
+				workspaceRoot,
+				input: { providerBaseUrl: "https://provider.example" },
+			})
+		).result.status,
+		"SUCCEEDED",
+	);
+	const proflowRoot = join(workspaceRoot, ".proflow");
+	const before = await snapshotFiles(proflowRoot);
+	for (let index = 0; index < 2; index += 1)
+		assert.deepEqual((await adapter.status({ workspaceRoot })).result.data, {
+			setupStatus: "READY",
+			runtimeStatus: "NOT_APPLICABLE",
+		});
+	assert.deepEqual(await snapshotFiles(proflowRoot), before);
 });
 
 test("saved URL is re-probed and unreachable reality never re-discovers a device", async (context) => {

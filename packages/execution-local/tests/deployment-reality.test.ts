@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -13,7 +13,14 @@ test("execution-local Module.install materializes deterministic workspace/artifa
 	const context = { workspaceRoot };
 	try {
 		const before = await behaviorAdapter.status(context);
-		assert.equal(before.result.data.setupStatus, "READY");
+		assert.equal(before.result.data.setupStatus, "FAILED");
+		await assert.rejects(
+			() => stat(join(workspaceRoot, ".proflow")),
+			(error: unknown) =>
+				typeof error === "object" &&
+				error !== null &&
+				Reflect.get(error, "code") === "ENOENT",
+		);
 		const installed = await behaviorAdapter.install(context);
 		assert.equal(installed.result.status, "SUCCEEDED");
 		const roots = installed.result.data;

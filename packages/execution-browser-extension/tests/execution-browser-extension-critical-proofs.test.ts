@@ -13,6 +13,7 @@ import {
 	isVisionObservationVerified,
 	parseCapturedScreenshot,
 } from "../src/index.ts";
+import type { BrowserExtensionPair } from "../src/install-workflow.ts";
 
 class BrowserHarness implements BrowserRealityPort {
 	tabs = new Map<number, BrowserPageObservation>();
@@ -489,7 +490,7 @@ test("REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality withou
 	assert.equal(browser.submitCount, 0);
 });
 
-test("REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remain explicitly ACTION_REQUIRED locally", async (context) => {
+test("REG-EXE-BR-08 Module setup invokes the owner pairing capability directly", async (context) => {
 	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-browser-setup-"));
 	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
@@ -498,7 +499,7 @@ test("REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remain explicitly ACTION_REQUI
 	assert.equal(status.status, "SUCCEEDED");
 	assert.deepEqual(status.data, {
 		setupStatus: "ACTION_REQUIRED",
-		runtimeStatus: "STOPPED",
+		runtimeStatus: "NOT_APPLICABLE",
 		issues: [
 			{
 				scope: "SETUP",
@@ -509,9 +510,29 @@ test("REG-EXE-BR-08 real Chrome and ChatGPT E3/E4 remain explicitly ACTION_REQUI
 			},
 		],
 	});
-	const setup = (await behaviorAdapter.setup(commandContext)).result;
-	assert.equal(setup.status, "ACTION_REQUIRED");
-	assert.equal(setup.actionRequired?.action, "load-unpacked-extension");
+	const calls: string[] = [];
+	const setup = (
+		await behaviorAdapter.setup({
+			...commandContext,
+			input: {
+				desktop: {
+					copyText: () => calls.push("copy"),
+					openExtensionsPage: () => calls.push("open"),
+					showInstruction: () => calls.push("instruct"),
+				},
+				pair: (async (_context, options) => {
+					await options.onWaiting?.({ loadDir: "load", endpoint: "endpoint" });
+					calls.push("pair");
+					return {
+						extensionId: "a".repeat(32),
+						extensionInstanceId: "instance",
+					};
+				}) satisfies BrowserExtensionPair,
+			},
+		})
+	).result;
+	assert.equal(setup.status, "SUCCEEDED");
+	assert.deepEqual(calls, ["copy", "open", "instruct", "pair"]);
 });
 
 type VisionInspectInput = Parameters<BrowserVisionPort["inspect"]>[0];

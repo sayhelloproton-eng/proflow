@@ -66,6 +66,12 @@ test("Module.install owns deterministic Gateway config while producer dependenci
 				},
 			],
 		});
+		const setup = await behaviorAdapter.setup(context);
+		assert.equal(setup.result.status, "SUCCEEDED");
+		assert.deepEqual(setup.result.data, {
+			localBaseUrl: data.localBaseUrl,
+			waitingFor: ["dev-tunnel", "platform-host"],
+		});
 		assert.equal(descriptor.configSlots.length, 0);
 	} finally {
 		await rm(workspaceRoot, { recursive: true, force: true });

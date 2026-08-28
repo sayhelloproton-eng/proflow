@@ -216,6 +216,12 @@ async function ownFacts(context: ModuleCommandContext) {
 	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
 	return facts;
 }
+async function readOwnFacts(context: ModuleCommandContext) {
+	const facts = await readModuleSharedFacts(context, descriptor.moduleRef);
+	const endpoint =
+		typeof facts?.endpoint === "string" ? facts.endpoint : undefined;
+	return endpoint ? { endpoint } : undefined;
+}
 
 async function defaultObserveInventory(
 	input: ObserveInventoryInput,
@@ -241,7 +247,8 @@ async function defaultObserveInventory(
 async function isRunning(context: ModuleCommandContext): Promise<boolean> {
 	const owned = services.get(key(context));
 	if (owned?.status() === "RUNNING") return true;
-	const facts = await ownFacts(context);
+	const facts = await readOwnFacts(context);
+	if (!facts) return false;
 	try {
 		return (
 			await fetch(`${facts.endpoint}/health`, {
@@ -458,10 +465,10 @@ export function createModelRuntimeBehaviorAdapter(
 			const provider = await providerFacts(context);
 			if (!provider)
 				return {
-					result: failed(
-						"SETUP_FAILED",
-						"model.provider.api producer shared facts are unavailable",
-					),
+					result: {
+						...base,
+						data: { waitingFor: ["model-provider-api"] },
+					},
 					observedEffects: [],
 				};
 			const existing = await readMapping(context);

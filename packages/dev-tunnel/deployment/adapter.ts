@@ -157,10 +157,6 @@ const baseBehaviorAdapter = {
 				observedEffects: [],
 			};
 		}
-		await writeModuleSharedFacts(context, descriptor.moduleRef, {
-			tunnelId: state.tunnelId,
-			publicBaseUrl: state.publicBaseUrl,
-		});
 		const rt = runtime(context, state);
 		const login = await rt.loginStatus();
 		const observed = await rt.status();

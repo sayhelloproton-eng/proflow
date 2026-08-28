@@ -281,31 +281,18 @@ export async function setupModulesThin(
 	const blockers: NonNullable<ModuleBatchResult["blockers"]> = [];
 	const graph = buildDependencyGraph(modules);
 	const byRef = new Map(modules.map((module) => [module.moduleRef, module]));
-	const dependenciesByRef = new Map<string, string[]>();
-	for (const edge of graph.edges) {
-		const dependencies = dependenciesByRef.get(edge.from) ?? [];
-		dependencies.push(edge.to);
-		dependenciesByRef.set(edge.from, dependencies);
-	}
 	if (target !== undefined && !byRef.has(target.moduleRef))
 		throw new PlatformError(
 			"INVALID_REQUEST",
 			`setup target module ${target.moduleRef} was not discovered`,
 		);
-	const visitedRefs = new Set<string>();
-	const includeWithDependencies = (moduleRef: string): void => {
-		if (visitedRefs.has(moduleRef)) return;
-		visitedRefs.add(moduleRef);
-		for (const dependency of dependenciesByRef.get(moduleRef) ?? [])
-			includeWithDependencies(dependency);
-	};
-	if (target !== undefined) includeWithDependencies(target.moduleRef);
-	else for (const moduleRef of graph.order) visitedRefs.add(moduleRef);
+	const selectedRefs = new Set(
+		target === undefined ? graph.order : [target.moduleRef],
+	);
 	const modulesInOrder = graph.order
-		.filter((moduleRef) => visitedRefs.has(moduleRef))
+		.filter((moduleRef) => selectedRefs.has(moduleRef))
 		.map((moduleRef) => byRef.get(moduleRef))
 		.filter((module): module is ResolvedModule => module !== undefined);
-	const setupStatusByRef = new Map<string, ModuleSetupStatus>();
 	let completed = true;
 	for (const [index, module] of modulesInOrder.entries()) {
 		reportProgress(reporter, {
@@ -325,14 +312,11 @@ export async function setupModulesThin(
 		);
 		if (!succeeded(status.result)) {
 			results.push(status);
-			setupStatusByRef.set(module.moduleRef, "FAILED");
 			completed = false;
 			if (target?.moduleRef === module.moduleRef) break;
 			continue;
 		}
 		const observed = moduleStatusObservationSchema.parse(status.result.data);
-		setupStatusByRef.set(module.moduleRef, observed.setupStatus);
-		if (target !== undefined && module.moduleRef !== target.moduleRef) continue;
 		if (observed.setupStatus === "READY" && target === undefined) {
 			skipped.push({ moduleRef: module.moduleRef, reason: "READY" });
 			reportProgress(reporter, {
@@ -344,30 +328,6 @@ export async function setupModulesThin(
 				status: "SKIPPED",
 				message: module.moduleRef,
 			});
-			continue;
-		}
-		const unavailableDependencies = (
-			dependenciesByRef.get(module.moduleRef) ?? []
-		).filter((moduleRef) => setupStatusByRef.get(moduleRef) !== "READY");
-		if (unavailableDependencies.length > 0) {
-			const first = unavailableDependencies[0] as string;
-			blockers.push({
-				moduleRef: module.moduleRef,
-				setupStatus: "BLOCKED",
-				reason: `等待依赖模块就绪：${unavailableDependencies.join(", ")}`,
-				nextCommand: `platform setup --module ${first}`,
-			});
-			completed = false;
-			reportProgress(reporter, {
-				command: "setup",
-				phase: "setup",
-				current: index + 1,
-				total: modulesInOrder.length,
-				moduleRef: module.moduleRef,
-				status: "SKIPPED",
-				message: `${module.moduleRef} 等待 ${unavailableDependencies.join(", ")}`,
-			});
-			if (target !== undefined) break;
 			continue;
 		}
 		const setup = await dispatchModuleCommand(
@@ -399,17 +359,35 @@ export async function setupModulesThin(
 			"status",
 			context(workspaceRoot),
 		);
-		if (succeeded(reconciled.result))
-			setupStatusByRef.set(
-				module.moduleRef,
-				moduleStatusObservationSchema.parse(reconciled.result.data).setupStatus,
-			);
-		else {
+		if (!succeeded(reconciled.result)) {
 			results.push(reconciled);
-			setupStatusByRef.set(module.moduleRef, "FAILED");
 			completed = false;
+		} else {
+			const reconciledStatus = moduleStatusObservationSchema.parse(
+				reconciled.result.data,
+			);
+			if (
+				reconciledStatus.setupStatus === "BLOCKED" ||
+				reconciledStatus.setupStatus === "FAILED"
+			) {
+				const issue = reconciledStatus.issues?.find(
+					(item) => item.scope === "SETUP",
+				);
+				blockers.push({
+					moduleRef: module.moduleRef,
+					setupStatus: reconciledStatus.setupStatus,
+					...(issue === undefined
+						? {}
+						: { reason: issue.message, nextCommand: issue.nextCommand }),
+				});
+				completed = false;
+			}
 		}
-		if (target !== undefined && !succeeded(setup.result)) break;
+		if (
+			target !== undefined &&
+			(!succeeded(setup.result) || blockers.length > 0)
+		)
+			break;
 	}
 	return {
 		phase: "setup",

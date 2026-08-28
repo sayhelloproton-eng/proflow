@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import {
+	mkdir,
+	readdir,
+	readFile,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "node:test";
 
@@ -8,6 +15,30 @@ import { renderHumanResult, runCli } from "../src/cli.ts";
 const parseCli = <T>(value: T): T => value;
 
 import { tempWorkspace, writeWorkspaceModule } from "./test-helpers.ts";
+
+async function snapshotProflowFiles(root: string) {
+	const proflowRoot = join(root, ".proflow");
+	const files: Array<{ path: string; content: string; mtimeMs: number }> = [];
+	async function walk(directory: string, prefix = "") {
+		for (const entry of await readdir(directory, { withFileTypes: true })) {
+			const relativePath =
+				prefix === "" ? entry.name : join(prefix, entry.name);
+			const absolutePath = join(directory, entry.name);
+			if (entry.isDirectory()) {
+				await walk(absolutePath, relativePath);
+				continue;
+			}
+			const metadata = await stat(absolutePath);
+			files.push({
+				path: relativePath,
+				content: (await readFile(absolutePath)).toString("base64"),
+				mtimeMs: metadata.mtimeMs,
+			});
+		}
+	}
+	await walk(proflowRoot);
+	return files.sort((left, right) => left.path.localeCompare(right.path));
+}
 
 test("platform status aggregates only Module-owned setup/runtime status", async () => {
 	const root = await tempWorkspace();
@@ -58,6 +89,28 @@ test("platform status aggregates only Module-owned setup/runtime status", async 
 	}
 });
 
+test("platform status is a pure read and preserves .proflow file set, content, and mtime across repeated calls", async () => {
+	const root = await tempWorkspace();
+	try {
+		await writeWorkspaceModule(root, { moduleRef: "fixture-module" });
+		const proflowRoot = join(root, ".proflow");
+		await mkdir(join(proflowRoot, "nested"), { recursive: true });
+		await writeFile(join(proflowRoot, "sentinel.json"), '{"stable":true}\n');
+		await writeFile(join(proflowRoot, "nested", "state.txt"), "stable-state\n");
+		const before = await snapshotProflowFiles(root);
+
+		for (let attempt = 0; attempt < 2; attempt += 1) {
+			const output = parseCli(await runCli(["status"], { cwd: root })) as {
+				status: string;
+			};
+			assert.equal(output.status, "SUCCEEDED");
+			assert.deepEqual(await snapshotProflowFiles(root), before);
+		}
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
 test("platform status summary counts runtime failure as failure instead of ready", () => {
 	const rendered = renderHumanResult({
 		command: "status",
@@ -82,8 +135,8 @@ test("platform status summary counts runtime failure as failure instead of ready
 		},
 	});
 	assert.match(rendered, /失败[\s\S]*dev-tunnel/);
-	assert.match(rendered, /1 已就绪.*1 失败/);
-	assert.doesNotMatch(rendered, /2 已就绪/);
+	assert.match(rendered, /1 配置已完成.*1 失败/);
+	assert.doesNotMatch(rendered, /2 配置已完成/);
 });
 
 test("platform status ignores obsolete config and all removed routes remain invalid", async () => {
@@ -133,12 +186,12 @@ test("platform setup human output preserves all actions when the aggregate also 
 			],
 			results: [
 				{
-					moduleRef: "chatgpt-carrier",
+					moduleRef: "execution-browser-extension",
 					result: {
 						status: "ACTION_REQUIRED",
 						actionRequired: {
-							action: "materialize-custom-gpt-carrier",
-							description: "Run the package-owned carrier setup command.",
+							action: "load-unpacked-extension",
+							description: "Load the prepared browser extension.",
 						},
 					},
 				},
@@ -156,9 +209,9 @@ test("platform setup human output preserves all actions when the aggregate also 
 		},
 	});
 	assert.match(rendered, /ProFlow 配置/);
-	assert.match(rendered, /chatgpt-carrier/);
-	assert.match(rendered, /◆ chatgpt-carrier/);
-	assert.match(rendered, /proflow-chatgpt-carrier setup/);
+	assert.match(rendered, /execution-browser-extension/);
+	assert.match(rendered, /◆ execution-browser-extension/);
+	assert.match(rendered, /platform setup --module execution-browser-extension/);
 	assert.match(rendered, /AI 执行/);
 	assert.match(rendered, /model-runtime/);
 	assert.match(rendered, /✕ model-runtime/);
@@ -189,14 +242,14 @@ test("Dev Tunnel setup guidance uses automatic discovery without manual tunnel f
 			],
 		},
 	});
-	assert.match(rendered, /pnpm exec -- proflow-dev-tunnel setup/);
+	assert.match(rendered, /platform setup --module dev-tunnel/);
 	assert.match(rendered, /需要输入：无/);
 	assert.doesNotMatch(rendered, /--tunnel-id|--public-base-url/);
 });
 
 test("Platform setup guidance does not request stale Carrier, Agent, or model facts", () => {
 	for (const moduleRef of [
-		"chatgpt-carrier",
+		"execution-browser-extension",
 		"agent-controller-dev",
 		"agent-product",
 		"agent-test-ops",

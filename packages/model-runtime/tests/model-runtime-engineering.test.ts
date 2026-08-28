@@ -421,9 +421,9 @@ test("model-runtime normal setup surface has no manual model IDs or capability p
 		JSON.stringify(setup.result),
 		/capabilityProfilesFile|请输入 FAST|请输入 REASON/,
 	);
-	assert.equal(
-		setup.result.status,
-		"FAILED",
-		"missing producer-owned capability facts must fail as a machine dependency, not become new user configuration",
-	);
+	assert.equal(setup.result.status, "SUCCEEDED");
+	assert.equal("data" in setup.result, true);
+	if (!("data" in setup.result))
+		assert.fail("setup result must expose waitingFor");
+	assert.deepEqual(setup.result.data, { waitingFor: ["model-provider-api"] });
 });

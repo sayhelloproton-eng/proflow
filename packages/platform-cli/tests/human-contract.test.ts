@@ -73,18 +73,12 @@ test("human status output translates every public status enum", () => {
 			],
 		},
 	});
-	for (const raw of [
-		"ACTION_REQUIRED",
-		"NOT_APPLICABLE",
-		"READY",
-		"RUNNING",
-		"STOPPED",
-	])
+	for (const raw of ["ACTION_REQUIRED", "NOT_APPLICABLE", "RUNNING", "STOPPED"])
 		assert.equal(rendered.includes(raw), false);
 	for (const translated of [
 		"需要操作",
 		"无独立进程",
-		"已就绪",
+		"配置已完成",
 		"运行中",
 		"已停止",
 		"失败",
@@ -95,9 +89,9 @@ test("human status output translates every public status enum", () => {
 	assert.match(rendered, /✕\s+c/);
 	assert.match(rendered, /下一步：platform setup --module a/);
 	assert.match(rendered, /原因：配置文件签名无效/);
-	assert.match(rendered, /等待依赖/);
+	assert.match(rendered, /下游等待/);
 	assert.match(rendered, /原因：等待 provider/);
-	assert.match(rendered, /下一步：platform setup --module provider/);
+	assert.doesNotMatch(rendered, /下一步：platform setup --module provider/);
 	assert.doesNotMatch(rendered, /模块配置检查失败/);
 });
 
@@ -121,10 +115,38 @@ test("status reports one aggregate progress phase instead of printing every modu
 	);
 });
 
+test("browser setup guidance uses only the Platform public management entry", () => {
+	const rendered = renderHumanResult({
+		command: "setup",
+		status: "ACTION_REQUIRED",
+		data: {
+			results: [
+				{
+					moduleRef: "execution-browser-extension",
+					result: { status: "ACTION_REQUIRED" },
+				},
+			],
+		},
+	});
+	assert.match(
+		rendered,
+		/人工执行：platform setup --module execution-browser-extension/,
+	);
+	assert.match(
+		rendered,
+		/AI 执行：platform setup --module execution-browser-extension/,
+	);
+	assert.match(rendered, /验证：platform status/);
+	assert.doesNotMatch(
+		rendered,
+		/proflow-execution-browser-extension|pnpm exec/,
+	);
+});
+
 test("help contains explanations and no raw JSON input route", () => {
 	const rendered = renderHumanResult({ command: "help", status: "SUCCEEDED" });
 	assert.match(rendered, /安装并初始化全部 ProFlow 模块/);
-	assert.match(rendered, /人工配置示例/);
+	assert.match(rendered, /配置入口/);
 	assert.match(rendered, /状态图例/);
 	assert.match(rendered, /-h, --help/);
 	assert.match(rendered, /-v, --version/);

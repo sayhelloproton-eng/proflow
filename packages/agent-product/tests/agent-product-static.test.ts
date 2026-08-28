@@ -103,27 +103,27 @@ test("CP-AGT-PROD-03 + CP-AGT-PROD-04 Extension-first Task ownership is reflecte
 	);
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
 	const context = { workspaceRoot: "/__proflow_missing_agent_fixture__" };
-	const status = behaviorAdapter.status(context).result;
+	const status = (await behaviorAdapter.status(context)).result;
 	assert.equal(status.status, "SUCCEEDED");
 	assert.deepEqual(status.data, {
-		setupStatus: "ACTION_REQUIRED",
+		setupStatus: "BLOCKED",
 		runtimeStatus: "NOT_APPLICABLE",
 		issues: [
 			{
 				scope: "SETUP",
-				code: "ROLE_SETUP_REQUIRED",
-				message: "ROLE_NOT_REGISTERED:@tomflow/proflow-agent-product",
-				relatedModuleRefs: [],
-				nextCommand: "platform setup --module agent-product",
+				code: "UPSTREAM_NOT_READY",
+				message:
+					"等待 agent-gateway、execution-browser-extension 就绪后自动继续",
+				relatedModuleRefs: ["agent-gateway", "execution-browser-extension"],
+				nextCommand: "platform setup",
 			},
 		],
 	});
 	const setup = (await behaviorAdapter.setup(context)).result;
-	assert.equal(setup.status, "FAILED");
-	assert.match(
-		setup.error?.message ?? "",
-		/agent-gateway publicBaseUrl is unavailable/,
-	);
+	assert.equal(setup.status, "SUCCEEDED");
+	assert.deepEqual(setup.data, {
+		waitingFor: ["agent-gateway", "execution-browser-extension"],
+	});
 });
 
 test("CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browser continue protocol", async () => {
@@ -141,27 +141,27 @@ test("CP-AGT-PROD-05 one Worker Turn permits 0..N routine Actions without Browse
 test("CP-AGT-PROD-06 real GPT auth/Always Allow/File Bridge proof is not faked by package-local fixtures", async () => {
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
 	const context = { workspaceRoot: "/__proflow_missing_agent_fixture__" };
-	const status = behaviorAdapter.status(context).result;
+	const status = (await behaviorAdapter.status(context)).result;
 	assert.equal(status.status, "SUCCEEDED");
 	assert.deepEqual(status.data, {
-		setupStatus: "ACTION_REQUIRED",
+		setupStatus: "BLOCKED",
 		runtimeStatus: "NOT_APPLICABLE",
 		issues: [
 			{
 				scope: "SETUP",
-				code: "ROLE_SETUP_REQUIRED",
-				message: "ROLE_NOT_REGISTERED:@tomflow/proflow-agent-product",
-				relatedModuleRefs: [],
-				nextCommand: "platform setup --module agent-product",
+				code: "UPSTREAM_NOT_READY",
+				message:
+					"等待 agent-gateway、execution-browser-extension 就绪后自动继续",
+				relatedModuleRefs: ["agent-gateway", "execution-browser-extension"],
+				nextCommand: "platform setup",
 			},
 		],
 	});
 	const setup = (await behaviorAdapter.setup(context)).result;
-	assert.equal(setup.status, "FAILED");
-	assert.match(
-		setup.error?.message ?? "",
-		/agent-gateway publicBaseUrl is unavailable/,
-	);
+	assert.equal(setup.status, "SUCCEEDED");
+	assert.deepEqual(setup.data, {
+		waitingFor: ["agent-gateway", "execution-browser-extension"],
+	});
 });
 
 test("CP-REAL2-PROV-01 Product package owns complete Custom GPT provisioning material", async () => {

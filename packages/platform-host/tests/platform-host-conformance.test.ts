@@ -53,18 +53,24 @@ test("Module.install owns Platform Host state/secrets while producer dependencie
 		assert.match(data.identityTokenFile, /execution-identity\.token$/);
 		const observed = await behaviorAdapter.status(context);
 		assert.deepEqual(observed.result.data, {
-			setupStatus: "BLOCKED",
+			setupStatus: "READY",
 			runtimeStatus: "STOPPED",
 			issues: [
 				{
-					scope: "SETUP",
+					scope: "RUNTIME",
 					code: "UPSTREAM_NOT_READY",
-					message: "等待 Execution 与 Model Runtime 发布服务信息",
+					message: "等待 Execution 与 Model Runtime 发布运行所需服务信息",
 					relatedModuleRefs: ["execution-runtime", "model-runtime"],
-					nextCommand: "platform setup --module model-runtime",
+					nextCommand: "platform setup",
 				},
 			],
 		});
+		const setup = await behaviorAdapter.setup(context);
+		assert.equal(setup.result.status, "SUCCEEDED");
+		assert.match(
+			String((setup.result.data as { endpoint: string }).endpoint),
+			/^http:\/\/127\.0\.0\.1:\d+$/,
+		);
 		assert.equal(descriptor.configSlots.length, 0);
 	} finally {
 		await rm(workspaceRoot, { recursive: true, force: true });

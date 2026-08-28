@@ -161,9 +161,7 @@
     "serviceRefs": [],
     "processRefs": [],
     "deploymentUnitRefs": [],
-    "externalResourceRefs": [
-      "chatgpt-carrier"
-    ],
+    "externalResourceRefs": [],
     "contractRefs": [
       "AGENT-RUNTIME-COLLABORATION-TECH-AGENT-PRODUCT",
       "AGENT-DOC-02-03"
@@ -187,9 +185,7 @@
     "serviceRefs": [],
     "processRefs": [],
     "deploymentUnitRefs": [],
-    "externalResourceRefs": [
-      "chatgpt-carrier"
-    ],
+    "externalResourceRefs": [],
     "contractRefs": [
       "AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV",
       "AGENT-DOC-02-03"
@@ -213,9 +209,7 @@
     "serviceRefs": [],
     "processRefs": [],
     "deploymentUnitRefs": [],
-    "externalResourceRefs": [
-      "chatgpt-carrier"
-    ],
+    "externalResourceRefs": [],
     "contractRefs": [
       "AGENT-RUNTIME-COLLABORATION-TECH-AGENT-TEST-OPS",
       "AGENT-DOC-02-03"
@@ -322,8 +316,7 @@
       "chrome-extension"
     ],
     "externalResourceRefs": [
-      "chrome-runtime",
-      "chatgpt-carrier"
+      "chrome-runtime"
     ],
     "contractRefs": [
       "EXECUTION-EXECUTION-BROWSER-EXTENSION-TECH-DESIGN",

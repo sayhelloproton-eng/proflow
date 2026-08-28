@@ -33,11 +33,10 @@ test("Module.setup observes durable Role registration reality", async () => {
 	const context = { workspaceRoot };
 	try {
 		const missing = (await behaviorAdapter.setup(context)).result;
-		assert.equal(missing.status, "FAILED");
-		assert.match(
-			missing.error?.message ?? "",
-			/agent-gateway publicBaseUrl is unavailable/,
-		);
+		assert.equal(missing.status, "SUCCEEDED");
+		assert.deepEqual(missing.data, {
+			waitingFor: ["agent-gateway", "execution-browser-extension"],
+		});
 
 		const roleRef = `g-${descriptor.moduleRef}-real1`;
 		const agentRoot = join(workspaceRoot, ".proflow", "agent");

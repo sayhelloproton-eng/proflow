@@ -73,9 +73,7 @@ export function createBehaviorAdapter(
 						setupStatus: observation.available
 							? ("READY" as const)
 							: ("ACTION_REQUIRED" as const),
-						runtimeStatus: observation.available
-							? ("RUNNING" as const)
-							: ("STOPPED" as const),
+						runtimeStatus: "NOT_APPLICABLE" as const,
 						...(observation.available
 							? {}
 							: {

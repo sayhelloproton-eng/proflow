@@ -80,7 +80,7 @@ test("install automatically installs missing Chrome and verifies it", async (con
 	assert.deepEqual(result.result.data, available);
 	assert.deepEqual((await adapter.status({ workspaceRoot })).result.data, {
 		setupStatus: "READY",
-		runtimeStatus: "RUNNING",
+		runtimeStatus: "NOT_APPLICABLE",
 	});
 });
 
@@ -106,7 +106,7 @@ test("status exposes one stable recovery command when Chrome is unavailable", as
 	const adapter = createBehaviorAdapter(async () => unavailable);
 	assert.deepEqual((await adapter.status({ workspaceRoot })).result.data, {
 		setupStatus: "ACTION_REQUIRED",
-		runtimeStatus: "STOPPED",
+		runtimeStatus: "NOT_APPLICABLE",
 		issues: [
 			{
 				scope: "SETUP",

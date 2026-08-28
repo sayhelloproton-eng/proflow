@@ -431,7 +431,7 @@ test("setup skips READY modules and invokes only ACTION_REQUIRED module", async 
 	]);
 });
 
-test("setup aggregates non-ready Modules while downstream setup waits for current provider truth", async () => {
+test("setup gives every non-ready owner one setup opportunity", async () => {
 	const { catalog, calls } = recordingCatalog(
 		{ consumer: "ACTION_REQUIRED", leaf: "ACTION_REQUIRED" },
 		{ consumer: "ACTION_REQUIRED", leaf: "ACTION_REQUIRED" },
@@ -446,13 +446,46 @@ test("setup aggregates non-ready Modules while downstream setup waits for curren
 			"consumer:setup",
 			"consumer:status",
 			"leaf:status",
+			"leaf:setup",
+			"leaf:status",
 		],
 	);
 	assert.deepEqual(
 		result.results.map((item) => [item.moduleRef, item.result.status]),
-		[["consumer", "ACTION_REQUIRED"]],
+		[
+			["consumer", "ACTION_REQUIRED"],
+			["leaf", "ACTION_REQUIRED"],
+		],
 	);
-	assert.equal(result.blockers?.[0]?.moduleRef, "leaf");
+	assert.deepEqual(result.blockers, undefined);
+});
+
+test("setup reconciles owner-reported BLOCKED status without turning a no-op setup into FAILED", async () => {
+	const { catalog, calls } = recordingCatalog({ consumer: "BLOCKED" });
+	const result = await setupModulesThin(catalog, modules, workspaceRoot);
+	assert.equal(result.completed, false);
+	assert.deepEqual(result.blockers, [
+		{
+			moduleRef: "consumer",
+			setupStatus: "BLOCKED",
+			reason: "consumer is not ready",
+			nextCommand: "platform setup --module consumer",
+		},
+	]);
+	assert.deepEqual(
+		result.results.map((item) => [item.moduleRef, item.result.status]),
+		[["consumer", "SUCCEEDED"]],
+	);
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		[
+			"provider:status",
+			"consumer:status",
+			"consumer:setup",
+			"consumer:status",
+			"leaf:status",
+		],
+	);
 });
 
 test("targeted setup forwards opaque input without Platform interpretation", async () => {
@@ -464,7 +497,6 @@ test("targeted setup forwards opaque input without Platform interpretation", asy
 	});
 	assert.equal(result.completed, true);
 	assert.deepEqual(calls, [
-		{ call: "provider:status" },
 		{ call: "consumer:status" },
 		{ call: "consumer:setup", input },
 		{ call: "consumer:status" },
@@ -541,7 +573,7 @@ test("CP-DEP-CLI-REAL2-01 CP-DEP-CLI-REAL2-02 same-run provider readiness unlock
 	);
 });
 
-test("CP-DEP-CLI-REAL2-03 CP-DEP-CLI-REAL2-05 RF-DEP-CLI-REAL2-01 RF-DEP-CLI-REAL2-02 blocked dependencies never run setup while independent modules continue", async () => {
+test("CP-DEP-CLI-REAL2-03 CP-DEP-CLI-REAL2-05 RF-DEP-CLI-REAL2-01 RF-DEP-CLI-REAL2-02 owners determine precise blocking while all non-ready modules run setup", async () => {
 	const independent = moduleFixture({ moduleRef: "independent" });
 	const { catalog, calls } = recordingCatalog({
 		provider: "ACTION_REQUIRED",
@@ -553,18 +585,11 @@ test("CP-DEP-CLI-REAL2-03 CP-DEP-CLI-REAL2-05 RF-DEP-CLI-REAL2-01 RF-DEP-CLI-REA
 		[consumer, provider, independent],
 		workspaceRoot,
 	);
-	assert.equal(result.completed, false);
-	assert.deepEqual(result.blockers, [
-		{
-			moduleRef: "consumer",
-			setupStatus: "BLOCKED",
-			reason: "等待依赖模块就绪：provider",
-			nextCommand: "platform setup --module provider",
-		},
-	]);
+	assert.equal(result.completed, true);
+	assert.deepEqual(result.blockers, undefined);
 	assert.equal(
 		calls.some((item) => item.call === "consumer:setup"),
-		false,
+		true,
 	);
 	assert.equal(
 		calls.some((item) => item.call === "independent:setup"),

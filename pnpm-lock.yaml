@@ -131,16 +131,6 @@ importers:
         specifier: 2.9.0
         version: 2.9.0
 
-  packages/chatgpt-carrier:
-    dependencies:
-      '@tomflow/proflow-module-contract':
-        specifier: workspace:^
-        version: link:../module-contract
-    devDependencies:
-      '@tomflow/proflow-deployment-conformance':
-        specifier: workspace:^
-        version: link:../deployment-conformance
-
   packages/chrome-runtime:
     dependencies:
       '@tomflow/proflow-module-contract':

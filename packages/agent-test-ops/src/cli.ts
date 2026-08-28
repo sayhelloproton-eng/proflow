@@ -154,7 +154,7 @@ if (args.includes("--json")) throw new Error("不支持的选项 --json");
 if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 	help();
 } else if (args[0] === "verify") {
-	const result = behaviorAdapter.status({
+	const result = await behaviorAdapter.status({
 		workspaceRoot: workspaceRoot() ?? process.cwd(),
 	});
 	process.stdout.write(

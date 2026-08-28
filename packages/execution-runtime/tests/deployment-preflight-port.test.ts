@@ -14,16 +14,17 @@ async function workspace(context: { after(fn: () => unknown): void }) {
 	return root;
 }
 
-test("FJ-07 status exposes missing producer facts as BLOCKED instead of a Platform preflight", async (context) => {
+test("FJ-07 installed deterministic config is READY while runtime producers remain unavailable", async (context) => {
 	const workspaceRoot = await workspace(context);
+	await behaviorAdapter.install({ workspaceRoot });
 	const observed = await behaviorAdapter.status({ workspaceRoot });
 	assert.equal(observed.result.status, "SUCCEEDED");
 	assert.deepEqual(observed.result.data, {
-		setupStatus: "BLOCKED",
+		setupStatus: "READY",
 		runtimeStatus: "STOPPED",
 		issues: [
 			{
-				scope: "SETUP",
+				scope: "RUNTIME",
 				code: "UPSTREAM_NOT_READY",
 				message:
 					"等待 platform-host、model-runtime 与 execution-browser-extension 发布运行所需信息",
@@ -32,18 +33,17 @@ test("FJ-07 status exposes missing producer facts as BLOCKED instead of a Platfo
 					"model-runtime",
 					"execution-browser-extension",
 				],
-				nextCommand: "platform setup --module model-runtime",
+				nextCommand: "platform setup",
 			},
 		],
 	});
 	assert.equal("preflight" in behaviorAdapter, false);
 });
 
-test("missing shared facts fail Module.setup/start without asking a human to copy machine-owned config", async (context) => {
+test("setup materializes machine-owned config while start still fails closed on missing runtime facts", async (context) => {
 	const workspaceRoot = await workspace(context);
 	const setup = await behaviorAdapter.setup({ workspaceRoot });
-	assert.equal(setup.result.status, "FAILED");
-	assert.equal(setup.result.error?.code, "SETUP_FAILED");
+	assert.equal(setup.result.status, "SUCCEEDED");
 	assert.equal("actionRequired" in setup.result, false);
 
 	const start = await behaviorAdapter.start({ workspaceRoot });

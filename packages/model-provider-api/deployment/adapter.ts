@@ -284,6 +284,7 @@ export function createProviderBehaviorAdapter(
 
 	const resolveCurrent = async (
 		context: ModuleCommandContext,
+		options: { persistReady?: boolean } = {},
 	): Promise<Resolution> => {
 		const saved = await readObservation(context);
 		const supplied = suppliedEndpoint(context);
@@ -309,9 +310,10 @@ export function createProviderBehaviorAdapter(
 			...(credential ? { credential } : {}),
 		});
 		if (result.status === "READY") {
-			const providerCredentialFile = oneTimeCredential
-				? await saveCredential(context, oneTimeCredential)
-				: saved?.providerCredentialFile;
+			const providerCredentialFile =
+				options.persistReady === true && oneTimeCredential
+					? await saveCredential(context, oneTimeCredential)
+					: saved?.providerCredentialFile;
 			const observation: ProviderObservation = {
 				contract: "proflow.model-provider-observation.v1",
 				providerBaseUrl: result.baseUrl,
@@ -319,7 +321,7 @@ export function createProviderBehaviorAdapter(
 				verifiedAt: now(),
 				...(providerCredentialFile ? { providerCredentialFile } : {}),
 			};
-			await publish(context, observation);
+			if (options.persistReady === true) await publish(context, observation);
 			return { status: "READY", observation };
 		}
 		if (result.status === "AUTH_REQUIRED")
@@ -389,7 +391,7 @@ export function createProviderBehaviorAdapter(
 			};
 		},
 		setup: async (context: ModuleCommandContext) => {
-			const resolution = await resolveCurrent(context);
+			const resolution = await resolveCurrent(context, { persistReady: true });
 			if (resolution.status === "READY")
 				return { result: base, observedEffects: [effect] };
 			if (

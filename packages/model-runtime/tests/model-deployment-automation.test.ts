@@ -51,6 +51,22 @@ async function providerFacts(
 	});
 }
 
+test("missing Provider keeps Model Runtime blocked without turning setup into a machine failure", async (context) => {
+	const workspaceRoot = await workspace(context);
+	const adapter = createModelRuntimeBehaviorAdapter();
+	await adapter.install({ workspaceRoot });
+	const before = await adapter.status({ workspaceRoot });
+	assert.equal(before.result.data.setupStatus, "BLOCKED");
+	const setup = await adapter.setup({ workspaceRoot });
+	assert.equal(setup.result.status, "SUCCEEDED");
+	assert.equal("data" in setup.result, true);
+	if (!("data" in setup.result))
+		assert.fail("setup result must expose waitingFor");
+	assert.deepEqual(setup.result.data, { waitingFor: ["model-provider-api"] });
+	const after = await adapter.status({ workspaceRoot });
+	assert.equal(after.result.data.setupStatus, "BLOCKED");
+});
+
 test("unique evidence-qualified FAST and REASON candidates map automatically", () => {
 	const result = decideRoleMapping([
 		evidence("provider/fast-model", "no-thinking"),

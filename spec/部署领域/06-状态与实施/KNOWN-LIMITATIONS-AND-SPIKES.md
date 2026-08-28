@@ -46,7 +46,7 @@ FUTURE = 不属于 v1 当前范围
 - Type: `KNOWN_LIMITATION / ARCHITECTURE_STOP`
 - 当前完整 Platform setup 无 owner 负责 bounded discovery generic OpenAI-compatible endpoint；`model-provider-api` 的显式 URL 入口只允许诊断/实验或接收 resolver 输出。
 - Current fallback: `model-provider-api=ACTION_REQUIRED`、`model-runtime=BLOCKED`；不要求用户提供机器可发现 LAN IP/Base URL，不在 Platform CLI 或 Model Domain 增加产品特判。
-- Resolution gate: 若需新增 Module、改变 24 模块冻结顺序或放宽边界，先 Contract/Design Change。
+- Resolution gate: 若需新增 Module、改变当前 23 模块冻结顺序或放宽边界，先 Contract/Design Change。
 
 ## DPL-LIMIT-006｜源码与已安装产品同版本内容漂移
 - Type: `KNOWN_LIMITATION`

@@ -22,7 +22,6 @@ export const FROZEN_DEPLOYMENT_INSTALL_ORDER = [
 	"module-template",
 	"deployment-conformance",
 	"platform-cli",
-	"chatgpt-carrier",
 ] as const;
 
 const installRank = new Map<string, number>(

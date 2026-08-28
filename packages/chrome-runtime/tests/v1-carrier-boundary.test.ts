@@ -42,7 +42,7 @@ test("EXT-CHROME-03 Chrome availability establishes only chrome-runtime readines
 	const status = await adapter.status({ workspaceRoot });
 	assert.deepEqual(status.result.data, {
 		setupStatus: "READY",
-		runtimeStatus: "RUNNING",
+		runtimeStatus: "NOT_APPLICABLE",
 	});
 	assert.equal(
 		JSON.stringify(status.result.data).includes("extensionLoaded"),

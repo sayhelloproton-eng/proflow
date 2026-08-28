@@ -270,7 +270,6 @@
         "deployment-conformance",
         "platform-cli",
         "module-skill",
-        "chatgpt-carrier",
         "chrome-runtime",
         "dev-tunnel",
         "model-provider-api"

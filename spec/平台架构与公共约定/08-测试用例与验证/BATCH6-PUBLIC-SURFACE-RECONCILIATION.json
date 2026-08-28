@@ -211,42 +211,6 @@
       "classification": "CLASSIFIED"
     },
     {
-      "package": "@tomflow/proflow-chatgpt-carrier",
-      "exports": [
-        {
-          "key": ".",
-          "target": "./dist/src/index.js",
-          "source": "packages/chatgpt-carrier/src/index.ts",
-          "classification": "SHIPPED_PUBLIC_EXPORT"
-        },
-        {
-          "key": "./deployment/adapter",
-          "target": "./dist/deployment/adapter.js",
-          "source": "packages/chatgpt-carrier/deployment/adapter.ts",
-          "classification": "SHIPPED_PUBLIC_EXPORT"
-        },
-        {
-          "key": "./deployment/descriptor",
-          "target": "./dist/deployment/descriptor.js",
-          "source": "packages/chatgpt-carrier/deployment/descriptor.ts",
-          "classification": "SHIPPED_PUBLIC_EXPORT"
-        }
-      ],
-      "binaries": [
-        {
-          "name": "proflow-chatgpt-carrier",
-          "target": "./dist/src/cli.js",
-          "source": "packages/chatgpt-carrier/src/cli.ts",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
-      "publicIndexSymbols": [
-        "behaviorAdapter",
-        "descriptor"
-      ],
-      "classification": "CLASSIFIED"
-    },
-    {
       "package": "@tomflow/proflow-chrome-runtime",
       "exports": [
         {
@@ -421,22 +385,9 @@
           "target": "./dist/src/custom-gpt-role.js",
           "source": "packages/execution-browser-extension/src/custom-gpt-role.ts",
           "classification": "SHIPPED_PUBLIC_EXPORT"
-        },
-        {
-          "key": "./configure",
-          "target": "./dist/src/configure.js",
-          "source": "packages/execution-browser-extension/src/configure.ts",
-          "classification": "SHIPPED_PUBLIC_EXPORT"
         }
       ],
-      "binaries": [
-        {
-          "name": "proflow-execution-browser-extension",
-          "target": "./dist/src/configure.js",
-          "source": "packages/execution-browser-extension/src/configure.ts",
-          "classification": "SHIPPED_BINARY"
-        }
-      ],
+      "binaries": [],
       "publicIndexSymbols": [
         "AgentDeliveryPort",
         "BrowserActivityKind",

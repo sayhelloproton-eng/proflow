@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
+import { access, readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-import { parseBrowserExtensionSetupArgs } from "../src/configure-args.ts";
 import {
 	type BrowserExtensionDesktop,
 	type BrowserExtensionPair,
@@ -13,6 +13,40 @@ import {
 const loadDir = "/tmp/proflow/browser-extension";
 const extensionId = "e".repeat(32);
 const extensionInstanceId = "extension:minimal-user-install";
+
+test("browser deployment exposes no separate package management CLI", async () => {
+	const metadata = JSON.parse(
+		await readFile(new URL("../package.json", import.meta.url), "utf8"),
+	) as Record<string, unknown>;
+	const exports = metadata.exports as Record<string, unknown>;
+	const setupGuide = await readFile(
+		new URL("../SETUP.md", import.meta.url),
+		"utf8",
+	);
+	const adapter = await readFile(
+		new URL("../deployment/adapter.ts", import.meta.url),
+		"utf8",
+	);
+	assert.equal("bin" in metadata, false);
+	assert.equal("./configure" in exports, false);
+	assert.doesNotMatch(
+		`${setupGuide}\n${adapter}`,
+		/proflow-execution-browser-extension\s+(?:setup|verify)/,
+	);
+	assert.match(
+		setupGuide,
+		/platform setup --module execution-browser-extension/,
+	);
+	assert.match(setupGuide, /Verify: `platform status`/);
+	for (const source of ["../src/configure.ts", "../src/configure-args.ts"])
+		await assert.rejects(
+			() => access(new URL(source, import.meta.url)),
+			(error: unknown) =>
+				typeof error === "object" &&
+				error !== null &&
+				Reflect.get(error, "code") === "ENOENT",
+		);
+});
 
 test("browser install workflow exposes one human installation confirmation", async () => {
 	const events: string[] = [];
@@ -73,23 +107,4 @@ test("setup output is human-readable and keeps stable AI recovery semantics", ()
 	assert.match(timeout, /重新执行 platform setup/);
 	assert.match(timeout, /错误代码：PAIRING_TIMEOUT/);
 	assert.doesNotMatch(timeout, /Extension ID|token|endpoint/);
-});
-
-test("setup accepts an explicit workspace without treating it as a setup step", () => {
-	const parsed = parseBrowserExtensionSetupArgs(
-		["setup", "--workspace", "/tmp/proflow-workspace"],
-		"/tmp/default-workspace",
-	);
-	assert.equal(parsed.workspaceRoot, "/tmp/proflow-workspace");
-});
-
-test("setup still rejects real unsupported positional steps", () => {
-	assert.throws(
-		() =>
-			parseBrowserExtensionSetupArgs(
-				["setup", "manual-step"],
-				"/tmp/default-workspace",
-			),
-		/UNSUPPORTED_SETUP_STEP:manual-step/,
-	);
 });

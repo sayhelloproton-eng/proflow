@@ -1,7 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
 
-import { pairBrowserExtensionSetup } from "../deployment/adapter.ts";
-
 export type BrowserExtensionDesktop = {
 	copyText(value: string): void | Promise<void>;
 	openExtensionsPage(): void | Promise<void>;
@@ -84,7 +82,9 @@ export async function runInteractiveBrowserExtensionSetup(input: {
 	pair?: BrowserExtensionPair;
 }) {
 	const desktop = input.desktop ?? systemDesktop();
-	const pair = input.pair ?? pairBrowserExtensionSetup;
+	const pair =
+		input.pair ??
+		(await import("../deployment/adapter.ts")).pairBrowserExtensionSetup;
 	return pair(
 		{ workspaceRoot: input.workspaceRoot },
 		{

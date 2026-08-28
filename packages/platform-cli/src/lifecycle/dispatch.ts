@@ -14,6 +14,7 @@ export interface ModuleDispatchResult {
 	command: ModuleManagementCommand;
 	result: ModuleOperationResult;
 	observedEffects: string[];
+	externalAvailabilityClaim?: "AVAILABLE" | "UNAVAILABLE";
 }
 
 type ModuleCommandFn = (context: ModuleCommandContext) => unknown;
@@ -41,6 +42,7 @@ function resolveBehaviorAdapter(namespace: unknown): Record<string, unknown> {
 function normalizeInvocation(raw: unknown): {
 	result: unknown;
 	observedEffects: string[];
+	externalAvailabilityClaim?: "AVAILABLE" | "UNAVAILABLE";
 } {
 	if (!isRecord(raw) || !("result" in raw))
 		return { result: raw, observedEffects: [] };
@@ -51,6 +53,10 @@ function normalizeInvocation(raw: unknown): {
 					(item): item is string => typeof item === "string",
 				)
 			: [],
+		...(raw.externalAvailabilityClaim === "AVAILABLE" ||
+		raw.externalAvailabilityClaim === "UNAVAILABLE"
+			? { externalAvailabilityClaim: raw.externalAvailabilityClaim }
+			: {}),
 	};
 }
 export async function dispatchModuleCommand(
@@ -67,9 +73,8 @@ export async function dispatchModuleCommand(
 			"COMMAND_FAILED",
 			`module ${module.moduleRef} does not implement standard command "${command}"`,
 		);
-	const { result, observedEffects } = normalizeInvocation(
-		await invoke(context),
-	);
+	const { result, observedEffects, externalAvailabilityClaim } =
+		normalizeInvocation(await invoke(context));
 	const parsed = moduleOperationResultSchema.safeParse(result);
 	if (!parsed.success)
 		throw new PlatformError(
@@ -81,5 +86,8 @@ export async function dispatchModuleCommand(
 		command,
 		result: parsed.data,
 		observedEffects,
+		...(externalAvailabilityClaim === undefined
+			? {}
+			: { externalAvailabilityClaim }),
 	};
 }

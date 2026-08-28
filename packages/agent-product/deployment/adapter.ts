@@ -51,6 +51,17 @@ async function gatewayPublicUrl(
 		return undefined;
 	}
 }
+async function missingRolePrerequisites(context: ModuleCommandContext) {
+	const [gateway, browser] = await Promise.all([
+		readModuleSharedFacts(context, "agent-gateway"),
+		readModuleSharedFacts(context, "execution-browser-extension"),
+	]);
+	const missing: string[] = [];
+	if (typeof gateway?.publicBaseUrl !== "string") missing.push("agent-gateway");
+	if (typeof browser?.browserExecutorConfigPath !== "string")
+		missing.push("execution-browser-extension");
+	return missing;
+}
 
 function observeRole(context: ModuleCommandContext) {
 	return inspectDurableRoleRegistration({
@@ -65,14 +76,17 @@ const success = () => ({ result: base, observedEffects: [] as string[] });
 export const behaviorAdapter = {
 	install: success,
 	uninstall: success,
-	status: (context: ModuleCommandContext) => {
+	status: async (context: ModuleCommandContext) => {
 		const reality = observeRole(context);
+		const missingPrerequisites = await missingRolePrerequisites(context);
 		const setupStatus =
 			reality.status === "READY"
 				? ("READY" as const)
-				: reality.status === "MISSING" || reality.status === "DRIFT"
-					? ("ACTION_REQUIRED" as const)
-					: ("FAILED" as const);
+				: missingPrerequisites.length > 0
+					? ("BLOCKED" as const)
+					: reality.status === "MISSING" || reality.status === "DRIFT"
+						? ("ACTION_REQUIRED" as const)
+						: ("FAILED" as const);
 		return {
 			result: {
 				...base,
@@ -86,14 +100,21 @@ export const behaviorAdapter = {
 									{
 										scope: "SETUP" as const,
 										code:
-											reality.status === "BROKEN"
-												? "ROLE_REGISTRATION_BROKEN"
-												: "ROLE_SETUP_REQUIRED",
+											missingPrerequisites.length > 0
+												? "UPSTREAM_NOT_READY"
+												: reality.status === "BROKEN"
+													? "ROLE_REGISTRATION_BROKEN"
+													: "ROLE_SETUP_REQUIRED",
 										message:
-											reality.issues.join("；") ||
-											"Custom GPT Role 尚未完成注册",
-										relatedModuleRefs: [],
-										nextCommand: "platform setup --module agent-product",
+											missingPrerequisites.length > 0
+												? `等待 ${missingPrerequisites.join("、")} 就绪后自动继续`
+												: reality.issues.join("；") ||
+													"Custom GPT Role 尚未完成注册",
+										relatedModuleRefs: missingPrerequisites,
+										nextCommand:
+											missingPrerequisites.length > 0
+												? "platform setup"
+												: "platform setup --module agent-product",
 									},
 								],
 							}),
@@ -112,6 +133,16 @@ export const behaviorAdapter = {
 						roleRef: reality.role?.roleRef,
 						carrierUrl: reality.role?.carrierUrl,
 					},
+				},
+				observedEffects: [] as string[],
+			};
+		}
+		const missingPrerequisites = await missingRolePrerequisites(context);
+		if (missingPrerequisites.length > 0) {
+			return {
+				result: {
+					...base,
+					data: { waitingFor: missingPrerequisites },
 				},
 				observedEffects: [] as string[],
 			};

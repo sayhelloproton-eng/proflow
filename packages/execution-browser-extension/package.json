@@ -13,8 +13,7 @@
 		"./deployment/descriptor": "./dist/deployment/descriptor.js",
 		"./runtime-composition": "./dist/src/runtime-composition.js",
 		"./custom-gpt-provisioning": "./dist/src/custom-gpt-provisioner.js",
-		"./custom-gpt-role": "./dist/src/custom-gpt-role.js",
-		"./configure": "./dist/src/configure.js"
+		"./custom-gpt-role": "./dist/src/custom-gpt-role.js"
 	},
 	"files": [
 		"dist",
@@ -48,8 +47,5 @@
 		"module": true,
 		"descriptor": "./dist/deployment/descriptor.js",
 		"manifest": "./proflow.module.json"
-	},
-	"bin": {
-		"proflow-execution-browser-extension": "./dist/src/configure.js"
 	}
 }

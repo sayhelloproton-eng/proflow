@@ -10,8 +10,8 @@
     "formalCaseIdentities": 316,
     "criticalProofs": 199,
     "requiredFailureBoundaries": 117,
-    "executableTestFiles": 140,
-    "executableTestCalls": 616,
+    "executableTestFiles": 138,
+    "executableTestCalls": 610,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -2279,7 +2279,6 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/deployment/adapter.ts",
-        "packages/execution-browser-extension/src/configure.ts",
         "packages/execution-browser-extension/src/index.ts",
         "packages/module-contract/src/index.ts"
       ],

@@ -11,6 +11,11 @@ import {
 	readModuleSharedFacts,
 	writeModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
+import type {
+	BrowserExtensionDesktop,
+	BrowserExtensionPair,
+} from "../src/install-workflow.ts";
+import { runInteractiveBrowserExtensionSetup } from "../src/install-workflow.ts";
 import { createBrowserExtensionPairingServer } from "../src/pairing.ts";
 import { descriptor } from "./descriptor.ts";
 
@@ -21,44 +26,6 @@ const base = {
 	moduleRef: descriptor.moduleRef,
 	moduleVersion: descriptor.moduleVersion,
 } as const;
-const setupPlan = {
-	steps: [
-		{
-			id: "STEP-EXECUTION-BROWSER-EXTENSION-01",
-			title: "加载扩展并自动配对",
-			description:
-				"准备 unpacked 目录和本地 Bridge，等待 Chrome Extension 的真实 hello + heartbeat。",
-			state: "TODO",
-			responsible: "USER",
-			execution: {
-				interactive: "pnpm exec -- proflow-execution-browser-extension setup",
-				nonInteractive:
-					"pnpm exec -- proflow-execution-browser-extension setup",
-			},
-			requiredInputs: [],
-			verify: "pnpm exec -- proflow-execution-browser-extension verify",
-			successCondition:
-				"Extension hello + heartbeat 已被本地 pairing listener 验证并持久化",
-			humanAction:
-				"启用开发者模式并加载脚本准备的 unpacked 目录；其余身份发现与验证自动完成。",
-		},
-		{
-			id: "STEP-EXECUTION-BROWSER-EXTENSION-02",
-			title: "验证扩展部署状态",
-			description: "读取 heartbeat 形成的持久化部署证据。",
-			state: "TODO",
-			responsible: "AI",
-			execution: {
-				interactive: "pnpm exec -- proflow-execution-browser-extension verify",
-				nonInteractive:
-					"pnpm exec -- proflow-execution-browser-extension verify",
-			},
-			requiredInputs: [],
-			verify: "pnpm exec -- proflow-execution-browser-extension verify",
-			successCondition: "execution-browser-extension.setupStatus=READY",
-		},
-	],
-} as const;
 const blockedSetupPlan = {
 	steps: [
 		{
@@ -67,12 +34,11 @@ const blockedSetupPlan = {
 			state: "BLOCKED",
 			responsible: "EXTERNAL",
 			execution: {
-				interactive: "pnpm exec -- proflow-execution-browser-extension setup",
-				nonInteractive:
-					"pnpm exec -- proflow-execution-browser-extension setup",
+				interactive: "platform setup --module execution-browser-extension",
+				nonInteractive: "platform setup --module execution-browser-extension",
 			},
 			requiredInputs: [],
-			verify: "pnpm exec -- proflow-execution-browser-extension verify",
+			verify: "platform status",
 			successCondition: "配置状态变为“已就绪”",
 			blockedReason: "真实 Extension heartbeat 未到达或本地 pairing 失败",
 		},
@@ -345,14 +311,6 @@ async function materializeExecutorConfig(
 	});
 }
 
-async function materialize(
-	context: ModuleCommandContext,
-	setup: BrowserSetupState,
-) {
-	const prepared = await materializeRuntimeConfig(context);
-	await materializeExecutorConfig(context, setup, prepared);
-}
-
 async function persistPairedBrowserExtension(
 	context: ModuleCommandContext,
 	prepared: Awaited<ReturnType<typeof materializeRuntimeConfig>>,
@@ -486,7 +444,7 @@ export const behaviorAdapter = {
 					setupStatus: setupReady
 						? ("READY" as const)
 						: ("ACTION_REQUIRED" as const),
-					runtimeStatus: evidence ? ("RUNNING" as const) : ("STOPPED" as const),
+					runtimeStatus: "NOT_APPLICABLE" as const,
 					...(setupReady
 						? {}
 						: {
@@ -509,48 +467,45 @@ export const behaviorAdapter = {
 		};
 	},
 	setup: async (context: ModuleCommandContext) => {
-		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
-		await installPackage(context);
-		const setup = await readSetup(context);
-		const evidence = await readEvidence(
-			context,
-			browserExtensionLoadDir(context.workspaceRoot),
-		);
-		if (setup && evidence && setup.extensionId === evidence.extensionId) {
-			try {
-				await materialize(context, setup);
-			} catch (error) {
-				return {
-					result: {
-						...failed(
-							"SETUP_FAILED",
-							error instanceof Error
-								? error.message
-								: "browser extension config materialization failed",
-						),
-						data: blockedSetupPlan,
-					},
-					observedEffects: [],
-				};
-			}
+		try {
+			const input =
+				typeof context.input === "object" && context.input !== null
+					? (context.input as {
+							timeoutMs?: number;
+							desktop?: BrowserExtensionDesktop;
+							pair?: BrowserExtensionPair;
+						})
+					: undefined;
+			await runInteractiveBrowserExtensionSetup({
+				workspaceRoot: context.workspaceRoot,
+				...(input?.timeoutMs === undefined
+					? {}
+					: { timeoutMs: input.timeoutMs }),
+				...(input?.desktop === undefined ? {} : { desktop: input.desktop }),
+				...(input?.pair === undefined ? {} : { pair: input.pair }),
+			});
 			return {
 				result: base,
-				observedEffects: ["Uses heartbeat-proven Chrome MV3 pairing evidence"],
+				observedEffects: [
+					"Materializes browser runtime configuration",
+					"Opens Chrome extension management",
+					"Persists heartbeat-proven Chrome MV3 pairing evidence",
+				],
+			};
+		} catch (error) {
+			return {
+				result: {
+					...failed(
+						"SETUP_FAILED",
+						error instanceof Error
+							? error.message
+							: "browser extension setup failed",
+					),
+					data: blockedSetupPlan,
+				},
+				observedEffects: [],
 			};
 		}
-		return {
-			result: {
-				...base,
-				ok: false as const,
-				status: "ACTION_REQUIRED" as const,
-				data: setupPlan,
-				actionRequired: {
-					action: "load-unpacked-extension",
-					description: `Run pnpm exec -- proflow-execution-browser-extension setup --workspace ${context.workspaceRoot}; then enable Developer Mode and load ${browserExtensionLoadDir(context.workspaceRoot)}. The package CLI materializes bootstrap config, discovers the extension and verifies its heartbeat automatically.`,
-				},
-			},
-			observedEffects: [],
-		};
 	},
 	docs: async (_context: ModuleCommandContext) => ({
 		result: {

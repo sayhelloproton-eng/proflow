@@ -70,30 +70,30 @@ test("CP-AGT-DEV-03 sandbox artifact is explicitly not real apply", () => {
 		/sandbox artifact，不等于真实 repo apply/,
 	);
 });
-test("CP-AGT-DEV-04 provisioning/reopen real evidence remains external ACTION_REQUIRED", async () => {
+test("CP-AGT-DEV-04 provisioning waits for Browser/Gateway prerequisites before any Role action", async () => {
 	const { behaviorAdapter } = await import("../deployment/adapter.ts");
 	const context = { workspaceRoot: "/__proflow_missing_agent_fixture__" };
-	const status = behaviorAdapter.status(context).result;
+	const status = (await behaviorAdapter.status(context)).result;
 	assert.equal(status.status, "SUCCEEDED");
 	assert.deepEqual(status.data, {
-		setupStatus: "ACTION_REQUIRED",
+		setupStatus: "BLOCKED",
 		runtimeStatus: "NOT_APPLICABLE",
 		issues: [
 			{
 				scope: "SETUP",
-				code: "ROLE_SETUP_REQUIRED",
-				message: "ROLE_NOT_REGISTERED:@tomflow/proflow-agent-controller-dev",
-				relatedModuleRefs: [],
-				nextCommand: "platform setup --module agent-controller-dev",
+				code: "UPSTREAM_NOT_READY",
+				message:
+					"等待 agent-gateway、execution-browser-extension 就绪后自动继续",
+				relatedModuleRefs: ["agent-gateway", "execution-browser-extension"],
+				nextCommand: "platform setup",
 			},
 		],
 	});
 	const setup = (await behaviorAdapter.setup(context)).result;
-	assert.equal(setup.status, "FAILED");
-	assert.match(
-		setup.error?.message ?? "",
-		/agent-gateway publicBaseUrl is unavailable/,
-	);
+	assert.equal(setup.status, "SUCCEEDED");
+	assert.deepEqual(setup.data, {
+		waitingFor: ["agent-gateway", "execution-browser-extension"],
+	});
 	assert.match(
 		metadata.proflowAgent.instructions,
 		/REOPEN 使用原 Task-bound worker/,
