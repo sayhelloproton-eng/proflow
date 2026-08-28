@@ -1,6 +1,16 @@
 # 配置自动化、技术问答与 OpenAI Secure MCP Tunnel 后续
 
-更新时间：2026-08-26
+更新时间：2026-08-29
+
+> **2026-08-29 当前真实人工验收以 [`16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md`](16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md) 为最新入口。本文保留配置自动化的设计背景和技术问答；下文 2026-08-26 的 24-module / installed-drift / resolver 快照属于历史，不得覆盖 16 的真实 23-module Registry/Fresh Workspace 现场。**
+
+### 2026-08-29 reality override
+
+真实 Registry 发包已完成，active surface 已从历史 24 收敛为 23（Carrier retired）；Fresh npm install 23/23 PASS。Browser Extension 已真实加载并 pairing READY；Model Provider 已通过 `http://192.168.0.108:8080/v1` 验证并发布 inventory；当前人工 `platform status` 为 `17 配置已完成 / 1 根阻塞 / 5 下游等待 / 0 失败 / 0 进程`，唯一 root blocker 是 `dev-tunnel`。
+
+人工验收同时推翻了两个旧产品假设：正常 `platform setup --module model-provider-api` 当前没有 Deployment resolver，也没有 Platform input bridge，实际会把用户踢到 package-level `pnpm exec`；该命令已真实把 npm Fresh Workspace 污染成 npm+pnpm 双 package-manager。Dev Tunnel 当前失败不是 GitHub auth，而是 `devtunnel 1.0.2030` 对无端口 Tunnel 返回 `{ "warning": "No ports found ..." }`，ProFlow `parsePorts()` 不兼容，并在重试时泄漏 orphan Tunnel。详细根因、P0/P1/P2 与保留现场统一见 16。
+
+因此本文中“正常 setup 不应向用户询问 Provider Base URL”仍是产品目标，但**不能继续写成当前已有 resolver 的事实**。下一整改必须先由用户授权，并优先解决 Platform 统一交互/input orchestration 与 Dev Tunnel compatibility/recovery。
 
 ## 1. 文档定位
 
@@ -179,8 +189,9 @@ MICROSOFT_DEV_TUNNEL = KEEP_FOR_PHASE3
 
 - 当前总控：[02-当前总控状态与Real路线.md](02-当前总控状态与Real路线.md)
 - Real-2 冻结：[13-Real2-最终冻结与Real3交接.md](13-Real2-最终冻结与Real3交接.md)
-- 当前完整交接：[15-当前上下文与Tunnel任务流转-20260825.md](15-当前上下文与Tunnel任务流转-20260825.md)
+- 当前最新交接：[16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md](16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md)
+- 历史长交接：[15-当前上下文与Tunnel任务流转-20260825.md](15-当前上下文与Tunnel任务流转-20260825.md)
 - Model Provider 规则：[../../模型与推理领域/03-流程与数据/02-Model-Capability-Profile与Provider适配.md](../../模型与推理领域/03-流程与数据/02-Model-Capability-Profile与Provider适配.md)
 - Deployment 限制：[../../部署领域/06-状态与实施/KNOWN-LIMITATIONS-AND-SPIKES.md](../../部署领域/06-状态与实施/KNOWN-LIMITATIONS-AND-SPIKES.md)
 
-后续 Chat 读取 `13 + 14 + 15` 即可获得 Real-2 冻结、技术问答/自动化审计和当前执行状态；不得恢复已删除的重复 `16` 交接文件。
+后续 Chat 固定先读 `16`，再回读 `05 + 14 + 15`；`13` 只用于 Real-2 冻结事实。16 是本轮真实人工验收形成的新权威 handoff，不得由本文旧快照覆盖。
