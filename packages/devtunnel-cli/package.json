@@ -1,0 +1,28 @@
+{
+	"name": "@tomflow/proflow-devtunnel-cli",
+	"version": "0.1.0",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./dist/src/index.js"
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"scripts": {
+		"test": "node --test tests/**/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"description": "Package-owned resolver for the official Microsoft Dev Tunnel CLI.",
+	"keywords": [
+		"proflow",
+		"devtunnel",
+		"tooling"
+	],
+	"proflow": {
+		"tool": true
+	}
+}

@@ -185,6 +185,25 @@ test("CP-DEV-TUNNEL-04 port reconciliation is idempotent and bounded", async () 
 	}
 });
 
+test("Dev Tunnel CLI warning-only no-ports JSON is treated as an empty port list", async () => {
+	const calls: string[][] = [];
+	const automation = createDevTunnelAutomation({
+		runCommand: async (_command, args) => {
+			calls.push(args);
+			if (args[0] === "port" && args[1] === "list")
+				return result(
+					JSON.stringify({ warning: "No ports found for tunnel fixture" }),
+				);
+			return result(JSON.stringify({ portNumber: 41705, protocol: "http" }));
+		},
+	});
+	assert.equal(await automation.ensurePort("fixture", 41705), "CREATED");
+	assert.equal(
+		calls.some((args) => args[1] === "create"),
+		true,
+	);
+});
+
 test("CP-DEV-TUNNEL-04 protocol drift stops after exact-port delete failure and never claims reconciliation", async () => {
 	const calls: string[][] = [];
 	const automation = createDevTunnelAutomation({
@@ -332,9 +351,12 @@ test("CP-DEV-TUNNEL-03 single-call setup consumes the Gateway-owned endpoint fac
 		),
 	);
 	assert.deepEqual(state, {
-		contract: "proflow.dev-tunnel-setup.v1",
+		contract: "proflow.dev-tunnel-setup.v2",
 		tunnelId: "created-tunnel",
+		phase: "READY",
+		gatewayPort: 41705,
 		publicBaseUrl: "https://created-41705.example.test/",
+		cliPath: "devtunnel",
 	});
 	assert.deepEqual(
 		await readModuleSharedFacts({ workspaceRoot }, "dev-tunnel"),
@@ -344,7 +366,10 @@ test("CP-DEV-TUNNEL-03 single-call setup consumes the Gateway-owned endpoint fac
 		},
 	);
 	assert.deepEqual(Object.keys(state).sort(), [
+		"cliPath",
 		"contract",
+		"gatewayPort",
+		"phase",
 		"publicBaseUrl",
 		"tunnelId",
 	]);
@@ -540,7 +565,7 @@ test("CP-DEV-TUNNEL-02 CP-DEV-TUNNEL-07 workspace reuse, remote rebind, and UNKN
 	assert.equal(calls.includes("host:start"), false);
 });
 
-test("missing Gateway producer fact and provisioning failure never write READY state", async (t) => {
+test("missing Gateway writes no state while post-create failure persists recoverable PENDING state", async (t) => {
 	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-tunnel-fail-"));
 	t.after(() => rm(workspaceRoot, { recursive: true, force: true }));
 	const adapter = createDevTunnelBehaviorAdapter({
@@ -614,14 +639,80 @@ test("missing Gateway producer fact and provisioning failure never write READY s
 			.status,
 		"FAILED",
 	);
-	await assert.rejects(() =>
-		readFile(
-			join(
-				provisionRoot,
-				".proflow/runtime/external-resources/dev-tunnel/setup.json",
+	assert.deepEqual(
+		JSON.parse(
+			await readFile(
+				join(
+					provisionRoot,
+					".proflow/runtime/external-resources/dev-tunnel/setup.json",
+				),
+				"utf8",
 			),
 		),
+		{
+			contract: "proflow.dev-tunnel-setup.v2",
+			tunnelId: "created-but-not-ready",
+			phase: "PENDING_CREATED",
+			gatewayPort: 41705,
+			cliPath: "devtunnel",
+		},
 	);
+});
+
+test("a created Tunnel is persisted as PENDING and reused after port reconciliation fails", async (t) => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-tunnel-pending-"),
+	);
+	t.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	await writeModuleSharedFacts({ workspaceRoot }, "agent-gateway", {
+		localBaseUrl: "http://127.0.0.1:41705",
+	});
+	let creates = 0;
+	let portAttempts = 0;
+	const adapter = createDevTunnelBehaviorAdapter({
+		automation: {
+			async ensureLogin() {
+				return "LOGGED_IN" as const;
+			},
+			async inspectTunnel() {
+				return { state: "EXISTS" as const, hostState: "STOPPED" as const };
+			},
+			async createTunnel() {
+				creates += 1;
+				return "pending-tunnel";
+			},
+			async ensurePort() {
+				portAttempts += 1;
+				if (portAttempts === 1) throw new Error("port reconcile failed");
+				return "CREATED" as const;
+			},
+			async discoverPublicBaseUrl() {
+				return "https://pending.example.test/";
+			},
+		},
+		createRuntime: () => fakeRuntime([], "STOPPED"),
+		verifyPublicBaseUrl: async () => {},
+	});
+	assert.equal(
+		(await adapter.setup({ workspaceRoot })).result.status,
+		"FAILED",
+	);
+	const pending = JSON.parse(
+		await readFile(
+			join(
+				workspaceRoot,
+				".proflow/runtime/external-resources/dev-tunnel/setup.json",
+			),
+			"utf8",
+		),
+	);
+	assert.equal(pending.phase, "PENDING_CREATED");
+	assert.equal(pending.tunnelId, "pending-tunnel");
+	assert.equal(
+		(await adapter.setup({ workspaceRoot })).result.status,
+		"SUCCEEDED",
+	);
+	assert.equal(creates, 1);
 });
 
 test("CP-DEV-TUNNEL-01 failed browser login performs no Tunnel mutation", async (t) => {

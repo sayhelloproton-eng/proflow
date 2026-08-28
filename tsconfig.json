@@ -76,6 +76,9 @@
 				"./packages/chrome-runtime/src/index.ts"
 			],
 			"@tomflow/proflow-dev-tunnel": ["./packages/dev-tunnel/src/index.ts"],
+			"@tomflow/proflow-devtunnel-cli": [
+				"./packages/devtunnel-cli/src/index.ts"
+			],
 			"@tomflow/proflow-model-provider-api": [
 				"./packages/model-provider-api/src/index.ts"
 			]

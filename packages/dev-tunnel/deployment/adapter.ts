@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-
+import { resolveDevTunnelCli } from "@tomflow/proflow-devtunnel-cli";
 import {
 	type ModuleCommandContext,
 	readModuleSharedFacts,
@@ -24,10 +24,14 @@ const base = {
 	moduleVersion: descriptor.moduleVersion,
 } as const;
 const processEffect = "Manage the dev-tunnel public ingress process";
+type SetupPhase = "PENDING_CREATED" | "PORT_READY" | "HOST_READY" | "READY";
 type SetupState = {
-	contract: "proflow.dev-tunnel-setup.v1";
+	contract: "proflow.dev-tunnel-setup.v2";
 	tunnelId: string;
-	publicBaseUrl: string;
+	phase: SetupPhase;
+	gatewayPort?: number;
+	publicBaseUrl?: string;
+	cliPath?: string;
 };
 const stateDir = (context: ModuleCommandContext) =>
 	join(
@@ -47,17 +51,52 @@ async function readState(
 	try {
 		const raw = JSON.parse(
 			await readFile(stateFile(context), "utf8"),
-		) as Partial<SetupState>;
+		) as Record<string, unknown>;
+		if (typeof raw.tunnelId !== "string" || !raw.tunnelId) return undefined;
 		if (
-			raw.contract !== "proflow.dev-tunnel-setup.v1" ||
-			typeof raw.tunnelId !== "string" ||
-			!raw.tunnelId ||
-			typeof raw.publicBaseUrl !== "string"
+			raw.contract === "proflow.dev-tunnel-setup.v1" &&
+			typeof raw.publicBaseUrl === "string"
+		) {
+			const url = new URL(raw.publicBaseUrl);
+			if (url.protocol !== "https:") return undefined;
+			return {
+				contract: "proflow.dev-tunnel-setup.v2",
+				tunnelId: raw.tunnelId,
+				phase: "READY",
+				publicBaseUrl: url.href,
+			};
+		}
+		if (raw.contract !== "proflow.dev-tunnel-setup.v2") return undefined;
+		if (
+			raw.phase !== "PENDING_CREATED" &&
+			raw.phase !== "PORT_READY" &&
+			raw.phase !== "HOST_READY" &&
+			raw.phase !== "READY"
 		)
 			return undefined;
-		const url = new URL(raw.publicBaseUrl);
-		if (url.protocol !== "https:") return undefined;
-		return raw as SetupState;
+		const gatewayPort = raw.gatewayPort;
+		if (
+			gatewayPort !== undefined &&
+			(!Number.isInteger(gatewayPort) ||
+				Number(gatewayPort) < 1 ||
+				Number(gatewayPort) > 65_535)
+		)
+			return undefined;
+		const publicBaseUrl = raw.publicBaseUrl;
+		const cliPath = raw.cliPath;
+		if (raw.phase === "READY") {
+			if (typeof publicBaseUrl !== "string") return undefined;
+			const url = new URL(publicBaseUrl);
+			if (url.protocol !== "https:") return undefined;
+		}
+		return {
+			contract: "proflow.dev-tunnel-setup.v2",
+			tunnelId: raw.tunnelId,
+			phase: raw.phase,
+			...(typeof gatewayPort === "number" ? { gatewayPort } : {}),
+			...(typeof publicBaseUrl === "string" ? { publicBaseUrl } : {}),
+			...(typeof cliPath === "string" ? { cliPath } : {}),
+		};
 	} catch {
 		return undefined;
 	}
@@ -78,6 +117,7 @@ async function writeState(
 }
 function runtime(context: ModuleCommandContext, state?: SetupState) {
 	return createDevTunnelRuntime({
+		...(state?.cliPath ? { command: state.cliPath } : {}),
 		...(state
 			? { tunnelId: state.tunnelId, publicBaseUrl: state.publicBaseUrl }
 			: {}),
@@ -88,7 +128,7 @@ const baseBehaviorAdapter = {
 	install: async (context: ModuleCommandContext) => {
 		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
 		const state = await readState(context);
-		if (state)
+		if (state?.phase === "READY" && state.publicBaseUrl)
 			await writeModuleSharedFacts(context, descriptor.moduleRef, {
 				tunnelId: state.tunnelId,
 				publicBaseUrl: state.publicBaseUrl,
@@ -160,7 +200,10 @@ const baseBehaviorAdapter = {
 		const rt = runtime(context, state);
 		const login = await rt.loginStatus();
 		const observed = await rt.status();
-		const configured = state !== undefined && login === "LOGGED_IN";
+		const configured =
+			state?.phase === "READY" &&
+			typeof state.publicBaseUrl === "string" &&
+			login === "LOGGED_IN";
 		const runtimeStatus =
 			observed.state === "RUNNING"
 				? ("RUNNING" as const)
@@ -185,7 +228,10 @@ const baseBehaviorAdapter = {
 												{
 													scope: "SETUP" as const,
 													code: "TUNNEL_LOGIN_REQUIRED",
-													message: "Dev Tunnel CLI 尚未登录或配置未保存",
+													message:
+														state && state.phase !== "READY"
+															? `远程连接配置已保存，当前阶段 ${state.phase}；重新运行 Platform setup 将从此处恢复`
+															: "Dev Tunnel CLI 尚未登录或配置未保存",
 													relatedModuleRefs: [],
 													nextCommand: "platform setup --module dev-tunnel",
 												},
@@ -227,7 +273,7 @@ const baseBehaviorAdapter = {
 	}),
 	start: async (context: ModuleCommandContext) => {
 		const state = await readState(context);
-		if (!state)
+		if (state?.phase !== "READY" || !state.publicBaseUrl)
 			return {
 				result: {
 					...base,
@@ -379,10 +425,8 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 	automation?: DevTunnelAutomation;
 	createRuntime?: RuntimeFactory;
 	verifyPublicBaseUrl?: (publicBaseUrl: string) => Promise<void>;
+	resolveCli?: (workspaceRoot: string) => Promise<string>;
 }) {
-	const automation =
-		dependencies?.automation ??
-		createDevTunnelAutomation({ command: "devtunnel" });
 	const createRuntime = dependencies?.createRuntime ?? createDevTunnelRuntime;
 	const verifyPublicBaseUrl =
 		dependencies?.verifyPublicBaseUrl ?? verifyProvisionedPublicBaseUrl;
@@ -390,12 +434,24 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 		...baseBehaviorAdapter,
 		setup: async (context: ModuleCommandContext) => {
 			try {
+				const previous = await readState(context);
+				const cliPath =
+					previous?.cliPath ??
+					(dependencies?.automation
+						? "devtunnel"
+						: await (
+								dependencies?.resolveCli ??
+								(async (workspaceRoot) =>
+									(await resolveDevTunnelCli({ workspaceRoot })).command)
+							)(context.workspaceRoot));
+				const automation =
+					dependencies?.automation ??
+					createDevTunnelAutomation({ command: cliPath });
 				await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
 				const port = gatewayPort(
 					await readModuleSharedFacts(context, "agent-gateway"),
 				);
 				await automation.ensureLogin();
-				const previous = await readState(context);
 				let tunnelId: string;
 				let safeToStartNewHost = false;
 				const createAndVerifyTunnel = async () => {
@@ -405,6 +461,13 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 						throw new Error(
 							"new Dev Tunnel could not be verified by show --json",
 						);
+					await writeState(context, {
+						contract: "proflow.dev-tunnel-setup.v2",
+						tunnelId: createdTunnelId,
+						phase: "PENDING_CREATED",
+						gatewayPort: port,
+						cliPath,
+					});
 					return createdTunnelId;
 				};
 				if (previous) {
@@ -423,6 +486,13 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 					safeToStartNewHost = true;
 				}
 				await automation.ensurePort(tunnelId, port);
+				await writeState(context, {
+					contract: "proflow.dev-tunnel-setup.v2",
+					tunnelId,
+					phase: "PORT_READY",
+					gatewayPort: port,
+					cliPath,
+				});
 				const host = createRuntime({
 					tunnelId,
 					processStateFile: processFile(context),
@@ -439,6 +509,13 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 						throw new Error("Dev Tunnel host did not reach RUNNING");
 					started = true;
 				}
+				await writeState(context, {
+					contract: "proflow.dev-tunnel-setup.v2",
+					tunnelId,
+					phase: "HOST_READY",
+					gatewayPort: port,
+					cliPath,
+				});
 				const publicBaseUrl = await automation.discoverPublicBaseUrl(
 					tunnelId,
 					port,
@@ -448,9 +525,12 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 					throw new Error("discovered publicBaseUrl must be HTTPS");
 				await verifyPublicBaseUrl(url.href);
 				const state: SetupState = {
-					contract: "proflow.dev-tunnel-setup.v1",
+					contract: "proflow.dev-tunnel-setup.v2",
 					tunnelId,
+					phase: "READY",
+					gatewayPort: port,
 					publicBaseUrl: url.href,
+					cliPath,
 				};
 				await writeState(context, state);
 				await writeModuleSharedFacts(context, descriptor.moduleRef, {

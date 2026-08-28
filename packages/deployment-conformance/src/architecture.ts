@@ -67,6 +67,16 @@ function exportNames(metadata: Record<string, unknown>): Set<string> {
 	return new Set(Object.keys(value));
 }
 
+function isManagedToolPackage(metadata: Record<string, unknown>): boolean {
+	const proflow = metadata.proflow;
+	return (
+		typeof proflow === "object" &&
+		proflow !== null &&
+		Reflect.get(proflow, "tool") === true &&
+		Reflect.get(proflow, "module") !== true
+	);
+}
+
 function packageSpecifier(
 	specifier: string,
 ): { name: string; subpath: string } | undefined {
@@ -281,10 +291,11 @@ export async function runRepositoryArchitecture(
 
 		const descriptorPath = join(record.directory, "deployment/descriptor.ts");
 		if (!(await exists(descriptorPath))) {
-			issues.push({
-				code: "MODULE_DESCRIPTOR_MISSING",
-				message: `${record.name} is not governed as a Module`,
-			});
+			if (!isManagedToolPackage(record.metadata))
+				issues.push({
+					code: "MODULE_DESCRIPTOR_MISSING",
+					message: `${record.name} is not governed as a Module or managed tool`,
+				});
 		} else {
 			try {
 				const descriptorUrl = pathToFileURL(descriptorPath);

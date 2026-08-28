@@ -1,0 +1,166 @@
+import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
+import {
+	chmod,
+	mkdir,
+	readFile,
+	rename,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
+import { arch, platform } from "node:os";
+import { basename, dirname, join, resolve } from "node:path";
+import { promisify } from "node:util";
+
+const execute = promisify(execFile);
+const MANAGED_VERSION = "1.0.2030";
+const COMPATIBLE_VERSION = new RegExp(
+	`^${MANAGED_VERSION.replaceAll(".", "\\.")}$`,
+);
+
+type SupportedArtifact = {
+	url: string;
+	archive: "binary" | "zip";
+	executable: string;
+	sha256: string;
+};
+
+function artifact(): SupportedArtifact {
+	const key = `${platform()}-${arch()}`;
+	const artifacts: Record<string, SupportedArtifact> = {
+		"darwin-x64": {
+			url: "https://aka.ms/TunnelsCliDownload/osx-x64-zip",
+			archive: "zip",
+			executable: "devtunnel",
+			sha256:
+				"4a7d426df3edb63441f24f0b465d3642da284c982e88eed9a410033379fad33f",
+		},
+		"darwin-arm64": {
+			url: "https://aka.ms/TunnelsCliDownload/osx-arm64-zip",
+			archive: "zip",
+			executable: "devtunnel",
+			sha256:
+				"41794a24ccee6c5dc2821fadc97285ee39894fdbd96ad9869ee62ae0d7c5c8ed",
+		},
+		"linux-x64": {
+			url: "https://aka.ms/TunnelsCliDownload/linux-x64",
+			archive: "binary",
+			executable: "devtunnel",
+			sha256:
+				"ff6911548907b5abaea4ed5baa36b2420be7c5debcb637a4f50f7a4002b10b60",
+		},
+		"win32-x64": {
+			url: "https://aka.ms/TunnelsCliDownload/win-x64",
+			archive: "binary",
+			executable: "devtunnel.exe",
+			sha256:
+				"78190ac81c664828858de2390fd9c15eeec0e4edfe4e7b0d6a323dc49df625db",
+		},
+	};
+	const selected = artifacts[key];
+	if (!selected) throw new Error(`DEV_TUNNEL_PLATFORM_UNSUPPORTED: ${key}`);
+	return selected;
+}
+
+async function version(command: string): Promise<string | undefined> {
+	try {
+		const result = await execute(command, ["--version"], { timeout: 10_000 });
+		return `${result.stdout}\n${result.stderr}`.match(/\d+\.\d+\.\d+/)?.[0];
+	} catch {
+		return undefined;
+	}
+}
+
+async function sha256(path: string): Promise<string> {
+	return createHash("sha256")
+		.update(await readFile(path))
+		.digest("hex");
+}
+
+async function validCached(path: string): Promise<boolean> {
+	try {
+		const metadata = JSON.parse(
+			await readFile(`${path}.json`, "utf8"),
+		) as unknown;
+		if (typeof metadata !== "object" || metadata === null) return false;
+		const expected = Reflect.get(metadata, "sha256");
+		return (
+			typeof expected === "string" &&
+			expected === (await sha256(path)) &&
+			COMPATIBLE_VERSION.test((await version(path)) ?? "")
+		);
+	} catch {
+		return false;
+	}
+}
+
+async function downloadManaged(workspaceRoot: string): Promise<string> {
+	const selected = artifact();
+	const directory = join(
+		resolve(workspaceRoot),
+		".proflow",
+		"tools",
+		"devtunnel",
+		MANAGED_VERSION,
+		`${platform()}-${arch()}`,
+	);
+	const target = join(directory, selected.executable);
+	if (await validCached(target)) return target;
+	await mkdir(directory, { recursive: true, mode: 0o700 });
+	const response = await fetch(selected.url, { redirect: "follow" });
+	if (!response.ok)
+		throw new Error(`DEV_TUNNEL_DOWNLOAD_FAILED: HTTP ${response.status}`);
+	const bytes = Buffer.from(await response.arrayBuffer());
+	const temporary = `${target}.${process.pid}.download`;
+	const extraction = `${directory}/extract-${process.pid}`;
+	try {
+		await writeFile(temporary, bytes, { mode: 0o600 });
+		if ((await sha256(temporary)) !== selected.sha256)
+			throw new Error("DEV_TUNNEL_DOWNLOAD_CHECKSUM_MISMATCH");
+		if (selected.archive === "zip") {
+			await mkdir(extraction, { recursive: true, mode: 0o700 });
+			await execute("unzip", ["-oq", temporary, "-d", extraction], {
+				timeout: 30_000,
+			});
+			const extracted = join(extraction, selected.executable);
+			await stat(extracted);
+			await rename(extracted, target);
+		} else {
+			await rename(temporary, target);
+		}
+	} finally {
+		await rm(temporary, { force: true });
+		await rm(extraction, { recursive: true, force: true });
+	}
+	if (platform() !== "win32") await chmod(target, 0o700);
+	const observedVersion = await version(target);
+	if (!observedVersion || !COMPATIBLE_VERSION.test(observedVersion))
+		throw new Error(
+			`DEV_TUNNEL_VERSION_INCOMPATIBLE: ${observedVersion ?? "unknown"}`,
+		);
+	await writeFile(
+		`${target}.json`,
+		`${JSON.stringify({ source: selected.url, version: observedVersion, sha256: await sha256(target), artifactSha256: selected.sha256, file: basename(target), directory: dirname(target) }, null, 2)}\n`,
+		{ mode: 0o600 },
+	);
+	return target;
+}
+
+export async function resolveDevTunnelCli(input: {
+	workspaceRoot: string;
+	systemCommand?: string;
+}): Promise<{
+	command: string;
+	source: "system" | "managed";
+	version: string;
+}> {
+	const systemCommand = input.systemCommand ?? "devtunnel";
+	const systemVersion = await version(systemCommand);
+	if (systemVersion && COMPATIBLE_VERSION.test(systemVersion))
+		return { command: systemCommand, source: "system", version: systemVersion };
+	const command = await downloadManaged(input.workspaceRoot);
+	const managedVersion = await version(command);
+	if (!managedVersion) throw new Error("DEV_TUNNEL_MANAGED_CLI_INVALID");
+	return { command, source: "managed", version: managedVersion };
+}

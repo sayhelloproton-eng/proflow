@@ -157,6 +157,9 @@ function parseJson(text: string, label: string): unknown {
 function parsePorts(input: unknown): DevTunnelPort[] {
 	if (Array.isArray(input)) return z.array(tunnelPortSchema).parse(input);
 	if (typeof input === "object" && input !== null) {
+		const warning = Reflect.get(input, "warning");
+		if (typeof warning === "string" && /\bno ports found\b/i.test(warning))
+			return [];
 		const ports = Reflect.get(input, "ports");
 		if (Array.isArray(ports)) return z.array(tunnelPortSchema).parse(ports);
 		const tunnel = Reflect.get(input, "tunnel");

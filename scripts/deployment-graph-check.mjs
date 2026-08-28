@@ -22,6 +22,12 @@ for (const entry of entries) {
 	) {
 		continue;
 	}
+	if (
+		packageJson.proflow?.tool === true &&
+		packageJson.proflow?.module !== true
+	) {
+		continue;
+	}
 	const descriptorUrl = pathToFileURL(
 		join(packageDirectory, "deployment/descriptor.ts"),
 	);
