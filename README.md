@@ -51,13 +51,15 @@ pnpm release:publish:dry-run
 pnpm release:publish
 ```
 
+Real npm Registry publication uses a Granular Access Token with package write permission and `Bypass 2FA`; do not disable the account's WebAuthn/2FA to automate release. The local token name is `proflow-local-publish`; only its name/policy may be documented, never the token value. Before a real publish, query the exact `package@version` set, publish the Registry-missing versions with one recursive publish command, then perform one exact Registry verification pass. Do not use local tarballs or a workspace `releases/` directory as Registry acceptance evidence.
+
 Canonical release/version rules: `spec/平台架构与公共约定/02-契约/03-版本与兼容性约定.md`.
 
 ## Implementation and release gate
 
 The FINAL FROZEN Phase 3 DDD/SDD baseline and FINAL FROZEN pre-development Test Plan are available through the [Frozen truth entrypoint](spec/README.md). This landing used an independently verified directory fallback because the original ZIP artifacts were unavailable; provenance records that their expected SHA values were not reverified.
 
-Phase 3 implementation now exists and remains governed by `Frozen Spec → Frozen Test Plan → RED → GREEN → Evidence`. The Deployment CLI release line is frozen at `@tomflow/proflow-platform-cli@0.1.36`; its scoped closure evidence is recorded in [`DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json`](spec/部署领域/08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json). This freezes the published Deployment CLI behavior, not unresolved real Custom GPT, Provider, Tunnel, or Browser external acceptance.
+Phase 3 implementation now exists and remains governed by `Frozen Spec → Frozen Test Plan → RED → GREEN → Evidence`. Historical scoped closure evidence for `@tomflow/proflow-platform-cli@0.1.36` is recorded in [`DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json`](spec/部署领域/08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json); it is historical evidence, not the current Registry release line. Current package versions and publication truth must be read from the repository manifests plus exact npm Registry state.
 
 ## v1 Task Journey / Carrier / Observer baseline
 
