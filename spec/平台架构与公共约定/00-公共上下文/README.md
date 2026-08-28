@@ -51,7 +51,7 @@
 - `13-Real2-最终冻结与Real3交接.md`：Real-2 最终冻结事实与进入 Real-3 的边界。
 - `14-配置自动化与OpenAI-Secure-MCP-Tunnel后续.md`：配置自动化设计背景、人工边界与技术问答；2026-08-26 snapshot 已是历史，当前事实以 16 + 机械 readback 为准。
 - `15-当前上下文与Tunnel任务流转-20260825.md`：历史长交接与此前执行证据，继续保留追溯价值，但不再是最新现场入口。
-- `16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md`：**当前最新完整交接**；保存本轮真实 Registry/Fresh Workspace/Browser/Tunnel/Model 人工验收、P0/P1/P2、已确认根因、保留现场与下一 Chat 接手规则。
+- `16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md`：**当前最新完整交接**；保存本轮真实 Registry/Fresh Workspace/Browser/Tunnel/Model 人工验收，且第 10 节明确保留原始 `P1～P18` 问题登记表（现象、当前判断、已确认根因/证据），第 11 节再做 Severity P0/P1/P2 Root 合并；同时记录保留现场与下一 Chat / Work 接手规则。
 
 ## 维护原则
 

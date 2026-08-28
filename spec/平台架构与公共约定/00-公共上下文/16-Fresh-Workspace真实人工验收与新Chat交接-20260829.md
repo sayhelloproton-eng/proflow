@@ -1,6 +1,7 @@
 # Fresh Workspace 真实人工验收与新 Chat 交接｜2026-08-29
 
-> 这是 2026-08-29 起的**最新执行入口**。下一 Chat 先读本文，再按需回读 `05 / 14 / 15`。
+> 这是 2026-08-29 起的**最新执行入口**。下一 Chat / Work 先读本文，再按需回读 `05 / 14 / 15`。
+> **第 10 节保留本轮人工验收原始 P1～P18 问题登记表，编号、现象、当前判断、已确认根因/证据均不得省略；第 11 节才是合并后的整改 Root 分组。新执行者禁止只看 Root 分组而丢失原始问题。**
 > 本文记录当前 Chat 已形成的阶段状态、真实 Registry/Fresh Workspace 事实、人工验收结果、已确认根因、保留现场与授权边界。
 > 易漂移事实（HEAD、Git status、runtime 文件、远端 Tunnel）接管时必须机械重读，不能把本文快照当实时真值。
 
@@ -265,8 +266,53 @@ PLATFORM_READY=NO
 
 根工作区 Git hygiene 也必须保留：测试前为制造 Fresh Workspace 删除过 root tracked `package.json/pnpm-lock.yaml/pnpm-workspace.yaml`，当前根 workspace Git index/生成文件存在混合状态；这是测试现场，不要自动 reset/clean。
 
-## 10. Frozen residual list
-### P0 / 必须整改
+## 10. 原始人工验收 P1～P18 问题登记表（新 Chat / Work 不得省略）
+
+本表保留本轮真实人工验收形成的**原始问题编号**。后续即使把多个问题合并成同一整改 Root，也不得删除或重新编号 P1～P18；每次整改计划、回归与最终 closeout 都应能反向映射到本表。
+
+| ID | 真实问题 | 当前判断 | 已确认根因 / 证据 |
+|---|---|---|---|
+| P1 | `platform install` 安装前有“核验 23/23”，安装后又有“已验证 23 个已安装模块”，语义不同但展示像重复 | UX 问题，非阻塞 | 源码确认前者是 Registry candidate/descriptor 校验，后者是实际安装后的 dependency/version/descriptor 校验；功能不同，文案没有明确“安装前/安装后”阶段。 |
+| P2 | `platform status` 中 `agent-gateway` 明明只缺 `dev-tunnel`，却还把已有 facts 的 `platform-host` 一起报成缺失 | **确认的诊断错误** | 真实 `.proflow` 已读回 `platform-host.endpoint / gatewayTransportCredentialFile / stateRoot = PRESENT`，而 `dev-tunnel.publicBaseUrl = MISSING`；当前 gateway 依赖检查/issue 文案把多个依赖合并成一条固定诊断。 |
+| P3 | 为 Fresh Workspace 删除 tracked manifest 后，根 Git 出现 staged deletion + install 生成的新 manifest | 测试环境 hygiene 问题，当前现场保留 | 测试前人为删除 tracked `package.json / pnpm-lock.yaml / pnpm-workspace.yaml`；随后真实 install 又生成新 `package.json / package-lock.json`。不要自动 reset/clean。 |
+| P4 | `platform docs` 一次刷 23 份完整内部 Module 文档，没有目录、过滤、当前状态导向，且混入内部术语/包级命令 | **明确 UX 问题** | `renderDocs()` 遍历全部 modules，没有 module filter/索引/状态导向；真实输出包含 package-level `pnpm exec`、Contract/Owner 等实现语义。 |
+| P5 | 全量 `platform setup` 顺序不是新用户 onboarding 顺序；Browser、Tunnel、Model 等人类动作混在一起 | **明确交互设计问题** | 全量 setup 使用 dependency `graph.order`；用户真实看到 GitHub auth、Browser load unpacked、Provider setup 等动作交错，无法形成“当前只做一件事”的心智。 |
+| P6 | 全量 `platform setup` 遇到 `ACTION_REQUIRED / FAILED` 后仍继续遍历后续模块，没有停在当前唯一人工动作 | **确认的 orchestration 问题** | `setupModulesThin()` 非 targeted 模式下在非 READY 后只设 `completed=false` 并 `continue`；只有 targeted module 才 break。正确产品行为应在第一个不可约人类动作/失败处 STOP。 |
+| P7 | Browser Extension 放在 `.proflow/...` 隐藏目录，macOS Chrome chooser 默认看不到，普通用户无法直接选择 | **确认的安装 UX 缺陷** | materialize 路径为 `/Users/agent/Desktop/proton-workspace/.proflow/deployment/browser-extension/execution-browser-extension`；用户普通 chooser 无法选中，最后通过 `⌘⇧G` 输入完整路径才成功加载。 |
+| P8 | Browser 安装虽然文字提到“开发者模式”，但没有把“先开启开发者模式”做成明确 prerequisite/gate | UX 问题 | 提示存在，但只是静态文字；没有在进入 Load unpacked 之前形成显式 gate/确认，也没有和隐藏目录步骤拆成清晰单焦点流程。 |
+| P9 | `platform setup --module execution-browser-extension` 成功后打印“全部模块均已就绪”，实际只有当前 1 个 module READY | **确认的作用域错误** | `renderSetup()` 仅依据本次 result set 的 `needsAction=0 && blocked=0` 输出“全部模块均已就绪”，没有区分 targeted setup 与 full setup。 |
+| P10 | Extension 在 `platform-host` 尚未启动时自动 `task.list`，产生 `Uncaught (in promise) TypeError: Failed to fetch` 红色扩展错误 | **确认的代码 bug** | Extension 启动执行 `void runObserverRecovery()`；其中 `await invokeTaskApplication("task.list", {})` 在 host 未启动时 reject，调用未 catch，外层 void 未观察 rejection。Pairing READY 仍成立，但正常 pre-start 不应留下红色错误。 |
+| P11 | `platform setup --module dev-tunnel` 登录成功后仍失败：`devtunnel port JSON does not contain a valid port list` | **当前真实功能 blocker / 根因已确认** | 本机 `devtunnel 1.0.2030` 对无端口 Tunnel 的 `port list --json` 返回 `{ "warning": "No ports found for tunnel ..." }`；ProFlow `parsePorts()` 不支持该合法空端口形态。另已确认失败发生在 setup state 持久化之前。 |
+| P12 | Dev Tunnel 失败后 `status` 只说“尚未完成持久 Tunnel 自动配置”，下一步仍是同一个会失败的 setup 命令，用户不知道怎么办 | **确认的诊断/恢复 UX 问题** | 真实登录其实正常，远端已有半成品 Tunnel，但本地无最终 setup state；status 没解释失败阶段、远端资源、恢复/清理策略，也未阻止用户继续制造 orphan。 |
+| P13 | `platform setup --module model-provider-api` 没有在 Platform 流程里完成配置，而是把用户踢到 `pnpm exec -- proflow-model-provider-api setup` | **P0：Platform setup 输入桥缺失，根因已确认** | `setupModulesThin()` 已支持 `{ moduleRef, input }`，但 `handleSetup()` 只传 `{ moduleRef }`；Platform 没有“读取 requiredInputs/actionRequired → 统一交互 → 构造 context.input → 重调 adapter”的桥。Provider `setupPlan()` 又硬编码 package-level `pnpm exec`。 |
+| P14 | Model Provider 包级 CLI 直接裸问 URL，没解释这是“整个 OpenAI-compatible Provider 服务地址”，不是 FAST 或 REASON 单个模型地址 | **确认的 UX / 心智问题** | 用户真实输入 `http://192.168.0.108:8080/v1` 后 inventory 同时发现 no-think、think、`__apple_intelligence__`。该 URL 是整个 Provider endpoint；FAST/REASON 应由 model-runtime 后续能力验证映射。 |
+| P15 | 包级模型 CLI 交互原始，没有专业 prompt/选择/说明/校验体验 | UX 问题，需统一到 Platform | 当前 CLI 使用 `node:readline/promises`，credential 甚至自写 raw-mode stdin。后续方向不是简单美化 package CLI，而是 Platform 统一承接 interactive prompt，Module adapter 只消费结构化 input；prompt framework 选型留给整改阶段。 |
+| P16 | 在 npm-managed Fresh Workspace 执行 Platform 提示的 `pnpm exec ...` 后，pnpm 又安装一套依赖，生成 `pnpm-lock.yaml / pnpm-workspace.yaml`，并出现 “installed by a different package manager → node_modules/.ignored” | **严重 P0：工作区污染 / 双包管理器问题，已真实复现** | 原 workspace 是 npm `package-lock.json + npm node_modules`；执行该命令后 pnpm 重新安装约 27 packages、移动 `@tomflow/*` 到 `node_modules/.ignored`、写 pnpm lock/workspace。问题由正常产品引导直接触发。 |
+| P17 | 当前根目录同时存在 `package-lock.json + pnpm-lock.yaml + pnpm-workspace.yaml`，后续 Platform install/update/uninstall 会产生 package-manager conflict | **已从“风险”升级为确认的 P0 冲突现场** | 当前文件已机械读回同时存在；`readWorkspacePackageManagerSelection()` 明确在 `lockManagers.size > 1` 时抛 `PACKAGE_MANAGER_CONFLICT: multiple package-manager lockfiles are present: npm, pnpm`。当前禁止清理，以保留 evidence。 |
+| P18 | `platform status` 会让 `task.sqlite-shm` 仅 mtime 变化；逻辑内容未变，但与“mtime 也必须绝对不变”的旧 pure-read 测试合同冲突 | 已记录，当前非 blocker / 合同语义未裁决 | 真实 observation：SHM content/size 不变，仅 mtime 改变。曾验证 SQLite `immutable=1` 虽可避免该 side effect，但会忽略 WAL-only 最新状态，因此不能作为通用修复。是否要求 auxiliary file mtime 绝对不变需单独裁决。 |
+
+### 10.1 P1～P18 的当前覆盖状态
+
+当前 18 项不是 18 个独立 root cause。已确认可合并为少量整改 Root，但**原始编号必须保留用于回归追踪**：
+
+```text
+Platform onboarding / interaction root → P4, P5, P6, P8, P9, P13, P14, P15
+Dev Tunnel compatibility / recovery   → P11, P12 + retry orphan
+Browser install / pre-start           → P7, P8, P9, P10
+Diagnostics / presentation            → P1, P2, P4, P12, P14, P15
+Workspace package-manager integrity   → P3, P16, P17
+Read-only semantic contract           → P18
+```
+
+### 10.2 额外必须保留、但不占用 P1～P18 编号的确认事实
+
+- Dev Tunnel retry 还存在**非幂等 / orphan 资源泄漏**：`create Tunnel → ensurePort 失败 → setup.json 未持久化 → 下一次 setup 再 create`；当前已观察到至少 3 个 `portCount=0` 半成品 Tunnel。它是 P11 的放大后果和独立 P0 root，不得因 P1～P18 原表未单列而遗漏。
+- `Deployment-owned Provider resolver` 当前只是产品设计目标，真实产品里尚不存在；它与 P13 共同导致“Platform 不收 URL、resolver 又不提供 URL、最后逼用户跑 package CLI”的闭环断裂。
+- 当前人工最终状态仍是 `17 配置已完成 / 1 根阻塞 / 5 下游等待 / 0 失败 / 0 进程`，唯一 root blocker 为 `dev-tunnel`；这不等于整体平台 PASS。
+
+## 11. Frozen residual root grouping
+
+### Severity P0 / 必须整改
 
 1. Dev Tunnel 空端口 warning JSON 兼容。
 2. Dev Tunnel setup retry 非幂等 / orphan Tunnel 泄漏。
@@ -275,7 +321,7 @@ PLATFORM_READY=NO
 5. 正常用户流程暴露 package-level `pnpm exec`。
 6. `pnpm exec` 把 npm Fresh Workspace 污染成 npm+pnpm 双 package-manager。
 
-### P1 / 产品体验必须收口
+### Severity P1 / 产品体验必须收口
 
 1. 全量 setup 必须单焦点 onboarding，顺序面向用户而不是直接暴露 graph.order。
 2. ACTION_REQUIRED/FAILED 后应 STOP，不继续拉起后续人工流程。
@@ -288,13 +334,13 @@ PLATFORM_READY=NO
 9. `platform docs` 不适合普通用户 onboarding。
 10. status 对 agent-gateway 依赖过度报告。
 
-### P2 / 后续整理
+### Severity P2 / 后续整理
 
 1. install 前后验证文案。
 2. Fresh Workspace root Git hygiene。
 3. `task.sqlite-shm` mtime observation / pure-read semantic contract。
 
-## 11. 最高执行边界
+## 12. 最高执行边界
 
 当前用户要求升级为最高优先级：
 
@@ -326,7 +372,7 @@ ISSUE_DISCOVERY != FIX_AUTHORIZATION
 - git push；
 - 因为发现 residual 而自动修实现。
 
-## 12. 用户产品目标：Platform CLI 必须成为唯一入口
+## 13. 用户产品目标：Platform CLI 必须成为唯一入口
 
 本轮人工验收最重要的产品反馈不是某一条报错，而是：**新用户心智负担仍然过重**。
 
@@ -353,7 +399,7 @@ Platform CLI 应统一负责 discovery、当前 root prerequisite、交互提示
 
 `platform setup` 的目标体验固定为：一次只处理一个当前最前置 root prerequisite；机器可完成的全部自动完成；到不可约人类动作时只展示一个专业、明确、可操作的步骤；完成后自动观察 READY，再继续下一个。
 
-## 13. 下一 Chat 第一轮：只读恢复权威现场
+## 14. 下一 Chat 第一轮：只读恢复权威现场
 新 Chat 接手后第一轮只做权威状态恢复，不立即修：
 
 1. 读本文，再读 `05 / 14 / 15`；不得从历史段落覆盖本文最新状态。
@@ -361,8 +407,8 @@ Platform CLI 应统一负责 discovery、当前 root prerequisite、交互提示
 3. 机械读取 `/Users/agent/Desktop/proton-workspace` 根目录当前 manifest/lockfile、Git index 与 `node_modules/.ignored`；**只读，不清理**。
 4. 读取 `.proflow` 当前 module status/shared facts，敏感字段只判断 PRESENT/ABSENT，不输出 secret。
 5. 只读执行 Dev Tunnel auth/list/port 观察，确认 orphan 数量与状态；不 create/delete/host。
-6. 对照本文 P0/P1/P2，形成“当前仍可复现 / 已消失 / 新证据”矩阵。
-7. 先向用户提交整改计划和 frozen residual list；用户确认后才进入实现。
+6. **逐条对照第 10 节 P1～P18 原始问题登记表**，形成“仍可复现 / 已消失 / 新证据 / 归属 Root”矩阵；不得只看第 11 节 Severity P0/P1/P2 合并结果。
+7. 先向用户提交包含 `P1～P18 → Root → 拟整改批次 → 回归证据` 映射的整改计划和 frozen residual list；用户确认后才进入实现。
 
 整改继续遵循：
 
@@ -379,7 +425,7 @@ CodeGraph-first
 
 不得随机继续人工测试；尤其 Dev Tunnel 根因未修前不得重跑 targeted setup。
 
-## 14. 建议整改批次（只规划，不代表授权）
+## 15. 建议整改批次（只规划，不代表授权）
 
 建议下一 Chat 把已确认 residual 重新合并成少量 root，而不是 18 个零散 UI patch：
 
