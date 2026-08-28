@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 138,
-    "testCalls": 610
+    "files": 140,
+    "testCalls": 622
   },
   "tests": [
     {
@@ -540,7 +540,7 @@
     {
       "package": "agent-gateway",
       "path": "packages/agent-gateway/tests/module-conformance.test.ts",
-      "line": 17,
+      "line": 20,
       "title": "module contract C1/C2/C3",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -554,7 +554,7 @@
     {
       "package": "agent-gateway",
       "path": "packages/agent-gateway/tests/module-conformance.test.ts",
-      "line": 31,
+      "line": 34,
       "title": "uninstall is idempotent when no Gateway service is bound",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -568,8 +568,22 @@
     {
       "package": "agent-gateway",
       "path": "packages/agent-gateway/tests/module-conformance.test.ts",
-      "line": 40,
+      "line": 43,
       "title": "Module.install owns deterministic Gateway config while producer dependencies remain explicit",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/agent-gateway/deployment/adapter.ts",
+        "packages/agent-gateway/deployment/descriptor.ts",
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-gateway",
+      "path": "packages/agent-gateway/tests/module-conformance.test.ts",
+      "line": 83,
+      "title": "status reports only dev-tunnel when platform-host facts are already complete",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1424,7 +1438,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/architecture-enforcement.test.ts",
-      "line": 64,
+      "line": 68,
       "title": "architecture rejects deep imports, undeclared dependencies, cycles, dumping grounds, and secrets",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1435,7 +1449,7 @@
     {
       "package": "deployment-conformance",
       "path": "packages/deployment-conformance/tests/architecture-enforcement.test.ts",
-      "line": 124,
+      "line": 128,
       "title": "production imports cannot be satisfied only by devDependencies",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1705,6 +1719,19 @@
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
       "line": 188,
+      "title": "Dev Tunnel CLI warning-only no-ports JSON is treated as an empty port list",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 207,
       "title": "CP-DEV-TUNNEL-04 protocol drift stops after exact-port delete failure and never claims reconciliation",
       "ids": [
         "CP-DEV-TUNNEL-04"
@@ -1719,7 +1746,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 210,
+      "line": 229,
       "title": "CP-DEV-TUNNEL-05 public URL discovery selects the current Gateway port and rejects unsafe values",
       "ids": [
         "CP-DEV-TUNNEL-05"
@@ -1734,7 +1761,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 279,
+      "line": 298,
       "title": "CP-DEV-TUNNEL-03 single-call setup consumes the Gateway-owned endpoint fact",
       "ids": [
         "CP-DEV-TUNNEL-03"
@@ -1749,7 +1776,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 353,
+      "line": 378,
       "title": "CP-DEV-TUNNEL-06 repeated setup keeps Tunnel and port identity stable without login or host replay",
       "ids": [
         "CP-DEV-TUNNEL-06"
@@ -1764,7 +1791,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 432,
+      "line": 457,
       "title": "CP-DEV-TUNNEL-02 CP-DEV-TUNNEL-07 workspace reuse, remote rebind, and UNKNOWN host fail-closed",
       "ids": [
         "CP-DEV-TUNNEL-02",
@@ -1780,8 +1807,8 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 543,
-      "title": "missing Gateway producer fact and provisioning failure never write READY state",
+      "line": 568,
+      "title": "missing Gateway writes no state while post-create failure persists recoverable PENDING state",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -1793,7 +1820,20 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 627,
+      "line": 662,
+      "title": "a created Tunnel is persisted as PENDING and reused after port reconciliation fails",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 718,
       "title": "CP-DEV-TUNNEL-01 failed browser login performs no Tunnel mutation",
       "ids": [
         "CP-DEV-TUNNEL-01"
@@ -2018,6 +2058,28 @@
       "implementationRefs": [
         "packages/dev-tunnel/deployment/descriptor.ts",
         "packages/dev-tunnel/src/cli.ts"
+      ]
+    },
+    {
+      "package": "devtunnel-cli",
+      "path": "packages/devtunnel-cli/tests/resolver.test.ts",
+      "line": 5,
+      "title": "managed Dev Tunnel tool package is governed without becoming a ProFlow Module",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/devtunnel-cli/src/index.ts"
+      ]
+    },
+    {
+      "package": "devtunnel-cli",
+      "path": "packages/devtunnel-cli/tests/resolver.test.ts",
+      "line": 20,
+      "title": "managed Dev Tunnel resolver pins the version verified by Real-3",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/devtunnel-cli/src/index.ts"
       ]
     },
     {
@@ -2912,7 +2974,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install.test.ts",
-      "line": 97,
+      "line": 103,
       "title": "setup output is human-readable and keeps stable AI recovery semantics",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4946,7 +5008,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 301,
+      "line": 306,
       "title": "ambiguous mapping requests only irreducible model choice while missing role fails closed",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4959,7 +5021,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 333,
+      "line": 350,
       "title": "provider inventory drift makes an existing mapping stale until automatic remap",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4972,7 +5034,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 368,
+      "line": 395,
       "title": "wall-clock age alone does not invalidate unchanged capability mapping",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4985,7 +5047,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 395,
+      "line": 430,
       "title": "deployment start runs the real local runtime and publishes an authenticated READY endpoint",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4998,7 +5060,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 487,
+      "line": 527,
       "title": "provider offline after READY is explicit and never reuses a fake runtime READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -6107,6 +6169,28 @@
     },
     {
       "package": "platform-cli",
+      "path": "packages/platform-cli/tests/docs.test.ts",
+      "line": 46,
+      "title": "platform docs defaults to an index instead of dumping every Module document",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/docs.test.ts",
+      "line": 68,
+      "title": "platform docs supports a single Module filter",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
       "line": 9,
       "title": "public --json is rejected and runCli returns a typed object",
@@ -6145,7 +6229,7 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
       "line": 118,
-      "title": "browser setup guidance uses only the Platform public management entry",
+      "title": "targeted browser setup stays scoped to Browser instead of claiming the whole platform",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -6156,8 +6240,8 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 146,
-      "title": "help contains explanations and no raw JSON input route",
+      "line": 139,
+      "title": "targeted successful setup names only its target",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -6169,6 +6253,18 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
       "line": 157,
+      "title": "help contains explanations and no raw JSON input route",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/terminal.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/human-contract.test.ts",
+      "line": 168,
       "title": "usage errors include contextual help while operation failures stay concise",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6180,7 +6276,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 172,
+      "line": 183,
       "title": "uninstall success says already uninstalled",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6192,7 +6288,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 182,
+      "line": 193,
       "title": "docs terminal entry writes continuously without launching a pager",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6204,7 +6300,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 190,
+      "line": 201,
       "title": "TTY replacement progress clears completed status checks instead of persisting them",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6216,7 +6312,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 217,
+      "line": 228,
       "title": "non-TTY progress uses a stable marker instead of a frozen spinner",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6228,7 +6324,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 238,
+      "line": 249,
       "title": "TTY progress keeps completed phases and restores the current task after subprocess logs",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6240,7 +6336,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 275,
+      "line": 286,
       "title": "NO_COLOR disables semantic ANSI colors",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6252,7 +6348,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 290,
+      "line": 301,
       "title": "retryable package-manager warnings are yellow warnings, not failed events",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6264,7 +6360,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 312,
+      "line": 323,
       "title": "stop summary does not count a no-effect module as both success and skipped",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6554,8 +6650,8 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 434,
-      "title": "setup gives every non-ready owner one setup opportunity",
+      "line": 427,
+      "title": "setup asks the Platform interaction shell only before a module that needs setup",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -6569,71 +6665,10 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 463,
-      "title": "setup reconciles owner-reported BLOCKED status without turning a no-op setup into FAILED",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/module-contract/src/index.ts",
-        "packages/platform-cli/src/contracts.ts",
-        "packages/platform-cli/src/lifecycle/index.ts",
-        "packages/platform-cli/src/lifecycle/thin.ts",
-        "packages/platform-cli/src/modules.ts"
-      ]
-    },
-    {
-      "package": "platform-cli",
-      "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 491,
-      "title": "targeted setup forwards opaque input without Platform interpretation",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/module-contract/src/index.ts",
-        "packages/platform-cli/src/contracts.ts",
-        "packages/platform-cli/src/lifecycle/index.ts",
-        "packages/platform-cli/src/lifecycle/thin.ts",
-        "packages/platform-cli/src/modules.ts"
-      ]
-    },
-    {
-      "package": "platform-cli",
-      "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 506,
-      "title": "targeted setup reconciles a READY module even without explicit input",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/module-contract/src/index.ts",
-        "packages/platform-cli/src/contracts.ts",
-        "packages/platform-cli/src/lifecycle/index.ts",
-        "packages/platform-cli/src/lifecycle/thin.ts",
-        "packages/platform-cli/src/modules.ts"
-      ]
-    },
-    {
-      "package": "platform-cli",
-      "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 520,
-      "title": "setup aggregates ACTION_REQUIRED and machine FAILED Modules in the same full run",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/module-contract/src/index.ts",
-        "packages/platform-cli/src/contracts.ts",
-        "packages/platform-cli/src/lifecycle/index.ts",
-        "packages/platform-cli/src/lifecycle/thin.ts",
-        "packages/platform-cli/src/modules.ts"
-      ]
-    },
-    {
-      "package": "platform-cli",
-      "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 551,
-      "title": "CP-DEP-CLI-REAL2-01 CP-DEP-CLI-REAL2-02 same-run provider readiness unlocks dependent setup",
+      "line": 443,
+      "title": "RF-DEP-CLI-REAL2-01 full setup gates at the first owner that still needs human action",
       "ids": [
-        "CP-DEP-CLI-REAL2-01",
-        "CP-DEP-CLI-REAL2-02"
+        "RF-DEP-CLI-REAL2-01"
       ],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -6647,12 +6682,24 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 576,
-      "title": "CP-DEP-CLI-REAL2-03 CP-DEP-CLI-REAL2-05 RF-DEP-CLI-REAL2-01 RF-DEP-CLI-REAL2-02 owners determine precise blocking while all non-ready modules run setup",
+      "line": 468,
+      "title": "full setup presents Browser, Tunnel, then Provider as the user-visible frontier",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 496,
+      "title": "RF-DEP-CLI-REAL2-02 setup re-reads owner status instead of guessing readiness from SUCCEEDED",
       "ids": [
-        "CP-DEP-CLI-REAL2-03",
-        "CP-DEP-CLI-REAL2-05",
-        "RF-DEP-CLI-REAL2-01",
         "RF-DEP-CLI-REAL2-02"
       ],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6667,8 +6714,89 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 600,
-      "title": "CP-DEP-CLI-REAL2-04 RF-DEP-CLI-REAL2-03 dependency setup gate is generic and stores no module-specific resume state",
+      "line": 518,
+      "title": "targeted setup forwards opaque input without Platform interpretation",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 533,
+      "title": "targeted setup reconciles a READY module even without explicit input",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 547,
+      "title": "setup never starts a later machine failure after the first human action",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 568,
+      "title": "CP-DEP-CLI-REAL2-01 CP-DEP-CLI-REAL2-02 CP-DEP-CLI-REAL2-05 same-run provider readiness unlocks dependent setup",
+      "ids": [
+        "CP-DEP-CLI-REAL2-01",
+        "CP-DEP-CLI-REAL2-02",
+        "CP-DEP-CLI-REAL2-05"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 593,
+      "title": "CP-DEP-CLI-REAL2-03 owners determine the first actionable setup frontier",
+      "ids": [
+        "CP-DEP-CLI-REAL2-03"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 617,
+      "title": "CP-DEP-CLI-REAL2-04 RF-DEP-CLI-REAL2-03 setup priority is presentation-only and stores no module-specific resume state",
       "ids": [
         "CP-DEP-CLI-REAL2-04",
         "RF-DEP-CLI-REAL2-03"
@@ -6740,7 +6868,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 224,
+      "line": 226,
       "title": "Dev Tunnel setup guidance uses automatic discovery without manual tunnel facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6751,7 +6879,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 250,
+      "line": 253,
       "title": "Platform setup guidance does not request stale Carrier, Agent, or model facts",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6762,7 +6890,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/modules.test.ts",
-      "line": 286,
+      "line": 289,
       "title": "Platform setup output shows dependency-blocked modules without inventing Module setup results",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6823,6 +6951,28 @@
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/platform-cli/src/registry/npm-registry.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/setup-interaction.test.ts",
+      "line": 6,
+      "title": "Provider Base URL guidance accepts local HTTP and public HTTPS",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/setup/interaction.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/setup-interaction.test.ts",
+      "line": 18,
+      "title": "Provider Base URL guidance rejects missing protocol, public HTTP and operation URLs",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/setup/interaction.ts"
       ]
     },
     {
