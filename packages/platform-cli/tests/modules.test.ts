@@ -34,6 +34,63 @@ test("uninstalled workspace fails closed for status, setup, and start", async ()
 	}
 });
 
+test("partial core installation is reported as incomplete and cannot enter setup/start", async () => {
+	const root = await tempWorkspace();
+	try {
+		await writeWorkspaceModule(root, {
+			moduleRef: "platform-cli",
+			kind: "cli",
+		});
+		const status = await runCli(["status"], { cwd: root });
+		assert.equal(status.status, "SUCCEEDED");
+		assert.equal(
+			(status.data as { installState?: string }).installState,
+			"INCOMPLETE",
+		);
+		const rendered = renderHumanResult(status);
+		assert.match(rendered, /安装不完整/);
+		assert.match(rendered, /缺少 22 个核心模块/);
+		assert.match(rendered, /platform install/);
+		assert.match(rendered, /PLATFORM_READY=NO/);
+		for (const command of ["setup", "start"] as const) {
+			const result = await runCli([command], { cwd: root });
+			assert.equal(result.status, "FAILED");
+			assert.equal(result.error?.code, "PLATFORM_INSTALL_INCOMPLETE");
+			assert.match(renderHumanResult(result), /platform install/);
+		}
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("uninstall package-manager conflict fails before any Module lifecycle mutation", async () => {
+	const root = await tempWorkspace();
+	try {
+		await writeFile(
+			join(root, "package.json"),
+			JSON.stringify({
+				private: true,
+				packageManager: "pnpm@11.21.0",
+				dependencies: { "@tomflow/proflow-fixture-module": "1.0.0" },
+			}),
+		);
+		await writeFile(join(root, "package-lock.json"), "{}\n");
+		await writeWorkspaceModule(root, {
+			moduleRef: "fixture-module",
+			adapterSource: `import { writeFile } from "node:fs/promises";\nimport { join } from "node:path";\nconst base = { contract: "deployment.result.v1", ok: true, status: "SUCCEEDED", moduleRef: "fixture-module", moduleVersion: "1.0.0" };\nconst pass = async () => ({ result: base, observedEffects: [] });\nexport const behaviorAdapter = { install: pass, status: async () => ({ result: { ...base, data: { setupStatus: "READY", runtimeStatus: "NOT_APPLICABLE" } }, observedEffects: [] }), setup: pass, docs: async () => ({ result: { ...base, data: { docs: "fixture" } }, observedEffects: [] }), start: pass, stop: pass, uninstall: async (context) => { await writeFile(join(context.workspaceRoot, "uninstall-called"), "yes"); return { result: base, observedEffects: [] }; } };\n`,
+		});
+		const result = await runCli(["uninstall"], {
+			cwd: root,
+			executableAvailable: () => true,
+		});
+		assert.equal(result.status, "FAILED");
+		assert.equal(result.error?.code, "PACKAGE_MANAGER_CONFLICT");
+		await assert.rejects(() => readFile(join(root, "uninstall-called")));
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
 async function snapshotProflowFiles(root: string) {
 	const proflowRoot = join(root, ".proflow");
 	const files: Array<{ path: string; content: string; mtimeMs: number }> = [];

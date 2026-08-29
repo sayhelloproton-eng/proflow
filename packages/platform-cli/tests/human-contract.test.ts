@@ -76,7 +76,10 @@ test("human status output presents one product journey action without Module com
 	assert.match(rendered, /配置进度\s+1\/3/);
 	assert.match(rendered, /当前处理：浏览器扩展/);
 	assert.match(rendered, /下一步：platform setup/);
-	assert.doesNotMatch(rendered, /--module|execution-browser-extension|dev-tunnel/);
+	assert.doesNotMatch(
+		rendered,
+		/--module|execution-browser-extension|dev-tunnel/,
+	);
 	assert.match(rendered, /PLATFORM_READY=NO/);
 });
 

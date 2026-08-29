@@ -198,12 +198,9 @@ const baseBehaviorAdapter = {
 			};
 		}
 		const rt = runtime(context, state);
-		const login = await rt.loginStatus();
 		const observed = await rt.status();
 		const configured =
-			state?.phase === "READY" &&
-			typeof state.publicBaseUrl === "string" &&
-			login === "LOGGED_IN";
+			state.phase === "READY" && typeof state.publicBaseUrl === "string";
 		const runtimeStatus =
 			observed.state === "RUNNING"
 				? ("RUNNING" as const)
@@ -227,13 +224,10 @@ const baseBehaviorAdapter = {
 										? [
 												{
 													scope: "SETUP" as const,
-													code: "TUNNEL_LOGIN_REQUIRED",
-													message:
-														state && state.phase !== "READY"
-															? `远程连接配置已保存，当前阶段 ${state.phase}；重新运行 Platform setup 将从此处恢复`
-															: "Dev Tunnel CLI 尚未登录或配置未保存",
+													code: "TUNNEL_SETUP_INCOMPLETE",
+													message: `远程连接配置已保存，当前阶段 ${state.phase}；重新运行 Platform setup 将从此处恢复`,
 													relatedModuleRefs: [],
-											nextCommand: "platform setup",
+													nextCommand: "platform setup",
 												},
 											]
 										: []),
@@ -244,7 +238,7 @@ const baseBehaviorAdapter = {
 													code: "TUNNEL_RUNTIME_FAILED",
 													message: "Tunnel 运行状态检查失败",
 													relatedModuleRefs: [],
-											nextCommand: "platform status",
+													nextCommand: "platform status",
 												},
 											]
 										: []),

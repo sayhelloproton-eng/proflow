@@ -238,7 +238,9 @@ async function clearSetupFailure(context: ModuleCommandContext): Promise<void> {
 	await rm(setupFailurePath(context), { force: true });
 }
 
-function decisionFailureMessage(decision: Exclude<RoleMappingDecision, { status: "READY" }>) {
+function decisionFailureMessage(
+	decision: Exclude<RoleMappingDecision, { status: "READY" }>,
+) {
 	const failures = decision.failures ?? [];
 	const probeDetail = failures.length
 		? `；探测失败：${failures.map((item) => `${item.modelRef}（${item.reason}）`).join("、")}`
@@ -431,7 +433,8 @@ export function createModelRuntimeBehaviorAdapter(
 			if (!mapping) {
 				const persistedFailure = await readSetupFailure(context);
 				if (
-					persistedFailure?.inventoryFingerprint === fingerprint(provider.models)
+					persistedFailure?.inventoryFingerprint ===
+					fingerprint(provider.models)
 				)
 					return {
 						result: {

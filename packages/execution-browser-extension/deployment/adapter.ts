@@ -463,9 +463,7 @@ export const behaviorAdapter = {
 							}),
 				},
 			},
-			observedEffects: evidence
-				? ["Observes real Chrome MV3 load evidence"]
-				: [],
+			observedEffects: [],
 		};
 	},
 	setup: async (context: ModuleCommandContext) => {
@@ -510,7 +508,7 @@ export const behaviorAdapter = {
 							description: "请开启 Chrome 开发者模式后确认。",
 						},
 					},
-					observedEffects: ["Opens Chrome extension management"],
+					observedEffects: [],
 				};
 			}
 			await runInteractiveBrowserExtensionSetup({
@@ -523,11 +521,7 @@ export const behaviorAdapter = {
 			});
 			return {
 				result: base,
-				observedEffects: [
-					"Materializes browser runtime configuration",
-					"Opens Chrome extension management",
-					"Persists heartbeat-proven Chrome MV3 pairing evidence",
-				],
+				observedEffects: ["Materialize the unpacked MV3 extension package"],
 			};
 		} catch (error) {
 			return {

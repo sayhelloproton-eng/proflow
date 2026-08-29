@@ -6,7 +6,7 @@ Responsible: AI
 
 Interactive executable: `platform setup`
 
-Non-interactive lifecycle entry: `platform setup --workspace <path>`
+Non-interactive executable: `platform setup --workspace <path>`
 
 Required inputs: none
 

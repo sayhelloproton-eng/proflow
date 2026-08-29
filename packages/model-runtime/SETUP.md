@@ -4,7 +4,7 @@
 
 Responsible: AI
 Interactive executable: `platform setup`
-Non-interactive lifecycle entry: `platform setup`
+Non-interactive executable: `platform setup`
 Required inputs: none
 Verify: `platform status`
 Success condition: FAST 与 THINK 都由真实能力证据映射并持久化。
@@ -15,7 +15,7 @@ Success condition: FAST 与 THINK 都由真实能力证据映射并持久化。
 
 Responsible: USER
 Interactive executable: `platform setup`
-Non-interactive lifecycle entry: `platform setup`
+Non-interactive executable: `platform setup`
 Required inputs: 仅 ACTION_REQUIRED 指出的单个歧义角色
 Verify: `platform status`
 Success condition: `model-runtime.setupStatus=READY`。

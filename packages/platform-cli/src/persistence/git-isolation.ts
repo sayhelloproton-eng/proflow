@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { promisify } from "node:util";
 
@@ -22,15 +22,24 @@ export async function ensureWorkspaceStateIsGitIgnored(
 	workspaceRoot: string,
 ): Promise<{ gitRepository: boolean; changed: boolean }> {
 	const topLevel = await git(workspaceRoot, ["rev-parse", "--show-toplevel"]);
-	const gitDirectoryValue = await git(workspaceRoot, ["rev-parse", "--git-dir"]);
+	const gitDirectoryValue = await git(workspaceRoot, [
+		"rev-parse",
+		"--absolute-git-dir",
+	]);
 	if (!topLevel || !gitDirectoryValue)
 		return { gitRepository: false, changed: false };
 	if (await git(workspaceRoot, ["check-ignore", ".proflow/workspace.json"]))
 		return { gitRepository: true, changed: false };
 
-	const gitDirectory = resolve(workspaceRoot, gitDirectoryValue);
-	const excludePath = resolve(gitDirectory, "info", "exclude");
-	const workspaceRelative = relative(topLevel, workspaceRoot).replaceAll("\\", "/");
+	const [canonicalTopLevel, canonicalWorkspaceRoot] = await Promise.all([
+		realpath(topLevel).catch(() => topLevel),
+		realpath(workspaceRoot).catch(() => workspaceRoot),
+	]);
+	const excludePath = resolve(gitDirectoryValue, "info", "exclude");
+	const workspaceRelative = relative(
+		canonicalTopLevel,
+		canonicalWorkspaceRoot,
+	).replaceAll("\\", "/");
 	const pattern = `/${workspaceRelative ? `${workspaceRelative}/` : ""}.proflow/`;
 	let existing = "";
 	try {
@@ -40,7 +49,10 @@ export async function ensureWorkspaceStateIsGitIgnored(
 	}
 	if (!existing.split(/\r?\n/).includes(pattern)) {
 		await mkdir(dirname(excludePath), { recursive: true });
-		const prefix = existing.length === 0 || existing.endsWith("\n") ? existing : `${existing}\n`;
+		const prefix =
+			existing.length === 0 || existing.endsWith("\n")
+				? existing
+				: `${existing}\n`;
 		await writeFile(
 			excludePath,
 			`${prefix}# ProFlow managed workspace state\n${pattern}\n`,

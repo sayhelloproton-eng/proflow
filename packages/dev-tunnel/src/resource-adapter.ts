@@ -552,16 +552,14 @@ export function createDevTunnelRuntime(input: {
 		}
 	};
 
-	const observe = async (
+	const observation = (
 		state: DevTunnelState,
-	): Promise<DevTunnelObservation> => {
-		const login = await observeLogin();
-		return {
-			state,
-			login,
-			...(publicBaseUrl === undefined ? {} : { publicBaseUrl }),
-		};
-	};
+		login: DevTunnelLoginStatus = "UNKNOWN",
+	): DevTunnelObservation => ({
+		state,
+		login,
+		...(publicBaseUrl === undefined ? {} : { publicBaseUrl }),
+	});
 
 	const ownedPersistedPid = async (): Promise<number | undefined> => {
 		if (!processStateFile || !tunnelId) return undefined;
@@ -576,22 +574,23 @@ export function createDevTunnelRuntime(input: {
 	return {
 		command,
 		async status() {
-			if (await ownedPersistedPid()) return observe("RUNNING");
-			if (child?.pid && processAlive(child.pid)) return observe("RUNNING");
-			return observe("UNKNOWN");
+			if (await ownedPersistedPid()) return observation("RUNNING");
+			if (child?.pid && processAlive(child.pid)) return observation("RUNNING");
+			return observation("UNKNOWN");
 		},
 		loginStatus: () => observeLogin(),
 		publicBaseUrl: () => publicBaseUrl,
 		async start() {
 			const login = await observeLogin();
-			if (login !== "LOGGED_IN") return observe("UNKNOWN");
+			if (login !== "LOGGED_IN") return observation("UNKNOWN", login);
 			if (tunnelId === undefined) {
 				throw new TypeError(
 					"tunnelId is required to host the configured persistent tunnel",
 				);
 			}
-			if (await ownedPersistedPid()) return observe("RUNNING");
-			if (child?.pid && processAlive(child.pid)) return observe("RUNNING");
+			if (await ownedPersistedPid()) return observation("RUNNING", login);
+			if (child?.pid && processAlive(child.pid))
+				return observation("RUNNING", login);
 
 			const spawned = spawn(command, ["host", tunnelId], {
 				stdio: "ignore",
@@ -637,7 +636,7 @@ export function createDevTunnelRuntime(input: {
 				}
 			}
 			spawned.unref();
-			return observe("RUNNING");
+			return observation("RUNNING", login);
 		},
 		async stop() {
 			const persistedPid = await ownedPersistedPid();
@@ -645,17 +644,17 @@ export function createDevTunnelRuntime(input: {
 			if (!pid || !processAlive(pid)) {
 				if (processStateFile) await rm(processStateFile, { force: true });
 				child = undefined;
-				return observe("STOPPED");
+				return observation("STOPPED");
 			}
 			try {
 				process.kill(pid, "SIGTERM");
 			} catch {
-				return observe("UNKNOWN");
+				return observation("UNKNOWN");
 			}
-			if (!(await waitForProcessExit(pid))) return observe("UNKNOWN");
+			if (!(await waitForProcessExit(pid))) return observation("UNKNOWN");
 			if (processStateFile) await rm(processStateFile, { force: true });
 			child = undefined;
-			return observe("STOPPED");
+			return observation("STOPPED");
 		},
 		async restart() {
 			const stopped = await this.stop();

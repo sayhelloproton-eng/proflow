@@ -132,7 +132,7 @@ test("missing REASON and invalid Vision fail closed", () => {
 			rejections: [
 				{
 					modelRef: "provider/not-vision",
-					reasons: ["不支持图像输入", "不是快速模式"],
+					reasons: ["不支持图像输入"],
 				},
 				{
 					modelRef: "provider/reason",

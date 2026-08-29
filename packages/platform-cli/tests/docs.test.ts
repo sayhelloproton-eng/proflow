@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { rm, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "node:test";
 

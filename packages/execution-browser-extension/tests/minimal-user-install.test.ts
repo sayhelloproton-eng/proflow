@@ -33,10 +33,7 @@ test("browser deployment exposes no separate package management CLI", async () =
 		`${setupGuide}\n${adapter}`,
 		/proflow-execution-browser-extension\s+(?:setup|verify)/,
 	);
-	assert.match(
-		setupGuide,
-		/platform setup/,
-	);
+	assert.match(setupGuide, /platform setup/);
 	assert.doesNotMatch(setupGuide, /--module/);
 	assert.match(setupGuide, /Verify: `platform status`/);
 	for (const source of ["../src/configure.ts", "../src/configure-args.ts"])
@@ -87,7 +84,7 @@ test("browser install workflow exposes one human installation confirmation", asy
 	]);
 	assert.deepEqual(result, { extensionId, extensionInstanceId });
 	assert.match(instruction, /加载未打包的扩展程序/);
-	assert.match(instruction, /路径已复制/);
+	assert.match(instruction, /扩展目录已复制到剪贴板/);
 	assert.match(instruction, /Cmd\+Shift\+G/);
 	assert.match(instruction, /Cmd\+V/);
 	assert.match(instruction, /步骤 2\/2/);

@@ -23,7 +23,12 @@ test("install isolation keeps .proflow out of Git without changing tracked .giti
 			/^\/\.proflow\/$/m,
 		);
 		await writeFile(join(root, ".proflow-placeholder"), "outside\n");
-		await execute("git", ["-C", root, "check-ignore", ".proflow/workspace.json"]);
+		await execute("git", [
+			"-C",
+			root,
+			"check-ignore",
+			".proflow/workspace.json",
+		]);
 		assert.deepEqual(await ensureWorkspaceStateIsGitIgnored(root), {
 			gitRepository: true,
 			changed: false,

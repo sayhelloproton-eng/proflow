@@ -28,8 +28,7 @@ export interface SetupInteraction {
 const stepPrompts: Record<string, string> = {
 	"dev-tunnel":
 		"下一步将检查远程连接；如需登录，会打开 GitHub 授权。是否继续？",
-	"model-provider-api":
-		"下一步配置 OpenAI-compatible 模型服务地址。是否继续？",
+	"model-provider-api": "下一步配置 OpenAI-compatible 模型服务地址。是否继续？",
 	"model-runtime": "下一步验证模型能力并配置 FAST 与 THINK。是否继续？",
 };
 

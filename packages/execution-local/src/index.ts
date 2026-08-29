@@ -532,10 +532,12 @@ async function captureCommand(input: {
 	let timedOut = false;
 	let cancelled = false;
 	const timer = setTimeout(() => {
+		if (cancelled) return;
 		timedOut = true;
 		void killProcessTree(child.pid ?? 0);
 	}, input.timeoutMs);
 	const abort = () => {
+		if (timedOut) return;
 		cancelled = true;
 		void killProcessTree(child.pid ?? 0);
 	};

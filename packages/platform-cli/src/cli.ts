@@ -9,6 +9,7 @@ import {
 	moduleStatusObservationSchema,
 } from "@tomflow/proflow-module-contract";
 import { descriptor as platformCliDescriptor } from "../deployment/descriptor.ts";
+import { FROZEN_DEPLOYMENT_INSTALL_ORDER } from "./deployment-order.ts";
 import { AutoModuleCatalog, discoverModules } from "./discovery/discover.ts";
 import { InstalledModuleCatalog } from "./discovery/installed.ts";
 import { PlatformError } from "./errors.ts";
@@ -16,6 +17,7 @@ import {
 	observeWorkspaceInstalledVersion,
 	type PackageCommandOutput,
 	type PackageCommandRunner,
+	preflightWorkspacePackageManager,
 	removeWorkspacePackages,
 	syncWorkspacePackages,
 } from "./install/package-manager.ts";
@@ -34,8 +36,8 @@ import {
 	stopModulesThin,
 	uninstallModulesThin,
 } from "./lifecycle/index.ts";
-import { ensureWorkspaceMetadata } from "./persistence/workspace-metadata.ts";
 import { ensureWorkspaceStateIsGitIgnored } from "./persistence/git-isolation.ts";
+import { ensureWorkspaceMetadata } from "./persistence/workspace-metadata.ts";
 import { type PlatformProgressReporter, reportProgress } from "./progress.ts";
 import {
 	discoverRegistryModules,
@@ -86,7 +88,10 @@ interface ParsedArgs {
 }
 
 function editDistance(left: string, right: string): number {
-	const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+	const previous = Array.from(
+		{ length: right.length + 1 },
+		(_, index) => index,
+	);
 	for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
 		const current = [leftIndex];
 		for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
@@ -244,11 +249,32 @@ function batchStatus(result: ModuleBatchResult): CliStatus {
 	if (statuses.includes("ACTION_REQUIRED")) return "ACTION_REQUIRED";
 	return "FAILED";
 }
-function assertInstalledModules(modules: readonly unknown[]): void {
+function missingFrozenModules(
+	modules: readonly { moduleRef: string }[],
+): string[] {
+	const observed = new Set(modules.map((module) => module.moduleRef));
+	const hasCurrentPlatformSurface = FROZEN_DEPLOYMENT_INSTALL_ORDER.some(
+		(moduleRef) => observed.has(moduleRef),
+	);
+	if (!hasCurrentPlatformSurface) return [];
+	return FROZEN_DEPLOYMENT_INSTALL_ORDER.filter(
+		(moduleRef) => !observed.has(moduleRef),
+	);
+}
+
+function assertInstalledModules(
+	modules: readonly { moduleRef: string }[],
+): void {
 	if (modules.length === 0)
 		throw new PlatformError(
 			"PLATFORM_NOT_INSTALLED",
 			"ProFlow 尚未安装。请先运行 platform install。",
+		);
+	const missing = missingFrozenModules(modules);
+	if (missing.length > 0)
+		throw new PlatformError(
+			"PLATFORM_INSTALL_INCOMPLETE",
+			`ProFlow 安装不完整，缺少 ${missing.length} 个核心模块。请重新运行 platform install。`,
 		);
 }
 
@@ -273,13 +299,18 @@ async function collectModuleStatuses(
 			);
 		const module = byRef.get(item.moduleRef);
 		if (!module)
-			throw new PlatformError("COMMAND_FAILED", `unknown module ${item.moduleRef}`);
+			throw new PlatformError(
+				"COMMAND_FAILED",
+				`unknown module ${item.moduleRef}`,
+			);
 		return {
 			moduleRef: item.moduleRef,
 			version: module.moduleVersion,
 			setupStatus: parsed.data.setupStatus,
 			runtimeStatus: parsed.data.runtimeStatus,
-			...(parsed.data.issues === undefined ? {} : { issues: parsed.data.issues }),
+			...(parsed.data.issues === undefined
+				? {}
+				: { issues: parsed.data.issues }),
 			...(item.externalAvailabilityClaim === undefined
 				? {}
 				: { externalAvailabilityClaim: item.externalAvailabilityClaim }),
@@ -306,6 +337,22 @@ async function handleStatus(
 		});
 		return outcome("status", "SUCCEEDED", root, {
 			installed: false,
+			installState: "NOT_INSTALLED",
+			modules: [],
+		});
+	}
+	const missing = missingFrozenModules(modules);
+	if (missing.length > 0) {
+		reportProgress(runtime.onProgress, {
+			command: "status",
+			phase: "status",
+			status: "SUCCEEDED",
+			message: `ProFlow 安装不完整，缺少 ${missing.length} 个核心模块`,
+		});
+		return outcome("status", "SUCCEEDED", root, {
+			installed: true,
+			installState: "INCOMPLETE",
+			missingModules: missing,
 			modules: [],
 		});
 	}
@@ -638,6 +685,8 @@ async function handleUninstall(
 	runtime: CliRuntimeOptions,
 ): Promise<CliOutcome> {
 	const packageNames = await workspaceProFlowDependencies(root);
+	if (packageNames.length > 0)
+		await preflightWorkspacePackageManager(root, runtime.executableAvailable);
 	const { catalog, modules } = await buildContext(root);
 	const moduleUninstall = await uninstallModulesThin(
 		catalog,
@@ -933,7 +982,8 @@ function journeyState(entries: Record<string, unknown>[]): JourneyState {
 	if (
 		entries.length === 0 ||
 		entries.some(
-			(item) => item.setupStatus === "FAILED" || item.runtimeStatus === "FAILED",
+			(item) =>
+				item.setupStatus === "FAILED" || item.runtimeStatus === "FAILED",
 		)
 	)
 		return "FAILED";
@@ -950,7 +1000,10 @@ function setupJourney(modules: Record<string, unknown>[]): JourneyStep[] {
 	return [
 		{ label: "浏览器扩展", refs: ["execution-browser-extension"] },
 		{ label: "远程连接", refs: ["dev-tunnel"] },
-		{ label: "模型服务与 FAST / THINK", refs: ["model-provider-api", "model-runtime"] },
+		{
+			label: "模型服务与 FAST / THINK",
+			refs: ["model-provider-api", "model-runtime"],
+		},
 	].map(({ label, refs }) => {
 		const entries = refs.flatMap((ref) => {
 			const item = byRef.get(ref);
@@ -971,6 +1024,22 @@ function setupJourney(modules: Record<string, unknown>[]): JourneyStep[] {
 function renderStatus(data: unknown, theme: HumanTheme) {
 	if (!isRecord(data) || !Array.isArray(data.modules)) return "无法读取状态。";
 	const modules = data.modules.filter(isRecord);
+	if (data.installState === "INCOMPLETE") {
+		const missing = Array.isArray(data.missingModules)
+			? data.missingModules.filter(
+					(item): item is string => typeof item === "string",
+				)
+			: [];
+		return [
+			theme.title("ProFlow 状态"),
+			"",
+			theme.warning("ProFlow 安装不完整。"),
+			...(missing.length > 0 ? [`缺少 ${missing.length} 个核心模块。`] : []),
+			`下一步：${theme.command("platform install")}`,
+			"",
+			"PLATFORM_READY=NO",
+		].join("\n");
+	}
 	if (data.installed === false || modules.length === 0)
 		return [
 			theme.title("ProFlow 状态"),
@@ -983,17 +1052,12 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 	const journey = setupJourney(modules);
 	const completed = journey.filter((step) => step.state === "READY").length;
 	const current = journey.find((step) => step.state !== "READY");
-	const running = modules.filter(
-		(item) => item.runtimeStatus === "RUNNING",
-	);
+	const running = modules.filter((item) => item.runtimeStatus === "RUNNING");
 	const platformReady = modules.every(
-		(item) =>
-			item.setupStatus === "READY" &&
-			item.runtimeStatus !== "FAILED",
+		(item) => item.setupStatus === "READY" && item.runtimeStatus !== "FAILED",
 	);
 	const internalProblem = modules.find(
-		(item) =>
-			item.setupStatus !== "READY" || item.runtimeStatus === "FAILED",
+		(item) => item.setupStatus !== "READY" || item.runtimeStatus === "FAILED",
 	);
 	const lines = [
 		theme.title("ProFlow 状态"),
@@ -1146,9 +1210,10 @@ function renderSetup(data: unknown, theme: HumanTheme) {
 		lines.push(
 			`${status === "FAILED" ? theme.failure("✕") : theme.warning("◆")} ${theme.section(setupModuleLabel(moduleRef))}`,
 		);
-		const planData = isRecord(raw.result.data) && Array.isArray(raw.result.data.steps)
-			? { steps: raw.result.data.steps }
-			: raw.result.data;
+		const planData =
+			isRecord(raw.result.data) && Array.isArray(raw.result.data.steps)
+				? { steps: raw.result.data.steps }
+				: raw.result.data;
 		const plan = moduleSetupPlanDataSchema.safeParse(planData);
 		if (plan.success) {
 			const currentStep =

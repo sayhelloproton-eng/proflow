@@ -231,7 +231,7 @@ export async function syncWorkspacePackages(options: {
 	}
 	await ensureWorkspaceManifest(options.workspaceRoot);
 	const runner = options.runner ?? systemPackageCommandRunner();
-	const manager = await requireWorkspacePackageManager(
+	const manager = await preflightWorkspacePackageManager(
 		options.workspaceRoot,
 		options.executableAvailable ?? findExecutable,
 	);
@@ -318,7 +318,7 @@ export async function removeWorkspacePackages(options: {
 		return { packageManager: "npm", packages: [] };
 	}
 	const runner = options.runner ?? systemPackageCommandRunner();
-	const manager = await requireWorkspacePackageManager(
+	const manager = await preflightWorkspacePackageManager(
 		options.workspaceRoot,
 		options.executableAvailable ?? findExecutable,
 	);
@@ -392,9 +392,9 @@ async function ensureWorkspaceManifest(workspaceRoot: string): Promise<void> {
 	await atomicWrite(path, `${JSON.stringify({ private: true }, null, 2)}\n`);
 }
 
-async function requireWorkspacePackageManager(
+export async function preflightWorkspacePackageManager(
 	workspaceRoot: string,
-	executableAvailable: (command: string) => boolean,
+	executableAvailable: (command: string) => boolean = findExecutable,
 ): Promise<WorkspacePackageManagerSelection> {
 	const manager = await readWorkspacePackageManagerSelection(workspaceRoot);
 	if (!executableAvailable(manager.name)) {

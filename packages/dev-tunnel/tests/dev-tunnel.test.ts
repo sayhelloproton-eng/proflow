@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	chmod,
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -53,6 +60,52 @@ test("default behaviorAdapter reports setup truth without fabricating a tunnel",
 			},
 		],
 	});
+});
+
+test("HOST_READY status reports resumable setup without fabricating a login problem", async (context) => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-dev-tunnel-host-ready-"),
+	);
+	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const stateDir = join(
+		workspaceRoot,
+		".proflow/runtime/external-resources/dev-tunnel",
+	);
+	await mkdir(stateDir, { recursive: true });
+	await writeFile(
+		join(stateDir, "setup.json"),
+		JSON.stringify({
+			contract: "proflow.dev-tunnel-setup.v2",
+			tunnelId: "fixture-tunnel",
+			phase: "HOST_READY",
+			gatewayPort: 41705,
+			cliPath: "definitely-not-invoked-devtunnel",
+		}),
+	);
+	const status = await behaviorAdapter.status({ workspaceRoot });
+	assert.equal(status.result.status, "SUCCEEDED");
+	const data = status.result.data as {
+		setupStatus: string;
+		runtimeStatus: string;
+		issues?: Array<{ code: string; message: string }>;
+	};
+	assert.equal(data.setupStatus, "ACTION_REQUIRED");
+	assert.equal(data.runtimeStatus, "STOPPED");
+	assert.equal(data.issues?.[0]?.code, "TUNNEL_SETUP_INCOMPLETE");
+	assert.match(data.issues?.[0]?.message ?? "", /HOST_READY/);
+});
+
+test("runtime status never shells out to inspect login", async () => {
+	let commandCalls = 0;
+	const runtime = createDevTunnelRuntime({
+		tunnelId: "tunnel-123",
+		runCommand: async () => {
+			commandCalls += 1;
+			return loggedInRunner();
+		},
+	});
+	assert.equal((await runtime.status()).state, "UNKNOWN");
+	assert.equal(commandCalls, 0);
 });
 
 test("dev-tunnel exposes the fixed seven-command management surface", () => {
