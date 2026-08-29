@@ -2,7 +2,7 @@
 
 > 用途：为 Phase 3 最终真实验收提供跨 Chat / Agent 的稳定公共上下文与总纲总控入口。
 > 更新时间：2026-08-29。
-> **当前最新接手入口：[`16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md`](16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md)。新 Chat 必须先读 16，再按需回读 05 / 14 / 15。**
+> **当前最新接手入口：[`17-Real3全量整改实施发布与Fresh回放进度-20260829.md`](17-Real3全量整改实施发布与Fresh回放进度-20260829.md)。新 Chat 必须同时读取 16 第 10 节完整 P1～P18；17 只续接实施、发布与回放进度，不替代 16 的问题登记。**
 
 ## 定位
 
@@ -28,14 +28,15 @@
 
 ## 新 Chat 最小读取顺序
 
-1. `16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md` —— **当前唯一最新执行入口**；先恢复本轮真实人工验收现场、P0/P1/P2、已确认根因与授权边界。
-2. `02-当前总控状态与Real路线.md` —— 确认 Real-1/Real-2 已 PASS、当前仍在 REAL_3，禁止退回旧阶段。
-3. `05-执行纪律与工具规则.md` —— 明确 `ISSUE_DISCOVERY != FIX_AUTHORIZATION`、HARD STOP、CodeGraph-first 与冻结 residual list。
-4. `14-配置自动化与OpenAI-Secure-MCP-Tunnel后续.md` —— 回读配置自动化设计背景；其中 2026-08-26 快照若与 16 冲突，以 16 + 当前机械事实为准。
-5. `15-当前上下文与Tunnel任务流转-20260825.md` —— 历史长交接与此前执行证据；不再把顶部旧 snapshot 当当前现场。
-6. `04-测试验证与验收方法.md` 与 `03-冻结架构与关键决策.md`。
-7. 当前 Real 对应领域的正式 spec / test plan / evidence index。
-8. 只有需要追溯原因时，再读 `01-总纲历史时间线.md` 与 `07-历史问题与防回归清单.md`。
+1. `17-Real3全量整改实施发布与Fresh回放进度-20260829.md` —— **当前最新执行进度入口**；恢复实施提交、候选版本、发布与 Fresh 回放进度。
+2. `16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md` —— 必须读取第 10 节完整 `P1～P18` 和两个额外 P0；17 不替代原始问题登记。
+3. `02-当前总控状态与Real路线.md` —— 确认 Real-1/Real-2 已 PASS、当前仍在 REAL_3，禁止退回旧阶段。
+4. `05-执行纪律与工具规则.md` —— 明确 `ISSUE_DISCOVERY != FIX_AUTHORIZATION`、HARD STOP、CodeGraph-first 与冻结 residual list。
+5. `14-配置自动化与OpenAI-Secure-MCP-Tunnel后续.md` —— 回读配置自动化设计背景；旧 snapshot 若与 16/17 冲突，以 16/17 + 当前机械事实为准。
+6. `15-当前上下文与Tunnel任务流转-20260825.md` —— 历史长交接与此前执行证据；不再把顶部旧 snapshot 当当前现场。
+7. `04-测试验证与验收方法.md` 与 `03-冻结架构与关键决策.md`。
+8. 当前 Real 对应领域的正式 spec / test plan / evidence index。
+9. 只有需要追溯原因时，再读 `01-总纲历史时间线.md` 与 `07-历史问题与防回归清单.md`。
 
 ## 文件职责
 
@@ -52,6 +53,7 @@
 - `14-配置自动化与OpenAI-Secure-MCP-Tunnel后续.md`：配置自动化设计背景、人工边界与技术问答；2026-08-26 snapshot 已是历史，当前事实以 16 + 机械 readback 为准。
 - `15-当前上下文与Tunnel任务流转-20260825.md`：历史长交接与此前执行证据，继续保留追溯价值，但不再是最新现场入口。
 - `16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md`：**当前最新完整交接**；保存本轮真实 Registry/Fresh Workspace/Browser/Tunnel/Model 人工验收，且第 10 节明确保留原始 `P1～P18` 问题登记表（现象、当前判断、已确认根因/证据），第 11 节再做 Severity P0/P1/P2 Root 合并；同时记录保留现场与下一 Chat / Work 接手规则。
+- `17-Real3全量整改实施发布与Fresh回放进度-20260829.md`：**当前最新执行进度**；记录 D1～D5/P1～P18 实施提交、发布候选、真实 Registry 发布与 Fresh 回放证据；必须与 16 配套读取。
 
 ## 维护原则
 
