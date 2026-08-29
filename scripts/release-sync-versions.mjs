@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { access, readdir, readFile, writeFile } from "node:fs/promises";
 
 const mode = process.argv[2] ?? "--check";
 if (mode !== "--check" && mode !== "--write") {
@@ -20,6 +20,15 @@ const writes = [];
 
 async function readJson(path) {
 	return JSON.parse(await readFile(path, "utf8"));
+}
+
+async function exists(path) {
+	try {
+		await access(path);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function recordDrift(packageName, target, actual, expected) {
@@ -70,16 +79,29 @@ for (const directory of packageDirectories) {
 		continue;
 	}
 
+	const moduleManifestPath = new URL("proflow.module.json", packageRoot);
+	const descriptorPath = new URL("deployment/descriptor.ts", packageRoot);
+	const [hasModuleManifest, hasDescriptor] = await Promise.all([
+		exists(moduleManifestPath),
+		exists(descriptorPath),
+	]);
+	if (!hasModuleManifest && !hasDescriptor) continue;
+	if (!hasModuleManifest || !hasDescriptor) {
+		throw new Error(
+			`${packageJson.name}: module package must include both proflow.module.json and deployment/descriptor.ts`,
+		);
+	}
+
 	const version = packageJson.version;
 	await syncJsonField({
 		packageName: packageJson.name,
-		path: new URL("proflow.module.json", packageRoot),
+		path: moduleManifestPath,
 		field: "moduleVersion",
 		expected: version,
 	});
 	await syncDescriptor({
 		packageName: packageJson.name,
-		path: new URL("deployment/descriptor.ts", packageRoot),
+		path: descriptorPath,
 		expected: version,
 	});
 
