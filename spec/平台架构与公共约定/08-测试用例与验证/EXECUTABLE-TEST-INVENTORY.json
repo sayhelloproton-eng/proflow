@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 140,
-    "testCalls": 622
+    "testCalls": 623
   },
   "tests": [
     {
@@ -6947,6 +6947,17 @@
       "path": "packages/platform-cli/tests/registry-retirement.test.ts",
       "line": 10,
       "title": "retired packages returned by npm search are ignored without being viewed",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/registry/npm-registry.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/registry-retirement.test.ts",
+      "line": 49,
+      "title": "governed tool packages are ignored without becoming Module candidates",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [

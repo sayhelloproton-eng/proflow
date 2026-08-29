@@ -137,8 +137,7 @@ export async function discoverRegistryModules(options: {
 	const tools = names.filter((name) => PRO_FLOW_TOOL_PACKAGES.has(name));
 	const activeNames = names.filter(
 		(name) =>
-			!RETIRED_PRO_FLOW_PACKAGES.has(name) &&
-			!PRO_FLOW_TOOL_PACKAGES.has(name),
+			!RETIRED_PRO_FLOW_PACKAGES.has(name) && !PRO_FLOW_TOOL_PACKAGES.has(name),
 	);
 	options.onSearchComplete?.(activeNames.length);
 	const candidates: RegistryModuleCandidate[] = [];

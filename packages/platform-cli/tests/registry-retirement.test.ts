@@ -83,8 +83,7 @@ test("governed tool packages are ignored without becoming Module candidates", as
 	assert.equal(
 		calls.some(
 			(args) =>
-				args[0] === "view" &&
-				args[1] === "@tomflow/proflow-devtunnel-cli",
+				args[0] === "view" && args[1] === "@tomflow/proflow-devtunnel-cli",
 		),
 		false,
 	);

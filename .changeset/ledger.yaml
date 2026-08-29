@@ -982,6 +982,10 @@
   dir: packages/platform-cli
   intents:
     - real1-upgrade-config-target
+"@tomflow/proflow-platform-cli@0.1.40":
+  dir: packages/platform-cli
+  intents:
+    - bright-sites-cut
 "@tomflow/proflow-platform-cli@0.1.5":
   dir: packages/platform-cli
   intents:
