@@ -74,6 +74,10 @@
   dir: packages/agent-gateway
   intents:
     - phase3-real3-browser-status-closeout
+"@tomflow/proflow-agent-gateway@0.1.15":
+  dir: packages/agent-gateway
+  intents:
+    - six-mice-eat
 "@tomflow/proflow-agent-gateway@0.1.2":
   dir: packages/agent-gateway
   intents:
@@ -342,6 +346,10 @@
   dir: packages/deployment-conformance
   intents:
     - phase3-real3-browser-status-closeout
+"@tomflow/proflow-deployment-conformance@0.1.13":
+  dir: packages/deployment-conformance
+  intents:
+    - six-mice-eat
 "@tomflow/proflow-deployment-conformance@0.1.2":
   dir: packages/deployment-conformance
   intents:
@@ -398,6 +406,10 @@
   dir: packages/dev-tunnel
   intents:
     - phase3-real3-browser-status-closeout
+"@tomflow/proflow-dev-tunnel@0.1.17":
+  dir: packages/dev-tunnel
+  intents:
+    - six-mice-eat
 "@tomflow/proflow-dev-tunnel@0.1.2":
   dir: packages/dev-tunnel
   intents:
@@ -422,6 +434,10 @@
   dir: packages/dev-tunnel
   intents:
     - calm-cli-closure
+"@tomflow/proflow-devtunnel-cli@0.1.0":
+  dir: packages/devtunnel-cli
+  intents:
+    - six-mice-eat
 "@tomflow/proflow-execution-browser-extension@0.1.1":
   dir: packages/execution-browser-extension
   intents:
@@ -446,6 +462,10 @@
   dir: packages/execution-browser-extension
   intents:
     - phase3-real3-browser-status-closeout
+"@tomflow/proflow-execution-browser-extension@0.1.15":
+  dir: packages/execution-browser-extension
+  intents:
+    - six-mice-eat
 "@tomflow/proflow-execution-browser-extension@0.1.2":
   dir: packages/execution-browser-extension
   intents:
@@ -646,6 +666,10 @@
   dir: packages/model-provider-api
   intents:
     - phase3-real3-browser-status-closeout
+"@tomflow/proflow-model-provider-api@0.1.14":
+  dir: packages/model-provider-api
+  intents:
+    - six-mice-eat
 "@tomflow/proflow-model-provider-api@0.1.2":
   dir: packages/model-provider-api
   intents:
@@ -702,6 +726,10 @@
   dir: packages/model-runtime
   intents:
     - phase3-real3-browser-status-closeout
+"@tomflow/proflow-model-runtime@0.1.17":
+  dir: packages/model-runtime
+  intents:
+    - six-mice-eat
 "@tomflow/proflow-model-runtime@0.1.2":
   dir: packages/model-runtime
   intents:
@@ -946,6 +974,10 @@
   dir: packages/platform-cli
   intents:
     - phase3-real3-browser-status-closeout
+"@tomflow/proflow-platform-cli@0.1.39":
+  dir: packages/platform-cli
+  intents:
+    - six-mice-eat
 "@tomflow/proflow-platform-cli@0.1.4":
   dir: packages/platform-cli
   intents:
