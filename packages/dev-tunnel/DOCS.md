@@ -27,7 +27,7 @@
 
 ## 使用方式
 
-运行 `platform setup --module dev-tunnel`；除登录失效时的 GitHub 浏览器授权外，不需要输入 Tunnel ID、端口或 URL。
+运行 `platform setup`；除登录失效时的 GitHub 浏览器授权外，不需要输入 Tunnel ID、端口或 URL。
 
 ## 职责边界与限制
 

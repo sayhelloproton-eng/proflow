@@ -2,8 +2,8 @@
 
 ## STEP-EXECUTION-BROWSER-EXTENSION-01 — 加载扩展并自动配对
 Responsible: USER
-Interactive executable: `platform setup --module execution-browser-extension`
-Non-interactive executable: `platform setup --module execution-browser-extension`
+Interactive executable: `platform setup`
+Non-interactive lifecycle entry: `platform setup`
 Required inputs: none
 Verify: `platform status`
 Success condition: 本地 pairing listener 已收到真实 Extension hello + heartbeat，并持久化部署证据。

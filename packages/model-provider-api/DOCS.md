@@ -16,7 +16,7 @@
 
 - 提供 `model.provider.api` Contract，版本 `1.0.0`。
 - shared facts 仅包含验证后的 Provider API base URL、协议、真实模型清单、观测时间，以及可选 credential file reference。
-- 不发布设备身份、发现协议、产品名称或 FAST/REASON 映射。
+- 不发布设备身份、发现协议、产品名称或 FAST/THINK 映射。
 
 ## 依赖的 Module、Contract 和外部资源
 
@@ -30,8 +30,8 @@
 ## 使用方式
 
 ```text
-pnpm exec -- proflow-model-provider-api setup --provider-base-url <url>
-pnpm exec -- proflow-model-provider-api verify
+platform setup
+platform status
 ```
 
 在完整 Platform 部署中，URL 应由部署层解析并转交，本模块不猜地址、不枚举设备，也不根据服务实现做分支。当前 Deployment-owned resolver 尚未裁决，因此缺 URL 时正常产品状态是 `ACTION_REQUIRED/ARCHITECTURE_STOP`；显式 `--provider-base-url` 只用于诊断、实验或 resolver 输出注入，不能退化成要求用户填写机器可发现 LAN 地址的正式流程。

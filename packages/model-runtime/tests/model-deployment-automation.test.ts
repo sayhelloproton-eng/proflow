@@ -112,6 +112,12 @@ test("missing REASON and invalid Vision fail closed", () => {
 			status: "MISSING_ROLE",
 			role: "reason",
 			candidates: [],
+			rejections: [
+				{
+					modelRef: "provider/fast",
+					reasons: ["没有推理模式"],
+				},
+			],
 		},
 	);
 	assert.deepEqual(
@@ -123,6 +129,16 @@ test("missing REASON and invalid Vision fail closed", () => {
 			status: "MISSING_ROLE",
 			role: "fast",
 			candidates: [],
+			rejections: [
+				{
+					modelRef: "provider/not-vision",
+					reasons: ["不支持图像输入", "不是快速模式"],
+				},
+				{
+					modelRef: "provider/reason",
+					reasons: ["不支持图像输入", "不是快速模式"],
+				},
+			],
 		},
 	);
 });
@@ -319,7 +335,7 @@ test("ambiguous mapping requests only irreducible model choice while missing rol
 	});
 	const choice = await ambiguous.setup({ workspaceRoot: ambiguousRoot });
 	assert.equal(choice.result.status, "ACTION_REQUIRED");
-	assert.equal(choice.result.actionRequired?.action, "select-model-roles");
+	assert.equal(choice.result.actionRequired?.action, "select-fast-model");
 	assert.equal(
 		(
 			await ambiguous.setup({
@@ -344,7 +360,13 @@ test("ambiguous mapping requests only irreducible model choice while missing rol
 		input: { fastModel: "fast", reasonModel: "fast" },
 	});
 	assert.equal(failure.result.status, "FAILED");
-	assert.match(failure.result.error?.message ?? "", /REASON/);
+	assert.match(failure.result.error?.message ?? "", /THINK/);
+	const persisted = await missing.status({ workspaceRoot: missingRoot });
+	assert.equal(persisted.result.data.setupStatus, "FAILED");
+	assert.equal(
+		persisted.result.data.issues?.[0]?.code,
+		"MODEL_ROLE_VALIDATION_FAILED",
+	);
 });
 
 test("provider inventory drift makes an existing mapping stale until automatic remap", async (context) => {
@@ -546,6 +568,6 @@ test("provider offline after READY is explicit and never reuses a fake runtime R
 	online = false;
 	const status = await adapter.status({ workspaceRoot });
 	assert.equal(status.result.data.setupStatus, "READY");
-	assert.equal(status.result.data.runtimeStatus, "STOPPED");
+	assert.equal(status.result.data.runtimeStatus, "FAILED");
 	assert.equal(status.result.data.issues?.[0]?.code, "PROVIDER_UNAVAILABLE");
 });

@@ -16,6 +16,24 @@ const parseCli = <T>(value: T): T => value;
 
 import { tempWorkspace, writeWorkspaceModule } from "./test-helpers.ts";
 
+test("uninstalled workspace fails closed for status, setup, and start", async () => {
+	const root = await tempWorkspace();
+	try {
+		const status = await runCli(["status"], { cwd: root });
+		assert.equal(status.status, "SUCCEEDED");
+		assert.match(renderHumanResult(status), /ProFlow 尚未安装/);
+		assert.match(renderHumanResult(status), /PLATFORM_READY=NO/);
+		for (const command of ["setup", "start"] as const) {
+			const result = await runCli([command], { cwd: root });
+			assert.equal(result.status, "FAILED");
+			assert.equal(result.error?.code, "PLATFORM_NOT_INSTALLED");
+			assert.match(renderHumanResult(result), /platform install/);
+		}
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
 async function snapshotProflowFiles(root: string) {
 	const proflowRoot = join(root, ".proflow");
 	const files: Array<{ path: string; content: string; mtimeMs: number }> = [];
@@ -118,6 +136,12 @@ test("platform status summary counts runtime failure as failure instead of ready
 		data: {
 			modules: [
 				{
+					moduleRef: "execution-browser-extension",
+					version: "0.1.15",
+					setupStatus: "READY",
+					runtimeStatus: "NOT_APPLICABLE",
+				},
+				{
 					moduleRef: "dev-tunnel",
 					version: "0.1.14",
 					setupStatus: "READY",
@@ -125,18 +149,24 @@ test("platform status summary counts runtime failure as failure instead of ready
 					issues: [],
 				},
 				{
-					moduleRef: "module-contract",
+					moduleRef: "model-provider-api",
 					version: "0.1.12",
 					setupStatus: "READY",
 					runtimeStatus: "NOT_APPLICABLE",
-					issues: [],
+				},
+				{
+					moduleRef: "model-runtime",
+					version: "0.1.17",
+					setupStatus: "READY",
+					runtimeStatus: "STOPPED",
 				},
 			],
 		},
 	});
-	assert.match(rendered, /失败[\s\S]*dev-tunnel/);
-	assert.match(rendered, /1 配置已完成.*1 失败/);
-	assert.doesNotMatch(rendered, /2 配置已完成/);
+	assert.match(rendered, /配置进度\s+2\/3/);
+	assert.match(rendered, /当前处理：远程连接/);
+	assert.match(rendered, /PLATFORM_READY=NO/);
+	assert.doesNotMatch(rendered, /dev-tunnel|--module/);
 });
 
 test("platform status ignores obsolete config and all removed routes remain invalid", async () => {
@@ -304,7 +334,8 @@ test("Platform setup output shows dependency-blocked modules without inventing M
 			],
 		},
 	});
-	assert.match(rendered, /◇ model-runtime/);
+	assert.match(rendered, /◇ FAST \/ THINK 模型/);
 	assert.match(rendered, /等待依赖模块就绪：model-provider-api/);
-	assert.match(rendered, /platform setup --module model-provider-api/);
+	assert.match(rendered, /下一步：platform setup/);
+	assert.doesNotMatch(rendered, /--module/);
 });

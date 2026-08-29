@@ -150,6 +150,8 @@ async function runOrdered(
 		reportProgress(reporter, {
 			command,
 			phase: command,
+			kind: "detail",
+			retention: "REPLACE",
 			current: index + 1,
 			total: modulesInOrder.length,
 			moduleRef: module.moduleRef,
@@ -169,6 +171,8 @@ async function runOrdered(
 		reportProgress(reporter, {
 			command,
 			phase: command,
+			kind: "detail",
+			retention: "REPLACE",
 			current: index + 1,
 			total: modulesInOrder.length,
 			moduleRef: module.moduleRef,
@@ -327,6 +331,8 @@ export async function setupModulesThin(
 		reportProgress(reporter, {
 			command: "setup",
 			phase: "setup",
+			kind: "detail",
+			retention: "REPLACE",
 			current: index + 1,
 			total: modulesInOrder.length,
 			moduleRef: module.moduleRef,
@@ -350,6 +356,8 @@ export async function setupModulesThin(
 			reportProgress(reporter, {
 				command: "setup",
 				phase: "setup",
+				kind: "detail",
+				retention: "REPLACE",
 				current: index + 1,
 				total: modulesInOrder.length,
 				moduleRef: module.moduleRef,
@@ -369,6 +377,8 @@ export async function setupModulesThin(
 		reportProgress(reporter, {
 			command: "setup",
 			phase: "setup",
+			kind: "detail",
+			retention: "REPLACE",
 			current: index + 1,
 			total: modulesInOrder.length,
 			moduleRef: module.moduleRef,

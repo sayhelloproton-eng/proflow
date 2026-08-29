@@ -15,7 +15,10 @@ import type {
 	BrowserExtensionDesktop,
 	BrowserExtensionPair,
 } from "../src/install-workflow.ts";
-import { runInteractiveBrowserExtensionSetup } from "../src/install-workflow.ts";
+import {
+	openBrowserExtensionManager,
+	runInteractiveBrowserExtensionSetup,
+} from "../src/install-workflow.ts";
 import { createBrowserExtensionPairingServer } from "../src/pairing.ts";
 import { descriptor } from "./descriptor.ts";
 
@@ -34,8 +37,8 @@ const blockedSetupPlan = {
 			state: "BLOCKED",
 			responsible: "EXTERNAL",
 			execution: {
-				interactive: "platform setup --module execution-browser-extension",
-				nonInteractive: "platform setup --module execution-browser-extension",
+				interactive: "platform setup",
+				nonInteractive: "platform setup",
 			},
 			requiredInputs: [],
 			verify: "platform status",
@@ -454,8 +457,7 @@ export const behaviorAdapter = {
 										code: "EXTENSION_LOAD_REQUIRED",
 										message: "Chrome 扩展尚未加载或缺少可验证的运行证据",
 										relatedModuleRefs: ["chrome-runtime"],
-										nextCommand:
-											"platform setup --module execution-browser-extension",
+										nextCommand: "platform setup",
 									},
 								],
 							}),
@@ -474,8 +476,43 @@ export const behaviorAdapter = {
 							timeoutMs?: number;
 							desktop?: BrowserExtensionDesktop;
 							pair?: BrowserExtensionPair;
+							developerModeConfirmed?: boolean;
 						})
 					: undefined;
+			if (input?.developerModeConfirmed !== true) {
+				await openBrowserExtensionManager(input?.desktop);
+				return {
+					result: {
+						...base,
+						ok: false as const,
+						status: "ACTION_REQUIRED" as const,
+						data: {
+							steps: [
+								{
+									id: "STEP-EXECUTION-BROWSER-EXTENSION-01",
+									title: "开启 Chrome 开发者模式",
+									description: "请在刚打开的扩展管理页开启右上角“开发者模式”。",
+									state: "TODO" as const,
+									responsible: "USER" as const,
+									execution: {
+										interactive: "platform setup",
+										nonInteractive: "platform setup",
+									},
+									requiredInputs: [],
+									verify: "platform status",
+									successCondition: "用户确认开发者模式已开启",
+									humanAction: "开启开发者模式后返回终端确认",
+								},
+							],
+						},
+						actionRequired: {
+							action: "confirm-browser-developer-mode",
+							description: "请开启 Chrome 开发者模式后确认。",
+						},
+					},
+					observedEffects: ["Opens Chrome extension management"],
+				};
+			}
 			await runInteractiveBrowserExtensionSetup({
 				workspaceRoot: context.workspaceRoot,
 				...(input?.timeoutMs === undefined

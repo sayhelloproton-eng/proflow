@@ -1,11 +1,11 @@
 import {
-	autocomplete,
 	cancel,
 	confirm,
 	intro,
 	isCancel,
 	outro,
 	password,
+	select,
 	text,
 } from "@clack/prompts";
 
@@ -13,7 +13,7 @@ export type SetupActionRequest = {
 	moduleRef: string;
 	action: string;
 	description: string;
-	modelIds?: readonly string[];
+	options?: readonly string[];
 };
 
 export interface SetupInteraction {
@@ -26,13 +26,11 @@ export interface SetupInteraction {
 }
 
 const stepPrompts: Record<string, string> = {
-	"execution-browser-extension":
-		"下一步将打开 Chrome，并引导你加载浏览器扩展。按 Enter 继续。",
 	"dev-tunnel":
-		"下一步将检查远程连接；如需登录，会打开 GitHub 授权。按 Enter 继续。",
+		"下一步将检查远程连接；如需登录，会打开 GitHub 授权。是否继续？",
 	"model-provider-api":
-		"下一步配置 OpenAI-compatible 模型服务地址。按 Enter 继续。",
-	"model-runtime": "下一步从真实模型列表选择 FAST 与 THINK。按 Enter 继续。",
+		"下一步配置 OpenAI-compatible 模型服务地址。是否继续？",
+	"model-runtime": "下一步验证模型能力并配置 FAST 与 THINK。是否继续？",
 };
 
 function cancelled(value: unknown): value is symbol {
@@ -111,28 +109,28 @@ async function providerCredential(): Promise<
 	return { providerCredential: String(value) };
 }
 
-async function modelRoles(
+async function modelRole(
+	role: "fast" | "reason",
 	modelIds: readonly string[],
 ): Promise<Record<string, unknown> | undefined> {
 	const options = modelIds.map((id) => ({ value: id, label: id }));
-	const fastModel = await autocomplete({
-		message: "选择 FAST 模型（快速、低延迟）",
-		placeholder: "输入关键字搜索模型",
+	const selected = await select({
+		message:
+			role === "fast"
+				? "选择 FAST 模型（快速、低延迟）"
+				: "选择 THINK 模型（复杂分析与推理）",
 		options,
+		showInstructions: false,
 	});
-	if (cancelled(fastModel)) return undefined;
-	const reasonModel = await autocomplete({
-		message: "选择 THINK 模型（复杂分析与推理）",
-		placeholder: "输入关键字搜索模型",
-		options,
-	});
-	if (cancelled(reasonModel)) return undefined;
+	if (cancelled(selected)) return undefined;
 	const approved = await confirm({
-		message: `确认 FAST=${String(fastModel)}，THINK=${String(reasonModel)}？`,
+		message: `确认将 ${String(selected)} 用作 ${role === "fast" ? "FAST" : "THINK"} 模型？`,
 		initialValue: true,
 	});
 	if (cancelled(approved) || approved !== true) return undefined;
-	return { fastModel: String(fastModel), reasonModel: String(reasonModel) };
+	return role === "fast"
+		? { fastModel: String(selected) }
+		: { reasonModel: String(selected) };
 }
 
 export function createClackSetupInteraction(): SetupInteraction {
@@ -150,14 +148,25 @@ export function createClackSetupInteraction(): SetupInteraction {
 			return !cancelled(approved) && approved === true;
 		},
 		async collect(request) {
+			if (request.action === "confirm-browser-developer-mode") {
+				const approved = await confirm({
+					message: "步骤 1/2：已经在 Chrome 中开启“开发者模式”了吗？",
+					initialValue: true,
+				});
+				if (cancelled(approved) || approved !== true) return undefined;
+				return { developerModeConfirmed: true };
+			}
 			if (request.action === "provide-provider-endpoint") {
 				return providerEndpoint();
 			}
 			if (request.action === "provide-provider-credential") {
 				return providerCredential();
 			}
-			if (request.action.startsWith("select-") && request.modelIds?.length) {
-				return modelRoles(request.modelIds);
+			if (request.action === "select-fast-model" && request.options?.length) {
+				return modelRole("fast", request.options);
+			}
+			if (request.action === "select-reason-model" && request.options?.length) {
+				return modelRole("reason", request.options);
 			}
 			return undefined;
 		},

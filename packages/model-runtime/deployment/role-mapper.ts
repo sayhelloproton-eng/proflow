@@ -14,6 +14,16 @@ export type ModelDeploymentEvidence = {
 
 export type ModelRoleMapping = { fast: string; reason: string };
 
+export type ModelProbeFailure = {
+	modelRef: string;
+	reason: string;
+};
+
+export type ModelQualificationRejection = {
+	modelRef: string;
+	reasons: readonly string[];
+};
+
 export type RoleMappingDecision =
 	| {
 			status: "READY";
@@ -28,6 +38,8 @@ export type RoleMappingDecision =
 			status: "AMBIGUOUS" | "MISSING_ROLE";
 			role: "fast" | "reason";
 			candidates: readonly string[];
+			failures?: readonly ModelProbeFailure[];
+			rejections?: readonly ModelQualificationRejection[];
 	  };
 
 const REQUIRED_CONTEXT_WINDOW = 16_384;
@@ -54,6 +66,25 @@ function eligibleReason(item: ModelDeploymentEvidence): boolean {
 		item.contextWindow >= REQUIRED_CONTEXT_WINDOW &&
 		item.maxOutputTokens >= REQUIRED_MAX_OUTPUT_TOKENS
 	);
+}
+
+function rejectionReasons(
+	item: ModelDeploymentEvidence,
+	role: "fast" | "reason",
+): string[] {
+	const reasons: string[] = [];
+	if (!item.text) reasons.push("不支持文本");
+	if (role === "fast" && !item.vision) reasons.push("不支持图像输入");
+	if (item.structuredOutput === "unsupported") reasons.push("不支持结构化输出");
+	if (role === "fast" && item.reasoning !== "no-thinking")
+		reasons.push("不是快速模式");
+	if (role === "reason" && item.reasoning !== "thinking")
+		reasons.push("没有推理模式");
+	if (item.contextWindow < REQUIRED_CONTEXT_WINDOW)
+		reasons.push(`上下文小于 ${REQUIRED_CONTEXT_WINDOW}`);
+	if (item.maxOutputTokens < REQUIRED_MAX_OUTPUT_TOKENS)
+		reasons.push(`最大输出小于 ${REQUIRED_MAX_OUTPUT_TOKENS}`);
+	return reasons;
 }
 
 function metadataScore(
@@ -135,6 +166,14 @@ export function decideRoleMapping(
 			status: fast.status,
 			role: "fast",
 			candidates: fast.candidates,
+			...(fast.status === "MISSING_ROLE"
+				? {
+						rejections: evidence.map((item) => ({
+							modelRef: item.modelRef,
+							reasons: rejectionReasons(item, "fast"),
+						})),
+					}
+				: {}),
 		};
 	const reason = selectRole({
 		role: "reason",
@@ -146,6 +185,14 @@ export function decideRoleMapping(
 			status: reason.status,
 			role: "reason",
 			candidates: reason.candidates,
+			...(reason.status === "MISSING_ROLE"
+				? {
+						rejections: evidence.map((item) => ({
+							modelRef: item.modelRef,
+							reasons: rejectionReasons(item, "reason"),
+						})),
+					}
+				: {}),
 		};
 	return {
 		status: "READY",
@@ -176,6 +223,7 @@ export async function verifyAndMapInventory(input: {
 				setTimeout(resolveSleep, milliseconds),
 			));
 	const evidence: ModelDeploymentEvidence[] = [];
+	const failures: ModelProbeFailure[] = [];
 	const inventory = [...input.models].sort((left, right) =>
 		left.id.localeCompare(right.id),
 	);
@@ -183,12 +231,18 @@ export async function verifyAndMapInventory(input: {
 		const model = inventory[index] as { id: string };
 		try {
 			evidence.push(await input.probe(model));
-		} catch {
-			// A failed candidate remains ineligible; other inventory candidates still run.
+		} catch (error) {
+			failures.push({
+				modelRef: model.id,
+				reason: error instanceof Error ? error.message : "能力探测失败",
+			});
 		}
 		if (index < inventory.length - 1 && cooldownMs > 0) await sleep(cooldownMs);
 	}
-	return decideRoleMapping(evidence, input.previous);
+	const decision = decideRoleMapping(evidence, input.previous);
+	return decision.status === "READY" || failures.length === 0
+		? decision
+		: { ...decision, failures };
 }
 
 function completionContent(value: unknown): {
@@ -273,8 +327,11 @@ export function createOpenAIModelDeploymentProbe(input: {
 				throw new Error(`capability probe returned HTTP ${response.status}`);
 			return completionContent(await response.json());
 		} catch (error) {
-			if (error instanceof TypeError) throw error;
-			throw new Error("provider capability probe failed");
+			throw new Error(
+				error instanceof Error
+					? error.message
+					: "provider capability probe failed",
+			);
 		} finally {
 			clearTimeout(timer);
 		}

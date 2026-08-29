@@ -49,7 +49,7 @@ test("default behaviorAdapter reports setup truth without fabricating a tunnel",
 				code: "TUNNEL_SETUP_REQUIRED",
 				message: "尚未完成持久 Tunnel 自动配置",
 				relatedModuleRefs: [],
-				nextCommand: "platform setup --module dev-tunnel",
+				nextCommand: "platform setup",
 			},
 		],
 	});

@@ -4,9 +4,9 @@
 
 Responsible: AI
 
-Interactive executable: `platform setup --module dev-tunnel`
+Interactive executable: `platform setup`
 
-Non-interactive executable: `pnpm exec -- proflow-dev-tunnel setup --workspace <path>`
+Non-interactive lifecycle entry: `platform setup --workspace <path>`
 
 Required inputs: none
 
@@ -25,6 +25,6 @@ Automatic flow:
 → 持久化并发布 tunnelId/publicBaseUrl
 ```
 
-Verify: `pnpm exec -- proflow-dev-tunnel verify`
+Verify: `platform status`
 
 Success condition: `dev-tunnel.setupStatus=READY`.

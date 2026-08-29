@@ -127,7 +127,8 @@ test("CP-EXE-BR-16 Platform setup surface removes manual Extension ID and fake R
 		new URL("../deployment/adapter.ts", import.meta.url),
 		"utf8",
 	);
-	assert.match(setupDoc, /platform setup --module execution-browser-extension/);
+	assert.match(setupDoc, /platform setup/);
+	assert.doesNotMatch(setupDoc, /--module/);
 	assert.match(setupDoc, /Verify: `platform status`/);
 	assert.doesNotMatch(
 		setupDoc,

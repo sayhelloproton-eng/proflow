@@ -66,7 +66,17 @@ function defaultCommandRunner(
 ): Promise<CommandResult> {
 	if (options?.interactive) {
 		return new Promise((resolve) => {
-			const child = spawn(command, args, { stdio: "inherit" });
+			const child = spawn(command, args, {
+				stdio: ["ignore", "pipe", "pipe"],
+			});
+			let stdout = "";
+			let stderr = "";
+			child.stdout?.on("data", (chunk: Buffer) => {
+				stdout += chunk.toString();
+			});
+			child.stderr?.on("data", (chunk: Buffer) => {
+				stderr += chunk.toString();
+			});
 			let timedOut = false;
 			const timer = setTimeout(() => {
 				timedOut = true;
@@ -74,14 +84,14 @@ function defaultCommandRunner(
 			}, options.timeoutMs ?? 600_000);
 			child.once("error", (error) => {
 				clearTimeout(timer);
-				resolve({ exitCode: null, stdout: "", stderr: error.message });
+				resolve({ exitCode: null, stdout, stderr: error.message });
 			});
 			child.once("exit", (code) => {
 				clearTimeout(timer);
 				resolve({
 					exitCode: timedOut ? null : code,
-					stdout: "",
-					stderr: timedOut ? "command timed out" : "",
+					stdout,
+					stderr: timedOut ? "command timed out" : stderr,
 				});
 			});
 		});

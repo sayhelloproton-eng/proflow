@@ -3,7 +3,7 @@ import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { runCli } from "../src/cli.ts";
+import { renderHumanResult, runCli } from "../src/cli.ts";
 
 const parseCli = <T>(value: T): T => value;
 
@@ -60,6 +60,11 @@ test("platform docs defaults to an index instead of dumping every Module documen
 			JSON.stringify(output).includes("INTERNAL_FULL_DOCUMENT"),
 			false,
 		);
+		const rendered = renderHumanResult(output as never);
+		assert.match(rendered, /platform install/);
+		assert.match(rendered, /platform setup/);
+		assert.match(rendered, /platform start/);
+		assert.doesNotMatch(rendered, /docs-index|可用文档|--module/);
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
@@ -86,5 +91,21 @@ test("platform docs supports a single Module filter", async () => {
 		);
 	} finally {
 		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("core onboarding docs expose only Platform lifecycle commands", async () => {
+	for (const path of [
+		"../../execution-browser-extension/DOCS.md",
+		"../../execution-browser-extension/SETUP.md",
+		"../../dev-tunnel/DOCS.md",
+		"../../dev-tunnel/SETUP.md",
+		"../../model-provider-api/DOCS.md",
+		"../../model-provider-api/SETUP.md",
+		"../../model-runtime/DOCS.md",
+		"../../model-runtime/SETUP.md",
+	]) {
+		const content = await readFile(new URL(path, import.meta.url), "utf8");
+		assert.doesNotMatch(content, /pnpm exec|platform setup --module/);
 	}
 });

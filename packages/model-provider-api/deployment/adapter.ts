@@ -270,7 +270,7 @@ function issue(resolution: Exclude<Resolution, { status: "READY" }>) {
 		code: resolution.status,
 		message: resolution.message,
 		relatedModuleRefs: [],
-		nextCommand: "platform setup --module model-provider-api",
+		nextCommand: "platform setup",
 	};
 }
 

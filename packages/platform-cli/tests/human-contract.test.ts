@@ -13,14 +13,14 @@ test("public --json is rejected and runCli returns a typed object", async () => 
 	assert.equal(result.error?.code, "INVALID_REQUEST");
 });
 
-test("human status output translates every public status enum", () => {
+test("human status output presents one product journey action without Module commands", () => {
 	const rendered = renderHumanResult({
 		command: "status",
 		status: "SUCCEEDED",
 		data: {
 			modules: [
 				{
-					moduleRef: "a",
+					moduleRef: "execution-browser-extension",
 					version: "1.0.0",
 					setupStatus: "ACTION_REQUIRED",
 					runtimeStatus: "NOT_APPLICABLE",
@@ -35,13 +35,13 @@ test("human status output translates every public status enum", () => {
 					],
 				},
 				{
-					moduleRef: "b",
+					moduleRef: "dev-tunnel",
 					version: "1.0.0",
 					setupStatus: "READY",
 					runtimeStatus: "RUNNING",
 				},
 				{
-					moduleRef: "c",
+					moduleRef: "model-provider-api",
 					version: "1.0.0",
 					setupStatus: "FAILED",
 					runtimeStatus: "STOPPED",
@@ -56,7 +56,7 @@ test("human status output translates every public status enum", () => {
 					],
 				},
 				{
-					moduleRef: "d",
+					moduleRef: "model-runtime",
 					version: "1.0.0",
 					setupStatus: "BLOCKED",
 					runtimeStatus: "STOPPED",
@@ -73,26 +73,11 @@ test("human status output translates every public status enum", () => {
 			],
 		},
 	});
-	for (const raw of ["ACTION_REQUIRED", "NOT_APPLICABLE", "RUNNING", "STOPPED"])
-		assert.equal(rendered.includes(raw), false);
-	for (const translated of [
-		"需要操作",
-		"无独立进程",
-		"配置已完成",
-		"运行中",
-		"已停止",
-		"失败",
-	])
-		assert.match(rendered, new RegExp(translated));
-	assert.match(rendered, /●\s+b/);
-	assert.match(rendered, /◆\s+a/);
-	assert.match(rendered, /✕\s+c/);
-	assert.match(rendered, /下一步：platform setup --module a/);
-	assert.match(rendered, /原因：配置文件签名无效/);
-	assert.match(rendered, /下游等待/);
-	assert.match(rendered, /原因：等待 provider/);
-	assert.doesNotMatch(rendered, /下一步：platform setup --module provider/);
-	assert.doesNotMatch(rendered, /模块配置检查失败/);
+	assert.match(rendered, /配置进度\s+1\/3/);
+	assert.match(rendered, /当前处理：浏览器扩展/);
+	assert.match(rendered, /下一步：platform setup/);
+	assert.doesNotMatch(rendered, /--module|execution-browser-extension|dev-tunnel/);
+	assert.match(rendered, /PLATFORM_READY=NO/);
 });
 
 test("status reports one aggregate progress phase instead of printing every module", async () => {
@@ -163,12 +148,14 @@ test("help contains explanations and no raw JSON input route", () => {
 	assert.match(rendered, /-v, --version/);
 	assert.match(rendered, /等待依赖/);
 	assert.equal(rendered.includes("--input"), false);
+	assert.doesNotMatch(rendered, /setup --module/);
+	assert.match(rendered, /install → setup → start/);
 });
 
 test("usage errors include contextual help while operation failures stay concise", async () => {
 	const invalid = await runCli(["dasdsd"]);
 	const invalidRendered = renderHumanResult(invalid);
-	assert.match(invalidRendered, /unknown command dasdsd/);
+	assert.match(invalidRendered, /未知命令 dasdsd/);
 	assert.match(invalidRendered, /用法/);
 	assert.match(invalidRendered, /platform install/);
 	const operationRendered = renderHumanResult({
@@ -178,6 +165,12 @@ test("usage errors include contextual help while operation failures stay concise
 	});
 	assert.match(operationRendered, /service crashed/);
 	assert.doesNotMatch(operationRendered, /推荐流程/);
+});
+
+test("near-miss command receives one concise correction", async () => {
+	const rendered = renderHumanResult(await runCli(["steup"]));
+	assert.match(rendered, /你是否想运行 platform setup/);
+	assert.doesNotMatch(rendered, /推荐流程|状态图例/);
 });
 
 test("uninstall success says already uninstalled", () => {

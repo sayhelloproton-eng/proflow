@@ -35,8 +35,9 @@ test("browser deployment exposes no separate package management CLI", async () =
 	);
 	assert.match(
 		setupGuide,
-		/platform setup --module execution-browser-extension/,
+		/platform setup/,
 	);
+	assert.doesNotMatch(setupGuide, /--module/);
 	assert.match(setupGuide, /Verify: `platform status`/);
 	for (const source of ["../src/configure.ts", "../src/configure-args.ts"])
 		await assert.rejects(
@@ -89,10 +90,9 @@ test("browser install workflow exposes one human installation confirmation", asy
 	assert.match(instruction, /路径已复制/);
 	assert.match(instruction, /Cmd\+Shift\+G/);
 	assert.match(instruction, /Cmd\+V/);
-	assert.ok(
-		instruction.indexOf("开发者模式") < instruction.indexOf("Cmd+Shift+G"),
-	);
-	assert.match(instruction, /完成后无需返回输入任何内容/);
+	assert.match(instruction, /步骤 2\/2/);
+	assert.doesNotMatch(instruction, /开发者模式/);
+	assert.match(instruction, /完成后无需返回终端输入内容/);
 	assert.match(instruction, new RegExp(loadDir.replaceAll("/", "\\/")));
 	assert.doesNotMatch(
 		instruction,

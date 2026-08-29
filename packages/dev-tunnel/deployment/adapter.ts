@@ -189,7 +189,7 @@ const baseBehaviorAdapter = {
 								code: "TUNNEL_SETUP_REQUIRED",
 								message: "尚未完成持久 Tunnel 自动配置",
 								relatedModuleRefs: [],
-								nextCommand: "platform setup --module dev-tunnel",
+								nextCommand: "platform setup",
 							},
 						],
 					},
@@ -233,7 +233,7 @@ const baseBehaviorAdapter = {
 															? `远程连接配置已保存，当前阶段 ${state.phase}；重新运行 Platform setup 将从此处恢复`
 															: "Dev Tunnel CLI 尚未登录或配置未保存",
 													relatedModuleRefs: [],
-													nextCommand: "platform setup --module dev-tunnel",
+											nextCommand: "platform setup",
 												},
 											]
 										: []),
@@ -244,7 +244,7 @@ const baseBehaviorAdapter = {
 													code: "TUNNEL_RUNTIME_FAILED",
 													message: "Tunnel 运行状态检查失败",
 													relatedModuleRefs: [],
-													nextCommand: "pnpm exec -- proflow-dev-tunnel verify",
+											nextCommand: "platform status",
 												},
 											]
 										: []),

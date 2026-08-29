@@ -1,6 +1,6 @@
 # 当前总控状态、验证总纲总控职责与 Real 路线
 
-> 更新时间：2026-08-29。这里记录 Phase 3 最终验收的 operational control state，不替代 Git / Registry / runtime 的实时事实检查，也不替代 Frozen Spec / Test Plan。Real-2 最终冻结事实见 `13-Real2-最终冻结与Real3交接.md`；当前 Fresh Workspace 人工验收完整交接见 `16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md`。
+> 更新时间：2026-08-30。这里记录 Phase 3 最终验收的 operational control state，不替代 Git / Registry / runtime 的实时事实检查，也不替代 Frozen Spec / Test Plan。当前唯一执行门是 Deployment Closeout；执行事实、长期自动化规则、dirty WIP 与未解决问题统一见 `09-Real3当前上下文与未解决问题-20260829.md`（文件名保留历史引用）。
 
 ## 当前阶段
 
@@ -10,25 +10,17 @@
 - `REAL_1 = PASS`
 - `REAL_2 = PASS`
 - `REAL2_PROVISIONING_GO = YES`
-- `READY_FOR_REAL_3 = YES`
-- `CURRENT_STAGE = REAL_3`
+- `READY_FOR_REAL_3 = YES`（历史阶段状态，当前不推进）
+- `CURRENT_EXECUTION_GATE = DEPLOYMENT_CLOSEOUT`
+- `DEPLOYMENT_SUCCESS = NOT_YET_RECONFIRMED`
+- `SYSTEM_REAL_USABLE = OUT_OF_SCOPE_FOR_CURRENT_GATE`
 - `PHASE3_FINAL_GO = NO`
 
-2026-08-26 补充状态：
+当前唯一执行目标已经重新收敛为 **Deployment / Fresh Workspace 部署闭环**。最近真实回放暴露了安装完整性、Platform 状态/交互、Browser READY 真值、Model Runtime setup/status 一致性、Workspace 稳定性等部署层问题，因此在部署重新真实 PASS 前，不推进 Real-3 业务 Journey。
 
-```text
-MODEL_DOMAIN_CODE = PASS
-REAL_EXTERNAL = ACTION_REQUIRED
-PLATFORM_END_TO_END = NOT PASS
-```
+这里必须严格区分：`DEPLOYMENT_SUCCESS != SYSTEM_REAL_USABLE`。当前只要求用户能够从 Fresh Workspace 通过 Platform CLI 以低心智、最大自动化、职责清晰且稳定可恢复的方式完成 install / setup / start / status 部署闭环；系统后续是否真正完成业务任务、协作、Effect、Browser/File/Phone Model 联合执行，属于后续 Real 阶段，不得再反向卡住当前部署 PASS。
 
-模型域确定性代码门已收口，但 Deployment-owned Provider endpoint resolver 尚未裁决，父工作区 installed packages 与 main 源码存在同版本内容漂移，最终公网访问为 HTTP 502。因此当前仍是 Real-3 前置部署阻塞，不能由 `REAL_1/REAL_2 = PASS` 推导整个平台 READY。
-
-2026-08-29 Fresh Workspace 人工验收补充状态：真实 npm Registry 本轮 14/14 新版本已发布可见，active surface=23，`platform-cli=0.1.38`；Fresh npm install 23/23 PASS。Browser Extension 已人工加载并 pairing READY；Model Provider 已通过真实 OpenAI-compatible endpoint 验证并 READY。当前人工 `platform status = 17 配置已完成 / 1 根阻塞 / 5 下游等待 / 0 失败 / 0 进程`，唯一 root blocker 为 Dev Tunnel。Dev Tunnel 已确认 `No ports found` JSON 兼容和 retry orphan 问题；Platform setup/Provider input bridge 与 npm+pnpm 工作区污染也已列为 P0。完整现场和授权边界统一见 `16-Fresh-Workspace真实人工验收与新Chat交接-20260829.md`。
-
-配置自动化的设计背景、必须保留的人类边界与技术问答继续见 `14-配置自动化与OpenAI-Secure-MCP-Tunnel后续.md`；其中 2026-08-26 snapshot 已是历史。不得从旧 setup 文案恢复人工搬运 URL、模型 ID、路径或 token 的流程。
-
-当前工作性质是 **最终真实验收**，不是继续开发 Phase 3，也不是重新寻找全仓问题。当前人工验收已充分暴露 onboarding 主断点，下一 Chat 应先恢复现场和冻结整改范围，不随机继续测试。
+当前工作性质是 **部署产品化与真实部署验收收口**，不是重开 Phase 3 架构，也不是验证完整业务系统可用性。实时状态、dirty WIP 和未解决 Root 统一见 `09-Real3当前上下文与未解决问题-20260829.md`。
 
 新 Chat 不允许把状态自动退回旧阶段；只有新的、可复现的真实 regression evidence 才能申请重开已通过阶段。
 

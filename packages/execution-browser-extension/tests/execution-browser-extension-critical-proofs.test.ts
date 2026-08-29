@@ -506,7 +506,7 @@ test("REG-EXE-BR-08 Module setup invokes the owner pairing capability directly",
 				code: "EXTENSION_LOAD_REQUIRED",
 				message: "Chrome 扩展尚未加载或缺少可验证的运行证据",
 				relatedModuleRefs: ["chrome-runtime"],
-				nextCommand: "platform setup --module execution-browser-extension",
+				nextCommand: "platform setup",
 			},
 		],
 	});
@@ -515,6 +515,7 @@ test("REG-EXE-BR-08 Module setup invokes the owner pairing capability directly",
 		await behaviorAdapter.setup({
 			...commandContext,
 			input: {
+				developerModeConfirmed: true,
 				desktop: {
 					copyText: () => calls.push("copy"),
 					openExtensionsPage: () => calls.push("open"),

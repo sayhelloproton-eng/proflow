@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import { modelCapabilityProfileSchema } from "@tomflow/proflow-model-contracts";
@@ -90,6 +90,15 @@ const stateDirectory = (context: ModuleCommandContext) =>
 	moduleWorkspaceStateDirectory(context, descriptor.moduleRef);
 const mappingPath = (context: ModuleCommandContext) =>
 	join(stateDirectory(context), "role-mapping.json");
+const setupFailurePath = (context: ModuleCommandContext) =>
+	join(stateDirectory(context), "setup-failure.json");
+
+type SetupFailureState = {
+	contract: "proflow.model-runtime-setup-failure.v1";
+	inventoryFingerprint: string;
+	message: string;
+	recordedAt: string;
+};
 
 function string(value: unknown): string | undefined {
 	return typeof value === "string" && value.length > 0 ? value : undefined;
@@ -193,6 +202,53 @@ async function writeMapping(
 		{ encoding: "utf8", mode: 0o600 },
 	);
 	await rename(temporary, target);
+}
+
+async function readSetupFailure(
+	context: ModuleCommandContext,
+): Promise<SetupFailureState | undefined> {
+	try {
+		const raw = JSON.parse(await readFile(setupFailurePath(context), "utf8"));
+		return raw?.contract === "proflow.model-runtime-setup-failure.v1" &&
+			typeof raw.inventoryFingerprint === "string" &&
+			typeof raw.message === "string" &&
+			typeof raw.recordedAt === "string"
+			? (raw as SetupFailureState)
+			: undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+async function writeSetupFailure(
+	context: ModuleCommandContext,
+	state: SetupFailureState,
+): Promise<void> {
+	await mkdir(stateDirectory(context), { recursive: true, mode: 0o700 });
+	const target = setupFailurePath(context);
+	const temporary = `${target}.${process.pid}.tmp`;
+	await writeFile(temporary, `${JSON.stringify(state, null, 2)}\n`, {
+		encoding: "utf8",
+		mode: 0o600,
+	});
+	await rename(temporary, target);
+}
+
+async function clearSetupFailure(context: ModuleCommandContext): Promise<void> {
+	await rm(setupFailurePath(context), { force: true });
+}
+
+function decisionFailureMessage(decision: Exclude<RoleMappingDecision, { status: "READY" }>) {
+	const failures = decision.failures ?? [];
+	const probeDetail = failures.length
+		? `；探测失败：${failures.map((item) => `${item.modelRef}（${item.reason}）`).join("、")}`
+		: "";
+	const rejections = decision.rejections ?? [];
+	const qualificationDetail = rejections.length
+		? `；资格不符：${rejections.map((item) => `${item.modelRef}（${item.reasons.join("、") || "没有形成有效能力证据"}）`).join("、")}`
+		: "";
+	const roleLabel = decision.role === "reason" ? "THINK" : "FAST";
+	return `Provider inventory 缺少合格的 ${roleLabel} 模型${probeDetail}${qualificationDetail}`;
 }
 
 async function ownFacts(context: ModuleCommandContext) {
@@ -365,14 +421,39 @@ export function createModelRuntimeBehaviorAdapter(
 									code: "UPSTREAM_NOT_READY",
 									message: "等待 model-provider-api 发布验证过的模型 inventory",
 									relatedModuleRefs: ["model-provider-api"],
-									nextCommand: "platform setup --module model-provider-api",
+									nextCommand: "platform setup",
 								},
 							],
 						},
 					},
 					observedEffects: [],
 				};
-			if (!mapping)
+			if (!mapping) {
+				const persistedFailure = await readSetupFailure(context);
+				if (
+					persistedFailure?.inventoryFingerprint === fingerprint(provider.models)
+				)
+					return {
+						result: {
+							...base,
+							data: {
+								setupStatus: "FAILED" as const,
+								runtimeStatus: (await isRunning(context))
+									? ("RUNNING" as const)
+									: ("STOPPED" as const),
+								issues: [
+									{
+										scope: "SETUP" as const,
+										code: "MODEL_ROLE_VALIDATION_FAILED",
+										message: persistedFailure.message,
+										relatedModuleRefs: ["model-provider-api"],
+										nextCommand: "platform setup",
+									},
+								],
+							},
+						},
+						observedEffects: [],
+					};
 				return {
 					result: {
 						...base,
@@ -385,15 +466,16 @@ export function createModelRuntimeBehaviorAdapter(
 								{
 									scope: "SETUP" as const,
 									code: "MODEL_MAPPING_REQUIRED",
-									message: "等待自动验证并映射 FAST / REASON",
+									message: "等待自动验证并映射 FAST / THINK",
 									relatedModuleRefs: ["model-provider-api"],
-									nextCommand: "platform setup --module model-runtime",
+									nextCommand: "platform setup",
 								},
 							],
 						},
 					},
 					observedEffects: [],
 				};
+			}
 			const providerSecret = await credential(provider.providerCredentialFile);
 			let live: readonly string[];
 			try {
@@ -407,16 +489,14 @@ export function createModelRuntimeBehaviorAdapter(
 						...base,
 						data: {
 							setupStatus: "READY" as const,
-							runtimeStatus: (await isRunning(context))
-								? ("RUNNING" as const)
-								: ("STOPPED" as const),
+							runtimeStatus: "FAILED" as const,
 							issues: [
 								{
 									scope: "RUNTIME" as const,
 									code: "PROVIDER_UNAVAILABLE",
 									message: "模型 Provider 当前不可用",
 									relatedModuleRefs: ["model-provider-api"],
-									nextCommand: "platform setup --module model-provider-api",
+									nextCommand: "platform setup",
 								},
 							],
 						},
@@ -441,7 +521,7 @@ export function createModelRuntimeBehaviorAdapter(
 									code: "MODEL_MAPPING_STALE",
 									message: "Provider model inventory 已变化，需要自动重新映射",
 									relatedModuleRefs: ["model-provider-api"],
-									nextCommand: "platform setup --module model-runtime",
+									nextCommand: "platform setup",
 								},
 							],
 						},
@@ -479,59 +559,27 @@ export function createModelRuntimeBehaviorAdapter(
 			}
 			const providerSecret = await credential(provider.providerCredentialFile);
 			const selected = selectedRoles(context);
-			if (!selected?.fast || !selected.reason)
-				return {
-					result: {
-						...base,
-						ok: false as const,
-						status: "ACTION_REQUIRED" as const,
-						data: {
-							steps: [
-								{
-									id: "STEP-MODEL-RUNTIME-01",
-									title: "选择 FAST 与 THINK 模型",
-									description:
-										"从模型服务真实库存中分别选择快速模型与推理模型，随后由 Model Runtime 验证能力。",
-									state: "TODO" as const,
-									responsible: "USER" as const,
-									execution: {
-										interactive: "platform setup",
-										nonInteractive: "platform setup",
-									},
-									requiredInputs: [
-										{
-											name: "fastModel",
-											description: "FAST 模型",
-											sensitive: false,
-										},
-										{
-											name: "reasonModel",
-											description: "THINK 模型",
-											sensitive: false,
-										},
-									],
-									verify: "platform status",
-									successCondition: "FAST / THINK 能力验证通过",
-									humanAction: "选择 FAST 与 THINK 模型",
-								},
-							],
-						},
-						actionRequired: {
-							action: "select-model-roles",
-							description: "请选择 FAST 与 THINK 模型。",
-						},
-					},
-					observedEffects: [],
-				};
 			const preferred = {
 				...(existing?.mapping ?? {}),
 				...(selected ?? {}),
 			};
-			const decision = await mapInventory({
-				...provider,
-				...(providerSecret ? { credential: providerSecret } : {}),
-				...(Object.keys(preferred).length > 0 ? { previous: preferred } : {}),
-			});
+			let decision: RoleMappingDecision;
+			try {
+				decision = await mapInventory({
+					...provider,
+					...(providerSecret ? { credential: providerSecret } : {}),
+					...(Object.keys(preferred).length > 0 ? { previous: preferred } : {}),
+				});
+			} catch (error) {
+				const message = `模型能力验证失败：${error instanceof Error ? error.message : String(error)}`;
+				await writeSetupFailure(context, {
+					contract: "proflow.model-runtime-setup-failure.v1",
+					inventoryFingerprint,
+					message,
+					recordedAt: now(),
+				});
+				return { result: failed("SETUP_FAILED", message), observedEffects: [] };
+			}
 			if (decision.status === "READY") {
 				await writeMapping(context, {
 					contract: "proflow.model-role-mapping.v1",
@@ -546,6 +594,7 @@ export function createModelRuntimeBehaviorAdapter(
 					})),
 					verifiedAt: now(),
 				});
+				await clearSetupFailure(context);
 				await ownFacts(context);
 				return { result: base, observedEffects: [] };
 			}
@@ -556,25 +605,26 @@ export function createModelRuntimeBehaviorAdapter(
 						ok: false as const,
 						status: "ACTION_REQUIRED" as const,
 						data: {
+							candidates: [...decision.candidates],
 							steps: [
 								{
 									id: "STEP-MODEL-RUNTIME-01",
-									title: `选择 ${decision.role.toUpperCase()} 模型`,
+									title: `选择 ${decision.role === "reason" ? "THINK" : "FAST"} 模型`,
 									description: `能力验证后仍有多个等价候选：${decision.candidates.join(", ")}`,
 									state: "TODO" as const,
 									responsible: "USER" as const,
 									execution: {
-										interactive: "pnpm exec -- proflow-model-runtime setup",
-										nonInteractive: "pnpm exec -- proflow-model-runtime setup",
+										interactive: "platform setup",
+										nonInteractive: "platform setup",
 									},
 									requiredInputs: [
 										{
 											name: `${decision.role}Model`,
-											description: `${decision.role.toUpperCase()} 候选中的人工选择`,
+											description: `${decision.role === "reason" ? "THINK" : "FAST"} 候选中的人工选择`,
 											sensitive: false,
 										},
 									],
-									verify: "pnpm exec -- proflow-model-runtime verify",
+									verify: "platform status",
 									successCondition: "model-runtime.setupStatus=READY",
 									humanAction: "仅在等价候选中选择一个模型角色",
 								},
@@ -587,12 +637,15 @@ export function createModelRuntimeBehaviorAdapter(
 					},
 					observedEffects: [],
 				};
+			const message = decisionFailureMessage(decision);
+			await writeSetupFailure(context, {
+				contract: "proflow.model-runtime-setup-failure.v1",
+				inventoryFingerprint,
+				message,
+				recordedAt: now(),
+			});
 			return {
-				result: failed(
-					"SETUP_FAILED",
-					`Provider inventory 缺少合格的 ${decision.role.toUpperCase()} 模型`,
-					false,
-				),
+				result: failed("SETUP_FAILED", message, false),
 				observedEffects: [],
 			};
 		},
