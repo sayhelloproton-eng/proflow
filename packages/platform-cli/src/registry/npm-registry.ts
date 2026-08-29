@@ -13,6 +13,9 @@ export const PRO_FLOW_PACKAGE_PREFIX = "@tomflow/proflow-";
 export const RETIRED_PRO_FLOW_PACKAGES = new Set([
 	"@tomflow/proflow-chatgpt-carrier",
 ]);
+export const PRO_FLOW_TOOL_PACKAGES = new Set([
+	"@tomflow/proflow-devtunnel-cli",
+]);
 
 export interface NpmCommandResult {
 	stdout: string;
@@ -53,6 +56,7 @@ export interface RegistryDiscoveryResult {
 	candidates: RegistryModuleCandidate[];
 	rejected: RegistryRejectedPackage[];
 	retired: string[];
+	tools: string[];
 }
 
 interface NpmSearchItem {
@@ -130,8 +134,11 @@ export async function discoverRegistryModules(options: {
 			? await searchPackageNames(options.workspaceRoot, registry, runner)
 			: [validateRequestedPackageName(options.packageName)];
 	const retired = names.filter((name) => RETIRED_PRO_FLOW_PACKAGES.has(name));
+	const tools = names.filter((name) => PRO_FLOW_TOOL_PACKAGES.has(name));
 	const activeNames = names.filter(
-		(name) => !RETIRED_PRO_FLOW_PACKAGES.has(name),
+		(name) =>
+			!RETIRED_PRO_FLOW_PACKAGES.has(name) &&
+			!PRO_FLOW_TOOL_PACKAGES.has(name),
 	);
 	options.onSearchComplete?.(activeNames.length);
 	const candidates: RegistryModuleCandidate[] = [];
@@ -173,7 +180,7 @@ export async function discoverRegistryModules(options: {
 	rejected.sort((left, right) =>
 		left.packageName.localeCompare(right.packageName),
 	);
-	return { registry, candidates, rejected, retired };
+	return { registry, candidates, rejected, retired, tools };
 }
 
 async function searchPackageNames(
