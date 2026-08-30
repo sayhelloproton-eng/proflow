@@ -446,6 +446,10 @@
   dir: packages/devtunnel-cli
   intents:
     - six-mice-eat
+"@tomflow/proflow-devtunnel-cli@0.1.1":
+  dir: packages/devtunnel-cli
+  intents:
+    - deployment-closeout-browser-tunnel-provider
 "@tomflow/proflow-execution-browser-extension@0.1.1":
   dir: packages/execution-browser-extension
   intents:
@@ -482,6 +486,10 @@
   dir: packages/execution-browser-extension
   intents:
     - deployment-closeout-repack
+"@tomflow/proflow-execution-browser-extension@0.1.18":
+  dir: packages/execution-browser-extension
+  intents:
+    - deployment-closeout-browser-tunnel-provider
 "@tomflow/proflow-execution-browser-extension@0.1.2":
   dir: packages/execution-browser-extension
   intents:
@@ -702,6 +710,10 @@
   dir: packages/model-provider-api
   intents:
     - deployment-closeout-repack
+"@tomflow/proflow-model-provider-api@0.1.17":
+  dir: packages/model-provider-api
+  intents:
+    - deployment-closeout-browser-tunnel-provider
 "@tomflow/proflow-model-provider-api@0.1.2":
   dir: packages/model-provider-api
   intents:
