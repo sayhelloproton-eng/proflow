@@ -438,7 +438,11 @@ export async function setupModulesThin(
 				break;
 			}
 			const observed = moduleStatusObservationSchema.parse(status.result.data);
-			if (observed.setupStatus === "READY" && target === undefined) {
+			if (
+				observed.setupStatus === "READY" &&
+				observed.runtimeStatus !== "FAILED" &&
+				target === undefined
+			) {
 				skipped.push({ moduleRef: module.moduleRef, reason: "READY" });
 				reportProgress(reporter, {
 					command: "setup",

@@ -65,6 +65,12 @@ function recordingCatalog(
 	setupStatusAfterSetupByRef: Readonly<
 		Record<string, "READY" | "ACTION_REQUIRED" | "BLOCKED" | "FAILED">
 	> = {},
+	runtimeStatusByRef: Readonly<
+		Record<
+			string,
+			"RUNNING" | "STOPPED" | "FAILED" | "UNKNOWN" | "NOT_APPLICABLE"
+		>
+	> = {},
 ) {
 	const calls: Array<{ call: string; input?: unknown }> = [];
 	const runtimeByRef = new Map<string, "RUNNING" | "STOPPED">();
@@ -160,24 +166,40 @@ function recordingCatalog(
 				}
 				if (command === "stop") runtimeByRef.set(moduleRef, "STOPPED");
 				const setupStatus = currentSetupByRef[moduleRef] ?? "READY";
+				const runtimeStatus =
+					runtimeStatusByRef[moduleRef] ??
+					runtimeByRef.get(moduleRef) ??
+					"STOPPED";
+				const issues = [
+					...(setupStatus === "READY"
+						? []
+						: [
+								{
+									scope: "SETUP" as const,
+									code: "NOT_READY",
+									message: `${moduleRef} is not ready`,
+									relatedModuleRefs: [],
+									nextCommand: `platform setup --module ${moduleRef}`,
+								},
+							]),
+					...(runtimeStatus === "FAILED"
+						? [
+								{
+									scope: "RUNTIME" as const,
+									code: "RUNTIME_FAILED",
+									message: `${moduleRef} runtime failed`,
+									relatedModuleRefs: [],
+									nextCommand: `platform setup --module ${moduleRef}`,
+								},
+							]
+						: []),
+				];
 				const data =
 					command === "status"
 						? {
 								setupStatus,
-								runtimeStatus: runtimeByRef.get(moduleRef) ?? "STOPPED",
-								...(setupStatus === "READY"
-									? {}
-									: {
-											issues: [
-												{
-													scope: "SETUP" as const,
-													code: "NOT_READY",
-													message: `${moduleRef} is not ready`,
-													relatedModuleRefs: [],
-													nextCommand: `platform setup --module ${moduleRef}`,
-												},
-											],
-										}),
+								runtimeStatus,
+								...(issues.length > 0 ? { issues } : {}),
 							}
 						: undefined;
 				return {
@@ -423,6 +445,23 @@ test("setup skips READY modules and invokes only ACTION_REQUIRED module", async 
 	assert.deepEqual(result.skipped, [
 		{ moduleRef: "provider", reason: "READY" },
 	]);
+});
+
+test("setup re-enters an owner when setup is READY but runtime has FAILED", async () => {
+	const { catalog, calls } = recordingCatalog(
+		{},
+		{},
+		{},
+		{},
+		{},
+		{},
+		{ provider: "FAILED" },
+	);
+	await setupModulesThin(catalog, [provider], workspaceRoot);
+	assert.deepEqual(
+		calls.map((item) => item.call),
+		["provider:status", "provider:setup", "provider:status"],
+	);
 });
 
 test("setup asks the Platform interaction shell only before a module that needs setup", async () => {

@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 142,
-    "testCalls": 640
+    "testCalls": 641
   },
   "tests": [
     {
@@ -6658,7 +6658,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 219,
+      "line": 241,
       "title": "start gates on Module.status setup READY and never runs preflight",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6673,7 +6673,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 264,
+      "line": 286,
       "title": "start and stop retries skip runtime states already reached",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6688,7 +6688,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 286,
+      "line": 308,
       "title": "successful start and stop preserve dependency and reverse dependency order",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6703,7 +6703,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 315,
+      "line": 337,
       "title": "start performs zero starts when a Module reports FAILED setup status",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6718,7 +6718,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 335,
+      "line": 357,
       "title": "start fails fast during execution without starting later Modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6733,7 +6733,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 351,
+      "line": 373,
       "title": "stop runs in reverse dependency order and fails fast",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6748,7 +6748,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 363,
+      "line": 385,
       "title": "stop reports a successful no-effect external runtime as skipped",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6763,7 +6763,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 399,
+      "line": 421,
       "title": "uninstall runs in reverse dependency order and fails fast",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6778,7 +6778,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 415,
+      "line": 437,
       "title": "setup skips READY modules and invokes only ACTION_REQUIRED module",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6793,7 +6793,22 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 428,
+      "line": 450,
+      "title": "setup re-enters an owner when setup is READY but runtime has FAILED",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 467,
       "title": "setup asks the Platform interaction shell only before a module that needs setup",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6808,7 +6823,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 444,
+      "line": 483,
       "title": "RF-DEP-CLI-REAL2-01 full setup gates at the first owner that still needs human action",
       "ids": [
         "RF-DEP-CLI-REAL2-01"
@@ -6825,7 +6840,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 469,
+      "line": 508,
       "title": "full setup presents Browser, Tunnel, then Provider as the user-visible frontier",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6840,7 +6855,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 497,
+      "line": 536,
       "title": "RF-DEP-CLI-REAL2-02 setup re-reads owner status instead of guessing readiness from SUCCEEDED",
       "ids": [
         "RF-DEP-CLI-REAL2-02"
@@ -6857,7 +6872,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 519,
+      "line": 558,
       "title": "targeted setup forwards opaque input without Platform interpretation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6872,7 +6887,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 534,
+      "line": 573,
       "title": "targeted setup reconciles a READY module even without explicit input",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6887,7 +6902,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 548,
+      "line": 587,
       "title": "setup never starts a later machine failure after the first human action",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6902,7 +6917,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 569,
+      "line": 608,
       "title": "CP-DEP-CLI-REAL2-01 CP-DEP-CLI-REAL2-02 CP-DEP-CLI-REAL2-05 same-run provider readiness unlocks dependent setup",
       "ids": [
         "CP-DEP-CLI-REAL2-01",
@@ -6921,7 +6936,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 594,
+      "line": 633,
       "title": "CP-DEP-CLI-REAL2-03 owners determine the first actionable setup frontier",
       "ids": [
         "CP-DEP-CLI-REAL2-03"
@@ -6938,7 +6953,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 618,
+      "line": 657,
       "title": "CP-DEP-CLI-REAL2-04 RF-DEP-CLI-REAL2-03 setup priority is presentation-only and stores no module-specific resume state",
       "ids": [
         "CP-DEP-CLI-REAL2-04",
@@ -6956,7 +6971,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 630,
+      "line": 669,
       "title": "deployment setup temporarily starts service dependencies before agent-package provisioning and restores them",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6971,7 +6986,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 676,
+      "line": 715,
       "title": "deployment setup cleans temporary service dependencies when agent-package provisioning fails",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6986,7 +7001,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 700,
+      "line": 739,
       "title": "deployment setup never stops service dependencies that were already running",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
