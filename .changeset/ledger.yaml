@@ -410,6 +410,10 @@
   dir: packages/dev-tunnel
   intents:
     - six-mice-eat
+"@tomflow/proflow-dev-tunnel@0.1.18":
+  dir: packages/dev-tunnel
+  intents:
+    - deployment-closeout-hardening
 "@tomflow/proflow-dev-tunnel@0.1.2":
   dir: packages/dev-tunnel
   intents:
@@ -466,6 +470,10 @@
   dir: packages/execution-browser-extension
   intents:
     - six-mice-eat
+"@tomflow/proflow-execution-browser-extension@0.1.16":
+  dir: packages/execution-browser-extension
+  intents:
+    - deployment-closeout-hardening
 "@tomflow/proflow-execution-browser-extension@0.1.2":
   dir: packages/execution-browser-extension
   intents:
@@ -542,6 +550,10 @@
   dir: packages/execution-local
   intents:
     - phase3-real3-browser-status-closeout
+"@tomflow/proflow-execution-local@0.1.14":
+  dir: packages/execution-local
+  intents:
+    - deployment-closeout-hardening
 "@tomflow/proflow-execution-local@0.1.2":
   dir: packages/execution-local
   intents:
@@ -670,6 +682,10 @@
   dir: packages/model-provider-api
   intents:
     - six-mice-eat
+"@tomflow/proflow-model-provider-api@0.1.15":
+  dir: packages/model-provider-api
+  intents:
+    - deployment-closeout-hardening
 "@tomflow/proflow-model-provider-api@0.1.2":
   dir: packages/model-provider-api
   intents:
@@ -730,6 +746,10 @@
   dir: packages/model-runtime
   intents:
     - six-mice-eat
+"@tomflow/proflow-model-runtime@0.1.18":
+  dir: packages/model-runtime
+  intents:
+    - deployment-closeout-hardening
 "@tomflow/proflow-model-runtime@0.1.2":
   dir: packages/model-runtime
   intents:
@@ -986,6 +1006,10 @@
   dir: packages/platform-cli
   intents:
     - bright-sites-cut
+"@tomflow/proflow-platform-cli@0.1.41":
+  dir: packages/platform-cli
+  intents:
+    - deployment-closeout-hardening
 "@tomflow/proflow-platform-cli@0.1.5":
   dir: packages/platform-cli
   intents:
