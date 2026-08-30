@@ -27,36 +27,62 @@
 最高原则：**真实用户 Journey 是主线程；源码测试和工程 Gate 只是修复证据，不能替代现实状态。**
 ## 2. 当前权威现场快照
 
+> 更新时间：2026-08-30 23:40 左右；易变化事实仍需下一 Chat 机械重读。
+
 ```text
-Source Repo      = /Users/agent/Desktop/proton-workspace/repos/proflow
-Source Branch    = main
-Source HEAD      = 041c592
-Product Workspace= /Users/agent/Desktop/proton-workspace
-Platform CLI     = 0.1.42
-Active Modules   = 23
-Current Product Gate = Model Provider / FAST / THINK
+Source Repo       = /Users/agent/Desktop/proton-workspace/repos/proflow
+Source Branch     = main
+Source HEAD       = b874a42
+Source WorkingTree= CLEAN
+Product Workspace = /Users/agent/Desktop/proton-workspace
+Current Product Gate = Final Registry-only Fresh / Browser
 DEPLOYMENT_SUCCESS = NO
 ```
 
-当前源码 working tree 的本轮未提交内容集中在执行上下文文档：
+当前 Product Workspace 关键安装物：
 
 ```text
-M 05-执行纪律与工具规则.md
-M 09-Real3当前上下文与未解决问题-20260829.md
-M 10-Deployment-Closeout循环测试进度计划书.md
+platform-cli                 0.1.43
+agent-runtime                0.1.11
+execution-browser-extension  0.1.18
+dev-tunnel                   0.1.20
+model-provider-api           0.1.17
+model-runtime                0.1.20
+agent-gateway                0.1.15
+agent-controller-dev         0.1.15
+agent-product                0.1.15
+agent-test-ops               0.1.15
 ```
 
-真实产品工作区当前存在本轮 Fresh install 生成的：
+Registry exact readback：
 
 ```text
-M package.json
-M pnpm-lock.yaml
-M pnpm-workspace.yaml
-.proflow/
-node_modules/
+agent-runtime@0.1.11 = PASS（npm pack exact tarball，确认 dist owner-store fix）
+platform-cli@0.1.43  = PASS（npm pack exact tarball，确认 dist temporary runtime bootstrap fix）
+model-runtime@0.1.20 = PASS（前一轮 exact tarball）
 ```
 
-易变化事实接管时必须机械重读；本节快照不能替代实时 Git / Registry / runtime reality。
+当前 public `platform status`：
+
+```text
+23 Module status readback
+配置进度 0/3
+Browser = CURRENT
+Remote  = LATER
+Model   = LATER
+0 real service processes
+PLATFORM_READY=NO
+```
+
+当前 Agent local durable truth：
+
+```text
+roles.json = MISSING
+credential store = PRESENT / 0 keys
+```
+
+因此上一轮 SOURCE_REAL 创建的 3 个 GPT 不能替代最终 Fresh Gate；当前必须重新走 Registry-only Final Fresh。
+
 ## 3. 唯一真实 Journey
 
 ```text
@@ -83,19 +109,30 @@ Registry exact artifacts
 
 | Gate | 当前状态 | 当前事实 / PASS 条件 |
 |---|---|---|
-| Registry exact artifacts | PASS | 6 个修正版已正式 publish 并 exact readback |
-| Fresh Workspace clean | PASS | 本轮已从受控 clean 状态重新开始 |
-| platform bootstrap | PASS | Registry `platform-cli@0.1.42` |
-| platform install | PASS | Registry 23/23 preflight + 23/23 Module.install |
-| Browser Extension real load | PASS | Fresh Chrome reality 已先卸载旧产品 registration，再从当前 Fresh Workspace 重新加载 `ProFlow Execution Browser 0.1.18`；enabled、Service Worker 可见 |
-| Browser pairing / heartbeat | PASS | Fresh `0.1.18` pairing / heartbeat 已完成；`platform status` 当前显示浏览器扩展已完成 |
-| Dev Tunnel Fresh setup | PASS | Fresh Registry `dev-tunnel@0.1.20` 已真实 setup=READY，owned host 运行中，`platform status` 当前显示远程连接已完成 |
-| Model Provider / FAST / THINK | DOING | 真实 endpoint `http://192.168.0.108:8080/v1/models` 已再次验证 HTTP 200 / 3 models；当前 Platform 仍显示“模型服务尚未绑定”，下一步是用稳定 `expect`/交互 harness 完成 Provider binding 与 Runtime FAST/THINK |
-| Custom GPT / 智能体 Fresh 创建 | PENDING | **Deployment 必要 Gate**；Real-2 历史 PASS 仅作回归参考，本轮必须用当前 Fresh Registry 安装物受控真实创建并核对 ChatGPT 侧结果与 identity/config/evidence 回写 |
-| platform start | FAIL_CLOSED_VERIFIED / FINAL_PENDING | 未完成 Model Gate 时历史负路径已证明 fail-closed；最终成功 start 仍待 Provider/Runtime READY 后真实执行 |
-| final platform status | NO | 必须真实根状态一致，无 Fake READY |
-| recovery / idempotency | DOING | Tunnel repeat setup 同 Tunnel/PID；owned host kill 后 status=FAILED、setup 恢复同 Tunnel/新 PID/RUNNING；Browser live disable/reload 与最终全链重复仍待 full start |
-| DEPLOYMENT_SUCCESS | NO | 所有必需 Gate 未全部 PASS |
+| Registry exact artifacts | PASS | `model-runtime@0.1.20`、`agent-runtime@0.1.11`、`platform-cli@0.1.43` 均已 exact tarball readback；后两包确认 dist 含本轮死锁修复 |
+| Source fixes / affected regression | PASS | Model Runtime 65/65；Agent Runtime 26/26；Platform CLI 80/80；相关 typecheck/diff-check PASS |
+| Final Fresh Workspace baseline | DOING | 当前 Workspace 已安装新 Registry 版本且 `platform status=0/3` fail-closed；下一 Chat 先确认其来源/Chrome registration，必要时才再 controlled clean |
+| Browser Extension final Fresh | PENDING | 必须 Remove 旧产品 registration → 当前 Fresh 0.1.18 Load unpacked → enabled/Service Worker → pairing/live heartbeat → status READY |
+| Dev Tunnel final Fresh | PENDING | 当前最终轮尚未重验；不删除远端资源，按 owned reuse/create/host/HTTPS probe/READY |
+| Model Provider / FAST / THINK final Fresh | PENDING | endpoint 固定 `http://192.168.0.108:8080/v1`；Provider inventory + Runtime FAST/THINK 必须由 0.1.20 Registry 安装物再次证明 |
+| Custom GPT / 智能体 final Fresh 创建 | PENDING | **Deployment 必要 Gate**；必须重新创建 3 个角色并验证 ChatGPT 页面 + roles + credential refs + Gateway health/Bearer probe；SOURCE_REAL 历史不能顶替 |
+| platform start | PENDING | 只有 final Fresh setup 全 READY 后才执行正式 start |
+| final platform status | PENDING | 必须根状态一致、真实 runtime RUNNING、无 Fake READY |
+| recovery / idempotency | PENDING | repeat setup/start、stop→start、Browser disable/reload、Tunnel host-down、Model fail-closed/recovery |
+| DEPLOYMENT_SUCCESS | NO | 所有必要 Gate 尚未全部 PASS |
+
+### 本 Chat 已新增的 SOURCE_REAL 证明
+
+```text
+Model Runtime 0.1.20 source lifecycle = PASS
+Agent owner-store + Platform temporary dependency bootstrap = SOURCE_REAL PASS
+3 个真实 Custom GPT 串行创建 = SOURCE_REAL PASS
+真实 Chrome 页面标题验证 3/3 = PASS
+临时 runtime cleanup 后 4 个 service = STOPPED
+```
+
+这些证明修复方向成立，但最终完成条件仍是**当前 Registry 安装物的 Final Fresh replay**。
+
 ## 5. 当前 Round
 
 ### Round R3｜Fresh Registry 0.1.42 系列真实回放
@@ -450,14 +487,33 @@ DEPLOYMENT_SUCCESS=YES
 ## 16. 当前唯一续接点
 
 ```text
-CURRENT_ROUND = R3
-CURRENT_GATE  = Model Provider / FAST / THINK → platform start/status → recovery/final Fresh
-CURRENT_ROOTS = 当前无新的已确认源码 root；先完成真实 Model Gate
-CURRENT_BLOCK = NONE_EXTERNAL：真实 `/v1/models` 已 HTTP 200，MODEL_COUNT=3；当前只是 Platform 尚未完成 Provider binding
-NEXT_ACTION   = 用 `expect`/稳定交互 harness 模拟真人执行 `platform setup` → 输入真实 Base URL → Provider inventory → Runtime FAST/THINK → platform start/status
-VERIFY_LEVEL  = 当前是现实 Journey 重放；无新源码修改就不重跑 L3/full gate
-REPLAY        = Provider READY → Runtime FAST/THINK → platform start/status → Browser live recovery → Tunnel recovery → lifecycle/idempotency → final Fresh
-REPORTING     = 每完成一个有意义验收步骤立即实时反馈，反馈后不等待确认并继续
-CONTINUATION  = 工具还能工作且无真实 hard blocker 就必须继续；实时反馈不是停工点
+CURRENT_ROUND = R4 / FINAL_REGISTRY_FRESH
+CURRENT_GATE  = Browser Fresh → Tunnel → Model → 3 Custom GPT → start/status → recovery
+CURRENT_ROOTS = 当前无新的已确认源码 root；先完成 Registry-only Final Fresh Journey
+CURRENT_BLOCK = NONE
+SOURCE_HEAD   = b874a42
+SOURCE_TREE   = CLEAN
+REGISTRY      = agent-runtime 0.1.11 / platform-cli 0.1.43 / model-runtime 0.1.20 exact PASS
+PRODUCT_STATE = 23 modules installed; platform status 0/3; Browser current; 0 services; roles.json missing; credential keys=0
+NEXT_ACTION   = 机械确认当前 Workspace Fresh 来源 + Chrome 产品 registration；若 Fresh 可证明则直接完成 Browser Remove→Load→Pairing，否则先 controlled clean/public install，再进入 Browser
+DO_NOT_REPEAT = 不再 publish 0.1.11/0.1.43；不重开 MR-01/02/03；不重跑 26/80 tests，除非新源码变化；不拿 SOURCE_REAL 3 GPT 顶替 Final Fresh
+PACKAGE_MGR   = Product Workspace npm-owned 时禁止 pnpm exec platform；只用本地 platform bin
+REPORTING     = 每个有意义 Gate 实时反馈后立即继续，不等待确认
 DEPLOYMENT_SUCCESS = NO
+```
+
+最终剩余链：
+
+```text
+Registry exact PASS（已完成）
+→ Final controlled Fresh
+→ Browser 0.1.18 real Fresh
+→ Dev Tunnel real Fresh
+→ Model Provider + Runtime 0.1.20 real Fresh
+→ 3 Custom GPT real Fresh
+→ platform start
+→ platform status READY
+→ stop/start + Browser/Tunnel/Model recovery + repeat/idempotency
+→ final evidence
+→ DEPLOYMENT_SUCCESS=YES
 ```
