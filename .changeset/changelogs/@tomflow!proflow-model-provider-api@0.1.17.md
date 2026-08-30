@@ -1,5 +1,0 @@
-## 0.1.17
-
-### Patch Changes
-
-- Close the final Deployment replay defects: make Dev Tunnel CLI version probing tolerate real service latency, keep Browser Extension setup idempotent across retries, and remember a non-sensitive Provider endpoint across temporary outages without fabricating readiness.
