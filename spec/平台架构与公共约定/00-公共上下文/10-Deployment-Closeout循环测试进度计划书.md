@@ -29,18 +29,20 @@
 ```text
 Source Repo      = /Users/agent/Desktop/proton-workspace/repos/proflow
 Source Branch    = main
-Source HEAD      = 80e1d4e
+Source HEAD      = 041c592
 Product Workspace= /Users/agent/Desktop/proton-workspace
 Platform CLI     = 0.1.42
 Active Modules   = 23
+Current Product Gate = Model Provider / FAST / THINK
 DEPLOYMENT_SUCCESS = NO
 ```
 
-当前源码 working tree 已知新增未提交内容：
+当前源码 working tree 的本轮未提交内容集中在执行上下文文档：
 
 ```text
-M  05-执行纪律与工具规则.md
-?? 10-Deployment-Closeout循环测试进度计划书.md
+M 05-执行纪律与工具规则.md
+M 09-Real3当前上下文与未解决问题-20260829.md
+M 10-Deployment-Closeout循环测试进度计划书.md
 ```
 
 真实产品工作区当前存在本轮 Fresh install 生成的：
@@ -83,11 +85,11 @@ Registry exact artifacts
 | Fresh Workspace clean | PASS | 本轮已从受控 clean 状态重新开始 |
 | platform bootstrap | PASS | Registry `platform-cli@0.1.42` |
 | platform install | PASS | Registry 23/23 preflight + 23/23 Module.install |
-| Browser Extension real load | PASS | 真实 Chrome 已加载 `ProFlow Execution Browser 0.1.17`，enabled，Service Worker 可见 |
-| Browser pairing / heartbeat | PASS | 真实 pairing 成功；`platform status` 已将浏览器扩展判为已完成；setup retry 未增加 extensions tab |
-| Dev Tunnel Fresh setup | PASS_SOURCE_REPLAY / REGISTRY_PENDING | DT-01 已定位并最小修复；真实 setup=READY、重复 setup 同 Tunnel/PID、host-down 同 Tunnel 恢复；修正版尚待批次发布/Fresh Registry 重验 |
-| Model Provider / FAST / THINK | BLOCKED_EXTERNAL + DOING_SOURCE | 真实主机可达但 `192.168.0.108:8080` connection refused；Provider PTY 已真实输入 URL 并 fail-closed；新增 owner-local URL retry persistence，待真实 endpoint 恢复后继续 |
-| platform start | FAIL_CLOSED_VERIFIED / FINAL_PENDING | Provider 未 READY 时真实 `platform start` RC=1，只显示模型根阻塞；最终成功仍待真实模型就绪 |
+| Browser Extension real load | PASS | Fresh Chrome reality 已先卸载旧产品 registration，再从当前 Fresh Workspace 重新加载 `ProFlow Execution Browser 0.1.18`；enabled、Service Worker 可见 |
+| Browser pairing / heartbeat | PASS | Fresh `0.1.18` pairing / heartbeat 已完成；`platform status` 当前显示浏览器扩展已完成 |
+| Dev Tunnel Fresh setup | PASS | Fresh Registry `dev-tunnel@0.1.20` 已真实 setup=READY，owned host 运行中，`platform status` 当前显示远程连接已完成 |
+| Model Provider / FAST / THINK | DOING | 真实 endpoint `http://192.168.0.108:8080/v1/models` 已再次验证 HTTP 200 / 3 models；当前 Platform 仍显示“模型服务尚未绑定”，下一步是用稳定 `expect`/交互 harness 完成 Provider binding 与 Runtime FAST/THINK |
+| platform start | FAIL_CLOSED_VERIFIED / FINAL_PENDING | 未完成 Model Gate 时历史负路径已证明 fail-closed；最终成功 start 仍待 Provider/Runtime READY 后真实执行 |
 | final platform status | NO | 必须真实根状态一致，无 Fake READY |
 | recovery / idempotency | DOING | Tunnel repeat setup 同 Tunnel/PID；owned host kill 后 status=FAILED、setup 恢复同 Tunnel/新 PID/RUNNING；Browser live disable/reload 与最终全链重复仍待 full start |
 | DEPLOYMENT_SUCCESS | NO | 所有必需 Gate 未全部 PASS |
@@ -228,18 +230,24 @@ Browser Extension 只有同时满足下列事实才允许从 DOING 改为 PASS�
 
 ```text
 1. Fresh Workspace 扩展安装物存在
-2. 真实 Chrome 中产品扩展已加载
-3. 产品扩展 enabled
-4. extension runtime / service worker 可观察
-5. pairing 成功
-6. live heartbeat 成立
-7. platform status 读取到当前真实 READY
-8. disable/unload 后不能继续 Fake READY
-9. reload/restart 后可恢复 live session
-10. setup 重入不重复制造 chrome://extensions tab
+2. 真实 Chrome 中上一轮产品扩展 registration 已先 Remove/卸载，不能复用旧 unpacked registration
+3. 从当前 Fresh Workspace 安装目录重新执行“加载未打包的扩展程序”，Reload 不算 Fresh install
+4. 真实 Chrome 中新产品扩展版本与当前 Registry/Fresh 安装物一致
+5. 产品扩展 enabled
+6. extension runtime / service worker 可观察
+7. pairing 成功
+8. live heartbeat 成立
+9. platform status 读取到当前真实 READY
+10. disable/unload 后不能继续 Fake READY
+11. reload/restart 后可恢复 live session（此时 Reload 只作为 recovery 证据）
+12. setup 重入不重复制造 chrome://extensions tab
 ```
 
 Playwright MCP 自身连接扩展不等于 ProFlow Browser Extension；二者必须分开识别。
+
+`chrome://extensions` 与 Chrome/macOS 原生确认框、目录选择器属于系统 UI 边界：Playwright DOM 不足以完成或证明这些动作。Fresh Browser replay 固定使用 `截图/真实 Chrome → macOS AX 定位实时 bounds → 系统级鼠标/键盘操作 → AX + 截图复核`。删除旧扩展时，确认框消失本身不算 PASS，必须继续证明目标扩展 heading/card/registration 已消失；加载新扩展时，必须证明新版本卡片出现、enabled、Service Worker 可见后才进入 pairing。
+
+Fresh Browser 的 Chrome 外部状态清理固定采用 macOS 系统级 AX + CGEvent 路径，不靠固定坐标：先用 AX 按 `AXHeading=ProFlow Execution Browser` 定位产品卡和“移除”按钮 bounds；系统鼠标点击后，立即在同一保持 Chrome 前台的原子进程内定位 `AXWindow=要删除“ProFlow Execution Browser”吗？` 与确认 `AXButton/description=移除`，再用 CGEvent 点击其当前 bounds 中心；最后以 AX heading 消失 + `chrome://extensions` 截图双证据判定旧 registration 已清除。确认浮层在 Chrome 失焦时会消失，因此禁止跨多个工具调用保存旧坐标后再点。
 
 当前 Browser residual：
 
@@ -357,7 +365,9 @@ Next Entry: <下一次必须从这里继续>
 局部测试 PASS 只能写入 `Regression`，不能直接修改 Journey Gate。
 ## 14. 中断与汇报条件
 
-正常循环不因局部 PASS、长命令完成、发现普通 Bug、完成一次发布、自然阶段切换或累计执行时间较长而停下来汇报。**循环总时长没有 25 分钟、30 分钟或其它人为上限；“不要做长任务”只限制单次不可恢复工具任务，不限制整个 Chat 连续执行多个短批次。**
+**最新规则：正常循环必须逐步实时反馈，但反馈不等于中断。** 每完成一个有意义的用户可感知步骤，立即反馈“动作 / PASS-FAIL-DOING / 关键事实 / 下一步”，然后直接继续；不得为了反馈等待用户确认，也不得因为局部 PASS、长命令完成、发现普通 Bug、完成一次发布、自然阶段切换或累计执行时间较长而停止执行。**循环总时长没有 25 分钟、30 分钟或其它人为上限；“不要做长任务”只限制单次不可恢复工具任务，不限制整个 Chat 连续执行多个短批次。**
+
+**“逐步反馈”不能破坏“批量优先”。** 同一已确认事实同步多份文档、同一批只读状态采集、同一 harness 内多个底层动作，均应作为一个有意义步骤批量完成后反馈一次。固定文档同步路径：`一次搜索全部目标 → 变更矩阵 → 一次批量修改 → 一次统一校验 → 一次反馈`；禁止逐文件串行修改并把每个文件更新伪装成独立进度。
 
 只允许以下情况主动中断执行：
 
@@ -395,7 +405,13 @@ DEPLOYMENT_SUCCESS == YES
 某个自然阶段刚结束
 已经连续工作几十分钟
 模型预测“再继续可能失败”
+后台进程仍在运行但暂时没有新输出
+session 显示 Blocked=true
+连续读回为 (No output in requested range)
+长进程运行了几分钟仍未完成
 ```
+
+遇到上述长进程状态时，固定执行：`降低 poll 频率 → 查 session/PID/子进程/CPU/文件或外部权威状态 → 仍 active 就继续等待 → UNKNOWN 就恢复权威状态`。**不得把 `Blocked=true`、无新输出或长时间运行解释为工具硬截止，也不得因此结束 Chat。**
 
 **工具还能正常调用就是继续执行的正向证据。** 在没有明确 hard-limit/error 事实时，禁止把风险猜测描述成“系统强制截断”“工具执行上限”或“上下文限制”。本计划书的存在就是为了让长流程通过短批次 + 落盘断点持续推进，而不是为了给主动停工提供理由。
 
@@ -431,13 +447,13 @@ DEPLOYMENT_SUCCESS=YES
 
 ```text
 CURRENT_ROUND = R3
-CURRENT_GATE  = Release batch → Model Provider / FAST / THINK → final recovery/Fresh
-CURRENT_ROOTS = release-batch(Browser/DT resolver/Provider) + MODEL-EXT-01
-CURRENT_BLOCK = MODEL-EXT-01: 192.168.0.108 reachable, TCP/8080 connection refused
-NEXT_ACTION   = commit frozen source batch → release:version → canonical build/publishability/publish → Registry exact verify →继续真实 endpoint / final Fresh
-VERIFY_LEVEL  = L3 已 PASS（632/632）；发布后禁止重复跑 source full gate
-REPLAY        = real endpoint `/v1/models` → Provider READY → Runtime FAST/THINK → platform start/status → Browser live recovery → final Fresh
-FULL_GATE     = PASS；除非发布/Fresh replay 再发现新的源码 root，否则不重跑
-CONTINUATION  = 短批次间直接续跑；仅最终真实 endpoint 成为唯一不可约 blocker 时才请求用户介入
+CURRENT_GATE  = Model Provider / FAST / THINK → platform start/status → recovery/final Fresh
+CURRENT_ROOTS = 当前无新的已确认源码 root；先完成真实 Model Gate
+CURRENT_BLOCK = NONE_EXTERNAL：真实 `/v1/models` 已 HTTP 200，MODEL_COUNT=3；当前只是 Platform 尚未完成 Provider binding
+NEXT_ACTION   = 用 `expect`/稳定交互 harness 模拟真人执行 `platform setup` → 输入真实 Base URL → Provider inventory → Runtime FAST/THINK → platform start/status
+VERIFY_LEVEL  = 当前是现实 Journey 重放；无新源码修改就不重跑 L3/full gate
+REPLAY        = Provider READY → Runtime FAST/THINK → platform start/status → Browser live recovery → Tunnel recovery → lifecycle/idempotency → final Fresh
+REPORTING     = 每完成一个有意义验收步骤立即实时反馈，反馈后不等待确认并继续
+CONTINUATION  = 工具还能工作且无真实 hard blocker 就必须继续；实时反馈不是停工点
 DEPLOYMENT_SUCCESS = NO
 ```
