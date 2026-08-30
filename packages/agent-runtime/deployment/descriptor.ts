@@ -36,7 +36,13 @@ export const descriptor = {
 		},
 	],
 	configSlots: [],
-	effects: [],
+	effects: [
+		{
+			kind: "filesystem",
+			description: "Materialize the Agent Runtime durable role store",
+			retention: "preserve",
+		},
+	],
 	documentation: {
 		docs: "DOCS.md",
 		setup: "SETUP.md",

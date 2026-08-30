@@ -4,6 +4,7 @@
 > 性质：滚动执行总控表 / 循环测试计划 / 当前进度真源
 > 适用阶段：`CURRENT_EXECUTION_GATE = DEPLOYMENT_CLOSEOUT`
 > 最终目标：`DEPLOYMENT_SUCCESS = YES`
+> 最新部署裁决：**Custom GPT / 智能体真实创建属于 Deployment，并且是最终 PASS 必要条件。** 历史 Real-2 PASS 不得替代本轮 Fresh Registry 创建验收。
 > 本文件只滚动更新，不按每轮测试新建副本；历史过程由 Git 保留。
 
 ## 1. 这份计划书解决什么问题
@@ -68,6 +69,7 @@ Registry exact artifacts
 → Browser Extension
 → Dev Tunnel
 → Model Provider / FAST / THINK
+→ Custom GPT / 智能体真实创建与 identity/config/evidence 闭环
 → platform start
 → platform status
 → stop / restart / recovery
@@ -89,6 +91,7 @@ Registry exact artifacts
 | Browser pairing / heartbeat | PASS | Fresh `0.1.18` pairing / heartbeat 已完成；`platform status` 当前显示浏览器扩展已完成 |
 | Dev Tunnel Fresh setup | PASS | Fresh Registry `dev-tunnel@0.1.20` 已真实 setup=READY，owned host 运行中，`platform status` 当前显示远程连接已完成 |
 | Model Provider / FAST / THINK | DOING | 真实 endpoint `http://192.168.0.108:8080/v1/models` 已再次验证 HTTP 200 / 3 models；当前 Platform 仍显示“模型服务尚未绑定”，下一步是用稳定 `expect`/交互 harness 完成 Provider binding 与 Runtime FAST/THINK |
+| Custom GPT / 智能体 Fresh 创建 | PENDING | **Deployment 必要 Gate**；Real-2 历史 PASS 仅作回归参考，本轮必须用当前 Fresh Registry 安装物受控真实创建并核对 ChatGPT 侧结果与 identity/config/evidence 回写 |
 | platform start | FAIL_CLOSED_VERIFIED / FINAL_PENDING | 未完成 Model Gate 时历史负路径已证明 fail-closed；最终成功 start 仍待 Provider/Runtime READY 后真实执行 |
 | final platform status | NO | 必须真实根状态一致，无 Fake READY |
 | recovery / idempotency | DOING | Tunnel repeat setup 同 Tunnel/PID；owned host kill 后 status=FAILED、setup 恢复同 Tunnel/新 PID/RUNNING；Browser live disable/reload 与最终全链重复仍待 full start |
@@ -427,6 +430,7 @@ Fresh install = PASS
 Browser Extension real reality = PASS
 Dev Tunnel real reality = PASS
 Model deployment reality = PASS 或按冻结部署合同得到明确合法裁决
+Custom GPT / 智能体 Fresh 创建 = PASS
 platform start = PASS
 final status = PASS
 recovery = PASS

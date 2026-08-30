@@ -327,32 +327,94 @@ export async function setupModulesThin(
 		.map((moduleRef) => byRef.get(moduleRef))
 		.filter((module): module is ResolvedModule => module !== undefined);
 	let completed = true;
-	for (const [index, module] of modulesInOrder.entries()) {
-		reportProgress(reporter, {
-			command: "setup",
-			phase: "setup",
-			kind: "detail",
-			retention: "REPLACE",
-			current: index + 1,
-			total: modulesInOrder.length,
-			moduleRef: module.moduleRef,
-			status: "STARTED",
-			message: module.moduleRef,
-		});
-		const status = await dispatchModuleCommand(
-			catalog,
-			module,
-			"status",
-			context(workspaceRoot),
-		);
-		if (!succeeded(status.result)) {
-			results.push(status);
-			completed = false;
-			break;
+	const temporaryRuntimeRefs: string[] = [];
+	const temporaryRuntimeSet = new Set<string>();
+	const dependencyClosure = (moduleRef: string) => {
+		const closure = new Set<string>();
+		const visit = (ref: string) => {
+			for (const dependency of dependenciesByRef.get(ref) ?? []) {
+				if (closure.has(dependency)) continue;
+				closure.add(dependency);
+				visit(dependency);
+			}
+		};
+		visit(moduleRef);
+		return closure;
+	};
+	const ensureSetupRuntimeDependencies = async (module: ResolvedModule) => {
+		if (module.kind !== "agent-package") return true;
+		const closure = dependencyClosure(module.moduleRef);
+		for (const dependencyRef of graph.order) {
+			if (!closure.has(dependencyRef)) continue;
+			const dependency = byRef.get(dependencyRef);
+			if (dependency?.kind !== "service") continue;
+			const status = await dispatchModuleCommand(
+				catalog,
+				dependency,
+				"status",
+				context(workspaceRoot),
+			);
+			if (!succeeded(status.result)) {
+				blockers.push({
+					moduleRef: dependencyRef,
+					setupStatus: "FAILED",
+					reason: status.result.error?.message ?? "临时运行依赖状态检查失败",
+				});
+				completed = false;
+				return false;
+			}
+			const observed = moduleStatusObservationSchema.parse(status.result.data);
+			if (observed.setupStatus !== "READY") {
+				const issue = observed.issues?.find((item) => item.scope === "SETUP");
+				blockers.push({
+					moduleRef: dependencyRef,
+					setupStatus: observed.setupStatus,
+					...(issue
+						? { reason: issue.message, nextCommand: issue.nextCommand }
+						: {}),
+				});
+				completed = false;
+				return false;
+			}
+			if (
+				observed.runtimeStatus === "RUNNING" ||
+				observed.runtimeStatus === "NOT_APPLICABLE"
+			)
+				continue;
+			if (observed.runtimeStatus !== "STOPPED") {
+				blockers.push({
+					moduleRef: dependencyRef,
+					setupStatus: "FAILED",
+					reason: `临时运行依赖 ${dependencyRef} 处于 ${observed.runtimeStatus}`,
+				});
+				completed = false;
+				return false;
+			}
+			const started = await dispatchModuleCommand(
+				catalog,
+				dependency,
+				"start",
+				context(workspaceRoot),
+			);
+			if (!succeeded(started.result)) {
+				blockers.push({
+					moduleRef: dependencyRef,
+					setupStatus: "FAILED",
+					reason:
+						started.result.error?.message ?? `临时启动 ${dependencyRef} 失败`,
+				});
+				completed = false;
+				return false;
+			}
+			if (!temporaryRuntimeSet.has(dependencyRef)) {
+				temporaryRuntimeSet.add(dependencyRef);
+				temporaryRuntimeRefs.push(dependencyRef);
+			}
 		}
-		const observed = moduleStatusObservationSchema.parse(status.result.data);
-		if (observed.setupStatus === "READY" && target === undefined) {
-			skipped.push({ moduleRef: module.moduleRef, reason: "READY" });
+		return true;
+	};
+	try {
+		for (const [index, module] of modulesInOrder.entries()) {
 			reportProgress(reporter, {
 				command: "setup",
 				phase: "setup",
@@ -361,65 +423,113 @@ export async function setupModulesThin(
 				current: index + 1,
 				total: modulesInOrder.length,
 				moduleRef: module.moduleRef,
-				status: "SKIPPED",
+				status: "STARTED",
 				message: module.moduleRef,
 			});
-			continue;
-		}
-		await beforeSetup?.(module.moduleRef);
-		const setup = await dispatchModuleCommand(
-			catalog,
-			module,
-			"setup",
-			context(workspaceRoot, target?.input),
-		);
-		results.push(setup);
-		reportProgress(reporter, {
-			command: "setup",
-			phase: "setup",
-			kind: "detail",
-			retention: "REPLACE",
-			current: index + 1,
-			total: modulesInOrder.length,
-			moduleRef: module.moduleRef,
-			status: succeeded(setup.result)
-				? "SUCCEEDED"
-				: setup.result.status === "ACTION_REQUIRED"
-					? "ACTION_REQUIRED"
-					: "FAILED",
-			message: module.moduleRef,
-		});
-		if (!succeeded(setup.result)) {
-			completed = false;
-		}
-		const reconciled = await dispatchModuleCommand(
-			catalog,
-			module,
-			"status",
-			context(workspaceRoot),
-		);
-		if (!succeeded(reconciled.result)) {
-			results.push(reconciled);
-			completed = false;
-		} else {
-			const reconciledStatus = moduleStatusObservationSchema.parse(
-				reconciled.result.data,
+			const status = await dispatchModuleCommand(
+				catalog,
+				module,
+				"status",
+				context(workspaceRoot),
 			);
-			if (reconciledStatus.setupStatus !== "READY") {
-				const issue = reconciledStatus.issues?.find(
-					(item) => item.scope === "SETUP",
-				);
-				blockers.push({
+			if (!succeeded(status.result)) {
+				results.push(status);
+				completed = false;
+				break;
+			}
+			const observed = moduleStatusObservationSchema.parse(status.result.data);
+			if (observed.setupStatus === "READY" && target === undefined) {
+				skipped.push({ moduleRef: module.moduleRef, reason: "READY" });
+				reportProgress(reporter, {
+					command: "setup",
+					phase: "setup",
+					kind: "detail",
+					retention: "REPLACE",
+					current: index + 1,
+					total: modulesInOrder.length,
 					moduleRef: module.moduleRef,
-					setupStatus: reconciledStatus.setupStatus,
-					...(issue === undefined
-						? {}
-						: { reason: issue.message, nextCommand: issue.nextCommand }),
+					status: "SKIPPED",
+					message: module.moduleRef,
 				});
+				continue;
+			}
+			if (!(await ensureSetupRuntimeDependencies(module))) break;
+			await beforeSetup?.(module.moduleRef);
+			const setup = await dispatchModuleCommand(
+				catalog,
+				module,
+				"setup",
+				context(workspaceRoot, target?.input),
+			);
+			results.push(setup);
+			reportProgress(reporter, {
+				command: "setup",
+				phase: "setup",
+				kind: "detail",
+				retention: "REPLACE",
+				current: index + 1,
+				total: modulesInOrder.length,
+				moduleRef: module.moduleRef,
+				status: succeeded(setup.result)
+					? "SUCCEEDED"
+					: setup.result.status === "ACTION_REQUIRED"
+						? "ACTION_REQUIRED"
+						: "FAILED",
+				message: module.moduleRef,
+			});
+			if (!succeeded(setup.result)) {
 				completed = false;
 			}
+			const reconciled = await dispatchModuleCommand(
+				catalog,
+				module,
+				"status",
+				context(workspaceRoot),
+			);
+			if (!succeeded(reconciled.result)) {
+				results.push(reconciled);
+				completed = false;
+			} else {
+				const reconciledStatus = moduleStatusObservationSchema.parse(
+					reconciled.result.data,
+				);
+				if (reconciledStatus.setupStatus !== "READY") {
+					const issue = reconciledStatus.issues?.find(
+						(item) => item.scope === "SETUP",
+					);
+					blockers.push({
+						moduleRef: module.moduleRef,
+						setupStatus: reconciledStatus.setupStatus,
+						...(issue === undefined
+							? {}
+							: { reason: issue.message, nextCommand: issue.nextCommand }),
+					});
+					completed = false;
+				}
+			}
+			if (!succeeded(setup.result) || blockers.length > 0) break;
 		}
-		if (!succeeded(setup.result) || blockers.length > 0) break;
+	} finally {
+		for (const dependencyRef of [...temporaryRuntimeRefs].reverse()) {
+			const dependency = byRef.get(dependencyRef);
+			if (!dependency) continue;
+			const stopped = await dispatchModuleCommand(
+				catalog,
+				dependency,
+				"stop",
+				context(workspaceRoot),
+			);
+			if (!succeeded(stopped.result)) {
+				completed = false;
+				blockers.push({
+					moduleRef: dependencyRef,
+					setupStatus: "FAILED",
+					reason:
+						stopped.result.error?.message ??
+						`临时运行依赖 ${dependencyRef} 清理失败`,
+				});
+			}
+		}
 	}
 	return {
 		phase: "setup",

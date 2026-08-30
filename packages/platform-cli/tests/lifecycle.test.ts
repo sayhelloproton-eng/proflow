@@ -23,6 +23,7 @@ const workspaceRoot = "/fixture/workspace";
 
 function moduleFixture(input: {
 	moduleRef: string;
+	kind?: ResolvedModule["kind"];
 	provides?: ResolvedModule["provides"];
 	requires?: ResolvedModule["requires"];
 }): ResolvedModule {
@@ -30,7 +31,7 @@ function moduleFixture(input: {
 		moduleRef: input.moduleRef,
 		packageName: `@tomflow/proflow-${input.moduleRef}`,
 		moduleVersion: "1.0.0",
-		kind: "service",
+		kind: input.kind ?? "service",
 		identity: { domain: "deployment-governance", summary: "Lifecycle fixture" },
 		documentation: { docs: "DOCS.md", setup: "SETUP.md" },
 		provides: input.provides ?? [],
@@ -624,4 +625,113 @@ test("CP-DEP-CLI-REAL2-04 RF-DEP-CLI-REAL2-03 setup priority is presentation-onl
 		/custom-gpt|agent-product|agent-controller-dev|agent-test-ops/,
 	);
 	assert.doesNotMatch(source, /resumeState|setupCheckpoint|persist.*setup/i);
+});
+
+test("deployment setup temporarily starts service dependencies before agent-package provisioning and restores them", async () => {
+	const runtime = moduleFixture({
+		moduleRef: "runtime-service",
+		provides: [{ contractRef: "fixture.runtime", version: "1.0.0" }],
+	});
+	const gateway = moduleFixture({
+		moduleRef: "gateway-service",
+		provides: [{ contractRef: "fixture.gateway", version: "1.0.0" }],
+		requires: [{ contractRef: "fixture.runtime", versionRange: ">=1.0.0" }],
+	});
+	const agent = moduleFixture({
+		moduleRef: "role-agent",
+		kind: "agent-package",
+		requires: [{ contractRef: "fixture.gateway", versionRange: ">=1.0.0" }],
+	});
+	const { catalog, calls } = recordingCatalog(
+		{ "role-agent": "ACTION_REQUIRED" },
+		{},
+		{},
+		{},
+		{},
+		{ "role-agent": "READY" },
+	);
+	const result = await setupModulesThin(
+		catalog,
+		[agent, gateway, runtime],
+		workspaceRoot,
+	);
+	assert.equal(result.completed, true);
+	const names = calls.map((item) => item.call);
+	assert.ok(
+		names.indexOf("runtime-service:start") <
+			names.indexOf("gateway-service:start"),
+	);
+	assert.ok(
+		names.indexOf("gateway-service:start") < names.indexOf("role-agent:setup"),
+	);
+	assert.ok(
+		names.indexOf("role-agent:setup") < names.indexOf("gateway-service:stop"),
+	);
+	assert.ok(
+		names.indexOf("gateway-service:stop") <
+			names.indexOf("runtime-service:stop"),
+	);
+});
+
+test("deployment setup cleans temporary service dependencies when agent-package provisioning fails", async () => {
+	const runtime = moduleFixture({
+		moduleRef: "runtime-service",
+		provides: [{ contractRef: "fixture.runtime", version: "1.0.0" }],
+	});
+	const agent = moduleFixture({
+		moduleRef: "role-agent",
+		kind: "agent-package",
+		requires: [{ contractRef: "fixture.runtime", versionRange: ">=1.0.0" }],
+	});
+	const { catalog, calls } = recordingCatalog(
+		{ "role-agent": "ACTION_REQUIRED" },
+		{ "role-agent": "FAILED" },
+	);
+	const result = await setupModulesThin(
+		catalog,
+		[agent, runtime],
+		workspaceRoot,
+	);
+	assert.equal(result.completed, false);
+	assert.ok(calls.some((item) => item.call === "runtime-service:start"));
+	assert.ok(calls.some((item) => item.call === "runtime-service:stop"));
+});
+
+test("deployment setup never stops service dependencies that were already running", async () => {
+	const runtime = moduleFixture({
+		moduleRef: "runtime-service",
+		provides: [{ contractRef: "fixture.runtime", version: "1.0.0" }],
+	});
+	const agent = moduleFixture({
+		moduleRef: "role-agent",
+		kind: "agent-package",
+		requires: [{ contractRef: "fixture.runtime", versionRange: ">=1.0.0" }],
+	});
+	const { catalog, calls } = recordingCatalog(
+		{ "role-agent": "ACTION_REQUIRED" },
+		{},
+		{},
+		{},
+		{},
+		{ "role-agent": "READY" },
+	);
+	assert.equal(
+		(await startModulesThin(catalog, [runtime], workspaceRoot)).completed,
+		true,
+	);
+	calls.splice(0);
+	const result = await setupModulesThin(
+		catalog,
+		[agent, runtime],
+		workspaceRoot,
+	);
+	assert.equal(result.completed, true);
+	assert.equal(
+		calls.some((item) => item.call === "runtime-service:start"),
+		false,
+	);
+	assert.equal(
+		calls.some((item) => item.call === "runtime-service:stop"),
+		false,
+	);
 });
