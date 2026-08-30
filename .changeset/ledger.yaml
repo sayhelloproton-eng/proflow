@@ -158,6 +158,10 @@
   dir: packages/agent-runtime
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-agent-runtime@0.1.11":
+  dir: packages/agent-runtime
+  intents:
+    - deployment-agent-runtime-bootstrap-deadlock
 "@tomflow/proflow-agent-runtime@0.1.2":
   dir: packages/agent-runtime
   intents:
@@ -1054,6 +1058,10 @@
   dir: packages/platform-cli
   intents:
     - deployment-closeout-repack
+"@tomflow/proflow-platform-cli@0.1.43":
+  dir: packages/platform-cli
+  intents:
+    - deployment-agent-runtime-bootstrap-deadlock
 "@tomflow/proflow-platform-cli@0.1.5":
   dir: packages/platform-cli
   intents:
