@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 141,
-    "testCalls": 632
+    "files": 142,
+    "testCalls": 640
   },
   "tests": [
     {
@@ -1006,10 +1006,24 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/module-conformance.test.ts",
-      "line": 14,
+      "line": 17,
       "title": "module contract C1/C2/C3",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/agent-runtime/deployment/adapter.ts",
+        "packages/agent-runtime/deployment/descriptor.ts",
+        "packages/deployment-conformance/src/index.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-runtime",
+      "path": "packages/agent-runtime/tests/module-conformance.test.ts",
+      "line": 31,
+      "title": "deployment setup materializes the Agent Runtime owned durable Role credential store",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-runtime/deployment/adapter.ts",
         "packages/agent-runtime/deployment/descriptor.ts",
@@ -3523,7 +3537,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 164,
+      "line": 168,
       "title": "CP-EXE-LOCAL-03 process lifecycle, bounded output, timeout and managed stop",
       "ids": [
         "CP-EXE-LOCAL-03"
@@ -3537,7 +3551,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 239,
+      "line": 243,
       "title": "CP-EXE-LOCAL-04 deterministic local network boundary permits loopback and denies public",
       "ids": [
         "CP-EXE-LOCAL-04"
@@ -3551,7 +3565,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 291,
+      "line": 295,
       "title": "carry-forward process scope rejects PATH and secret injection and one-shot absence stays UNKNOWN",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3563,7 +3577,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 332,
+      "line": 336,
       "title": "carry-forward managed process ownership rejects a reused PID identity",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3575,7 +3589,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 369,
+      "line": 373,
       "title": "carry-forward failed git commit with a changed index is UNKNOWN rather than NOT_APPLIED",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3587,7 +3601,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 396,
+      "line": 400,
       "title": "CP-EXE-LOCAL-05 guarded shell rejects direct and dangerous escape, permits safe argv",
       "ids": [
         "CP-EXE-LOCAL-05"
@@ -3601,7 +3615,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 438,
+      "line": 442,
       "title": "CP-EXE-LOCAL-06 environment redaction and file/Git reality recovery",
       "ids": [
         "CP-EXE-LOCAL-06"
@@ -3615,7 +3629,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 507,
+      "line": 511,
       "title": "B1-EXE-10 reconcile reconstructs the concrete Result for file.write and git.commit",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3627,7 +3641,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 567,
+      "line": 571,
       "title": "B1-EXE-04 installDependency crash recovers reality from package.json/lockfile",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3639,7 +3653,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 622,
+      "line": 626,
       "title": "B1-EXE-09 output summary is UTF-8 byte-bounded and secrets are redacted across chunk boundaries",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3651,7 +3665,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 663,
+      "line": 667,
       "title": "B1-EXE-06 managed process identity, crash-before-persist and stop recovery reconcile",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3663,7 +3677,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 751,
+      "line": 755,
       "title": "B1-EXE-07 network.request followRedirects validates every hop and strips cross-origin credentials",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3675,7 +3689,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 868,
+      "line": 872,
       "title": "B1-EXE-08 network response body streams to a redacted byte-bounded artifact",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5011,7 +5025,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 240,
+      "line": 246,
       "title": "real deployment probe recognizes closed thinking evidence and does not require Vision for REASON",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5024,7 +5038,33 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 264,
+      "line": 270,
+      "title": "deployment probe records prompted only after a real no-response-format probe succeeds",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 298,
+      "title": "deployment probe rejects prose wrapped around otherwise valid fenced JSON",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/role-mapper.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
+      "line": 325,
       "title": "deployment probe rejects invalid JSON/protocol and never includes credential in errors",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5037,7 +5077,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 280,
+      "line": 342,
       "title": "deployment setup automatically persists role evidence and publishes local runtime facts",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5050,7 +5090,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 322,
+      "line": 384,
       "title": "ambiguous mapping requests only irreducible model choice while missing role fails closed",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5063,7 +5103,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 372,
+      "line": 434,
       "title": "provider inventory drift makes an existing mapping stale until automatic remap",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5076,7 +5116,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 417,
+      "line": 479,
       "title": "wall-clock age alone does not invalidate unchanged capability mapping",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5089,7 +5129,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 452,
+      "line": 514,
       "title": "deployment start runs the real local runtime and publishes an authenticated READY endpoint",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5102,7 +5142,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-deployment-automation.test.ts",
-      "line": 549,
+      "line": 606,
       "title": "provider offline after READY is explicit and never reuses a fake runtime READY",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5268,6 +5308,22 @@
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
       "line": 179,
+      "title": "OpenAI-compatible prompted output normalizes only a whole JSON fence and observes separate reasoning",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/model-contracts/src/index.ts",
+        "packages/model-runtime/deployment/adapter.ts",
+        "packages/model-runtime/deployment/descriptor.ts",
+        "packages/model-runtime/src/index.ts",
+        "packages/model-runtime/src/provider.ts",
+        "packages/model-runtime/src/service.ts"
+      ]
+    },
+    {
+      "package": "model-runtime",
+      "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
+      "line": 217,
       "title": "rendered provider prompt deterministically binds Spec instruction and typed input",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5283,7 +5339,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 188,
+      "line": 226,
       "title": "HTTP service owns real start/status/infer/stop lifecycle",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5299,7 +5355,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 215,
+      "line": 253,
       "title": "REAL1 /ready and /status refresh stale model capabilities in the same request",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5315,7 +5371,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 269,
+      "line": 307,
       "title": "/ready fails closed while either required model role is DEGRADED",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5331,7 +5387,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 296,
+      "line": 334,
       "title": "deployment adapter exposes the fixed seven-command management surface without restart/verify/preflight",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5347,7 +5403,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 311,
+      "line": 349,
       "title": "MOD-P1-06 HTTP client abort and explicit service restart cancel queued/running work without late success",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5363,7 +5419,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 402,
+      "line": 440,
       "title": "deployment uninstall is idempotent when no Model Runtime service is bound",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5379,7 +5435,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-engineering.test.ts",
-      "line": 413,
+      "line": 451,
       "title": "model-runtime normal setup surface has no manual model IDs or capability profile file",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5550,7 +5606,7 @@
     {
       "package": "model-runtime",
       "path": "packages/model-runtime/tests/model-runtime-process.test.ts",
-      "line": 142,
+      "line": 137,
       "title": "B2-MOD-02 formal process writes sanitized disk inference JSONL for result and pre-queue rejection",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -6123,6 +6179,17 @@
     },
     {
       "package": "platform-cli",
+      "path": "packages/platform-cli/tests/cross-process-stop.test.ts",
+      "line": 91,
+      "title": "platform stop reaches the original foreground start owner across CLI processes",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
       "path": "packages/platform-cli/tests/current-spec-alignment.test.ts",
       "line": 12,
       "title": "SPEC-ALIGN platform-cli remains registered and has an ACTIVE current Module Test Plan",
@@ -6591,7 +6658,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 218,
+      "line": 219,
       "title": "start gates on Module.status setup READY and never runs preflight",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6606,7 +6673,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 263,
+      "line": 264,
       "title": "start and stop retries skip runtime states already reached",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6621,7 +6688,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 285,
+      "line": 286,
       "title": "successful start and stop preserve dependency and reverse dependency order",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6636,7 +6703,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 314,
+      "line": 315,
       "title": "start performs zero starts when a Module reports FAILED setup status",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6651,7 +6718,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 334,
+      "line": 335,
       "title": "start fails fast during execution without starting later Modules",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6666,7 +6733,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 350,
+      "line": 351,
       "title": "stop runs in reverse dependency order and fails fast",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6681,7 +6748,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 362,
+      "line": 363,
       "title": "stop reports a successful no-effect external runtime as skipped",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6696,7 +6763,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 398,
+      "line": 399,
       "title": "uninstall runs in reverse dependency order and fails fast",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6711,7 +6778,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 414,
+      "line": 415,
       "title": "setup skips READY modules and invokes only ACTION_REQUIRED module",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6726,7 +6793,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 427,
+      "line": 428,
       "title": "setup asks the Platform interaction shell only before a module that needs setup",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6741,7 +6808,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 443,
+      "line": 444,
       "title": "RF-DEP-CLI-REAL2-01 full setup gates at the first owner that still needs human action",
       "ids": [
         "RF-DEP-CLI-REAL2-01"
@@ -6758,7 +6825,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 468,
+      "line": 469,
       "title": "full setup presents Browser, Tunnel, then Provider as the user-visible frontier",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6773,7 +6840,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 496,
+      "line": 497,
       "title": "RF-DEP-CLI-REAL2-02 setup re-reads owner status instead of guessing readiness from SUCCEEDED",
       "ids": [
         "RF-DEP-CLI-REAL2-02"
@@ -6790,7 +6857,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 518,
+      "line": 519,
       "title": "targeted setup forwards opaque input without Platform interpretation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6805,7 +6872,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 533,
+      "line": 534,
       "title": "targeted setup reconciles a READY module even without explicit input",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6820,7 +6887,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 547,
+      "line": 548,
       "title": "setup never starts a later machine failure after the first human action",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6835,7 +6902,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 568,
+      "line": 569,
       "title": "CP-DEP-CLI-REAL2-01 CP-DEP-CLI-REAL2-02 CP-DEP-CLI-REAL2-05 same-run provider readiness unlocks dependent setup",
       "ids": [
         "CP-DEP-CLI-REAL2-01",
@@ -6854,7 +6921,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 593,
+      "line": 594,
       "title": "CP-DEP-CLI-REAL2-03 owners determine the first actionable setup frontier",
       "ids": [
         "CP-DEP-CLI-REAL2-03"
@@ -6871,12 +6938,57 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 617,
+      "line": 618,
       "title": "CP-DEP-CLI-REAL2-04 RF-DEP-CLI-REAL2-03 setup priority is presentation-only and stores no module-specific resume state",
       "ids": [
         "CP-DEP-CLI-REAL2-04",
         "RF-DEP-CLI-REAL2-03"
       ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 630,
+      "title": "deployment setup temporarily starts service dependencies before agent-package provisioning and restores them",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 676,
+      "title": "deployment setup cleans temporary service dependencies when agent-package provisioning fails",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 700,
+      "title": "deployment setup never stops service dependencies that were already running",
+      "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/module-contract/src/index.ts",

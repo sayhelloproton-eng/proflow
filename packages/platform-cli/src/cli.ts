@@ -37,6 +37,11 @@ import {
 	uninstallModulesThin,
 } from "./lifecycle/index.ts";
 import { ensureWorkspaceStateIsGitIgnored } from "./persistence/git-isolation.ts";
+import {
+	clearStartOwner,
+	registerStartOwner,
+	requestStartOwnerStop,
+} from "./persistence/start-owner.ts";
 import { ensureWorkspaceMetadata } from "./persistence/workspace-metadata.ts";
 import { type PlatformProgressReporter, reportProgress } from "./progress.ts";
 import {
@@ -1508,15 +1513,78 @@ export function renderHumanResult(
 		return `${theme.success("✓ 已经卸载")}${result.workspaceRoot ? `\n${theme.muted("Workspace")}  ${result.workspaceRoot}` : ""}`;
 	return `${result.status === "SUCCEEDED" ? theme.success("✓") : theme.failure("✕")} ${labels[result.command] ?? result.command}${result.status === "SUCCEEDED" ? "成功" : "未完成"}${result.workspaceRoot ? `\n${theme.muted("Workspace")}  ${result.workspaceRoot}` : ""}`;
 }
+function ownsStartedRuntime(result: CliOutcome): boolean {
+	if (result.command !== "start" || !isRecord(result.data)) return false;
+	const results = Array.isArray(result.data.results)
+		? result.data.results.filter(isRecord)
+		: [];
+	return results.some(
+		(item) =>
+			item.command === "start" &&
+			Array.isArray(item.observedEffects) &&
+			item.observedEffects.length > 0 &&
+			isRecord(item.result) &&
+			item.result.status === "SUCCEEDED",
+	);
+}
+
 if (import.meta.main) {
 	const argv = process.argv.slice(2);
 	const reporter = createTerminalProgressReporter();
+	let parsedForOwner: ParsedArgs | undefined;
+	let ownerRoot: string | undefined;
+	try {
+		parsedForOwner = parseArgs(argv);
+		if (parsedForOwner.command === "start" || parsedForOwner.command === "stop")
+			ownerRoot = await canonicalWorkspace(
+				process.cwd(),
+				parsedForOwner.workspace,
+			);
+	} catch {
+		// runCli owns normal usage/workspace error rendering.
+	}
+	if (parsedForOwner?.command === "stop" && ownerRoot) {
+		reportProgress(reporter, {
+			command: "stop",
+			phase: "owner",
+			status: "STARTED",
+			message: "正在请求当前平台运行进程停止",
+		});
+		const requested = await requestStartOwnerStop(ownerRoot);
+		reportProgress(reporter, {
+			command: "stop",
+			phase: "owner",
+			status: requested === "TIMEOUT" ? "WARNING" : "SUCCEEDED",
+			message:
+				requested === "STOPPED"
+					? "平台运行进程已停止"
+					: "未发现需要接管的前台运行进程",
+		});
+	}
 	const result = await runCli(argv, {
 		onProgress: reporter,
 		...(process.stdin.isTTY && process.stdout.isTTY
 			? { setupInteraction: createClackSetupInteraction() }
 			: {}),
 	});
+	if (
+		parsedForOwner?.command === "start" &&
+		ownerRoot &&
+		result.status === "SUCCEEDED" &&
+		ownsStartedRuntime(result)
+	) {
+		await registerStartOwner(ownerRoot);
+		let stopping = false;
+		const gracefulStop = async () => {
+			if (stopping) return;
+			stopping = true;
+			const stopped = await runCli(["stop", "--workspace", ownerRoot]);
+			await clearStartOwner(ownerRoot);
+			process.exit(stopped.status === "SUCCEEDED" ? 0 : 1);
+		};
+		process.once("SIGTERM", () => void gracefulStop());
+		process.once("SIGINT", () => void gracefulStop());
+	}
 	reporter.close();
 	const color =
 		process.stdout.isTTY === true &&

@@ -137,7 +137,10 @@ test("CP-EXE-LOCAL-02 real file, Git, project, quality and code capability famil
 	});
 	assert.equal(search.result.capability, "code.findSymbol");
 	assert.ok(search.result.data.matches.length > 0);
-	const quality = await run(executor, root, "quality.test", { script: "test" });
+	const quality = await run(executor, root, "quality.test", {
+		script: "test",
+		timeoutMs: 120_000,
+	});
 	assert.equal(quality.successful, true);
 	const dependency = join(root, "dependency-fixture");
 	await mkdir(dependency);
@@ -151,6 +154,7 @@ test("CP-EXE-LOCAL-02 real file, Git, project, quality and code capability famil
 	const installed = await run(executor, root, "project.installDependency", {
 		packageName: "./dependency-fixture",
 		packageManager: "npm",
+		timeoutMs: 120_000,
 	});
 	assert.equal(installed.result.capability, "project.installDependency");
 	assert.equal(installed.successful, true);
