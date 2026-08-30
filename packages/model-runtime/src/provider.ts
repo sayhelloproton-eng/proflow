@@ -61,7 +61,12 @@ const completionResponseSchema = z
 				z
 					.object({
 						finish_reason: z.string().optional(),
-						message: z.object({ content: z.string() }).passthrough(),
+						message: z
+							.object({
+								content: z.string(),
+								reasoning_content: z.string().optional(),
+							})
+							.passthrough(),
 					})
 					.passthrough(),
 			)
@@ -78,19 +83,36 @@ export type OpenAICompatibleProviderConfig = {
 	fetch?: typeof globalThis.fetch;
 };
 
-function stripProviderThinking(content: string): {
+function stripProviderThinking(
+	content: string,
+	reasoningContent?: string,
+): {
 	content: string;
 	thinkingStatus: "absent" | "closed";
 } {
 	const trimmed = content.trim();
-	if (!trimmed.startsWith("<think>"))
-		return { content: trimmed, thinkingStatus: "absent" };
-	const end = trimmed.indexOf("</think>");
-	if (end < 0) throw new Error("provider returned an unclosed thinking block");
+	if (trimmed.startsWith("<think>")) {
+		const end = trimmed.indexOf("</think>");
+		if (end < 0)
+			throw new Error("provider returned an unclosed thinking block");
+		return {
+			content: trimmed.slice(end + "</think>".length).trim(),
+			thinkingStatus: "closed",
+		};
+	}
 	return {
-		content: trimmed.slice(end + "</think>".length).trim(),
-		thinkingStatus: "closed",
+		content: trimmed,
+		thinkingStatus:
+			typeof reasoningContent === "string" && reasoningContent.trim().length > 0
+				? "closed"
+				: "absent",
 	};
+}
+
+function normalizePromptedStructuredContent(content: string): string {
+	const trimmed = content.trim();
+	const fenced = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/i);
+	return fenced?.[1]?.trim() ?? trimmed;
 }
 
 function stableJson(value: unknown): string {
@@ -186,12 +208,19 @@ export function createOpenAICompatibleProvider(
 				throw new Error(`provider returned HTTP ${response.status}`);
 			}
 			const parsed = completionResponseSchema.parse(await response.json());
-			const content = parsed.choices[0]?.message.content;
+			const message = parsed.choices[0]?.message;
+			const content = message?.content;
 			if (!content)
 				throw new Error("provider response did not contain message content");
-			const stripped = stripProviderThinking(content);
+			const stripped = stripProviderThinking(
+				content,
+				message.reasoning_content,
+			);
 			return {
-				content: stripped.content,
+				content:
+					call.structuredOutput === "prompted"
+						? normalizePromptedStructuredContent(stripped.content)
+						: stripped.content,
 				thinkingStatus: stripped.thinkingStatus,
 				...(parsed.id ? { providerRequestRef: parsed.id } : {}),
 				...(parsed.choices[0]?.finish_reason

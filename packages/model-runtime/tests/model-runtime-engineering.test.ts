@@ -176,6 +176,44 @@ test("OpenAI-compatible adapter sends role mapping, structured output, and every
 	assert.equal(authorization, "Bearer runtime-test-value");
 });
 
+test("OpenAI-compatible prompted output normalizes only a whole JSON fence and observes separate reasoning", async () => {
+	let calls = 0;
+	const provider = createOpenAICompatibleProvider({
+		baseUrl: "https://provider.example/v1/",
+		models: { fast: "fast-model", reason: "reason-model" },
+		fetch: async () => {
+			calls += 1;
+			return Response.json({
+				choices: [
+					{
+						message: {
+							content:
+								calls === 1
+									? '```json\n{"decision":"ALLOW"}\n```'
+									: 'Here is the result:\n```json\n{"decision":"ALLOW"}\n```',
+							reasoning_content: "bounded",
+						},
+					},
+				],
+			});
+		},
+	});
+	const call = {
+		role: "reason" as const,
+		structuredOutput: "prompted" as const,
+		request: { ...request, mode: "reason" as const },
+		spec,
+		prompt: "controlled prompt",
+		repair: false,
+	};
+	const fenced = await provider.infer(call, new AbortController().signal);
+	assert.equal(fenced.content, '{"decision":"ALLOW"}');
+	assert.equal(fenced.thinkingStatus, "closed");
+	const prose = await provider.infer(call, new AbortController().signal);
+	assert.match(prose.content, /^Here is the result:/);
+	assert.equal(prose.thinkingStatus, "closed");
+});
+
 test("rendered provider prompt deterministically binds Spec instruction and typed input", () => {
 	const first = renderPrompt(spec, { value: "ok" });
 	const second = renderPrompt(spec, { value: "ok" });

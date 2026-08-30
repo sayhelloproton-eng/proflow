@@ -19,12 +19,7 @@ test("formal model-runtime process defers provider verification to verify/start,
 		};
 		calls += 1;
 		response.setHeader("content-type", "application/json");
-		const value = JSON.stringify({
-			decision: "HEALTHY",
-			confidence: 1,
-			reasonCode: "ALL_CHECKS_PASS",
-			rationale: "all checks pass",
-		});
+		const value = JSON.stringify({ probe: "PASS" });
 		response.end(
 			JSON.stringify({
 				id: `provider:${calls}`,
@@ -146,6 +141,7 @@ test("B2-MOD-02 formal process writes sanitized disk inference JSONL for result 
 	await writeFile(transportCredentialFile, `${transportCredential}\n`, {
 		mode: 0o600,
 	});
+	let providerCalls = 0;
 	const provider = createServer(async (request, response) => {
 		const chunks: Buffer[] = [];
 		for await (const chunk of request)
@@ -153,13 +149,17 @@ test("B2-MOD-02 formal process writes sanitized disk inference JSONL for result 
 		const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as {
 			model: string;
 		};
+		providerCalls += 1;
 		response.setHeader("content-type", "application/json");
-		const value = JSON.stringify({
-			decision: "HEALTHY",
-			confidence: 1,
-			reasonCode: "ALL_CHECKS_PASS",
-			rationale: "all checks pass",
-		});
+		const value =
+			providerCalls <= 2
+				? JSON.stringify({ probe: "PASS" })
+				: JSON.stringify({
+						decision: "HEALTHY",
+						confidence: 1,
+						reasonCode: "ALL_CHECKS_PASS",
+						rationale: "all checks pass",
+					});
 		response.end(
 			JSON.stringify({
 				id: "provider:process-log",

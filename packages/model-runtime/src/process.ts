@@ -2,10 +2,12 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
+	createReasoningSpec,
 	type InferenceRequest,
 	modelCapabilityProfileSchema,
 } from "@tomflow/proflow-model-contracts";
 import { z } from "zod";
+import { VISION_CAPABILITY_PROBE_PNG } from "./capability-probe-fixture.ts";
 import { createModelRuntime } from "./index.ts";
 import { createFileModelRuntimeLogger } from "./logging.ts";
 import {
@@ -19,8 +21,20 @@ import { executionCommandRiskSpec } from "./specs/execution-command-risk.ts";
 import { systemHealthAssessmentSpec } from "./specs/system-health-assessment.ts";
 import { taskDiagnosticSpec } from "./specs/task-diagnostic.ts";
 
-const CAPABILITY_PROBE_IMAGE =
-	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+const capabilityProbeSchema = z.object({ probe: z.literal("PASS") }).strict();
+const capabilityProbeSpec = createReasoningSpec({
+	id: "model.capability-probe",
+	version: "1.0.0",
+	purpose: "Verify live provider structured output and reasoning mode",
+	allowedModes: ["fast", "reason"],
+	requiredModalities: ["text"],
+	inputSchema: capabilityProbeSchema,
+	outputSchema: capabilityProbeSchema,
+	instruction: 'Return exactly {"probe":"PASS"}.',
+	maxContextBytes: 1_024,
+	maxOutputTokens: 512,
+	repair: "none",
+});
 
 const configSchema = z
 	.object({
@@ -104,24 +118,26 @@ export async function createModelRuntimeProcess(input: {
 	const provider = createOpenAICompatibleProvider({
 		baseUrl: input.config.providerBaseUrl,
 		models: input.config.models,
+		roleSystemPrompt: {
+			fast: "You are the FAST bounded role. Return only the final JSON object.",
+			reason:
+				"You are the REASON bounded role. Use concise internal reasoning, then return only the final JSON object.",
+		},
 		...(credential ? { apiKey: credential } : {}),
 	});
 	const request = (role: "fast" | "reason"): InferenceRequest => ({
 		contractVersion: "1.0.0",
-		specRef: systemHealthAssessmentSpec.specRef,
+		specRef: capabilityProbeSpec.specRef,
 		mode: role,
 		priority: "background",
 		trace: { callerRef: "model-runtime:capability-verifier" },
-		payload: {
-			service: "model-runtime",
-			checks: [{ name: "probe", state: "PASS" }],
-		},
+		payload: { probe: "PASS" },
 		...(role === "fast"
 			? {
 					images: [
 						{
 							mimeType: "image/png" as const,
-							data: CAPABILITY_PROBE_IMAGE,
+							data: VISION_CAPABILITY_PROBE_PNG,
 						},
 					],
 				}
@@ -137,13 +153,13 @@ export async function createModelRuntimeProcess(input: {
 			probes: {
 				fast: {
 					request: request("fast"),
-					spec: systemHealthAssessmentSpec,
-					prompt: "capability probe",
+					spec: capabilityProbeSpec,
+					prompt: 'Return exactly {"probe":"PASS"}.',
 				},
 				reason: {
 					request: request("reason"),
-					spec: systemHealthAssessmentSpec,
-					prompt: "capability probe",
+					spec: capabilityProbeSpec,
+					prompt: 'Return exactly {"probe":"PASS"}.',
 				},
 			},
 			capabilityFacts: input.config.capabilityFacts as Record<

@@ -233,7 +233,13 @@ test("real deployment probe derives structured, reasoning, context and Vision ev
 	assert.equal(result.maxOutputTokens, 2_048);
 	assert.equal(bodies.length, 2);
 	assert.equal(String(JSON.stringify(bodies[0])).length >= 16_384, true);
-	assert.match(JSON.stringify(bodies[1]), /image_url/);
+	const imageBody = JSON.stringify(bodies[1]);
+	assert.match(imageBody, /image_url/);
+	const encodedImage = imageBody.match(/data:image\/png;base64,([^"}]+)/)?.[1];
+	assert.ok(encodedImage);
+	const decodedImage = Buffer.from(encodedImage, "base64");
+	assert.equal(decodedImage.readUInt32BE(16), 64);
+	assert.equal(decodedImage.readUInt32BE(20), 64);
 	assert.deepEqual(sleeps, [5_000]);
 });
 
@@ -261,11 +267,67 @@ test("real deployment probe recognizes closed thinking evidence and does not req
 	assert.equal(calls, 1);
 });
 
+test("deployment probe records prompted only after a real no-response-format probe succeeds", async () => {
+	const bodies: Array<Record<string, unknown>> = [];
+	const probe = createOpenAIModelDeploymentProbe({
+		baseUrl: "http://phone.local:4400/v1",
+		fetch: async (_input, init) => {
+			const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+			bodies.push(body);
+			return Response.json({
+				choices: [
+					{
+						message: {
+							content: '```json\n{"probe":"PASS"}\n```',
+							reasoning_content: "bounded",
+						},
+					},
+				],
+			});
+		},
+		cooldownMs: 0,
+	});
+	const result = await probe({ id: "provider/reason" });
+	assert.equal(result.reasoning, "thinking");
+	assert.equal(result.structuredOutput, "prompted");
+	assert.equal(bodies.length, 2);
+	assert.deepEqual(bodies[0]?.response_format, { type: "json_object" });
+	assert.equal("response_format" in (bodies[1] ?? {}), false);
+});
+
+test("deployment probe rejects prose wrapped around otherwise valid fenced JSON", async () => {
+	let calls = 0;
+	const probe = createOpenAIModelDeploymentProbe({
+		baseUrl: "http://phone.local:4400/v1",
+		fetch: async () => {
+			calls += 1;
+			return Response.json({
+				choices: [
+					{
+						message: {
+							content:
+								calls === 1
+									? '```json\n{"probe":"PASS"}\n```'
+									: 'Here is the result:\n```json\n{"probe":"PASS"}\n```',
+						},
+					},
+				],
+			});
+		},
+		cooldownMs: 0,
+	});
+	await assert.rejects(
+		probe({ id: "provider/prose" }),
+		/structured capability probe failed/,
+	);
+});
+
 test("deployment probe rejects invalid JSON/protocol and never includes credential in errors", async () => {
 	const secret = "DEPLOYMENT_SECRET_MUST_NOT_LEAK";
 	const probe = createOpenAIModelDeploymentProbe({
 		baseUrl: "http://phone.local:4400/v1",
 		credential: secret,
+		cooldownMs: 0,
 		fetch: async (_input, init) => {
 			assert.match(JSON.stringify(init?.headers), /authorization/i);
 			return Response.json({ choices: [{ message: { content: "not-json" } }] });
@@ -464,12 +526,7 @@ test("deployment start runs the real local runtime and publishes an authenticate
 			JSON.stringify(body.messages).includes("image_url")
 		)
 			fastProbeIncludedImage = true;
-		const content = JSON.stringify({
-			decision: "HEALTHY",
-			confidence: 1,
-			reasonCode: "ALL_CHECKS_PASS",
-			rationale: "all checks pass",
-		});
+		const content = JSON.stringify({ probe: "PASS" });
 		response.setHeader("content-type", "application/json");
 		response.end(
 			JSON.stringify({

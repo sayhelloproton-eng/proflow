@@ -1,4 +1,5 @@
 import type { ModelCapabilityProfile } from "@tomflow/proflow-model-contracts";
+import { VISION_CAPABILITY_PROBE_PNG } from "../src/capability-probe-fixture.ts";
 
 export type ModelDeploymentEvidence = {
 	modelRef: string;
@@ -44,9 +45,6 @@ export type RoleMappingDecision =
 
 const REQUIRED_CONTEXT_WINDOW = 16_384;
 const REQUIRED_MAX_OUTPUT_TOKENS = 2_048;
-const ONE_PIXEL_PNG =
-	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-
 function eligibleFast(item: ModelDeploymentEvidence): boolean {
 	return (
 		item.text &&
@@ -271,10 +269,10 @@ function completionContent(value: unknown): {
 	};
 }
 
-function assertStructuredProbe(content: string): void {
+function assertProbeObject(candidate: string): void {
 	let parsed: unknown;
 	try {
-		parsed = JSON.parse(content);
+		parsed = JSON.parse(candidate);
 	} catch {
 		throw new TypeError("structured capability probe failed");
 	}
@@ -285,6 +283,19 @@ function assertStructuredProbe(content: string): void {
 		Reflect.get(parsed, "probe") !== "PASS"
 	)
 		throw new TypeError("structured capability probe failed");
+}
+
+function assertPromptedProbe(content: string): void {
+	try {
+		assertProbeObject(content);
+		return;
+	} catch {
+		// A single whole-response JSON fence is accepted for prompted structured
+		// output. Arbitrary prose around JSON remains invalid/fail-closed.
+	}
+	const fenced = content.match(/^\s*```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/i);
+	if (!fenced?.[1]) throw new TypeError("structured capability probe failed");
+	assertProbeObject(fenced[1]);
 }
 
 export function createOpenAIModelDeploymentProbe(input: {
@@ -345,15 +356,32 @@ export function createOpenAIModelDeploymentProbe(input: {
 			"Return exactly one JSON object with probe set to PASS.",
 			"x".repeat(REQUIRED_CONTEXT_WINDOW),
 		].join("\n");
-		const text = await invoke({
+		const nativeBody = {
 			model: model.id,
 			messages: [{ role: "user", content: contextPrompt }],
 			response_format: { type: "json_object" },
 			max_tokens: REQUIRED_MAX_OUTPUT_TOKENS,
 			temperature: 0,
 			stream: false,
-		});
-		assertStructuredProbe(text.content);
+		};
+		let text: Awaited<ReturnType<typeof invoke>>;
+		let structuredOutput: "native" | "prompted";
+		try {
+			text = await invoke(nativeBody);
+			assertProbeObject(text.content);
+			structuredOutput = "native";
+		} catch {
+			if (cooldownMs > 0) await sleep(cooldownMs);
+			text = await invoke({
+				model: model.id,
+				messages: [{ role: "user", content: contextPrompt }],
+				max_tokens: REQUIRED_MAX_OUTPUT_TOKENS,
+				temperature: 0,
+				stream: false,
+			});
+			assertPromptedProbe(text.content);
+			structuredOutput = "prompted";
+		}
 		let vision = false;
 		if (!text.thinking) {
 			if (cooldownMs > 0) await sleep(cooldownMs);
@@ -371,18 +399,21 @@ export function createOpenAIModelDeploymentProbe(input: {
 								{
 									type: "image_url",
 									image_url: {
-										url: `data:image/png;base64,${ONE_PIXEL_PNG}`,
+										url: `data:image/png;base64,${VISION_CAPABILITY_PROBE_PNG}`,
 									},
 								},
 							],
 						},
 					],
-					response_format: { type: "json_object" },
+					...(structuredOutput === "native"
+						? { response_format: { type: "json_object" } }
+						: {}),
 					max_tokens: 128,
 					temperature: 0,
 					stream: false,
 				});
-				assertStructuredProbe(image.content);
+				if (structuredOutput === "native") assertProbeObject(image.content);
+				else assertPromptedProbe(image.content);
 				vision = true;
 			} catch {
 				vision = false;
@@ -392,7 +423,7 @@ export function createOpenAIModelDeploymentProbe(input: {
 			modelRef: model.id,
 			text: true,
 			vision,
-			structuredOutput: "native",
+			structuredOutput,
 			reasoning: text.thinking ? "thinking" : "no-thinking",
 			contextWindow: REQUIRED_CONTEXT_WINDOW,
 			maxOutputTokens: REQUIRED_MAX_OUTPUT_TOKENS,
