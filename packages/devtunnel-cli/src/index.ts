@@ -15,6 +15,7 @@ import { promisify } from "node:util";
 
 const execute = promisify(execFile);
 const MANAGED_VERSION = "1.0.2030";
+const VERSION_PROBE_TIMEOUT_MS = 30_000;
 const COMPATIBLE_VERSION = new RegExp(
 	`^${MANAGED_VERSION.replaceAll(".", "\\.")}$`,
 );
@@ -65,7 +66,9 @@ function artifact(): SupportedArtifact {
 
 async function version(command: string): Promise<string | undefined> {
 	try {
-		const result = await execute(command, ["--version"], { timeout: 10_000 });
+		const result = await execute(command, ["--version"], {
+			timeout: VERSION_PROBE_TIMEOUT_MS,
+		});
 		return `${result.stdout}\n${result.stderr}`.match(/\d+\.\d+\.\d+/)?.[0];
 	} catch {
 		return undefined;

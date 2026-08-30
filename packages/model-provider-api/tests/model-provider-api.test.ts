@@ -209,6 +209,69 @@ test("saved URL is re-probed and unreachable reality never re-discovers a device
 	);
 });
 
+test("initial unreachable URL is remembered for retry without asking the user again", async (context) => {
+	const workspaceRoot = await workspace(
+		context,
+		"proflow-provider-unreachable-retry-",
+	);
+	let reachable = false;
+	const observedBaseUrls: string[] = [];
+	const adapter = createProviderBehaviorAdapter({
+		probe: async ({ baseUrl }) => {
+			observedBaseUrls.push(baseUrl);
+			return reachable
+				? ready(`${baseUrl.replace(/\/v1\/?$/, "").replace(/\/$/, "")}/v1`)
+				: {
+						status: "UNREACHABLE" as const,
+						reachable: false as const,
+						authenticated: false as const,
+						message: "provider API request failed",
+					};
+		},
+	});
+	const first = await adapter.setup({
+		workspaceRoot,
+		input: { providerBaseUrl: "http://192.168.0.108:8080/v1" },
+	});
+	assert.equal(first.result.status, "ACTION_REQUIRED");
+	assert.equal(
+		first.result.actionRequired?.action,
+		"retry-provider-connection",
+	);
+
+	const status = await adapter.status({ workspaceRoot });
+	assert.equal(status.result.data.setupStatus, "ACTION_REQUIRED");
+	assert.equal(status.result.data.issues?.[0]?.code, "PROVIDER_UNREACHABLE");
+	assert.deepEqual(observedBaseUrls, [
+		"http://192.168.0.108:8080/v1",
+		"http://192.168.0.108:8080/v1",
+	]);
+	const config = JSON.parse(
+		await readFile(
+			join(
+				workspaceRoot,
+				".proflow/runtime/modules/model-provider-api/provider-config.json",
+			),
+			"utf8",
+		),
+	) as Record<string, unknown>;
+	assert.equal(config.contract, "proflow.model-provider-config.v1");
+	assert.equal(config.providerBaseUrl, "http://192.168.0.108:8080/v1");
+	assert.equal(
+		await readModuleSharedFacts({ workspaceRoot }, "model-provider-api"),
+		undefined,
+	);
+
+	reachable = true;
+	const recovered = await adapter.setup({ workspaceRoot });
+	assert.equal(recovered.result.status, "SUCCEEDED");
+	const facts = await readModuleSharedFacts(
+		{ workspaceRoot },
+		"model-provider-api",
+	);
+	assert.equal(facts?.providerBaseUrl, "http://192.168.0.108:8080/v1");
+});
+
 test("credential is stored owner-only and shared facts contain only its file reference", async (context) => {
 	const workspaceRoot = await workspace(context, "proflow-provider-secret-");
 	const secret = "GENERIC_PROVIDER_SECRET";

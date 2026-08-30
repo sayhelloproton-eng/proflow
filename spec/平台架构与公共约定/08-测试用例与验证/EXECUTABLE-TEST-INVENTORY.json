@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 141,
-    "testCalls": 631
+    "testCalls": 632
   },
   "tests": [
     {
@@ -2874,7 +2874,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 563,
+      "line": 594,
       "title": "REG-EXE-BR-09 deterministic DOM observation makes zero Vision calls",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2887,7 +2887,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 595,
+      "line": 626,
       "title": "REG-EXE-BR-10 screenshot → Vision receives the exact captured image and returns a typed observation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2900,7 +2900,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 679,
+      "line": 710,
       "title": "REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fabricated success",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2913,7 +2913,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 729,
+      "line": 760,
       "title": "REG-EXE-BR-12 screenshot boundary rejects unsupported MIME and mismatched dataUrl",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2926,7 +2926,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 762,
+      "line": 793,
       "title": "REG-EXE-BR-13 Vision verification requires deterministic confidence and no human escalation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2952,7 +2952,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
-      "line": 168,
+      "line": 167,
       "title": "stale READY evidence does not suppress the human reinstall path",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2965,7 +2965,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
-      "line": 195,
+      "line": 194,
       "title": "pairing timeout preserves prepared files but never writes fake READY evidence",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3002,7 +3002,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install.test.ts",
-      "line": 100,
+      "line": 96,
       "title": "setup output is human-readable and keeps stable AI recovery semantics",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4710,6 +4710,20 @@
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
       "line": 212,
+      "title": "initial unreachable URL is remembered for retry without asking the user again",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/model-provider-api/deployment/adapter.ts",
+        "packages/model-provider-api/deployment/descriptor.ts",
+        "packages/model-provider-api/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "model-provider-api",
+      "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
+      "line": 275,
       "title": "credential is stored owner-only and shared facts contain only its file reference",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4723,7 +4737,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 270,
+      "line": 333,
       "title": "invalid protocol and auth-required endpoint never become fake READY",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4737,7 +4751,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 307,
+      "line": 370,
       "title": "adapter exposes exactly the fixed seven management commands",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4751,7 +4765,7 @@
     {
       "package": "model-provider-api",
       "path": "packages/model-provider-api/tests/model-provider-api.test.ts",
-      "line": 319,
+      "line": 382,
       "title": "provider public contract contains no implementation-specific discovery identity",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

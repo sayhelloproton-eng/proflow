@@ -97,7 +97,6 @@ export async function runInteractiveBrowserExtensionSetup(input: {
 			timeoutMs: input.timeoutMs ?? 120_000,
 			async onWaiting({ loadDir }) {
 				await desktop.copyText(loadDir);
-				await desktop.openExtensionsPage();
 				await desktop.showInstruction(
 					browserExtensionInstallInstruction(loadDir),
 				);

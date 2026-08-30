@@ -511,16 +511,27 @@ test("REG-EXE-BR-08 Module setup invokes the owner pairing capability directly",
 		],
 	});
 	const calls: string[] = [];
+	const desktop = {
+		copyText: () => calls.push("copy"),
+		openExtensionsPage: () => calls.push("open"),
+		showInstruction: () => calls.push("instruct"),
+	};
+	const developerMode = (
+		await behaviorAdapter.setup({
+			...commandContext,
+			input: { desktop },
+		})
+	).result;
+	assert.equal(developerMode.status, "ACTION_REQUIRED");
+	assert.deepEqual(calls, ["open"]);
+	calls.length = 0;
+
 	const setup = (
 		await behaviorAdapter.setup({
 			...commandContext,
 			input: {
 				developerModeConfirmed: true,
-				desktop: {
-					copyText: () => calls.push("copy"),
-					openExtensionsPage: () => calls.push("open"),
-					showInstruction: () => calls.push("instruct"),
-				},
+				desktop,
 				pair: (async (_context, options) => {
 					await options.onWaiting?.({ loadDir: "load", endpoint: "endpoint" });
 					calls.push("pair");
@@ -533,7 +544,27 @@ test("REG-EXE-BR-08 Module setup invokes the owner pairing capability directly",
 		})
 	).result;
 	assert.equal(setup.status, "SUCCEEDED");
-	assert.deepEqual(calls, ["copy", "open", "instruct", "pair"]);
+	assert.deepEqual(calls, ["copy", "instruct", "pair"]);
+
+	calls.length = 0;
+	const retry = (
+		await behaviorAdapter.setup({
+			...commandContext,
+			input: {
+				desktop,
+				pair: (async (_context, options) => {
+					await options.onWaiting?.({ loadDir: "load", endpoint: "endpoint" });
+					calls.push("pair");
+					return {
+						extensionId: "a".repeat(32),
+						extensionInstanceId: "instance:retry",
+					};
+				}) satisfies BrowserExtensionPair,
+			},
+		})
+	).result;
+	assert.equal(retry.status, "SUCCEEDED");
+	assert.deepEqual(calls, ["copy", "instruct", "pair"]);
 });
 
 type VisionInspectInput = Parameters<BrowserVisionPort["inspect"]>[0];

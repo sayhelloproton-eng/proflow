@@ -22,6 +22,11 @@ import {
 } from "../src/resource-adapter.ts";
 import { descriptor } from "./descriptor.ts";
 
+type ProviderSetupConfig = {
+	contract: "proflow.model-provider-config.v1";
+	providerBaseUrl: string;
+};
+
 type ProviderObservation = {
 	contract: "proflow.model-provider-observation.v1";
 	providerBaseUrl: string;
@@ -59,6 +64,8 @@ const effect = "Probes the configured OpenAI-compatible model provider API";
 
 const stateDirectory = (context: ModuleCommandContext) =>
 	moduleWorkspaceStateDirectory(context, descriptor.moduleRef);
+const configPath = (context: ModuleCommandContext) =>
+	join(stateDirectory(context), "provider-config.json");
 const observationPath = (context: ModuleCommandContext) =>
 	join(stateDirectory(context), "provider-observation.json");
 const credentialPath = (context: ModuleCommandContext) =>
@@ -128,6 +135,38 @@ function parseObservation(value: unknown): ProviderObservation | undefined {
 		verifiedAt,
 		...(providerCredentialFile ? { providerCredentialFile } : {}),
 	};
+}
+
+async function readConfig(
+	context: ModuleCommandContext,
+): Promise<ProviderSetupConfig | undefined> {
+	try {
+		const raw = JSON.parse(
+			await readFile(configPath(context), "utf8"),
+		) as Record<string, unknown>;
+		const providerBaseUrl = endpoint(raw.providerBaseUrl);
+		return raw.contract === "proflow.model-provider-config.v1" &&
+			providerBaseUrl
+			? { contract: "proflow.model-provider-config.v1", providerBaseUrl }
+			: undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+async function writeConfig(
+	context: ModuleCommandContext,
+	providerBaseUrl: string,
+): Promise<void> {
+	await mkdir(stateDirectory(context), { recursive: true, mode: 0o700 });
+	const target = configPath(context);
+	const temporary = `${target}.${process.pid}.tmp`;
+	await writeFile(
+		temporary,
+		`${JSON.stringify({ contract: "proflow.model-provider-config.v1", providerBaseUrl } satisfies ProviderSetupConfig, null, 2)}\n`,
+		{ encoding: "utf8", mode: 0o600 },
+	);
+	await rename(temporary, target);
 }
 
 async function readObservation(
@@ -285,13 +324,15 @@ export function createProviderBehaviorAdapter(
 		options: { persistReady?: boolean } = {},
 	): Promise<Resolution> => {
 		const saved = await readObservation(context);
+		const configured = await readConfig(context);
 		const supplied = suppliedEndpoint(context);
 		if (supplied.invalid)
 			return {
 				status: "PROVIDER_ENDPOINT_INVALID",
 				message: "模型服务 URL 必须是有效的 HTTP(S) URL。",
 			};
-		const providerBaseUrl = supplied.value ?? saved?.providerBaseUrl;
+		const providerBaseUrl =
+			supplied.value ?? configured?.providerBaseUrl ?? saved?.providerBaseUrl;
 		if (!providerBaseUrl)
 			return {
 				status: "PROVIDER_ENDPOINT_REQUIRED",
@@ -303,6 +344,15 @@ export function createProviderBehaviorAdapter(
 			saved?.providerCredentialFile,
 		);
 		const credential = oneTimeCredential ?? storedCredential;
+		const persistInitialEndpoint = async () => {
+			if (
+				options.persistReady === true &&
+				supplied.value &&
+				configured?.providerBaseUrl === undefined &&
+				saved?.providerBaseUrl === undefined
+			)
+				await writeConfig(context, providerBaseUrl);
+		};
 		const result = await probe({
 			baseUrl: providerBaseUrl,
 			...(credential ? { credential } : {}),
@@ -319,24 +369,32 @@ export function createProviderBehaviorAdapter(
 				verifiedAt: now(),
 				...(providerCredentialFile ? { providerCredentialFile } : {}),
 			};
-			if (options.persistReady === true) await publish(context, observation);
+			if (options.persistReady === true) {
+				await writeConfig(context, result.baseUrl);
+				await publish(context, observation);
+			}
 			return { status: "READY", observation };
 		}
-		if (result.status === "AUTH_REQUIRED")
+		if (result.status === "AUTH_REQUIRED") {
+			await persistInitialEndpoint();
 			return {
 				status: "PROVIDER_AUTH_REQUIRED",
 				message: "模型服务要求认证。",
 			};
-		if (result.status === "AUTH_FAILED")
+		}
+		if (result.status === "AUTH_FAILED") {
+			await persistInitialEndpoint();
 			return {
 				status: "PROVIDER_AUTH_FAILED",
 				message: "模型服务拒绝了当前凭据。",
 			};
+		}
 		if (result.status === "PROTOCOL_INVALID")
 			return {
 				status: "PROVIDER_PROTOCOL_INVALID",
 				message: "模型服务没有通过 OpenAI-compatible models API 验证。",
 			};
+		await persistInitialEndpoint();
 		return {
 			status: "PROVIDER_UNREACHABLE",
 			message: "当前无法连接已绑定的模型服务 URL。",

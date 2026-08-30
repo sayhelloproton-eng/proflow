@@ -48,6 +48,7 @@ const blockedSetupPlan = {
 	],
 } as const;
 type BrowserSetupState = { extensionId: string };
+type BrowserInstallFlowState = { developerModeConfirmed: true };
 type BrowserVerificationEvidence = {
 	contract: "proflow.browser-extension-verification.v1";
 	moduleVersion: string;
@@ -79,6 +80,8 @@ const stateDir = (context: ModuleCommandContext) =>
 	moduleWorkspaceStateDirectory(context, descriptor.moduleRef);
 const setupFile = (context: ModuleCommandContext) =>
 	join(stateDir(context), "setup.json");
+const installFlowFile = (context: ModuleCommandContext) =>
+	join(stateDir(context), "install-flow.json");
 const verificationFile = (context: ModuleCommandContext) =>
 	join(stateDir(context), "verification.json");
 const executorConfigFile = (context: ModuleCommandContext) =>
@@ -179,6 +182,26 @@ async function readSetup(
 	} catch {
 		return undefined;
 	}
+}
+async function readInstallFlow(
+	context: ModuleCommandContext,
+): Promise<BrowserInstallFlowState | undefined> {
+	try {
+		const raw = JSON.parse(await readFile(installFlowFile(context), "utf8"));
+		return raw.developerModeConfirmed === true
+			? ({ developerModeConfirmed: true } as const)
+			: undefined;
+	} catch {
+		return undefined;
+	}
+}
+async function persistDeveloperModeConfirmation(context: ModuleCommandContext) {
+	await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
+	await writeFile(
+		installFlowFile(context),
+		`${JSON.stringify({ developerModeConfirmed: true } satisfies BrowserInstallFlowState)}\n`,
+		{ mode: 0o600 },
+	);
 }
 async function readEvidence(
 	context: ModuleCommandContext,
@@ -477,7 +500,11 @@ export const behaviorAdapter = {
 							developerModeConfirmed?: boolean;
 						})
 					: undefined;
-			if (input?.developerModeConfirmed !== true) {
+			const installFlow = await readInstallFlow(context);
+			const developerModeConfirmed =
+				input?.developerModeConfirmed === true ||
+				installFlow?.developerModeConfirmed === true;
+			if (!developerModeConfirmed) {
 				await openBrowserExtensionManager(input?.desktop);
 				return {
 					result: {
@@ -510,6 +537,12 @@ export const behaviorAdapter = {
 					},
 					observedEffects: [],
 				};
+			}
+			if (
+				input?.developerModeConfirmed === true &&
+				installFlow?.developerModeConfirmed !== true
+			) {
+				await persistDeveloperModeConfirmation(context);
 			}
 			await runInteractiveBrowserExtensionSetup({
 				workspaceRoot: context.workspaceRoot,

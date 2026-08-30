@@ -77,11 +77,7 @@ test("browser install workflow exposes one human installation confirmation", asy
 		timeoutMs: 2_000,
 	});
 
-	assert.deepEqual(events, [
-		`copy:${loadDir}`,
-		"open:chrome://extensions",
-		"instruction",
-	]);
+	assert.deepEqual(events, [`copy:${loadDir}`, "instruction"]);
 	assert.deepEqual(result, { extensionId, extensionInstanceId });
 	assert.match(instruction, /加载未打包的扩展程序/);
 	assert.match(instruction, /扩展目录已复制到剪贴板/);

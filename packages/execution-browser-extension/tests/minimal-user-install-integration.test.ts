@@ -147,7 +147,6 @@ test("minimal install journey reaches READY and repeated setup does not ask the 
 		assert.deepEqual(first, { extensionId, extensionInstanceId });
 		assert.deepEqual(events, [
 			`copy:${browserExtensionLoadDir(workspaceRoot)}`,
-			"open:chrome://extensions",
 			"instruction",
 		]);
 
@@ -159,7 +158,7 @@ test("minimal install journey reaches READY and repeated setup does not ask the 
 		});
 		await reconnect;
 		assert.deepEqual(second, { extensionId, extensionInstanceId });
-		assert.equal(events.length, 3);
+		assert.equal(events.length, 2);
 	} finally {
 		await rm(workspaceRoot, { recursive: true, force: true });
 	}
@@ -175,7 +174,7 @@ test("stale READY evidence does not suppress the human reinstall path", async ()
 			pair: realPairWithSimulatedChrome(),
 			timeoutMs: 1_000,
 		});
-		assert.equal(events.length, 3);
+		assert.equal(events.length, 2);
 
 		await assert.rejects(
 			() =>
@@ -186,7 +185,7 @@ test("stale READY evidence does not suppress the human reinstall path", async ()
 				}),
 			/PAIRING_TIMEOUT/,
 		);
-		assert.equal(events.length, 6);
+		assert.equal(events.length, 4);
 	} finally {
 		await rm(workspaceRoot, { recursive: true, force: true });
 	}
@@ -207,7 +206,6 @@ test("pairing timeout preserves prepared files but never writes fake READY evide
 		);
 		assert.deepEqual(events, [
 			`copy:${browserExtensionLoadDir(workspaceRoot)}`,
-			"open:chrome://extensions",
 			"instruction",
 		]);
 		await access(
