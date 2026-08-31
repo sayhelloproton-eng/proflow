@@ -127,7 +127,7 @@ PLATFORM_READY=YES
 | repeat/idempotency | PASS | repeat setup/start/status 成立 |
 | no Fake READY | PASS | Browser instance drift 时先 `PLATFORM_READY=NO`，revalidate 后才恢复 YES |
 | Technical mainline | **PASS** | 真实安装/setup/start/status + Browser/Tunnel/Model/3 GPT + recovery/idempotency 已成立 |
-| Product acceptance | **PENDING** | 等优化版 npm latest smoke 验证用户心智、自动化、CLI 交互、默认输出四项硬门 |
+| Product acceptance | **PENDING** | 等优化版发布后的完整 latest Fresh Deployment E2E 验证用户心智、自动化、CLI 交互、默认输出四项硬门 |
 | DEPLOYMENT_SUCCESS | **NOT_YET_FINAL** | 四项产品门通过后才可最终 YES |
 
 ## 3.1 已完成 Recovery / Fail-closed 回归基线
@@ -144,11 +144,11 @@ running uninstall stops owner/listeners before package removal = PASS
 uninstall/reinstall durable identity preservation = PASS
 ```
 
-发布后 smoke 只重跑与 O1～O6 直接相关的最小路径，不机械重复全部历史 Recovery；只有新版本触及相应 seam 或真实 smoke 出现 regression 才重开。
+历史 Recovery 证据继续作为诊断基线，但**不能替代发布后这一轮完整 Deployment E2E 的 recovery / repeat / idempotency 步骤**。本轮仍按冻结路径完整执行；历史证据只用于避免重新探索测试方法和帮助快速定位 regression。
 
 ## 4. Deployment Product Acceptance 四项最终 Gate
 
-最终 npm latest smoke 不能只看 exit code 和 `PLATFORM_READY=YES`，还必须模拟第一次使用 ProFlow 的普通用户，逐项判断：
+最终完整 latest Fresh Deployment E2E 不能只看 exit code 和 `PLATFORM_READY=YES`，还必须模拟第一次使用 ProFlow 的普通用户，逐项判断：
 
 | Gate | PASS 标准 | 明确 FAIL 信号 |
 |---|---|---|
@@ -157,7 +157,7 @@ uninstall/reinstall durable identity preservation = PASS
 | CLI 交互好用 | 明确正在做什么、为什么停、只需做什么、完成后下一步；可重入/取消/恢复 | prompt 含糊、多个动作同时抛给用户、失败后不知道如何继续 |
 | 默认输出明确 | 默认聚焦当前状态 + 唯一 root cause + 下一步 + 最终结果 | 23 Module traversal、重复 Registry 核验、错误服务计数、内部诊断噪声淹没用户决策 |
 
-这四项必须通过真实发布后的 Product Workspace smoke 取证，不能仅凭源码 review 或 unit test 宣告 PASS。O1～O6 是本轮对这些 Gate 的直接整改实现。
+这四项必须通过真实发布后的**完整 Product Workspace Fresh Deployment E2E**取证，不能仅凭源码 review、unit test 或历史 smoke 宣告 PASS。O1～O6 是本轮对这些 Gate 的直接整改实现。
 
 ## 5. O1～O6 优化批次
 
@@ -199,10 +199,11 @@ dev-tunnel   0.1.20 → 0.1.21
 ## 6. 当前唯一 Next Action
 
 ```text
-1. pnpm package:release platform-cli dev-tunnel
-   - 只处理 @tomflow/proflow-platform-cli@0.1.48
-   - 只处理 @tomflow/proflow-dev-tunnel@0.1.21
-   - Browser 0.1.21 未变更，不参与发布
+1. pnpm package:release
+   - 不手工传包名；release set 来自 pnpm changeset/ledger 真源
+   - 当前恢复态应自动识别 @tomflow/proflow-platform-cli@0.1.48
+   - 当前恢复态应自动识别 @tomflow/proflow-dev-tunnel@0.1.21
+   - Browser 0.1.21 不在最近一次 versioning ledger release set，不参与发布
 2. Registry exact + dist-tag latest readback
 3. 因 platform-cli 本轮变更：npm install -g @tomflow/proflow-platform-cli@latest
 4. platform -v 必须等于 Registry latest
@@ -226,18 +227,21 @@ dev-tunnel   0.1.20 → 0.1.21
 ## 7. 发布纪律
 
 ```text
-changed package
+changed / affected package
 → package gate
-→ commit（代码 + version facts）
-→ package:release changed-package [...]
-→ selected build / selected publishability
-→ exact preflight
-→ 只 publish MISSING changed versions
-→ exact verify
+→ pnpm change 记录 .changeset intent
+→ commit（代码 + 测试 + changeset）
+→ pnpm package:release
+→ pnpm version -r 根据 changeset 自动计算/应用 release set
+→ package-owned version facts sync + release facts commit
+→ 仅 release set 做 selected build / publishability
+→ Registry exact preflight
+→ pnpm publish -r --filter <pnpm release-plan packages...>
+→ Registry exact verify
 → 完整 Fresh Deployment E2E
 ```
 
-日常整改禁止 `pnpm -r publish` 扫全仓；只有大阶段整体封板才允许全仓 release。`pnpm package:release` 不自动 bump version，避免发布动作暗中改源码；版本事实必须先 commit。
+`.changeset` 是发布意图唯一真源；release 阶段禁止再次手填 changed package list。`package:release` 只约束 pnpm 原生 change/version/publish：pnpm 负责 semver 与 workspace 依赖传播，脚本负责 clean-tree、version facts、自动 release commit、selected validation、filtered publish 与 Registry 权威回读。已 version 未 publish 时允许从最近一次 changeset ledger commit 自动恢复。
 
 - `npm publish` 在当前 Deployment 优化收口授权内；`git push` 不在授权内。
 - publish timeout/UNKNOWN → 先 exact readback，禁止盲目重发。
@@ -248,28 +252,30 @@ changed package
 - Fresh Deployment 的首个 `install` 必须使用真实 npm 全局 `platform`；Fresh 清理不会删除该全局 CLI。禁止先往 Product Workspace 本地安装 platform-cli 作为 bootstrap。
 - `platform install` 后 Workspace 内出现的 `./node_modules/.bin/platform` 是受管 Package 安装物；后续同一 Workspace lifecycle 可用于交叉核验，但不得混淆为 Fresh bootstrap 入口。
 
-## 8. 最小 smoke 的 PASS / FAIL
+## 8. 完整 Fresh Deployment E2E 的 PASS / FAIL
 
 ### PASS
 
 ```text
 Registry latest = platform-cli 0.1.48 + dev-tunnel 0.1.21 + browser 0.1.21
-Product Workspace 确认安装上述 latest
-platform setup/start/status 正常
-PLATFORM_READY=YES
-Browser/Tunnel/Model/3 GPT 没有因优化版本回归
-默认 CLI 输出符合 O1～O6 目标
+→ 全局 platform-cli = Registry latest
+→ Fresh Product Workspace
+→ platform install / initial status / setup
+→ Browser / Tunnel / Model / 3 GPT 全部真实验证
+→ platform start / final status = PLATFORM_READY=YES
+→ recovery / repeat / idempotency 完整执行
+→ Product Acceptance 四项门全部 PASS
 ```
 
 ### FAIL
 
-只在优化版本直接引入新的、可复现 Deployment regression 时进入最小修复；不得因为历史已通过的 Recovery 场景、业务 Real-3 能力或新的纯 polish 想法无限扩大 smoke。
+完整 Deployment E2E 任何一步真实失败都保存现场、定位 root、最小修复并回到同一用户路径重放；不得用历史 PASS 省略本轮步骤，也不得把完整 Journey 改成最小 smoke。
 
 ## 9. 验证强度
 
 当前源码已经完成 affected-package tests/typecheck。接下来 release transaction 只对发生版本变化的 Package 做 selected version-sync/build/publishability/Registry publish/readback；**没有新源码修改时禁止重新跑整套 `pnpm check` 只为“更放心”**。发布后仍必须重新跑完整 Fresh Deployment E2E；工程 Gate 可以缩范围，Deployment Journey 不可以缩范围。
 
-若 smoke 暴露新源码 root cause：
+若完整 E2E 暴露新源码 root cause：
 
 ```text
 真实复现
@@ -277,8 +283,8 @@ Browser/Tunnel/Model/3 GPT 没有因优化版本回归
 → Local Dev 当前源码验证
 → 最小 fix
 → targeted/affected regression
-→ 原 smoke 重放
-→ 必要时新 patch version
+→ 原普通用户 E2E 场景重放
+→ 必要时 pnpm change 记录新 patch intent
 ```
 
 ## 10. 工具与效率规则
@@ -297,7 +303,7 @@ Playwright Chrome → real Chrome / GPT / Browser UI reality
 ## 11. 允许中断的条件
 
 ```text
-A. 优化发布 + latest smoke 完成
+A. 优化发布 + 完整 latest Fresh Deployment E2E 完成
 B. 必须用户本人 OAuth / 2FA / CAPTCHA / secret / 外部授权
 C. 必须改变 Frozen Contract / Owner / Architecture
 D. 工具明确不可恢复失败
@@ -318,7 +324,7 @@ SOURCE_HEAD/TREE = 接管时机械重读
 SOURCE_VERSION = platform-cli 0.1.48 / dev-tunnel 0.1.21 / browser 0.1.21
 REGISTRY_LATEST= platform-cli 0.1.47 / dev-tunnel 0.1.20 / browser 0.1.21
 PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES（优化前 latest）
-NEXT_ACTION    = package:release platform-cli dev-tunnel → Registry latest → global platform-cli latest → Fresh Workspace → 完整 Deployment E2E
+NEXT_ACTION    = package:release（changeset/ledger 自动 release set）→ Registry latest → global platform-cli latest → Fresh Workspace → 完整 Deployment E2E
 DO_NOT_REPEAT  = Browser 0.1.21 publish / 3 GPT rebuild / remote Tunnel delete / git push
 ```
 
@@ -345,12 +351,12 @@ CodeGraph / 当前源码确认 blast radius
 = 完整不可裁剪 Journey
 ```
 
-统一包级发布入口：
+统一包级发布入口只有一个：
 
 ```text
-pnpm package:release platform-cli
-pnpm package:release dev-tunnel
-pnpm package:release platform-cli dev-tunnel
+pnpm package:release
 ```
 
-`--plan` 只解析并展示目标事务；`--dry-run` 在 clean working tree 上执行 selected build/publishability 和 publish dry-run。脚本 fail-closed：未指定包、未知包、非 public 包、version facts drift、dirty working tree 都拒绝真实 release。Registry exact 已存在时不重复 publish。
+禁止给 `package:release` 传 package list。正常态：脚本调用 `pnpm version -r --dry-run` 获取 pnpm 根据 `.changeset` 计算的完整 release plan；真实执行时再 `pnpm version -r` 消费 intent、同步 package-owned version facts 并提交 release facts，然后只对 release plan 中 Registry MISSING 的包做 selected build/publishability，最终使用 pnpm 原生 `publish -r --filter ...` 发布。恢复态：若 `pnpm change status` 已无 pending intent，则从 `.changeset/ledger.yaml` 最近一次 versioning commit 恢复已经 version、尚未 publish 的 release set。
+
+`pnpm package:release --plan` 是只读入口：展示 changeset/ledger release set，并对这些 exact versions 做 Registry readback；兼容参数 `--dry-run` 仅作为 `--plan` 别名，不执行 mutation。脚本 fail-closed：dirty working tree、非 public release target、version facts drift、Registry UNKNOWN、build/publishability 后产生 tracked dirty state 都拒绝真实 publish；publish timeout/UNKNOWN 后先 exact readback，Registry 已确认成功才允许收口。

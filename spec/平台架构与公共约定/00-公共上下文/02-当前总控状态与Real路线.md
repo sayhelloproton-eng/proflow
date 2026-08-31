@@ -14,7 +14,7 @@
 - `DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE`
 - `DEPLOYMENT_SUCCESS = NOT_YET_FINAL`
 - `CURRENT_EXECUTION_GATE = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT`
-- `READY_FOR_REAL_3 = YES`（优化发布 smoke 完成后恢复 Real-3 主线）
+- `READY_FOR_REAL_3 = YES`（优化发布后的完整 latest Fresh Deployment E2E 完成后恢复 Real-3 主线）
 - `SYSTEM_REAL_USABLE = OUT_OF_SCOPE_FOR_DEPLOYMENT`
 - `PHASE3_FINAL_GO = NO`
 
@@ -29,9 +29,9 @@
 3. **命令行交互好用**：每一步都明确“正在做什么 / 为什么停 / 用户只需做什么 / 完成后如何继续”，支持重入、取消、失败恢复，不让用户猜命令或内部状态。
 4. **默认输出明确**：默认只暴露当前状态、唯一 root cause、下一步和最终结果；内部 traversal/dependency/owner 细节进入 verbose/doctor/日志。
 
-因此当前状态必须区分：`DEPLOYMENT_TECHNICAL_MAINLINE=PASS`，但完整 `DEPLOYMENT_SUCCESS` 要等 O1～O6 优化版本发布后，在真实 npm latest + Product Workspace 上完成用户视角 smoke，证明上述四项达到冻结标准。非阻断的小 polish 不反向推翻技术主链 PASS，但产品入口若仍要求用户理解内部实现、重复手工执行机器可做动作、交互含糊或默认输出误导，则完整 Deployment Product Acceptance 不得 PASS。
+因此当前状态必须区分：`DEPLOYMENT_TECHNICAL_MAINLINE=PASS`，但完整 `DEPLOYMENT_SUCCESS` 要等 O1～O6 优化版本发布后，在真实 npm latest + Product Workspace 上重新完成**完整、不可裁剪的普通用户 Fresh Deployment E2E**，并证明上述四项达到冻结标准。非阻断的小 polish 不反向推翻技术主链 PASS，但产品入口若仍要求用户理解内部实现、重复手工执行机器可做动作、交互含糊或默认输出误导，则完整 Deployment Product Acceptance 不得 PASS。
 
-当前剩余工作是完成 O1～O6 优化版本发布与发布后 npm latest smoke：源码已提交 `3e91e9b`，版本元数据已提交 `e3151f7`；源码版本为 `platform-cli 0.1.48`、`dev-tunnel 0.1.21`，当前 Registry latest 仍是 `0.1.47 / 0.1.20`。
+当前剩余工作是：`pnpm package:release` 按 pnpm changeset/ledger 自动 release set 发布 O1～O6 版本 → Registry latest readback → 全局 platform-cli latest → Fresh Workspace → 完整 Deployment E2E。源码业务优化已提交 `3e91e9b`，版本元数据已提交 `e3151f7`；源码版本为 `platform-cli 0.1.48`、`dev-tunnel 0.1.21`，当前 Registry latest 仍是 `0.1.47 / 0.1.20`。
 
 必须继续严格区分：
 
@@ -74,7 +74,7 @@ Deployment PASS 不代表 J0～J6 业务 Journey、协作/Approval/Effect、Brow
 
 ```text
 Deployment latest mainline / Fresh revalidation       PASS
-Optimization release + npm latest smoke               CURRENT CLOSEOUT
+Optimization release + complete latest Fresh E2E      CURRENT CLOSEOUT
   ↓
 Real-3  Task Journey J0～J4                            NEXT
   ↓
