@@ -158,6 +158,13 @@ function parseTunnel(input: unknown): z.infer<typeof tunnelPayloadSchema> {
 		.tunnel;
 }
 
+function sameTunnelIdentity(requested: string, observed: string): boolean {
+	if (observed === requested) return true;
+	if (requested.includes(".")) return false;
+	const prefix = `${requested}.`;
+	return observed.startsWith(prefix) && !observed.slice(prefix.length).includes(".");
+}
+
 function parseJson(text: string, label: string): unknown {
 	try {
 		return JSON.parse(text) as unknown;
@@ -315,7 +322,7 @@ export function createDevTunnelAutomation(input?: {
 				const tunnel = parseTunnel(
 					parseJson(result.stdout, "devtunnel show --json"),
 				);
-				if (tunnel.tunnelId !== tunnelId)
+				if (!sameTunnelIdentity(tunnelId, tunnel.tunnelId))
 					return { state: "UNKNOWN", hostState: "UNKNOWN" };
 				const hostState =
 					tunnel.hostConnections !== undefined
@@ -342,9 +349,9 @@ export function createDevTunnelAutomation(input?: {
 			const tunnel = parseTunnel(
 				parseJson(result.stdout, "devtunnel create --json"),
 			);
-			if (tunnel.tunnelId !== tunnelId)
+			if (!sameTunnelIdentity(tunnelId, tunnel.tunnelId))
 				throw new Error("devtunnel create returned an unexpected tunnelId");
-			return tunnel.tunnelId;
+			return tunnelId;
 		},
 		async ensurePort(tunnelId, port) {
 			const listed = await runRemoteQuery(["port", "list", tunnelId, "--json"]);

@@ -85,7 +85,12 @@ test("CP-DEV-TUNNEL-02 automatic creation uses the precomputed workspace Tunnel 
 		runCommand: async (_command, args) => {
 			calls.push(args);
 			return result(
-				JSON.stringify({ tunnelId: "proflow-stable", endpoints: [] }),
+				JSON.stringify({
+					tunnel: {
+						tunnelId: "proflow-stable.jpe1",
+						endpoints: [],
+					},
+				}),
 			);
 		},
 	});
@@ -102,6 +107,21 @@ test("CP-DEV-TUNNEL-02 automatic creation uses the precomputed workspace Tunnel 
 		hostState: "STOPPED",
 	});
 	assert.deepEqual(calls[1], ["show", "proflow-stable", "--json"]);
+});
+
+test("cluster suffix matching does not accept a different Tunnel identity", async () => {
+	const automation = createDevTunnelAutomation({
+		runCommand: async () =>
+			result(JSON.stringify({ tunnel: { tunnelId: "proflow-other.jpe1" } })),
+	});
+	await assert.rejects(
+		() => automation.createTunnel("proflow-stable"),
+		/unexpected tunnelId/,
+	);
+	assert.deepEqual(await automation.inspectTunnel("proflow-stable"), {
+		state: "UNKNOWN",
+		hostState: "UNKNOWN",
+	});
 });
 
 test("CP-DEV-TUNNEL-01 cancelled login and unknown login fail closed", async () => {
