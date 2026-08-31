@@ -10,8 +10,8 @@
     "formalCaseIdentities": 316,
     "criticalProofs": 199,
     "requiredFailureBoundaries": 117,
-    "executableTestFiles": 142,
-    "executableTestCalls": 641,
+    "executableTestFiles": 143,
+    "executableTestCalls": 643,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {

@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
+import {
+	access,
+	mkdir,
+	mkdtemp,
+	readFile,
+	symlink,
+	writeFile,
+} from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -34,6 +41,10 @@ async function fixture() {
 	);
 	await writeFile(join(root, "output.mjs"), "console.log('x'.repeat(5000));\n");
 	await writeFile(join(root, "hang.mjs"), "setInterval(()=>{},1000);\n");
+	await writeFile(
+		join(root, "cancel-ready.mjs"),
+		"import { writeFileSync } from 'node:fs';writeFileSync('cancel-ready.marker','ready');setInterval(()=>{},1000);\n",
+	);
 	await writeFile(
 		join(root, "ready.mjs"),
 		"console.log('READY');setInterval(()=>{},1000);\n",
@@ -193,8 +204,8 @@ test("CP-EXE-LOCAL-03 process lifecycle, bounded output, timeout and managed sto
 			{
 				mode: "one-shot",
 				command: process.execPath,
-				args: ["hang.mjs"],
-				timeoutMs: 5_000,
+				args: ["cancel-ready.mjs"],
+				timeoutMs: 60_000,
 			},
 			root,
 		),
@@ -202,7 +213,22 @@ test("CP-EXE-LOCAL-03 process lifecycle, bounded output, timeout and managed sto
 		signal: controller.signal,
 		onEffectStarted: async () => undefined,
 	});
-	setTimeout(() => controller.abort(), 40);
+	void cancelled.catch(() => undefined);
+	const marker = join(root, "cancel-ready.marker");
+	const markerDeadline = Date.now() + 30_000;
+	while (true) {
+		try {
+			await access(marker);
+			break;
+		} catch {
+			if (Date.now() >= markerDeadline)
+				assert.fail(
+					"live cancellation fixture did not start within 30 seconds",
+				);
+			await new Promise((resolve) => setTimeout(resolve, 20));
+		}
+	}
+	controller.abort();
 	await assert.rejects(
 		() => cancelled,
 		(error) =>

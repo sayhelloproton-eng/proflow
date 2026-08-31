@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 142,
-    "testCalls": 641
+    "files": 143,
+    "testCalls": 643
   },
   "tests": [
     {
@@ -2441,6 +2441,28 @@
     },
     {
       "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/chrome-extension-state.test.ts",
+      "line": 24,
+      "title": "Chrome profile probe distinguishes enabled, disabled, and missing unpacked Extension reality",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/chrome-extension-state.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/chrome-extension-state.test.ts",
+      "line": 66,
+      "title": "Chrome profile probe ignores a matching ID loaded from a different path",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/chrome-extension-state.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/collaboration-carrier-application.test.ts",
       "line": 110,
       "title": "PRESMOKE-B3-COLLAB-01 pending message drives one stable Execution intent and logical delivery follows durable success",
@@ -3509,7 +3531,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 94,
+      "line": 105,
       "title": "CP-EXE-LOCAL-01 projectRoot boundary rejects traversal, absolute, symlink and .proflow",
       "ids": [
         "CP-EXE-LOCAL-01"
@@ -3523,7 +3545,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 115,
+      "line": 126,
       "title": "CP-EXE-LOCAL-02 real file, Git, project, quality and code capability families",
       "ids": [
         "CP-EXE-LOCAL-02"
@@ -3537,7 +3559,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 168,
+      "line": 179,
       "title": "CP-EXE-LOCAL-03 process lifecycle, bounded output, timeout and managed stop",
       "ids": [
         "CP-EXE-LOCAL-03"
@@ -3551,7 +3573,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 243,
+      "line": 269,
       "title": "CP-EXE-LOCAL-04 deterministic local network boundary permits loopback and denies public",
       "ids": [
         "CP-EXE-LOCAL-04"
@@ -3565,7 +3587,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 295,
+      "line": 321,
       "title": "carry-forward process scope rejects PATH and secret injection and one-shot absence stays UNKNOWN",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3577,7 +3599,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 336,
+      "line": 362,
       "title": "carry-forward managed process ownership rejects a reused PID identity",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3589,7 +3611,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 373,
+      "line": 399,
       "title": "carry-forward failed git commit with a changed index is UNKNOWN rather than NOT_APPLIED",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3601,7 +3623,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 400,
+      "line": 426,
       "title": "CP-EXE-LOCAL-05 guarded shell rejects direct and dangerous escape, permits safe argv",
       "ids": [
         "CP-EXE-LOCAL-05"
@@ -3615,7 +3637,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 442,
+      "line": 468,
       "title": "CP-EXE-LOCAL-06 environment redaction and file/Git reality recovery",
       "ids": [
         "CP-EXE-LOCAL-06"
@@ -3629,7 +3651,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 511,
+      "line": 537,
       "title": "B1-EXE-10 reconcile reconstructs the concrete Result for file.write and git.commit",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3641,7 +3663,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 571,
+      "line": 597,
       "title": "B1-EXE-04 installDependency crash recovers reality from package.json/lockfile",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3653,7 +3675,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 626,
+      "line": 652,
       "title": "B1-EXE-09 output summary is UTF-8 byte-bounded and secrets are redacted across chunk boundaries",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3665,7 +3687,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 667,
+      "line": 693,
       "title": "B1-EXE-06 managed process identity, crash-before-persist and stop recovery reconcile",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3677,7 +3699,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 755,
+      "line": 781,
       "title": "B1-EXE-07 network.request followRedirects validates every hop and strips cross-origin credentials",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -3689,7 +3711,7 @@
     {
       "package": "execution-local",
       "path": "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
-      "line": 872,
+      "line": 898,
       "title": "B1-EXE-08 network response body streams to a redacted byte-bounded artifact",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",

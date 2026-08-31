@@ -11,6 +11,7 @@ import {
 	readModuleSharedFacts,
 	writeModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
+import { probeChromeExtensionState } from "../src/chrome-extension-state.ts";
 import type {
 	BrowserExtensionDesktop,
 	BrowserExtensionPair,
@@ -460,8 +461,18 @@ export const behaviorAdapter = {
 		const loadDir = browserExtensionLoadDir(context.workspaceRoot);
 		const setup = await readSetup(context);
 		const evidence = await readEvidence(context, loadDir);
+		const chromeState =
+			setup && evidence && setup.extensionId === evidence.extensionId
+				? await probeChromeExtensionState({
+						extensionId: evidence.extensionId,
+						loadDir,
+					})
+				: "MISSING";
 		const setupReady = Boolean(
-			setup && evidence && setup.extensionId === evidence.extensionId,
+			setup &&
+				evidence &&
+				setup.extensionId === evidence.extensionId &&
+				chromeState === "ENABLED",
 		);
 		return {
 			result: {
