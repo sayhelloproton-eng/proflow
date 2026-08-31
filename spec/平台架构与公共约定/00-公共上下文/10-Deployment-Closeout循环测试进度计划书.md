@@ -209,20 +209,21 @@ browser      source 0.1.21 / Registry 0.1.21 / pending patch intent → 0.1.22
 
 Dev Tunnel 真人模拟 / 自动化复用 SOP 已冻结到 `05-执行纪律与工具规则.md`。当前前台用户只走 `platform setup/status`；CLI resolution、登录状态判断、Tunnel create/reuse、port reconciliation、host、public HTTPS 都由机器处理。唯一可能的人类动作是 `NOT_LOGGED_IN` 后的 GitHub Browser Auth 中不可替代的账号授权 / 2FA / CAPTCHA。
 
-当前只读审计发现三个待逐项裁决候选，尚未改代码：
+当前只读审计发现四个待逐项裁决候选，尚未改代码：
 
 ```text
-D1 Fresh ownership：fresh:workspace 删除 .proflow 后会丢失唯一 tunnelId；当前 create 使用随机 ID，可能导致 Fresh replay 再建新 Tunnel。Dev Tunnel CLI 原生支持 deterministic tunnel-id / labels / list --all-labels，应优先基于原生能力恢复 workspace ownership。
+D0 CLI ownership：产品要求 Dev Tunnel CLI 完全由 @tomflow/proflow-devtunnel-cli 治理，不得受用户机器 PATH 中 system devtunnel 影响；但当前 resolveDevTunnelCli() 会优先复用版本恰好匹配的 system CLI，真实 Product Workspace setup.json 也曾记录 cliPath="devtunnel"。必须先改为 package-managed-only。当前工具包固定治理 Microsoft Dev Tunnel CLI 1.0.2030（固定 URL/SHA256 后下载），不是直接把 binary 内嵌进 npm tarball；自动化证据必须来自 package-managed 路径。强制 managed resolver 的真实验证还暴露下载 fetch 无 timeout，80s 无返回后人工终止，需与 D0 一并裁决其 bounded download 行为。
+D1 Fresh ownership：fresh:workspace 删除 .proflow 后会丢失唯一 tunnelId；当前 create 使用随机 ID，可能导致 Fresh replay 再建新 Tunnel。deterministic tunnel-id / labels 等能力必须使用 package-managed 1.0.2030 实际能力确认后再采用，禁止引用 Mac system CLI 作为证据。
 D2 create durability：create 已成功返回 tunnelId 后，当前先 show 验证、后持久化。如果 show timeout/UNKNOWN，已创建 tunnelId 没有落盘，下一轮可能再次 create。应先保证 non-idempotent create 的已知结果可恢复，再做远端验证。
-D3 redundant/bounded queries：同一 setup 内 ensureLogin 与 host.start 当前可能重复 user show；public URL discovery 又有 3 轮 show × 每轮 timeout retry 的双层 bounded retry。可进一步减少重复查询，但必须在 D1/D2 ownership/UNKNOWN 语义明确后再裁。
+D3 redundant/bounded queries：同一 setup 内 ensureLogin 与 host.start 当前可能重复 user show；public URL discovery 又有 3 轮 show × 每轮 timeout retry 的双层 bounded retry。可进一步减少重复查询，但必须在 D0/D1/D2 ownership/UNKNOWN 语义明确后再裁。
 ```
 
-顺序固定为：**先裁 D1 ownership → D2 create durability → 再裁 D3 查询提效**。禁止为了测试手工输入旧 Tunnel ID、删除远端 Tunnel 或绕过 Platform。
+顺序固定为：**先裁 D0 package-managed CLI ownership → D1 Fresh ownership → D2 create durability → 再裁 D3 查询提效**。禁止为了测试使用 Mac system `devtunnel`、手工输入旧 Tunnel ID、删除远端 Tunnel 或绕过 Platform。
 
 ## 6. 当前唯一 Next Action
 
 ```text
-1. 继续 Deployment 优化逐项裁决；当前先裁 Dev Tunnel D1 Fresh ownership
+1. 继续 Deployment 优化逐项裁决；当前先裁 Dev Tunnel D0 package-managed CLI ownership
 2. 全部裁决完成后做 release preflight：恢复 pnpm changeset / ledger 权威状态，先解决 platform-cli `0.1.48 → 0.1.48 (patch)` 异常
 3. pnpm package:release（不手工传包名；release set 必须来自 pnpm changeset/ledger 真源）
 4. Registry exact + dist-tag latest readback
