@@ -2,4 +2,4 @@
 
 ### Patch Changes
 
-- Keep the default deployment CLI focused on user-facing state instead of internal module traversal, clarify uninstall wording, remove misleading runtime-count output, and make Dev Tunnel read-only discovery tolerate one bounded slow query without retrying mutations.
+- Reuse validated Module discovery during platform install, parallelize local installed-version reads, and observe aggregate platform status with bounded read-only concurrency while preserving stable output order.

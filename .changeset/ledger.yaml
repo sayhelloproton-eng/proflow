@@ -434,6 +434,7 @@
   dir: packages/dev-tunnel
   intents:
     - deployment-cli-ux-tunnel-query-closeout
+    - great-owls-laugh
 "@tomflow/proflow-dev-tunnel@0.1.3":
   dir: packages/dev-tunnel
   intents:
@@ -506,6 +507,10 @@
   dir: packages/execution-browser-extension
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-execution-browser-extension@0.1.22":
+  dir: packages/execution-browser-extension
+  intents:
+    - petite-buckets-love
 "@tomflow/proflow-execution-browser-extension@0.1.3":
   dir: packages/execution-browser-extension
   intents:
@@ -1070,6 +1075,7 @@
   dir: packages/platform-cli
   intents:
     - deployment-cli-ux-tunnel-query-closeout
+    - hot-regions-glow
 "@tomflow/proflow-platform-cli@0.1.5":
   dir: packages/platform-cli
   intents:
