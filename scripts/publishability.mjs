@@ -10,24 +10,25 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { listWorkspacePackages, resolveRequestedPackages } from "./package-selection.mjs";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const packagesRoot = join(repositoryRoot, "packages");
 const temporaryRoot = mkdtempSync(join(tmpdir(), "proflow-publishability-"));
 const tarballRoot = join(temporaryRoot, "tarballs");
 const consumerRoot = join(temporaryRoot, "consumer");
+const requested = process.argv.slice(2);
+const selectedPackages = requested.length === 0
+	? listWorkspacePackages()
+	: resolveRequestedPackages(requested, "Usage: node scripts/publishability.mjs [package-dir|package-name ...]");
 
 try {
 	mkdirSync(tarballRoot, { recursive: true });
 	mkdirSync(consumerRoot, { recursive: true });
-	const packageDirectories = readdirSync(packagesRoot, { withFileTypes: true })
-		.filter((entry) => entry.isDirectory())
-		.map((entry) => join(packagesRoot, entry.name))
-		.sort();
-	const packageMetadata = packageDirectories.map((directory) => {
-		const metadata = JSON.parse(
-			readFileSync(join(directory, "package.json"), "utf8"),
-		);
+	const packageDirectories = selectedPackages.map((pkg) => pkg.directory);
+	const packageMetadata = selectedPackages.map((pkg) => {
+		const directory = pkg.directory;
+		const metadata = pkg.manifest;
 		if (
 			metadata.private === true ||
 			metadata.publishConfig?.access !== "public"

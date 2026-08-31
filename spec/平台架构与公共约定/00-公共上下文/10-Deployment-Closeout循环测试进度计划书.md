@@ -7,17 +7,19 @@
 
 ## 1. 当前唯一目标
 
-Deployment latest **技术主链**已经通过，不再重开 Fresh 主链全量验收。当前必须用优化后的真实 npm latest 完成最后的产品验收，重点验证四项：**用户心智最低、自动化最大化、CLI 交互好用、默认输出明确**。当前只完成：
+Deployment latest **技术主链**已经通过，但优化版本发布后仍必须从真实 npm latest 重新执行一轮**完整、不可裁剪的 Fresh Deployment E2E**，不能用“最小 smoke”替代部署路径。当前必须完成：
 
 ```text
-O1～O6 优化源码已提交
-→ 版本元数据已提交
-→ release sync/build/publishability
-→ Registry exact preflight
-→ publish MISSING exact versions
-→ Registry latest readback
-→ Product Workspace npm latest upgrade
-→ 最小真实 smoke
+O1～O6 优化源码/版本事实已提交
+→ changed packages 包级 release
+→ Registry exact/latest readback
+→ 若 platform-cli 变更：升级真实全局 platform-cli latest
+→ Fresh Product Workspace
+→ 全局 platform install / status / setup
+→ Browser Extension / Dev Tunnel / Model / 3 GPT
+→ platform start / final status
+→ recovery / repeat / idempotency
+→ Product Acceptance 四项门
 → Deployment Closeout 结束
 → 回到 Real-3
 ```
@@ -196,31 +198,45 @@ dev-tunnel   0.1.20 → 0.1.21
 ## 6. 当前唯一 Next Action
 
 ```text
-1. release:sync:check
-2. build + publishability（按 release transaction，不重新跑无关全仓测试）
-3. npm Registry exact preflight：
-   - @tomflow/proflow-platform-cli@0.1.48
-   - @tomflow/proflow-dev-tunnel@0.1.21
-4. 只发布 MISSING exact version
-5. exact + dist-tag latest readback
-6. Product Workspace npm latest upgrade
-7. 最小用户视角 smoke：
+1. pnpm package:release platform-cli dev-tunnel
+   - 只处理 @tomflow/proflow-platform-cli@0.1.48
+   - 只处理 @tomflow/proflow-dev-tunnel@0.1.21
+   - Browser 0.1.21 未变更，不参与发布
+2. Registry exact + dist-tag latest readback
+3. 因 platform-cli 本轮变更：npm install -g @tomflow/proflow-platform-cli@latest
+4. platform -v 必须等于 Registry latest
+5. pnpm fresh:workspace --workspace /Users/agent/Desktop/proton-workspace
+6. 使用全局 platform 执行完整 Deployment E2E：
+   - platform install --workspace /Users/agent/Desktop/proton-workspace
+   - platform status
    - platform setup
+   - Browser Extension
+   - Dev Tunnel
+   - Model Provider / FAST / THINK
+   - 3 GPT / Role Identity
    - platform start
    - platform status = 3/3 / PLATFORM_READY=YES
-   - Browser live session 不回归
-   - Tunnel HTTPS reality 不回归
-   - Model FAST/THINK readiness/真实最小 probe 不回归
-   - 3 GPT carrier identity/page 仍存在
-8. 更新 02/09/10 最终状态，结束 Deployment Closeout
-9. 回到 Real-3 J0～J4
+   - recovery / repeat / idempotency
+   - Product Acceptance 四项门
+7. 更新 02/09/10 最终状态，结束 Deployment Closeout
+8. 回到 Real-3 J0～J4
 ```
 
 ## 7. 发布纪律
 
 ```text
-version → build → publishability → exact preflight → publish MISSING → exact verify
+changed package
+→ package gate
+→ commit（代码 + version facts）
+→ package:release changed-package [...]
+→ selected build / selected publishability
+→ exact preflight
+→ 只 publish MISSING changed versions
+→ exact verify
+→ 完整 Fresh Deployment E2E
 ```
+
+日常整改禁止 `pnpm -r publish` 扫全仓；只有大阶段整体封板才允许全仓 release。`pnpm package:release` 不自动 bump version，避免发布动作暗中改源码；版本事实必须先 commit。
 
 - `npm publish` 在当前 Deployment 优化收口授权内；`git push` 不在授权内。
 - publish timeout/UNKNOWN → 先 exact readback，禁止盲目重发。
@@ -228,7 +244,8 @@ version → build → publishability → exact preflight → publish MISSING →
 - 不删除远端 Dev Tunnel。
 - 不删除/重建 3 个 GPT。
 - 不读取、打印或提交 token/Bearer/API Key/credential。
-- Product Workspace npm-owned 时只用 `./node_modules/.bin/platform`，禁止 `pnpm exec platform`。
+- Fresh Deployment 的首个 `install` 必须使用真实 npm 全局 `platform`；Fresh 清理不会删除该全局 CLI。禁止先往 Product Workspace 本地安装 platform-cli 作为 bootstrap。
+- `platform install` 后 Workspace 内出现的 `./node_modules/.bin/platform` 是受管 Package 安装物；后续同一 Workspace lifecycle 可用于交叉核验，但不得混淆为 Fresh bootstrap 入口。
 
 ## 8. 最小 smoke 的 PASS / FAIL
 
@@ -249,7 +266,7 @@ Browser/Tunnel/Model/3 GPT 没有因优化版本回归
 
 ## 9. 验证强度
 
-当前源码已经完成 affected-package tests/typecheck。接下来 release transaction 只做版本同步、build、publishability、Registry preflight/readback 与真实 Product smoke；**没有新源码修改时禁止重新跑整套 `pnpm check` 只为“更放心”。**
+当前源码已经完成 affected-package tests/typecheck。接下来 release transaction 只对发生版本变化的 Package 做 selected version-sync/build/publishability/Registry publish/readback；**没有新源码修改时禁止重新跑整套 `pnpm check` 只为“更放心”**。发布后仍必须重新跑完整 Fresh Deployment E2E；工程 Gate 可以缩范围，Deployment Journey 不可以缩范围。
 
 若 smoke 暴露新源码 root cause：
 
@@ -300,7 +317,7 @@ SOURCE_HEAD/TREE = 接管时机械重读
 SOURCE_VERSION = platform-cli 0.1.48 / dev-tunnel 0.1.21 / browser 0.1.21
 REGISTRY_LATEST= platform-cli 0.1.47 / dev-tunnel 0.1.20 / browser 0.1.21
 PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES（优化前 latest）
-NEXT_ACTION    = release sync/build/publishability → exact preflight → publish 0.1.48/0.1.21 → Registry latest → Product latest smoke
+NEXT_ACTION    = package:release platform-cli dev-tunnel → Registry latest → global platform-cli latest → Fresh Workspace → 完整 Deployment E2E
 DO_NOT_REPEAT  = Browser 0.1.21 publish / 3 GPT rebuild / remote Tunnel delete / git push
 ```
 
@@ -315,3 +332,24 @@ CodeGraph / 当前源码确认 blast radius
 ```
 
 `pnpm package:gate` 固定执行该包的 `test + typecheck`；若 Package 自己声明 `lint`，才追加该包 lint。**全仓 `pnpm check`、全量 build、architecture、publishability 只在一个大阶段完成时运行，禁止在单 Bug、单包修复、普通整改批次后重复执行。**
+
+
+### 包级 Release / 完整 E2E 粒度分离
+
+```text
+工程 Gate / Release 粒度
+= changed + affected packages
+
+真实 Deployment 验收粒度
+= 完整不可裁剪 Journey
+```
+
+统一包级发布入口：
+
+```text
+pnpm package:release platform-cli
+pnpm package:release dev-tunnel
+pnpm package:release platform-cli dev-tunnel
+```
+
+`--plan` 只解析并展示目标事务；`--dry-run` 在 clean working tree 上执行 selected build/publishability 和 publish dry-run。脚本 fail-closed：未指定包、未知包、非 public 包、version facts drift、dirty working tree 都拒绝真实 release。Registry exact 已存在时不重复 publish。
