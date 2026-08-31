@@ -75,7 +75,7 @@ pnpm fresh:workspace --workspace /Users/agent/Desktop/proton-workspace
 ```text
 Source Repo        = /Users/agent/Desktop/proton-workspace/repos/proflow
 Product Workspace  = /Users/agent/Desktop/proton-workspace
-Latest code/release commit = e3151f7
+Latest deployment code/release machinery commit = 67a371c
 Current Git HEAD / WorkingTree = 接管时机械重读
 DEPLOYMENT_TECHNICAL_MAINLINE = PASS
 DEPLOYMENT_PRODUCT_ACCEPTANCE  = PENDING_FINAL_LATEST_SMOKE
@@ -186,6 +186,7 @@ source CLI against real Product Workspace status/setup UX = PASS
 ```text
 3e91e9b fix(deployment): streamline cli and tunnel recovery ux
 e3151f7 chore(release): version deployment ux closeout
+67a371c chore(release): add package-scoped release flow
 ```
 
 Version plan 已落盘：
@@ -312,7 +313,7 @@ CURRENT_GATE   = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
 DEPLOYMENT_TECHNICAL_MAINLINE = PASS
 DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE
 DEPLOYMENT_SUCCESS = NOT_YET_FINAL
-LATEST_CODE_RELEASE_COMMIT = e3151f7
+LATEST_CODE_RELEASE_COMMIT = 67a371c
 SOURCE_HEAD/TREE = 接管时机械重读
 SOURCE_VERSION = platform-cli 0.1.48 / dev-tunnel 0.1.21 / browser 0.1.21
 REGISTRY_LATEST= platform-cli 0.1.47 / dev-tunnel 0.1.20 / browser 0.1.21
