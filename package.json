@@ -27,7 +27,8 @@
 		"release:sync": "node scripts/release-sync-versions.mjs --write",
 		"release:sync:check": "node scripts/release-sync-versions.mjs --check",
 		"release:publish:dry-run": "pnpm release:sync:check && pnpm build && pnpm publishability && pnpm -r publish --dry-run --no-git-checks",
-		"release:publish": "pnpm release:sync:check && pnpm build && pnpm publishability && pnpm -r publish"
+		"release:publish": "pnpm release:sync:check && pnpm build && pnpm publishability && pnpm -r publish",
+		"package:gate": "node scripts/package-gate.mjs"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.6",

@@ -293,3 +293,15 @@ PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES（优化前 latest）
 NEXT_ACTION    = release sync/build/publishability → exact preflight → publish 0.1.48/0.1.21 → Registry latest → Product latest smoke
 DO_NOT_REPEAT  = Browser 0.1.21 publish / 3 GPT rebuild / remote Tunnel delete / git push
 ```
+
+### 包级 Gate 优先 / 全仓 Gate 仅大阶段
+
+循环测试中的工程回归默认只执行 changed + affected packages：
+
+```text
+CodeGraph / 当前源码确认 blast radius
+→ pnpm package:gate <changed-package> [affected-package ...]
+→ 回真实用户 E2E 原失败场景
+```
+
+`pnpm package:gate` 固定执行该包的 `test + typecheck`；若 Package 自己声明 `lint`，才追加该包 lint。**全仓 `pnpm check`、全量 build、architecture、publishability 只在一个大阶段完成时运行，禁止在单 Bug、单包修复、普通整改批次后重复执行。**
