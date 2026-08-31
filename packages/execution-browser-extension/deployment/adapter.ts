@@ -204,7 +204,7 @@ async function persistDeveloperModeConfirmation(context: ModuleCommandContext) {
 		{ mode: 0o600 },
 	);
 }
-async function readEvidence(
+async function readEvidenceCandidate(
 	context: ModuleCommandContext,
 	loadDir: string,
 ): Promise<BrowserVerificationEvidence | undefined> {
@@ -213,7 +213,8 @@ async function readEvidence(
 			await readFile(verificationFile(context), "utf8"),
 		) as Partial<BrowserVerificationEvidence>;
 		return raw.contract === "proflow.browser-extension-verification.v1" &&
-			raw.moduleVersion === descriptor.moduleVersion &&
+			typeof raw.moduleVersion === "string" &&
+			raw.moduleVersion.length > 0 &&
 			raw.loadDir === loadDir &&
 			typeof raw.extensionId === "string" &&
 			/^[a-z]{32}$/.test(raw.extensionId) &&
@@ -228,6 +229,15 @@ async function readEvidence(
 	} catch {
 		return undefined;
 	}
+}
+async function readEvidence(
+	context: ModuleCommandContext,
+	loadDir: string,
+): Promise<BrowserVerificationEvidence | undefined> {
+	const evidence = await readEvidenceCandidate(context, loadDir);
+	return evidence?.moduleVersion === descriptor.moduleVersion
+		? evidence
+		: undefined;
 }
 async function ownFacts(context: ModuleCommandContext) {
 	await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
@@ -366,6 +376,94 @@ async function persistPairedBrowserExtension(
 	return identity;
 }
 
+type RunningBridgeProbe =
+	| { kind: "ABSENT" }
+	| {
+			kind: "PRESENT";
+			identity?: { extensionId: string; extensionInstanceId: string };
+	  };
+function connectionRefused(error: unknown) {
+	if (!(error instanceof TypeError)) return false;
+	const cause = Reflect.get(error, "cause");
+	return (
+		typeof cause === "object" &&
+		cause !== null &&
+		Reflect.get(cause, "code") === "ECONNREFUSED"
+	);
+}
+async function probeRunningBridgeSession(
+	prepared: Awaited<ReturnType<typeof materializeRuntimeConfig>>,
+	extensionId: string,
+	timeoutMs: number,
+): Promise<RunningBridgeProbe> {
+	try {
+		const response = await fetch(
+			`${prepared.bridgeEndpoint}/v1/session/status`,
+			{
+				headers: {
+					authorization: `Bearer ${await credential(prepared.bridgeTokenFile)}`,
+					origin: `chrome-extension://${extensionId}`,
+				},
+				signal: AbortSignal.timeout(Math.max(25, Math.min(500, timeoutMs))),
+			},
+		);
+		if (!response.ok)
+			throw new Error(`RUNNING_BRIDGE_STATUS_${response.status}`);
+		const body = (await response.json()) as unknown;
+		if (typeof body !== "object" || body === null || Array.isArray(body))
+			throw new Error("RUNNING_BRIDGE_STATUS_INVALID");
+		if (Reflect.get(body, "online") !== true) return { kind: "PRESENT" };
+		const extensionInstanceId = Reflect.get(body, "extensionInstanceId");
+		if (
+			typeof extensionInstanceId !== "string" ||
+			extensionInstanceId.length === 0
+		)
+			throw new Error("RUNNING_BRIDGE_STATUS_INVALID");
+		return {
+			kind: "PRESENT",
+			identity: { extensionId, extensionInstanceId },
+		};
+	} catch (error) {
+		if (connectionRefused(error)) return { kind: "ABSENT" };
+		throw error;
+	}
+}
+async function revalidateRunningBridge(
+	prepared: Awaited<ReturnType<typeof materializeRuntimeConfig>>,
+	extensionId: string,
+	timeoutMs: number,
+	onWaiting?: (input: {
+		loadDir: string;
+		endpoint: string;
+	}) => void | Promise<void>,
+) {
+	const startedAt = Date.now();
+	const graceMs = Math.min(2_000, Math.max(25, Math.floor(timeoutMs / 4)));
+	let waitingShown = false;
+	while (true) {
+		const remainingMs = Math.max(1, timeoutMs - (Date.now() - startedAt));
+		const probe = await probeRunningBridgeSession(
+			prepared,
+			extensionId,
+			remainingMs,
+		);
+		if (probe.kind === "ABSENT") return undefined;
+		if (probe.identity) return probe.identity;
+		const elapsedMs = Date.now() - startedAt;
+		if (!waitingShown && elapsedMs >= graceMs) {
+			waitingShown = true;
+			await onWaiting?.({
+				loadDir: prepared.loadDir,
+				endpoint: prepared.bridgeEndpoint,
+			});
+		}
+		if (elapsedMs >= timeoutMs) throw new Error("PAIRING_TIMEOUT");
+		await new Promise((resolve) =>
+			setTimeout(resolve, Math.min(100, Math.max(10, timeoutMs - elapsedMs))),
+		);
+	}
+}
+
 export async function pairBrowserExtensionSetup(
 	context: ModuleCommandContext,
 	options: {
@@ -379,7 +477,7 @@ export async function pairBrowserExtensionSetup(
 	await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
 	await installPackage(context);
 	const existingSetup = await readSetup(context);
-	const existingEvidence = await readEvidence(
+	const existingEvidence = await readEvidenceCandidate(
 		context,
 		browserExtensionLoadDir(context.workspaceRoot),
 	);
@@ -390,6 +488,16 @@ export async function pairBrowserExtensionSetup(
 	);
 
 	const prepared = await materializeRuntimeConfig(context);
+	if (canRevalidateExisting && existingSetup) {
+		const runningIdentity = await revalidateRunningBridge(
+			prepared,
+			existingSetup.extensionId,
+			options.timeoutMs ?? 120_000,
+			options.onWaiting,
+		);
+		if (runningIdentity)
+			return persistPairedBrowserExtension(context, prepared, runningIdentity);
+	}
 	const pairing = await createBrowserExtensionPairingServer({
 		token: await credential(prepared.bridgeTokenFile),
 		host: "127.0.0.1",

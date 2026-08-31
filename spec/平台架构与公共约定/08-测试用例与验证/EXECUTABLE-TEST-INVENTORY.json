@@ -2260,7 +2260,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-reality-bridge.test.ts",
-      "line": 97,
+      "line": 109,
       "title": "REG-EXE-BR-07 lost bridge result times out once and is never requeued",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2273,7 +2273,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-reality-bridge.test.ts",
-      "line": 132,
+      "line": 144,
       "title": "REG-EXE-BR-08 durable Execution Runtime reaches browser reality through the live bridge transport",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2975,12 +2975,13 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
-      "line": 136,
-      "title": "minimal install journey reaches READY and repeated setup does not ask the user again",
+      "line": 137,
+      "title": "minimal install journey revalidates stale evidence through an already running bridge",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/src/bridge.ts",
         "packages/execution-browser-extension/src/install-workflow.ts",
         "packages/module-contract/src/index.ts"
       ]
@@ -2988,12 +2989,13 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
-      "line": 167,
+      "line": 197,
       "title": "stale READY evidence does not suppress the human reinstall path",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/src/bridge.ts",
         "packages/execution-browser-extension/src/install-workflow.ts",
         "packages/module-contract/src/index.ts"
       ]
@@ -3001,12 +3003,13 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
-      "line": 194,
+      "line": 224,
       "title": "pairing timeout preserves prepared files but never writes fake READY evidence",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/src/bridge.ts",
         "packages/execution-browser-extension/src/install-workflow.ts",
         "packages/module-contract/src/index.ts"
       ]

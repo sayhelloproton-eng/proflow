@@ -9,6 +9,7 @@ import {
 	browserExtensionLoadDir,
 	pairBrowserExtensionSetup,
 } from "../deployment/adapter.ts";
+import { createBrowserRealityBridgeServer } from "../src/bridge.ts";
 import {
 	type BrowserExtensionDesktop,
 	type BrowserExtensionPair,
@@ -133,9 +134,12 @@ async function reconnectInstalledExtension(workspaceRoot: string) {
 	throw new Error("SIMULATED_INSTALLED_EXTENSION_DID_NOT_RECONNECT");
 }
 
-test("minimal install journey reaches READY and repeated setup does not ask the user again", async () => {
+test("minimal install journey revalidates stale evidence through an already running bridge", async () => {
 	const workspaceRoot = await prepareWorkspace();
 	const events: string[] = [];
+	let bridge:
+		| Awaited<ReturnType<typeof createBrowserRealityBridgeServer>>
+		| undefined;
 	try {
 		const pair = realPairWithSimulatedChrome();
 		const first = await runInteractiveBrowserExtensionSetup({
@@ -150,16 +154,42 @@ test("minimal install journey reaches READY and repeated setup does not ask the 
 			"instruction",
 		]);
 
-		const reconnect = reconnectInstalledExtension(workspaceRoot);
+		const loadDir = browserExtensionLoadDir(workspaceRoot);
+		const runtime = JSON.parse(
+			await readFile(join(loadDir, "runtime-config.json"), "utf8"),
+		) as { proflowRuntimeBridge: { endpoint: string; token: string } };
+		const evidencePath = join(
+			workspaceRoot,
+			".proflow/runtime/modules/execution-browser-extension/verification.json",
+		);
+		const staleEvidence = JSON.parse(
+			await readFile(evidencePath, "utf8"),
+		) as Record<string, unknown>;
+		staleEvidence.moduleVersion = "0.1.18";
+		await writeFile(
+			evidencePath,
+			`${JSON.stringify(staleEvidence, null, 2)}\n`,
+			{
+				mode: 0o600,
+			},
+		);
+		bridge = await createBrowserRealityBridgeServer({
+			token: runtime.proflowRuntimeBridge.token,
+			extensionId,
+			host: "127.0.0.1",
+			port: Number(new URL(runtime.proflowRuntimeBridge.endpoint).port),
+		});
+		await reconnectInstalledExtension(workspaceRoot);
+
 		const second = await runInteractiveBrowserExtensionSetup({
 			workspaceRoot,
 			desktop: fakeDesktop(events),
 			timeoutMs: 1_000,
 		});
-		await reconnect;
 		assert.deepEqual(second, { extensionId, extensionInstanceId });
 		assert.equal(events.length, 2);
 	} finally {
+		await bridge?.close();
 		await rm(workspaceRoot, { recursive: true, force: true });
 	}
 });

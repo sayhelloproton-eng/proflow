@@ -57,8 +57,20 @@ test("REG-EXE-BR-08 loopback bridge authenticates exact extension session and tr
 			body: "{}",
 		});
 		assert.equal(unauthenticated.status, 401);
+		const offlineStatus = await call(bridge.endpoint, "/v1/session/status");
+		assert.equal(offlineStatus.status, 200);
+		assert.deepEqual(await offlineStatus.json(), {
+			online: false,
+			extensionInstanceId: null,
+		});
 		await hello(bridge.endpoint);
 		assert.equal(bridge.status().online, true);
+		const onlineStatus = await call(bridge.endpoint, "/v1/session/status");
+		assert.equal(onlineStatus.status, 200);
+		assert.deepEqual(await onlineStatus.json(), {
+			online: true,
+			extensionInstanceId: "extension:one",
+		});
 
 		const requested = bridge.browser.observe(7);
 		const polled = await call(

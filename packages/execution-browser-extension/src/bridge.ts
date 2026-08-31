@@ -249,6 +249,16 @@ export async function createBrowserRealityBridgeServer(
 				send(response, 200, { accepted: true });
 				return;
 			}
+			if (request.method === "GET" && url.pathname === "/v1/session/status") {
+				const online =
+					session !== undefined &&
+					now().getTime() - session.lastHeartbeatAt <= freshnessMs;
+				send(response, 200, {
+					online,
+					extensionInstanceId: session?.extensionInstanceId ?? null,
+				});
+				return;
+			}
 			if (!session)
 				throw new BrowserRealityBridgeError(
 					"BRIDGE_OFFLINE",
