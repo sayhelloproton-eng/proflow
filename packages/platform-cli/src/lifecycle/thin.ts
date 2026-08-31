@@ -35,6 +35,7 @@ const succeeded = (result: ModuleOperationResult) =>
 	result.status === "SUCCEEDED";
 const context = (workspaceRoot: string, input?: unknown) =>
 	input === undefined ? { workspaceRoot } : { workspaceRoot, input };
+const STATUS_OBSERVE_CONCURRENCY = 6;
 function ordered(modules: readonly ResolvedModule[], reverse = false) {
 	const graph = buildDependencyGraph(modules);
 	const refs = reverse ? [...graph.order].reverse() : [...graph.order];
@@ -61,38 +62,50 @@ export async function observeStatuses(
 	workspaceRoot: string,
 	reporter?: PlatformProgressReporter,
 ) {
-	const results: ModuleDispatchResult[] = [];
 	const modulesInOrder = [...modules].sort((a, b) =>
 		a.moduleRef.localeCompare(b.moduleRef),
 	);
-	for (const [index, module] of modulesInOrder.entries()) {
-		reportProgress(reporter, {
-			command: "status",
-			phase: "status",
-			current: index + 1,
-			total: modulesInOrder.length,
-			moduleRef: module.moduleRef,
-			status: "STARTED",
-			message: module.moduleRef,
-		});
-		const result = await dispatchModuleCommand(
-			catalog,
-			module,
-			"status",
-			context(workspaceRoot),
-		);
-		results.push(result);
-		reportProgress(reporter, {
-			command: "status",
-			phase: "status",
-			current: index + 1,
-			total: modulesInOrder.length,
-			moduleRef: module.moduleRef,
-			status: succeeded(result.result) ? "SUCCEEDED" : "FAILED",
-			message: module.moduleRef,
-		});
-	}
-	return results;
+	const results = new Array<ModuleDispatchResult | undefined>(modulesInOrder.length);
+	let nextIndex = 0;
+	const worker = async () => {
+		while (nextIndex < modulesInOrder.length) {
+			const index = nextIndex++;
+			const module = modulesInOrder[index];
+			if (module === undefined) return;
+			reportProgress(reporter, {
+				command: "status",
+				phase: "status",
+				current: index + 1,
+				total: modulesInOrder.length,
+				moduleRef: module.moduleRef,
+				status: "STARTED",
+				message: module.moduleRef,
+			});
+			const result = await dispatchModuleCommand(
+				catalog,
+				module,
+				"status",
+				context(workspaceRoot),
+			);
+			results[index] = result;
+			reportProgress(reporter, {
+				command: "status",
+				phase: "status",
+				current: index + 1,
+				total: modulesInOrder.length,
+				moduleRef: module.moduleRef,
+				status: succeeded(result.result) ? "SUCCEEDED" : "FAILED",
+				message: module.moduleRef,
+			});
+		}
+	};
+	await Promise.all(
+		Array.from(
+			{ length: Math.min(STATUS_OBSERVE_CONCURRENCY, modulesInOrder.length) },
+			() => worker(),
+		),
+	);
+	return results.filter((item): item is ModuleDispatchResult => item !== undefined);
 }
 export async function observeDocs(
 	catalog: ModuleCatalog,

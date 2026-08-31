@@ -4,6 +4,7 @@ import { test } from "node:test";
 import type { ModuleOperationResult } from "@tomflow/proflow-module-contract";
 import type { ResolvedModule } from "../src/contracts.ts";
 import {
+	observeStatuses,
 	setupModulesThin,
 	startModulesThin,
 	stopModulesThin,
@@ -237,6 +238,48 @@ const leaf = moduleFixture({
 	requires: [{ contractRef: "fixture.b", versionRange: ">=1.0.0" }],
 });
 const modules = [leaf, consumer, provider];
+
+test("aggregate status observes modules with bounded concurrency and returns stable module order", async () => {
+	const statusModules = ["h", "g", "f", "e", "d", "c", "b", "a"].map((moduleRef) =>
+		moduleFixture({ moduleRef }),
+	);
+	let active = 0;
+	let maxActive = 0;
+	const catalog: ModuleCatalog = {
+		async sources() {
+			return [];
+		},
+		async loadDescriptor() {
+			return {};
+		},
+		async loadAdapter(source: ModuleSource) {
+			const moduleRef = source.packageName.replace("@tomflow/proflow-", "");
+			return {
+				behaviorAdapter: {
+					status: async () => {
+						active += 1;
+						maxActive = Math.max(maxActive, active);
+						await new Promise((resolve) => setTimeout(resolve, 20));
+						active -= 1;
+						return {
+							result: success(moduleRef, {
+								setupStatus: "READY",
+								runtimeStatus: "STOPPED",
+							}),
+							observedEffects: [],
+						};
+					},
+				},
+			};
+		},
+	};
+	const result = await observeStatuses(catalog, statusModules, workspaceRoot);
+	assert.equal(maxActive, 6);
+	assert.deepEqual(
+		result.map((item) => item.moduleRef),
+		["a", "b", "c", "d", "e", "f", "g", "h"],
+	);
+});
 
 test("start gates on Module.status setup READY and never runs preflight", async () => {
 	const { catalog, calls } = recordingCatalog({

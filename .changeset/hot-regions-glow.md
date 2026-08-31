@@ -2,4 +2,4 @@
 "@tomflow/proflow-platform-cli": patch
 ---
 
-Reuse the validated installed Module discovery during platform install and parallelize local installed-version reads.
+Reuse validated Module discovery during platform install, parallelize local installed-version reads, and observe aggregate platform status with bounded read-only concurrency while preserving stable output order.
