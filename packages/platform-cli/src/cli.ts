@@ -460,21 +460,27 @@ async function validateInstalledPackageSet(
 			"COMMAND_FAILED",
 			`managed dependency set mismatch: expected ${expectedNames.join(", ")}, observed ${declaredNames.join(", ")}`,
 		);
-	for (const candidate of candidates) {
-		const observed = await observeWorkspaceInstalledVersion(
-			root,
-			candidate.packageName,
-		);
+	const observedVersions = await Promise.all(
+		candidates.map((candidate) =>
+			observeWorkspaceInstalledVersion(root, candidate.packageName),
+		),
+	);
+	for (const [index, candidate] of candidates.entries()) {
+		const observed = observedVersions[index];
 		if (observed !== candidate.moduleVersion)
 			throw new PlatformError(
 				"COMMAND_FAILED",
 				`installed version mismatch for ${candidate.packageName}: expected ${candidate.moduleVersion}, observed ${observed ?? "missing"}`,
 			);
 	}
-	for (const stale of previousManaged.filter(
+	const staleNames = previousManaged.filter(
 		(name) => !expectedNames.includes(name),
-	))
-		if ((await observeWorkspaceInstalledVersion(root, stale)) !== undefined)
+	);
+	const staleVersions = await Promise.all(
+		staleNames.map((name) => observeWorkspaceInstalledVersion(root, name)),
+	);
+	for (const [index, stale] of staleNames.entries())
+		if (staleVersions[index] !== undefined)
 			throw new PlatformError(
 				"COMMAND_FAILED",
 				`stale managed package remains installed after synchronization: ${stale}`,
@@ -496,6 +502,7 @@ async function validateInstalledPackageSet(
 				`installed descriptor mismatch for ${candidate.packageName}@${candidate.moduleVersion}`,
 			);
 	}
+	return { catalog, modules };
 }
 async function handleInstall(
 	root: string,
@@ -601,12 +608,11 @@ async function handleInstall(
 		message: "依赖同步完成",
 	});
 	await recordPnpmPolicyOwnership(root, pnpmPolicyBefore);
-	await validateInstalledPackageSet(
+	const { catalog, modules } = await validateInstalledPackageSet(
 		root,
 		discovered.candidates,
 		previousManaged,
 	);
-	const { catalog, modules } = await buildContext(root);
 	assertInstalledModules(modules);
 	reportProgress(runtime.onProgress, {
 		command: "install",
