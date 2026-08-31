@@ -20,6 +20,8 @@
 
 2026-08-31 已在真实 npm latest + 真实 Product Workspace 上完成 Deployment **技术主链**：真实 setup/start/status、5 个 listener、Browser 0.1.21 live-instance revalidation、Dev Tunnel HTTPS reality、FAST/THINK 真实推理、3 个 Custom GPT carrier、repeat setup/start/status 均已通过，`PLATFORM_READY=YES`。这证明系统“能正确装起来、配起来、启动起来并保持真实 READY”。
 
+当前 Deployment 验收的主测试角度固定为：**模拟第一次使用 ProFlow 的普通用户，以真实 npm 发布物 + 真实 Product Workspace + 公开产品入口执行系统端到端测试。** 总控可以在后台读取真实源码/状态来判断真值，但不能用这些开发者知识替普通用户绕过产品路径；任何修复最终都必须回到原用户 Journey 重放。
+
 但 **Deployment Success 的最终产品验收口径不仅是技术主链跑通**。部署好还必须同时证明四个用户层维度：
 
 1. **用户心智最低**：普通用户只需要理解 install / setup / start / status 和当前唯一动作，不需要理解 Module、shared facts、Tunnel ID、端口、owner、provider inventory 等内部实现。

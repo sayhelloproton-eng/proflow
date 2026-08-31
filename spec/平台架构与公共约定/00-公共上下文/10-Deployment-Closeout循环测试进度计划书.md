@@ -24,6 +24,38 @@ O1～O6 优化源码已提交
 
 技术主链已经证明“系统能部署起来”；但最终“部署好”的产品口径进一步冻结为：技术真实可用 + 用户心智最低 + 自动化最大化 + CLI 交互好用 + 默认输出明确。非阻断微小 polish 不推翻技术主链 PASS，但四个产品门未通过前不得写完整 `DEPLOYMENT_SUCCESS=YES`。
 
+## 1.1 循环测试的唯一主视角
+
+**本计划书中的“循环测试”默认且永久指：模拟普通用户真实视角，对 ProFlow Deployment 做真实系统端到端测试，直到完整部署目标成立。**
+
+每一轮都必须从用户真正能接触到的产品面开始：
+
+```text
+真实 npm Registry/latest
+→ 真实 Product Workspace
+→ 公开 platform install / status / setup / start / status
+→ 真实 Browser Extension / Dev Tunnel / Model / 3 GPT
+→ recovery / repeat / idempotency
+→ Product Acceptance
+```
+
+测试者不能因为自己知道源码而缩短用户路径；不能通过内部 package CLI、手工状态修改、内部文件注入、已知端口/ID 或历史 evidence 把失败“修成成功”。这些只能作为失败后的诊断证据，不能作为用户 E2E 的执行步骤。
+
+循环固定为：
+
+```text
+模拟用户端到端执行
+→ 发现真实阻塞/不舒服/不明确/不必要人工动作
+→ 保存现场并归类 root
+→ 临时切换总控/工程视角最小修复
+→ targeted regression
+→ 回到同一用户步骤重新执行
+→ PASS 后继续下一用户步骤
+→ 直到技术真值 + 四项产品门全部 PASS
+```
+
+最终验收问题只有一个：**一个不了解 ProFlow 内部架构的正常用户，是否能在最低心智和最低人工介入下，被产品清晰地带到真实 READY，并能稳定恢复和重复执行。**
+
 ## 2. 当前权威现场快照
 
 > 易变化事实接管时必须机械重读。

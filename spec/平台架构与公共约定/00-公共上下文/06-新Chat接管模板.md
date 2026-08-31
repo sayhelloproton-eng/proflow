@@ -28,6 +28,8 @@ CURRENT_EXECUTION_GATE = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
 
 当前只剩 O1～O6 优化版本 publish → Registry latest readback → Product Workspace npm latest smoke。该 smoke 必须真实验证：**用户心智最低、自动化最大化、CLI 交互好用、默认输出明确**。四项通过后才允许 `DEPLOYMENT_SUCCESS=YES`，随后恢复 Real-3 验收主线。
 
+接管后的测试主身份不是“开发者自测”，而是**模拟普通用户真实视角做 Deployment 系统端到端测试**。正常 Journey 只走真实 npm / Product Workspace / 公开 Platform CLI / 真实 Browser、Tunnel、Model、GPT；失败后才临时进入工程视角，修复后必须回到同一用户场景重放。禁止用内部 package CLI、手工状态修改或源码知识替用户绕过产品缺陷。
+
 ## 接管后必须做
 
 1. 机械确认 branch / HEAD / working tree / release state / Registry latest；公共上下文不保存这些易过期值作为永久真值。
