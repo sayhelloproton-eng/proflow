@@ -376,12 +376,34 @@ async function persistPairedBrowserExtension(
 	return identity;
 }
 
-type RunningBridgeProbe =
+export type RunningBridgeProbe =
 	| { kind: "ABSENT" }
 	| {
 			kind: "PRESENT";
 			identity?: { extensionId: string; extensionInstanceId: string };
 	  };
+
+export function classifyBrowserLiveSetup(input: {
+	baseSetupReady: boolean;
+	evidenceInstanceId?: string;
+	bridgeProbe: RunningBridgeProbe;
+}) {
+	if (!input.baseSetupReady || input.bridgeProbe.kind === "ABSENT")
+		return { setupReady: input.baseSetupReady } as const;
+	if (!input.bridgeProbe.identity)
+		return {
+			setupReady: false,
+			issueCode: "EXTENSION_SESSION_OFFLINE" as const,
+		};
+	if (
+		input.bridgeProbe.identity.extensionInstanceId !== input.evidenceInstanceId
+	)
+		return {
+			setupReady: false,
+			issueCode: "EXTENSION_SESSION_REVALIDATION_REQUIRED" as const,
+		};
+	return { setupReady: true } as const;
+}
 function connectionRefused(error: unknown) {
 	if (!(error instanceof TypeError)) return false;
 	const cause = Reflect.get(error, "cause");
@@ -392,7 +414,7 @@ function connectionRefused(error: unknown) {
 	);
 }
 async function probeRunningBridgeSession(
-	prepared: Awaited<ReturnType<typeof materializeRuntimeConfig>>,
+	prepared: { bridgeEndpoint: string; bridgeTokenFile: string },
 	extensionId: string,
 	timeoutMs: number,
 ): Promise<RunningBridgeProbe> {
@@ -576,33 +598,63 @@ export const behaviorAdapter = {
 						loadDir,
 					})
 				: "MISSING";
-		const setupReady = Boolean(
+		const baseSetupReady = Boolean(
 			setup &&
 				evidence &&
 				setup.extensionId === evidence.extensionId &&
 				chromeState === "ENABLED",
 		);
+		let bridgeProbe: RunningBridgeProbe = { kind: "ABSENT" };
+		if (baseSetupReady && evidence) {
+			const facts = await readModuleSharedFacts(context, descriptor.moduleRef);
+			const bridgeEndpoint = factString(facts, "bridgeEndpoint");
+			const bridgeTokenFile = factString(facts, "bridgeTokenFile");
+			if (bridgeEndpoint && bridgeTokenFile) {
+				try {
+					bridgeProbe = await probeRunningBridgeSession(
+						{ bridgeEndpoint, bridgeTokenFile },
+						evidence.extensionId,
+						500,
+					);
+				} catch {
+					bridgeProbe = { kind: "PRESENT" };
+				}
+			}
+		}
+		const live = classifyBrowserLiveSetup({
+			baseSetupReady,
+			...(evidence ? { evidenceInstanceId: evidence.extensionInstanceId } : {}),
+			bridgeProbe,
+		});
+		const issue = !baseSetupReady
+			? {
+					scope: "SETUP" as const,
+					code: "EXTENSION_LOAD_REQUIRED",
+					message: "Chrome 扩展尚未加载或缺少可验证的运行证据",
+					relatedModuleRefs: ["chrome-runtime"],
+					nextCommand: "platform setup",
+				}
+			: live.setupReady
+				? undefined
+				: {
+						scope: "SETUP" as const,
+						code: live.issueCode,
+						message:
+							live.issueCode === "EXTENSION_SESSION_OFFLINE"
+								? "Chrome 扩展已加载，但当前运行会话未在线"
+								: "Chrome 扩展已重新启动，需要自动刷新当前运行会话证据",
+						relatedModuleRefs: ["execution-runtime"],
+						nextCommand: "platform setup",
+					};
 		return {
 			result: {
 				...base,
 				data: {
-					setupStatus: setupReady
+					setupStatus: live.setupReady
 						? ("READY" as const)
 						: ("ACTION_REQUIRED" as const),
 					runtimeStatus: "NOT_APPLICABLE" as const,
-					...(setupReady
-						? {}
-						: {
-								issues: [
-									{
-										scope: "SETUP" as const,
-										code: "EXTENSION_LOAD_REQUIRED",
-										message: "Chrome 扩展尚未加载或缺少可验证的运行证据",
-										relatedModuleRefs: ["chrome-runtime"],
-										nextCommand: "platform setup",
-									},
-								],
-							}),
+					...(issue ? { issues: [issue] } : {}),
 				},
 			},
 			observedEffects: [],
