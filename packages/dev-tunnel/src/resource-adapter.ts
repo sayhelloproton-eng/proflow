@@ -36,7 +36,7 @@ export type DevTunnelInspection =
 export interface DevTunnelAutomation {
 	ensureLogin(): Promise<"LOGGED_IN">;
 	inspectTunnel(tunnelId: string): Promise<DevTunnelInspection>;
-	createTunnel(): Promise<string>;
+	createTunnel(tunnelId: string): Promise<string>;
 	ensurePort(
 		tunnelId: string,
 		port: number,
@@ -248,10 +248,20 @@ export function createDevTunnelAutomation(input?: {
 }): DevTunnelAutomation {
 	const command = input?.command ?? "devtunnel";
 	const run = input?.runCommand ?? defaultCommandRunner;
-	const runRemoteQuery = async (args: string[]): Promise<CommandResult> => {
+	const runRemoteQuery = async (
+		args: string[],
+		retryTimeout = true,
+	): Promise<CommandResult> => {
 		let result = await run(command, args, { timeoutMs: REMOTE_QUERY_TIMEOUT_MS });
-		if (result.exitCode !== null || !/timed out/i.test(commandText(result))) return result;
-		await new Promise((resolve) => setTimeout(resolve, REMOTE_QUERY_RETRY_DELAY_MS));
+		if (
+			!retryTimeout ||
+			result.exitCode !== null ||
+			!/timed out/i.test(commandText(result))
+		)
+			return result;
+		await new Promise((resolve) =>
+			setTimeout(resolve, REMOTE_QUERY_RETRY_DELAY_MS),
+		);
 		result = await run(command, args, { timeoutMs: REMOTE_QUERY_TIMEOUT_MS });
 		return result;
 	};
@@ -322,16 +332,18 @@ export function createDevTunnelAutomation(input?: {
 				return { state: "UNKNOWN", hostState: "UNKNOWN" };
 			}
 		},
-		async createTunnel() {
+		async createTunnel(tunnelId) {
 			const result = await run(
 				command,
-				["create", "--allow-anonymous", "--json"],
+				["create", tunnelId, "--allow-anonymous", "--json"],
 				{ timeoutMs: REMOTE_COMMAND_TIMEOUT_MS },
 			);
 			assertCommandSucceeded(result, "devtunnel create --json");
 			const tunnel = parseTunnel(
 				parseJson(result.stdout, "devtunnel create --json"),
 			);
+			if (tunnel.tunnelId !== tunnelId)
+				throw new Error("devtunnel create returned an unexpected tunnelId");
 			return tunnel.tunnelId;
 		},
 		async ensurePort(tunnelId, port) {
@@ -380,7 +392,10 @@ export function createDevTunnelAutomation(input?: {
 		async discoverPublicBaseUrl(tunnelId, port) {
 			let lastError: unknown;
 			for (let attempt = 0; attempt < 3; attempt += 1) {
-				const shown = await runRemoteQuery(["show", tunnelId, "--json"]);
+				const shown = await runRemoteQuery(
+					["show", tunnelId, "--json"],
+					false,
+				);
 				assertCommandSucceeded(shown, "devtunnel show --json");
 				try {
 					return discoverPublicBaseUrl(
@@ -530,6 +545,7 @@ export function createDevTunnelRuntime(input: {
 	publicBaseUrl?: string;
 	runCommand?: CommandRunner;
 	processStateFile?: string;
+	loginVerified?: boolean;
 }): DevTunnelRuntime {
 	const command = input.command ?? "devtunnel";
 	const tunnelId = input.tunnelId;
@@ -584,7 +600,7 @@ export function createDevTunnelRuntime(input: {
 		loginStatus: () => observeLogin(),
 		publicBaseUrl: () => publicBaseUrl,
 		async start() {
-			const login = await observeLogin();
+			const login = input.loginVerified ? "LOGGED_IN" : await observeLogin();
 			if (login !== "LOGGED_IN") return observation("UNKNOWN", login);
 			if (tunnelId === undefined) {
 				throw new TypeError(

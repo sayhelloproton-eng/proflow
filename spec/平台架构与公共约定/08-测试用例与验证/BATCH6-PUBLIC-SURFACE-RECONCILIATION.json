@@ -342,22 +342,6 @@
       "classification": "CLASSIFIED"
     },
     {
-      "package": "@tomflow/proflow-devtunnel-cli",
-      "exports": [
-        {
-          "key": ".",
-          "target": "./dist/src/index.js",
-          "source": "packages/devtunnel-cli/src/index.ts",
-          "classification": "SHIPPED_PUBLIC_EXPORT"
-        }
-      ],
-      "binaries": [],
-      "publicIndexSymbols": [
-        "resolveDevTunnelCli"
-      ],
-      "classification": "CLASSIFIED"
-    },
-    {
       "package": "@tomflow/proflow-execution-browser-extension",
       "exports": [
         {

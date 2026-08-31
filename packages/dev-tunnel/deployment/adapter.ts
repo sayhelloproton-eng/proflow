@@ -1,7 +1,7 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { resolveDevTunnelCli } from "@tomflow/proflow-devtunnel-cli";
 import {
 	type ModuleCommandContext,
 	readModuleSharedFacts,
@@ -14,6 +14,7 @@ import {
 	type DevTunnelRuntime,
 	verifyProvisionedPublicBaseUrl,
 } from "../src/resource-adapter.ts";
+import { devTunnelCliPath, resolveDevTunnelCli } from "../src/cli-resolver.ts";
 import { descriptor } from "./descriptor.ts";
 
 const base = {
@@ -31,7 +32,6 @@ type SetupState = {
 	phase: SetupPhase;
 	gatewayPort?: number;
 	publicBaseUrl?: string;
-	cliPath?: string;
 };
 const stateDir = (context: ModuleCommandContext) =>
 	join(
@@ -83,7 +83,6 @@ async function readState(
 		)
 			return undefined;
 		const publicBaseUrl = raw.publicBaseUrl;
-		const cliPath = raw.cliPath;
 		if (raw.phase === "READY") {
 			if (typeof publicBaseUrl !== "string") return undefined;
 			const url = new URL(publicBaseUrl);
@@ -95,7 +94,6 @@ async function readState(
 			phase: raw.phase,
 			...(typeof gatewayPort === "number" ? { gatewayPort } : {}),
 			...(typeof publicBaseUrl === "string" ? { publicBaseUrl } : {}),
-			...(typeof cliPath === "string" ? { cliPath } : {}),
 		};
 	} catch {
 		return undefined;
@@ -117,7 +115,7 @@ async function writeState(
 }
 function runtime(context: ModuleCommandContext, state?: SetupState) {
 	return createDevTunnelRuntime({
-		...(state?.cliPath ? { command: state.cliPath } : {}),
+		command: devTunnelCliPath(),
 		...(state
 			? { tunnelId: state.tunnelId, publicBaseUrl: state.publicBaseUrl }
 			: {}),
@@ -282,22 +280,22 @@ const baseBehaviorAdapter = {
 				observedEffects: [],
 			};
 		const rt = runtime(context, state);
-		if ((await rt.loginStatus()) !== "LOGGED_IN")
-			return {
-				result: {
-					...base,
-					ok: false as const,
-					status: "FAILED" as const,
-					error: {
-						code: "START_FAILED" as const,
-						message: "Microsoft Dev Tunnel login is not ready",
-						retryable: true,
-					},
-				},
-				observedEffects: [],
-			};
 		try {
 			const observed = await rt.start();
+			if (observed.login !== "LOGGED_IN")
+				return {
+					result: {
+						...base,
+						ok: false as const,
+						status: "FAILED" as const,
+						error: {
+							code: "START_FAILED" as const,
+							message: "Microsoft Dev Tunnel login is not ready",
+							retryable: true,
+						},
+					},
+					observedEffects: [],
+				};
 			return observed.state === "RUNNING"
 				? {
 						result: { ...base, data: observed },
@@ -381,6 +379,7 @@ type RuntimeFactory = (input: {
 	tunnelId?: string;
 	publicBaseUrl?: string;
 	processStateFile?: string;
+	loginVerified?: boolean;
 }) => DevTunnelRuntime;
 
 function gatewayPort(facts: Record<string, unknown> | undefined): number {
@@ -398,6 +397,14 @@ function gatewayPort(facts: Record<string, unknown> | undefined): number {
 	)
 		throw new Error("agent-gateway localBaseUrl shared fact is invalid");
 	return port;
+}
+
+export function workspaceTunnelId(workspaceRoot: string): string {
+	const digest = createHash("sha256")
+		.update(resolve(workspaceRoot))
+		.digest("hex")
+		.slice(0, 24);
+	return `proflow-${digest}`;
 }
 
 const setupFailed = (error: unknown) => ({
@@ -429,15 +436,12 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 		setup: async (context: ModuleCommandContext) => {
 			try {
 				const previous = await readState(context);
-				const cliPath =
-					previous?.cliPath ??
-					(dependencies?.automation
-						? "devtunnel"
-						: await (
-								dependencies?.resolveCli ??
-								(async (workspaceRoot) =>
-									(await resolveDevTunnelCli({ workspaceRoot })).command)
-							)(context.workspaceRoot));
+				const cliPath = dependencies?.automation
+					? devTunnelCliPath()
+					: await (
+							dependencies?.resolveCli ??
+							(async () => (await resolveDevTunnelCli()).command)
+						)(context.workspaceRoot);
 				const automation =
 					dependencies?.automation ??
 					createDevTunnelAutomation({ command: cliPath });
@@ -448,21 +452,34 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 				await automation.ensureLogin();
 				let tunnelId: string;
 				let safeToStartNewHost = false;
-				const createAndVerifyTunnel = async () => {
-					const createdTunnelId = await automation.createTunnel();
-					const created = await automation.inspectTunnel(createdTunnelId);
-					if (created.state !== "EXISTS")
-						throw new Error(
-							"new Dev Tunnel could not be verified by show --json",
-						);
+				const stableTunnelId = workspaceTunnelId(context.workspaceRoot);
+				const createAndVerifyTunnel = async (targetTunnelId: string) => {
+					const createdTunnelId = await automation.createTunnel(targetTunnelId);
+					if (createdTunnelId !== targetTunnelId)
+						throw new Error("Dev Tunnel create returned an unexpected tunnelId");
 					await writeState(context, {
 						contract: "proflow.dev-tunnel-setup.v2",
 						tunnelId: createdTunnelId,
 						phase: "PENDING_CREATED",
 						gatewayPort: port,
-						cliPath,
 					});
+					const created = await automation.inspectTunnel(createdTunnelId);
+					if (created.state !== "EXISTS")
+						throw new Error(
+							"new Dev Tunnel could not be verified by show --json",
+						);
 					return createdTunnelId;
+				};
+				const resolveStableTunnel = async () => {
+					const inspected = await automation.inspectTunnel(stableTunnelId);
+					if (inspected.state === "UNKNOWN")
+						throw new Error("workspace Tunnel remote state is UNKNOWN");
+					if (inspected.state === "EXISTS")
+						return { tunnelId: stableTunnelId, hostState: inspected.hostState };
+					return {
+						tunnelId: await createAndVerifyTunnel(stableTunnelId),
+						hostState: "STOPPED" as const,
+					};
 				};
 				if (previous) {
 					const inspected = await automation.inspectTunnel(previous.tunnelId);
@@ -472,12 +489,14 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 						tunnelId = previous.tunnelId;
 						safeToStartNewHost = inspected.hostState === "STOPPED";
 					} else {
-						tunnelId = await createAndVerifyTunnel();
-						safeToStartNewHost = true;
+						const resolved = await resolveStableTunnel();
+						tunnelId = resolved.tunnelId;
+						safeToStartNewHost = resolved.hostState === "STOPPED";
 					}
 				} else {
-					tunnelId = await createAndVerifyTunnel();
-					safeToStartNewHost = true;
+					const resolved = await resolveStableTunnel();
+					tunnelId = resolved.tunnelId;
+					safeToStartNewHost = resolved.hostState === "STOPPED";
 				}
 				await automation.ensurePort(tunnelId, port);
 				await writeState(context, {
@@ -485,11 +504,12 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 					tunnelId,
 					phase: "PORT_READY",
 					gatewayPort: port,
-					cliPath,
 				});
 				const host = createRuntime({
+					command: cliPath,
 					tunnelId,
 					processStateFile: processFile(context),
+					loginVerified: true,
 				});
 				const observed = await host.status();
 				let started = false;
@@ -508,7 +528,6 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 					tunnelId,
 					phase: "HOST_READY",
 					gatewayPort: port,
-					cliPath,
 				});
 				const publicBaseUrl = await automation.discoverPublicBaseUrl(
 					tunnelId,
@@ -524,7 +543,6 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 					phase: "READY",
 					gatewayPort: port,
 					publicBaseUrl: url.href,
-					cliPath,
 				};
 				await writeState(context, state);
 				await writeModuleSharedFacts(context, descriptor.moduleRef, {

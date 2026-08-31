@@ -176,7 +176,7 @@ O7 PASS  Browser 静态安装物按版本幂等物化；真人模拟只保留 Fr
 ```text
 platform-cli tests = 85/85 PASS
 platform-cli typecheck = PASS
-dev-tunnel tests = 33/33 PASS
+dev-tunnel tests = 34/34 PASS
 dev-tunnel typecheck = PASS
 execution-browser-extension tests = 96/96 PASS
 execution-browser-extension typecheck = PASS
@@ -205,26 +205,66 @@ browser      source 0.1.21 / Registry 0.1.21 / pending patch intent → 0.1.22
 
 `pnpm change status` 当前还暴露一个 release preflight 异常：platform-cli 显示 `0.1.48 → 0.1.48 (patch)`。在真正 release 前必须单独恢复 changeset/ledger 权威状态并裁决；当前 O7 不顺手修改 release machinery。
 
-## 5.1 当前 Dev Tunnel 优化裁决前沿
+## 5.1 Dev Tunnel 优化裁决与实现已完成
 
-Dev Tunnel 真人模拟 / 自动化复用 SOP 已冻结到 `05-执行纪律与工具规则.md`。当前前台用户只走 `platform setup/status`；CLI resolution、登录状态判断、Tunnel create/reuse、port reconciliation、host、public HTTPS 都由机器处理。唯一可能的人类动作是 `NOT_LOGGED_IN` 后的 GitHub Browser Auth 中不可替代的账号授权 / 2FA / CAPTCHA。
-
-当前只读审计发现四个待逐项裁决候选，尚未改代码：
+Dev Tunnel 本轮裁决已全部结束并按冻结结果实现；不再保留 D0～D3 “待裁决”状态。
 
 ```text
-D0 CLI ownership：产品要求 Dev Tunnel CLI 完全由 @tomflow/proflow-devtunnel-cli 治理，不得受用户机器 PATH 中 system devtunnel 影响；但当前 resolveDevTunnelCli() 会优先复用版本恰好匹配的 system CLI，真实 Product Workspace setup.json 也曾记录 cliPath="devtunnel"。必须先改为 package-managed-only。当前工具包固定治理 Microsoft Dev Tunnel CLI 1.0.2030（固定 URL/SHA256 后下载），不是直接把 binary 内嵌进 npm tarball；自动化证据必须来自 package-managed 路径。强制 managed resolver 的真实验证还暴露下载 fetch 无 timeout，80s 无返回后人工终止，需与 D0 一并裁决其 bounded download 行为。
-D1 Fresh ownership：fresh:workspace 删除 .proflow 后会丢失唯一 tunnelId；当前 create 使用随机 ID，可能导致 Fresh replay 再建新 Tunnel。deterministic tunnel-id / labels 等能力必须使用 package-managed 1.0.2030 实际能力确认后再采用，禁止引用 Mac system CLI 作为证据。
-D2 create durability：create 已成功返回 tunnelId 后，当前先 show 验证、后持久化。如果 show timeout/UNKNOWN，已创建 tunnelId 没有落盘，下一轮可能再次 create。应先保证 non-idempotent create 的已知结果可恢复，再做远端验证。
-D3 redundant/bounded queries：同一 setup 内 ensureLogin 与 host.start 当前可能重复 user show；public URL discovery 又有 3 轮 show × 每轮 timeout retry 的双层 bounded retry。可进一步减少重复查询，但必须在 D0/D1/D2 ownership/UNKNOWN 语义明确后再裁。
+D0 PASS  删除独立 packages/devtunnel-cli；@tomflow/proflow-devtunnel-cli Registry 历史包已 deprecated。
+         CLI resolver 收归 @tomflow/proflow-dev-tunnel；固定 1.0.2030，从 Microsoft 官方源下载到 package-local
+         .devtunnel/<version>/<platform-arch>/devtunnel，SHA/version 校验 + 120s bounded download；绝不使用 system PATH。
+D1 PASS  Fresh ownership 改为 deterministic workspace Tunnel identity：
+         proflow-${sha256(resolve(workspaceRoot)).slice(0,24)}。
+         无 local state 先 show stable ID；EXISTS 复用、MISSING 才 create、UNKNOWN STOP。
+         有旧 local state 时先 show previous；只有 previous MISSING 才进入 stable-ID recovery。
+D2 PASS  create 使用预先已知 stable ID；create 成功返回后先持久化 PENDING_CREATED，再 show 验证，关闭
+         “remote 已创建但 post-create show timeout 导致 tunnelId 未落盘”的窗口。
+D3 PASS  同一 setup 已确认 login 后，host.start 复用 loginVerified，不再重复 user show；Public URL discovery
+         保留最多 3 轮 eventual-consistency show，但每轮不再嵌套 timeout retry，最坏 6 次 show 收敛为最多 3 次。
 ```
 
-顺序固定为：**先裁 D0 package-managed CLI ownership → D1 Fresh ownership → D2 create durability → 再裁 D3 查询提效**。禁止为了测试使用 Mac system `devtunnel`、手工输入旧 Tunnel ID、删除远端 Tunnel 或绕过 Platform。
+明确保持不变：
+
+```text
+PORT_BRANCH = KEEP_CURRENT
+HOST_BRANCH = KEEP_CURRENT
+```
+
+Port 仍然只 reconcile 当前 Gateway exact port；`http` 已存在直接复用、缺失创建、协议漂移仅删除 exact port 再创建；不新增 mutation timeout recovery 状态机。Host 仍以 owned process + remote host reality 防重复启动，不新增 takeover / kill / duplicate-host recovery 状态机。
+
+最终 Public URL / READY 语义冻结为：只接受当前 Gateway port 的 HTTPS URI → HTTPS:443 / TLS>=1.2 / reachability 真验证 → 才写 `READY` 与 shared facts。完整 E2E 后台若无 Bearer 得到 `401 / AUTHENTICATION_FAILED`，视为到达 Gateway auth boundary 的正向 ingress evidence。
+
+`@tomflow/proflow-module-contract` 保留：它提供 `ModuleCommandContext` 与跨 Module shared facts，Dev Tunnel 用它消费 `agent-gateway.localBaseUrl` 并发布 `tunnelId/publicBaseUrl`，不属于本轮被裁掉的 CLI wrapper。
+
+本轮真实验证：
+
+```text
+package-local CLI = packages/dev-tunnel/.devtunnel/1.0.2030/darwin-x64/devtunnel
+CLI mode/version   = executable / 1.0.2030
+dev-tunnel         = 34/34 tests + typecheck PASS
+platform-cli       = 85/85 tests + typecheck PASS
+deployment-conformance = 17/17 tests + typecheck PASS
+surface governance = 23 packages / 91 exports / 14 binaries / 0 errors
+test governance    = 39 plans / 316 formal cases / 144 files / 647 calls / 0 errors
+```
+
+npm retirement：`@tomflow/proflow-devtunnel-cli@*` 已执行 deprecated；`0.1.1` Registry exact readback 为 `RETIRED: integrated into @tomflow/proflow-dev-tunnel; do not install this package.`。
+
+Dev Tunnel 新 patch intent 已记录为 `.changeset/great-owls-laugh.md`。当前 `pnpm change status` 同时暴露 release preflight blocker：
+
+```text
+@tomflow/proflow-dev-tunnel                   0.1.21 → 0.1.21 (patch, via intent)  ← abnormal
+@tomflow/proflow-execution-browser-extension 0.1.21 → 0.1.22 (patch, via intent)  ← expected
+@tomflow/proflow-platform-cli                 0.1.48 → 0.1.48 (patch, via intent)  ← abnormal
+```
+
+这两个“patch 但目标版本未前进”的混合 versioned-but-unpublished 状态必须留到 release preflight 恢复 changeset/ledger 真源后统一裁决；本轮 Dev Tunnel 实现不顺手修改 release machinery。
 
 ## 6. 当前唯一 Next Action
 
 ```text
-1. 继续 Deployment 优化逐项裁决；当前先裁 Dev Tunnel D0 package-managed CLI ownership
-2. 全部裁决完成后做 release preflight：恢复 pnpm changeset / ledger 权威状态，先解决 platform-cli `0.1.48 → 0.1.48 (patch)` 异常
+1. Dev Tunnel 裁决/实现/上下文收口完成后，进入 release preflight
+2. 恢复 pnpm changeset / ledger 权威状态，统一解决 dev-tunnel `0.1.21 → 0.1.21 (patch)` 与 platform-cli `0.1.48 → 0.1.48 (patch)` 异常
 3. pnpm package:release（不手工传包名；release set 必须来自 pnpm changeset/ledger 真源）
 4. Registry exact + dist-tag latest readback
 5. 因 platform-cli 本轮变更：npm install -g @tomflow/proflow-platform-cli@latest
@@ -347,8 +387,8 @@ SOURCE_HEAD/TREE = 接管时机械重读
 SOURCE_VERSION = platform-cli 0.1.48 / dev-tunnel 0.1.21 / browser 0.1.21（pending patch → 0.1.22）
 REGISTRY_LATEST= platform-cli 0.1.47 / dev-tunnel 0.1.20 / browser 0.1.21
 PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES（优化前 latest）
-NEXT_ACTION    = 继续下一项优化裁决 → 全部裁决结束后 release preflight → package:release → Registry latest → global platform-cli latest → Fresh Workspace → 完整 Deployment E2E
-RELEASE_PREFLIGHT_BLOCKER = platform-cli pending intent 当前显示 0.1.48 → 0.1.48 (patch)，真正 release 前必须先恢复 changeset/ledger 权威状态
+NEXT_ACTION    = Dev Tunnel 批次提交完成 → release preflight（恢复 changeset/ledger，裁决 dev-tunnel/platform-cli same-version patch 异常）→ package:release → Registry latest → global platform-cli latest → Fresh Workspace → 完整 Deployment E2E
+RELEASE_PREFLIGHT_BLOCKER = dev-tunnel 0.1.21 → 0.1.21 (patch) + platform-cli 0.1.48 → 0.1.48 (patch)；真正 release 前必须先恢复 changeset/ledger 权威状态
 DO_NOT_REPEAT  = Browser 0.1.21 同版本 publish / Browser Reload 或 Disable-Enable 人为测试 / 3 GPT rebuild / remote Tunnel delete / git push
 ```
 

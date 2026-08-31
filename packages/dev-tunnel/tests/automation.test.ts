@@ -8,7 +8,10 @@ import {
 	readModuleSharedFacts,
 	writeModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
-import { createDevTunnelBehaviorAdapter } from "../deployment/adapter.ts";
+import {
+	createDevTunnelBehaviorAdapter,
+	workspaceTunnelId,
+} from "../deployment/adapter.ts";
 import {
 	createDevTunnelAutomation,
 	discoverPublicBaseUrl,
@@ -76,28 +79,29 @@ test("CP-DEV-TUNNEL-01 valid login is reused without opening browser auth", asyn
 	assert.deepEqual(timeouts, [30_000]);
 });
 
-test("CP-DEV-TUNNEL-02 automatic creation is anonymous, randomly identified by the provider, and verified by exact show", async () => {
+test("CP-DEV-TUNNEL-02 automatic creation uses the precomputed workspace Tunnel identity", async () => {
 	const calls: string[][] = [];
 	const automation = createDevTunnelAutomation({
 		runCommand: async (_command, args) => {
 			calls.push(args);
-			if (args[0] === "create")
-				return result(
-					JSON.stringify({ tunnelId: "provider-generated", endpoints: [] }),
-				);
 			return result(
-				JSON.stringify({ tunnelId: "provider-generated", endpoints: [] }),
+				JSON.stringify({ tunnelId: "proflow-stable", endpoints: [] }),
 			);
 		},
 	});
-	const tunnelId = await automation.createTunnel();
-	assert.equal(tunnelId, "provider-generated");
-	assert.deepEqual(calls[0], ["create", "--allow-anonymous", "--json"]);
+	const tunnelId = await automation.createTunnel("proflow-stable");
+	assert.equal(tunnelId, "proflow-stable");
+	assert.deepEqual(calls[0], [
+		"create",
+		"proflow-stable",
+		"--allow-anonymous",
+		"--json",
+	]);
 	assert.deepEqual(await automation.inspectTunnel(tunnelId), {
 		state: "EXISTS",
 		hostState: "STOPPED",
 	});
-	assert.deepEqual(calls[1], ["show", "provider-generated", "--json"]);
+	assert.deepEqual(calls[1], ["show", "proflow-stable", "--json"]);
 });
 
 test("CP-DEV-TUNNEL-01 cancelled login and unknown login fail closed", async () => {
@@ -321,20 +325,26 @@ test("CP-DEV-TUNNEL-03 single-call setup consumes the Gateway-owned endpoint fac
 	await writeModuleSharedFacts({ workspaceRoot }, "agent-gateway", {
 		localBaseUrl: "http://127.0.0.1:41705",
 	});
+	const stableTunnel = workspaceTunnelId(workspaceRoot);
 	const calls: string[] = [];
+	let exists = false;
 	const automation = {
 		async ensureLogin() {
 			calls.push("login");
 			return "LOGGED_IN" as const;
 		},
 		async inspectTunnel(tunnelId: string) {
-			assert.equal(tunnelId, "created-tunnel");
-			calls.push("tunnel:show:created-tunnel");
-			return { state: "EXISTS" as const, hostState: "STOPPED" as const };
+			assert.equal(tunnelId, stableTunnel);
+			calls.push(`tunnel:show:${tunnelId}`);
+			return exists
+				? { state: "EXISTS" as const, hostState: "STOPPED" as const }
+				: { state: "MISSING" as const, hostState: "UNKNOWN" as const };
 		},
-		async createTunnel() {
-			calls.push("tunnel:create");
-			return "created-tunnel";
+		async createTunnel(tunnelId: string) {
+			assert.equal(tunnelId, stableTunnel);
+			calls.push(`tunnel:create:${tunnelId}`);
+			exists = true;
+			return tunnelId;
 		},
 		async ensurePort(tunnelId: string, port: number) {
 			calls.push(`port:${tunnelId}:${port}`);
@@ -354,12 +364,13 @@ test("CP-DEV-TUNNEL-03 single-call setup consumes the Gateway-owned endpoint fac
 	assert.equal(setup.result.status, "SUCCEEDED");
 	assert.deepEqual(calls, [
 		"login",
-		"tunnel:create",
-		"tunnel:show:created-tunnel",
-		"port:created-tunnel:41705",
+		`tunnel:show:${stableTunnel}`,
+		`tunnel:create:${stableTunnel}`,
+		`tunnel:show:${stableTunnel}`,
+		`port:${stableTunnel}:41705`,
 		"host:status",
 		"host:start",
-		"url:created-tunnel:41705",
+		`url:${stableTunnel}:41705`,
 	]);
 	const state = JSON.parse(
 		await readFile(
@@ -372,21 +383,19 @@ test("CP-DEV-TUNNEL-03 single-call setup consumes the Gateway-owned endpoint fac
 	);
 	assert.deepEqual(state, {
 		contract: "proflow.dev-tunnel-setup.v2",
-		tunnelId: "created-tunnel",
+		tunnelId: stableTunnel,
 		phase: "READY",
 		gatewayPort: 41705,
 		publicBaseUrl: "https://created-41705.example.test/",
-		cliPath: "devtunnel",
 	});
 	assert.deepEqual(
 		await readModuleSharedFacts({ workspaceRoot }, "dev-tunnel"),
 		{
-			tunnelId: "created-tunnel",
+			tunnelId: stableTunnel,
 			publicBaseUrl: "https://created-41705.example.test/",
 		},
 	);
 	assert.deepEqual(Object.keys(state).sort(), [
-		"cliPath",
 		"contract",
 		"gatewayPort",
 		"phase",
@@ -408,18 +417,25 @@ test("CP-DEV-TUNNEL-06 repeated setup keeps Tunnel and port identity stable with
 	let portChecks = 0;
 	let hostStarts = 0;
 	let hostState: "RUNNING" | "UNKNOWN" = "UNKNOWN";
+	let remoteExists = false;
+	const stableTunnel = workspaceTunnelId(workspaceRoot);
 	const adapter = createDevTunnelBehaviorAdapter({
 		automation: {
 			async ensureLogin() {
 				loginChecks += 1;
 				return "LOGGED_IN" as const;
 			},
-			async inspectTunnel() {
-				return { state: "EXISTS" as const, hostState: "STOPPED" as const };
+			async inspectTunnel(tunnelId: string) {
+				assert.equal(tunnelId, stableTunnel);
+				return remoteExists
+					? { state: "EXISTS" as const, hostState: "STOPPED" as const }
+					: { state: "MISSING" as const, hostState: "UNKNOWN" as const };
 			},
-			async createTunnel() {
+			async createTunnel(tunnelId: string) {
+				assert.equal(tunnelId, stableTunnel);
 				createCount += 1;
-				return "stable-tunnel";
+				remoteExists = true;
+				return tunnelId;
 			},
 			async ensurePort() {
 				portChecks += 1;
@@ -477,7 +493,7 @@ test("CP-DEV-TUNNEL-06 repeated setup keeps Tunnel and port identity stable with
 test("CP-DEV-TUNNEL-02 CP-DEV-TUNNEL-07 workspace reuse, remote rebind, and UNKNOWN host fail-closed", async (t) => {
 	for (const scenario of [
 		{ remote: "EXISTS" as const, expectedTunnel: "workspace-tunnel" },
-		{ remote: "MISSING" as const, expectedTunnel: "replacement-tunnel" },
+		{ remote: "MISSING" as const, expectedTunnel: undefined },
 	]) {
 		const workspaceRoot = await mkdtemp(
 			join(tmpdir(), "proflow-tunnel-reuse-"),
@@ -500,22 +516,28 @@ test("CP-DEV-TUNNEL-02 CP-DEV-TUNNEL-07 workspace reuse, remote rebind, and UNKN
 			}),
 		);
 		let creates = 0;
+		const stableTunnel = workspaceTunnelId(workspaceRoot);
+		let stableExists = false;
 		const adapter = createDevTunnelBehaviorAdapter({
 			automation: {
 				async ensureLogin() {
 					return "LOGGED_IN" as const;
 				},
 				async inspectTunnel(tunnelId: string) {
-					if (tunnelId === "replacement-tunnel")
-						return { state: "EXISTS" as const, hostState: "STOPPED" as const };
-					assert.equal(tunnelId, "workspace-tunnel");
-					return scenario.remote === "EXISTS"
+					if (tunnelId === "workspace-tunnel")
+						return scenario.remote === "EXISTS"
+							? { state: "EXISTS" as const, hostState: "STOPPED" as const }
+							: { state: "MISSING" as const, hostState: "UNKNOWN" as const };
+					assert.equal(tunnelId, stableTunnel);
+					return stableExists
 						? { state: "EXISTS" as const, hostState: "STOPPED" as const }
 						: { state: "MISSING" as const, hostState: "UNKNOWN" as const };
 				},
-				async createTunnel() {
+				async createTunnel(tunnelId: string) {
+					assert.equal(tunnelId, stableTunnel);
 					creates += 1;
-					return "replacement-tunnel";
+					stableExists = true;
+					return tunnelId;
 				},
 				async ensurePort() {
 					return "REUSED" as const;
@@ -535,7 +557,10 @@ test("CP-DEV-TUNNEL-02 CP-DEV-TUNNEL-07 workspace reuse, remote rebind, and UNKN
 		const rebound = JSON.parse(
 			await readFile(join(stateDir, "setup.json"), "utf8"),
 		);
-		assert.equal(rebound.tunnelId, scenario.expectedTunnel);
+		assert.equal(
+			rebound.tunnelId,
+			scenario.expectedTunnel ?? stableTunnel,
+		);
 	}
 
 	const workspaceRoot = await mkdtemp(
@@ -633,16 +658,23 @@ test("missing Gateway writes no state while post-create failure persists recover
 			localBaseUrl: "http://127.0.0.1:41705",
 		},
 	);
+	let failedProvisionExists = false;
+	const failedProvisionTunnel = workspaceTunnelId(provisionRoot);
 	const failedProvision = createDevTunnelBehaviorAdapter({
 		automation: {
 			async ensureLogin() {
 				return "LOGGED_IN" as const;
 			},
-			async inspectTunnel() {
-				return { state: "EXISTS" as const, hostState: "STOPPED" as const };
+			async inspectTunnel(tunnelId: string) {
+				assert.equal(tunnelId, failedProvisionTunnel);
+				return failedProvisionExists
+					? { state: "EXISTS" as const, hostState: "STOPPED" as const }
+					: { state: "MISSING" as const, hostState: "UNKNOWN" as const };
 			},
-			async createTunnel() {
-				return "created-but-not-ready";
+			async createTunnel(tunnelId: string) {
+				assert.equal(tunnelId, failedProvisionTunnel);
+				failedProvisionExists = true;
+				return tunnelId;
 			},
 			async ensurePort() {
 				throw new Error("port reconcile failed");
@@ -671,10 +703,9 @@ test("missing Gateway writes no state while post-create failure persists recover
 		),
 		{
 			contract: "proflow.dev-tunnel-setup.v2",
-			tunnelId: "created-but-not-ready",
+			tunnelId: failedProvisionTunnel,
 			phase: "PENDING_CREATED",
 			gatewayPort: 41705,
-			cliPath: "devtunnel",
 		},
 	);
 });
@@ -689,17 +720,24 @@ test("a created Tunnel is persisted as PENDING and reused after port reconciliat
 	});
 	let creates = 0;
 	let portAttempts = 0;
+	let pendingExists = false;
+	const pendingTunnel = workspaceTunnelId(workspaceRoot);
 	const adapter = createDevTunnelBehaviorAdapter({
 		automation: {
 			async ensureLogin() {
 				return "LOGGED_IN" as const;
 			},
-			async inspectTunnel() {
-				return { state: "EXISTS" as const, hostState: "STOPPED" as const };
+			async inspectTunnel(tunnelId: string) {
+				assert.equal(tunnelId, pendingTunnel);
+				return pendingExists
+					? { state: "EXISTS" as const, hostState: "STOPPED" as const }
+					: { state: "MISSING" as const, hostState: "UNKNOWN" as const };
 			},
-			async createTunnel() {
+			async createTunnel(tunnelId: string) {
+				assert.equal(tunnelId, pendingTunnel);
 				creates += 1;
-				return "pending-tunnel";
+				pendingExists = true;
+				return tunnelId;
 			},
 			async ensurePort() {
 				portAttempts += 1;
@@ -727,7 +765,7 @@ test("a created Tunnel is persisted as PENDING and reused after port reconciliat
 		),
 	);
 	assert.equal(pending.phase, "PENDING_CREATED");
-	assert.equal(pending.tunnelId, "pending-tunnel");
+	assert.equal(pending.tunnelId, pendingTunnel);
 	assert.equal(
 		(await adapter.setup({ workspaceRoot })).result.status,
 		"SUCCEEDED",

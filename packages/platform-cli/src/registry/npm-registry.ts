@@ -12,10 +12,9 @@ export const PRO_FLOW_SCOPE = "@tomflow";
 export const PRO_FLOW_PACKAGE_PREFIX = "@tomflow/proflow-";
 export const RETIRED_PRO_FLOW_PACKAGES = new Set([
 	"@tomflow/proflow-chatgpt-carrier",
-]);
-export const PRO_FLOW_TOOL_PACKAGES = new Set([
 	"@tomflow/proflow-devtunnel-cli",
 ]);
+export const PRO_FLOW_TOOL_PACKAGES = new Set<string>();
 
 export interface NpmCommandResult {
 	stdout: string;

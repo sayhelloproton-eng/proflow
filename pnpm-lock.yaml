@@ -156,9 +156,6 @@ importers:
 
   packages/dev-tunnel:
     dependencies:
-      '@tomflow/proflow-devtunnel-cli':
-        specifier: workspace:^
-        version: link:../devtunnel-cli
       '@tomflow/proflow-module-contract':
         specifier: workspace:^
         version: link:../module-contract
@@ -169,8 +166,6 @@ importers:
       '@tomflow/proflow-deployment-conformance':
         specifier: workspace:^
         version: link:../deployment-conformance
-
-  packages/devtunnel-cli: {}
 
   packages/execution-browser-extension:
     dependencies:

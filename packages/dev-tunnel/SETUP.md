@@ -15,7 +15,7 @@ Human action: 仅当现有登录无效时，在 `devtunnel user login --github -
 Automatic flow:
 
 ```text
-检查 CLI 和登录
+准备/复用 dev-tunnel 包目录内的官方 CLI，并检查登录
 → 必要时完成 GitHub browser auth 并复核登录
 → 复用 workspace-owned Tunnel 或自动创建
 → 从 agent-gateway shared facts 读取本地端口

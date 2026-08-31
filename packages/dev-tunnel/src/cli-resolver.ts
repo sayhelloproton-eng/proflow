@@ -10,14 +10,15 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { arch, platform } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 const execute = promisify(execFile);
-const MANAGED_VERSION = "1.0.2030";
+export const MANAGED_DEV_TUNNEL_VERSION = "1.0.2030";
 const VERSION_PROBE_TIMEOUT_MS = 30_000;
+const DOWNLOAD_TIMEOUT_MS = 120_000;
 const COMPATIBLE_VERSION = new RegExp(
-	`^${MANAGED_VERSION.replaceAll(".", "\\.")}$`,
+	`^${MANAGED_DEV_TUNNEL_VERSION.replaceAll(".", "\\.")}$`,
 );
 
 type SupportedArtifact = {
@@ -64,6 +65,22 @@ function artifact(): SupportedArtifact {
 	return selected;
 }
 
+function packageRoot(): string {
+	const parent = dirname(import.meta.dirname);
+	return basename(parent) === "dist" ? dirname(parent) : parent;
+}
+
+export function devTunnelCliPath(): string {
+	const selected = artifact();
+	return join(
+		packageRoot(),
+		".devtunnel",
+		MANAGED_DEV_TUNNEL_VERSION,
+		`${platform()}-${arch()}`,
+		selected.executable,
+	);
+}
+
 async function version(command: string): Promise<string | undefined> {
 	try {
 		const result = await execute(command, ["--version"], {
@@ -76,16 +93,12 @@ async function version(command: string): Promise<string | undefined> {
 }
 
 async function sha256(path: string): Promise<string> {
-	return createHash("sha256")
-		.update(await readFile(path))
-		.digest("hex");
+	return createHash("sha256").update(await readFile(path)).digest("hex");
 }
 
 async function validCached(path: string): Promise<boolean> {
 	try {
-		const metadata = JSON.parse(
-			await readFile(`${path}.json`, "utf8"),
-		) as unknown;
+		const metadata = JSON.parse(await readFile(`${path}.json`, "utf8")) as unknown;
 		if (typeof metadata !== "object" || metadata === null) return false;
 		const expected = Reflect.get(metadata, "sha256");
 		return (
@@ -98,20 +111,23 @@ async function validCached(path: string): Promise<boolean> {
 	}
 }
 
-async function downloadManaged(workspaceRoot: string): Promise<string> {
+async function downloadManaged(): Promise<string> {
 	const selected = artifact();
-	const directory = join(
-		resolve(workspaceRoot),
-		".proflow",
-		"tools",
-		"devtunnel",
-		MANAGED_VERSION,
-		`${platform()}-${arch()}`,
-	);
-	const target = join(directory, selected.executable);
+	const target = devTunnelCliPath();
+	const directory = dirname(target);
 	if (await validCached(target)) return target;
 	await mkdir(directory, { recursive: true, mode: 0o700 });
-	const response = await fetch(selected.url, { redirect: "follow" });
+	let response: Response;
+	try {
+		response = await fetch(selected.url, {
+			redirect: "follow",
+			signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+		});
+	} catch (error) {
+		throw new Error(
+			`DEV_TUNNEL_DOWNLOAD_FAILED: ${error instanceof Error ? error.message : "request failed"}`,
+		);
+	}
 	if (!response.ok)
 		throw new Error(`DEV_TUNNEL_DOWNLOAD_FAILED: HTTP ${response.status}`);
 	const bytes = Buffer.from(await response.arrayBuffer());
@@ -144,26 +160,30 @@ async function downloadManaged(workspaceRoot: string): Promise<string> {
 		);
 	await writeFile(
 		`${target}.json`,
-		`${JSON.stringify({ source: selected.url, version: observedVersion, sha256: await sha256(target), artifactSha256: selected.sha256, file: basename(target), directory: dirname(target) }, null, 2)}\n`,
+		`${JSON.stringify(
+			{
+				source: selected.url,
+				version: observedVersion,
+				sha256: await sha256(target),
+				artifactSha256: selected.sha256,
+				file: basename(target),
+				directory: dirname(target),
+			},
+			null,
+			2,
+		)}\n`,
 		{ mode: 0o600 },
 	);
 	return target;
 }
 
-export async function resolveDevTunnelCli(input: {
-	workspaceRoot: string;
-	systemCommand?: string;
-}): Promise<{
+export async function resolveDevTunnelCli(): Promise<{
 	command: string;
-	source: "system" | "managed";
+	source: "package";
 	version: string;
 }> {
-	const systemCommand = input.systemCommand ?? "devtunnel";
-	const systemVersion = await version(systemCommand);
-	if (systemVersion && COMPATIBLE_VERSION.test(systemVersion))
-		return { command: systemCommand, source: "system", version: systemVersion };
-	const command = await downloadManaged(input.workspaceRoot);
+	const command = await downloadManaged();
 	const managedVersion = await version(command);
 	if (!managedVersion) throw new Error("DEV_TUNNEL_MANAGED_CLI_INVALID");
-	return { command, source: "managed", version: managedVersion };
+	return { command, source: "package", version: managedVersion };
 }

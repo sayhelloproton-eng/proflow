@@ -26,10 +26,10 @@ async function packageFixture(
 test("platform conventions gate covers current repository and future package discovery", async (context) => {
 	const current = await runRepositoryArchitecture(repositoryRoot);
 	assert.equal(current.status, "PASS");
-	assert.equal(current.checkedPackages.length, 24);
+	assert.equal(current.checkedPackages.length, 23);
 	assert.equal(
 		current.checkedPackages.includes("@tomflow/proflow-devtunnel-cli"),
-		true,
+		false,
 	);
 	assert.equal(
 		current.issues.some((issue) =>

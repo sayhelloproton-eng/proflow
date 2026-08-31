@@ -23,6 +23,8 @@ Deployment Governance
 
 ## Purpose
 
-Manages the Microsoft Dev Tunnel (`devtunnel`) public HTTPS ingress. Existing
-login is reused; when login is unavailable, the only human action is GitHub
-browser authorization initiated by the provider CLI. Account state is never faked.
+Manages the Microsoft Dev Tunnel (`devtunnel`) public HTTPS ingress. The Module
+owns acquisition of the pinned official CLI into its own package-local `.devtunnel/`
+directory and never resolves a system PATH `devtunnel`. Existing login is reused;
+when login is unavailable, the only human action is GitHub browser authorization
+initiated by the package-owned CLI. Account state is never faked.

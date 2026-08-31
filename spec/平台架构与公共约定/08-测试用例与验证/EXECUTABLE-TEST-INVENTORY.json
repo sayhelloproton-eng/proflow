@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 144,
-    "testCalls": 649
+    "testCalls": 647
   },
   "tests": [
     {
@@ -1657,7 +1657,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 24,
+      "line": 27,
       "title": "CP-DEV-TUNNEL-01 login JSON is authoritative and logged-out statuses are not misread from exit 0",
       "ids": [
         "CP-DEV-TUNNEL-01"
@@ -1672,7 +1672,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 62,
+      "line": 65,
       "title": "CP-DEV-TUNNEL-01 valid login is reused without opening browser auth",
       "ids": [
         "CP-DEV-TUNNEL-01"
@@ -1687,8 +1687,8 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 79,
-      "title": "CP-DEV-TUNNEL-02 automatic creation is anonymous, randomly identified by the provider, and verified by exact show",
+      "line": 82,
+      "title": "CP-DEV-TUNNEL-02 automatic creation uses the precomputed workspace Tunnel identity",
       "ids": [
         "CP-DEV-TUNNEL-02"
       ],
@@ -1702,7 +1702,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 103,
+      "line": 107,
       "title": "CP-DEV-TUNNEL-01 cancelled login and unknown login fail closed",
       "ids": [
         "CP-DEV-TUNNEL-01"
@@ -1717,7 +1717,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 119,
+      "line": 123,
       "title": "CP-DEV-TUNNEL-04 port reconciliation is idempotent and bounded",
       "ids": [
         "CP-DEV-TUNNEL-04"
@@ -1732,7 +1732,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 188,
+      "line": 192,
       "title": "Dev Tunnel read-only port query retries one timeout with a wider bounded window",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1745,7 +1745,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 208,
+      "line": 212,
       "title": "Dev Tunnel CLI warning-only no-ports JSON is treated as an empty port list",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1758,7 +1758,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 227,
+      "line": 231,
       "title": "CP-DEV-TUNNEL-04 protocol drift stops after exact-port delete failure and never claims reconciliation",
       "ids": [
         "CP-DEV-TUNNEL-04"
@@ -1773,7 +1773,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 249,
+      "line": 253,
       "title": "CP-DEV-TUNNEL-05 public URL discovery selects the current Gateway port and rejects unsafe values",
       "ids": [
         "CP-DEV-TUNNEL-05"
@@ -1788,7 +1788,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 318,
+      "line": 322,
       "title": "CP-DEV-TUNNEL-03 single-call setup consumes the Gateway-owned endpoint fact",
       "ids": [
         "CP-DEV-TUNNEL-03"
@@ -1803,7 +1803,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 398,
+      "line": 407,
       "title": "CP-DEV-TUNNEL-06 repeated setup keeps Tunnel and port identity stable without login or host replay",
       "ids": [
         "CP-DEV-TUNNEL-06"
@@ -1818,7 +1818,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 477,
+      "line": 493,
       "title": "CP-DEV-TUNNEL-02 CP-DEV-TUNNEL-07 workspace reuse, remote rebind, and UNKNOWN host fail-closed",
       "ids": [
         "CP-DEV-TUNNEL-02",
@@ -1834,7 +1834,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 588,
+      "line": 613,
       "title": "missing Gateway writes no state while post-create failure persists recoverable PENDING state",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1847,7 +1847,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 682,
+      "line": 714,
       "title": "a created Tunnel is persisted as PENDING and reused after port reconciliation fails",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1860,7 +1860,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 738,
+      "line": 777,
       "title": "CP-DEV-TUNNEL-01 failed browser login performs no Tunnel mutation",
       "ids": [
         "CP-DEV-TUNNEL-01"
@@ -1870,6 +1870,17 @@
         "packages/dev-tunnel/deployment/adapter.ts",
         "packages/dev-tunnel/src/resource-adapter.ts",
         "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/cli-resolver.test.ts",
+      "line": 10,
+      "title": "Dev Tunnel CLI is pinned and resolved inside the dev-tunnel package",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/src/cli-resolver.ts"
       ]
     },
     {
@@ -2113,28 +2124,6 @@
       "implementationRefs": [
         "packages/dev-tunnel/deployment/descriptor.ts",
         "packages/dev-tunnel/src/cli.ts"
-      ]
-    },
-    {
-      "package": "devtunnel-cli",
-      "path": "packages/devtunnel-cli/tests/resolver.test.ts",
-      "line": 5,
-      "title": "managed Dev Tunnel tool package is governed without becoming a ProFlow Module",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/devtunnel-cli/src/index.ts"
-      ]
-    },
-    {
-      "package": "devtunnel-cli",
-      "path": "packages/devtunnel-cli/tests/resolver.test.ts",
-      "line": 20,
-      "title": "managed Dev Tunnel resolver pins the version verified by Real-3",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/devtunnel-cli/src/index.ts"
       ]
     },
     {
@@ -7282,17 +7271,6 @@
       "path": "packages/platform-cli/tests/registry-retirement.test.ts",
       "line": 10,
       "title": "retired packages returned by npm search are ignored without being viewed",
-      "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
-      "implementationRefs": [
-        "packages/platform-cli/src/registry/npm-registry.ts"
-      ]
-    },
-    {
-      "package": "platform-cli",
-      "path": "packages/platform-cli/tests/registry-retirement.test.ts",
-      "line": 49,
-      "title": "governed tool packages are ignored without becoming Module candidates",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
