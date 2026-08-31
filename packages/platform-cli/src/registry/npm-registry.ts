@@ -170,7 +170,7 @@ export async function discoverRegistryModules(options: {
 		}
 	};
 	await Promise.all(
-		Array.from({ length: Math.min(4, activeNames.length) }, () => worker()),
+		Array.from({ length: Math.min(8, activeNames.length) }, () => worker()),
 	);
 	candidates.sort((left, right) =>
 		left.packageName.localeCompare(right.packageName),

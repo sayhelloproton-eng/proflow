@@ -533,6 +533,7 @@ async function handleInstall(
 		status: "STARTED",
 		message: "正在连接 Registry",
 	});
+	const registryStartedAt = Date.now();
 	const discovered = await discoverRegistryModules({
 		workspaceRoot: root,
 		onSearchComplete: (total) =>
@@ -566,6 +567,7 @@ async function handleInstall(
 		kind: "phase",
 		status: "SUCCEEDED",
 		message: `已发现 ${discovered.candidates.length} 个注册模块`,
+		elapsedMs: Date.now() - registryStartedAt,
 	});
 	if (discovered.rejected.length > 0)
 		throw new PlatformError(
@@ -586,6 +588,7 @@ async function handleInstall(
 		status: "STARTED",
 		message: "正在同步依赖",
 	});
+	const packagesStartedAt = Date.now();
 	const mutation = await syncWorkspacePackages({
 		workspaceRoot: root,
 		packages: discovered.candidates.map((item) => ({
@@ -606,8 +609,10 @@ async function handleInstall(
 		kind: "phase",
 		status: "SUCCEEDED",
 		message: "依赖同步完成",
+		elapsedMs: Date.now() - packagesStartedAt,
 	});
 	await recordPnpmPolicyOwnership(root, pnpmPolicyBefore);
+	const validationStartedAt = Date.now();
 	const { catalog, modules } = await validateInstalledPackageSet(
 		root,
 		discovered.candidates,
@@ -619,7 +624,8 @@ async function handleInstall(
 		phase: "validation",
 		kind: "phase",
 		status: "SUCCEEDED",
-		message: `安装完成，${modules.length} 个模块已从本地安装物验证`,
+		message: `已验证 ${modules.length} 个本地安装模块`,
+		elapsedMs: Date.now() - validationStartedAt,
 	});
 	const moduleInstall = await installModulesThin(
 		catalog,

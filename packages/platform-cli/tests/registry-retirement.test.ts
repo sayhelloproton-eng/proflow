@@ -56,3 +56,42 @@ test("retired packages returned by npm search are ignored without being viewed",
 		false,
 	);
 });
+
+test("registry manifest checks use a bounded eight-worker pool", async () => {
+	const names = Array.from(
+		{ length: 12 },
+		(_, index) => `@tomflow/proflow-fixture-${String(index).padStart(2, "0")}`,
+	);
+	let active = 0;
+	let maxActive = 0;
+	const runner: NpmCommandRunner = {
+		async run(args) {
+			if (args[0] === "config")
+				return { stdout: "https://registry.npmjs.org/\n", stderr: "" };
+			if (args[0] === "search")
+				return { stdout: JSON.stringify(names.map((name) => ({ name }))), stderr: "" };
+			if (args[0] === "view") {
+				active += 1;
+				maxActive = Math.max(maxActive, active);
+				await new Promise((resolveWait) => setTimeout(resolveWait, 20));
+				active -= 1;
+				return {
+					stdout: JSON.stringify({
+						name: args[1],
+						version: "1.0.0",
+						proflow: {
+							module: true,
+							descriptor: "./dist/deployment/descriptor.js",
+							manifest: "./proflow.module.json",
+						},
+					}),
+					stderr: "",
+				};
+			}
+			throw new Error(`unexpected npm command: ${args.join(" ")}`);
+		},
+	};
+	const result = await discoverRegistryModules({ workspaceRoot: process.cwd(), runner });
+	assert.equal(result.candidates.length, names.length);
+	assert.equal(maxActive, 8);
+});
