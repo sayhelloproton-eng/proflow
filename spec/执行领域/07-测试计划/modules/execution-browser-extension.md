@@ -72,7 +72,7 @@ Browser file manager/frame registry reintroduced
 
 ## 5. Real / Fake Boundary
 
-协议helper可fake Chrome API；以下必须真实Chrome+ChatGPT：c-id observation、Conversation CREATE/RESTORE/WAKE、DOM submit、Always Allow/permission behavior、multi-action Turn、reload/restart recovery。System Observer REASON需要真实手机模型负载验证；可用fixed snapshots做contract/unit测试但不能宣称real-load PASS。
+协议helper可fake Chrome API；以下必须真实Chrome+ChatGPT：c-id observation、Conversation CREATE/RESTORE/WAKE、DOM submit、Always Allow/permission behavior、multi-action Turn、Chrome restart recovery。System Observer REASON需要真实手机模型负载验证；可用fixed snapshots做contract/unit测试但不能宣称real-load PASS。
 
 ## 6. Evidence
 
@@ -120,7 +120,7 @@ STOP：必须靠frame/persistent tab/business store/Browser natural-language Tas
 | `CP-EXE-BR-11` System Observer | `packages/execution-browser-extension/tests/system-observer-runtime.test.ts`, `packages/execution-browser-extension/tests/background-observer-application.test.ts`, `packages/model-runtime/tests/observer-system-assessment-alignment.test.ts` | 8-view batching/carry-forward/drill-down/global synthesis；service-worker restart 持久化 previous state。 |
 | `CP-EXE-BR-13` Browser adapter composition | `packages/execution-browser-extension/tests/runtime-composition.test.ts` | Browser adapter 完成；Platform Host / Bridge credential 仅从 secret file 读取，POSIX 下 group/world-readable secret fail-closed；**唯一 Execution Runtime binary 注入/readiness = Batch 4 / P1-15 carry-forward**。 |
 
-**不得过度宣称**：上述自动 proof 不等于真实 Chrome / Custom GPT / physical Conversation E2E；真实页面 CREATE/RESTORE/WAKE/DOM submit/permission/extension reload 继续保留 `MANUAL_E2E_REQUIRED`。
+**不得过度宣称**：上述自动 proof 不等于真实 Chrome / Custom GPT / physical Conversation E2E；真实页面 CREATE/RESTORE/WAKE/DOM submit/permission 继续保留 `MANUAL_E2E_REQUIRED`。
 
 
 ### Batch 3 → Batch 4 explicit carry-forward
@@ -162,7 +162,7 @@ Batch 3 不通过越权补实现来强行关闭以下跨批依赖：
 - [ ] **CP-EXE-BR-17** — `CustomGptEditorDriver` 使用 deterministic semantic/DOM selector + readback，完成字段、Knowledge、model/capabilities、Action Schema、private create/update；不使用固定坐标或模型自由决策。
 - [ ] **CP-EXE-BR-18** — Provisioning file transport 与 command JSON 分离；只接受 Mac 侧已安全 staging 的 bounded files，Knowledge upload 等待真实 processing completion。
 - [ ] **CP-EXE-BR-19** — role credential 仅作为 ephemeral Auth material 输入；Extension 不生成、不持久化、不记录；Auth update 后 secret buffer/reference 被清除。
-- [ ] **CP-EXE-BR-20** — Extension reload、editor close/reopen、CLI retry 后按 live GPT/Role reality 恢复，只补 missing/drift，禁止 duplicate GPT。
+- [ ] **CP-EXE-BR-20** — editor close/reopen、CLI retry 后按 live GPT/Role reality 恢复，只补 missing/drift，禁止 duplicate GPT。
 
 - [ ] **RF-EXE-BR-14** — Provisioning DTO/代码依赖 Task Observer、worker binding、Execution Record 或 runtime Browser Effect state machine。
 - [ ] **RF-EXE-BR-15** — selector/DOM mismatch 后坐标猜测、Vision/model 自由点击或把 UNKNOWN 当成功。

@@ -12857,7 +12857,7 @@
       "domain": "platform",
       "moduleRef": null,
       "sourceTestPlan": "TP-PLATFORM-00/01/02/03 + PLATFORM-DOC-01-04",
-      "requirement": "Gateway transport budgets, Execution timeouts/cancel/UNKNOWN, SQLite crash-reopen, Browser reload, and Deployment metadata/start/stop failure boundaries remain bounded and recoverable.",
+      "requirement": "Gateway transport budgets, Execution timeouts/cancel/UNKNOWN, SQLite crash-reopen, and Deployment metadata/start/stop failure boundaries remain bounded and recoverable.",
       "boundCpIds": [
         "CP-AGT-GW-03",
         "CP-EXE-RT-06",
@@ -12876,7 +12876,7 @@
         "Capture owner state/result/evidence and transport/recovery observations"
       ],
       "expected": [
-        "Gateway transport budgets, Execution timeouts/cancel/UNKNOWN, SQLite crash-reopen, Browser reload, and Deployment metadata/start/stop failure boundaries remain bounded and recoverable."
+        "Gateway transport budgets, Execution timeouts/cancel/UNKNOWN, SQLite crash-reopen, and Deployment metadata/start/stop failure boundaries remain bounded and recoverable."
       ],
       "forbidden": [
         "Duplicate business ownership",

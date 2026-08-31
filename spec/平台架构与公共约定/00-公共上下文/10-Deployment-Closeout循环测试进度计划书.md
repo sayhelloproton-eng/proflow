@@ -10,7 +10,7 @@
 Deployment latest **技术主链**已经通过，但优化版本发布后仍必须从真实 npm latest 重新执行一轮**完整、不可裁剪的 Fresh Deployment E2E**，不能用“最小 smoke”替代部署路径。当前必须完成：
 
 ```text
-O1～O6 优化源码/版本事实已提交
+O1～O7 当前已裁决优化源码 / changeset intent 已落盘
 → changed packages 包级 release
 → Registry exact/latest readback
 → 若 platform-cli 变更：升级真实全局 platform-cli latest
@@ -88,7 +88,7 @@ Source versions：
 ```text
 @tomflow/proflow-platform-cli                 0.1.48
 @tomflow/proflow-dev-tunnel                   0.1.21
-@tomflow/proflow-execution-browser-extension  0.1.21
+@tomflow/proflow-execution-browser-extension  0.1.21（pending patch intent → 0.1.22）
 ```
 
 最后机械确认 Registry latest：
@@ -99,7 +99,7 @@ dev-tunnel   = 0.1.20
 browser      = 0.1.21
 ```
 
-因此当前禁止把 `0.1.48 / 0.1.21` 描述为已发布；Browser 0.1.21 已存在，禁止重复 publish。
+因此 `platform-cli 0.1.48 / dev-tunnel 0.1.21` 仍是 versioned-but-unpublished；Browser `0.1.21` 是 Registry 已发布基线，但 O7 已新增 patch intent，目标 `0.1.22`，尚未 version / publish。
 
 Product Workspace 当前仍是 npm-owned，最后 `platform status`：
 
@@ -120,12 +120,12 @@ PLATFORM_READY=YES
 | platform start | PASS | 首次启动成功；repeat start 23/23 skip、0 fail |
 | final status | PASS | `PLATFORM_READY=YES` |
 | listeners | PASS | `41705/47080/51443/55225/56107` 全部真实 LISTEN |
-| Browser 0.1.21 | PASS | Chrome restart/instance drift → fail-closed → setup running-bridge revalidation → evidence 刷新 → READY |
+| Browser 0.1.21 | PASS | 真实 Chrome Fresh load → enabled / Service Worker → pairing / live heartbeat → READY |
 | Dev Tunnel | PASS | owned Tunnel persisted；公网 HTTPS 到达 Gateway auth boundary，返回 401 AUTHENTICATION_FAILED |
 | Model | PASS | `/ready` fast/reason READY；FAST 和 THINK 都完成真实 `/infer` |
 | 3 GPT carrier | PASS | 三个 Final-Fresh GPT 在真实登录 Chrome 逐个打开，未重建 |
 | repeat/idempotency | PASS | repeat setup/start/status 成立 |
-| no Fake READY | PASS | Browser instance drift 时先 `PLATFORM_READY=NO`，revalidate 后才恢复 YES |
+| no Fake READY | PASS | Browser READY 必须来自当前 Fresh load + pairing / live heartbeat + `platform status` 真值，不能只凭历史 evidence |
 | Technical mainline | **PASS** | 真实安装/setup/start/status + Browser/Tunnel/Model/3 GPT + recovery/idempotency 已成立 |
 | Product acceptance | **PENDING** | 等优化版发布后的完整 latest Fresh Deployment E2E 验证用户心智、自动化、CLI 交互、默认输出四项硬门 |
 | DEPLOYMENT_SUCCESS | **NOT_YET_FINAL** | 四项产品门通过后才可最终 YES |
@@ -135,7 +135,6 @@ PLATFORM_READY=YES
 ```text
 repeat install/setup/start = PASS
 stop → start = PASS
-Browser disable/reload/revalidation = PASS
 Dev Tunnel host-down/same-Tunnel recovery = PASS
 Model unreachable fail-closed/recovery = PASS
 partial install fail-closed = PASS
@@ -157,9 +156,9 @@ uninstall/reinstall durable identity preservation = PASS
 | CLI 交互好用 | 明确正在做什么、为什么停、只需做什么、完成后下一步；可重入/取消/恢复 | prompt 含糊、多个动作同时抛给用户、失败后不知道如何继续 |
 | 默认输出明确 | 默认聚焦当前状态 + 唯一 root cause + 下一步 + 最终结果 | 23 Module traversal、重复 Registry 核验、错误服务计数、内部诊断噪声淹没用户决策 |
 
-这四项必须通过真实发布后的**完整 Product Workspace Fresh Deployment E2E**取证，不能仅凭源码 review、unit test 或历史 smoke 宣告 PASS。O1～O6 是本轮对这些 Gate 的直接整改实现。
+这四项必须通过真实发布后的**完整 Product Workspace Fresh Deployment E2E**取证，不能仅凭源码 review、unit test 或历史 smoke 宣告 PASS。O1～O7 是当前已裁决的直接整改实现；后续继续逐项裁决，完成后统一 release。
 
-## 5. O1～O6 优化批次
+## 5. O1～O7 当前已裁决优化批次
 
 ```text
 O1 PASS  install 默认隐藏 Registry package-by-package 核验
@@ -168,6 +167,7 @@ O3 PASS  Dev Tunnel read-only query 45s bounded window；timeout 最多重试一
 O4 PASS  删除不可信服务/进程数量默认输出
 O5 PASS  uninstall 成功/停止措辞收敛
 O6 PASS  默认 CLI 聚焦当前状态 + root cause + 下一步
+O7 PASS  Browser 静态安装物按版本幂等物化；真人模拟只保留 Fresh Load unpacked + 真实 Remove；删除 Reload / Disable-Enable 主动测试用例
 ```
 
 源码验证：
@@ -177,6 +177,9 @@ platform-cli tests = 85/85 PASS
 platform-cli typecheck = PASS
 dev-tunnel tests = 33/33 PASS
 dev-tunnel typecheck = PASS
+execution-browser-extension tests = 96/96 PASS
+execution-browser-extension typecheck = PASS
+test governance = 0 errors
 git diff --check = PASS
 source CLI against real Product Workspace status/setup UX = PASS
 ```
@@ -190,26 +193,27 @@ e3151f7 chore(release): version deployment ux closeout
 e30f9d2 fix(release): drive package publish from pnpm changesets
 ```
 
-Version plan 已落盘：
+当前 release state：
 
 ```text
-platform-cli 0.1.47 → 0.1.48
-dev-tunnel   0.1.20 → 0.1.21
+platform-cli source 0.1.48 / Registry 0.1.47 / pending patch intent 存在
+dev-tunnel   source 0.1.21 / Registry 0.1.20 / versioned-but-unpublished
+browser      source 0.1.21 / Registry 0.1.21 / pending patch intent → 0.1.22
 ```
+
+`pnpm change status` 当前还暴露一个 release preflight 异常：platform-cli 显示 `0.1.48 → 0.1.48 (patch)`。在真正 release 前必须单独恢复 changeset/ledger 权威状态并裁决；当前 O7 不顺手修改 release machinery。
 
 ## 6. 当前唯一 Next Action
 
 ```text
-1. pnpm package:release
-   - 不手工传包名；release set 来自 pnpm changeset/ledger 真源
-   - 当前恢复态应自动识别 @tomflow/proflow-platform-cli@0.1.48
-   - 当前恢复态应自动识别 @tomflow/proflow-dev-tunnel@0.1.21
-   - Browser 0.1.21 不在最近一次 versioning ledger release set，不参与发布
-2. Registry exact + dist-tag latest readback
-3. 因 platform-cli 本轮变更：npm install -g @tomflow/proflow-platform-cli@latest
-4. platform -v 必须等于 Registry latest
-5. pnpm fresh:workspace --workspace /Users/agent/Desktop/proton-workspace
-6. 使用全局 platform 执行完整 Deployment E2E：
+1. 继续 Deployment 优化逐项裁决
+2. 全部裁决完成后做 release preflight：恢复 pnpm changeset / ledger 权威状态，先解决 platform-cli `0.1.48 → 0.1.48 (patch)` 异常
+3. pnpm package:release（不手工传包名；release set 必须来自 pnpm changeset/ledger 真源）
+4. Registry exact + dist-tag latest readback
+5. 因 platform-cli 本轮变更：npm install -g @tomflow/proflow-platform-cli@latest
+6. platform -v 必须等于 Registry latest
+7. pnpm fresh:workspace --workspace /Users/agent/Desktop/proton-workspace
+8. 使用全局 platform 执行完整 Deployment E2E：
    - platform install --workspace /Users/agent/Desktop/proton-workspace
    - platform status
    - platform setup
@@ -221,8 +225,8 @@ dev-tunnel   0.1.20 → 0.1.21
    - platform status = 3/3 / PLATFORM_READY=YES
    - recovery / repeat / idempotency
    - Product Acceptance 四项门
-7. 更新 02/09/10 最终状态，结束 Deployment Closeout
-8. 回到 Real-3 J0～J4
+9. 更新 02/09/10 最终状态，结束 Deployment Closeout
+10. 回到 Real-3 J0～J4
 ```
 
 ## 7. 发布纪律
@@ -246,7 +250,7 @@ changed / affected package
 
 - `npm publish` 在当前 Deployment 优化收口授权内；`git push` 不在授权内。
 - publish timeout/UNKNOWN → 先 exact readback，禁止盲目重发。
-- Browser 0.1.21 已发布，绝不重复 publish。
+- Browser 0.1.21 已发布，绝不重复 publish **同版本**；O7 的新版本必须由 pending changeset 正常 version 后再发布。
 - 不删除远端 Dev Tunnel。
 - 不删除/重建 3 个 GPT。
 - 不读取、打印或提交 token/Bearer/API Key/credential。
@@ -258,7 +262,7 @@ changed / affected package
 ### PASS
 
 ```text
-Registry latest = platform-cli 0.1.48 + dev-tunnel 0.1.21 + browser 0.1.21
+Registry latest = 全部当前 release plan 目标版本；Browser O7 目标至少包含新的 0.1.22（最终版本以 pnpm release plan 为准）
 → 全局 platform-cli = Registry latest
 → Fresh Product Workspace
 → platform install / initial status / setup
@@ -322,11 +326,12 @@ DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE
 DEPLOYMENT_SUCCESS = NOT_YET_FINAL
 LATEST_CODE_RELEASE_COMMIT = e30f9d2
 SOURCE_HEAD/TREE = 接管时机械重读
-SOURCE_VERSION = platform-cli 0.1.48 / dev-tunnel 0.1.21 / browser 0.1.21
+SOURCE_VERSION = platform-cli 0.1.48 / dev-tunnel 0.1.21 / browser 0.1.21（pending patch → 0.1.22）
 REGISTRY_LATEST= platform-cli 0.1.47 / dev-tunnel 0.1.20 / browser 0.1.21
 PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES（优化前 latest）
-NEXT_ACTION    = package:release（changeset/ledger 自动 release set）→ Registry latest → global platform-cli latest → Fresh Workspace → 完整 Deployment E2E
-DO_NOT_REPEAT  = Browser 0.1.21 publish / 3 GPT rebuild / remote Tunnel delete / git push
+NEXT_ACTION    = 继续下一项优化裁决 → 全部裁决结束后 release preflight → package:release → Registry latest → global platform-cli latest → Fresh Workspace → 完整 Deployment E2E
+RELEASE_PREFLIGHT_BLOCKER = platform-cli pending intent 当前显示 0.1.48 → 0.1.48 (patch)，真正 release 前必须先恢复 changeset/ledger 权威状态
+DO_NOT_REPEAT  = Browser 0.1.21 同版本 publish / Browser Reload 或 Disable-Enable 人为测试 / 3 GPT rebuild / remote Tunnel delete / git push
 ```
 
 ### 包级 Gate 优先 / 全仓 Gate 仅大阶段

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -76,6 +76,31 @@ export function browserExtensionLoadDir(workspaceRoot: string) {
 		"browser-extension",
 		"execution-browser-extension",
 	);
+}
+type BrowserMaterializationState = {
+	contract: "proflow.browser-extension-materialization.v1";
+	moduleVersion: string;
+};
+const materializationFile = (context: ModuleCommandContext) =>
+	join(browserExtensionLoadDir(context.workspaceRoot), ".proflow-materialization.json");
+async function materializationReady(context: ModuleCommandContext) {
+	const loadDir = browserExtensionLoadDir(context.workspaceRoot);
+	try {
+		const raw = JSON.parse(await readFile(materializationFile(context), "utf8")) as Partial<BrowserMaterializationState>;
+		if (
+			raw.contract !== "proflow.browser-extension-materialization.v1" ||
+			raw.moduleVersion !== descriptor.moduleVersion
+		)
+			return false;
+		await Promise.all([
+			readFile(join(loadDir, "manifest.json")),
+			readFile(join(loadDir, "dist", "extension", "background.js")),
+			readFile(join(loadDir, "extension", "options.html")),
+		]);
+		return true;
+	} catch {
+		return false;
+	}
 }
 const stateDir = (context: ModuleCommandContext) =>
 	moduleWorkspaceStateDirectory(context, descriptor.moduleRef);
@@ -154,8 +179,10 @@ export async function materializeProductionConfig(input: {
 }
 
 async function installPackage(context: ModuleCommandContext) {
-	const sourceRoot = packageRoot();
 	const loadDir = browserExtensionLoadDir(context.workspaceRoot);
+	if (await materializationReady(context)) return loadDir;
+	const sourceRoot = packageRoot();
+	await rm(loadDir, { recursive: true, force: true });
 	await mkdir(join(loadDir, "dist"), { recursive: true });
 	await cp(
 		join(sourceRoot, "dist", "extension"),
@@ -169,6 +196,18 @@ async function installPackage(context: ModuleCommandContext) {
 	await cp(join(sourceRoot, "manifest.json"), join(loadDir, "manifest.json"), {
 		force: true,
 	});
+	await writeFile(
+		materializationFile(context),
+		`${JSON.stringify(
+			{
+				contract: "proflow.browser-extension-materialization.v1",
+				moduleVersion: descriptor.moduleVersion,
+			} satisfies BrowserMaterializationState,
+			null,
+			2,
+		)}\n`,
+		{ mode: 0o600 },
+	);
 	return loadDir;
 }
 async function readSetup(

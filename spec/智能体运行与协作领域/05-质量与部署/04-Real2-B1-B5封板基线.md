@@ -59,7 +59,7 @@ git diff --check                 PASS
 ```text
 Module.setup → provisionPackage → live g-id
 → registerRole → finalize auth → validate 的正式集成
-setup retry / interruption / extension reload recovery
+setup retry / interruption recovery
 existing live GPT UPDATE/verify 与 no-duplicate proof
 Fresh Workspace 真实三个 Private GPT
 Knowledge processing/readback、真实 Gateway probe、reopen READY

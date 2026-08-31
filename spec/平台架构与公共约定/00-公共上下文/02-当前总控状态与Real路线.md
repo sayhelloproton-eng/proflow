@@ -18,7 +18,7 @@
 - `SYSTEM_REAL_USABLE = OUT_OF_SCOPE_FOR_DEPLOYMENT`
 - `PHASE3_FINAL_GO = NO`
 
-2026-08-31 已在真实 npm latest + 真实 Product Workspace 上完成 Deployment **技术主链**：真实 setup/start/status、5 个 listener、Browser 0.1.21 live-instance revalidation、Dev Tunnel HTTPS reality、FAST/THINK 真实推理、3 个 Custom GPT carrier、repeat setup/start/status 均已通过，`PLATFORM_READY=YES`。这证明系统“能正确装起来、配起来、启动起来并保持真实 READY”。
+2026-08-31 已在真实 npm latest + 真实 Product Workspace 上完成 Deployment **技术主链**：真实 setup/start/status、5 个 listener、Browser 0.1.21 真实加载 / pairing / heartbeat、Dev Tunnel HTTPS reality、FAST/THINK 真实推理、3 个 Custom GPT carrier、repeat setup/start/status 均已通过，`PLATFORM_READY=YES`。这证明系统“能正确装起来、配起来、启动起来并保持真实 READY”。
 
 当前 Deployment 验收的主测试角度固定为：**模拟第一次使用 ProFlow 的普通用户，以真实 npm 发布物 + 真实 Product Workspace + 公开产品入口执行系统端到端测试。** 总控可以在后台读取真实源码/状态来判断真值，但不能用这些开发者知识替普通用户绕过产品路径；任何修复最终都必须回到原用户 Journey 重放。
 
@@ -31,7 +31,7 @@
 
 因此当前状态必须区分：`DEPLOYMENT_TECHNICAL_MAINLINE=PASS`，但完整 `DEPLOYMENT_SUCCESS` 要等 O1～O6 优化版本发布后，在真实 npm latest + Product Workspace 上重新完成**完整、不可裁剪的普通用户 Fresh Deployment E2E**，并证明上述四项达到冻结标准。非阻断的小 polish 不反向推翻技术主链 PASS，但产品入口若仍要求用户理解内部实现、重复手工执行机器可做动作、交互含糊或默认输出误导，则完整 Deployment Product Acceptance 不得 PASS。
 
-当前剩余工作是：`pnpm package:release` 按 pnpm changeset/ledger 自动 release set 发布 O1～O6 版本 → Registry latest readback → 全局 platform-cli latest → Fresh Workspace → 完整 Deployment E2E。源码业务优化已提交 `3e91e9b`，版本元数据已提交 `e3151f7`；源码版本为 `platform-cli 0.1.48`、`dev-tunnel 0.1.21`，当前 Registry latest 仍是 `0.1.47 / 0.1.20`。
+当前仍处于 Deployment 优化逐项裁决阶段；全部裁决完成后才执行统一 `pnpm package:release` → Registry latest readback → 全局 platform-cli latest → Fresh Workspace → 完整 Deployment E2E。除既有 `platform-cli 0.1.48`、`dev-tunnel 0.1.21` versioned-but-unpublished 状态外，Browser Extension 本轮新增 patch changeset，当前源码仍为 `0.1.21`，目标下一版本为 `0.1.22`，尚未 version / publish。
 
 必须继续严格区分：
 

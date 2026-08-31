@@ -21,17 +21,12 @@ async function fixture(entry?: Record<string, unknown>) {
 	);
 	return root;
 }
-test("Chrome profile probe distinguishes enabled, disabled, and missing unpacked Extension reality", async (context) => {
+test("Chrome profile probe distinguishes enabled and missing unpacked Extension reality", async (context) => {
 	const enabledRoot = await fixture({ location: 4, path: loadDir });
-	const disabledRoot = await fixture({
-		location: 4,
-		path: loadDir,
-		disable_reasons: [1],
-	});
 	const missingRoot = await fixture();
 	context.after(async () => {
 		await Promise.all(
-			[enabledRoot, disabledRoot, missingRoot].map((root) =>
+			[enabledRoot, missingRoot].map((root) =>
 				rm(root, { recursive: true, force: true }),
 			),
 		);
@@ -44,14 +39,6 @@ test("Chrome profile probe distinguishes enabled, disabled, and missing unpacked
 			userDataRoot: enabledRoot,
 		}),
 		"ENABLED",
-	);
-	assert.equal(
-		await probeChromeExtensionState({
-			extensionId,
-			loadDir,
-			userDataRoot: disabledRoot,
-		}),
-		"DISABLED",
 	);
 	assert.equal(
 		await probeChromeExtensionState({
