@@ -75,7 +75,7 @@ pnpm fresh:workspace --workspace /Users/agent/Desktop/proton-workspace
 ```text
 Source Repo        = /Users/agent/Desktop/proton-workspace/repos/proflow
 Product Workspace  = /Users/agent/Desktop/proton-workspace
-Latest deployment code commit = d768615
+Latest deployment code commit = 6fb2ade
 Latest release machinery commit = e30f9d2
 Current Git HEAD / WorkingTree = 接管时机械重读
 DEPLOYMENT_TECHNICAL_MAINLINE = PASS
@@ -381,7 +381,7 @@ CURRENT_GATE   = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
 DEPLOYMENT_TECHNICAL_MAINLINE = PASS
 DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE
 DEPLOYMENT_SUCCESS = NOT_YET_FINAL
-LATEST_DEPLOYMENT_CODE_COMMIT = d768615
+LATEST_DEPLOYMENT_CODE_COMMIT = 6fb2ade
 LATEST_RELEASE_MACHINERY_COMMIT = e30f9d2
 SOURCE_HEAD/TREE = 接管时机械重读
 SOURCE_VERSION = platform-cli 0.1.48 / dev-tunnel 0.1.21 / browser 0.1.21（pending patch → 0.1.22）
