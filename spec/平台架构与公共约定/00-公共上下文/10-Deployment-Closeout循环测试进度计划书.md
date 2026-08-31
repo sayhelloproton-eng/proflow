@@ -102,15 +102,17 @@ browser      = 0.1.22
 
 2026-09-01 latest release 已完成：`platform-cli@0.1.49`、`dev-tunnel@0.1.22`、`execution-browser-extension@0.1.22` 均已 Registry exact readback 且 dist-tag `latest` 指向该版本。
 
-Product Workspace 当前仍是 npm-owned；仓库审计时机械读回：本地 `platform-cli=0.1.48`（落后 Registry latest 0.1.49），`dev-tunnel/browser=0.1.22`。上一轮公共 `platform stop` 后当前 `platform status`：
+Product Workspace 当前仍是 npm-owned。2026-09-01 仓库审计后已原地升级到 `platform-cli=0.1.49`，随后执行最新一轮真实 FULL FRESH：Fresh Workspace、Registry latest global CLI、23 包 install、Browser Fresh load、Dev Tunnel、Model、Role provisioning 均已产生真实当前 evidence。当前 `platform status`：
 
 ```text
-配置进度 2/3
+配置进度 3/3
 Browser = 已完成
-Remote  = runtime check failed（已停止，待正常恢复）
+Remote  = 已完成
 Model   = 已完成
-PLATFORM_READY=NO
+PLATFORM_READY=YES
 ```
+
+但本轮 FULL FRESH 的**总性能计时不得作为最终 happy-path baseline**：Browser Extension 安装/卸载和 CLI TTY 驱动过程中出现测试 harness 自身的定位、焦点、按键时序和临时脚本错误，混入了分钟级 `HARNESS_OVERHEAD`。功能证据保留，受污染的总耗时作废；必须先固化唯一 Browser/TTY helper，再重跑最终统一计时。
 
 ## 3. Deployment latest 技术主链 PASS 证据
 
@@ -272,30 +274,46 @@ Model 最终用户交互同步冻结：用户只提供机器无法推导的 Prov
 
 3 GPT 保持现有 create-only 实现和既有验证，不新增 Fresh recovery / lookup / reuse 设计，也不新增“是否重复创建”的专项自动化测试。
 
+## 5.3 2026-09-01 Browser/TTY Harness 事故复盘与冻结结论
+
+本轮最终 FULL FRESH 暴露的主要问题不是 Browser Extension 产品功能，而是**测试 harness 没有复用已经验证过的稳定路径**。具体错误链：
+
+```text
+卸载：临时重写 AX helper
+→ 父层级取错 / 错误 Remove 关联 / confirmation bubble 不暴露 AX
+→ 多轮无效定位与截图恢复
+
+安装：Load unpacked 路径正确
+→ “进入目录”和“Select”两个 Enter 连续发送
+→ 文件选择器尚未 ready，Select 未真正触发
+→ pairing 等待窗口被测试机器人消耗
+
+TTY：宽泛匹配 Yes
+→ Clack 重绘重复命中
+→ 后续尝试方向键“强制 Yes”反而把默认 Yes 切成 No
+```
+
+根因固定为四层：`稳定流程复用失败 / harness 职责分散 / 事件已发送被误当状态已完成 / HARNESS_OVERHEAD 污染性能统计`。本轮功能 evidence 保留，但 FULL FRESH 总耗时作废，不得作为最终产品性能基线。
+
+新的冻结执行规则：Browser Extension install/uninstall 必须只有一份仓库内可执行 helper；状态机固定为 `locate → mutate → wait visible state → verify`。安装必须把 `进入 loadDir` 与 `Select` 拆成两个可观察步骤；卸载确认 bubble 使用已验证的默认键盘确认。CLI prompt 必须按具体公开问题顺序单次响应。**禁止再次在最终验收现场临时创建第二套 `/tmp` UI/TTY helper。**
+
+3 GPT / Custom GPT 浏览器创建流程与本事故无关，继续 `FROZEN / DO NOT TOUCH`。
+
 ## 6. 当前唯一 Next Action
 
 ```text
-1. npm install -g @tomflow/proflow-platform-cli@latest
-2. platform -v 必须等于 Registry latest = 0.1.49
-3. pnpm fresh:workspace --workspace /Users/agent/Desktop/proton-workspace
-4. 使用全局 platform 执行完整 Deployment E2E 主链：
-   - platform install --workspace /Users/agent/Desktop/proton-workspace
-   - platform status
-   - platform setup
-   - Browser Extension
-   - Dev Tunnel
-   - Model Provider / FAST / THINK
-   - 3 GPT / Role Identity（保持现有 create-only 语义，不新增 recovery/reuse 设计）
-   - platform start
-   - platform status = 3/3 / PLATFORM_READY=YES
-5. 收尾只跑最小真实用户重复/恢复集合：
-   - repeat platform setup
-   - repeat platform status（纯只读）
-   - platform stop → platform start → platform status
-   - NO repeat start；NO 资源重建专项验证；NO artificial failure injection
-6. Product Acceptance 四项门
-7. 更新 02/09/10 最终状态，结束 Deployment Closeout
-8. 回到 Real-3 J0～J4
+1. 先收口 Browser Extension / CLI TTY 测试 harness：
+   - 仓库内唯一 helper；禁止 /tmp 临时第二实现
+   - uninstall：定位 ProFlow 卡自己的 Remove → click → 默认键盘确认 → 验证卡消失
+   - install：Load unpacked → picker foreground → Cmd+Shift+G → paste Platform clipboard loadDir
+              → Enter 进入目录 → 等待 Select ready → 单独 Select → 验证 card + live pairing
+   - CLI：具体 public prompt 顺序状态机，每个 prompt 只响应一次
+2. 单独重复验证 helper 的 uninstall/install，记录 HARNESS 与产品动作耗时；3 GPT 浏览器创建流程不动。
+3. helper 稳定后，再从真正 Fresh 起点运行最终 FULL FRESH，重新建立未污染总耗时。
+4. 完整主链：Registry latest → Fresh → install/status/setup → Browser/Tunnel/Model/3 GPT → start/status。
+5. 收尾只跑：repeat setup + repeat status + normal stop → start → status。
+6. backstage runtime / public ingress proof + Product Acceptance 四项门。
+7. 更新 02/09/10 最终状态，结束 Deployment Closeout → 回 Real-3 J0～J4。
 ```
 
 ## 7. 发布纪律
@@ -400,10 +418,11 @@ LATEST_RELEASE_MACHINERY_COMMIT = e30f9d2
 SOURCE_HEAD/TREE = 接管时机械重读
 SOURCE_VERSION = platform-cli 0.1.49 / dev-tunnel 0.1.22 / browser 0.1.22
 REGISTRY_LATEST= platform-cli 0.1.49 / dev-tunnel 0.1.22 / browser 0.1.22
-PRODUCT_STATUS = 2/3 / PLATFORM_READY=NO（审计时；上一轮正常 stop 后 Tunnel runtime 待恢复，Product platform-cli 仍 0.1.48）
-NEXT_ACTION    = audit closeout → Product platform-cli 原地升级 0.1.49 → SAME SCENE recovery + FAST REPLAY → 最终 FULL FRESH 统一计时 → Product Acceptance
+PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES（最新 FULL FRESH 功能 evidence 已成立；总性能计时因 harness 自身错误污染而作废）
+NEXT_ACTION    = 固化唯一 Browser Extension install/uninstall + CLI TTY helper → 单独稳定性/耗时验证 → 最终 FULL FRESH 重新统一计时 → Product Acceptance
+HARNESS_INCIDENT = 临时重写 AX/expect、事件发送即判成功、picker Select 时序错误、Clack Yes 重绘/方向键误切 No；这些时间全部归 HARNESS_OVERHEAD
 RELEASE_PREFLIGHT_BLOCKER = NONE（same-version patch 已确认是 pnpm 11 合并未发布 release bucket 的正常语义）
-DO_NOT_REPEAT  = 稳定的 Custom GPT 浏览器创建流程变更 / Browser Reload 或 Disable-Enable 人为测试 / 3 GPT rebuild 专项验证 / remote Tunnel delete / git push
+DO_NOT_REPEAT  = /tmp 第二套 Browser/TTY helper / 稳定的 Custom GPT 浏览器创建流程变更 / Browser Reload 或 Disable-Enable 人为测试 / 3 GPT rebuild 专项验证 / remote Tunnel delete / git push
 ```
 
 ### 包级 Gate 优先 / 全仓 Gate 仅大阶段
