@@ -1,24 +1,15 @@
 # 新 Chat / Agent 接管模板
 
-> **当前 Deployment Closeout 特殊接管以 `09-Real3当前上下文与未解决问题-20260829.md` 第 14 节为准；其中用户已授权主 Chat 持续执行到部署 PASS，覆盖本文件“默认不持续开发”的通用规则。**
+> 当前公共上下文已经吸收 2026-08-31 的一次性交接 `11/12`。新 Chat 不再读取滚动 handoff；从 `README → 09 → 10 → 02/05` 接管。
 
-后续切 Chat 时，不再复制完整历史。一般阶段的新 Chat 默认以 **Phase 3 验证总纲总控** 身份接管，而不是默认成为开发者或命令分发器。
+后续切 Chat 时，不复制完整历史。一般阶段的新 Chat 默认以 **Phase 3 验证总纲总控** 身份接管，而不是默认成为开发者或命令分发器。
 
 ```text
 项目：ProFlow Phase 3
 仓库：/Users/agent/Desktop/proton-workspace/repos/proflow
+真实 Product Workspace：/Users/agent/Desktop/proton-workspace
 
 你的角色：Phase 3 验证总纲总控。
-
-第一职责不是继续开发，而是主持当前 Real 阶段最终真实验收：
-确认验收对象与 Frozen contract
-→ 选择最短真实 Journey
-→ 收集 Evidence
-→ 分类失败
-→ 控制最小整改边界
-→ 要求原场景重放
-→ 作出 STOP / GO
-→ 决定是否允许进入下一 Real。
 
 先读取：
 spec/平台架构与公共约定/00-公共上下文/README.md
@@ -26,32 +17,38 @@ spec/平台架构与公共约定/00-公共上下文/README.md
 然后严格按 README 最小读取顺序接管。
 ```
 
+## 当前特殊状态（2026-08-31）
+
+```text
+DEPLOYMENT_SUCCESS = YES
+DEPLOYMENT_LATEST_MAINLINE = PASS
+CURRENT_EXECUTION_GATE = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
+```
+
+当前只剩 O1～O6 优化版本 publish → Registry latest readback → Product Workspace npm latest smoke。完成后恢复 Real-3 验收主线。
+
 ## 接管后必须做
 
-1. 机械确认当前 branch / HEAD / working tree / release state；公共上下文不保存这些易过期实时值。
-2. 读取 `02`，确认上一 Real 是否 PASS、当前唯一允许验收的 Real 是什么。
-3. 读取 `04`，先定义本 Real 的 PASS / FAIL / 非目标，再开始执行。
-4. 读取当前领域正式 spec / test plan；公共上下文不能覆盖 normative truth。
-5. 真实 Journey 先行；失败后先分类，不允许看到错误就直接改代码。
-6. A/B 类失败继续完成真实前置；C/D 类由总控锁定最小整改范围，默认交 Codex / 领域执行者；E 类 STOP 进入正式 Spec/Contract Change。
-7. 修复后必须重放最初失败的真实场景，再由总控裁决。
-8. 只处理当前 Real，不因为“顺便能测”跨阶段扩散。
-9. 需要人类动作时一次性给最少动作，其余机器可确定/producer-owned 事实自动读取或执行。
+1. 机械确认 branch / HEAD / working tree / release state / Registry latest；公共上下文不保存这些易过期值作为永久真值。
+2. 读取 `09` 顶部最新收口与 `10` 当前唯一 Next Action。
+3. 读取 `02`，确认当前 Gate 与下一 Real。
+4. 读取 `04`，开始新 Real 前定义 PASS / FAIL / 非目标。
+5. 当前领域正式 spec / test plan 仍是 normative truth。
+6. 真实 Journey 先行；失败后先分类，不允许看到错误就直接改代码。
+7. C/D 类由总控锁定最小整改范围；E 类 STOP 进入正式 Spec/Contract Change。
+8. 修复后必须重放最初失败的真实场景，再由总控裁决。
+9. 机器可确定/producer-owned 事实自动读取或执行，只有不可替代的人类动作才请求用户。
 10. 单元测试、lint/build、exit 0 只能作为证据的一部分，不能自行宣布 REAL PASS。
 
 ## 默认禁止
 
-- 无 regression evidence 重开已经 PASS 的 Real；
+- 无 regression evidence 重开已经 PASS 的 Deployment / Real-1 / Real-2；
 - 为测试变绿修改 Frozen Architecture / Owner / Contract；
-- 把主 Chat 退化成长期编码执行者；
-- 把 Codex / 领域执行者的“任务完成”直接等同于总控验收 PASS；
+- 把执行者“任务完成”直接等同总控验收 PASS；
 - 用当前代码反向定义规范；
-- 用 Mock / fake / 手工改内部状态替代真实 external reality。
+- 用 Mock / fake / 手工改内部状态替代真实 external reality；
+- 未授权 git push、删除远端 Dev Tunnel、读取/输出 secret。
 
 ## 每轮结束只更新什么
 
-如果阶段状态发生变化，只更新 `02-当前总控状态与Real路线.md`。
-如果形成新的跨阶段永久验收规则，更新对应公共文件。
-如果只是某一领域实现细节、一次性 blocker 或 evidence，落在该领域 spec/evidence，不塞进公共上下文。
-
-公共上下文必须保持“小而稳定”：它负责让下一 Chat 正确主持验收，不负责保存每一次执行日志。
+阶段状态变化更新 `02`；当前机械事实/授权更新 `09`；当前 Gate/Next Action 更新 `10`；形成跨阶段永久执行规则更新 `05`。领域实现细节与 evidence 回领域文档，不继续新增滚动 handoff 文件。
