@@ -7,6 +7,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+import { runCli } from "../src/cli.ts";
 import { tempWorkspace, writeInstalledModule } from "./test-helpers.ts";
 
 const execFileAsync = promisify(execFile);
@@ -144,6 +145,76 @@ test("platform stop reaches the original foreground start owner across CLI proce
 			status.stdout,
 			/PLATFORM_READY=YES|无独立进程|已停止|0 个真实服务进程/,
 		);
+	} finally {
+		await stopChild(start);
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("platform uninstall stops the original foreground start owner before package removal", async () => {
+	const root = await tempWorkspace();
+	const port = await reservePort();
+	await writeInstalledModule(root, {
+		moduleRef: "cross-process-service",
+		packageName,
+		kind: "service",
+		adapterSource: adapterSource(port),
+	});
+	const manifest = JSON.parse(await readFile(`${root}/package.json`, "utf8"));
+	manifest.dependencies = { [packageName]: "1.0.0" };
+	await writeFile(`${root}/package.json`, JSON.stringify(manifest));
+
+	const start = spawn(
+		process.execPath,
+		[cliPath, "start", "--workspace", root],
+		{ stdio: ["ignore", "pipe", "pipe"] },
+	);
+	let startOutput = "";
+	start.stdout?.on("data", (chunk) => (startOutput += String(chunk)));
+	start.stderr?.on("data", (chunk) => (startOutput += String(chunk)));
+	try {
+		await waitUntil(() => isHealthy(port));
+		await waitUntil(async () => {
+			try {
+				await readFile(
+					`${root}/.proflow/runtime/platform-cli/start-owner.json`,
+					"utf8",
+				);
+				return true;
+			} catch {
+				return false;
+			}
+		});
+		assert.equal(start.exitCode, null, startOutput);
+		const packageCalls: string[][] = [];
+		const result = await runCli(["uninstall", "--workspace", root], {
+			cwd: root,
+			executableAvailable: () => true,
+			packageRunner: {
+				async run(command, args) {
+					packageCalls.push([command, ...args]);
+					if (!args.includes("uninstall"))
+						throw new Error(
+							`unexpected package-manager call: ${command} ${args.join(" ")}`,
+						);
+					const current = JSON.parse(
+						await readFile(`${root}/package.json`, "utf8"),
+					);
+					await writeFile(
+						`${root}/package.json`,
+						JSON.stringify({ ...current, dependencies: {} }),
+					);
+					return "";
+				},
+			},
+		});
+		assert.equal(result.status, "SUCCEEDED");
+		await waitUntil(async () => !(await isHealthy(port)), 5_000);
+		if (start.exitCode === null && start.signalCode === null)
+			await once(start, "exit");
+		assert.equal(start.exitCode, 0, startOutput);
+		assert.equal(packageCalls.length, 1);
+		assert.ok(packageCalls[0]?.includes("uninstall"));
 	} finally {
 		await stopChild(start);
 		await rm(root, { recursive: true, force: true });

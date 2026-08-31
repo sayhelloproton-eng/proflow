@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 143,
-    "testCalls": 643
+    "testCalls": 644
   },
   "tests": [
     {
@@ -6205,8 +6205,19 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cross-process-stop.test.ts",
-      "line": 91,
+      "line": 92,
       "title": "platform stop reaches the original foreground start owner across CLI processes",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/cross-process-stop.test.ts",
+      "line": 154,
+      "title": "platform uninstall stops the original foreground start owner before package removal",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [

@@ -692,6 +692,27 @@ async function handleUninstall(
 	const packageNames = await workspaceProFlowDependencies(root);
 	if (packageNames.length > 0)
 		await preflightWorkspacePackageManager(root, runtime.executableAvailable);
+	reportProgress(runtime.onProgress, {
+		command: "uninstall",
+		phase: "owner",
+		status: "STARTED",
+		message: "正在停止当前平台运行进程",
+	});
+	const ownerStop = await requestStartOwnerStop(root);
+	if (ownerStop === "UNVERIFIED" || ownerStop === "TIMEOUT")
+		throw new PlatformError(
+			"COMMAND_FAILED",
+			ownerStop === "TIMEOUT"
+				? "平台运行进程未能在卸载前停止。未修改安装物。"
+				: "无法验证当前平台运行进程归属。未修改安装物。",
+		);
+	reportProgress(runtime.onProgress, {
+		command: "uninstall",
+		phase: "owner",
+		status: "SUCCEEDED",
+		message:
+			ownerStop === "STOPPED" ? "平台运行进程已停止" : "未发现运行中的平台进程",
+	});
 	const { catalog, modules } = await buildContext(root);
 	const moduleUninstall = await uninstallModulesThin(
 		catalog,
