@@ -56,6 +56,16 @@ O1～O6 优化源码已提交
 
 最终验收问题只有一个：**一个不了解 ProFlow 内部架构的正常用户，是否能在最低心智和最低人工介入下，被产品清晰地带到真实 READY，并能稳定恢复和重复执行。**
 
+## 1.2 Fresh Workspace 清理已脚本化
+
+完整 Deployment E2E 的 Fresh 步骤不裁剪，但其机械清理已固定为：
+
+```text
+pnpm fresh:workspace --workspace /Users/agent/Desktop/proton-workspace
+```
+
+该 Harness 使用删除白名单并保护 `repos/`；在 package manifest 出现非 ProFlow 内容时 fail-closed。循环测试禁止重新手拼多条删除命令。需要先观察计划时使用 `--dry-run`。
+
 ## 2. 当前权威现场快照
 
 > 易变化事实接管时必须机械重读。
