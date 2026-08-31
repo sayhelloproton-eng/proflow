@@ -57,6 +57,8 @@ export interface DevTunnelRuntime {
 const LOGIN_ARGS = ["user", "show", "--json"];
 const LOGIN_TIMEOUT_MS = 30_000;
 const REMOTE_COMMAND_TIMEOUT_MS = 30_000;
+const REMOTE_QUERY_TIMEOUT_MS = 45_000;
+const REMOTE_QUERY_RETRY_DELAY_MS = 250;
 const START_CONFIRM_MS = 500;
 
 function defaultCommandRunner(
@@ -246,6 +248,13 @@ export function createDevTunnelAutomation(input?: {
 }): DevTunnelAutomation {
 	const command = input?.command ?? "devtunnel";
 	const run = input?.runCommand ?? defaultCommandRunner;
+	const runRemoteQuery = async (args: string[]): Promise<CommandResult> => {
+		let result = await run(command, args, { timeoutMs: REMOTE_QUERY_TIMEOUT_MS });
+		if (result.exitCode !== null || !/timed out/i.test(commandText(result))) return result;
+		await new Promise((resolve) => setTimeout(resolve, REMOTE_QUERY_RETRY_DELAY_MS));
+		result = await run(command, args, { timeoutMs: REMOTE_QUERY_TIMEOUT_MS });
+		return result;
+	};
 	const loginStatus = async (): Promise<DevTunnelLoginStatus> => {
 		let result: CommandResult;
 		try {
@@ -284,9 +293,7 @@ export function createDevTunnelAutomation(input?: {
 			return after;
 		},
 		async inspectTunnel(tunnelId) {
-			const result = await run(command, ["show", tunnelId, "--json"], {
-				timeoutMs: REMOTE_COMMAND_TIMEOUT_MS,
-			});
+			const result = await runRemoteQuery(["show", tunnelId, "--json"]);
 			if (result.exitCode !== 0) {
 				return /not found|does not exist|could not be found/i.test(
 					commandText(result),
@@ -328,9 +335,7 @@ export function createDevTunnelAutomation(input?: {
 			return tunnel.tunnelId;
 		},
 		async ensurePort(tunnelId, port) {
-			const listed = await run(command, ["port", "list", tunnelId, "--json"], {
-				timeoutMs: REMOTE_COMMAND_TIMEOUT_MS,
-			});
+			const listed = await runRemoteQuery(["port", "list", tunnelId, "--json"]);
 			assertCommandSucceeded(listed, "devtunnel port list --json");
 			const existing = parsePorts(
 				parseJson(listed.stdout, "devtunnel port list --json"),
@@ -375,9 +380,7 @@ export function createDevTunnelAutomation(input?: {
 		async discoverPublicBaseUrl(tunnelId, port) {
 			let lastError: unknown;
 			for (let attempt = 0; attempt < 3; attempt += 1) {
-				const shown = await run(command, ["show", tunnelId, "--json"], {
-					timeoutMs: REMOTE_COMMAND_TIMEOUT_MS,
-				});
+				const shown = await runRemoteQuery(["show", tunnelId, "--json"]);
 				assertCommandSucceeded(shown, "devtunnel show --json");
 				try {
 					return discoverPublicBaseUrl(

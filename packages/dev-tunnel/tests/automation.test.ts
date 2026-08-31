@@ -185,6 +185,26 @@ test("CP-DEV-TUNNEL-04 port reconciliation is idempotent and bounded", async () 
 	}
 });
 
+test("Dev Tunnel read-only port query retries one timeout with a wider bounded window", async () => {
+	const calls: Array<{ args: string[]; timeoutMs: number | undefined }> = [];
+	let attempt = 0;
+	const automation = createDevTunnelAutomation({
+		runCommand: async (_command, args, options) => {
+			calls.push({ args, timeoutMs: options?.timeoutMs });
+			attempt += 1;
+			if (attempt === 1) return result("", null, "command timed out");
+			return result(JSON.stringify([{ portNumber: 41705, protocol: "http" }]));
+		},
+	});
+	assert.equal(await automation.ensurePort("workspace-tunnel", 41705), "REUSED");
+	assert.equal(calls.length, 2);
+	assert.deepEqual(calls.map((call) => call.args), [
+		["port", "list", "workspace-tunnel", "--json"],
+		["port", "list", "workspace-tunnel", "--json"],
+	]);
+	assert.deepEqual(calls.map((call) => call.timeoutMs), [45_000, 45_000]);
+});
+
 test("Dev Tunnel CLI warning-only no-ports JSON is treated as an empty port list", async () => {
 	const calls: string[][] = [];
 	const automation = createDevTunnelAutomation({

@@ -81,6 +81,7 @@ test("human status output presents one product journey action without Module com
 		/--module|execution-browser-extension|dev-tunnel/,
 	);
 	assert.match(rendered, /PLATFORM_READY=NO/);
+	assert.doesNotMatch(rendered, /真实服务进程|运行中服务/);
 });
 
 test("status reports one aggregate progress phase instead of printing every module", async () => {
@@ -182,8 +183,8 @@ test("uninstall success says already uninstalled", () => {
 		status: "SUCCEEDED",
 		workspaceRoot: "/workspace",
 	});
-	assert.match(rendered, /已经卸载/);
-	assert.doesNotMatch(rendered, /卸载成功|已完成/);
+	assert.match(rendered, /ProFlow 已卸载/);
+	assert.doesNotMatch(rendered, /卸载成功|已经卸载|已完成/);
 });
 
 test("docs terminal entry writes continuously without launching a pager", async () => {
@@ -219,6 +220,25 @@ test("TTY replacement progress clears completed status checks instead of persist
 	reporter.close();
 	assert.match(output, /正在检查模块状态/);
 	assert.doesNotMatch(output, /完成/);
+});
+
+test("default terminal hides install registry package-by-package verification", () => {
+	let output = "";
+	const stream = { isTTY: false, write: (chunk: string) => ((output += chunk), true) } as unknown as NodeJS.WriteStream;
+	const reporter = createTerminalProgressReporter(stream);
+	reporter({ command: "install", phase: "registry", kind: "detail", status: "SUCCEEDED", current: 1, total: 23, moduleRef: "agent-runtime", message: "安装前核验 agent-runtime" });
+	reporter.close();
+	assert.equal(output, "");
+});
+
+test("default terminal hides setup per-module traversal", () => {
+	let output = "";
+	const stream = { isTTY: false, write: (chunk: string) => ((output += chunk), true) } as unknown as NodeJS.WriteStream;
+	const reporter = createTerminalProgressReporter(stream);
+	reporter({ command: "setup", phase: "module", status: "STARTED", current: 1, total: 23, moduleRef: "agent-runtime", message: "agent-runtime" });
+	reporter({ command: "setup", phase: "module", status: "SKIPPED", current: 1, total: 23, moduleRef: "agent-runtime", message: "agent-runtime" });
+	reporter.close();
+	assert.equal(output, "");
 });
 
 test("non-TTY progress uses a stable marker instead of a frozen spinner", () => {

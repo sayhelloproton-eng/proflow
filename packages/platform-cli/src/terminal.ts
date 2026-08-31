@@ -32,10 +32,8 @@ function progressLine(
 			? ` · ${(event.elapsedMs / 1000).toFixed(1)}s`
 			: "";
 	const suffix =
-		event.command === "uninstall" && event.status === "SUCCEEDED"
-			? "已经卸载"
-			: event.status === "SUCCEEDED"
-				? "完成"
+		event.status === "SUCCEEDED"
+			? "完成"
 				: event.status === "WARNING"
 					? "警告"
 					: event.status === "ACTION_REQUIRED"
@@ -106,6 +104,19 @@ export function createTerminalProgressReporter(
 		);
 	};
 	const reporter = ((event: PlatformProgressEvent) => {
+		// Default terminal output is intentionally compact. Registry package-by-package
+		// verification and setup module traversal remain available to programmatic
+		// progress consumers, but are not useful as ordinary human-facing output.
+		if (
+			(event.command === "install" &&
+				event.phase === "registry" &&
+				event.kind === "detail") ||
+			(event.command === "setup" &&
+				event.moduleRef !== undefined &&
+				event.current !== undefined &&
+				event.total !== undefined)
+		)
+			return;
 		clearSpinner();
 		const previousActive = active;
 		if (event.kind !== "subprocess") {

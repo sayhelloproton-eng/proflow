@@ -711,7 +711,7 @@ async function handleUninstall(
 		phase: "owner",
 		status: "SUCCEEDED",
 		message:
-			ownerStop === "STOPPED" ? "平台运行进程已停止" : "未发现运行中的平台进程",
+			ownerStop === "STOPPED" ? "已停止运行中的 ProFlow" : "未发现运行中的 ProFlow",
 	});
 	const { catalog, modules } = await buildContext(root);
 	const moduleUninstall = await uninstallModulesThin(
@@ -1078,7 +1078,6 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 	const journey = setupJourney(modules);
 	const completed = journey.filter((step) => step.state === "READY").length;
 	const current = journey.find((step) => step.state !== "READY");
-	const running = modules.filter((item) => item.runtimeStatus === "RUNNING");
 	const platformReady = modules.every(
 		(item) => item.setupStatus === "READY" && item.runtimeStatus !== "FAILED",
 	);
@@ -1127,11 +1126,7 @@ function renderStatus(data: unknown, theme: HumanTheme) {
 			);
 		}
 	}
-	lines.push(
-		"",
-		`${running.length} 个真实服务进程运行中`,
-		`PLATFORM_READY=${platformReady ? "YES" : "NO"}`,
-	);
+	lines.push("", `PLATFORM_READY=${platformReady ? "YES" : "NO"}`);
 	return lines.join("\n");
 }
 
@@ -1531,7 +1526,7 @@ export function renderHumanResult(
 		stop: "停止",
 	};
 	if (result.command === "uninstall" && result.status === "SUCCEEDED")
-		return `${theme.success("✓ 已经卸载")}${result.workspaceRoot ? `\n${theme.muted("Workspace")}  ${result.workspaceRoot}` : ""}`;
+		return `${theme.success("✓ ProFlow 已卸载")}${result.workspaceRoot ? `\n${theme.muted("Workspace")}  ${result.workspaceRoot}` : ""}`;
 	return `${result.status === "SUCCEEDED" ? theme.success("✓") : theme.failure("✕")} ${labels[result.command] ?? result.command}${result.status === "SUCCEEDED" ? "成功" : "未完成"}${result.workspaceRoot ? `\n${theme.muted("Workspace")}  ${result.workspaceRoot}` : ""}`;
 }
 function ownsStartedRuntime(result: CliOutcome): boolean {
