@@ -224,19 +224,56 @@ test("TTY replacement progress clears completed status checks instead of persist
 
 test("default terminal hides install registry package-by-package verification", () => {
 	let output = "";
-	const stream = { isTTY: false, write: (chunk: string) => ((output += chunk), true) } as unknown as NodeJS.WriteStream;
+	const stream = {
+		isTTY: false,
+		write: (chunk: string) => {
+			output += chunk;
+			return true;
+		},
+	} as unknown as NodeJS.WriteStream;
 	const reporter = createTerminalProgressReporter(stream);
-	reporter({ command: "install", phase: "registry", kind: "detail", status: "SUCCEEDED", current: 1, total: 23, moduleRef: "agent-runtime", message: "安装前核验 agent-runtime" });
+	reporter({
+		command: "install",
+		phase: "registry",
+		kind: "detail",
+		status: "SUCCEEDED",
+		current: 1,
+		total: 23,
+		moduleRef: "agent-runtime",
+		message: "安装前核验 agent-runtime",
+	});
 	reporter.close();
 	assert.equal(output, "");
 });
 
 test("default terminal hides setup per-module traversal", () => {
 	let output = "";
-	const stream = { isTTY: false, write: (chunk: string) => ((output += chunk), true) } as unknown as NodeJS.WriteStream;
+	const stream = {
+		isTTY: false,
+		write: (chunk: string) => {
+			output += chunk;
+			return true;
+		},
+	} as unknown as NodeJS.WriteStream;
 	const reporter = createTerminalProgressReporter(stream);
-	reporter({ command: "setup", phase: "module", status: "STARTED", current: 1, total: 23, moduleRef: "agent-runtime", message: "agent-runtime" });
-	reporter({ command: "setup", phase: "module", status: "SKIPPED", current: 1, total: 23, moduleRef: "agent-runtime", message: "agent-runtime" });
+	reporter({
+		command: "setup",
+		phase: "module",
+		status: "STARTED",
+		current: 1,
+		total: 23,
+		moduleRef: "agent-runtime",
+		message: "agent-runtime",
+	});
+	reporter({
+		command: "setup",
+		phase: "module",
+		status: "SKIPPED",
+		current: 1,
+		total: 23,
+		moduleRef: "agent-runtime",
+		message: "agent-runtime",
+	});
 	reporter.close();
 	assert.equal(output, "");
 });

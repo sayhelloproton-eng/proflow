@@ -65,7 +65,9 @@ export async function observeStatuses(
 	const modulesInOrder = [...modules].sort((a, b) =>
 		a.moduleRef.localeCompare(b.moduleRef),
 	);
-	const results = new Array<ModuleDispatchResult | undefined>(modulesInOrder.length);
+	const results = new Array<ModuleDispatchResult | undefined>(
+		modulesInOrder.length,
+	);
 	let nextIndex = 0;
 	const worker = async () => {
 		while (nextIndex < modulesInOrder.length) {
@@ -105,7 +107,9 @@ export async function observeStatuses(
 			() => worker(),
 		),
 	);
-	return results.filter((item): item is ModuleDispatchResult => item !== undefined);
+	return results.filter(
+		(item): item is ModuleDispatchResult => item !== undefined,
+	);
 }
 export async function observeDocs(
 	catalog: ModuleCatalog,

@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 144,
-    "testCalls": 647
+    "testCalls": 649
   },
   "tests": [
     {
@@ -1702,7 +1702,20 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 107,
+      "line": 112,
+      "title": "cluster suffix matching does not accept a different Tunnel identity",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 127,
       "title": "CP-DEV-TUNNEL-01 cancelled login and unknown login fail closed",
       "ids": [
         "CP-DEV-TUNNEL-01"
@@ -1717,7 +1730,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 123,
+      "line": 143,
       "title": "CP-DEV-TUNNEL-04 port reconciliation is idempotent and bounded",
       "ids": [
         "CP-DEV-TUNNEL-04"
@@ -1732,7 +1745,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 192,
+      "line": 212,
       "title": "Dev Tunnel read-only port query retries one timeout with a wider bounded window",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1745,7 +1758,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 212,
+      "line": 241,
       "title": "Dev Tunnel CLI warning-only no-ports JSON is treated as an empty port list",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1758,7 +1771,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 231,
+      "line": 260,
       "title": "CP-DEV-TUNNEL-04 protocol drift stops after exact-port delete failure and never claims reconciliation",
       "ids": [
         "CP-DEV-TUNNEL-04"
@@ -1773,7 +1786,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 253,
+      "line": 282,
       "title": "CP-DEV-TUNNEL-05 public URL discovery selects the current Gateway port and rejects unsafe values",
       "ids": [
         "CP-DEV-TUNNEL-05"
@@ -1788,7 +1801,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 322,
+      "line": 351,
       "title": "CP-DEV-TUNNEL-03 single-call setup consumes the Gateway-owned endpoint fact",
       "ids": [
         "CP-DEV-TUNNEL-03"
@@ -1803,7 +1816,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 407,
+      "line": 436,
       "title": "CP-DEV-TUNNEL-06 repeated setup keeps Tunnel and port identity stable without login or host replay",
       "ids": [
         "CP-DEV-TUNNEL-06"
@@ -1818,7 +1831,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 493,
+      "line": 522,
       "title": "CP-DEV-TUNNEL-02 CP-DEV-TUNNEL-07 workspace reuse, remote rebind, and UNKNOWN host fail-closed",
       "ids": [
         "CP-DEV-TUNNEL-02",
@@ -1834,7 +1847,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 613,
+      "line": 639,
       "title": "missing Gateway writes no state while post-create failure persists recoverable PENDING state",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1847,7 +1860,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 714,
+      "line": 739,
       "title": "a created Tunnel is persisted as PENDING and reused after port reconciliation fails",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1860,7 +1873,7 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/automation.test.ts",
-      "line": 777,
+      "line": 802,
       "title": "CP-DEV-TUNNEL-01 failed browser login performs no Tunnel mutation",
       "ids": [
         "CP-DEV-TUNNEL-01"
@@ -2977,7 +2990,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/materialization-idempotency.test.ts",
-      "line": 14,
+      "line": 21,
       "title": "browser extension static package materialization is version-idempotent and repairs invalid state",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6516,7 +6529,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 234,
+      "line": 249,
       "title": "default terminal hides setup per-module traversal",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6528,7 +6541,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 244,
+      "line": 281,
       "title": "non-TTY progress uses a stable marker instead of a frozen spinner",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6540,7 +6553,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 265,
+      "line": 302,
       "title": "TTY progress keeps completed phases and restores the current task after subprocess logs",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6552,7 +6565,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 302,
+      "line": 339,
       "title": "NO_COLOR disables semantic ANSI colors",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6564,7 +6577,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 317,
+      "line": 354,
       "title": "retryable package-manager warnings are yellow warnings, not failed events",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6576,7 +6589,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 339,
+      "line": 376,
       "title": "stop summary does not count a no-effect module as both success and skipped",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7271,6 +7284,17 @@
       "path": "packages/platform-cli/tests/registry-retirement.test.ts",
       "line": 10,
       "title": "retired packages returned by npm search are ignored without being viewed",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/registry/npm-registry.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/registry-retirement.test.ts",
+      "line": 60,
+      "title": "registry manifest checks use a bounded eight-worker pool",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [

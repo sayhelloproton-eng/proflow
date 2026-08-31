@@ -87,29 +87,29 @@ Current Gate                   = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
 Source versions：
 
 ```text
-@tomflow/proflow-platform-cli                 0.1.48
-@tomflow/proflow-dev-tunnel                   0.1.21
+@tomflow/proflow-platform-cli                 0.1.49
+@tomflow/proflow-dev-tunnel                   0.1.22
 @tomflow/proflow-execution-browser-extension  0.1.22
 ```
 
 最后机械确认 Registry latest：
 
 ```text
-platform-cli = 0.1.48
-dev-tunnel   = 0.1.21
+platform-cli = 0.1.49
+dev-tunnel   = 0.1.22
 browser      = 0.1.22
 ```
 
-2026-09-01 release 已完成：`platform-cli@0.1.48`、`dev-tunnel@0.1.21`、`execution-browser-extension@0.1.22` 均已 Registry exact readback 且 dist-tag `latest` 指向该版本。
+2026-09-01 latest release 已完成：`platform-cli@0.1.49`、`dev-tunnel@0.1.22`、`execution-browser-extension@0.1.22` 均已 Registry exact readback 且 dist-tag `latest` 指向该版本。
 
-Product Workspace 当前仍是 npm-owned，最后 `platform status`：
+Product Workspace 当前仍是 npm-owned；仓库审计时机械读回：本地 `platform-cli=0.1.48`（落后 Registry latest 0.1.49），`dev-tunnel/browser=0.1.22`。上一轮公共 `platform stop` 后当前 `platform status`：
 
 ```text
-配置进度 3/3
+配置进度 2/3
 Browser = 已完成
-Remote  = 已完成
+Remote  = runtime check failed（已停止，待正常恢复）
 Model   = 已完成
-PLATFORM_READY=YES
+PLATFORM_READY=NO
 ```
 
 ## 3. Deployment latest 技术主链 PASS 证据
@@ -121,10 +121,10 @@ PLATFORM_READY=YES
 | platform start | PASS | 首次启动成功；历史 repeat start 仅保留为既有证据，不再是最终每轮 E2E 必测项 |
 | final status | PASS | `PLATFORM_READY=YES` |
 | listeners | PASS | `41705/47080/51443/55225/56107` 全部真实 LISTEN |
-| Browser 0.1.21 | PASS | 真实 Chrome Fresh load → enabled / Service Worker → pairing / live heartbeat → READY |
+| Browser 0.1.22 | PASS | 真实 Chrome Fresh load → enabled / Service Worker → pairing / live heartbeat → READY |
 | Dev Tunnel | PASS | owned Tunnel persisted；公网 HTTPS 到达 Gateway auth boundary，返回 401 AUTHENTICATION_FAILED |
 | Model | PASS | `/ready` fast/reason READY；FAST 和 THINK 都完成真实 `/infer` |
-| 3 GPT carrier | PASS | 三个 Final-Fresh GPT 在真实登录 Chrome 逐个打开，未重建 |
+| 3 GPT carrier | PASS | 三个 Final-Fresh GPT 在真实登录 Chrome 逐个打开并与 owner-local identity 对齐；不做“是否重建”专项断言 |
 | repeat/recovery scope | PASS | 历史 repeat setup/start/status 与 stop→start 已成立；未来最终 E2E 只重跑冻结的最小真实用户集合 |
 | no Fake READY | PASS | Browser READY 必须来自当前 Fresh load + pairing / live heartbeat + `platform status` 真值，不能只凭历史 evidence |
 | Technical mainline | **PASS** | 真实安装/setup/start/status + Browser/Tunnel/Model/3 GPT + recovery/idempotency 已成立 |
@@ -174,9 +174,9 @@ O7 PASS  Browser 静态安装物按版本幂等物化；真人模拟只保留 Fr
 源码验证：
 
 ```text
-platform-cli tests = 85/85 PASS
+platform-cli tests = 86/86 PASS
 platform-cli typecheck = PASS
-dev-tunnel tests = 34/34 PASS
+dev-tunnel tests = 35/35 PASS
 dev-tunnel typecheck = PASS
 execution-browser-extension tests = 96/96 PASS
 execution-browser-extension typecheck = PASS
@@ -195,11 +195,11 @@ e30f9d2 fix(release): drive package publish from pnpm changesets
 d768615 perf(browser): streamline extension install acceptance
 ```
 
-当前 release state：
+当前 release state（2026-09-01 仓库一致性审计机械确认）：
 
 ```text
-platform-cli source 0.1.48 / Registry latest 0.1.48
-dev-tunnel   source 0.1.21 / Registry latest 0.1.21
+platform-cli source 0.1.49 / Registry latest 0.1.49
+dev-tunnel   source 0.1.22 / Registry latest 0.1.22
 browser      source 0.1.22 / Registry latest 0.1.22
 ```
 
@@ -245,7 +245,7 @@ dev-tunnel         = 34/34 tests + typecheck PASS
 platform-cli       = 85/85 tests + typecheck PASS
 deployment-conformance = 17/17 tests + typecheck PASS
 surface governance = 23 packages / 91 exports / 14 binaries / 0 errors
-test governance    = 39 plans / 316 formal cases / 144 files / 647 calls / 0 errors
+test governance    = 39 plans / 316 formal cases / 144 files / 649 calls / noMapping=0（生成物刷新后 0 errors）
 ```
 
 npm retirement：`@tomflow/proflow-devtunnel-cli@*` 已执行 deprecated；`0.1.1` Registry exact readback 为 `RETIRED: integrated into @tomflow/proflow-dev-tunnel; do not install this package.`。
@@ -276,7 +276,7 @@ Model 最终用户交互同步冻结：用户只提供机器无法推导的 Prov
 
 ```text
 1. npm install -g @tomflow/proflow-platform-cli@latest
-2. platform -v 必须等于 Registry latest = 0.1.48
+2. platform -v 必须等于 Registry latest = 0.1.49
 3. pnpm fresh:workspace --workspace /Users/agent/Desktop/proton-workspace
 4. 使用全局 platform 执行完整 Deployment E2E 主链：
    - platform install --workspace /Users/agent/Desktop/proton-workspace
@@ -398,12 +398,12 @@ DEPLOYMENT_SUCCESS = NOT_YET_FINAL
 LATEST_DEPLOYMENT_CODE_COMMIT = 6fb2ade
 LATEST_RELEASE_MACHINERY_COMMIT = e30f9d2
 SOURCE_HEAD/TREE = 接管时机械重读
-SOURCE_VERSION = platform-cli 0.1.48 / dev-tunnel 0.1.21 / browser 0.1.22
-REGISTRY_LATEST= platform-cli 0.1.48 / dev-tunnel 0.1.21 / browser 0.1.22
-PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES（优化前 latest；Fresh 尚未开始）
-NEXT_ACTION    = global platform-cli latest → Fresh Workspace → 完整 Deployment E2E 主链 → 最小 repeat/recovery 集合 → Product Acceptance
+SOURCE_VERSION = platform-cli 0.1.49 / dev-tunnel 0.1.22 / browser 0.1.22
+REGISTRY_LATEST= platform-cli 0.1.49 / dev-tunnel 0.1.22 / browser 0.1.22
+PRODUCT_STATUS = 2/3 / PLATFORM_READY=NO（审计时；上一轮正常 stop 后 Tunnel runtime 待恢复，Product platform-cli 仍 0.1.48）
+NEXT_ACTION    = audit closeout → Product platform-cli 原地升级 0.1.49 → SAME SCENE recovery + FAST REPLAY → 最终 FULL FRESH 统一计时 → Product Acceptance
 RELEASE_PREFLIGHT_BLOCKER = NONE（same-version patch 已确认是 pnpm 11 合并未发布 release bucket 的正常语义）
-DO_NOT_REPEAT  = Browser 0.1.21 同版本 publish / Browser Reload 或 Disable-Enable 人为测试 / 3 GPT rebuild / remote Tunnel delete / git push
+DO_NOT_REPEAT  = 稳定的 Custom GPT 浏览器创建流程变更 / Browser Reload 或 Disable-Enable 人为测试 / 3 GPT rebuild 专项验证 / remote Tunnel delete / git push
 ```
 
 ### 包级 Gate 优先 / 全仓 Gate 仅大阶段

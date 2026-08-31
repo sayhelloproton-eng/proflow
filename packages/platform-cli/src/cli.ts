@@ -723,7 +723,9 @@ async function handleUninstall(
 		phase: "owner",
 		status: "SUCCEEDED",
 		message:
-			ownerStop === "STOPPED" ? "已停止运行中的 ProFlow" : "未发现运行中的 ProFlow",
+			ownerStop === "STOPPED"
+				? "已停止运行中的 ProFlow"
+				: "未发现运行中的 ProFlow",
 	});
 	const { catalog, modules } = await buildContext(root);
 	const moduleUninstall = await uninstallModulesThin(

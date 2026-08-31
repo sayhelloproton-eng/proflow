@@ -82,11 +82,16 @@ type BrowserMaterializationState = {
 	moduleVersion: string;
 };
 const materializationFile = (context: ModuleCommandContext) =>
-	join(browserExtensionLoadDir(context.workspaceRoot), ".proflow-materialization.json");
+	join(
+		browserExtensionLoadDir(context.workspaceRoot),
+		".proflow-materialization.json",
+	);
 async function materializationReady(context: ModuleCommandContext) {
 	const loadDir = browserExtensionLoadDir(context.workspaceRoot);
 	try {
-		const raw = JSON.parse(await readFile(materializationFile(context), "utf8")) as Partial<BrowserMaterializationState>;
+		const raw = JSON.parse(
+			await readFile(materializationFile(context), "utf8"),
+		) as Partial<BrowserMaterializationState>;
 		if (
 			raw.contract !== "proflow.browser-extension-materialization.v1" ||
 			raw.moduleVersion !== descriptor.moduleVersion

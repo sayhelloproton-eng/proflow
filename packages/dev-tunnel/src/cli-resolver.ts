@@ -93,12 +93,16 @@ async function version(command: string): Promise<string | undefined> {
 }
 
 async function sha256(path: string): Promise<string> {
-	return createHash("sha256").update(await readFile(path)).digest("hex");
+	return createHash("sha256")
+		.update(await readFile(path))
+		.digest("hex");
 }
 
 async function validCached(path: string): Promise<boolean> {
 	try {
-		const metadata = JSON.parse(await readFile(`${path}.json`, "utf8")) as unknown;
+		const metadata = JSON.parse(
+			await readFile(`${path}.json`, "utf8"),
+		) as unknown;
 		if (typeof metadata !== "object" || metadata === null) return false;
 		const expected = Reflect.get(metadata, "sha256");
 		return (

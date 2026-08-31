@@ -240,8 +240,8 @@ const leaf = moduleFixture({
 const modules = [leaf, consumer, provider];
 
 test("aggregate status observes modules with bounded concurrency and returns stable module order", async () => {
-	const statusModules = ["h", "g", "f", "e", "d", "c", "b", "a"].map((moduleRef) =>
-		moduleFixture({ moduleRef }),
+	const statusModules = ["h", "g", "f", "e", "d", "c", "b", "a"].map(
+		(moduleRef) => moduleFixture({ moduleRef }),
 	);
 	let active = 0;
 	let maxActive = 0;

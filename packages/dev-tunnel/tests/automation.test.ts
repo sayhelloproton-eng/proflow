@@ -220,13 +220,22 @@ test("Dev Tunnel read-only port query retries one timeout with a wider bounded w
 			return result(JSON.stringify([{ portNumber: 41705, protocol: "http" }]));
 		},
 	});
-	assert.equal(await automation.ensurePort("workspace-tunnel", 41705), "REUSED");
+	assert.equal(
+		await automation.ensurePort("workspace-tunnel", 41705),
+		"REUSED",
+	);
 	assert.equal(calls.length, 2);
-	assert.deepEqual(calls.map((call) => call.args), [
-		["port", "list", "workspace-tunnel", "--json"],
-		["port", "list", "workspace-tunnel", "--json"],
-	]);
-	assert.deepEqual(calls.map((call) => call.timeoutMs), [45_000, 45_000]);
+	assert.deepEqual(
+		calls.map((call) => call.args),
+		[
+			["port", "list", "workspace-tunnel", "--json"],
+			["port", "list", "workspace-tunnel", "--json"],
+		],
+	);
+	assert.deepEqual(
+		calls.map((call) => call.timeoutMs),
+		[45_000, 45_000],
+	);
 });
 
 test("Dev Tunnel CLI warning-only no-ports JSON is treated as an empty port list", async () => {
@@ -577,10 +586,7 @@ test("CP-DEV-TUNNEL-02 CP-DEV-TUNNEL-07 workspace reuse, remote rebind, and UNKN
 		const rebound = JSON.parse(
 			await readFile(join(stateDir, "setup.json"), "utf8"),
 		);
-		assert.equal(
-			rebound.tunnelId,
-			scenario.expectedTunnel ?? stableTunnel,
-		);
+		assert.equal(rebound.tunnelId, scenario.expectedTunnel ?? stableTunnel);
 	}
 
 	const workspaceRoot = await mkdtemp(

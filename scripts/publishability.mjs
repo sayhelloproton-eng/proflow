@@ -3,14 +3,16 @@ import {
 	mkdirSync,
 	mkdtempSync,
 	readdirSync,
-	readFileSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { listWorkspacePackages, resolveRequestedPackages } from "./package-selection.mjs";
+import {
+	listWorkspacePackages,
+	resolveRequestedPackages,
+} from "./package-selection.mjs";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const packagesRoot = join(repositoryRoot, "packages");
@@ -18,9 +20,13 @@ const temporaryRoot = mkdtempSync(join(tmpdir(), "proflow-publishability-"));
 const tarballRoot = join(temporaryRoot, "tarballs");
 const consumerRoot = join(temporaryRoot, "consumer");
 const requested = process.argv.slice(2);
-const selectedPackages = requested.length === 0
-	? listWorkspacePackages()
-	: resolveRequestedPackages(requested, "Usage: node scripts/publishability.mjs [package-dir|package-name ...]");
+const selectedPackages =
+	requested.length === 0
+		? listWorkspacePackages()
+		: resolveRequestedPackages(
+				requested,
+				"Usage: node scripts/publishability.mjs [package-dir|package-name ...]",
+			);
 
 try {
 	mkdirSync(tarballRoot, { recursive: true });

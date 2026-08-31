@@ -162,7 +162,9 @@ function sameTunnelIdentity(requested: string, observed: string): boolean {
 	if (observed === requested) return true;
 	if (requested.includes(".")) return false;
 	const prefix = `${requested}.`;
-	return observed.startsWith(prefix) && !observed.slice(prefix.length).includes(".");
+	return (
+		observed.startsWith(prefix) && !observed.slice(prefix.length).includes(".")
+	);
 }
 
 function parseJson(text: string, label: string): unknown {
@@ -259,7 +261,9 @@ export function createDevTunnelAutomation(input?: {
 		args: string[],
 		retryTimeout = true,
 	): Promise<CommandResult> => {
-		let result = await run(command, args, { timeoutMs: REMOTE_QUERY_TIMEOUT_MS });
+		let result = await run(command, args, {
+			timeoutMs: REMOTE_QUERY_TIMEOUT_MS,
+		});
 		if (
 			!retryTimeout ||
 			result.exitCode !== null ||
@@ -399,10 +403,7 @@ export function createDevTunnelAutomation(input?: {
 		async discoverPublicBaseUrl(tunnelId, port) {
 			let lastError: unknown;
 			for (let attempt = 0; attempt < 3; attempt += 1) {
-				const shown = await runRemoteQuery(
-					["show", tunnelId, "--json"],
-					false,
-				);
+				const shown = await runRemoteQuery(["show", tunnelId, "--json"], false);
 				assertCommandSucceeded(shown, "devtunnel show --json");
 				try {
 					return discoverPublicBaseUrl(

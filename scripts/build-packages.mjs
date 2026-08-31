@@ -10,15 +10,22 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { listWorkspacePackages, resolveRequestedPackages } from "./package-selection.mjs";
+import {
+	listWorkspacePackages,
+	resolveRequestedPackages,
+} from "./package-selection.mjs";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const packagesRoot = join(repositoryRoot, "packages");
 const temporaryRoot = mkdtempSync(join(tmpdir(), "proflow-build-"));
 const requested = process.argv.slice(2);
-const selectedPackages = requested.length === 0
-	? listWorkspacePackages()
-	: resolveRequestedPackages(requested, "Usage: node scripts/build-packages.mjs [package-dir|package-name ...]");
+const selectedPackages =
+	requested.length === 0
+		? listWorkspacePackages()
+		: resolveRequestedPackages(
+				requested,
+				"Usage: node scripts/build-packages.mjs [package-dir|package-name ...]",
+			);
 const selectedNames = new Set(selectedPackages.map((pkg) => pkg.dirName));
 
 try {
@@ -31,7 +38,9 @@ try {
 		if (!entry.isDirectory() || !selectedNames.has(entry.name)) continue;
 		const destination = join(packagesRoot, entry.name, "dist");
 		rmSync(destination, { recursive: true, force: true });
-		cpSync(join(temporaryRoot, "packages", entry.name), destination, { recursive: true });
+		cpSync(join(temporaryRoot, "packages", entry.name), destination, {
+			recursive: true,
+		});
 	}
 
 	if (selectedNames.has("execution-browser-extension")) {
@@ -103,7 +112,9 @@ try {
 		);
 		const provisioningBundle = readFileSync(provisioningContent, "utf8");
 		if (/(?:^|\n)\s*(?:import|export)\s/m.test(provisioningBundle)) {
-			throw new Error("browser provisioning content bundle contains ESM syntax");
+			throw new Error(
+				"browser provisioning content bundle contains ESM syntax",
+			);
 		}
 
 		// MV3 content scripts are loaded as classic scripts (no `type: module`), so
@@ -123,8 +134,8 @@ try {
 				.split("\n")
 				.filter((line) => line.trim() !== "export {};")
 				.join("\n"),
-		);	}
-
+		);
+	}
 } finally {
 	rmSync(temporaryRoot, { recursive: true, force: true });
 }

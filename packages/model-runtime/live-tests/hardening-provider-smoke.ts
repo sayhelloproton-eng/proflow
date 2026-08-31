@@ -195,7 +195,7 @@ process.stdout.write(
 			startedAt,
 			completedAt: new Date().toISOString(),
 			provider: {
-				kind: "OpenAI-compatible MLXHub",
+				kind: "OpenAI-compatible",
 				credentialUsed: false,
 				fastModel,
 				reasonModel,

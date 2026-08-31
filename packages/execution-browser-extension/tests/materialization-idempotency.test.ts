@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import {
+	access,
+	mkdtemp,
+	readFile,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -12,7 +19,9 @@ import {
 const markerName = ".proflow-materialization.json";
 
 test("browser extension static package materialization is version-idempotent and repairs invalid state", async () => {
-	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-browser-materialize-"));
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-browser-materialize-"),
+	);
 	const context = { workspaceRoot };
 	try {
 		await behaviorAdapter.install(context);

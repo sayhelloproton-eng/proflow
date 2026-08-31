@@ -1,9 +1,6 @@
 import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { promisify } from "node:util";
-import {
-	listWorkspacePackages,
-	repositoryRoot,
-} from "./package-selection.mjs";
+import { listWorkspacePackages, repositoryRoot } from "./package-selection.mjs";
 
 const execFileAsync = promisify(execFile);
 const rawArgs = process.argv.slice(2);
@@ -15,7 +12,9 @@ if (unknownArgs.length > 0) {
 	throw new TypeError("Usage: pnpm package:release [--plan]");
 }
 if (rawArgs.includes("--dry-run")) {
-	console.warn("--dry-run is retained as a compatibility alias for --plan; no release mutation will occur.");
+	console.warn(
+		"--dry-run is retained as a compatibility alias for --plan; no release mutation will occur.",
+	);
 }
 
 function requireCleanWorkingTree() {
@@ -24,7 +23,9 @@ function requireCleanWorkingTree() {
 		encoding: "utf8",
 	});
 	if (status.trim() !== "") {
-		throw new Error("package release requires a clean working tree before version/release");
+		throw new Error(
+			"package release requires a clean working tree before version/release",
+		);
 	}
 }
 function runReleasePlan() {
@@ -37,14 +38,17 @@ function runReleasePlan() {
 		throw new Error(`pnpm release plan failed: ${result.error.message}`);
 	}
 	if (result.status !== 0) {
-		throw new Error(`pnpm release plan failed:\n${result.stderr ?? result.stdout ?? ""}`);
+		throw new Error(
+			`pnpm release plan failed:\n${result.stderr ?? result.stdout ?? ""}`,
+		);
 	}
 	return parseReleasePlan(`${result.stdout ?? ""}\n${result.stderr ?? ""}`);
 }
 
 function parseReleasePlan(output) {
 	const releases = [];
-	const pattern = /^\s{2}(.+?):\s+(\S+)\s+→\s+(\S+)\s+\(([^,]+),\s+via\s+([^)]+)\)$/;
+	const pattern =
+		/^\s{2}(.+?):\s+(\S+)\s+→\s+(\S+)\s+\(([^,]+),\s+via\s+([^)]+)\)$/;
 	for (const line of output.split(/\r?\n/)) {
 		const match = line.match(pattern);
 		if (!match) continue;
@@ -67,9 +71,14 @@ function resolveReleaseSet(plan) {
 				`./packages/${candidate.dirName}` === entry.selector,
 		);
 		if (!pkg) {
-			throw new Error(`pnpm release plan references unknown workspace package: ${entry.selector}`);
+			throw new Error(
+				`pnpm release plan references unknown workspace package: ${entry.selector}`,
+			);
 		}
-		if (pkg.manifest.private === true || pkg.manifest.publishConfig?.access !== "public") {
+		if (
+			pkg.manifest.private === true ||
+			pkg.manifest.publishConfig?.access !== "public"
+		) {
 			throw new Error(`${pkg.name} is not a publishable public package`);
 		}
 		return { ...pkg, ...entry, name: pkg.name };
@@ -80,18 +89,26 @@ function latestLedgerReleaseSet() {
 	const ledgerPath = ".changeset/ledger.yaml";
 	let commit;
 	try {
-		commit = execFileSync("git", ["log", "-1", "--format=%H", "--", ledgerPath], {
-			cwd: repositoryRoot,
-			encoding: "utf8",
-		}).trim();
+		commit = execFileSync(
+			"git",
+			["log", "-1", "--format=%H", "--", ledgerPath],
+			{
+				cwd: repositoryRoot,
+				encoding: "utf8",
+			},
+		).trim();
 	} catch {
 		return [];
 	}
 	if (!commit) return [];
-	const diff = execFileSync("git", ["show", "--format=", "--unified=0", commit, "--", ledgerPath], {
-		cwd: repositoryRoot,
-		encoding: "utf8",
-	});
+	const diff = execFileSync(
+		"git",
+		["show", "--format=", "--unified=0", commit, "--", ledgerPath],
+		{
+			cwd: repositoryRoot,
+			encoding: "utf8",
+		},
+	);
 	const workspacePackages = listWorkspacePackages();
 	const releases = [];
 	for (const line of diff.split(/\r?\n/)) {
@@ -104,7 +121,11 @@ function latestLedgerReleaseSet() {
 		const version = exact.slice(separator + 1);
 		const pkg = workspacePackages.find((candidate) => candidate.name === name);
 		if (!pkg || pkg.manifest.version !== version) continue;
-		if (pkg.manifest.private === true || pkg.manifest.publishConfig?.access !== "public") continue;
+		if (
+			pkg.manifest.private === true ||
+			pkg.manifest.publishConfig?.access !== "public"
+		)
+			continue;
 		releases.push({
 			...pkg,
 			selector: name,
@@ -120,7 +141,9 @@ function latestLedgerReleaseSet() {
 function printReleaseSet(label, releases) {
 	console.log(label);
 	for (const item of releases) {
-		console.log(`  ${item.name}: ${item.fromVersion} → ${item.version} (${item.bump}, ${item.cause})`);
+		console.log(
+			`  ${item.name}: ${item.fromVersion} → ${item.version} (${item.bump}, ${item.cause})`,
+		);
 	}
 }
 
@@ -140,15 +163,22 @@ async function registryExact(item) {
 	} catch (error) {
 		const diagnostic = `${error?.stdout ?? ""}\n${error?.stderr ?? ""}\n${error?.message ?? ""}`;
 		if (/\bE404\b|404 Not Found/i.test(diagnostic)) return undefined;
-		throw new Error(`Registry exact query is UNKNOWN for ${exact}; refuse to publish`);
+		throw new Error(
+			`Registry exact query is UNKNOWN for ${exact}; refuse to publish`,
+		);
 	}
 }
 
 async function missingFromRegistry(releases) {
 	const observed = await Promise.all(
-		releases.map(async (item) => ({ item, version: await registryExact(item) })),
+		releases.map(async (item) => ({
+			item,
+			version: await registryExact(item),
+		})),
 	);
-	return observed.filter(({ item, version }) => version !== item.version).map(({ item }) => item);
+	return observed
+		.filter(({ item, version }) => version !== item.version)
+		.map(({ item }) => item);
 }
 
 function verifyAppliedVersions(releases) {
@@ -156,20 +186,27 @@ function verifyAppliedVersions(releases) {
 	for (const item of releases) {
 		const pkg = current.find((candidate) => candidate.name === item.name);
 		if (!pkg || pkg.manifest.version !== item.version) {
-			throw new Error(`${item.name}: pnpm version did not apply expected ${item.version}`);
+			throw new Error(
+				`${item.name}: pnpm version did not apply expected ${item.version}`,
+			);
 		}
 	}
 }
 
 function commitVersionFacts(releases) {
-	execFileSync("git", ["diff", "--check"], { cwd: repositoryRoot, stdio: "inherit" });
+	execFileSync("git", ["diff", "--check"], {
+		cwd: repositoryRoot,
+		stdio: "inherit",
+	});
 	execFileSync("git", ["add", "-A"], { cwd: repositoryRoot, stdio: "inherit" });
 	const staged = execFileSync("git", ["diff", "--cached", "--name-only"], {
 		cwd: repositoryRoot,
 		encoding: "utf8",
 	}).trim();
 	if (!staged) return;
-	const names = releases.map((item) => item.name.replace("@tomflow/proflow-", "")).join(", ");
+	const names = releases
+		.map((item) => item.name.replace("@tomflow/proflow-", ""))
+		.join(", ");
 	execFileSync("git", ["commit", "-m", `chore(release): version ${names}`], {
 		cwd: repositoryRoot,
 		stdio: "inherit",
@@ -177,10 +214,14 @@ function commitVersionFacts(releases) {
 }
 function runSelectedBuildAndPublishability(releases) {
 	const selectors = releases.map((item) => item.dirName);
-	execFileSync(process.execPath, ["scripts/release-sync-versions.mjs", "--check", ...selectors], {
-		cwd: repositoryRoot,
-		stdio: "inherit",
-	});
+	execFileSync(
+		process.execPath,
+		["scripts/release-sync-versions.mjs", "--check", ...selectors],
+		{
+			cwd: repositoryRoot,
+			stdio: "inherit",
+		},
+	);
 	execFileSync(process.execPath, ["scripts/build-packages.mjs", ...selectors], {
 		cwd: repositoryRoot,
 		stdio: "inherit",
@@ -194,7 +235,9 @@ function runSelectedBuildAndPublishability(releases) {
 async function publishMissing(releases) {
 	const missing = await missingFromRegistry(releases);
 	if (missing.length === 0) {
-		console.log("Registry exact already contains every release target; nothing to publish.");
+		console.log(
+			"Registry exact already contains every release target; nothing to publish.",
+		);
 		return;
 	}
 	printReleaseSet("Registry MISSING release set:", missing);
@@ -214,7 +257,9 @@ async function publishMissing(releases) {
 				`publish returned UNKNOWN/FAIL and Registry still misses: ${remaining.map((item) => `${item.name}@${item.version}`).join(", ")}`,
 			);
 		}
-		console.warn("publish command returned UNKNOWN/FAIL, but authoritative Registry readback confirms all targets exist.");
+		console.warn(
+			"publish command returned UNKNOWN/FAIL, but authoritative Registry readback confirms all targets exist.",
+		);
 	}
 	const remaining = await missingFromRegistry(releases);
 	if (remaining.length > 0) {
@@ -235,7 +280,9 @@ if (releaseSet.length === 0) {
 }
 
 if (releaseSet.length === 0) {
-	console.log("No pending changeset release and no resumable versioned release found.");
+	console.log(
+		"No pending changeset release and no resumable versioned release found.",
+	);
 	process.exit(0);
 }
 
@@ -248,7 +295,8 @@ printReleaseSet(
 
 if (planOnly) {
 	const missing = await missingFromRegistry(releaseSet);
-	if (missing.length === 0) console.log("Registry state: all targets already published.");
+	if (missing.length === 0)
+		console.log("Registry state: all targets already published.");
 	else printReleaseSet("Registry MISSING:", missing);
 	process.exit(0);
 }
@@ -272,7 +320,11 @@ if (mode === "pending-changeset") {
 	verifyAppliedVersions(releaseSet);
 	execFileSync(
 		process.execPath,
-		["scripts/release-sync-versions.mjs", "--check", ...releaseSet.map((item) => item.dirName)],
+		[
+			"scripts/release-sync-versions.mjs",
+			"--check",
+			...releaseSet.map((item) => item.dirName),
+		],
 		{ cwd: repositoryRoot, stdio: "inherit" },
 	);
 }

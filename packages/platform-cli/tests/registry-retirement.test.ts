@@ -69,7 +69,10 @@ test("registry manifest checks use a bounded eight-worker pool", async () => {
 			if (args[0] === "config")
 				return { stdout: "https://registry.npmjs.org/\n", stderr: "" };
 			if (args[0] === "search")
-				return { stdout: JSON.stringify(names.map((name) => ({ name }))), stderr: "" };
+				return {
+					stdout: JSON.stringify(names.map((name) => ({ name }))),
+					stderr: "",
+				};
 			if (args[0] === "view") {
 				active += 1;
 				maxActive = Math.max(maxActive, active);
@@ -91,7 +94,10 @@ test("registry manifest checks use a bounded eight-worker pool", async () => {
 			throw new Error(`unexpected npm command: ${args.join(" ")}`);
 		},
 	};
-	const result = await discoverRegistryModules({ workspaceRoot: process.cwd(), runner });
+	const result = await discoverRegistryModules({
+		workspaceRoot: process.cwd(),
+		runner,
+	});
 	assert.equal(result.candidates.length, names.length);
 	assert.equal(maxActive, 8);
 });

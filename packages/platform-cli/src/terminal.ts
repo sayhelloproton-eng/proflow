@@ -34,15 +34,15 @@ function progressLine(
 	const suffix =
 		event.status === "SUCCEEDED"
 			? "完成"
-				: event.status === "WARNING"
-					? "警告"
-					: event.status === "ACTION_REQUIRED"
-						? "待处理"
-						: event.status === "FAILED"
-							? "失败"
-							: event.status === "SKIPPED"
-								? "跳过"
-								: "";
+			: event.status === "WARNING"
+				? "警告"
+				: event.status === "ACTION_REQUIRED"
+					? "待处理"
+					: event.status === "FAILED"
+						? "失败"
+						: event.status === "SKIPPED"
+							? "跳过"
+							: "";
 	const symbol =
 		event.kind === "subprocess"
 			? "│"

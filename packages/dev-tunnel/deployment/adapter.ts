@@ -7,6 +7,7 @@ import {
 	readModuleSharedFacts,
 	writeModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
+import { devTunnelCliPath, resolveDevTunnelCli } from "../src/cli-resolver.ts";
 import {
 	createDevTunnelAutomation,
 	createDevTunnelRuntime,
@@ -14,7 +15,6 @@ import {
 	type DevTunnelRuntime,
 	verifyProvisionedPublicBaseUrl,
 } from "../src/resource-adapter.ts";
-import { devTunnelCliPath, resolveDevTunnelCli } from "../src/cli-resolver.ts";
 import { descriptor } from "./descriptor.ts";
 
 const base = {
@@ -456,7 +456,9 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 				const createAndVerifyTunnel = async (targetTunnelId: string) => {
 					const createdTunnelId = await automation.createTunnel(targetTunnelId);
 					if (createdTunnelId !== targetTunnelId)
-						throw new Error("Dev Tunnel create returned an unexpected tunnelId");
+						throw new Error(
+							"Dev Tunnel create returned an unexpected tunnelId",
+						);
 					await writeState(context, {
 						contract: "proflow.dev-tunnel-setup.v2",
 						tunnelId: createdTunnelId,

@@ -488,7 +488,7 @@ const report = {
 	startedAt,
 	completedAt: new Date().toISOString(),
 	provider: {
-		kind: "OpenAI-compatible MLXHub",
+		kind: "OpenAI-compatible",
 		baseUrl,
 		credentialUsed: Boolean(apiKey),
 		fastModel,

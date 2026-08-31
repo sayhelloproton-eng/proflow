@@ -6,6 +6,7 @@
 			"!!spec",
 			"!!**/dist",
 			"!!**/.proflow",
+			"!!**/.devtunnel",
 			"!!.omo",
 			"!!.codegraph"
 		]

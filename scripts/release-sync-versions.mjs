@@ -10,15 +10,16 @@ if (mode !== "--check" && mode !== "--write") {
 
 const packagesRoot = new URL("../packages/", import.meta.url);
 const requested = process.argv.slice(3);
-const packageDirectories = requested.length === 0
-	? (await readdir(packagesRoot, { withFileTypes: true }))
-		.filter((entry) => entry.isDirectory())
-		.map((entry) => entry.name)
-		.sort()
-	: resolveRequestedPackages(
-		requested,
-		"Usage: node scripts/release-sync-versions.mjs [--check|--write] [package-dir|package-name ...]",
-	).map((pkg) => pkg.dirName);
+const packageDirectories =
+	requested.length === 0
+		? (await readdir(packagesRoot, { withFileTypes: true }))
+				.filter((entry) => entry.isDirectory())
+				.map((entry) => entry.name)
+				.sort()
+		: resolveRequestedPackages(
+				requested,
+				"Usage: node scripts/release-sync-versions.mjs [--check|--write] [package-dir|package-name ...]",
+			).map((pkg) => pkg.dirName);
 
 const drifts = [];
 const writes = [];
