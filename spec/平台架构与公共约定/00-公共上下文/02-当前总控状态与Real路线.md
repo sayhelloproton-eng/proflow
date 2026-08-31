@@ -1,6 +1,6 @@
 # 当前总控状态、验证总纲总控职责与 Real 路线
 
-> 更新时间：2026-08-31。这里记录 Phase 3 最终验收的 operational control state，不替代 Git / Registry / runtime 的实时机械检查，也不替代 Frozen Spec / Test Plan。
+> 更新时间：2026-09-01。这里记录 Phase 3 最终验收的 operational control state，不替代 Git / Registry / runtime 的实时机械检查，也不替代 Frozen Spec / Test Plan。
 
 ## 当前阶段
 
@@ -31,7 +31,7 @@
 
 因此当前状态必须区分：`DEPLOYMENT_TECHNICAL_MAINLINE=PASS`，但完整 `DEPLOYMENT_SUCCESS` 要等 O1～O6 优化版本发布后，在真实 npm latest + Product Workspace 上重新完成**完整、不可裁剪的普通用户 Fresh Deployment E2E**，并证明上述四项达到冻结标准。非阻断的小 polish 不反向推翻技术主链 PASS，但产品入口若仍要求用户理解内部实现、重复手工执行机器可做动作、交互含糊或默认输出误导，则完整 Deployment Product Acceptance 不得 PASS。
 
-当前仍处于 Deployment 优化逐项裁决阶段；全部裁决完成后才执行统一 `pnpm package:release` → Registry latest readback → 全局 platform-cli latest → Fresh Workspace → 完整 Deployment E2E。除既有 `platform-cli 0.1.48`、`dev-tunnel 0.1.21` versioned-but-unpublished 状态外，Browser Extension 本轮新增 patch changeset，当前源码仍为 `0.1.21`，目标下一版本为 `0.1.22`，尚未 version / publish。
+Deployment 优化裁决与真实 release 已完成。2026-09-01 Registry latest 已确认：`platform-cli=0.1.48`、`dev-tunnel=0.1.21`、`execution-browser-extension=0.1.22`。当前下一步是升级全局 platform-cli latest → Fresh Workspace → 完整 Deployment E2E 主链。主链后的重复/恢复只保留 `repeat setup`、`repeat status`、正常 `stop → start → status`；不跑 repeat start，不做资源重建专项验证，不主动制造异常。
 
 必须继续严格区分：
 
