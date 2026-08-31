@@ -363,6 +363,8 @@ Registry latest = 全部当前 release plan 目标版本；Browser O7 目标至�
 
 ## 10. 工具与效率规则
 
+跨项目可复用的自动化模拟人工提效方法以 `11-跨项目自动化模拟人工测试提效方法论.md` 为长期真源；本文只维护 ProFlow 当前实例的 Gate、版本和实时计时证据。
+
 ```text
 CodeGraph → structure / ownership / blast radius
 Local Dev → Git / current source / Registry / process / tests / batch edit
