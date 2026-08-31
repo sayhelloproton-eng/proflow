@@ -1080,6 +1080,10 @@
   intents:
     - deployment-cli-ux-tunnel-query-closeout
     - hot-regions-glow
+"@tomflow/proflow-platform-cli@0.1.49":
+  dir: packages/platform-cli
+  intents:
+    - platform-install-registry-throughput
 "@tomflow/proflow-platform-cli@0.1.5":
   dir: packages/platform-cli
   intents:
