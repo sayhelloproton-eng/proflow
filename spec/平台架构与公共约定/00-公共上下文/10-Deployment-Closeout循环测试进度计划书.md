@@ -3,11 +3,11 @@
 > 建立时间：2026-08-30
 > 最新整合：2026-08-31
 > 性质：滚动执行总控表 / 当前进度真源
-> 当前状态：`DEPLOYMENT_SUCCESS = YES`，主部署链已 PASS；正在完成 O1～O6 优化版本发布与发布后 npm latest smoke。
+> 当前状态：`DEPLOYMENT_TECHNICAL_MAINLINE = PASS`；`DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE`；完整 `DEPLOYMENT_SUCCESS = NOT_YET_FINAL`。
 
 ## 1. 当前唯一目标
 
-Deployment latest 主链已经通过，不再重开 Fresh 主链全量验收。当前只完成：
+Deployment latest **技术主链**已经通过，不再重开 Fresh 主链全量验收。当前必须用优化后的真实 npm latest 完成最后的产品验收，重点验证四项：**用户心智最低、自动化最大化、CLI 交互好用、默认输出明确**。当前只完成：
 
 ```text
 O1～O6 优化源码已提交
@@ -22,7 +22,7 @@ O1～O6 优化源码已提交
 → 回到 Real-3
 ```
 
-用户最终裁决继续有效：**主部署链真实跑通即可认为部署成功；非阻断 UX/自动化问题属于后置优化。**
+技术主链已经证明“系统能部署起来”；但最终“部署好”的产品口径进一步冻结为：技术真实可用 + 用户心智最低 + 自动化最大化 + CLI 交互好用 + 默认输出明确。非阻断微小 polish 不推翻技术主链 PASS，但四个产品门未通过前不得写完整 `DEPLOYMENT_SUCCESS=YES`。
 
 ## 2. 当前权威现场快照
 
@@ -31,10 +31,12 @@ O1～O6 优化源码已提交
 ```text
 Source Repo        = /Users/agent/Desktop/proton-workspace/repos/proflow
 Product Workspace  = /Users/agent/Desktop/proton-workspace
-Source HEAD         = e3151f7
-Source WorkingTree  = CLEAN
-DEPLOYMENT_SUCCESS  = YES
-Current Gate        = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
+Latest code/release commit = e3151f7
+Current Git HEAD / WorkingTree = 接管时机械重读
+DEPLOYMENT_TECHNICAL_MAINLINE = PASS
+DEPLOYMENT_PRODUCT_ACCEPTANCE  = PENDING_FINAL_LATEST_SMOKE
+DEPLOYMENT_SUCCESS             = NOT_YET_FINAL
+Current Gate                   = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
 ```
 
 Source versions：
@@ -65,7 +67,7 @@ Model   = 已完成
 PLATFORM_READY=YES
 ```
 
-## 3. Deployment latest 主链最终 PASS 证据
+## 3. Deployment latest 技术主链 PASS 证据
 
 | Gate | 状态 | 当前真实证据 |
 |---|---|---|
@@ -80,7 +82,9 @@ PLATFORM_READY=YES
 | 3 GPT carrier | PASS | 三个 Final-Fresh GPT 在真实登录 Chrome 逐个打开，未重建 |
 | repeat/idempotency | PASS | repeat setup/start/status 成立 |
 | no Fake READY | PASS | Browser instance drift 时先 `PLATFORM_READY=NO`，revalidate 后才恢复 YES |
-| DEPLOYMENT_SUCCESS | **YES** | 用户冻结的 Deployment 成功口径已满足 |
+| Technical mainline | **PASS** | 真实安装/setup/start/status + Browser/Tunnel/Model/3 GPT + recovery/idempotency 已成立 |
+| Product acceptance | **PENDING** | 等优化版 npm latest smoke 验证用户心智、自动化、CLI 交互、默认输出四项硬门 |
+| DEPLOYMENT_SUCCESS | **NOT_YET_FINAL** | 四项产品门通过后才可最终 YES |
 
 ## 3.1 已完成 Recovery / Fail-closed 回归基线
 
@@ -98,7 +102,20 @@ uninstall/reinstall durable identity preservation = PASS
 
 发布后 smoke 只重跑与 O1～O6 直接相关的最小路径，不机械重复全部历史 Recovery；只有新版本触及相应 seam 或真实 smoke 出现 regression 才重开。
 
-## 4. O1～O6 优化批次
+## 4. Deployment Product Acceptance 四项最终 Gate
+
+最终 npm latest smoke 不能只看 exit code 和 `PLATFORM_READY=YES`，还必须模拟第一次使用 ProFlow 的普通用户，逐项判断：
+
+| Gate | PASS 标准 | 明确 FAIL 信号 |
+|---|---|---|
+| 用户心智最低 | 用户只理解 install/setup/start/status、当前步骤和必要人类动作 | 要求理解 moduleRef、端口、Tunnel ID、shared facts、owner、provider inventory 等内部实现 |
+| 自动化最大化 | machine-owned / producer-owned / 可安全恢复动作全部自动完成 | 重复询问已有事实、要求执行 package CLI、让用户手工恢复机器本可恢复状态 |
+| CLI 交互好用 | 明确正在做什么、为什么停、只需做什么、完成后下一步；可重入/取消/恢复 | prompt 含糊、多个动作同时抛给用户、失败后不知道如何继续 |
+| 默认输出明确 | 默认聚焦当前状态 + 唯一 root cause + 下一步 + 最终结果 | 23 Module traversal、重复 Registry 核验、错误服务计数、内部诊断噪声淹没用户决策 |
+
+这四项必须通过真实发布后的 Product Workspace smoke 取证，不能仅凭源码 review 或 unit test 宣告 PASS。O1～O6 是本轮对这些 Gate 的直接整改实现。
+
+## 5. O1～O6 优化批次
 
 ```text
 O1 PASS  install 默认隐藏 Registry package-by-package 核验
@@ -134,7 +151,7 @@ platform-cli 0.1.47 → 0.1.48
 dev-tunnel   0.1.20 → 0.1.21
 ```
 
-## 5. 当前唯一 Next Action
+## 6. 当前唯一 Next Action
 
 ```text
 1. release:sync:check
@@ -157,7 +174,7 @@ dev-tunnel   0.1.20 → 0.1.21
 9. 回到 Real-3 J0～J4
 ```
 
-## 6. 发布纪律
+## 7. 发布纪律
 
 ```text
 version → build → publishability → exact preflight → publish MISSING → exact verify
@@ -171,7 +188,7 @@ version → build → publishability → exact preflight → publish MISSING →
 - 不读取、打印或提交 token/Bearer/API Key/credential。
 - Product Workspace npm-owned 时只用 `./node_modules/.bin/platform`，禁止 `pnpm exec platform`。
 
-## 7. 最小 smoke 的 PASS / FAIL
+## 8. 最小 smoke 的 PASS / FAIL
 
 ### PASS
 
@@ -188,7 +205,7 @@ Browser/Tunnel/Model/3 GPT 没有因优化版本回归
 
 只在优化版本直接引入新的、可复现 Deployment regression 时进入最小修复；不得因为历史已通过的 Recovery 场景、业务 Real-3 能力或新的纯 polish 想法无限扩大 smoke。
 
-## 8. 验证强度
+## 9. 验证强度
 
 当前源码已经完成 affected-package tests/typecheck。接下来 release transaction 只做版本同步、build、publishability、Registry preflight/readback 与真实 Product smoke；**没有新源码修改时禁止重新跑整套 `pnpm check` 只为“更放心”。**
 
@@ -204,7 +221,7 @@ Browser/Tunnel/Model/3 GPT 没有因优化版本回归
 → 必要时新 patch version
 ```
 
-## 9. 工具与效率规则
+## 10. 工具与效率规则
 
 ```text
 CodeGraph → structure / ownership / blast radius
@@ -217,7 +234,7 @@ Playwright Chrome → real Chrome / GPT / Browser UI reality
 - 非幂等动作 UNKNOWN 先恢复 authority。
 - 每个有意义 Gate 简短反馈后立即继续，不等待确认。
 
-## 10. 允许中断的条件
+## 11. 允许中断的条件
 
 ```text
 A. 优化发布 + latest smoke 完成
@@ -229,13 +246,15 @@ E. 真实上下文硬极限且已安全落盘
 
 其它自然阶段、长时间执行、无新 stdout 都不是中断理由。
 
-## 11. 当前唯一续接点
+## 12. 当前唯一续接点
 
 ```text
 CURRENT_GATE   = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
-DEPLOYMENT_SUCCESS = YES
-SOURCE_HEAD    = e3151f7
-SOURCE_TREE    = CLEAN
+DEPLOYMENT_TECHNICAL_MAINLINE = PASS
+DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE
+DEPLOYMENT_SUCCESS = NOT_YET_FINAL
+LATEST_CODE_RELEASE_COMMIT = e3151f7
+SOURCE_HEAD/TREE = 接管时机械重读
 SOURCE_VERSION = platform-cli 0.1.48 / dev-tunnel 0.1.21 / browser 0.1.21
 REGISTRY_LATEST= platform-cli 0.1.47 / dev-tunnel 0.1.20 / browser 0.1.21
 PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES（优化前 latest）

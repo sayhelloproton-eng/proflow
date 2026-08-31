@@ -20,12 +20,13 @@ spec/平台架构与公共约定/00-公共上下文/README.md
 ## 当前特殊状态（2026-08-31）
 
 ```text
-DEPLOYMENT_SUCCESS = YES
-DEPLOYMENT_LATEST_MAINLINE = PASS
+DEPLOYMENT_TECHNICAL_MAINLINE = PASS
+DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE
+DEPLOYMENT_SUCCESS = NOT_YET_FINAL
 CURRENT_EXECUTION_GATE = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
 ```
 
-当前只剩 O1～O6 优化版本 publish → Registry latest readback → Product Workspace npm latest smoke。完成后恢复 Real-3 验收主线。
+当前只剩 O1～O6 优化版本 publish → Registry latest readback → Product Workspace npm latest smoke。该 smoke 必须真实验证：**用户心智最低、自动化最大化、CLI 交互好用、默认输出明确**。四项通过后才允许 `DEPLOYMENT_SUCCESS=YES`，随后恢复 Real-3 验收主线。
 
 ## 接管后必须做
 

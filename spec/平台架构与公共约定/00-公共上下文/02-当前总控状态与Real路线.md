@@ -10,18 +10,26 @@
 - `REAL_1 = PASS`
 - `REAL_2 = PASS`
 - `REAL2_PROVISIONING_GO = YES`
-- `DEPLOYMENT_SUCCESS = YES`
-- `DEPLOYMENT_LATEST_MAINLINE = PASS`
+- `DEPLOYMENT_TECHNICAL_MAINLINE = PASS`
+- `DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE`
+- `DEPLOYMENT_SUCCESS = NOT_YET_FINAL`
 - `CURRENT_EXECUTION_GATE = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT`
 - `READY_FOR_REAL_3 = YES`（优化发布 smoke 完成后恢复 Real-3 主线）
 - `SYSTEM_REAL_USABLE = OUT_OF_SCOPE_FOR_DEPLOYMENT`
 - `PHASE3_FINAL_GO = NO`
 
-2026-08-31 已在真实 npm latest + 真实 Product Workspace 上完成最终 Deployment 主链：真实 setup/start/status、5 个 listener、Browser 0.1.21 live-instance revalidation、Dev Tunnel HTTPS reality、FAST/THINK 真实推理、3 个 Custom GPT carrier、repeat setup/start/status 均已通过，`PLATFORM_READY=YES`。
+2026-08-31 已在真实 npm latest + 真实 Product Workspace 上完成 Deployment **技术主链**：真实 setup/start/status、5 个 listener、Browser 0.1.21 live-instance revalidation、Dev Tunnel HTTPS reality、FAST/THINK 真实推理、3 个 Custom GPT carrier、repeat setup/start/status 均已通过，`PLATFORM_READY=YES`。这证明系统“能正确装起来、配起来、启动起来并保持真实 READY”。
 
-用户最终部署口径已满足：**只要主部署链真实跑通，即认为 Deployment 成功；过程中发现但不阻断主链的问题进入后置优化，不反向把 Deployment 判 FAIL。**
+但 **Deployment Success 的最终产品验收口径不仅是技术主链跑通**。部署好还必须同时证明四个用户层维度：
 
-当前剩余工作不是重新验收 Deployment，而是完成 O1～O6 优化版本的发布与发布后 npm latest smoke：源码已提交 `3e91e9b`，版本元数据已提交 `e3151f7`；源码版本为 `platform-cli 0.1.48`、`dev-tunnel 0.1.21`，当前 Registry latest 仍是 `0.1.47 / 0.1.20`，所以尚未完成优化发布闭环。
+1. **用户心智最低**：普通用户只需要理解 install / setup / start / status 和当前唯一动作，不需要理解 Module、shared facts、Tunnel ID、端口、owner、provider inventory 等内部实现。
+2. **自动化部署最大化**：机器能发现、生成、复用、验证、恢复的事实必须自动完成；只把 OAuth/2FA/CAPTCHA/真实 secret/不可替代的人类决策交给用户。
+3. **命令行交互好用**：每一步都明确“正在做什么 / 为什么停 / 用户只需做什么 / 完成后如何继续”，支持重入、取消、失败恢复，不让用户猜命令或内部状态。
+4. **默认输出明确**：默认只暴露当前状态、唯一 root cause、下一步和最终结果；内部 traversal/dependency/owner 细节进入 verbose/doctor/日志。
+
+因此当前状态必须区分：`DEPLOYMENT_TECHNICAL_MAINLINE=PASS`，但完整 `DEPLOYMENT_SUCCESS` 要等 O1～O6 优化版本发布后，在真实 npm latest + Product Workspace 上完成用户视角 smoke，证明上述四项达到冻结标准。非阻断的小 polish 不反向推翻技术主链 PASS，但产品入口若仍要求用户理解内部实现、重复手工执行机器可做动作、交互含糊或默认输出误导，则完整 Deployment Product Acceptance 不得 PASS。
+
+当前剩余工作是完成 O1～O6 优化版本发布与发布后 npm latest smoke：源码已提交 `3e91e9b`，版本元数据已提交 `e3151f7`；源码版本为 `platform-cli 0.1.48`、`dev-tunnel 0.1.21`，当前 Registry latest 仍是 `0.1.47 / 0.1.20`。
 
 必须继续严格区分：
 
