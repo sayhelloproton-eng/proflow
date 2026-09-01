@@ -331,7 +331,7 @@ Agent Runtime prepareRoleCredential
 → READY
 ```
 
-Create 失败时 candidate credential 直接丢弃且不落盘；Role activation 后的 Gateway/verification 失败时使用 `saveCurrentRole` 返回的一次性 rollback 恢复替换前 Role + credential。正常 Golden Path 不重新打开新 GPT 做 Auth。
+Create/live reality 尚未确认时 candidate credential 直接丢弃且不落盘。`LIVE_CREATED` 返回真实 g-id 后，`saveCurrentRole` 一旦成功，该 Role/credential 必须作为 durable authority 保留：因为远端 GPT 无法由本机事务回滚，后续 Gateway/Carrier verification 失败不得 rollback Role，也不得在 setup retry 中再次创建 GPT。此时 Module 明确保持非 READY；下一次 setup 复用同一 Role/credential，仅重做只读 validation，PASS 后写入 secret-free validation evidence。正常 Golden Path 不重新打开新 GPT 做 Auth。
 
 Auth 语义、credential 生成与 secret persistence 始终属于 Agent Runtime；Browser Extension 只在本次 Web materialization 中短暂处理 candidate credential，不得写入扩展静态资源、`chrome.storage`、runtime config、日志或 Evidence。
 
@@ -412,9 +412,9 @@ start
 stop
 ```
 
-其中 `Module.setup` 的最终 Real-2 合同是自身 Custom GPT 的完整、可重入部署闭环：materialize Agent Package → `READY` 复用 / `MISSING` 请求 Browser Extension provisioning → 预生成 candidate credential → 同一 Editor 完成 Schema/Auth/ZIP/Capabilities → 创建真实 Private GPT → `saveCurrentRole` → validate/Gateway probe。`DRIFT` fail closed，不自动 Edit 旧 GPT。`Module.status` 仍是唯一 management 状态真源。`custom-gpt ...`、`role register/show/validate/delete`、`role key ...` 等命令仍是 Agent Package 自身真实 extra capability，可以被 AI/用户直接调用，但 Platform 不代理、不解释其业务语义。
+其中 `Module.setup` 的最终 Real-2 合同是自身 Custom GPT 的完整、可重入部署闭环：materialize Agent Package → `READY + current validation evidence` 复用 / `MISSING` 请求 Browser Extension provisioning / `READY + validation missing-or-stale` 只重做 Gateway/Carrier validation → 预生成 candidate credential → 同一 Editor 完成 Schema/Auth/ZIP/Capabilities → 创建真实 Private GPT → `saveCurrentRole` → validate/Gateway probe。`DRIFT` 仍按 exact package version fail closed，不自动 Edit 旧 GPT。`Module.status` 仍是唯一 management 状态真源。`custom-gpt ...`、`role register/show/validate/delete`、`role key ...` 等命令仍是 Agent Package 自身真实 extra capability，可以被 AI/用户直接调用，但 Platform 不代理、不解释其业务语义。
 
-Real-2 已完成最终真实验收并冻结：三个真实 Agent Role、Auth-before-Create、ZIP Knowledge、显式 recreate 覆盖、workspace queue 与 activation rollback 均有 executable/real evidence。历史 B1～B6 过程文档不得恢复人工复制粘贴或 post-create Auth happy path。
+Real-2 已完成真实验收；2026-09-01 Deployment Fresh regression 对恢复合同做最小修订：三个真实 Agent Role、Auth-before-Create、ZIP Knowledge、显式 recreate 覆盖与 workspace queue 语义保持不变；post-LIVE_CREATED validation failure 改为保留 durable Role 并重试 validation，禁止因本地 rollback 重复创建不可逆远端 GPT。历史 B1～B6 过程文档不得恢复人工复制粘贴或 post-create Auth happy path。
 
 总 Deployment 只做：
 

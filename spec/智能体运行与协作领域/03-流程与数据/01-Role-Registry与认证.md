@@ -199,6 +199,8 @@ Canonical owner capability 是 Agent Domain 的严格 `registerRole`、deploymen
 9. owner inspect + Gateway authenticated probe
 ```
 
+`LIVE_CREATED` 是外部不可逆物理事实。`saveCurrentRole` 成功后若第 9 步暂时失败，Role Registry 不得回滚为旧 Role/MISSING；否则下一次 setup 会错误地重复创建远端 GPT。此时保留当前 Role + credential，以独立、secret-free validation evidence 表示 Gateway/Carrier proof 是否 current；setup retry 只重做 validation。package version、roleRef、carrierUrl 或 gatewayUrl 变化时该 evidence 必须 stale。
+
 一个 Role 一个 Key。Role Key 不属于 npm 静态材料，不属于 Browser Extension identity，也不得写入 Extension storage/runtime config/log/evidence。
 
 ---

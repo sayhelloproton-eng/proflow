@@ -1,5 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 
 import { readModuleSharedFacts } from "@tomflow/proflow-module-contract";
 import { parse } from "yaml";
@@ -48,6 +48,85 @@ export type RoleCarrierValidationInput = {
 	credential: string;
 	openApiText: string;
 };
+
+export type RoleCarrierValidationEvidenceInput = {
+	workspaceRoot: string;
+	agentPackageRef: string;
+	registeredPackageVersion: string;
+	roleRef: string;
+	carrierUrl: string;
+	gatewayUrl: string;
+};
+
+function roleCarrierValidationEvidencePath(
+	workspaceRoot: string,
+	agentPackageRef: string,
+) {
+	return join(
+		resolve(workspaceRoot),
+		".proflow",
+		"state",
+		"agent",
+		"role-carrier-validation",
+		`${encodeURIComponent(agentPackageRef)}.json`,
+	);
+}
+
+export async function hasCurrentRoleCarrierValidationEvidence(
+	input: RoleCarrierValidationEvidenceInput,
+) {
+	try {
+		const raw = JSON.parse(
+			await readFile(
+				roleCarrierValidationEvidencePath(
+					input.workspaceRoot,
+					input.agentPackageRef,
+				),
+				"utf8",
+			),
+		) as Record<string, unknown>;
+		return (
+			raw.contract === "proflow.role-carrier-validation.v1" &&
+			raw.agentPackageRef === input.agentPackageRef &&
+			raw.registeredPackageVersion === input.registeredPackageVersion &&
+			raw.roleRef === input.roleRef &&
+			raw.carrierUrl === input.carrierUrl &&
+			raw.gatewayUrl === input.gatewayUrl &&
+			typeof raw.validatedAt === "string"
+		);
+	} catch {
+		return false;
+	}
+}
+
+export async function recordRoleCarrierValidationEvidence(
+	input: RoleCarrierValidationEvidenceInput,
+) {
+	const path = roleCarrierValidationEvidencePath(
+		input.workspaceRoot,
+		input.agentPackageRef,
+	);
+	await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+	const temporary = `${path}.${process.pid}.tmp`;
+	await writeFile(
+		temporary,
+		`${JSON.stringify(
+			{
+				contract: "proflow.role-carrier-validation.v1",
+				agentPackageRef: input.agentPackageRef,
+				registeredPackageVersion: input.registeredPackageVersion,
+				roleRef: input.roleRef,
+				carrierUrl: input.carrierUrl,
+				gatewayUrl: input.gatewayUrl,
+				validatedAt: new Date().toISOString(),
+			},
+			null,
+			2,
+		)}\n`,
+		{ encoding: "utf8", mode: 0o600 },
+	);
+	await rename(temporary, path);
+}
 
 export function validateLocalRoleOpenApi(openApiText: string) {
 	const issues: string[] = [];

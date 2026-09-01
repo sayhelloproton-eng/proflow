@@ -117,7 +117,6 @@ export async function createCustomGptRole(
 				: { onlineTimeoutMs: input.onlineTimeoutMs }),
 		});
 		let result: CustomGptProvisioningResult | undefined;
-		let rollbackSavedRole: (() => Promise<void>) | undefined;
 		let credential = "";
 		try {
 			const prepared = await ports.roleRegistry.prepareCredential();
@@ -145,7 +144,6 @@ export async function createCustomGptRole(
 				},
 				credential,
 			);
-			rollbackSavedRole = saved.rollback;
 			if (typeof saved.credential !== "string" || saved.credential.length < 32)
 				throw new Error("WORKSPACE_ROLE_CREDENTIAL_INVALID");
 			if (saved.credential !== credential)
@@ -172,16 +170,10 @@ export async function createCustomGptRole(
 				credential,
 			});
 			return result;
-		} catch (error) {
-			if (rollbackSavedRole) {
-				try {
-					await rollbackSavedRole();
-				} catch {
-					throw new Error("WORKSPACE_ROLE_ROLLBACK_FAILED");
-				}
-			}
-			throw error;
 		} finally {
+			// Remote GPT creation is irreversible from this host. Do not roll the durable
+			// Role back after post-create validation failure; the caller can safely revalidate
+			// that same Role on the next setup instead of creating a duplicate GPT.
 			credential = "";
 			await host.close();
 		}

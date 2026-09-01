@@ -179,7 +179,7 @@ test("createCustomGptRole does not persist or finalize auth when provisioning fa
 	);
 });
 
-test("createCustomGptRole restores the previous current role when carrier verification fails", async () => {
+test("createCustomGptRole preserves the new durable role when post-create carrier verification fails", async () => {
 	let rollbackCalls = 0;
 	const state = registry({ onRollback: () => rollbackCalls++ });
 	state.saved.set(material.packageName, {
@@ -203,10 +203,10 @@ test("createCustomGptRole restores the previous current role when carrier verifi
 		}),
 		/GATEWAY_PROBE_FAILED/,
 	);
-	assert.equal(rollbackCalls, 1);
+	assert.equal(rollbackCalls, 0);
 	assert.deepEqual(state.saved.get(material.packageName), {
-		roleRef: "g-previous",
-		carrierUrl: "https://chatgpt.com/g/g-previous",
+		roleRef: "g-example-agent",
+		carrierUrl: "https://chatgpt.com/g/g-example-agent",
 	});
 });
 

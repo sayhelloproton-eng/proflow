@@ -52,7 +52,7 @@ Executable mapping：`packages/execution-browser-extension/tests/custom-gpt-prov
 - [x] **RF-REAL2-PROV-01** — Extension 未加载/heartbeat stale/bridge auth invalid 会阻塞 provisioning，不伪造 READY；pairing/bridge executable tests 已覆盖。
 - [x] **RF-REAL2-PROV-02** — GPT editor selector/DOM contract 漂移时 fail closed；真实 UI 漂移曾分别触发明确错误并通过截图/DOM 修正，正常实现不使用坐标猜测或模型自由点击。
 - [x] **RF-REAL2-PROV-03** — 恶意/损坏 Knowledge ZIP、traversal、内部 unsupported file type、大小越界会在上传前拒绝；ZIP 本体上传不取消内部安全校验。
-- [x] **RF-REAL2-PROV-04** — Create/live reality 未确认时禁止 `saveCurrentRole`；candidate credential 在 Create 前只存在内存。保存 current Role 后若 Gateway/activation 验证失败，必须一次性 rollback 恢复替换前 Role + credential；首次创建失败保持 MISSING。
+- [x] **RF-REAL2-PROV-04** — Create/live reality 未确认时禁止 `saveCurrentRole`；candidate credential 在 Create 前只存在内存。`LIVE_CREATED` 一旦真实成立并完成 `saveCurrentRole`，远端 GPT 已成为不可逆物理事实：后续 Gateway/Carrier validation 失败不得 rollback durable Role，也不得把它重新视为 `MISSING` 后重复创建。Module 保留同一 roleRef/credential，明确保持非 READY，并在下一次 setup 仅重做只读 validation；validation PASS 后写入与 `agentPackageRef + registeredPackageVersion + roleRef + carrierUrl + gatewayUrl` 精确绑定、且不含 secret 的 evidence。任一绑定事实变化使 evidence stale 并要求重新 validation。
 - [x] **RF-REAL2-PROV-05** — Role credential 不进入日志、Evidence、runtime config、chrome.storage 或静态扩展包；真实验证只检查状态/掩码 `[HIDDEN]`，不读取或打印 secret。
 - [x] **RF-REAL2-PROV-06** — `Module.setup` READY 重跑不重复创建；显式 recreate 只覆盖同 package current binding，其他 Agent Package Role 不变；同 workspace queue 串行且失败不毒化后序。
 - [x] **RF-REAL2-PROV-07** — Provisioning 与 Task/Worker/Execution runtime 状态机保持隔离，Provisioning DTO 与 surface 静态测试持续禁止 runtime business vocabulary。
@@ -60,7 +60,7 @@ Executable mapping：`packages/execution-browser-extension/tests/custom-gpt-prov
 Executable mapping：`packages/execution-browser-extension/tests/browser-extension-pairing.test.ts`、`packages/execution-browser-extension/tests/custom-gpt-knowledge.test.ts`、`packages/execution-browser-extension/tests/custom-gpt-role.test.ts`、`packages/execution-browser-extension/tests/deployment-provisioning-boundary.test.ts`、`packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts`。
 ## 5. Real / Fake Boundary
 
-Unit/TDD 可 fake DOM、Chrome API、bridge transport 和 package files；最终验收已使用真实 Chrome Extension heartbeat、真实 `/gpts/editor` DOM、ZIP Knowledge upload、model/capability readback、private create、真实 g-id/live reality、真实 Role/credential、真实 Gateway probe 与失败回滚证据。
+Unit/TDD 可 fake DOM、Chrome API、bridge transport 和 package files；最终验收已使用真实 Chrome Extension heartbeat、真实 `/gpts/editor` DOM、ZIP Knowledge upload、model/capability readback、private create、真实 g-id/live reality、真实 Role/credential、真实 Gateway probe；2026-09-01 Fresh Deployment regression 进一步证明 post-create validation rollback 会遗失不可逆远端 GPT authority，因此恢复合同改为 durable Role + retryable validation evidence。
 
 Playwright Chrome MCP 在验收中只作为 observer/screenshot/DOM/console 辅助取证；所有 GPT Editor 产品动作均由 ProFlow Extension 自己执行，MCP 没有代替产品填写或点击。
 
@@ -69,7 +69,7 @@ Playwright Chrome MCP 在验收中只作为 observer/screenshot/DOM/console 辅�
 ```text
 三个 Agent Package material/static tests：12/12、15/15、14/14 PASS
 Execution Browser targeted suite：86/86 PASS + typecheck PASS
-Agent Runtime：25/25 PASS，含 saveCurrentRole rollback 一次性恢复证明
+Agent Runtime：Role persistence / carrier validation targeted proofs PASS；post-LIVE_CREATED validation failure 保留 current Role，validation evidence 精确且无 secret
 真实 Product/Controller/Test-Ops Private GPT 创建 = PASS
 最终 current Role：3 个 package / 3 个 distinct g-id / ROLE_COUNT=3
 Knowledge UI：custom-gpt-knowledge.zip / application/zip
@@ -78,7 +78,7 @@ Auth UI：API Key + Bearer，重开 secret 显示 [HIDDEN]
 同 package 连续 3× explicit recreate：每次新 g-id，current binding 始终只有 1 条
 同 workspace queue 串行 + 前序失败隔离 = PASS
 Gateway local/public health 与 authenticated role probe = PASS
-失败路径：Create/Auth/Gateway failure 不产生假 READY；activation failure 恢复旧 Role + credential
+失败路径：Create 前失败不产生 Role；LIVE_CREATED 后 validation failure 保留新 durable Role、保持非 READY，并只重试 validation，禁止重复 create
 working tree 在最终 Real-2 文档冻结前 CLEAN
 ```
 

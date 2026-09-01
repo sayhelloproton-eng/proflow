@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -10,7 +10,10 @@ import {
 	runPackageConformance,
 	runStaticConformance,
 } from "@tomflow/proflow-deployment-conformance";
-import type { ModuleDescriptor } from "@tomflow/proflow-module-contract";
+import {
+	type ModuleDescriptor,
+	writeModuleSharedFacts,
+} from "@tomflow/proflow-module-contract";
 import { behaviorAdapter } from "../deployment/adapter.ts";
 import { descriptor } from "../deployment/descriptor.ts";
 
@@ -48,10 +51,49 @@ test("Module.setup observes durable Role registration reality", async () => {
 			join(agentRoot, "secrets", "role-credentials.json"),
 			`${JSON.stringify({ [roleRef]: "credential-role-binding-0123456789abcdef" }, null, 2)}\n`,
 		);
-		assert.equal(
-			(await behaviorAdapter.setup(context)).result.status,
-			"SUCCEEDED",
-		);
+		await writeModuleSharedFacts(context, "agent-gateway", {
+			publicBaseUrl: "https://gateway.example.test",
+		});
+		await writeModuleSharedFacts(context, "execution-browser-extension", {
+			browserExecutorConfigPath: "/tmp/proflow-browser-executor.json",
+		});
+		const originalFetch = globalThis.fetch;
+		let fetchCalls = 0;
+		globalThis.fetch = async (input, init) => {
+			fetchCalls++;
+			const url = String(input);
+			if (url.endsWith("/health"))
+				return new Response(JSON.stringify({ status: "UP" }), { status: 200 });
+			assert.match(url, /\/actions\/getTask\?/);
+			assert.match(
+				String(new Headers(init?.headers).get("authorization")),
+				/^Bearer /,
+			);
+			return new Response(JSON.stringify({ error: "TASK_NOT_FOUND" }), {
+				status: 400,
+			});
+		};
+		try {
+			const replay = (await behaviorAdapter.setup(context)).result;
+			assert.equal(replay.status, "SUCCEEDED");
+			assert.equal(fetchCalls, 2);
+			assert.equal(Reflect.get(replay.data ?? {}, "roleRef"), roleRef);
+			const evidence = await readFile(
+				join(
+					workspaceRoot,
+					".proflow",
+					"state",
+					"agent",
+					"role-carrier-validation",
+					`${encodeURIComponent(descriptor.packageName)}.json`,
+				),
+				"utf8",
+			);
+			assert.match(evidence, new RegExp(roleRef));
+			assert.doesNotMatch(evidence, /credential|secret|bearer/i);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
 	} finally {
 		await rm(workspaceRoot, { recursive: true, force: true });
 	}

@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import {
+	hasCurrentRoleCarrierValidationEvidence,
+	recordRoleCarrierValidationEvidence,
 	validateLocalRoleOpenApi,
 	validateRoleCarrier,
 } from "../src/role-management-client.ts";
@@ -72,4 +77,46 @@ test("CP-AGT-RUNTIME-11 role carrier validation parses local OpenAPI and proves 
 	assert.deepEqual(validateLocalRoleOpenApi("not: [valid"), [
 		"OPENAPI_PARSE_FAILED",
 	]);
+});
+
+test("CP-AGT-RUNTIME-12 carrier validation evidence is exact and secret-free", async (context) => {
+	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-role-carrier-"));
+	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const evidence = {
+		workspaceRoot,
+		agentPackageRef: "@tomflow/proflow-agent-test-ops",
+		registeredPackageVersion: "0.1.15",
+		roleRef: "g-test-ops",
+		carrierUrl: "https://chatgpt.com/g/g-test-ops",
+		gatewayUrl: "https://gateway.example.test/",
+	};
+	assert.equal(await hasCurrentRoleCarrierValidationEvidence(evidence), false);
+	await recordRoleCarrierValidationEvidence(evidence);
+	assert.equal(await hasCurrentRoleCarrierValidationEvidence(evidence), true);
+	for (const changed of [
+		{ roleRef: "g-other" },
+		{ registeredPackageVersion: "0.1.16" },
+		{ carrierUrl: "https://chatgpt.com/g/g-other" },
+		{ gatewayUrl: "https://gateway-other.example.test/" },
+	]) {
+		assert.equal(
+			await hasCurrentRoleCarrierValidationEvidence({
+				...evidence,
+				...changed,
+			}),
+			false,
+		);
+	}
+	const persisted = await readFile(
+		join(
+			workspaceRoot,
+			".proflow",
+			"state",
+			"agent",
+			"role-carrier-validation",
+			`${encodeURIComponent(evidence.agentPackageRef)}.json`,
+		),
+		"utf8",
+	);
+	assert.doesNotMatch(persisted, /credential|secret|bearer/i);
 });

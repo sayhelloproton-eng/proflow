@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 import { inspectDurableRoleRegistration } from "@tomflow/proflow-agent-runtime";
 import {
 	createWorkspaceRoleSetupClient,
+	hasCurrentRoleCarrierValidationEvidence,
+	recordRoleCarrierValidationEvidence,
 	validateRoleCarrier,
 } from "@tomflow/proflow-agent-runtime/role-management-client";
 import { createCustomGptRole } from "@tomflow/proflow-execution-browser-extension/custom-gpt-role";
@@ -71,6 +73,23 @@ function observeRole(context: ModuleCommandContext) {
 	});
 }
 
+async function carrierValidationCurrent(
+	context: ModuleCommandContext,
+	reality: ReturnType<typeof observeRole>,
+) {
+	if (reality.status !== "READY" || !reality.role) return false;
+	const gatewayUrl = await gatewayPublicUrl(context);
+	if (!gatewayUrl) return false;
+	return hasCurrentRoleCarrierValidationEvidence({
+		workspaceRoot: context.workspaceRoot,
+		agentPackageRef: descriptor.packageName,
+		registeredPackageVersion: reality.role.registeredPackageVersion,
+		roleRef: reality.role.roleRef,
+		carrierUrl: reality.role.carrierUrl,
+		gatewayUrl,
+	});
+}
+
 const success = () => ({ result: base, observedEffects: [] as string[] });
 
 export const behaviorAdapter = {
@@ -79,12 +98,15 @@ export const behaviorAdapter = {
 	status: async (context: ModuleCommandContext) => {
 		const reality = observeRole(context);
 		const missingPrerequisites = await missingRolePrerequisites(context);
+		const validationCurrent = await carrierValidationCurrent(context, reality);
 		const setupStatus =
-			reality.status === "READY"
+			reality.status === "READY" && validationCurrent
 				? ("READY" as const)
 				: missingPrerequisites.length > 0
 					? ("BLOCKED" as const)
-					: reality.status === "MISSING" || reality.status === "DRIFT"
+					: reality.status === "READY" ||
+							reality.status === "MISSING" ||
+							reality.status === "DRIFT"
 						? ("ACTION_REQUIRED" as const)
 						: ("FAILED" as const);
 		return {
@@ -104,12 +126,16 @@ export const behaviorAdapter = {
 												? "UPSTREAM_NOT_READY"
 												: reality.status === "BROKEN"
 													? "ROLE_REGISTRATION_BROKEN"
-													: "ROLE_SETUP_REQUIRED",
+													: reality.status === "READY" && !validationCurrent
+														? "ROLE_CARRIER_VALIDATION_REQUIRED"
+														: "ROLE_SETUP_REQUIRED",
 										message:
 											missingPrerequisites.length > 0
 												? `等待 ${missingPrerequisites.join("、")} 就绪后自动继续`
-												: reality.issues.join("；") ||
-													"Custom GPT Role 尚未完成注册",
+												: reality.status === "READY" && !validationCurrent
+													? "Custom GPT 已创建；仅需重新验证 Gateway，不会重复创建"
+													: reality.issues.join("；") ||
+														"Custom GPT Role 尚未完成注册",
 										relatedModuleRefs: missingPrerequisites,
 										nextCommand:
 											missingPrerequisites.length > 0
@@ -125,7 +151,10 @@ export const behaviorAdapter = {
 	},
 	setup: async (context: ModuleCommandContext) => {
 		const reality = observeRole(context);
-		if (reality.status === "READY") {
+		if (
+			reality.status === "READY" &&
+			(await carrierValidationCurrent(context, reality))
+		) {
 			return {
 				result: {
 					...base,
@@ -146,6 +175,70 @@ export const behaviorAdapter = {
 				},
 				observedEffects: [] as string[],
 			};
+		}
+		if (reality.status === "READY" && reality.role) {
+			try {
+				const gatewayUrl = await gatewayPublicUrl(context);
+				if (!gatewayUrl) throw new Error("GATEWAY_URL_UNAVAILABLE");
+				const roleClient = await createWorkspaceRoleSetupClient(
+					context.workspaceRoot,
+				);
+				const material = packageMaterial();
+				const openApiText = readFileSync(
+					join(packageRoot(), material.actionSchema),
+					"utf8",
+				);
+				const shown = await roleClient.showRoleCredential({
+					agentPackageRef: descriptor.packageName,
+					expectedPackageVersion: descriptor.moduleVersion,
+				});
+				const validation = await validateRoleCarrier({
+					gatewayUrl,
+					credential: shown.credential,
+					openApiText,
+				});
+				if (validation.status !== "PASS")
+					throw new Error(
+						`ROLE_CARRIER_VALIDATION_FAILED:${validation.issues.join("|")}`,
+					);
+				await recordRoleCarrierValidationEvidence({
+					workspaceRoot: context.workspaceRoot,
+					agentPackageRef: descriptor.packageName,
+					registeredPackageVersion: reality.role.registeredPackageVersion,
+					roleRef: reality.role.roleRef,
+					carrierUrl: reality.role.carrierUrl,
+					gatewayUrl,
+				});
+				return {
+					result: {
+						...base,
+						data: {
+							roleRef: reality.role.roleRef,
+							carrierUrl: reality.role.carrierUrl,
+						},
+					},
+					observedEffects: [
+						"Verify the existing Custom GPT Role through Gateway ingress",
+					],
+				};
+			} catch (error) {
+				return {
+					result: {
+						...base,
+						ok: false as const,
+						status: "FAILED" as const,
+						error: {
+							code: "SETUP_FAILED" as const,
+							message:
+								error instanceof Error
+									? error.message
+									: "Custom GPT carrier validation failed",
+							retryable: true,
+						},
+					},
+					observedEffects: [] as string[],
+				};
+			}
 		}
 		if (reality.status === "DRIFT") {
 			return {
@@ -212,6 +305,10 @@ export const behaviorAdapter = {
 							inspectRole: (input) => roleClient.inspectRole(input),
 						},
 						async verifyCarrier({
+							agentPackageRef,
+							registeredPackageVersion,
+							roleRef,
+							carrierUrl,
 							credential,
 							gatewayUrl: verifiedGatewayUrl,
 						}) {
@@ -224,6 +321,14 @@ export const behaviorAdapter = {
 								throw new Error(
 									`ROLE_CARRIER_VALIDATION_FAILED:${validation.issues.join("|")}`,
 								);
+							await recordRoleCarrierValidationEvidence({
+								workspaceRoot: context.workspaceRoot,
+								agentPackageRef,
+								registeredPackageVersion,
+								roleRef,
+								carrierUrl,
+								gatewayUrl: verifiedGatewayUrl,
+							});
 						},
 					},
 				);
