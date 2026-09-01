@@ -1,10 +1,12 @@
 #!/usr/bin/expect -f
 set timeout 900
-if {![info exists env(PROFLOW_WORKSPACE)]} { puts stderr "PROFLOW_WORKSPACE is required"; exit 64 }
+set repo [file normalize [file join [file dirname [info script]] ../..]]
+if {![info exists env(PROFLOW_WORKSPACE)]} {
+    set env(PROFLOW_WORKSPACE) [file normalize [file join $repo ../..]]
+}
 if {![info exists env(PROFLOW_PROVIDER_BASE_URL)]} { set env(PROFLOW_PROVIDER_BASE_URL) "" }
 set workspace $env(PROFLOW_WORKSPACE)
 set provider $env(PROFLOW_PROVIDER_BASE_URL)
-set repo [file normalize [file join [file dirname [info script]] ../..]]
 set browserHelper [file join $repo scripts human-e2e browser-extension-ui.mjs]
 set started [clock milliseconds]
 array set answered {}
