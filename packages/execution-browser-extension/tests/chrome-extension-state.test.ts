@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { probeChromeExtensionState } from "../src/chrome-extension-state.ts";
+import {
+	probeChromeExtensionState,
+	waitForChromeExtensionEnabled,
+} from "../src/chrome-extension-state.ts";
 
 const extensionId = "a".repeat(32);
 const loadDir = "/fixture/proflow/execution-browser-extension";
@@ -61,4 +64,42 @@ test("Chrome profile probe ignores a matching ID loaded from a different path", 
 		}),
 		"MISSING",
 	);
+});
+
+
+test("Chrome registration stabilization retries transient missing state until enabled", async () => {
+	const observed = ["MISSING", "UNKNOWN", "ENABLED"] as const;
+	let index = 0;
+	assert.equal(
+		await waitForChromeExtensionEnabled(
+			{ extensionId, loadDir },
+			{
+				timeoutMs: 50,
+				intervalMs: 1,
+				probe: async () =>
+					observed[Math.min(index++, observed.length - 1)] ?? "ENABLED",
+			},
+		),
+		"ENABLED",
+	);
+	assert.equal(index, 3);
+});
+
+test("Chrome registration stabilization fails fast for a disabled extension", async () => {
+	let calls = 0;
+	assert.equal(
+		await waitForChromeExtensionEnabled(
+			{ extensionId, loadDir },
+			{
+				timeoutMs: 50,
+				intervalMs: 1,
+				probe: async () => {
+					calls += 1;
+					return "DISABLED";
+				},
+			},
+		),
+		"DISABLED",
+	);
+	assert.equal(calls, 1);
 });

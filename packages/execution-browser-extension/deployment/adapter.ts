@@ -11,7 +11,10 @@ import {
 	readModuleSharedFacts,
 	writeModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
-import { probeChromeExtensionState } from "../src/chrome-extension-state.ts";
+import {
+	probeChromeExtensionState,
+	waitForChromeExtensionEnabled,
+} from "../src/chrome-extension-state.ts";
 import type {
 	BrowserExtensionDesktop,
 	BrowserExtensionPair,
@@ -759,7 +762,7 @@ export const behaviorAdapter = {
 			) {
 				await persistDeveloperModeConfirmation(context);
 			}
-			await runInteractiveBrowserExtensionSetup({
+			const paired = await runInteractiveBrowserExtensionSetup({
 				workspaceRoot: context.workspaceRoot,
 				...(input?.timeoutMs === undefined
 					? {}
@@ -767,6 +770,19 @@ export const behaviorAdapter = {
 				...(input?.desktop === undefined ? {} : { desktop: input.desktop }),
 				...(input?.pair === undefined ? {} : { pair: input.pair }),
 			});
+			if (input?.pair === undefined) {
+				const chromeState = await waitForChromeExtensionEnabled(
+					{
+						extensionId: paired.extensionId,
+						loadDir: browserExtensionLoadDir(context.workspaceRoot),
+					},
+					{ timeoutMs: 5_000 },
+				);
+				if (chromeState !== "ENABLED")
+					throw new Error(
+						`Chrome extension registration did not stabilize as ENABLED after pairing (${chromeState})`,
+					);
+			}
 			return {
 				result: base,
 				observedEffects: ["Materialize the unpacked MV3 extension package"],

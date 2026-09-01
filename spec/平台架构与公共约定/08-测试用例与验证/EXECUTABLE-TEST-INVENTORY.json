@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 144,
-    "testCalls": 649
+    "testCalls": 651
   },
   "tests": [
     {
@@ -2457,7 +2457,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/chrome-extension-state.test.ts",
-      "line": 24,
+      "line": 27,
       "title": "Chrome profile probe distinguishes enabled and missing unpacked Extension reality",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2468,8 +2468,30 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/chrome-extension-state.test.ts",
-      "line": 53,
+      "line": 56,
       "title": "Chrome profile probe ignores a matching ID loaded from a different path",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/chrome-extension-state.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/chrome-extension-state.test.ts",
+      "line": 70,
+      "title": "Chrome registration stabilization retries transient missing state until enabled",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/chrome-extension-state.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/chrome-extension-state.test.ts",
+      "line": 88,
+      "title": "Chrome registration stabilization fails fast for a disabled extension",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [

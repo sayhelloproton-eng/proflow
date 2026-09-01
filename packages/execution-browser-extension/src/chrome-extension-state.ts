@@ -72,6 +72,32 @@ async function preferredProfiles(root: string): Promise<string[]> {
 		? [lastUsed, ...profiles.filter((name) => name !== lastUsed)]
 		: profiles;
 }
+export type ChromeExtensionStateProbe = () => Promise<ChromeExtensionState>;
+
+export async function waitForChromeExtensionEnabled(
+	input: {
+		extensionId: string;
+		loadDir: string;
+		userDataRoot?: string;
+	},
+	options: {
+		timeoutMs?: number;
+		intervalMs?: number;
+		probe?: ChromeExtensionStateProbe;
+	} = {},
+): Promise<ChromeExtensionState> {
+	const timeoutMs = options.timeoutMs ?? 5_000;
+	const intervalMs = options.intervalMs ?? 100;
+	const probe = options.probe ?? (() => probeChromeExtensionState(input));
+	const deadline = Date.now() + timeoutMs;
+	let observed = await probe();
+	while (observed !== "ENABLED" && observed !== "DISABLED" && Date.now() < deadline) {
+		await new Promise((resolve) => setTimeout(resolve, intervalMs));
+		observed = await probe();
+	}
+	return observed;
+}
+
 export async function probeChromeExtensionState(input: {
 	extensionId: string;
 	loadDir: string;
