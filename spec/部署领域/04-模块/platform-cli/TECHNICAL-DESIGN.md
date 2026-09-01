@@ -65,7 +65,7 @@ setupStatus = READY | ACTION_REQUIRED | BLOCKED | FAILED
 runtimeStatus = RUNNING | STOPPED | FAILED | NOT_APPLICABLE
 ```
 
-非健康状态同时聚合 Module-owned `issues`，按需要操作、等待依赖、失败分组显示具体原因和下一条命令。没有 `configStatus`、`missingConfig`、整体 Platform readiness 或 verification state。
+非健康状态同时聚合 Module-owned `issues`，按需要操作、等待依赖、失败分组显示具体原因和下一条命令。没有 `configStatus`、`missingConfig` 或独立持久化的 Platform verification state；CLI 可以基于本次真实 Module/core-product observation 渲染派生的 `PLATFORM_READY=YES|NO` 用户摘要，但该摘要不是第二份状态真源。
 
 ## 6. Setup
 

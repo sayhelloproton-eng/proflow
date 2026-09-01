@@ -44,7 +44,7 @@ contractRefs: []
 
 上述为合同和实现闭环，不代表真实 Custom GPT/Browser/Provider 外部验收已经完成；外部现实仍按 `KNOWN-LIMITATIONS-AND-SPIKES.md` 与对应 blocker evidence 处理。
 
-## 2026-08-21 Deployment CLI release freeze
+## 历史｜2026-08-21 Deployment CLI release freeze
 
 - [x] `@tomflow/proflow-platform-cli@0.1.36` 与 24 个 Module 的 Registry latest 回读一致。
 - [x] 523 个 executable tests、架构、类型、Biome、Conformance 与 tarball publishability 全部通过。
@@ -52,7 +52,7 @@ contractRefs: []
 - [x] 冻结证据已写入 `../08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json`。
 - [ ] Git release commits 推送到 `origin/main`（未获本轮明确 Push 授权，不作为 npm 0.1.36 已发布事实的伪装条件）。
 
-## 2026-08-26 配置自动化与产品交付审计
+## 历史｜2026-08-26 配置自动化与产品交付审计
 
 已确认源码完成：Chrome 自动安装、Extension 自动准备/重验证、Custom GPT owning flow、ChatGPT Web 机器观察、Dev Tunnel create/reuse/port/host/URL、Platform setup 全量聚合与依赖门、Provider probe、Model capability mapping/runtime lifecycle。
 
@@ -64,3 +64,17 @@ contractRefs: []
 4. `HUMAN_BOUNDARY`：只保留 GitHub/ChatGPT 授权、Chrome 首次 Load unpacked、Provider 真正要求的 credential 和已验证候选歧义选择。
 
 当前不得恢复人工填写 Tunnel ID/URL/port、Chrome path、Extension ID、Gateway URL、Provider LAN URL 或模型 ID 的旧正常流程。当前配置自动化边界、Microsoft Dev Tunnel 裁决与未解决问题统一见平台公共上下文 `09-Real3当前上下文与未解决问题-20260829.md`。
+
+## 2026-09-01 Deployment Final Freeze
+
+- [x] governed Module 当前集合为 **23**，七标准能力 / descriptor / manifest / DOCS / SETUP governance 对齐。
+- [x] `platform-cli@0.1.50`、`dev-tunnel@0.1.25`、`execution-browser-extension@0.1.25` 与 Registry latest 一致。
+- [x] `agent-runtime@0.1.13` 与三个 Role package `0.1.16` 与 Registry latest 一致。
+- [x] 真正 Fresh Product Workspace `platform install` = 23/23 PASS；initial status fail-closed，不假 READY。
+- [x] Browser / Dev Tunnel / Model FAST-THINK / 3 Role-GPT 最终 setup READY。
+- [x] `platform start → status → repeat setup → repeat status → stop → cold start → final status` PASS；最终 `PLATFORM_READY=YES`。
+- [x] irreversible Custom GPT：LIVE_CREATED + durable Role 后 carrier validation failure 不 rollback Role；下次 setup 只 revalidate，不重复创建。
+- [x] Dev Tunnel cold start：start 会 reacquire managed CLI；Tunnel owner readiness = host + HTTPS:443 + TLS>=1.2，不等待 downstream Gateway HTTP。
+- [x] 用户最终裁决无剩余 Deployment blocker；Deployment = PASS / FROZEN；下一 Gate = Real-3 J0～J4。
+
+当前 Domain TODO **没有 Deployment Closeout blocker**。历史未完成项若已被 Final Freeze 覆盖，不得重新作为当前 TODO；Git push 仍未授权，且不影响 npm/Deployment Final Freeze 真值。

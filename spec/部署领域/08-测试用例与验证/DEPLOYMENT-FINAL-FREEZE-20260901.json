@@ -1,0 +1,87 @@
+{
+  "contract": "proflow.deployment-final-freeze.v1",
+  "date": "2026-09-01",
+  "sourceHeadAtFreeze": "f45a874",
+  "decision": {
+    "deploymentTechnicalMainline": "PASS",
+    "deploymentProductAcceptance": "PASS",
+    "deploymentSuccess": "YES",
+    "deploymentLifecycle": "FROZEN",
+    "readyForReal3": "YES",
+    "currentGate": "REAL_3_J0_J4"
+  },
+  "registryLatest": {
+    "@tomflow/proflow-platform-cli": "0.1.50",
+    "@tomflow/proflow-dev-tunnel": "0.1.25",
+    "@tomflow/proflow-execution-browser-extension": "0.1.25",
+    "@tomflow/proflow-agent-runtime": "0.1.13",
+    "@tomflow/proflow-agent-controller-dev": "0.1.16",
+    "@tomflow/proflow-agent-product": "0.1.16",
+    "@tomflow/proflow-agent-test-ops": "0.1.16"
+  },
+  "finalHumanSimulation": {
+    "bootstrap": "global real npm platform-cli latest",
+    "freshWorkspace": "PASS; repos/ protected",
+    "install": "PASS; 23/23 modules",
+    "initialStatus": "PASS; fail-closed; PLATFORM_READY=NO",
+    "setupFinal": "PASS; 3/3; public repeat setup recovery; no internal shortcut",
+    "browserExtension": "PASS",
+    "devTunnel": "PASS",
+    "modelFastThink": "PASS",
+    "threeRoleGpt": "PASS",
+    "start": "PASS",
+    "statusAfterStart": "PASS; PLATFORM_READY=YES",
+    "repeatSetup": "PASS",
+    "repeatStatus": "PASS; PLATFORM_READY=YES",
+    "stop": "PASS",
+    "coldRestart": "PASS; 5 success / 18 skipped / 0 failed",
+    "finalStatus": "PASS; 3/3; PLATFORM_READY=YES"
+  },
+  "frozenContracts": {
+    "realNpmOnly": true,
+    "noAcceptanceTarballLinkSymlinkRepoOverride": true,
+    "platformStartForegroundOwner": true,
+    "stopStartAcceptanceUsesSeparateProcesses": true,
+    "customGptLiveCreatedDurableRoleNotRolledBackOnCarrierValidationFailure": true,
+    "devTunnelStartReacquiresManagedCli": true,
+    "devTunnelOwnedReadiness": "host RUNNING + HTTPS:443 + TLS>=1.2; downstream Gateway HTTP validated later by Gateway/Carrier"
+  },
+  "userAdjudicatedNonBlockers": [
+    {
+      "observation": "first Browser setup PAIRING_TIMEOUT",
+      "decision": "IGNORE; test-operation factor"
+    },
+    {
+      "observation": "single devtunnel port list --json failed",
+      "decision": "IGNORE for Deployment; revisit only with future evidence"
+    },
+    {
+      "observation": "single GATEWAY_HEALTH_UNREACHABLE",
+      "decision": "IGNORE; asynchronous/transient, public setup recovered"
+    },
+    {
+      "observation": "Registry discovery about 112 seconds",
+      "decision": "ACCEPTED; performance observation, not blocker"
+    }
+  ],
+  "prohibitions": [
+    "do not reopen Deployment from historical handoff alone",
+    "do not git push without explicit authorization",
+    "do not use local tarball/npm link/workspace symlink/repo source as Deployment acceptance authority"
+  ],
+  "repositoryConsistency": {
+    "documentationCurrentTruth": "PASS; Deployment=FROZEN and current gate=REAL_3_J0_J4; historical handoffs explicitly downgraded",
+    "testPlanToExecutableTraceability": "PASS; 39 plans / 322 formal cases / 144 executable files / 655 test calls / noMapping=0 / errors=0",
+    "surfaceGovernance": "PASS; 23 packages / 91 exports / 14 binaries / errors=0",
+    "releaseVersionSync": "PASS; 23 workspace package directories checked",
+    "platformCliTests": "PASS; 87/87",
+    "platformCliTypecheck": "PASS",
+    "devTunnelTests": "PASS; 37/37",
+    "devTunnelTypecheck": "PASS",
+    "crossProcessHarness": "PASS; initial fixture readiness ceiling raised 30s→90s only; stop/uninstall assertions unchanged; target file 2/2 and full platform suite 87/87",
+    "productionCodeChanges": 0,
+    "gitDiffCheck": "PASS",
+    "staleCurrentStateConflicts": "0 unresolved in authoritative current context; old incident wording retained only when explicitly historical",
+    "fullFreshRerun": "NOT_REQUIRED; final real npm FULL FRESH was already adjudicated PASS before repository freeze"
+  }
+}

@@ -755,7 +755,7 @@ test("deployment setup temporarily starts service dependencies before agent-pack
 	);
 });
 
-test("deployment setup also starts external-resource runtime dependencies needed by an agent package", async () => {
+test("CP-DEP-CLI-FINAL-01 deployment setup also starts external-resource runtime dependencies needed by an agent package", async () => {
 	const ingress = moduleFixture({
 		moduleRef: "public-ingress",
 		kind: "external-resource",

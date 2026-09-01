@@ -5,50 +5,29 @@
 > Product Workspace：`/Users/agent/Desktop/proton-workspace`
 > 用途：本次是用户明确要求的一次性紧急 handoff，优先级高于旧滚动上下文。
 
-## 0. 2026-09-01 最新覆盖（高于本文后续历史段落）
+## 0. 2026-09-01 Final Freeze 覆盖（当前唯一有效结论）
 
-本文第 1～15 节保留 P1 发现时的历史现场；当前执行必须先采用本节最新机械事实：
-
-```text
-P1 irreversible GPT Role rollback/recreate
-= 已修复合同与实现
-= 真实 npm 已发布
-= SAME SCENE 已恢复 3/3 原 Role/GPT
-= 不再是当前 blocker
-
-platform-cli external-resource temporary start
-= 0.1.50 已真实发布并进入 Product Workspace
-
-dev-tunnel start public HTTPS/TLS readiness
-= 0.1.23 已真实发布并进入 Product Workspace
-
-agent-runtime transient Action probe retry
-= 0.1.13 已真实发布并进入 Product Workspace
-```
-
-真实 npm `agent-runtime@0.1.13` 已在原 SAME SCENE 再次执行 canonical `platform setup` 并 `HUMAN_SETUP_RC=0`，3/3 核心配置完成，3 个原 Role/GPT 保持不变。因此此前单次 `GATEWAY_HEALTH_UNREACHABLE` 定性为未复现的外部瞬时现象，不再作为 Deployment blocker；实验性 health retry 已精确撤回，不发布 `agent-runtime@0.1.14`。
-
-当前唯一可重复 blocker 出现在冻结验收要求的 `platform stop → platform start → status`：真实 npm `dev-tunnel@0.1.23` 冷启动连续两次在 `dev-tunnel` 失败。后台权威诊断确认真实安装包所管理的 `.devtunnel/1.0.2030/.../devtunnel` 文件已不存在，执行得到 `ENOENT`；`setup()` 会调用 `resolveDevTunnelCli()` 自动重新获取 CLI，但 `start()` 直接使用 `devTunnelCliPath()`，所以将 ENOENT 折叠成 `login=UNKNOWN` 并误报 `Microsoft Dev Tunnel login is not ready`。当前最小修复：`start()` 先通过 owner resolver 确保 managed CLI 存在，再创建 runtime；针对回归测试与 typecheck 已 PASS，待真实 npm patch release 后重放 stop→start→status。
-
-从现在起执行规则以 `05 §4.10` 为最高优先级：**真实 npm only；禁止 local tarball/link/workspace shortcut 作为 Deployment 验收；昂贵 release 前一次性检查完整失败层；默认 targeted test + typecheck；SAME SCENE PASS 后立即 FULL FRESH；FULL FRESH 主链 PASS 即 `DEPLOYMENT_SUCCESS=YES` 并结束 Deployment，不再做瑕疵扩展。**
-
-
-
-**Deployment 禁止 tarball 硬规则（用户再次明确，2026-09-01）：** 从现在起，Deployment Closeout 的调试、SAME SCENE、模拟人工验收、Product Workspace 验收、FULL FRESH 最终证明，**一律禁止使用 local tarball / `npm pack` 产物 / 本地 `.tgz` / `npm link` / workspace symlink / repo source override 代替真实 npm Registry 包**。即使只是“为了更快先验证一下”，也不允许把 tarball 引入当前 Deployment 主线。修复必须先完成 targeted test + typecheck，再真实发布到 npm Registry，随后只用 Registry exact/latest 安装物重放。若未来某个执行者认为 tarball 更快，必须忽略该想法并继续真实 npm 路径；除非用户以后明确撤销本规则。
-
-当前唯一下一动作：
+本文后续第 1～15 节全部降级为 **HISTORICAL INCIDENT HANDOFF**，只保留事故与恢复过程，不再定义当前 blocker / Gate / Next Action。
 
 ```text
-dev-tunnel start managed CLI reacquisition 修复
-→ targeted regression + typecheck
-→ 真实 npm patch release（预计 dev-tunnel 0.1.24）
-→ Registry exact/latest readback
-→ Product Workspace 安装真实 npm 版本
-→ 直接重放 stop → start owner → status
-→ lifecycle PASS 后立即 FULL FRESH
+P1 irreversible GPT Role rollback/recreate = CLOSED
+managed Dev Tunnel CLI reacquisition = CLOSED in dev-tunnel 0.1.24+
+cold-start readiness circular dependency = CLOSED in dev-tunnel 0.1.25
+FINAL FULL FRESH = PASS
+DEPLOYMENT_PRODUCT_ACCEPTANCE = PASS
+DEPLOYMENT_SUCCESS = YES
+DEPLOYMENT = FROZEN
+READY_FOR_REAL_3 = YES
+CURRENT_GATE = REAL_3_J0_J4
 ```
 
-## 1. 下一 Chat 的唯一目标
+最终真实 npm latest：`platform-cli@0.1.50`、`dev-tunnel@0.1.25`、`execution-browser-extension@0.1.25`、`agent-runtime@0.1.13`、三个 Role package `0.1.16`。23/23 install、3/3 setup、Browser/Tunnel/FAST-THINK/3 Role、start/status、repeat setup/status、stop→cold start→final status 全部完成，最终 `PLATFORM_READY=YES`。
+
+用户裁决为 NOT_BLOCKER：首次 Browser `PAIRING_TIMEOUT`、单次 `devtunnel port list --json failed`、单次 `GATEWAY_HEALTH_UNREACHABLE`、Registry discovery ≈112s。无新可复现 regression evidence 时，禁止用本文后续历史内容重开 Deployment。
+
+Deployment acceptance 永久规则仍保留：真实 npm only；禁止 local tarball/link/workspace shortcut 冒充最终验收；修复后 SAME SCENE 重放；Final Fresh 主链 PASS 后停止扩展。
+
+## 1. 历史：当时下一 Chat 的唯一目标
 
 不要重新做仓库总审计，也不要重新优化 Browser/GPT 自动化。
 
@@ -62,7 +41,7 @@ dev-tunnel start managed CLI reacquisition 修复
 → 满足标准后裁决 DEPLOYMENT_SUCCESS=YES 并结束 Deployment 阶段
 ```
 
-P1 修完之前：`DEPLOYMENT_SUCCESS=NO`。
+P1 修完之前：`HISTORICAL_DEPLOYMENT_SUCCESS=NO`。
 
 ## 2. 进入本轮前已完成的基线
 
@@ -211,7 +190,7 @@ packages/platform-cli/src/lifecycle/thin.ts
 → 可能产生重复 GPT
 ```
 
-这是当前唯一必须修的 Deployment blocker。
+历史现场当时，这是唯一必须修的 Deployment blocker；该 blocker 已在 Final Freeze 前闭环。
 
 ## 6. 当前 SAME SCENE 的重要安全边界
 
@@ -414,7 +393,7 @@ Product Workspace：/Users/agent/Desktop/proton-workspace
 5. 05-执行纪律与工具规则.md
 6. 11-跨项目自动化模拟人工测试提效方法论.md
 
-当前唯一目标：修复最终 Fresh 人工模拟发现的 P1，然后安全 SAME SCENE 恢复，最后 Fresh 一次，满足标准后直接判 DEPLOYMENT_SUCCESS=YES 并结束 Deployment。
+历史现场当时的唯一目标：修复最终 Fresh 人工模拟发现的 P1，然后安全 SAME SCENE 恢复，最后 Fresh 一次，满足标准后直接判 DEPLOYMENT_SUCCESS=YES 并结束 Deployment；该目标现已完成。
 
 P1：第三个 agent-test-ops Custom GPT 在远端已经创建后，Carrier live validation 瞬时失败；createCustomGptRole 回滚了本地 Role，但不会删除不可逆的远端 GPT。当前本地只有 2 个 Role，因此直接重跑 platform setup 存在重复创建第三个 GPT 的风险。
 
@@ -442,7 +421,7 @@ P1：第三个 agent-test-ops Custom GPT 在远端已经创建后，Carrier live
 DEPLOYMENT_CORE_3_OF_3 = YES
 ROLE_READY = 2/3
 PLATFORM_READY = NO
-DEPLOYMENT_SUCCESS = NO
+HISTORICAL_DEPLOYMENT_SUCCESS = NO
 唯一阻断 = P1 irreversible Custom GPT create + post-create live validation rollback/retry safety
 ```
 

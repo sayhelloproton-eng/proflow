@@ -29,9 +29,9 @@
 3. **命令行交互好用**：每一步都明确“正在做什么 / 为什么停 / 用户只需做什么 / 完成后如何继续”，支持重入、取消、失败恢复，不让用户猜命令或内部状态。
 4. **默认输出明确**：默认只暴露当前状态、唯一 root cause、下一步和最终结果；内部 traversal/dependency/owner 细节进入 verbose/doctor/日志。
 
-因此当前状态必须区分：`DEPLOYMENT_TECHNICAL_MAINLINE=PASS`，但完整 `DEPLOYMENT_SUCCESS` 要等 O1～O6 优化版本发布后，在真实 npm latest + Product Workspace 上重新完成**完整、不可裁剪的普通用户 Fresh Deployment E2E**，并证明上述四项达到冻结标准。非阻断的小 polish 不反向推翻技术主链 PASS，但产品入口若仍要求用户理解内部实现、重复手工执行机器可做动作、交互含糊或默认输出误导，则完整 Deployment Product Acceptance 不得 PASS。
+上述四项产品门已在 2026-09-01 最终真实 npm latest + Fresh Product Workspace E2E 中完成裁决并 PASS。Deployment 当前是 **FROZEN**，不是待优化状态；只有新的、可复现且足以推翻冻结合同的 regression evidence 才允许正式重开。非阻断 polish、已裁决偶发现象和历史 handoff 不得反向把 `DEPLOYMENT_SUCCESS=YES` 改回 pending。
 
-Deployment Closeout 已于 2026-09-01 完成最终真实验收：Registry latest / Global CLI / Product Workspace 均使用当前发布物；真正 Fresh Workspace 完成 23/23 install、Browser Fresh load、Dev Tunnel、Model FAST/THINK 映射与 3 个 GPT/Identity 创建，随后 `platform status=3/3 / PLATFORM_READY=YES`。最终 lifecycle `start → status → repeat setup → repeat status → stop → start → final status` 在 59.49s 内 PASS；校准后的 backstage probes 同时证明 Model Runtime authenticated readiness、Execution Runtime、Platform Host、Agent Gateway、本地/公网 Tunnel readiness 与公网未授权 401 auth boundary 均 PASS。`DEPLOYMENT_PRODUCT_ACCEPTANCE=PASS`，`DEPLOYMENT_SUCCESS=YES`；Deployment Closeout 到此结束，下一阶段回到 Real-3 J0～J4。
+Deployment Closeout 已于 2026-09-01 完成最终真实验收：Registry latest / Global CLI / Product Workspace 均使用当前发布物；真正 Fresh Workspace 完成 23/23 install、Browser Fresh load、Dev Tunnel、Model FAST/THINK 映射与 3 个 GPT/Identity 建立或恢复，随后 `platform status=3/3 / PLATFORM_READY=YES`。最终 lifecycle `start → status → repeat setup → repeat status → stop → start → final status` PASS；backstage reality 与公开 CLI READY 一致。`DEPLOYMENT_PRODUCT_ACCEPTANCE=PASS`，`DEPLOYMENT_SUCCESS=YES`；Deployment Closeout 到此结束，下一阶段回到 Real-3 J0～J4。
 
 必须继续严格区分：
 
@@ -73,10 +73,9 @@ Deployment PASS 不代表 J0～J6 业务 Journey、协作/Approval/Effect、Brow
 ## 固定 Real 路线
 
 ```text
-Deployment latest mainline / Fresh revalidation       PASS
-Optimization release + complete latest Fresh E2E      CURRENT CLOSEOUT
+Deployment latest / Product Acceptance / Final Fresh  PASS / FROZEN
   ↓
-Real-3  Task Journey J0～J4                            NEXT
+Real-3  Task Journey J0～J4                            CURRENT
   ↓
 Real-4  Collaboration + Approval + Effect
   ↓

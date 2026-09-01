@@ -44,7 +44,8 @@ user show --json
 → port list/create/update --json 幂等对齐
 → host persistent Tunnel
 → 按当前 Gateway port 精确发现 HTTPS forwarding URI
-→ 验证 TLS 1.2+ 与 HTTPS 可达
+→ 验证 owner 自身 readiness：host RUNNING + HTTPS:443 + TLS 1.2+
+→ 不等待 downstream Gateway HTTP response；应用层 `/health`/Action reachability 由 Gateway/Carrier 后续 owner 验证
 → 持久化 tunnelId/publicBaseUrl 并发布 shared facts
 → READY
 ```
@@ -59,8 +60,10 @@ user show --json
 - **CP-DEV-TUNNEL-04 Port**：当前端口映射正确时 no-op；缺失时 create；协议 drift 时 bounded update；失败不得写 READY。
 - **CP-DEV-TUNNEL-05 URL**：只接受当前 Gateway port 对应的 `portForwardingUris` HTTPS URL；多端口不得取第一个；缺失、畸形、非 HTTPS fail closed。
 - **CP-DEV-TUNNEL-06 Idempotency**：重复 setup 不重新登录、不重复创建 Tunnel/port，持久 state 稳定。
-- **CP-DEV-TUNNEL-07 Runtime**：owned host 复用，UNKNOWN 不盲目重放，stop 保持安全语义。
+- **CP-DEV-TUNNEL-07 Runtime**：owned host 复用，UNKNOWN 不盲目重放，stop 保持安全语义；start 时 package-local managed CLI 缺失必须经 `resolveDevTunnelCli()` 自动 reacquire。
 - **CP-DEV-TUNNEL-08 Security/Contract**：setup state 只含非敏感 `tunnelId/publicBaseUrl`；不读取、输出、持久化 token；七命令、`public-ingress` 和零 configSlots 不变。
+- **CP-DEV-TUNNEL-09 Cold-start readiness ownership**：`start()` 的成功条件只要求 owned host + HTTPS:443 + TLS>=1.2；不得要求此时尚未启动的 downstream Gateway 返回 HTTP，否则形成 `Tunnel waits Gateway / Gateway waits Tunnel` 循环依赖。
+- **CP-DEV-TUNNEL-10 Managed CLI recovery**：npm reify 删除 package-local `.devtunnel` 后，下一次 public start 必须重新 acquire CLI，而不是把 ENOENT 误报为 login not ready。
 
 ## 4. Test Layers
 

@@ -50,9 +50,11 @@ contractRefs: []
 
 Setup 的产品目标固定为：**用最少用户操作、最少往返、最快达到全部 required Module `setupStatus=READY` 并进入 `platform start`**。`platform setup` 默认全量聚合；具体配置流程由各 Module 自己闭环。机器能完成的步骤必须自动完成，用户只处理真实外部选择/动作；每个 setup Step 都必须有 package-owned executable/verify 路径。
 
-## 当前冻结发布
+## 当前 Final Freeze（2026-09-01）
 
-Deployment CLI 的已发布基线冻结为 `@tomflow/proflow-platform-cli@0.1.36`。冻结范围、包版本、测试门禁、Fresh Workspace 验收以及未声明完成的外部 E2E，统一记录在 [`08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json`](08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json)。
+Deployment 已完成最终真实产品验收并封版。当前发布线：`@tomflow/proflow-platform-cli@0.1.50`、`@tomflow/proflow-dev-tunnel@0.1.25`、`@tomflow/proflow-execution-browser-extension@0.1.25`；Agent Runtime `0.1.13`，三个 Role package `0.1.16`。最终证据见 [`08-测试用例与验证/DEPLOYMENT-FINAL-FREEZE-20260901.json`](08-测试用例与验证/DEPLOYMENT-FINAL-FREEZE-20260901.json)。
+
+`DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json` 继续保留为 2026-08-21 的历史 release freeze，不得覆盖当前 Final Freeze。
 
 ## 2026-08-14 Carrier / Journey 对齐
 

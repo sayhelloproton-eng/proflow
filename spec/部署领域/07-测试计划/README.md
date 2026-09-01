@@ -46,4 +46,4 @@ Module Governance
 
 旧 command/engine 测试只能作为历史参考，不能作为当前产品 acceptance truth。
 
-最终验证路径固定为：`install → status → docs → setup → start → status → stop → uninstall`。
+工程七命令 regression 固定覆盖：`install → status → docs → setup → start → status → stop → uninstall`。最终 Deployment Product Acceptance 另固定为：`真实 npm latest → Fresh Workspace → install → initial status → setup → Browser/Tunnel/Model/3 Role → start/status → repeat setup/status → stop→cold start→final status`；两者不能互相替代。

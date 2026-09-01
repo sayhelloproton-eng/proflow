@@ -7,11 +7,11 @@
   },
   "currentMechanicalInventory": {
     "testPlans": 39,
-    "formalCaseIdentities": 316,
-    "criticalProofs": 199,
+    "formalCaseIdentities": 322,
+    "criticalProofs": 205,
     "requiredFailureBoundaries": 117,
     "executableTestFiles": 144,
-    "executableTestCalls": 651,
+    "executableTestCalls": 655,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -1093,27 +1093,17 @@
           "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-runtime.md"
         }
       ],
-      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-        "packages/agent-runtime/tests/role-management-client.test.ts",
-        "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
+        "packages/agent-runtime/tests/role-management-client.test.ts"
       ],
       "ownerPackages": [
-        "agent-runtime",
-        "platform-host"
+        "agent-runtime"
       ],
       "implementationRefs": [
-        "packages/agent-runtime/src/index.ts",
-        "packages/agent-runtime/src/role-management-client.ts",
-        "packages/platform-host/src/index.ts",
-        "packages/platform-host/src/role-operations.ts",
-        "packages/task-migration-runner/src/index.ts",
-        "packages/task-orchestration/src/index.ts",
-        "packages/task-store-sqlite/src/index.ts"
+        "packages/agent-runtime/src/role-management-client.ts"
       ],
       "proofStrengths": [
-        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1389,6 +1379,124 @@
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR",
         "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-FINAL-01",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-FINAL-02",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/cross-process-stop.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-FINAL-03",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/platform-cli/tests/cross-process-stop.test.ts",
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-FINAL-04",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/platform-cli/tests/cross-process-stop.test.ts",
+        "packages/platform-cli/tests/lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/cli.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
@@ -1863,6 +1971,60 @@
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
       ],
       "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEV-TUNNEL-09",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEV-TUNNEL",
+          "path": "spec/部署领域/07-测试计划/modules/dev-tunnel.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/dev-tunnel/tests/current-spec-alignment.test.ts"
+      ],
+      "ownerPackages": [
+        "dev-tunnel"
+      ],
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts"
+      ],
+      "proofStrengths": [
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEV-TUNNEL-10",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-DEV-TUNNEL",
+          "path": "spec/部署领域/07-测试计划/modules/dev-tunnel.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/dev-tunnel/tests/current-spec-alignment.test.ts"
+      ],
+      "ownerPackages": [
+        "dev-tunnel"
+      ],
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts"
+      ],
+      "proofStrengths": [
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {

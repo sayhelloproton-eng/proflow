@@ -28,7 +28,7 @@ contractRefs:
 
 - [x] Contract 定义七标准能力与 `setupStatus/runtimeStatus/issues`。
 - [x] Template/Skill/Conformance 对齐 DOCS/SETUP 与配置暴露边界。
-- [x] 24/24 governed package descriptor/adapter/package/manifest/docs 对齐。
+- [x] 23/23 governed package descriptor/adapter/package/manifest/docs 对齐。
 
 ## R3 — CLI refactor
 
@@ -46,17 +46,17 @@ contractRefs:
 - [x] Conformance 证明所有 governed Module 七能力 + DOCS/SETUP。
 - [x] 跑 simulated human Golden Path。
 
-## Final stop
+## Final stop（2026-09-01 已完成）
 
 ```text
 SIMULATED_HUMAN_E2E = PASS
 READY_FOR_HUMAN_ACCEPTANCE = YES
-PLATFORM_REAL_E2E = NOT PASS
+PLATFORM_REAL_E2E = PASS
+DEPLOYMENT_SUCCESS = YES
+DEPLOYMENT = FROZEN
 ```
 
-前两项只记录 0.1.36 冻结时的代码/模拟门，不能推导当前已安装产品或真实外部链 PASS。2026-08-26 父工作区真实 status 为 `20 READY / 2 ACTION_REQUIRED / 1 BLOCKED / 1 FAILED`，并确认 installed package 与 main 存在同版本内容漂移。当前仍需可区分版本的正式交付、安装回读和七命令真实重放。
-
-任何非 Gate blocker 记录 `OUT_OF_SCOPE_DOMAIN`；缺 shared fact 记录 `SHARED_FACT_CONTRACT_MISSING`；两者都禁止向业务源码无限扩散。缺少 Deployment-owned Provider endpoint resolver 时记录 `ARCHITECTURE_STOP`，不得让 Platform CLI 特判 Provider 或向用户索取机器可发现 URL。
+0.1.36 仅是历史工程冻结证据；当前 Final Freeze 使用 `platform-cli@0.1.50` 与真实 npm/Fresh Product Workspace 证据。没有新的可复现 regression evidence 时，不得重新打开本 TODO 的历史 delivery follow-up。
 
 ## Setup 全量验收
 
@@ -66,12 +66,12 @@ PLATFORM_REAL_E2E = NOT PASS
 - [x] 用户只提供真实人工/外部输入；path/token/endpoint/shared fact 不回退成人工配置。
 - [x] 最终目标以最少用户操作、最少往返达到 READY 并进入 `platform start`。
 
-冻结证据：`../../08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json`。后续功能变更必须以新 patch 版本重新打开 Gate。
+历史冻结证据：`../../08-测试用例与验证/DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json`；当前 Final Freeze：`../../08-测试用例与验证/DEPLOYMENT-FINAL-FREEZE-20260901.json`。
 
-## 2026-08-26 Automation / delivery follow-up
+## 历史｜2026-08-26 Automation / delivery follow-up
 
-- [ ] 裁决 Deployment-owned Provider endpoint resolver；如需新增 Module 或改变当前 23 模块顺序，先做正式架构变更。
-- [ ] 以新 patch version 完成正式 release/publish/install；未经授权不执行 push/publish。
-- [ ] 安装后回读 23 个包版本和关键 dist SHA，确认不再加载旧 Carrier/Provider/Tunnel 语义。
-- [ ] 重跑完整七命令与 Chrome/HTTPS、真实模型、重复 setup、provider-off recovery。
-- [ ] 只有 authoritative states 与真实外部 evidence 一致时才更新 `PLATFORM_REAL_E2E`。
+- [x] 历史项已由最终 URL/FAST/THINK 边界与 Final Fresh 覆盖；如未来改变当前 23 模块顺序，仍需正式架构变更。
+- [x] 已完成可区分 patch release/publish/install；git push 仍未授权且不是 Final Freeze 前提。
+- [x] Final Fresh 已通过真实 Registry install 与 runtime reality 排除旧 Carrier/Provider/Tunnel 语义。
+- [x] 最终用户 Journey 与 required recovery scope 已完成；历史 provider-off evidence 保留，不在 Final Fresh 重做。
+- [x] authoritative states 与真实外部 evidence 已对齐，`PLATFORM_REAL_E2E=PASS`。

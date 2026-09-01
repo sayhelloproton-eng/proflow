@@ -2,7 +2,7 @@
 
 > 建立时间：2026-08-30
 > 最新整合：2026-09-01
-> 性质：滚动执行总控表 / 当前进度真源
+> 性质：Deployment Final Freeze 记录 / 历史 Closeout 过程；不再定义当前 Gate
 > 当前状态：`DEPLOYMENT_TECHNICAL_MAINLINE = PASS`；`DEPLOYMENT_PRODUCT_ACCEPTANCE = PASS`；`DEPLOYMENT_SUCCESS = YES`。Deployment Closeout 已结束。
 
 ## 1. 当前唯一目标
@@ -87,22 +87,22 @@ Current Gate                   = DEPLOYMENT_CLOSEOUT_COMPLETE → REAL_3_J0_J4
 Source versions：
 
 ```text
-@tomflow/proflow-platform-cli                 0.1.49
-@tomflow/proflow-dev-tunnel                   0.1.22
-@tomflow/proflow-execution-browser-extension  0.1.24
+@tomflow/proflow-platform-cli                 0.1.50
+@tomflow/proflow-dev-tunnel                   0.1.25
+@tomflow/proflow-execution-browser-extension  0.1.25
 ```
 
 最后机械确认 Registry latest：
 
 ```text
-platform-cli = 0.1.49
-dev-tunnel   = 0.1.22
-browser      = 0.1.22
+platform-cli = 0.1.50
+dev-tunnel   = 0.1.25
+browser      = 0.1.25
 ```
 
-2026-09-01 latest release 已完成：`platform-cli@0.1.49`、`dev-tunnel@0.1.22`、`execution-browser-extension@0.1.22` 均已 Registry exact readback 且 dist-tag `latest` 指向该版本。
+2026-09-01 Final Freeze 机械回读：`platform-cli@0.1.50`、`dev-tunnel@0.1.25`、`execution-browser-extension@0.1.25` 均与 Registry `latest` 一致；`agent-runtime@0.1.13`、三个 Role package `0.1.16` 同样一致。
 
-Product Workspace 当前仍是 npm-owned。2026-09-01 仓库审计后已原地升级到 `platform-cli=0.1.49`，随后执行最新一轮真实 FULL FRESH：Fresh Workspace、Registry latest global CLI、23 包 install、Browser Fresh load、Dev Tunnel、Model、Role provisioning 均已产生真实当前 evidence。当前 `platform status`：
+Final Freeze 使用真实 npm-owned Product Workspace：全局 `platform-cli=0.1.50` 作为 Fresh bootstrap，随后 23 包 install、Browser Fresh load、Dev Tunnel、Model、Role provisioning/recovery 均完成真实当前 evidence。最终 `platform status`：
 
 ```text
 配置进度 3/3
@@ -112,7 +112,7 @@ Model   = 已完成
 PLATFORM_READY=YES
 ```
 
-但本轮 FULL FRESH 的**总性能计时不得作为最终 happy-path baseline**：Browser Extension 安装/卸载和 CLI TTY 驱动过程中出现测试 harness 自身的定位、焦点、按键时序和临时脚本错误，混入了分钟级 `HARNESS_OVERHEAD`。功能证据保留，受污染的总耗时作废；必须先固化唯一 Browser/TTY helper，再重跑最终统一计时。
+最终裁决不再要求补跑性能基线：首次 Browser `PAIRING_TIMEOUT` 作为测试操作因素忽略；单次 Tunnel/Gateway 异步现象由公开 repeat setup 恢复；Registry discovery 约 112s 已由用户裁决可接受。以上均为 `NOT_BLOCKER`，Deployment 不因这些历史观测继续重跑。
 
 ## 3. Deployment latest 技术主链 PASS 证据
 
@@ -123,15 +123,15 @@ PLATFORM_READY=YES
 | platform start | PASS | 首次启动成功；历史 repeat start 仅保留为既有证据，不再是最终每轮 E2E 必测项 |
 | final status | PASS | `PLATFORM_READY=YES` |
 | listeners | PASS | `41705/47080/51443/55225/56107` 全部真实 LISTEN |
-| Browser 0.1.22 | PASS | 真实 Chrome Fresh load → enabled / Service Worker → pairing / live heartbeat → READY |
+| Browser 0.1.25 | PASS | 真实 Chrome Fresh load → enabled / Service Worker → pairing / live heartbeat → READY |
 | Dev Tunnel | PASS | owned Tunnel persisted；公网 HTTPS 到达 Gateway auth boundary，返回 401 AUTHENTICATION_FAILED |
 | Model | PASS | `/ready` fast/reason READY；FAST 和 THINK 都完成真实 `/infer` |
 | 3 GPT carrier | PASS | 三个 Final-Fresh GPT 在真实登录 Chrome 逐个打开并与 owner-local identity 对齐；不做“是否重建”专项断言 |
 | repeat/recovery scope | PASS | 历史 repeat setup/start/status 与 stop→start 已成立；未来最终 E2E 只重跑冻结的最小真实用户集合 |
 | no Fake READY | PASS | Browser READY 必须来自当前 Fresh load + pairing / live heartbeat + `platform status` 真值，不能只凭历史 evidence |
 | Technical mainline | **PASS** | 真实安装/setup/start/status + Browser/Tunnel/Model/3 GPT + recovery/idempotency 已成立 |
-| Product acceptance | **PENDING** | 等优化版发布后的完整 latest Fresh Deployment E2E 验证用户心智、自动化、CLI 交互、默认输出四项硬门 |
-| DEPLOYMENT_SUCCESS | **NOT_YET_FINAL** | 四项产品门通过后才可最终 YES |
+| Product acceptance | **PASS** | 最终真实 npm latest + Fresh Product Workspace 完整 E2E 已由用户裁决通过 |
+| DEPLOYMENT_SUCCESS | **YES / FROZEN** | Final Fresh + lifecycle/recovery 主链 PASS；无剩余 Deployment blocker |
 
 ## 3.1 已完成 Recovery / Fail-closed 回归基线
 
@@ -197,7 +197,7 @@ e30f9d2 fix(release): drive package publish from pnpm changesets
 d768615 perf(browser): streamline extension install acceptance
 ```
 
-当前 release state（2026-09-01 仓库一致性审计机械确认）：
+历史 release state（2026-09-01 中途一致性审计；已被 Final Freeze 版本覆盖）：
 
 ```text
 platform-cli source 0.1.49 / Registry latest 0.1.49
@@ -234,7 +234,7 @@ HOST_BRANCH = KEEP_CURRENT
 
 Port 仍然只 reconcile 当前 Gateway exact port；`http` 已存在直接复用、缺失创建、协议漂移仅删除 exact port 再创建；不新增 mutation timeout recovery 状态机。Host 仍以 owned process + remote host reality 防重复启动，不新增 takeover / kill / duplicate-host recovery 状态机。
 
-最终 Public URL / READY 语义冻结为：只接受当前 Gateway port 的 HTTPS URI → HTTPS:443 / TLS>=1.2 / reachability 真验证 → 才写 `READY` 与 shared facts。完整 E2E 后台若无 Bearer 得到 `401 / AUTHENTICATION_FAILED`，视为到达 Gateway auth boundary 的正向 ingress evidence。
+最终 Public URL / READY ownership 冻结为：只接受当前 Gateway port 的 HTTPS URI，并验证 owned host + HTTPS:443 + TLS>=1.2；Dev Tunnel start 不等待 downstream Gateway HTTP。应用层 `/health` / Action reachability 由 Gateway/Carrier 后续 owner 验证；完整 E2E 的 protected ingress 401 可作为到达 Gateway auth boundary 的正向 evidence。
 
 `@tomflow/proflow-module-contract` 保留：它提供 `ModuleCommandContext` 与跨 Module shared facts，Dev Tunnel 用它消费 `agent-gateway.localBaseUrl` 并发布 `tunnelId/publicBaseUrl`，不属于本轮被裁掉的 CLI wrapper。
 
@@ -299,22 +299,16 @@ TTY：宽泛匹配 Yes
 
 3 GPT / Custom GPT 浏览器创建流程与本事故无关，继续 `FROZEN / DO NOT TOUCH`。
 
-## 6. 当前唯一 Next Action
+## 6. Final Freeze 后唯一 Next Action
 
 ```text
-1. 先收口 Browser Extension / CLI TTY 测试 harness：
-   - 仓库内唯一 helper；禁止 /tmp 临时第二实现
-   - uninstall：定位 ProFlow 卡自己的 Remove → click → 默认键盘确认 → 验证卡消失
-   - install：Load unpacked → picker foreground → Cmd+Shift+G → paste Platform clipboard loadDir
-              → Enter 进入目录 → 等待 Select ready → 单独 Select → 验证 card + live pairing
-   - CLI：具体 public prompt 顺序状态机，每个 prompt 只响应一次
-2. 单独重复验证 helper 的 uninstall/install，记录 HARNESS 与产品动作耗时；3 GPT 浏览器创建流程不动。
-3. helper 稳定后，再从真正 Fresh 起点运行最终 FULL FRESH，重新建立未污染总耗时。
-4. 完整主链：Registry latest → Fresh → install/status/setup → Browser/Tunnel/Model/3 GPT → start/status。
-5. 收尾只跑：repeat setup + repeat status + normal stop → start → status。
-6. backstage runtime / public ingress proof + Product Acceptance 四项门。
-7. 更新 02/09/10 最终状态，结束 Deployment Closeout → 回 Real-3 J0～J4。
+Deployment = PASS / FROZEN
+→ 不再做 Deployment 瑕疵扩展、补跑或 release
+→ 仓库文档 / Test Plan / executable tests / code consistency 封版
+→ CURRENT_GATE = REAL_3_J0_J4
 ```
+
+只有新的、可复现并足以推翻冻结合同的 regression evidence 才允许正式重开 Deployment；历史偶发和已裁决体验项不构成重开条件。
 
 ## 7. 发布纪律
 
@@ -349,7 +343,7 @@ changed / affected package
 ### PASS
 
 ```text
-Registry latest = 全部当前 release plan 目标版本；Browser O7 目标至少包含新的 0.1.22（最终版本以 pnpm release plan 为准）
+Registry latest = Final Freeze 当前真实版本（platform-cli 0.1.50 / dev-tunnel 0.1.25 / browser 0.1.25）
 → 全局 platform-cli = Registry latest
 → Fresh Product Workspace
 → platform install / initial status / setup
@@ -365,7 +359,7 @@ Registry latest = 全部当前 release plan 目标版本；Browser O7 目标至�
 
 ## 9. 验证强度
 
-当前源码已经完成 affected-package tests/typecheck。接下来 release transaction 只对发生版本变化的 Package 做 selected version-sync/build/publishability/Registry publish/readback；**没有新源码修改时禁止重新跑整套 `pnpm check` 只为“更放心”**。发布后仍必须重新跑完整 Fresh Deployment E2E；工程 Gate 可以缩范围，Deployment Journey 不可以缩范围。
+历史 Closeout 中，release transaction 只对发生版本变化的 Package 做 selected version-sync/build/publishability/Registry publish/readback；**没有新源码修改时禁止重新跑整套 `pnpm check` 只为“更放心”**。Final Freeze 已完成真实 Fresh Deployment E2E；当前仓库封版只验证本次文档/测试治理改动，不再重跑 Deployment Journey。
 
 若完整 E2E 暴露新源码 root cause：
 
@@ -394,7 +388,7 @@ Playwright Chrome → real Chrome / GPT / Browser UI reality
 - 非幂等动作 UNKNOWN 先恢复 authority。
 - 每个有意义 Gate 简短反馈后立即继续，不等待确认。
 
-## 11. 允许中断的条件
+## 11. 历史 Closeout 允许中断的条件
 
 ```text
 A. 优化发布 + 完整 latest Fresh Deployment E2E 完成
@@ -409,22 +403,21 @@ E. 真实上下文硬极限且已安全落盘
 ## 12. 当前唯一续接点
 
 ```text
-CURRENT_GATE   = DEPLOYMENT_CLOSEOUT_COMPLETE
+CURRENT_GATE = REAL_3_J0_J4
 DEPLOYMENT_TECHNICAL_MAINLINE = PASS
 DEPLOYMENT_PRODUCT_ACCEPTANCE = PASS
 DEPLOYMENT_SUCCESS = YES
-LATEST_DEPLOYMENT_SOURCE_HEAD = cc3ff34（本次文档/helper 收口提交前）
-SOURCE_VERSION = platform-cli 0.1.49 / dev-tunnel 0.1.22 / browser 0.1.24
-REGISTRY_LATEST = platform-cli 0.1.49 / dev-tunnel 0.1.22 / browser 0.1.24
-PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES
-FINAL_FRESH = cleanup 17.938s / global latest 18.894s / platform install 58.866s / Browser Fresh helper 18.998s
-FINAL_INSTALL_PHASES = Workspace 0.5s / Registry 46.4s / dependency sync 6.9s / local validation 0.6s / Module.install ≈4.5s
-FINAL_LIFECYCLE = start → status → repeat setup → repeat status → stop → start → final status = 59.49s / PASS
-FINAL_BACKSTAGE = model-runtime authenticated ready + execution-runtime + platform-host + agent-gateway + public tunnel ready + protected ingress 401 auth boundary = PASS
-AUTHORITY_RECOVERY = setup stdout session 丢失后没有盲重跑；以 3/3 status、Browser/Tunnel/Model evidence 与 role-count=3 恢复最终真值
-HARNESS_FIX = Expect 必须在 child PTY 内 `stty rows 40 columns 200` 后 exec platform setup；Fresh Developer Mode prompt 使用稳定语义锚点且 answer_once
-NEXT_ACTION = Deployment Closeout 结束 → 回 Real-3 J0～J4
-DO_NOT_REPEAT = 再跑 Fresh / 重建 3 GPT / remote Tunnel delete / git push
+DEPLOYMENT = FROZEN
+SOURCE_AT_PRODUCT_ACCEPTANCE = f45a874
+SOURCE_VERSION = platform-cli 0.1.50 / dev-tunnel 0.1.25 / browser 0.1.25 / agent-runtime 0.1.13 / role packages 0.1.16
+REGISTRY_LATEST = 与上述 Final Freeze 版本机械回读一致
+FINAL_FRESH = PASS / 23 of 23 install / real npm only
+FINAL_SETUP = 3/3 / public repeat setup recovery / no internal shortcut
+FINAL_LIFECYCLE = start → status → repeat setup → repeat status → stop → cold start → final status = PASS
+FINAL_STATUS = 3/3 / PLATFORM_READY=YES
+USER_ADJUDICATION = PAIRING_TIMEOUT ignore / single port-list failure ignore / single gateway health failure ignore / Registry 112s accepted
+NEXT_ACTION = Real-3 J0～J4
+DO_NOT_REPEAT = reopen Deployment from historical handoff / rerun Fresh without regression / rebuild 3 GPT / remote Tunnel delete / git push
 ```
 
 ## 13. 2026-09-01 最终 Product Acceptance 裁决
@@ -435,7 +428,7 @@ DO_NOT_REPEAT = 再跑 Fresh / 重建 3 GPT / remote Tunnel delete / git push
 
 因此：`DEPLOYMENT_SUCCESS=YES`。后续不得用 Deployment Closeout 的名义继续扩范围；业务可用性继续进入 Real-3～Real-6。
 
-阶段末唯一一次全仓 `pnpm check` 已执行：governance / surface governance / build 通过，随后 lint 因 HEAD 中 3 个 Browser Extension 文件仅存在 Formatter diff 而退出 1（`manifest.json`、`src/chrome-extension-state.ts`、`tests/chrome-extension-state.test.ts`），Biome 明确 `No fixes applied`。这些文件在 Gate 前不属于本轮 working-tree diff，且真实 Registry latest `execution-browser-extension=0.1.24` 已在本次 Fresh Product Workspace 完成产品验收，因此记录为**部署后源码格式 hygiene 优化项**，不反向推翻 `DEPLOYMENT_SUCCESS=YES`。
+历史一次全仓 `pnpm check` 曾因 Browser Extension formatter diff 退出；该历史 hygiene 记录已被后续 release 与 Final Freeze 覆盖，不是当前 blocker。当前仓库封版以本次 affected tests / typecheck / governance / diff-check 的新结果为准。
 
 ### 包级 Gate 优先 / 全仓 Gate 仅大阶段
 

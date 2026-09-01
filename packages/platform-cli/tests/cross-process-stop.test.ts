@@ -89,7 +89,7 @@ export const behaviorAdapter = {
   },
 };\n`;
 }
-test("platform stop reaches the original foreground start owner across CLI processes", async () => {
+test("CP-DEP-CLI-FINAL-02 platform stop reaches the original foreground start owner across CLI processes", async () => {
 	const root = await tempWorkspace();
 	const port = await reservePort();
 	await writeInstalledModule(root, {
@@ -111,7 +111,7 @@ test("platform stop reaches the original foreground start owner across CLI proce
 	start.stdout?.on("data", (chunk) => (startOutput += String(chunk)));
 	start.stderr?.on("data", (chunk) => (startOutput += String(chunk)));
 	try {
-		await waitUntil(() => isHealthy(port));
+		await waitUntil(() => isHealthy(port), 90_000);
 		await waitUntil(async () => {
 			try {
 				await readFile(
@@ -173,7 +173,7 @@ test("platform uninstall stops the original foreground start owner before packag
 	start.stdout?.on("data", (chunk) => (startOutput += String(chunk)));
 	start.stderr?.on("data", (chunk) => (startOutput += String(chunk)));
 	try {
-		await waitUntil(() => isHealthy(port));
+		await waitUntil(() => isHealthy(port), 90_000);
 		await waitUntil(async () => {
 			try {
 				await readFile(

@@ -1,6 +1,6 @@
 # 新 Chat / Agent 接管模板
 
-> 当前公共上下文已经吸收 2026-08-31 的一次性交接 `11/12`。新 Chat 不再读取滚动 handoff；从 `README → 09 → 10 → 02/05` 接管。
+> 当前公共上下文已经吸收历史一次性交接。新 Chat 不再读取滚动 handoff；按 `README → 02 → 09 → 05` 接管，`10/12` 仅在追溯 Deployment 时读取。
 
 后续切 Chat 时，不复制完整历史。一般阶段的新 Chat 默认以 **Phase 3 验证总纲总控** 身份接管，而不是默认成为开发者或命令分发器。
 
@@ -17,24 +17,25 @@ spec/平台架构与公共约定/00-公共上下文/README.md
 然后严格按 README 最小读取顺序接管。
 ```
 
-## 当前特殊状态（2026-08-31）
+## 当前特殊状态（2026-09-01 Final Freeze）
 
 ```text
 DEPLOYMENT_TECHNICAL_MAINLINE = PASS
-DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE
-DEPLOYMENT_SUCCESS = NOT_YET_FINAL
-CURRENT_EXECUTION_GATE = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
+DEPLOYMENT_PRODUCT_ACCEPTANCE = PASS
+DEPLOYMENT_SUCCESS = YES
+DEPLOYMENT = FROZEN
+CURRENT_EXECUTION_GATE = REAL_3_J0_J4
+READY_FOR_REAL_3 = YES
 ```
 
-当前只剩：`pnpm package:release` 按 pnpm changeset/ledger 自动 release set 发布 O1～O6 版本 → Registry latest readback → 全局 platform-cli latest → Fresh Product Workspace → **完整、不可裁剪的普通用户 Deployment E2E**。该 E2E 必须同时真实验证：**用户心智最低、自动化最大化、CLI 交互好用、默认输出明确**。四项通过后才允许 `DEPLOYMENT_SUCCESS=YES`，随后恢复 Real-3 验收主线。
+Deployment 已完成真实 npm latest + Fresh Product Workspace 最终验收，不再把 `09/10/12` 中的历史 Deployment blocker 当当前工作。新 Chat 的默认主线是 Real-3 Task Journey；只有出现新的可复现 regression evidence 才允许正式重开 Deployment。
 
-接管后的测试主身份不是“开发者自测”，而是**模拟普通用户真实视角做 Deployment 系统端到端测试**。正常 Journey 只走真实 npm / Product Workspace / 公开 Platform CLI / 真实 Browser、Tunnel、Model、GPT；失败后才临时进入工程视角，修复后必须回到同一用户场景重放。禁止用内部 package CLI、手工状态修改或源码知识替用户绕过产品缺陷。
-
+Deployment 历史验收方法仍可作为未来发布/回归模板：真实 npm、公开 Platform CLI、真实 Browser/Tunnel/Model/Role、无内部 shortcut、失败后最小定位并回同场景重放。
 ## 接管后必须做
 
 1. 机械确认 branch / HEAD / working tree / release state / Registry latest；公共上下文不保存这些易过期值作为永久真值。
-2. 读取 `09` 顶部最新收口与 `10` 当前唯一 Next Action。
-3. 读取 `02`，确认当前 Gate 与下一 Real。
+2. 读取 `02`，确认当前 Gate 已进入 Real-3 J0～J4。
+3. 读取 `09` 顶部 Final Freeze；只有追溯 Deployment 时才读取 `10/12`。
 4. 读取 `04`，开始新 Real 前定义 PASS / FAIL / 非目标。
 5. 当前领域正式 spec / test plan 仍是 normative truth。
 6. 真实 Journey 先行；失败后先分类，不允许看到错误就直接改代码。
@@ -54,4 +55,4 @@ CURRENT_EXECUTION_GATE = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
 
 ## 每轮结束只更新什么
 
-阶段状态变化更新 `02`；当前机械事实/授权更新 `09`；当前 Gate/Next Action 更新 `10`；形成跨阶段永久执行规则更新 `05`。领域实现细节与 evidence 回领域文档，不继续新增滚动 handoff 文件。
+阶段状态变化更新 `02`；当前机械事实/授权更新 `09`；Deployment `10` 已封版，不再滚动更新；当前 Gate/Next Action 由 `02/09` 维护；形成跨阶段永久执行规则更新 `05`。领域实现细节与 evidence 回领域文档，不继续新增滚动 handoff 文件。

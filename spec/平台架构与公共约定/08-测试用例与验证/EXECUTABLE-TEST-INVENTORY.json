@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 144,
-    "testCalls": 651
+    "testCalls": 655
   },
   "tests": [
     {
@@ -181,10 +181,10 @@
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/module-conformance.test.ts",
-      "line": 17,
+      "line": 20,
       "title": "module contract C1/C2/C3",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/deployment/descriptor.ts",
@@ -195,10 +195,10 @@
     {
       "package": "agent-controller-dev",
       "path": "packages/agent-controller-dev/tests/module-conformance.test.ts",
-      "line": 31,
+      "line": 34,
       "title": "Module.setup observes durable Role registration reality",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
         "packages/agent-controller-dev/deployment/descriptor.ts",
@@ -723,10 +723,10 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/module-conformance.test.ts",
-      "line": 17,
+      "line": 20,
       "title": "module contract C1/C2/C3",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-product/deployment/adapter.ts",
         "packages/agent-product/deployment/descriptor.ts",
@@ -737,10 +737,10 @@
     {
       "package": "agent-product",
       "path": "packages/agent-product/tests/module-conformance.test.ts",
-      "line": 31,
+      "line": 34,
       "title": "Module.setup observes durable Role registration reality",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-product/deployment/adapter.ts",
         "packages/agent-product/deployment/descriptor.ts",
@@ -1045,10 +1045,23 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/role-management-client.test.ts",
-      "line": 29,
+      "line": 34,
       "title": "CP-AGT-RUNTIME-11 role carrier validation parses local OpenAPI and proves Gateway health + role-key recognition without a business side effect",
       "ids": [
         "CP-AGT-RUNTIME-11"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/agent-runtime/src/role-management-client.ts"
+      ]
+    },
+    {
+      "package": "agent-runtime",
+      "path": "packages/agent-runtime/tests/role-management-client.test.ts",
+      "line": 111,
+      "title": "CP-AGT-RUNTIME-12 carrier validation evidence is exact and secret-free",
+      "ids": [
+        "CP-AGT-RUNTIME-12"
       ],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
@@ -1228,10 +1241,10 @@
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/module-conformance.test.ts",
-      "line": 17,
+      "line": 20,
       "title": "module contract C1/C2/C3",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/deployment/descriptor.ts",
@@ -1242,10 +1255,10 @@
     {
       "package": "agent-test-ops",
       "path": "packages/agent-test-ops/tests/module-conformance.test.ts",
-      "line": 31,
+      "line": 34,
       "title": "Module.setup observes durable Role registration reality",
       "ids": [],
-      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/deployment/descriptor.ts",
@@ -1887,6 +1900,19 @@
     },
     {
       "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/automation.test.ts",
+      "line": 841,
+      "title": "dev-tunnel start waits for public ingress readiness and cleans failed host",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/cli-resolver.test.ts",
       "line": 10,
       "title": "Dev Tunnel CLI is pinned and resolved inside the dev-tunnel package",
@@ -1899,12 +1925,30 @@
     {
       "package": "dev-tunnel",
       "path": "packages/dev-tunnel/tests/current-spec-alignment.test.ts",
-      "line": 17,
+      "line": 23,
       "title": "SPEC-ALIGN dev-tunnel remains an honest Deployment-owned external-resource adapter",
       "ids": [],
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
-        "packages/dev-tunnel/deployment/descriptor.ts"
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts"
+      ]
+    },
+    {
+      "package": "dev-tunnel",
+      "path": "packages/dev-tunnel/tests/current-spec-alignment.test.ts",
+      "line": 62,
+      "title": "CP-DEV-TUNNEL-09 CP-DEV-TUNNEL-10 final cold-start ownership stays aligned across plan and production",
+      "ids": [
+        "CP-DEV-TUNNEL-09",
+        "CP-DEV-TUNNEL-10"
+      ],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/dev-tunnel/deployment/adapter.ts",
+        "packages/dev-tunnel/deployment/descriptor.ts",
+        "packages/dev-tunnel/src/resource-adapter.ts"
       ]
     },
     {
@@ -2704,7 +2748,7 @@
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/custom-gpt-role.test.ts",
       "line": 182,
-      "title": "createCustomGptRole restores the previous current role when carrier verification fails",
+      "title": "createCustomGptRole preserves the new durable role when post-create carrier verification fails",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
@@ -6254,8 +6298,10 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cross-process-stop.test.ts",
       "line": 92,
-      "title": "platform stop reaches the original foreground start owner across CLI processes",
-      "ids": [],
+      "title": "CP-DEP-CLI-FINAL-02 platform stop reaches the original foreground start owner across CLI processes",
+      "ids": [
+        "CP-DEP-CLI-FINAL-02"
+      ],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/platform-cli/src/cli.ts"
@@ -7110,6 +7156,23 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
       "line": 758,
+      "title": "CP-DEP-CLI-FINAL-01 deployment setup also starts external-resource runtime dependencies needed by an agent package",
+      "ids": [
+        "CP-DEP-CLI-FINAL-01"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/module-contract/src/index.ts",
+        "packages/platform-cli/src/contracts.ts",
+        "packages/platform-cli/src/lifecycle/index.ts",
+        "packages/platform-cli/src/lifecycle/thin.ts",
+        "packages/platform-cli/src/modules.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/lifecycle.test.ts",
+      "line": 805,
       "title": "deployment setup cleans temporary service dependencies when agent-package provisioning fails",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7124,7 +7187,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/lifecycle.test.ts",
-      "line": 782,
+      "line": 829,
       "title": "deployment setup never stops service dependencies that were already running",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

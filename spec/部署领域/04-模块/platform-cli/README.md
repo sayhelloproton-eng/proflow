@@ -54,6 +54,12 @@ platform start     → status gate + Module.start
 platform stop      → Module.stop
 ```
 
+## Runtime owner semantics
+
+成功的 `platform start` 会保留当前 CLI 进程作为 foreground runtime owner，并注册 SIGTERM/SIGINT graceful stop；这不是“start 卡住”，而是正式生命周期合同。另一个 CLI 进程执行 `platform stop` 时，先请求当前 start owner 停止，再完成公开 stop lifecycle。
+
+因此正式恢复/验收必须使用独立进程：`start owner → status → stop → new start owner → status`。禁止用 `status; platform start; status` 这类串行 shell 期待成功的 `start` 自动返回。
+
 ## Setup semantics
 
 `platform setup` 默认遍历全部 discovered Module：READY 跳过，非 READY 调用各自 `Module.setup`，遇到 `ACTION_REQUIRED` 或 `FAILED` 继续扫描，最后一次性返回完整结果。Platform 不生成具体引导内容；它只聚合各包自己的 action/error/data。
