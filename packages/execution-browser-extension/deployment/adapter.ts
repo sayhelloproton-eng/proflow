@@ -776,7 +776,9 @@ export const behaviorAdapter = {
 						extensionId: paired.extensionId,
 						loadDir: browserExtensionLoadDir(context.workspaceRoot),
 					},
-					{ timeoutMs: 5_000 },
+					// Chrome persists unpacked-extension registration to Secure Preferences
+					// on a delayed flush. Keep this bounded, but cover the observed ~9s window.
+					{ timeoutMs: 15_000 },
 				);
 				if (chromeState !== "ENABLED")
 					throw new Error(
