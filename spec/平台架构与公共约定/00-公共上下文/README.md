@@ -2,7 +2,11 @@
 
 > 用途：为 Phase 3 最终真实验收提供跨 Chat / Agent 的稳定公共上下文与总纲总控入口。
 > 更新时间：2026-09-01。
-> **2026-08-31 的一次性交接 `11/12` 已被长期公共上下文吸收；但 2026-09-01 最终 Fresh 人工验证发现不可逆 Custom GPT 创建后的恢复安全 blocker，用户明确要求生成一次性紧急 handoff：`12-Deployment最终人工验证阻断与新Chat交接-20260901.md`。在该 blocker 收口前，新 Chat 必须优先读取 `12`。**
+> **2026-09-01 最新覆盖：不可逆 Custom GPT P1 已收口，3 个原 Role/GPT 保持稳定；真实 npm `agent-runtime@0.1.13` 的 SAME SCENE 已再次 `platform setup` PASS，因此单次 `GATEWAY_HEALTH_UNREACHABLE` 不再作为 blocker，也不发布实验性 health retry。当前唯一可重复 Deployment blocker 是 `platform stop → platform start`：真实 npm `dev-tunnel@0.1.23` 在冷启动时连续两次失败。后台权威诊断确认 package-local managed Dev Tunnel CLI 文件已被 npm reify 清掉（`ENOENT`），而 `start()` 直接使用 `devTunnelCliPath()`、不会像 setup 一样调用 `resolveDevTunnelCli()` 重新获取 CLI，最终误报 `Microsoft Dev Tunnel login is not ready`。当前最小修复是让 dev-tunnel start 先通过 owner resolver 确保 managed CLI 存在；回归已 PASS，待真实 npm patch release + SAME SCENE stop/start/status 验证。新 Chat 优先读取 `12` 顶部最新覆盖与 `05` 的 Deployment 终止合同。**
+
+
+
+**Deployment 禁止 tarball 硬规则（用户再次明确，2026-09-01）：** 从现在起，Deployment Closeout 的调试、SAME SCENE、模拟人工验收、Product Workspace 验收、FULL FRESH 最终证明，**一律禁止使用 local tarball / `npm pack` 产物 / 本地 `.tgz` / `npm link` / workspace symlink / repo source override 代替真实 npm Registry 包**。即使只是“为了更快先验证一下”，也不允许把 tarball 引入当前 Deployment 主线。修复必须先完成 targeted test + typecheck，再真实发布到 npm Registry，随后只用 Registry exact/latest 安装物重放。若未来某个执行者认为 tarball 更快，必须忽略该想法并继续真实 npm 路径；除非用户以后明确撤销本规则。
 
 ## 权威关系
 
