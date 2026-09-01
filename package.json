@@ -32,7 +32,9 @@
 		"fresh:workspace": "node scripts/fresh-workspace.mjs",
 		"package:build": "node scripts/build-packages.mjs",
 		"package:publishability": "node scripts/publishability.mjs",
-		"package:release": "node scripts/package-release.mjs"
+		"package:release": "node scripts/package-release.mjs",
+		"human-e2e:browser": "node scripts/human-e2e/browser-extension-ui.mjs",
+		"human-e2e:setup": "expect scripts/human-e2e/platform-setup.exp"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.6",

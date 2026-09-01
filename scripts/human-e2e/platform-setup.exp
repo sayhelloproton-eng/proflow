@@ -1,0 +1,58 @@
+#!/usr/bin/expect -f
+set timeout 900
+if {![info exists env(PROFLOW_WORKSPACE)]} { puts stderr "PROFLOW_WORKSPACE is required"; exit 64 }
+if {![info exists env(PROFLOW_PROVIDER_BASE_URL)]} { set env(PROFLOW_PROVIDER_BASE_URL) "" }
+set workspace $env(PROFLOW_WORKSPACE)
+set provider $env(PROFLOW_PROVIDER_BASE_URL)
+set repo [file normalize [file join [file dirname [info script]] ../..]]
+set browserHelper [file join $repo scripts human-e2e browser-extension-ui.mjs]
+set started [clock milliseconds]
+array set answered {}
+
+proc answer_once {key payload} {
+    global answered
+    if {[info exists answered($key)]} { return }
+    set answered($key) 1
+    send -- $payload
+}
+
+spawn platform setup --workspace $workspace
+set child $spawn_id
+while {1} {
+    expect {
+        -re {步骤 1/2：已经在 Chrome 中开启“开发者模式”了吗？} { answer_once devmode "\r"; exp_continue }
+        -re {步骤 2/2｜加载浏览器扩展} {
+            if {![info exists answered(browser_install)]} {
+                set answered(browser_install) 1
+                if {[catch {exec node $browserHelper install >@stdout 2>@stderr} message]} {
+                    puts stderr "BROWSER_HELPER_FAILED: $message"
+                    exit 1
+                }
+            }
+            exp_continue
+        }
+        -re {下一步将检查远程连接；如需登录，会打开 GitHub 授权。是否继续？} { answer_once tunnel "\r"; exp_continue }
+        -re {下一步配置 OpenAI-compatible 模型服务地址。是否继续？} { answer_once provider_step "\r"; exp_continue }
+        -re {OpenAI-compatible 服务 Base URL} {
+            if {$provider eq ""} { puts stderr "PROFLOW_PROVIDER_BASE_URL required by setup"; exit 65 }
+            answer_once provider_url "$provider\r"
+            exp_continue
+        }
+        -re {使用 .* 连接整个模型服务？} { answer_once provider_confirm "\r"; exp_continue }
+        -re {模型服务 API Key} { puts stderr "SETUP_REQUIRES_PROVIDER_SECRET"; exit 66 }
+        -re {下一步验证模型能力并配置 FAST 与 THINK。是否继续？} { answer_once model_step "\r"; exp_continue }
+        -re {选择 FAST 模型} { answer_once fast_select "\r"; exp_continue }
+        -re {确认将 .* 用作 FAST 模型？} { answer_once fast_confirm "\r"; exp_continue }
+        -re {选择 THINK 模型} { answer_once think_select "\r"; exp_continue }
+        -re {确认将 .* 用作 THINK 模型？} { answer_once think_confirm "\r"; exp_continue }
+        eof {
+            set waitResult [wait]
+            set rc [lindex $waitResult 3]
+            set elapsed [expr {([clock milliseconds] - $started) / 1000.0}]
+            puts [format "HUMAN_SETUP_SECONDS=%.3f" $elapsed]
+            puts "HUMAN_SETUP_RC=$rc"
+            exit $rc
+        }
+        timeout { puts stderr "HUMAN_SETUP_TIMEOUT"; exit 124 }
+    }
+}
