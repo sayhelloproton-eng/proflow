@@ -519,6 +519,10 @@
   dir: packages/execution-browser-extension
   intents:
     - browser-setup-registration-stabilization
+"@tomflow/proflow-execution-browser-extension@0.1.24":
+  dir: packages/execution-browser-extension
+  intents:
+    - browser-registration-flush-window
 "@tomflow/proflow-execution-browser-extension@0.1.3":
   dir: packages/execution-browser-extension
   intents:
