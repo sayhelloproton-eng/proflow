@@ -862,15 +862,28 @@ test("dev-tunnel start waits for public ingress readiness and cleans failed host
 		async restart() { return this.start(); },
 	};
 	let verifications = 0;
+	const runtimeCommands: string[] = [];
+	let resolves = 0;
 	const ready = createDevTunnelBehaviorAdapter({
-		createRuntime: () => runtime,
+		resolveCli: async (root) => {
+			resolves += 1;
+			assert.equal(root, workspaceRoot);
+			return "/managed/devtunnel";
+		},
+		createRuntime: (input) => {
+			runtimeCommands.push(input.command ?? "");
+			return runtime;
+		},
 		verifyPublicBaseUrl: async (url) => { verifications += 1; assert.equal(url, "https://ready.example.test/"); },
 	});
 	assert.equal((await ready.start({ workspaceRoot })).result.status, "SUCCEEDED");
 	assert.equal(starts, 1);
+	assert.equal(resolves, 1);
+	assert.deepEqual(runtimeCommands, ["/managed/devtunnel"]);
 	assert.equal(verifications, 1);
 	assert.equal(stops, 0);
 	const failing = createDevTunnelBehaviorAdapter({
+		resolveCli: async () => "/managed/devtunnel",
 		createRuntime: () => runtime,
 		verifyPublicBaseUrl: async () => { throw new Error("public ingress not ready"); },
 	});

@@ -437,13 +437,16 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 			const state = await readState(context);
 			if (state?.phase !== "READY" || !state.publicBaseUrl)
 				return baseBehaviorAdapter.start(context);
-			const rt = createRuntime({
-				command: devTunnelCliPath(),
-				tunnelId: state.tunnelId,
-				publicBaseUrl: state.publicBaseUrl,
-				processStateFile: processFile(context),
-			});
 			try {
+				const cliPath = dependencies?.resolveCli
+					? await dependencies.resolveCli(context.workspaceRoot)
+					: (await resolveDevTunnelCli()).command;
+				const rt = createRuntime({
+					command: cliPath,
+					tunnelId: state.tunnelId,
+					publicBaseUrl: state.publicBaseUrl,
+					processStateFile: processFile(context),
+				});
 				const observed = await rt.start();
 				if (observed.login !== "LOGGED_IN")
 					throw new Error("Microsoft Dev Tunnel login is not ready");
