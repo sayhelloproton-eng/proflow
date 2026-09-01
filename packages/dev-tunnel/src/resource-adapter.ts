@@ -434,14 +434,6 @@ export async function verifyProvisionedPublicBaseUrl(
 	const protocol = await probeTlsProtocol(url.hostname, port, timeoutMs);
 	if (protocol === undefined || !tlsProtocolAtLeast(protocol, "TLSv1.2"))
 		throw new Error("publicBaseUrl did not negotiate TLS 1.2 or newer");
-	try {
-		await fetch(url, {
-			method: "GET",
-			signal: AbortSignal.timeout(timeoutMs),
-		});
-	} catch {
-		throw new Error("publicBaseUrl is not reachable over HTTPS");
-	}
 }
 
 interface DevTunnelProcessRecord {
