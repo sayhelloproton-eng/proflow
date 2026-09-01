@@ -18,11 +18,11 @@ proc answer_once {key payload} {
     send -- $payload
 }
 
-spawn platform setup --workspace $workspace
+spawn sh -c "stty rows 40 columns 200; exec platform setup --workspace '$workspace'"
 set child $spawn_id
 while {1} {
     expect {
-        -re {步骤 1/2：已经在 Chrome 中开启“开发者模式”了吗？} { answer_once devmode "\r"; exp_continue }
+        -re {开发者模式} { answer_once devmode "\r"; exp_continue }
         -re {步骤 2/2｜加载浏览器扩展} {
             if {![info exists answered(browser_install)]} {
                 set answered(browser_install) 1

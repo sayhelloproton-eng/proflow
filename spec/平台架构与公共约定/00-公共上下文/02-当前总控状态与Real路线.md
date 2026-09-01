@@ -11,10 +11,10 @@
 - `REAL_2 = PASS`
 - `REAL2_PROVISIONING_GO = YES`
 - `DEPLOYMENT_TECHNICAL_MAINLINE = PASS`
-- `DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE`
-- `DEPLOYMENT_SUCCESS = NOT_YET_FINAL`
-- `CURRENT_EXECUTION_GATE = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT`
-- `READY_FOR_REAL_3 = YES`（优化发布后的完整 latest Fresh Deployment E2E 完成后恢复 Real-3 主线）
+- `DEPLOYMENT_PRODUCT_ACCEPTANCE = PASS`
+- `DEPLOYMENT_SUCCESS = YES`
+- `CURRENT_EXECUTION_GATE = REAL_3_J0_J4`
+- `READY_FOR_REAL_3 = YES`（Deployment Closeout 已结束，恢复 Real-3 主线）
 - `SYSTEM_REAL_USABLE = OUT_OF_SCOPE_FOR_DEPLOYMENT`
 - `PHASE3_FINAL_GO = NO`
 
@@ -31,7 +31,7 @@
 
 因此当前状态必须区分：`DEPLOYMENT_TECHNICAL_MAINLINE=PASS`，但完整 `DEPLOYMENT_SUCCESS` 要等 O1～O6 优化版本发布后，在真实 npm latest + Product Workspace 上重新完成**完整、不可裁剪的普通用户 Fresh Deployment E2E**，并证明上述四项达到冻结标准。非阻断的小 polish 不反向推翻技术主链 PASS，但产品入口若仍要求用户理解内部实现、重复手工执行机器可做动作、交互含糊或默认输出误导，则完整 Deployment Product Acceptance 不得 PASS。
 
-Deployment 优化裁决与真实 release 已完成。2026-09-01 仓库审计机械确认 Registry latest：`platform-cli=0.1.49`、`dev-tunnel=0.1.22`、`execution-browser-extension=0.1.22`；全局 `platform=0.1.49`。当前 Product Workspace 仍安装 `platform-cli=0.1.48`，且上一轮公共 `platform stop` 后当前 `status=2/3 / PLATFORM_READY=NO`（Tunnel runtime 已停止，Browser/Model 保持已配置）。审计收口后先原地升级 Product platform-cli 并从同一现场恢复验证，再进入最终 FULL FRESH 统一计时；收尾只保留 `repeat setup`、`repeat status`、正常 `stop → start → status`。
+Deployment Closeout 已于 2026-09-01 完成最终真实验收：Registry latest / Global CLI / Product Workspace 均使用当前发布物；真正 Fresh Workspace 完成 23/23 install、Browser Fresh load、Dev Tunnel、Model FAST/THINK 映射与 3 个 GPT/Identity 创建，随后 `platform status=3/3 / PLATFORM_READY=YES`。最终 lifecycle `start → status → repeat setup → repeat status → stop → start → final status` 在 59.49s 内 PASS；校准后的 backstage probes 同时证明 Model Runtime authenticated readiness、Execution Runtime、Platform Host、Agent Gateway、本地/公网 Tunnel readiness 与公网未授权 401 auth boundary 均 PASS。`DEPLOYMENT_PRODUCT_ACCEPTANCE=PASS`，`DEPLOYMENT_SUCCESS=YES`；Deployment Closeout 到此结束，下一阶段回到 Real-3 J0～J4。
 
 必须继续严格区分：
 

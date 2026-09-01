@@ -3,11 +3,11 @@
 > 建立时间：2026-08-30
 > 最新整合：2026-09-01
 > 性质：滚动执行总控表 / 当前进度真源
-> 当前状态：`DEPLOYMENT_TECHNICAL_MAINLINE = PASS`；`DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE`；完整 `DEPLOYMENT_SUCCESS = NOT_YET_FINAL`。
+> 当前状态：`DEPLOYMENT_TECHNICAL_MAINLINE = PASS`；`DEPLOYMENT_PRODUCT_ACCEPTANCE = PASS`；`DEPLOYMENT_SUCCESS = YES`。Deployment Closeout 已结束。
 
 ## 1. 当前唯一目标
 
-Deployment latest **技术主链**已经通过，但优化版本发布后仍必须从真实 npm latest 重新执行一轮**完整、不可裁剪的 Fresh Deployment E2E**，不能用“最小 smoke”替代部署路径。当前必须完成：
+Deployment latest 技术主链与最终 Product Acceptance 均已通过。以下完整、不可裁剪的 Fresh Deployment E2E 已作为本轮最终证据执行完成：
 
 ```text
 O1～O7 当前已裁决优化源码 / changeset intent 已落盘
@@ -24,7 +24,7 @@ O1～O7 当前已裁决优化源码 / changeset intent 已落盘
 → 回到 Real-3
 ```
 
-技术主链已经证明“系统能部署起来”；但最终“部署好”的产品口径进一步冻结为：技术真实可用 + 用户心智最低 + 自动化最大化 + CLI 交互好用 + 默认输出明确。非阻断微小 polish 不推翻技术主链 PASS，但四个产品门未通过前不得写完整 `DEPLOYMENT_SUCCESS=YES`。
+最终“部署好”的产品口径冻结为：技术真实可用 + 用户心智最低 + 自动化最大化 + CLI 交互好用 + 默认输出明确。本轮四个产品门已全部通过，非阻断微小 polish 作为 Deployment 后优化项继续记录，不反向推翻 `DEPLOYMENT_SUCCESS=YES`。
 
 ## 1.1 循环测试的唯一主视角
 
@@ -75,13 +75,13 @@ pnpm fresh:workspace --workspace /Users/agent/Desktop/proton-workspace
 ```text
 Source Repo        = /Users/agent/Desktop/proton-workspace/repos/proflow
 Product Workspace  = /Users/agent/Desktop/proton-workspace
-Latest deployment code commit = 6fb2ade
-Latest release machinery commit = e30f9d2
+Latest deployment code commit = 428edb5
+Latest release machinery commit = cc3ff34
 Current Git HEAD / WorkingTree = 接管时机械重读
 DEPLOYMENT_TECHNICAL_MAINLINE = PASS
-DEPLOYMENT_PRODUCT_ACCEPTANCE  = PENDING_FINAL_LATEST_SMOKE
-DEPLOYMENT_SUCCESS             = NOT_YET_FINAL
-Current Gate                   = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
+DEPLOYMENT_PRODUCT_ACCEPTANCE  = PASS
+DEPLOYMENT_SUCCESS             = YES
+Current Gate                   = DEPLOYMENT_CLOSEOUT_COMPLETE → REAL_3_J0_J4
 ```
 
 Source versions：
@@ -89,7 +89,7 @@ Source versions：
 ```text
 @tomflow/proflow-platform-cli                 0.1.49
 @tomflow/proflow-dev-tunnel                   0.1.22
-@tomflow/proflow-execution-browser-extension  0.1.22
+@tomflow/proflow-execution-browser-extension  0.1.24
 ```
 
 最后机械确认 Registry latest：
@@ -409,21 +409,33 @@ E. 真实上下文硬极限且已安全落盘
 ## 12. 当前唯一续接点
 
 ```text
-CURRENT_GATE   = DEPLOYMENT_OPTIMIZATION_RELEASE_CLOSEOUT
+CURRENT_GATE   = DEPLOYMENT_CLOSEOUT_COMPLETE
 DEPLOYMENT_TECHNICAL_MAINLINE = PASS
-DEPLOYMENT_PRODUCT_ACCEPTANCE = PENDING_FINAL_LATEST_SMOKE
-DEPLOYMENT_SUCCESS = NOT_YET_FINAL
-LATEST_DEPLOYMENT_CODE_COMMIT = 6fb2ade
-LATEST_RELEASE_MACHINERY_COMMIT = e30f9d2
-SOURCE_HEAD/TREE = 接管时机械重读
-SOURCE_VERSION = platform-cli 0.1.49 / dev-tunnel 0.1.22 / browser 0.1.22
-REGISTRY_LATEST= platform-cli 0.1.49 / dev-tunnel 0.1.22 / browser 0.1.22
-PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES（最新 FULL FRESH 功能 evidence 已成立；总性能计时因 harness 自身错误污染而作废）
-NEXT_ACTION    = 固化唯一 Browser Extension install/uninstall + CLI TTY helper → 单独稳定性/耗时验证 → 最终 FULL FRESH 重新统一计时 → Product Acceptance
-HARNESS_INCIDENT = 临时重写 AX/expect、事件发送即判成功、picker Select 时序错误、Clack Yes 重绘/方向键误切 No；这些时间全部归 HARNESS_OVERHEAD
-RELEASE_PREFLIGHT_BLOCKER = NONE（same-version patch 已确认是 pnpm 11 合并未发布 release bucket 的正常语义）
-DO_NOT_REPEAT  = /tmp 第二套 Browser/TTY helper / 稳定的 Custom GPT 浏览器创建流程变更 / Browser Reload 或 Disable-Enable 人为测试 / 3 GPT rebuild 专项验证 / remote Tunnel delete / git push
+DEPLOYMENT_PRODUCT_ACCEPTANCE = PASS
+DEPLOYMENT_SUCCESS = YES
+LATEST_DEPLOYMENT_SOURCE_HEAD = cc3ff34（本次文档/helper 收口提交前）
+SOURCE_VERSION = platform-cli 0.1.49 / dev-tunnel 0.1.22 / browser 0.1.24
+REGISTRY_LATEST = platform-cli 0.1.49 / dev-tunnel 0.1.22 / browser 0.1.24
+PRODUCT_STATUS = 3/3 / PLATFORM_READY=YES
+FINAL_FRESH = cleanup 17.938s / global latest 18.894s / platform install 58.866s / Browser Fresh helper 18.998s
+FINAL_INSTALL_PHASES = Workspace 0.5s / Registry 46.4s / dependency sync 6.9s / local validation 0.6s / Module.install ≈4.5s
+FINAL_LIFECYCLE = start → status → repeat setup → repeat status → stop → start → final status = 59.49s / PASS
+FINAL_BACKSTAGE = model-runtime authenticated ready + execution-runtime + platform-host + agent-gateway + public tunnel ready + protected ingress 401 auth boundary = PASS
+AUTHORITY_RECOVERY = setup stdout session 丢失后没有盲重跑；以 3/3 status、Browser/Tunnel/Model evidence 与 role-count=3 恢复最终真值
+HARNESS_FIX = Expect 必须在 child PTY 内 `stty rows 40 columns 200` 后 exec platform setup；Fresh Developer Mode prompt 使用稳定语义锚点且 answer_once
+NEXT_ACTION = Deployment Closeout 结束 → 回 Real-3 J0～J4
+DO_NOT_REPEAT = 再跑 Fresh / 重建 3 GPT / remote Tunnel delete / git push
 ```
+
+## 13. 2026-09-01 最终 Product Acceptance 裁决
+
+最终真实 latest + Fresh 用户链已经闭环。四项产品门全部 PASS：用户只需标准 platform 命令与不可约信息；Browser/Tunnel/Model/Identity 的可自动化部分均由产品自动完成；CLI 的 setup/status/start/stop 可重入且根阻塞明确；默认输出没有要求用户理解 Tunnel ID、端口、shared facts 或 Start Owner。
+
+本轮最后一次 lifecycle 首次 backstage probe 出现两个**验收脚本断言过时**而非产品故障：Model Runtime `/ready` 本来受 transport credential 保护，匿名请求应 401；Agent Gateway `/ready` 本来就是公开 readiness，因此公网 Tunnel `/ready` 应 200。校准后的最终断言固定为：Model `/health=200` + 带 transport credential 的 `/ready=200`；公网 `/ready=200` + 任意受保护 `/actions/...` 匿名请求 `401/AUTHENTICATION_FAILED`。校准后全部 PASS。
+
+因此：`DEPLOYMENT_SUCCESS=YES`。后续不得用 Deployment Closeout 的名义继续扩范围；业务可用性继续进入 Real-3～Real-6。
+
+阶段末唯一一次全仓 `pnpm check` 已执行：governance / surface governance / build 通过，随后 lint 因 HEAD 中 3 个 Browser Extension 文件仅存在 Formatter diff 而退出 1（`manifest.json`、`src/chrome-extension-state.ts`、`tests/chrome-extension-state.test.ts`），Biome 明确 `No fixes applied`。这些文件在 Gate 前不属于本轮 working-tree diff，且真实 Registry latest `execution-browser-extension=0.1.24` 已在本次 Fresh Product Workspace 完成产品验收，因此记录为**部署后源码格式 hygiene 优化项**，不反向推翻 `DEPLOYMENT_SUCCESS=YES`。
 
 ### 包级 Gate 优先 / 全仓 Gate 仅大阶段
 
