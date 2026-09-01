@@ -836,3 +836,47 @@ test("CP-DEV-TUNNEL-01 failed browser login performs no Tunnel mutation", async 
 	);
 	assert.equal(createCount, 0);
 });
+
+
+test("dev-tunnel start waits for public ingress readiness and cleans failed host", async (t) => {
+	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-tunnel-start-ready-"));
+	t.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const dir = join(workspaceRoot, ".proflow/runtime/external-resources/dev-tunnel");
+	await mkdir(dir, { recursive: true });
+	await writeFile(join(dir, "setup.json"), JSON.stringify({
+		contract: "proflow.dev-tunnel-setup.v2",
+		tunnelId: "tunnel-ready",
+		phase: "READY",
+		gatewayPort: 41705,
+		publicBaseUrl: "https://ready.example.test/",
+	}));
+	let starts = 0;
+	let stops = 0;
+	const runtime = {
+		command: "fixture",
+		async status() { return { state: "STOPPED" as const, login: "LOGGED_IN" as const }; },
+		async loginStatus() { return "LOGGED_IN" as const; },
+		publicBaseUrl() { return "https://ready.example.test/"; },
+		async start() { starts += 1; return { state: "RUNNING" as const, login: "LOGGED_IN" as const }; },
+		async stop() { stops += 1; return { state: "STOPPED" as const, login: "LOGGED_IN" as const }; },
+		async restart() { return this.start(); },
+	};
+	let verifications = 0;
+	const ready = createDevTunnelBehaviorAdapter({
+		createRuntime: () => runtime,
+		verifyPublicBaseUrl: async (url) => { verifications += 1; assert.equal(url, "https://ready.example.test/"); },
+	});
+	assert.equal((await ready.start({ workspaceRoot })).result.status, "SUCCEEDED");
+	assert.equal(starts, 1);
+	assert.equal(verifications, 1);
+	assert.equal(stops, 0);
+	const failing = createDevTunnelBehaviorAdapter({
+		createRuntime: () => runtime,
+		verifyPublicBaseUrl: async () => { throw new Error("public ingress not ready"); },
+	});
+	const failed = await failing.start({ workspaceRoot });
+	assert.equal(failed.result.status, "FAILED");
+	assert.match(failed.result.error?.message ?? "", /public ingress not ready/);
+	assert.equal(starts, 2);
+	assert.equal(stops, 1);
+});

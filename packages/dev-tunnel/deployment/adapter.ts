@@ -433,6 +433,48 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 		dependencies?.verifyPublicBaseUrl ?? verifyProvisionedPublicBaseUrl;
 	return {
 		...baseBehaviorAdapter,
+		start: async (context: ModuleCommandContext) => {
+			const state = await readState(context);
+			if (state?.phase !== "READY" || !state.publicBaseUrl)
+				return baseBehaviorAdapter.start(context);
+			const rt = createRuntime({
+				command: devTunnelCliPath(),
+				tunnelId: state.tunnelId,
+				publicBaseUrl: state.publicBaseUrl,
+				processStateFile: processFile(context),
+			});
+			try {
+				const observed = await rt.start();
+				if (observed.login !== "LOGGED_IN")
+					throw new Error("Microsoft Dev Tunnel login is not ready");
+				if (observed.state !== "RUNNING")
+					throw new Error("dev-tunnel did not reach RUNNING");
+				try {
+					await verifyPublicBaseUrl(state.publicBaseUrl);
+				} catch (error) {
+					await rt.stop().catch(() => undefined);
+					throw error;
+				}
+				return {
+					result: { ...base, data: observed },
+					observedEffects: [processEffect],
+				};
+			} catch (error) {
+				return {
+					result: {
+						...base,
+						ok: false as const,
+						status: "FAILED" as const,
+						error: {
+							code: "START_FAILED" as const,
+							message: error instanceof Error ? error.message : "failed to start dev-tunnel",
+							retryable: true,
+						},
+					},
+					observedEffects: [],
+				};
+			}
+		},
 		setup: async (context: ModuleCommandContext) => {
 			try {
 				const previous = await readState(context);
