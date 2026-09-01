@@ -1116,6 +1116,10 @@
   dir: packages/platform-cli
   intents:
     - real1-preflight-action-guidance
+"@tomflow/proflow-platform-cli@0.1.50":
+  dir: packages/platform-cli
+  intents:
+    - fix-platform-setup-external-resource
 "@tomflow/proflow-platform-cli@0.1.6":
   dir: packages/platform-cli
   intents:
