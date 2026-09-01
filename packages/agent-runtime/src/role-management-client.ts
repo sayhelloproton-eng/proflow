@@ -167,33 +167,49 @@ export function validateLocalRoleOpenApi(openApiText: string) {
 	return issues;
 }
 
-export async function validateRoleCarrier(input: RoleCarrierValidationInput) {
+export async function validateRoleCarrier(
+	input: RoleCarrierValidationInput,
+	dependencies?: {
+		fetch?: typeof globalThis.fetch;
+		retryDelayMs?: number;
+	},
+) {
 	const issues = validateLocalRoleOpenApi(input.openApiText);
 	const gatewayUrl = parseGatewayUrl(input.gatewayUrl);
+	const fetchImplementation = dependencies?.fetch ?? globalThis.fetch;
 	try {
-		const health = await fetch(`${gatewayUrl}/health`, {
+		const health = await fetchImplementation(`${gatewayUrl}/health`, {
 			signal: AbortSignal.timeout(5_000),
 		});
 		if (!health.ok) issues.push(`GATEWAY_HEALTH_HTTP_${health.status}`);
 	} catch {
 		issues.push("GATEWAY_HEALTH_UNREACHABLE");
 	}
-	try {
-		// getTask is a read-only Action present on all three v1 Role packages. An
-		// intentionally missing Task gives the downstream a harmless validation
-		// failure while proving that Gateway ingress accepted the role-scoped key.
-		const probe = await fetch(
-			`${gatewayUrl}/actions/getTask?taskId=__proflow_role_validate_probe__`,
-			{
-				headers: { authorization: `Bearer ${input.credential}` },
-				signal: AbortSignal.timeout(5_000),
-			},
-		);
-		if (probe.status === 401) issues.push("GATEWAY_ROLE_KEY_REJECTED");
-		else if (probe.status === 404 || probe.status >= 500)
-			issues.push(`GATEWAY_ACTION_PROBE_HTTP_${probe.status}`);
-	} catch {
-		issues.push("GATEWAY_ACTION_PROBE_UNREACHABLE");
+	// getTask is a read-only Action present on all three v1 Role packages. An
+	// intentionally missing Task gives the downstream a harmless validation
+	// failure while proving that Gateway ingress accepted the role-scoped key.
+	for (let attempt = 0; attempt < 2; attempt += 1) {
+		try {
+			const probe = await fetchImplementation(
+				`${gatewayUrl}/actions/getTask?taskId=__proflow_role_validate_probe__`,
+				{
+					headers: { authorization: `Bearer ${input.credential}` },
+					signal: AbortSignal.timeout(5_000),
+				},
+			);
+			if (probe.status === 401) issues.push("GATEWAY_ROLE_KEY_REJECTED");
+			else if (probe.status === 404 || probe.status >= 500)
+				issues.push(`GATEWAY_ACTION_PROBE_HTTP_${probe.status}`);
+			break;
+		} catch {
+			if (attempt === 1) {
+				issues.push("GATEWAY_ACTION_PROBE_UNREACHABLE");
+				break;
+			}
+			await new Promise((resolve) =>
+				setTimeout(resolve, dependencies?.retryDelayMs ?? 250),
+			);
+		}
 	}
 	return {
 		status: issues.length === 0 ? ("PASS" as const) : ("FAIL" as const),

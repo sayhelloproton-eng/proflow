@@ -67,13 +67,42 @@ test("CP-AGT-RUNTIME-11 role carrier validation parses local OpenAPI and proves 
 		await validateRoleCarrier({ gatewayUrl, credential, openApiText: openApi }),
 		{ status: "PASS", issues: [] },
 	);
-	const rejected = await validateRoleCarrier({
-		gatewayUrl,
-		credential: "wrong-role-key",
-		openApiText: openApi,
-	});
+	let transientActionAttempts = 0;
+	const transientActionFetch: typeof globalThis.fetch = async (request, init) => {
+		if (
+			String(request).includes("/actions/getTask") &&
+			transientActionAttempts++ === 0
+		)
+			throw new TypeError("TRANSIENT_NETWORK_FAILURE");
+		return globalThis.fetch(request, init);
+	};
+	assert.deepEqual(
+		await validateRoleCarrier(
+			{ gatewayUrl, credential, openApiText: openApi },
+			{ fetch: transientActionFetch, retryDelayMs: 0 },
+		),
+		{ status: "PASS", issues: [] },
+	);
+	assert.equal(transientActionAttempts, 2);
+	let rejectedActionAttempts = 0;
+	const rejected = await validateRoleCarrier(
+		{
+			gatewayUrl,
+			credential: "wrong-role-key",
+			openApiText: openApi,
+		},
+		{
+			fetch: async (request, init) => {
+				if (String(request).includes("/actions/getTask"))
+					rejectedActionAttempts += 1;
+				return globalThis.fetch(request, init);
+			},
+			retryDelayMs: 0,
+		},
+	);
 	assert.equal(rejected.status, "FAIL");
 	assert.ok(rejected.issues.includes("GATEWAY_ROLE_KEY_REJECTED"));
+	assert.equal(rejectedActionAttempts, 1);
 	assert.deepEqual(validateLocalRoleOpenApi("not: [valid"), [
 		"OPENAPI_PARSE_FAILED",
 	]);
