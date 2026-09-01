@@ -515,6 +515,10 @@
   dir: packages/execution-browser-extension
   intents:
     - petite-buckets-love
+"@tomflow/proflow-execution-browser-extension@0.1.23":
+  dir: packages/execution-browser-extension
+  intents:
+    - browser-setup-registration-stabilization
 "@tomflow/proflow-execution-browser-extension@0.1.3":
   dir: packages/execution-browser-extension
   intents:
