@@ -364,7 +364,11 @@ export async function setupModulesThin(
 		for (const dependencyRef of graph.order) {
 			if (!closure.has(dependencyRef)) continue;
 			const dependency = byRef.get(dependencyRef);
-			if (dependency?.kind !== "service") continue;
+			if (
+				dependency?.kind !== "service" &&
+				dependency?.kind !== "external-resource"
+			)
+				continue;
 			const status = await dispatchModuleCommand(
 				catalog,
 				dependency,

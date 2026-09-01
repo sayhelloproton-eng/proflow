@@ -755,6 +755,53 @@ test("deployment setup temporarily starts service dependencies before agent-pack
 	);
 });
 
+test("deployment setup also starts external-resource runtime dependencies needed by an agent package", async () => {
+	const ingress = moduleFixture({
+		moduleRef: "public-ingress",
+		kind: "external-resource",
+		provides: [{ contractRef: "fixture.ingress", version: "1.0.0" }],
+	});
+	const gateway = moduleFixture({
+		moduleRef: "gateway-service",
+		provides: [{ contractRef: "fixture.gateway", version: "1.0.0" }],
+		requires: [{ contractRef: "fixture.ingress", versionRange: ">=1.0.0" }],
+	});
+	const agent = moduleFixture({
+		moduleRef: "role-agent",
+		kind: "agent-package",
+		requires: [{ contractRef: "fixture.gateway", versionRange: ">=1.0.0" }],
+	});
+	const { catalog, calls } = recordingCatalog(
+		{ "role-agent": "ACTION_REQUIRED" },
+		{},
+		{},
+		{},
+		{},
+		{ "role-agent": "READY" },
+	);
+	const result = await setupModulesThin(
+		catalog,
+		[agent, gateway, ingress],
+		workspaceRoot,
+	);
+	assert.equal(result.completed, true);
+	const names = calls.map((item) => item.call);
+	assert.ok(
+		names.indexOf("public-ingress:start") <
+			names.indexOf("gateway-service:start"),
+	);
+	assert.ok(
+		names.indexOf("gateway-service:start") < names.indexOf("role-agent:setup"),
+	);
+	assert.ok(
+		names.indexOf("role-agent:setup") < names.indexOf("gateway-service:stop"),
+	);
+	assert.ok(
+		names.indexOf("gateway-service:stop") <
+			names.indexOf("public-ingress:stop"),
+	);
+});
+
 test("deployment setup cleans temporary service dependencies when agent-package provisioning fails", async () => {
 	const runtime = moduleFixture({
 		moduleRef: "runtime-service",
