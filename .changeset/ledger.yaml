@@ -559,6 +559,10 @@
   dir: packages/execution-browser-extension
   intents:
     - small-seals-thank
+"@tomflow/proflow-execution-browser-extension@0.1.26":
+  dir: packages/execution-browser-extension
+  intents:
+    - real3-workspace-loop
 "@tomflow/proflow-execution-browser-extension@0.1.3":
   dir: packages/execution-browser-extension
   intents:
@@ -1136,6 +1140,10 @@
   dir: packages/platform-cli
   intents:
     - fix-platform-setup-external-resource
+"@tomflow/proflow-platform-cli@0.1.51":
+  dir: packages/platform-cli
+  intents:
+    - real3-workspace-loop
 "@tomflow/proflow-platform-cli@0.1.6":
   dir: packages/platform-cli
   intents:
@@ -1176,6 +1184,10 @@
   dir: packages/platform-host
   intents:
     - phase3-real3-browser-status-closeout
+"@tomflow/proflow-platform-host@0.1.15":
+  dir: packages/platform-host
+  intents:
+    - real3-workspace-loop
 "@tomflow/proflow-platform-host@0.1.2":
   dir: packages/platform-host
   intents:
@@ -1236,6 +1248,10 @@
   dir: packages/task-orchestration
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-task-orchestration@0.1.10":
+  dir: packages/task-orchestration
+  intents:
+    - real3-workspace-loop
 "@tomflow/proflow-task-orchestration@0.1.4":
   dir: packages/task-orchestration
   intents:
