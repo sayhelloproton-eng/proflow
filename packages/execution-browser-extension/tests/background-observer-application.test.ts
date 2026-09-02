@@ -160,3 +160,26 @@ test("P1-18 bounded startup/event recovery replenishes missing Task Workers befo
 		/chrome\.runtime\.onInstalled[\s\S]*runObserverRecovery\(\)/,
 	);
 });
+
+test("CP-EXE-BR-09 bounded recovery retries rejected wake delivery without bypassing Execution idempotency", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	const recovery = source.slice(
+		source.indexOf("function runObserverRecovery()"),
+		source.indexOf(
+			"function observationFor",
+			source.indexOf("function runObserverRecovery()"),
+		),
+	);
+	assert.match(recovery, /let recoveryNeedsRetry = false/);
+	assert.match(
+		recovery,
+		/taskObserver\.drive\(candidate\.taskId\)\.catch\(\(\) => \{\s*recoveryNeedsRetry = true/,
+	);
+	assert.match(
+		recovery,
+		/if \(recoveryNeedsRetry && observerRecoveryRetryCount < 6\)/,
+	);
+	assert.match(recovery, /setTimeout\(\(\) => void runObserverRecovery\(\), 2_000\)/);
+	assert.match(recovery, /same stable Execution identities/);
+	assert.doesNotMatch(recovery, /executeCapability\(/);
+});

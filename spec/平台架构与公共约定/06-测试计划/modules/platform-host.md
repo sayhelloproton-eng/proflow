@@ -113,7 +113,7 @@ STOP：必须新增host-owned state/scheduler/Observer authority/Browser runtime
 - [ ] **CP-HOST-11** — Extension Task Application 通过 authenticated loopback composition 实际完成 `Task.create(PENDING) → 固定三 Role Worker 经 Execution 创建并回写 TaskRoleBinding → Task READY → Task.start(ACTIVE)`；UI/host 均不复制 Task readiness/state-machine truth。
 - [ ] **RF-HOST-11** — Worker 创建绕过 Execution、UI/host 直接写 Task binding/readiness、缺失 binding 被假定成功、或通过第二套 Task Store 完成 J1。
 
-**Executable proof**：`packages/platform-host/tests/task-application-entry.test.ts` 中 `PRESMOKE-B3-APP-03`。
+**Executable proof**：`packages/platform-host/tests/task-application-entry.test.ts` 中 `R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fills only missing Workers`；该测试继续通过 Task Application 执行 `task.start` 并确认 `ACTIVE`。
 
 
 ### Batch 3 host boundary proof mapping

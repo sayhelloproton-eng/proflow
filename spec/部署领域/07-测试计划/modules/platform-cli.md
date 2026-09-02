@@ -26,10 +26,11 @@ implementationWave: Wave 6
 
 ## Frozen surface
 
-Exactly seven top-level commands:
+Platform 顶层公开命令为八个：
 
 ```text
 install
+update
 uninstall
 status
 setup
@@ -37,6 +38,8 @@ docs
 start
 stop
 ```
+
+其中 Module management contract 仍严格保持七命令 `install/uninstall/status/setup/docs/start/stop`。`update` 只属于 Workspace package maintenance：定向更新一个已安装 governed ProFlow package，随后复用既有 `Module.install` 完成该包工作区物化；禁止新增 `Module.update`。
 
 `modules` 与所有 removed Platform commands 必须不可 routable；Module-specific extra command 不进入 Platform。
 
@@ -48,9 +51,14 @@ stop
 
 `status` == Module.status 聚合并翻译公共枚举；`setup` == Module.setup 结构化 Step 聚合；`docs` == Module.docs 正文聚合且不显示 SETUP。Platform 不推导 private config/health，也不读取 configSlots 后生成 setup 指导。
 
-### install / uninstall
+### install / update / uninstall
 
 Install 先完成 Registry/package-manager 的一次性 package-set sync，再校验 dependency graph，随后按冻结 Deployment Install Order 调用 Module.install；不得使用 Registry 返回顺序、packageName 字母序或 dependency depth 作为 install 产品顺序。Uninstall 仍先 reverse dependency-order Module.uninstall，再 package remove，只清理由本次 install 引入的 pnpm minimumReleaseAgeExclude，保留用户 policy 与 `.proflow`。
+
+Update 必须使用 `--package <packageName>` 精确定位一个当前已安装的 governed ProFlow package；只做该包的定向 Registry lookup 和一次 package-manager mutation，保留所有 sibling dependency；版本落盘后重新读取 installed descriptor，并复用该 Module 的 `install` 完成工作区物化。运行中的 verified/unverified start owner 均必须 fail-closed，要求先 `platform stop`。
+
+- [x] **CP-DEP-CLI-UPDATE-01** — `platform update --package` 只更新目标包到 Registry latest，不触发 scope search、不改 sibling dependency，并复用目标 Module.install。
+- [x] **CP-DEP-CLI-UPDATE-02** — 缺少 `--package` 或目标不是当前已安装 governed ProFlow package 时，在 Registry/package-manager mutation 前失败。
 
 ### deployment install order
 
@@ -119,6 +127,6 @@ Fresh Workspace 的初始状态必须真实 fail-closed，不得假 READY；当�
 ## 2026-09-01 Final Freeze lifecycle proofs
 
 - [x] **CP-DEP-CLI-FINAL-01** — setup 为 Agent capability 校验临时启动 dependency 时，同时支持 `service` 与 `external-resource` owner；对应 `packages/platform-cli/tests/lifecycle.test.ts` 的 external-resource regression。
-- [x] **CP-DEP-CLI-FINAL-02** — 成功 `platform start` 的 CLI 进程是 foreground runtime owner；跨进程 `platform stop` 请求该 owner SIGTERM 并完成公共 stop lifecycle；对应 `packages/platform-cli/tests/cross-process-stop.test.ts`。
-- [x] **CP-DEP-CLI-FINAL-03** — 正式 recovery contract 为独立进程 `start owner → status → stop → new start owner → status`，不能用串行 shell 期待 `start` 自行返回。
+- [x] **CP-DEP-CLI-FINAL-02** — 成功 `platform start` 必须把 runtime lifecycle 转交给 detached start owner；前台 CLI 在收到 owner 启动确认后退出并归还 shell，随后独立 `platform stop` 通过 owner SIGTERM 完成公共 stop lifecycle；对应 `packages/platform-cli/tests/cross-process-stop.test.ts`。
+- [x] **CP-DEP-CLI-FINAL-03** — 正式 recovery contract 为串行 shell 可执行的 `start → status → stop → start → status`；每次 `start` 都必须在 detached owner 确认后自行返回，重复 start 不得创建第二个 owner。
 - [x] **CP-DEP-CLI-FINAL-04** — repeat `platform setup` / `status` 必须安全重入；Final Fresh 真实 evidence 最终 `PLATFORM_READY=YES`。

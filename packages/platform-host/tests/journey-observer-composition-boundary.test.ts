@@ -55,6 +55,10 @@ test("CP-HOST-07 host has no universal scheduler, Browser frame registry, or dir
 	]) {
 		assert.doesNotMatch(text, forbidden);
 	}
+	assert.doesNotMatch(text, /actorRef:\s*"platform-host:task-observer"/);
+	assert.doesNotMatch(text, /taskDriverPorts\.(?:startTask|startNode)/);
+	assert.match(text, /actorRef = `worker:\$\{workerRef\}`/);
+	assert.match(text, /workerRef: canonicalWorkerRef/);
 });
 
 test("PRESMOKE-B3-OBS-HOST-01 platform-host exposes Observer transport but owns no Task/System Observer lifecycle", async () => {

@@ -254,6 +254,23 @@ test("CP-TASK-ORCH-03 TaskRoleBinding is stable/idempotent and startNode resolve
 		}),
 	);
 	const versions = nodeVersion(services, active.taskId, `${active.taskId}-dev`);
+	assert.equal(
+		errorCode(
+			services.commands.startNode({
+				taskId: active.taskId,
+				nodeId: `${active.taskId}-dev`,
+				expectedTaskVersion: versions.taskVersion,
+				expectedNodeVersion: versions.nodeVersion,
+				actorRef: "platform-host:task-observer",
+				idempotencyKey: "idem:start-node:observer-denied",
+			}),
+		),
+		"WORKER_MISMATCH",
+	);
+	assert.deepEqual(
+		nodeVersion(services, active.taskId, `${active.taskId}-dev`),
+		versions,
+	);
 	const started = ok(
 		services.commands.startNode({
 			taskId: active.taskId,

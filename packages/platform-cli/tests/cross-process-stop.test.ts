@@ -89,7 +89,7 @@ export const behaviorAdapter = {
   },
 };\n`;
 }
-test("CP-DEP-CLI-FINAL-02 platform stop reaches the original foreground start owner across CLI processes", async () => {
+test("CP-DEP-CLI-FINAL-02 platform start returns the shell while stop reaches the detached lifecycle owner", async () => {
 	const root = await tempWorkspace();
 	const port = await reservePort();
 	await writeInstalledModule(root, {
@@ -123,7 +123,9 @@ test("CP-DEP-CLI-FINAL-02 platform stop reaches the original foreground start ow
 				return false;
 			}
 		});
-		assert.equal(start.exitCode, null, startOutput);
+		if (start.exitCode === null && start.signalCode === null)
+			await once(start, "exit");
+		assert.equal(start.exitCode, 0, startOutput);
 
 		const stopped = await execFileAsync(
 			process.execPath,
@@ -132,9 +134,6 @@ test("CP-DEP-CLI-FINAL-02 platform stop reaches the original foreground start ow
 		);
 		assert.match(stopped.stdout, /平台停止完成/);
 		await waitUntil(async () => !(await isHealthy(port)));
-		if (start.exitCode === null && start.signalCode === null)
-			await once(start, "exit");
-		assert.equal(start.exitCode, 0, startOutput);
 
 		const status = await execFileAsync(
 			process.execPath,
@@ -151,7 +150,7 @@ test("CP-DEP-CLI-FINAL-02 platform stop reaches the original foreground start ow
 	}
 });
 
-test("platform uninstall stops the original foreground start owner before package removal", async () => {
+test("platform uninstall stops the detached start owner before package removal", async () => {
 	const root = await tempWorkspace();
 	const port = await reservePort();
 	await writeInstalledModule(root, {
@@ -185,7 +184,9 @@ test("platform uninstall stops the original foreground start owner before packag
 				return false;
 			}
 		});
-		assert.equal(start.exitCode, null, startOutput);
+		if (start.exitCode === null && start.signalCode === null)
+			await once(start, "exit");
+		assert.equal(start.exitCode, 0, startOutput);
 		const packageCalls: string[][] = [];
 		const result = await runCli(["uninstall", "--workspace", root], {
 			cwd: root,
@@ -210,9 +211,6 @@ test("platform uninstall stops the original foreground start owner before packag
 		});
 		assert.equal(result.status, "SUCCEEDED");
 		await waitUntil(async () => !(await isHealthy(port)), 5_000);
-		if (start.exitCode === null && start.signalCode === null)
-			await once(start, "exit");
-		assert.equal(start.exitCode, 0, startOutput);
 		assert.equal(packageCalls.length, 1);
 		assert.ok(packageCalls[0]?.includes("uninstall"));
 	} finally {

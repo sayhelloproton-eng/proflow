@@ -1,8 +1,8 @@
 # ProFlow Phase 3 公共上下文入口
 
 > 用途：为 Phase 3 最终真实验收提供跨 Chat / Agent 的稳定公共上下文与总纲总控入口。
-> 更新时间：2026-09-01。
-> **2026-09-01 Final Freeze：Deployment 已由用户最终裁决 PASS 并封版。真实 npm latest + 真正 Fresh Product Workspace 已完成 23/23 install；Browser Extension、Dev Tunnel、Model FAST/THINK、3 个 Role/GPT 均最终 READY；公开 `platform start → status → repeat setup → repeat status → stop → cold start → final status` 全部 PASS，最终 `PLATFORM_READY=YES`。当前版本真值：`platform-cli@0.1.50`、`dev-tunnel@0.1.25`、`execution-browser-extension@0.1.25`、`agent-runtime@0.1.13`、三个 Agent Role package `0.1.16`。Deployment 不再因历史 handoff、旧 blocker 或已裁决偶发现象重开；当前 Gate 正式进入 `REAL_3_J0_J4`。**
+> 更新时间：2026-09-02。
+> **2026-09-01 Final Freeze：Deployment 已由用户最终裁决 PASS 并封版。2026-09-02 又完成一次真实 Fresh Product Workspace 人工进入：真实 npm latest `platform-cli@0.1.50` 全局安装、23/23 `platform install`、`platform setup` 3/3、Browser / Dev Tunnel / FAST-THINK / 3 Role-GPT 建立与恢复均成功，`platform start` 真实启动为 5 success / 18 skip / 0 fail。当前 Gate 为 `REAL_3_J0_J4`。Real-3 正式业务 Journey 前先由 Work 做一次 J0～J4 的“文档 → Test Plan → Formal Case → Executable Test → Code”纵向一致性审计；下一 Chat 不重复审计，而作为验证总纲总控接收 Work 反馈、裁决 gap、限定最小整改并推进真实 Journey。Deployment 仍保持 FROZEN。**
 
 
 
@@ -30,12 +30,12 @@
 
 1. `README.md`。
 2. `02-当前总控状态与Real路线.md` —— 当前 Gate / 下一 Real。
-3. `09-Real3当前上下文与未解决问题-20260829.md` —— 只读顶部 Final Freeze 与当前 Real-3 接管信息。
+3. `09-Real3当前上下文与未解决问题-20260829.md` —— 读取顶部 Final Freeze、2026-09-02 Fresh 现场与当前 Real-3 接管信息。
 4. `05-执行纪律与工具规则.md`。
-5. `10-Deployment-Closeout循环测试进度计划书.md` 仅在追溯 Deployment 最终验收时读取；`12` 已降级为历史事故 handoff。
-6. 涉及自动化模拟人工、循环测试提速、Fresh/replay 时，再读 `11-跨项目自动化模拟人工测试提效方法论.md`。
-7. `03-冻结架构与关键决策.md` + `04-测试验证与验收方法.md`。
-8. 当前问题所属领域正式 spec / Test Plan / evidence；只有需要追溯原因时才读 `01` / `07` 或 Git history。
+5. 若 Work 正在/已经执行 Real-3 纵向审计，读取 `13-Real3-J0-J4纵向一致性审计任务书-20260902.md`，然后接收 Work 的实际审计反馈；下一 Chat 不重复做同一审计。
+6. `03-冻结架构与关键决策.md` + `04-测试验证与验收方法.md`。
+7. `10-Deployment-Closeout循环测试进度计划书.md` 仅在追溯 Deployment 最终验收时读取；`12` 已降级为历史事故 handoff。
+8. 涉及自动化模拟人工、循环测试提速、Fresh/replay 时，再读 `11-跨项目自动化模拟人工测试提效方法论.md`；只有需要追溯原因时才读 `01` / `07` 或 Git history。
 
 ## 文件职责
 
@@ -51,6 +51,7 @@
 - `10-Deployment-Closeout循环测试进度计划书.md`：Deployment Final Freeze 记录与历史 Closeout 过程，不再定义当前 Gate。
 - `11-跨项目自动化模拟人工测试提效方法论.md`：从 ProFlow 实战抽象出的跨项目 FAST REPLAY / FULL FRESH / SAME SCENE / timing / UI freeze 方法，未来新项目可直接复制继承。
 - `12-Deployment最终人工验证阻断与新Chat交接-20260901.md`：一次性历史事故 handoff；P1/Dev Tunnel blocker 均已闭环，禁止再作为首读或当前 blocker 真源。
+- `13-Real3-J0-J4纵向一致性审计任务书-20260902.md`：给 Work 的专项只读审计任务书；覆盖 Real-3 J0～J4 的文档/Test Plan/Formal Case/Executable Test/Code 一致性，不是新的滚动 handoff。
 
 ## 维护原则
 

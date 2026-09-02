@@ -1,3 +1,5 @@
+import { containsSubmittedFingerprint } from "../src/submitted-message.js";
+
 type PageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 type ContentCommand = {
 	type: "PROFLOW_PAGE_COMMAND";
@@ -61,7 +63,15 @@ function safeElement(selector: string | undefined): HTMLElement {
 }
 
 function hasFingerprint(fingerprint: string | undefined): boolean {
-	return Boolean(fingerprint && document.body.innerText.includes(fingerprint));
+	return containsSubmittedFingerprint(
+		[...document.querySelectorAll('[data-message-author-role="user"]')].map(
+			(element) => ({
+				authorRole: element.getAttribute("data-message-author-role"),
+				textContent: element.textContent,
+			}),
+		),
+		fingerprint,
+	);
 }
 
 chrome.runtime.onMessage.addListener((command, _sender, sendResponse) => {

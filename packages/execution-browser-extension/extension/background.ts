@@ -587,6 +587,7 @@ let observerRecoveryRetryCount = 0;
 function runObserverRecovery() {
 	if (observerRecoveryInFlight) return observerRecoveryInFlight;
 	observerRecoveryInFlight = (async () => {
+		let recoveryNeedsRetry = false;
 		await collaborationCarrier.recoverPending(50).catch(() => undefined);
 		const signalBatch = await invokeObserverApplication(
 			"execution.listSignals",
@@ -634,18 +635,14 @@ function runObserverRecovery() {
 					});
 				} catch {
 					// Leave the durable signal unacknowledged for the next bounded recovery pass.
+					recoveryNeedsRetry = true;
 				}
 			}
 		}
 		const listed = await invokeTaskApplication("task.list", {}).catch(
 			() => null,
 		);
-		if (listed === null && observerRecoveryRetryCount < 6) {
-			observerRecoveryRetryCount += 1;
-			setTimeout(() => void runObserverRecovery(), 2_000);
-		} else if (listed !== null) {
-			observerRecoveryRetryCount = 0;
-		}
+		if (listed === null) recoveryNeedsRetry = true;
 		if (isRecord(listed) && Array.isArray(listed.tasks)) {
 			for (const candidate of listed.tasks.slice(0, 100)) {
 				if (!isRecord(candidate) || typeof candidate.taskId !== "string")
@@ -663,9 +660,21 @@ function runObserverRecovery() {
 				// missing roles are re-provisioned by the Host/Execution path.
 				await invokeTaskApplication("task.ensureWorkers", {
 					taskId: candidate.taskId,
-				}).catch(() => undefined);
-				await taskObserver.drive(candidate.taskId).catch(() => undefined);
+				}).catch(() => {
+					recoveryNeedsRetry = true;
+				});
+				await taskObserver.drive(candidate.taskId).catch(() => {
+					recoveryNeedsRetry = true;
+				});
 			}
+		}
+		// A bounded retry continues the same stable Execution identities. Execution
+		// remains the no-blind-replay authority for APPLIED/NOT_APPLIED/UNKNOWN.
+		if (recoveryNeedsRetry && observerRecoveryRetryCount < 6) {
+			observerRecoveryRetryCount += 1;
+			setTimeout(() => void runObserverRecovery(), 2_000);
+		} else if (!recoveryNeedsRetry) {
+			observerRecoveryRetryCount = 0;
 		}
 		const previousSystemState = await loadSystemObserverState().catch(
 			() => null,
@@ -724,6 +733,27 @@ async function contentCommand(
 	return response.value;
 }
 
+async function waitForSubmittedMessage(
+	tabId: number,
+	fingerprint: string,
+): Promise<ContentObservation> {
+	for (let attempt = 0; attempt < 60; attempt += 1) {
+		try {
+			const value = await contentCommand(tabId, {
+				operation: "verify",
+				fingerprint,
+			});
+			if (isRecord(value) && value.verified === true)
+				return observationFor(tabId);
+		} catch {
+			// Navigation can replace the content instance after submit. The next
+			// bounded observation/verification pass uses the newly published session.
+		}
+		await sleep(250);
+	}
+	throw new Error("MESSAGE_SUBMIT_REALITY_UNCONFIRMED");
+}
+
 function numeric(value: unknown, name: string): number {
 	if (!Number.isInteger(value)) throw new Error(`${name}_INVALID`);
 	return value as number;
@@ -757,11 +787,12 @@ async function executeCommand(command: BridgeCommand): Promise<unknown> {
 		return contentCommand(tabId, { operation: "observe" });
 	if (command.type === "SUBMIT") {
 		const before = observationFor(tabId);
+		const fingerprint = text(command.fingerprint, "FINGERPRINT");
 		try {
 			await contentCommand(tabId, {
 				operation: "submit",
 				value: text(command.text, "TEXT"),
-				fingerprint: text(command.fingerprint, "FINGERPRINT"),
+				fingerprint,
 			});
 		} catch (error) {
 			const replacement = await waitForObservation(
@@ -770,7 +801,7 @@ async function executeCommand(command: BridgeCommand): Promise<unknown> {
 			).catch(() => null);
 			if (!replacement) throw error;
 		}
-		return waitForObservation(tabId);
+		return waitForSubmittedMessage(tabId, fingerprint);
 	}
 	if (command.type === "VERIFY")
 		return contentCommand(tabId, {

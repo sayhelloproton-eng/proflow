@@ -603,18 +603,6 @@ export type PlatformHostTaskDriverPorts = {
 			workerRef: string | null;
 		};
 	}>;
-	startTask(input: {
-		taskId: string;
-		expectedTaskVersion: number;
-		idempotencyKey: string;
-	}): Promise<unknown>;
-	startNode(input: {
-		taskId: string;
-		nodeId: string;
-		expectedTaskVersion: number;
-		expectedNodeVersion: number;
-		idempotencyKey: string;
-	}): Promise<unknown>;
 };
 
 export type PlatformHostAgentIdentityPorts = {
@@ -955,6 +943,7 @@ async function constructGraph(
 		const taskOperation = taskOperations.get(operationId);
 		if (taskOperation) {
 			let actorRef = authenticatedRoleRef;
+			let canonicalWorkerRef: string | undefined;
 			if (typeof input.taskId === "string") {
 				const workerRef = await admitTaskParticipant(
 					input.taskId,
@@ -967,7 +956,8 @@ async function constructGraph(
 						taskId: input.taskId,
 						workerRef,
 					});
-				actorRef = workerRef;
+				canonicalWorkerRef = workerRef;
+				actorRef = `worker:${workerRef}`;
 			}
 			let canonicalTaskInput = input;
 			if (context?.fileMaterializationInputs !== undefined) {
@@ -991,8 +981,8 @@ async function constructGraph(
 							? { taskId: input.taskId }
 							: {}),
 						roleRef: authenticatedRoleRef,
-						...(typeof input.taskId === "string"
-							? { workerRef: actorRef }
+						...(canonicalWorkerRef !== undefined
+							? { workerRef: canonicalWorkerRef }
 							: {}),
 						files: context.fileMaterializationInputs,
 					}),
@@ -1164,9 +1154,8 @@ async function constructGraph(
 					request.capability === "worker.restore" ||
 					request.capability === "worker.wake" ||
 					request.capability === "collaboration.deliver";
-				const internalBrowserCaller =
-					request.callerRef === "platform-host:task-observer" ||
-					request.callerRef === "platform-host:carrier-controller" ||
+			const internalBrowserCaller =
+				request.callerRef === "platform-host:carrier-controller" ||
 					request.callerRef === "extension:task-observer" ||
 					request.callerRef === "extension:collaboration-carrier";
 				if (!internalBrowserCaller) agent.getRegisteredRole(request.callerRef);
@@ -1262,22 +1251,6 @@ async function constructGraph(
 		},
 		async getTaskDriveProjection(taskId: string) {
 			return unwrap(task.queries.getTaskDriveProjection({ taskId }));
-		},
-		async startTask(input) {
-			return unwrap(
-				task.commands.startTask({
-					...input,
-					actorRef: "platform-host:task-observer",
-				}),
-			);
-		},
-		async startNode(input) {
-			return unwrap(
-				task.commands.startNode({
-					...input,
-					actorRef: "platform-host:task-observer",
-				}),
-			);
 		},
 	});
 
@@ -1626,28 +1599,39 @@ async function constructGraph(
 					typeof value.underlyingRef === "string"
 						? value.underlyingRef
 						: "none";
-				return execution.invoke("executeCapability", {
-					contract: "execution",
-					contractVersion: "1.0.0",
-					idempotencyKey: `task-observer-wake:${taskId}:${nodeId}:${runNo}:${trigger}:${underlyingRef}`,
-					callerRef: "extension:task-observer",
-					correlationId: `task-observer:${taskId}:${nodeId}:${runNo}`,
-					taskId,
-					nodeId,
-					runNo,
-					roleRef,
-					workerRef,
-					capability: "worker.wake",
-					input: {
-						roleRef,
-						workerRef,
+				const wakeExecution = object(
+					await execution.invoke("executeCapability", {
+						contract: "execution",
+						contractVersion: "1.0.0",
+						idempotencyKey: `task-observer-wake:${taskId}:${nodeId}:${runNo}:${trigger}:${underlyingRef}`,
+						callerRef: "extension:task-observer",
+						correlationId: `task-observer:${taskId}:${nodeId}:${runNo}`,
 						taskId,
 						nodeId,
 						runNo,
-						trigger,
-						fingerprint: `wake:${taskId}:${nodeId}:${runNo}:${trigger}:${underlyingRef}`,
-					},
-				});
+						roleRef,
+						workerRef,
+						capability: "worker.wake",
+						input: {
+							roleRef,
+							workerRef,
+							taskId,
+							nodeId,
+							runNo,
+							trigger,
+							fingerprint: `wake:${taskId}:${nodeId}:${runNo}:${trigger}:${underlyingRef}`,
+						},
+					}),
+					"task wake execution",
+				);
+				if (
+					wakeExecution.status !== "SUCCEEDED" ||
+					wakeExecution.sideEffectState !== "APPLIED"
+				)
+					throw new Error(
+						`TASK_WAKE_NOT_CONFIRMED:${String(wakeExecution.status)}:${String(wakeExecution.sideEffectState)}`,
+					);
+				return wakeExecution;
 			}
 			if (operation === "task.diagnostic") {
 				const response = object(
@@ -2052,14 +2036,6 @@ export function createPlatformHost(input: {
 		async getNodeContext(taskId, nodeId) {
 			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
 			return graph.taskDriverPorts.getNodeContext(taskId, nodeId);
-		},
-		async startTask(input) {
-			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
-			return graph.taskDriverPorts.startTask(input);
-		},
-		async startNode(input) {
-			if (!graph) throw new Error("PLATFORM_HOST_NOT_RUNNING");
-			return graph.taskDriverPorts.startNode(input);
 		},
 	});
 	const agentIdentityPorts: PlatformHostAgentIdentityPorts = Object.freeze({

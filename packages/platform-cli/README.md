@@ -4,10 +4,11 @@ Thin Workspace-level orchestration CLI for ProFlow package discovery, dependency
 
 ## Standard CLI
 
-The top-level management surface is exactly seven commands:
+The top-level Platform surface is eight commands:
 
 ```bash
 platform install
+platform update --package <packageName>
 platform uninstall
 platform status
 platform setup
@@ -16,9 +17,11 @@ platform start
 platform stop
 ```
 
+The Module management contract remains exactly seven commands (`install/uninstall/status/setup/docs/start/stop`). `platform update` is Workspace package maintenance: it updates one already-installed governed ProFlow package and then invokes that Module's existing `install`; it does not introduce `Module.update`.
+
 Removed Platform routes such as `modules`, `preflight`, `verify`, `doctor`, `restart`, `plan`, `apply`, `upgrade` and `manifest` are not routable. Module-specific commands remain owned by their Module and are not proxied by Platform.
 
-All seven commands accept `--workspace <path>`; without it, the CLI uses `process.cwd()`.
+All eight Platform commands accept `--workspace <path>`; without it, the CLI uses `process.cwd()`.
 
 ## Ownership
 

@@ -94,6 +94,22 @@ async function waitForExit(pid: number, timeoutMs = 60_000): Promise<boolean> {
 	}
 	return !processAlive(pid);
 }
+export type StartOwnerObservation = "ABSENT" | "RUNNING" | "UNVERIFIED";
+
+export async function observeStartOwner(
+	root: string,
+): Promise<StartOwnerObservation> {
+	const record = await readOwner(root);
+	if (!record) return "ABSENT";
+	if (record.workspaceRoot === root && (await ownerMatchesProcess(record)))
+		return "RUNNING";
+	if (!processAlive(record.pid)) {
+		await rm(ownerFile(root), { force: true });
+		return "ABSENT";
+	}
+	return "UNVERIFIED";
+}
+
 export async function registerStartOwner(root: string): Promise<void> {
 	const argv1 = process.argv[1];
 	if (!argv1) throw new Error("platform start entrypoint is unavailable");

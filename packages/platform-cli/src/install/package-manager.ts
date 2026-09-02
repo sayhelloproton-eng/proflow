@@ -306,6 +306,42 @@ async function packageManagerInstallArgs(
 		: ["install", "--mode=skip-build"];
 }
 
+export async function updateWorkspacePackage(options: {
+	workspaceRoot: string;
+	package: WorkspacePackageTarget;
+	runner?: PackageCommandRunner;
+	executableAvailable?: (command: string) => boolean;
+	onOutput?: (line: PackageCommandOutput) => void;
+}): Promise<WorkspacePackageMutationResult> {
+	const runner = options.runner ?? systemPackageCommandRunner();
+	const manager = await preflightWorkspacePackageManager(
+		options.workspaceRoot,
+		options.executableAvailable ?? findExecutable,
+	);
+	const spec = `${options.package.packageName}@${options.package.version}`;
+	const args = await batchPackageManagerArgs(
+		runner,
+		manager,
+		options.workspaceRoot,
+		"sync",
+		[spec],
+	);
+	try {
+		await runner.run(
+			manager.name,
+			args,
+			options.workspaceRoot,
+			options.onOutput,
+		);
+	} catch (error) {
+		throw new PlatformError(
+			"COMMAND_FAILED",
+			`${manager.name} update failed: ${packageMutationError(error)}`,
+		);
+	}
+	return { packageManager: manager.name, packages: [spec] };
+}
+
 export async function removeWorkspacePackages(options: {
 	workspaceRoot: string;
 	packageNames: readonly string[];

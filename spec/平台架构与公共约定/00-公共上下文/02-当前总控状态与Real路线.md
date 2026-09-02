@@ -1,6 +1,6 @@
 # 当前总控状态、验证总纲总控职责与 Real 路线
 
-> 更新时间：2026-09-01。这里记录 Phase 3 最终验收的 operational control state，不替代 Git / Registry / runtime 的实时机械检查，也不替代 Frozen Spec / Test Plan。
+> 更新时间：2026-09-02。这里记录 Phase 3 最终验收的 operational control state，不替代 Git / Registry / runtime 的实时机械检查，也不替代 Frozen Spec / Test Plan。
 
 ## 当前阶段
 
@@ -15,6 +15,8 @@
 - `DEPLOYMENT_SUCCESS = YES`
 - `CURRENT_EXECUTION_GATE = REAL_3_J0_J4`
 - `READY_FOR_REAL_3 = YES`（Deployment Closeout 已结束，恢复 Real-3 主线）
+- `REAL_3_PRE_AUDIT = ASSIGNED_TO_WORK`
+- `NEXT_CHAT_ROLE = VALIDATION_CONTROLLER / CONSUME_WORK_AUDIT`
 - `SYSTEM_REAL_USABLE = OUT_OF_SCOPE_FOR_DEPLOYMENT`
 - `PHASE3_FINAL_GO = NO`
 
@@ -32,6 +34,10 @@
 上述四项产品门已在 2026-09-01 最终真实 npm latest + Fresh Product Workspace E2E 中完成裁决并 PASS。Deployment 当前是 **FROZEN**，不是待优化状态；只有新的、可复现且足以推翻冻结合同的 regression evidence 才允许正式重开。非阻断 polish、已裁决偶发现象和历史 handoff 不得反向把 `DEPLOYMENT_SUCCESS=YES` 改回 pending。
 
 Deployment Closeout 已于 2026-09-01 完成最终真实验收：Registry latest / Global CLI / Product Workspace 均使用当前发布物；真正 Fresh Workspace 完成 23/23 install、Browser Fresh load、Dev Tunnel、Model FAST/THINK 映射与 3 个 GPT/Identity 建立或恢复，随后 `platform status=3/3 / PLATFORM_READY=YES`。最终 lifecycle `start → status → repeat setup → repeat status → stop → start → final status` PASS；backstage reality 与公开 CLI READY 一致。`DEPLOYMENT_PRODUCT_ACCEPTANCE=PASS`，`DEPLOYMENT_SUCCESS=YES`；Deployment Closeout 到此结束，下一阶段回到 Real-3 J0～J4。
+
+2026-09-02 再次从真实 Fresh Product Workspace 进入当前 Real-3 前沿：全局 latest CLI 0.1.50、23/23 install、setup 3/3、Browser/Tunnel/3 Role-GPT 与 FAST/THINK 配置均建立成功，`platform start` 真实启动 5 success / 18 skip / 0 fail。现场同时记录了 `docs/-h` 可发现性和 `start/stop shell ownership` 两个后续 UX/lifecycle 小问题；用户明确要求**不能大改稳定功能**，这些问题暂不阻断 Real-3。当前模型端因用户占用设备暂时不可达也明确 `NOT_PRODUCT_BUG / IGNORE_FOR_NOW`。
+
+Real-3 正式 Journey 前的纵向一致性审计由 **Work** 执行；审计重点为 Task/Node Orchestration、Role→Worker→Conversation、Observer→Locate→Restore→WAKE、WAKE→Worker Turn/Owner API。下一 Chat 不重新做这次审计，而是作为验证总纲总控接收 Work 输出，裁决 blocker/non-blocking gap，限定最小整改，然后推进真实 J0～J4。
 
 必须继续严格区分：
 

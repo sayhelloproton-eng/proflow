@@ -7,11 +7,11 @@
   },
   "currentMechanicalInventory": {
     "testPlans": 39,
-    "formalCaseIdentities": 322,
-    "criticalProofs": 205,
+    "formalCaseIdentities": 324,
+    "criticalProofs": 207,
     "requiredFailureBoundaries": 117,
-    "executableTestFiles": 144,
-    "executableTestCalls": 655,
+    "executableTestFiles": 146,
+    "executableTestCalls": 663,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -1759,6 +1759,56 @@
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
+      "caseId": "CP-DEP-CLI-UPDATE-01",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/update.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-DEP-CLI-UPDATE-02",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-CLI",
+          "path": "spec/部署领域/07-测试计划/modules/platform-cli.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/platform-cli/tests/update.test.ts"
+      ],
+      "ownerPackages": [
+        "platform-cli"
+      ],
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
       "caseId": "CP-DEV-TUNNEL-01",
       "caseType": "CRITICAL_PROOF",
       "sourcePlans": [
@@ -2063,18 +2113,22 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts"
+        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+        "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension"
       ],
       "implementationRefs": [
-        "packages/execution-browser-extension/src/index.ts"
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts",
+        "packages/execution-contracts/src/index.ts"
       ],
       "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
-      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -2088,18 +2142,23 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts"
+        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+        "packages/execution-browser-extension/tests/submitted-message.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension"
       ],
       "implementationRefs": [
-        "packages/execution-browser-extension/src/index.ts"
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/submitted-message.ts"
       ],
       "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
-      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -2113,18 +2172,22 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts"
+        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+        "packages/platform-host/tests/task-application-entry.test.ts"
       ],
       "ownerPackages": [
-        "execution-browser-extension"
+        "execution-browser-extension",
+        "platform-host"
       ],
       "implementationRefs": [
-        "packages/execution-browser-extension/src/index.ts"
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
       ],
       "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
-      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -2238,18 +2301,25 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts"
+        "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
+        "packages/execution-browser-extension/tests/submitted-message.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension"
       ],
       "implementationRefs": [
-        "packages/execution-browser-extension/src/index.ts"
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/submitted-message.ts"
       ],
       "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
-      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {

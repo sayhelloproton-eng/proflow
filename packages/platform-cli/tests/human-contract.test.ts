@@ -151,6 +151,9 @@ test("help contains explanations and no raw JSON input route", () => {
 	assert.match(rendered, /-h, --help/);
 	assert.match(rendered, /-v, --version/);
 	assert.match(rendered, /等待依赖/);
+	assert.match(rendered, /platform update/);
+	assert.match(rendered, /只更新工作区中的一个已安装 ProFlow 包/);
+	assert.match(rendered, /docs/);
 	assert.equal(rendered.includes("--input"), false);
 	assert.doesNotMatch(rendered, /setup --module/);
 	assert.match(rendered, /install → setup → start/);

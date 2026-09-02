@@ -23,6 +23,7 @@ class BrowserHarness implements BrowserRealityPort {
 	maxActiveWrites = 0;
 	nextTab = 1;
 	submittedTexts: string[] = [];
+	confirmSubmittedMessages = true;
 	async listTabs() {
 		return [...this.tabs.values()];
 	}
@@ -52,7 +53,8 @@ class BrowserHarness implements BrowserRealityPort {
 		await new Promise((resolve) => setTimeout(resolve, 5));
 		this.submitCount += 1;
 		this.submittedTexts.push(text);
-		this.messages.get(tabId)?.add(fingerprint);
+		if (this.confirmSubmittedMessages)
+			this.messages.get(tabId)?.add(fingerprint);
 		const current = await this.observe(tabId);
 		if (!current.url.includes("/c/")) {
 			const changed = {
@@ -230,6 +232,29 @@ test("REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins,
 			}),
 		/WORKER_ALREADY_BOUND/,
 	);
+});
+
+test("CP-EXE-BR-02 CREATE does not persist a binding when the bootstrap message is not confirmed", async () => {
+	const { extension, browser, bindings } = await fixture();
+	browser.confirmSubmittedMessages = false;
+	await assert.rejects(
+		() =>
+			extension.execute({
+				request: request("worker.create", {
+					roleRef: "g-dev",
+					roleUrl: "https://chatgpt.com/g/g-dev",
+					bootstrapFingerprint: "bootstrap:unconfirmed",
+				}),
+				admission: {
+					policy: "ALLOW",
+					decisionPath: "deterministic",
+					approval: "NOT_REQUIRED",
+				},
+				onEffectStarted() {},
+			}),
+		/CREATE_MESSAGE_REALITY_UNCONFIRMED/,
+	);
+	assert.equal(bindings.has("task:1:g-dev"), false);
 });
 
 test("PRESMOKE-B3-BINDING-01 RESTORE uses durable TaskRoleBinding conversationLocator instead of reconstructing a URL", async () => {

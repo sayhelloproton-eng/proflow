@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 144,
-    "testCalls": 655
+    "files": 146,
+    "testCalls": 663
   },
   "tests": [
     {
@@ -2281,6 +2281,20 @@
     },
     {
       "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+      "line": 164,
+      "title": "CP-EXE-BR-09 bounded recovery retries rejected wake delivery without bypassing Execution idempotency",
+      "ids": [
+        "CP-EXE-BR-09"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/side-panel.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
       "line": 31,
       "title": "CP-EXE-BR-16 pairing binds identity only after authenticated hello + heartbeat",
@@ -2861,7 +2875,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 154,
+      "line": 156,
       "title": "REG-EXE-BR-01 stable role/worker identity rejects stale transient content instances",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2874,7 +2888,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 185,
+      "line": 187,
       "title": "REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, duplicate CREATE is zero",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2887,7 +2901,22 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 235,
+      "line": 237,
+      "title": "CP-EXE-BR-02 CREATE does not persist a binding when the bootstrap message is not confirmed",
+      "ids": [
+        "CP-EXE-BR-02"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts",
+        "packages/execution-contracts/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
+      "line": 260,
       "title": "PRESMOKE-B3-BINDING-01 RESTORE uses durable TaskRoleBinding conversationLocator instead of reconstructing a URL",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2900,7 +2929,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 282,
+      "line": 307,
       "title": "REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims Node or Effect completion",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2913,7 +2942,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 330,
+      "line": 355,
       "title": "PRESMOKE-B3-WAKE-01 worker.wake rejects untyped/arbitrary wake reasons before Browser effect",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2926,7 +2955,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 360,
+      "line": 385,
       "title": "REG-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministic observations",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2939,7 +2968,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 391,
+      "line": 416,
       "title": "REG-EXE-BR-05 permission fallback captures evidence and Side Panel remains read-only",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2952,7 +2981,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 417,
+      "line": 442,
       "title": "REG-EXE-BR-06 writes are globally serial and logical delivery follows physical verification",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2965,7 +2994,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 465,
+      "line": 490,
       "title": "REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2978,7 +3007,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 493,
+      "line": 518,
       "title": "REG-EXE-BR-08 Module setup invokes the owner pairing capability directly",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2991,7 +3020,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 594,
+      "line": 619,
       "title": "REG-EXE-BR-09 deterministic DOM observation makes zero Vision calls",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3004,7 +3033,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 626,
+      "line": 651,
       "title": "REG-EXE-BR-10 screenshot → Vision receives the exact captured image and returns a typed observation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3017,7 +3046,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 710,
+      "line": 735,
       "title": "REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fabricated success",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3030,7 +3059,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 760,
+      "line": 785,
       "title": "REG-EXE-BR-12 screenshot boundary rejects unsupported MIME and mismatched dataUrl",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3043,7 +3072,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 793,
+      "line": 818,
       "title": "REG-EXE-BR-13 Vision verification requires deterministic confidence and no human escalation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3247,6 +3276,51 @@
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-browser-extension/extension/side-panel.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/submitted-message.test.ts",
+      "line": 7,
+      "title": "CP-EXE-BR-03 submitted-message reality ignores composer and assistant text",
+      "ids": [
+        "CP-EXE-BR-03"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/submitted-message.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/submitted-message.test.ts",
+      "line": 28,
+      "title": "CP-EXE-BR-09 empty or absent fingerprint cannot prove delivery",
+      "ids": [
+        "CP-EXE-BR-09"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/submitted-message.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/submitted-message.test.ts",
+      "line": 34,
+      "title": "CP-EXE-BR-03/09 content and background wire structural sent-message verification before SUBMIT returns",
+      "ids": [
+        "CP-EXE-BR-03"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/submitted-message.ts"
       ]
     },
     {
@@ -6298,7 +6372,7 @@
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cross-process-stop.test.ts",
       "line": 92,
-      "title": "CP-DEP-CLI-FINAL-02 platform stop reaches the original foreground start owner across CLI processes",
+      "title": "CP-DEP-CLI-FINAL-02 platform start returns the shell while stop reaches the detached lifecycle owner",
       "ids": [
         "CP-DEP-CLI-FINAL-02"
       ],
@@ -6310,8 +6384,8 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/cross-process-stop.test.ts",
-      "line": 154,
-      "title": "platform uninstall stops the original foreground start owner before package removal",
+      "line": 153,
+      "title": "platform uninstall stops the detached start owner before package removal",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
@@ -6420,7 +6494,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/docs.test.ts",
-      "line": 73,
+      "line": 74,
       "title": "platform docs supports a single Module filter",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6431,7 +6505,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/docs.test.ts",
-      "line": 97,
+      "line": 98,
       "title": "core onboarding docs expose only Platform lifecycle commands",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6525,7 +6599,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 159,
+      "line": 162,
       "title": "usage errors include contextual help while operation failures stay concise",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6537,7 +6611,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 174,
+      "line": 177,
       "title": "near-miss command receives one concise correction",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6549,7 +6623,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 180,
+      "line": 183,
       "title": "uninstall success says already uninstalled",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6561,7 +6635,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 190,
+      "line": 193,
       "title": "docs terminal entry writes continuously without launching a pager",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6573,7 +6647,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 198,
+      "line": 201,
       "title": "TTY replacement progress clears completed status checks instead of persisting them",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6585,7 +6659,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 225,
+      "line": 228,
       "title": "default terminal hides install registry package-by-package verification",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6597,7 +6671,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 249,
+      "line": 252,
       "title": "default terminal hides setup per-module traversal",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6609,7 +6683,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 281,
+      "line": 284,
       "title": "non-TTY progress uses a stable marker instead of a frozen spinner",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6621,7 +6695,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 302,
+      "line": 305,
       "title": "TTY progress keeps completed phases and restores the current task after subprocess logs",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6633,7 +6707,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 339,
+      "line": 342,
       "title": "NO_COLOR disables semantic ANSI colors",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6645,7 +6719,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 354,
+      "line": 357,
       "title": "retryable package-manager warnings are yellow warnings, not failed events",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -6657,7 +6731,7 @@
     {
       "package": "platform-cli",
       "path": "packages/platform-cli/tests/human-contract.test.ts",
-      "line": 376,
+      "line": 379,
       "title": "stop summary does not count a no-effect module as both success and skipped",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7409,6 +7483,32 @@
       ]
     },
     {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/update.test.ts",
+      "line": 24,
+      "title": "CP-DEP-CLI-UPDATE-01 platform update changes exactly one installed ProFlow package",
+      "ids": [
+        "CP-DEP-CLI-UPDATE-01"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
+      "package": "platform-cli",
+      "path": "packages/platform-cli/tests/update.test.ts",
+      "line": 119,
+      "title": "CP-DEP-CLI-UPDATE-02 platform update requires one installed package target",
+      "ids": [
+        "CP-DEP-CLI-UPDATE-02"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-cli/src/cli.ts"
+      ]
+    },
+    {
       "package": "platform-host",
       "path": "packages/platform-host/tests/cross-domain-composition-integration.test.ts",
       "line": 16,
@@ -7509,7 +7609,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 60,
+      "line": 64,
       "title": "PRESMOKE-B3-OBS-HOST-01 platform-host exposes Observer transport but owns no Task/System Observer lifecycle",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7520,7 +7620,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 73,
+      "line": 77,
       "title": "PRESMOKE-B3-OBS-ASYNC-01 synchronous executeCapability completion does not manufacture a new Worker Turn",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7531,7 +7631,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 87,
+      "line": 91,
       "title": "PRESMOKE-B3-SYSOBS-OWNER-01 all eight owner views are bounded projections without borrowing another owner's readiness",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7542,7 +7642,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 117,
+      "line": 121,
       "title": "R2-P1-15-SYSOBS-01 carrier/deployment/artifact views read their own owner, never a borrowed signal",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7553,7 +7653,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 156,
+      "line": 160,
       "title": "PRESMOKE-B3-OBS-TRANSPORT-01 host exposes authenticated Observer owner/model transport without making it a scheduler",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7564,7 +7664,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-      "line": 168,
+      "line": 172,
       "title": "PRESMOKE-B3-CARRIER-TRANSPORT-01 Collaboration Carrier transport cannot proxy arbitrary Execution capabilities or caller identity",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -7782,7 +7882,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 526,
+      "line": 527,
       "title": "RF-AGT-GW-14 platform-host rejects group/world-readable Gateway transport credential",
       "ids": [
         "RF-AGT-GW-14"
@@ -7795,7 +7895,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/platform-host-critical-proofs.test.ts",
-      "line": 611,
+      "line": 612,
       "title": "PRESMOKE-B6-HOST-EXEC-01 Host→Execution transport credential is wired from config and business routes carry the Bearer",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -7903,6 +8003,19 @@
       "package": "platform-host",
       "path": "packages/platform-host/tests/task-application-entry.test.ts",
       "line": 161,
+      "title": "CP-EXE-BR-04 Observer application rejects an unconfirmed wake Execution",
+      "ids": [
+        "CP-EXE-BR-04"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/platform-host/src/index.ts"
+      ]
+    },
+    {
+      "package": "platform-host",
+      "path": "packages/platform-host/tests/task-application-entry.test.ts",
+      "line": 234,
       "title": "R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fills only missing Workers",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -7913,7 +8026,7 @@
     {
       "package": "platform-host",
       "path": "packages/platform-host/tests/task-application-entry.test.ts",
-      "line": 343,
+      "line": 428,
       "title": "PRESMOKE-B3-APP-04 partial Worker provisioning failure persists successful binding and ensureWorkers only fills missing Workers",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -8231,7 +8344,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
-      "line": 270,
+      "line": 287,
       "title": "CP-TASK-ORCH-04 stale, duplicate and same-key-different-fingerprint paths have zero partial writes",
       "ids": [
         "CP-TASK-ORCH-04"
@@ -8246,7 +8359,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
-      "line": 307,
+      "line": 324,
       "title": "CP-TASK-ORCH-05 reopen preserves binding/conversation/history and increments runNo",
       "ids": [
         "CP-TASK-ORCH-05"
@@ -8261,7 +8374,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
-      "line": 402,
+      "line": 419,
       "title": "CP-TASK-ORCH-06 Task-scoped nodeId:null documents are owner-validated and durable",
       "ids": [
         "CP-TASK-ORCH-06"
@@ -8276,7 +8389,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
-      "line": 429,
+      "line": 446,
       "title": "RF-TASK-ORCH-04 stale or rolled-back TaskDocument writes never leave canonical Markdown diverged from SQLite",
       "ids": [
         "RF-TASK-ORCH-04"
@@ -8291,7 +8404,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
-      "line": 575,
+      "line": 592,
       "title": "CP-TASK-ORCH-06 + CP-TASK-ORCH-08 TaskDocument remains canonical, safe, output-gated and hash-backed",
       "ids": [
         "CP-TASK-ORCH-06",
@@ -8307,7 +8420,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
-      "line": 645,
+      "line": 662,
       "title": "CP-TASK-ORCH-07 TaskGroup remains serial and predecessor success gates the next Task",
       "ids": [
         "CP-TASK-ORCH-07"
@@ -8322,7 +8435,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
-      "line": 698,
+      "line": 715,
       "title": "CP-TASK-ORCH-09 + CP-TASK-ORCH-10 readiness is deterministic and human confirmation directly starts READY Task",
       "ids": [
         "CP-TASK-ORCH-09",
@@ -8338,7 +8451,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
-      "line": 719,
+      "line": 736,
       "title": "Task-owned happy path remains durable after SQLite store close and reopen",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8351,7 +8464,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
-      "line": 756,
+      "line": 773,
       "title": "PRESMOKE-B6-TASK-01 createTask initial-document crash is recovered on first owner read before readiness",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8364,7 +8477,7 @@
     {
       "package": "task-orchestration",
       "path": "packages/task-orchestration/tests/task-owned-integration.test.ts",
-      "line": 805,
+      "line": 822,
       "title": "PRESMOKE-B6-TASK-02 a TERMINATED Task is rejected by reopenNode with zero mutation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { spawn } from "node:child_process";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -20,6 +21,7 @@ import {
 	preflightWorkspacePackageManager,
 	removeWorkspacePackages,
 	syncWorkspacePackages,
+	updateWorkspacePackage,
 } from "./install/package-manager.ts";
 import {
 	cleanOwnedPnpmPolicy,
@@ -27,6 +29,7 @@ import {
 	recordPnpmPolicyOwnership,
 } from "./install/pnpm-policy.ts";
 import {
+	dispatchModuleCommand,
 	installModulesThin,
 	type ModuleBatchResult,
 	observeDocs,
@@ -39,6 +42,7 @@ import {
 import { ensureWorkspaceStateIsGitIgnored } from "./persistence/git-isolation.ts";
 import {
 	clearStartOwner,
+	observeStartOwner,
 	registerStartOwner,
 	requestStartOwnerStop,
 } from "./persistence/start-owner.ts";
@@ -57,6 +61,7 @@ import { createTerminalProgressReporter } from "./terminal.ts";
 
 const COMMANDS = [
 	"install",
+	"update",
 	"uninstall",
 	"status",
 	"setup",
@@ -90,6 +95,7 @@ interface ParsedArgs {
 	command: Command | "help" | "version";
 	workspace?: string;
 	moduleRef?: string;
+	packageName?: string;
 }
 
 function editDistance(left: string, right: string): number {
@@ -121,7 +127,9 @@ function commandSuggestion(raw: string): Command | undefined {
 }
 
 function parseArgs(argv: readonly string[]): ParsedArgs {
-	let workspace: string | undefined, moduleRef: string | undefined;
+	let workspace: string | undefined;
+	let moduleRef: string | undefined;
+	let packageName: string | undefined;
 	let special: "help" | "version" | undefined;
 	const positional: string[] = [];
 	for (let index = 0; index < argv.length; index += 1) {
@@ -129,12 +137,17 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 		if (value === undefined) continue;
 		if (value === "--json")
 			throw new PlatformError("INVALID_REQUEST", "不支持的选项 --json");
-		if (value === "--workspace" || value === "--module") {
+		if (
+			value === "--workspace" ||
+			value === "--module" ||
+			value === "--package"
+		) {
 			const next = argv[index + 1];
 			if (!next || next.startsWith("-"))
 				throw new PlatformError("INVALID_REQUEST", `${value} requires a value`);
 			if (value === "--workspace") workspace = next;
 			else if (value === "--module") moduleRef = next;
+			else packageName = next;
 			index += 1;
 			continue;
 		}
@@ -154,6 +167,7 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 		if (
 			workspace !== undefined ||
 			moduleRef !== undefined ||
+			packageName !== undefined ||
 			positional.length > 0
 		)
 			throw new PlatformError(
@@ -184,10 +198,21 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 			"INVALID_REQUEST",
 			"--module is only valid with setup or docs",
 		);
+	if (packageName !== undefined && command !== "update")
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			"--package is only valid with update",
+		);
+	if (command === "update" && packageName === undefined)
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			"platform update requires --package <packageName>",
+		);
 	return {
 		command,
 		...(workspace === undefined ? {} : { workspace }),
 		...(moduleRef === undefined ? {} : { moduleRef }),
+		...(packageName === undefined ? {} : { packageName }),
 	};
 }
 function outcome(
@@ -651,7 +676,7 @@ const usefulPackageOutput = /(?:warn|warning|error|ERR_)/i;
 
 function reportPackageManagerOutput(
 	runtime: CliRuntimeOptions,
-	command: "install" | "uninstall",
+	command: "install" | "update" | "uninstall",
 	output: PackageCommandOutput,
 ) {
 	if (!usefulPackageOutput.test(output.line)) return;
@@ -697,6 +722,117 @@ async function workspaceProFlowDependencies(root: string): Promise<string[]> {
 		);
 	}
 }
+async function handleUpdate(
+	root: string,
+	parsed: ParsedArgs,
+	runtime: CliRuntimeOptions,
+): Promise<CliOutcome> {
+	const packageName = parsed.packageName;
+	if (packageName === undefined)
+		throw new PlatformError(
+			"INVALID_REQUEST",
+			"platform update requires --package <packageName>",
+		);
+	const owner = await observeStartOwner(root);
+	if (owner !== "ABSENT")
+		throw new PlatformError(
+			"COMMAND_FAILED",
+			owner === "RUNNING"
+				? "ProFlow 正在运行。请先执行 platform stop，再更新工作区包。"
+				: "无法验证当前平台运行进程归属。为避免更新运行中的代码，未修改工作区。",
+		);
+	const managed = await workspaceProFlowDependencies(root);
+	if (!managed.includes(packageName))
+		throw new PlatformError(
+			"PACKAGE_NOT_FOUND",
+			`工作区尚未安装 ${packageName}。platform update 只更新已安装的 ProFlow 包。`,
+		);
+	const previousVersion = await observeWorkspaceInstalledVersion(root, packageName);
+	reportProgress(runtime.onProgress, {
+		command: "update",
+		phase: "registry",
+		status: "STARTED",
+		message: `正在查询 ${packageName} 最新版本`,
+	});
+	const discovered = await discoverRegistryModules({
+		workspaceRoot: root,
+		packageName,
+		...(runtime.registryRunner === undefined
+			? {}
+			: { runner: runtime.registryRunner }),
+	});
+	if (discovered.rejected.length > 0)
+		throw new PlatformError(
+			"REGISTRY_RESPONSE_INVALID",
+			`${packageName} 无法作为当前 ProFlow Module 更新：${discovered.rejected[0]?.reason ?? "REJECTED"}`,
+		);
+	const candidate = discovered.candidates[0];
+	if (!candidate)
+		throw new PlatformError(
+			"PACKAGE_NOT_FOUND",
+			`Registry 中没有可更新的 ${packageName}`,
+		);
+	reportProgress(runtime.onProgress, {
+		command: "update",
+		phase: "registry",
+		status: "SUCCEEDED",
+		message: `目标版本 ${candidate.moduleVersion}`,
+	});
+	let packageManager: string | undefined;
+	if (previousVersion !== candidate.moduleVersion) {
+		const mutation = await updateWorkspacePackage({
+			workspaceRoot: root,
+			package: {
+				packageName: candidate.packageName,
+				version: candidate.moduleVersion,
+			},
+			onOutput: (line) => reportPackageManagerOutput(runtime, "update", line),
+			...(runtime.packageRunner === undefined
+				? {}
+				: { runner: runtime.packageRunner }),
+			...(runtime.executableAvailable === undefined
+				? {}
+				: { executableAvailable: runtime.executableAvailable }),
+		});
+		packageManager = mutation.packageManager;
+	}
+	const installedVersion = await observeWorkspaceInstalledVersion(root, packageName);
+	if (installedVersion !== candidate.moduleVersion)
+		throw new PlatformError(
+			"COMMAND_FAILED",
+			`更新后版本校验失败：期望 ${candidate.moduleVersion}，实际 ${installedVersion ?? "missing"}`,
+		);
+	const catalog = new InstalledModuleCatalog(root);
+	const modules = await discoverModules({ catalog });
+	const target = modules.find((module) => module.packageName === packageName);
+	if (!target || target.moduleVersion !== candidate.moduleVersion)
+		throw new PlatformError(
+			"DESCRIPTOR_INVALID",
+			`更新后的 Module descriptor 与 ${packageName}@${candidate.moduleVersion} 不一致`,
+		);
+	const installed = await dispatchModuleCommand(catalog, target, "install", {
+		workspaceRoot: root,
+	});
+	if (installed.result.status !== "SUCCEEDED")
+		return outcome("update", statusFromModule(installed.result.status), root, {
+			packageName,
+			previousVersion,
+			version: candidate.moduleVersion,
+			moduleRef: target.moduleRef,
+			moduleInstall: installed,
+		});
+	return outcome("update", "SUCCEEDED", root, {
+		packageName,
+		previousVersion,
+		version: candidate.moduleVersion,
+		changed: previousVersion !== candidate.moduleVersion,
+		...(packageManager === undefined ? {} : { packageManager }),
+		moduleRef: target.moduleRef,
+		materialized: installed.observedEffects.length > 0,
+		next: "platform status",
+	});
+}
+
 async function handleUninstall(
 	root: string,
 	runtime: CliRuntimeOptions,
@@ -893,10 +1029,13 @@ async function handleStop(
 function helpOutcome(): CliOutcome {
 	return outcome("help", "SUCCEEDED", undefined, {
 		usage:
-			"platform <install|uninstall|status|setup|docs|start|stop> [--workspace <path>]",
+			"platform <install|update|uninstall|status|setup|docs|start|stop> [--workspace <path>]",
 		commands: [...COMMANDS],
 		install: "platform install [--workspace <path>]",
+		update:
+			"platform update --package <packageName> [--workspace <path>]",
 		setup: "platform setup [--workspace <path>] [--module <moduleRef>]",
+		docs: "platform docs [--workspace <path>] [--module <moduleRef>]",
 	});
 }
 export async function runCli(
@@ -925,6 +1064,8 @@ export async function runCli(
 		switch (parsed.command) {
 			case "install":
 				return await handleInstall(root, runtime);
+			case "update":
+				return await handleUpdate(root, parsed, runtime);
 			case "uninstall":
 				return await handleUninstall(root, runtime);
 			case "status":
@@ -1174,6 +1315,7 @@ function renderDocs(data: unknown, theme: HumanTheme) {
 	if (!isRecord(data) || !Array.isArray(data.modules))
 		return "未发现模块文档。";
 	if (data.indexOnly === true) {
+		const modules = data.modules.filter(isRecord);
 		return [
 			theme.title("ProFlow 帮助"),
 			"",
@@ -1183,6 +1325,12 @@ function renderDocs(data: unknown, theme: HumanTheme) {
 			`  ${theme.command("platform install")}`,
 			`  ${theme.command("platform setup")}`,
 			`  ${theme.command("platform start")}`,
+			"",
+			theme.section(`可用模块文档（${modules.length}）`),
+			...modules.map(
+				(item) =>
+					`  ${theme.command(`platform docs --module ${String(item.moduleRef)}`)}  ${theme.muted(String(item.version ?? ""))}`,
+			),
 			"",
 			theme.section("当前需要帮助？"),
 			`  运行 ${theme.command("platform status")} 查看唯一的下一步。`,
@@ -1356,6 +1504,10 @@ function renderHelp(theme: HumanTheme, command?: Command): string {
 			usage: "platform install [--workspace <路径>]",
 			description: "安装并初始化全部 ProFlow 模块",
 		},
+		update: {
+			usage: "platform update --package <包名> [--workspace <路径>]",
+			description: "只更新工作区中的一个已安装 ProFlow 包",
+		},
 		uninstall: {
 			usage: "platform uninstall [--workspace <路径>]",
 			description: "卸载模块包，保留 Workspace 数据",
@@ -1369,8 +1521,8 @@ function renderHelp(theme: HumanTheme, command?: Command): string {
 			description: "按顺序完成当前唯一配置步骤",
 		},
 		docs: {
-			usage: "platform docs [--workspace <路径>]",
-			description: "查看当前使用帮助",
+			usage: "platform docs [--workspace <路径>] [--module <moduleRef>]",
+			description: "查看帮助目录，或读取一个模块的文档",
 		},
 		start: {
 			usage: "platform start [--workspace <路径>]",
@@ -1497,6 +1649,16 @@ export function renderHumanResult(
 	if (result.command === "setup") return renderSetup(result.data, theme);
 	if (result.command === "docs") return renderDocs(result.data, theme);
 	if (
+		result.command === "start" &&
+		isRecord(result.data) &&
+		result.data.alreadyRunning === true
+	)
+		return [
+			theme.success("✓ 平台已在运行"),
+			"无需重复启动。",
+			`下一步：${theme.command("platform status")}；结束时运行 ${theme.command("platform stop")}。`,
+		].join("\n");
+	if (
 		(result.command === "start" || result.command === "stop") &&
 		isRecord(result.data)
 	) {
@@ -1533,8 +1695,25 @@ export function renderHumanResult(
 			`${theme.success(`成功：${succeeded}`)}  ${theme.muted(`跳过：${skipped}`)}  ${failed ? theme.failure(`失败：${String(failed.moduleRef)}`) : theme.muted("失败：0")}`,
 		].join("\n");
 	}
+	if (result.command === "update" && isRecord(result.data)) {
+		const packageName = String(result.data.packageName ?? "ProFlow package");
+		const version = String(result.data.version ?? "unknown");
+		const changed = result.data.changed === true;
+		return [
+			theme.success(
+				changed
+					? `✓ ${packageName} 已更新到 ${version}`
+					: `✓ ${packageName} 已是最新版本 ${version}`,
+			),
+			result.data.materialized === true
+				? "Module 安装物已同步到当前 Workspace。"
+				: "Module 已完成当前版本校验。",
+			`下一步：${theme.command("platform status")}`,
+		].join("\n");
+	}
 	const labels: Record<string, string> = {
 		install: "安装",
+		update: "更新",
 		uninstall: "卸载",
 		start: "启动",
 		stop: "停止",
@@ -1558,8 +1737,87 @@ function ownsStartedRuntime(result: CliOutcome): boolean {
 	);
 }
 
+const START_OWNER_PROCESS_ENV = "PROFLOW_PLATFORM_START_OWNER_PROCESS";
+
+function isCliOutcomeMessage(value: unknown): value is CliOutcome {
+	return (
+		isRecord(value) &&
+		typeof value.command === "string" &&
+		["SUCCEEDED", "ACTION_REQUIRED", "BLOCKED", "FAILED"].includes(
+			String(value.status),
+		)
+	);
+}
+
+async function launchStartOwnerProcess(root: string): Promise<CliOutcome> {
+	const entrypoint = process.argv[1];
+	if (!entrypoint)
+		throw new PlatformError(
+			"COMMAND_FAILED",
+			"platform start entrypoint is unavailable",
+		);
+	const child = spawn(
+		process.execPath,
+		[entrypoint, "start", "--workspace", root],
+		{
+			cwd: process.cwd(),
+			detached: true,
+			env: { ...process.env, [START_OWNER_PROCESS_ENV]: "1" },
+			stdio: ["ignore", "ignore", "ignore", "ipc"],
+		},
+	);
+	return await new Promise<CliOutcome>((resolvePromise, rejectPromise) => {
+		let settled = false;
+		const finish = (callback: () => void) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timeout);
+			if (child.connected) child.disconnect();
+			child.unref();
+			callback();
+		};
+		const timeout = setTimeout(
+			() =>
+				finish(() =>
+					rejectPromise(
+						new PlatformError(
+							"COMMAND_FAILED",
+							"平台后台启动进程在 120 秒内没有返回确认。请运行 platform status 检查真实状态后再决定是否重试。",
+						),
+					),
+				),
+			120_000,
+		);
+		child.once("message", (message) => {
+			if (!isCliOutcomeMessage(message))
+				return finish(() =>
+					rejectPromise(
+						new PlatformError(
+							"COMMAND_FAILED",
+							"平台后台启动进程返回了无法识别的启动结果",
+						),
+					),
+				);
+			finish(() => resolvePromise(message));
+		});
+		child.once("error", (error) => finish(() => rejectPromise(error)));
+		child.once("exit", (code, signal) => {
+			if (settled) return;
+			finish(() =>
+				rejectPromise(
+					new PlatformError(
+						"COMMAND_FAILED",
+						`平台后台启动进程在确认前退出（${code ?? signal ?? "unknown"}）`,
+					),
+				),
+			);
+		});
+	});
+}
+
 if (import.meta.main) {
 	const argv = process.argv.slice(2);
+	const isOwnerProcess = process.env[START_OWNER_PROCESS_ENV] === "1";
 	const reporter = createTerminalProgressReporter();
 	let parsedForOwner: ParsedArgs | undefined;
 	let ownerRoot: string | undefined;
@@ -1573,57 +1831,89 @@ if (import.meta.main) {
 	} catch {
 		// runCli owns normal usage/workspace error rendering.
 	}
-	if (parsedForOwner?.command === "stop" && ownerRoot) {
-		reportProgress(reporter, {
-			command: "stop",
-			phase: "owner",
-			status: "STARTED",
-			message: "正在请求当前平台运行进程停止",
+	let result: CliOutcome;
+	if (parsedForOwner?.command === "start" && ownerRoot && !isOwnerProcess) {
+		const existingOwner = await observeStartOwner(ownerRoot);
+		if (existingOwner === "RUNNING") {
+			result = outcome("start", "SUCCEEDED", ownerRoot, {
+				alreadyRunning: true,
+				backgroundOwner: true,
+			});
+		} else if (existingOwner === "UNVERIFIED") {
+			result = errorOutcome(
+				"start",
+				new PlatformError(
+					"COMMAND_FAILED",
+					"检测到仍存活但无法验证归属的平台启动进程。未重复启动任何 Module。",
+				),
+			);
+		} else {
+			result = await launchStartOwnerProcess(ownerRoot).catch((error) =>
+				errorOutcome("start", error),
+			);
+		}
+	} else {
+		if (parsedForOwner?.command === "stop" && ownerRoot && !isOwnerProcess) {
+			reportProgress(reporter, {
+				command: "stop",
+				phase: "owner",
+				status: "STARTED",
+				message: "正在请求当前平台运行进程停止",
+			});
+			const requested = await requestStartOwnerStop(ownerRoot);
+			reportProgress(reporter, {
+				command: "stop",
+				phase: "owner",
+				status: requested === "TIMEOUT" ? "WARNING" : "SUCCEEDED",
+				message:
+					requested === "STOPPED"
+						? "平台运行进程已停止"
+						: "未发现需要接管的平台运行进程",
+			});
+		}
+		result = await runCli(argv, {
+			...(isOwnerProcess ? {} : { onProgress: reporter }),
+			...(!isOwnerProcess && process.stdin.isTTY && process.stdout.isTTY
+				? { setupInteraction: createClackSetupInteraction() }
+				: {}),
 		});
-		const requested = await requestStartOwnerStop(ownerRoot);
-		reportProgress(reporter, {
-			command: "stop",
-			phase: "owner",
-			status: requested === "TIMEOUT" ? "WARNING" : "SUCCEEDED",
-			message:
-				requested === "STOPPED"
-					? "平台运行进程已停止"
-					: "未发现需要接管的前台运行进程",
-		});
-	}
-	const result = await runCli(argv, {
-		onProgress: reporter,
-		...(process.stdin.isTTY && process.stdout.isTTY
-			? { setupInteraction: createClackSetupInteraction() }
-			: {}),
-	});
-	if (
-		parsedForOwner?.command === "start" &&
-		ownerRoot &&
-		result.status === "SUCCEEDED" &&
-		ownsStartedRuntime(result)
-	) {
-		await registerStartOwner(ownerRoot);
-		let stopping = false;
-		const gracefulStop = async () => {
-			if (stopping) return;
-			stopping = true;
-			const stopped = await runCli(["stop", "--workspace", ownerRoot]);
-			await clearStartOwner(ownerRoot);
-			process.exit(stopped.status === "SUCCEEDED" ? 0 : 1);
-		};
-		process.once("SIGTERM", () => void gracefulStop());
-		process.once("SIGINT", () => void gracefulStop());
+		if (
+			isOwnerProcess &&
+			parsedForOwner?.command === "start" &&
+			ownerRoot &&
+			result.status === "SUCCEEDED" &&
+			ownsStartedRuntime(result)
+		) {
+			await registerStartOwner(ownerRoot);
+			let stopping = false;
+			const gracefulStop = async () => {
+				if (stopping) return;
+				stopping = true;
+				const stopped = await runCli(["stop", "--workspace", ownerRoot]);
+				await clearStartOwner(ownerRoot);
+				process.exit(stopped.status === "SUCCEEDED" ? 0 : 1);
+			};
+			process.once("SIGTERM", () => void gracefulStop());
+			process.once("SIGINT", () => void gracefulStop());
+		}
+		if (isOwnerProcess && typeof process.send === "function") {
+			await new Promise<void>((resolveSend) =>
+				process.send?.(result, undefined, undefined, () => resolveSend()),
+			);
+			if (process.connected) process.disconnect();
+		}
 	}
 	reporter.close();
-	const color =
-		process.stdout.isTTY === true &&
-		process.env.NO_COLOR === undefined &&
-		process.env.TERM !== "dumb";
-	const rendered = `${renderHumanResult(result, {
-		color,
-		width: process.stdout.columns,
-	})}\n`;
-	process.stdout.write(rendered);
+	if (!isOwnerProcess) {
+		const color =
+			process.stdout.isTTY === true &&
+			process.env.NO_COLOR === undefined &&
+			process.env.TERM !== "dumb";
+		const rendered = `${renderHumanResult(result, {
+			color,
+			width: process.stdout.columns,
+		})}\n`;
+		process.stdout.write(rendered);
+	}
 	if (result.status !== "SUCCEEDED") process.exitCode = 1;
 }

@@ -520,7 +520,8 @@ test("PRESMOKE-B4-HOST-FILE-01 Carrier File Bridge materialization carries stabl
 	assert.match(section, /carrier-file-materialization/);
 	assert.match(section, /correlationId: taskMutationIdempotencyKey/);
 	assert.match(section, /roleRef: authenticatedRoleRef/);
-	assert.match(section, /workerRef: actorRef/);
+	assert.match(section, /workerRef: canonicalWorkerRef/);
+	assert.match(source, /actorRef = `worker:\$\{workerRef\}`/);
 });
 
 test("RF-AGT-GW-14 platform-host rejects group/world-readable Gateway transport credential", async (t) => {

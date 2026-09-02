@@ -512,11 +512,21 @@ export function createExecutionBrowserExtension(
 					);
 				const precondition = await effectStarted(raw);
 				const opened = await options.browser.open(request.input.roleUrl);
-				await options.browser.submit(
+				const submitted = await options.browser.submit(
 					opened.tabId,
 					`WORKER_BIND ${request.input.bootstrapFingerprint}`,
 					request.input.bootstrapFingerprint,
 				);
+				if (
+					!(await options.browser.hasMessage(
+						submitted.tabId,
+						request.input.bootstrapFingerprint,
+					))
+				)
+					throw new ExecutionBrowserError(
+						"UNKNOWN_SIDE_EFFECT",
+						"CREATE_MESSAGE_REALITY_UNCONFIRMED",
+					);
 				const observed = await options.browser.observe(opened.tabId);
 				const identity = parseCarrierIdentity(observed.url);
 				if (identity.roleRef !== request.input.roleRef || !identity.workerRef)

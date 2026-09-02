@@ -1279,6 +1279,11 @@ export function createTaskServices(options: {
 							"TASK_ROLE_BINDING_REQUIRED",
 							"Node role is not bound.",
 						);
+					if (!matchesWorker(input.actorRef, binding.workerRef))
+						throw new DomainError(
+							"WORKER_MISMATCH",
+							"Only the Task-bound Worker may start the Node.",
+						);
 					const updatedNode = {
 						...node,
 						status: "IN_PROGRESS" as const,

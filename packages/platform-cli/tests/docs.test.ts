@@ -64,7 +64,8 @@ test("platform docs defaults to an index instead of dumping every Module documen
 		assert.match(rendered, /platform install/);
 		assert.match(rendered, /platform setup/);
 		assert.match(rendered, /platform start/);
-		assert.doesNotMatch(rendered, /docs-index|可用文档|--module/);
+		assert.match(rendered, /可用模块文档（1）/);
+		assert.match(rendered, /platform docs --module docs-index/);
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

@@ -158,6 +158,79 @@ test("PRESMOKE-B3-APP-02 New Task application owns no Task truth and provisions 
 	assert.doesNotMatch(source, /TaskApplicationRepository|ApplicationTaskStore/);
 });
 
+test("CP-EXE-BR-04 Observer application rejects an unconfirmed wake Execution", async () => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-wake-"));
+	const stateRoot = join(root, ".proflow");
+	const dependency = createServer((request, response) => {
+		response.setHeader("content-type", "application/json");
+		if (request.url === "/ready") {
+			response.end(JSON.stringify({ status: "READY" }));
+			return;
+		}
+		if (request.url === "/executions" && request.method === "POST") {
+			response.end(
+				JSON.stringify({
+					executionRef: "execution:wake:not-applied",
+					status: "FAILED",
+					sideEffectState: "NOT_APPLIED",
+				}),
+			);
+			return;
+		}
+		response.end(JSON.stringify({ status: "READY" }));
+	});
+	await new Promise<void>((resolve) =>
+		dependency.listen(0, "127.0.0.1", resolve),
+	);
+	const address = dependency.address();
+	if (!address || typeof address === "string")
+		assert.fail("missing dependency port");
+	const host = createPlatformHost({
+		config: config(
+			stateRoot,
+			join(root, "project"),
+			`http://127.0.0.1:${address.port}`,
+		),
+	});
+	try {
+		const started = await host.start();
+		const token = (
+			await readFile(
+				join(stateRoot, "browser", "secrets", "task-application.token"),
+				"utf8",
+			)
+		).trim();
+		const response = await fetch(
+			`http://${started.host}:${started.port}/application/observer`,
+			{
+				method: "POST",
+				headers: {
+					authorization: `Bearer ${token}`,
+					"content-type": "application/json",
+				},
+				body: JSON.stringify({
+					operation: "task.wake",
+					input: {
+						taskId: "task:1",
+						nodeId: "node:1",
+						runNo: 1,
+						roleRef: "g-controller",
+						workerRef: "c-controller",
+						trigger: "NODE_READY",
+					},
+				}),
+			},
+		);
+		assert.equal(response.status, 400);
+		assert.deepEqual(await response.json(), {
+			error: "TASK_WAKE_NOT_CONFIRMED:FAILED:NOT_APPLIED",
+		});
+	} finally {
+		await host.stop();
+		await new Promise<void>((resolve) => dependency.close(() => resolve()));
+	}
+});
+
 test("R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fills only missing Workers", async () => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-new-task-"));
 	const stateRoot = join(root, ".proflow");
@@ -328,6 +401,18 @@ test("R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fi
 			)?.workerRef,
 			"c-product",
 		);
+		const startedTask = (await taskOperation(
+			applicationBaseUrl,
+			applicationToken,
+			"task.start",
+			{
+				taskId: recovered.body.taskId,
+				expectedTaskVersion: recovered.body.version,
+				idempotencyKey: "j1-start-after-worker-recovery",
+			},
+		)) as { status: number; body: TaskShape };
+		assert.equal(startedTask.status, 200);
+		assert.equal(startedTask.body.status, "ACTIVE");
 		// Product was created exactly once.
 		assert.equal(
 			workerCreateRequests.filter((request) => request.roleRef === "g-product")
