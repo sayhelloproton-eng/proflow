@@ -386,12 +386,12 @@ runtime/backend truth 与 CLI 一致
 Product Workspace：/Users/agent/Desktop/proton-workspace
 
 第一步先完整读取：
-1. spec/平台架构与公共约定/00-公共上下文/12-Deployment最终人工验证阻断与新Chat交接-20260901.md
+1. spec/平台架构与公共约定/00-公共上下文/历史归档/Deployment/12-Deployment最终人工验证阻断与新Chat交接-20260901.md
 2. 同目录 README.md
-3. 09-Real3当前上下文与未解决问题-20260829.md
-4. 10-Deployment-Closeout循环测试进度计划书.md
+3. 当前阶段/09-Real3当前上下文与未解决问题-20260829.md
+4. 历史归档/Deployment/10-Deployment-Closeout循环测试进度计划书.md
 5. 05-执行纪律与工具规则.md
-6. 11-跨项目自动化模拟人工测试提效方法论.md
+6. 方法论/11-跨项目自动化模拟人工测试提效方法论.md
 
 历史现场当时的唯一目标：修复最终 Fresh 人工模拟发现的 P1，然后安全 SAME SCENE 恢复，最后 Fresh 一次，满足标准后直接判 DEPLOYMENT_SUCCESS=YES 并结束 Deployment；该目标现已完成。
 

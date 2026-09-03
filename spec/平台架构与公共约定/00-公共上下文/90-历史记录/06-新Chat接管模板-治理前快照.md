@@ -37,7 +37,7 @@ Deployment 历史验收方法仍可作为未来发布/回归模板：真实 npm�
 
 1. 机械确认 branch / HEAD / working tree；Registry/runtime 等易漂移事实只在真正需要时机械读取。
 2. 读取 `02` 与 `09` 的 `0 / 0.1 / 0.2`，确认当前 Gate 是 Real-3 J0～J4，Deployment 仍 FROZEN。
-3. 读取 `13-Real3-J0-J4纵向一致性审计任务书-20260902.md`，再读取 **Work 实际返回的审计报告/反馈**。
+3. 读取 `当前阶段/13-Real3-J0-J4纵向一致性审计任务书-20260902.md`，再读取 **Work 实际返回的审计报告/反馈**。
 4. 不重复 Work 的整套纵向审计；只对关键 blocker、高风险 gap、可能的 Spec/Contract Conflict 做机械交叉确认。
 5. 输出 `J0～J4 = ALIGNED | GAP`，并把 gap 分类为 `BLOCKER | NON_BLOCKING_GAP | SPEC/CONTRACT_CONFLICT`。
 6. 冻结最小整改边界；当前领域正式 spec / Test Plan 仍是 normative truth，禁止用现有代码反向定义合同。

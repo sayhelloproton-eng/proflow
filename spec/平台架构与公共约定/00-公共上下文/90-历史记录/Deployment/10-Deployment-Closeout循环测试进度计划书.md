@@ -375,7 +375,7 @@ Registry latest = Final Freeze 当前真实版本（platform-cli 0.1.50 / dev-tu
 
 ## 10. 工具与效率规则
 
-跨项目可复用的自动化模拟人工提效方法以 `11-跨项目自动化模拟人工测试提效方法论.md` 为长期真源；本文只维护 ProFlow 当前实例的 Gate、版本和实时计时证据。
+跨项目可复用的自动化模拟人工提效方法以 `方法论/11-跨项目自动化模拟人工测试提效方法论.md` 为长期真源；本文只维护 ProFlow 当前实例的 Gate、版本和实时计时证据。
 
 ```text
 CodeGraph → structure / ownership / blast radius
