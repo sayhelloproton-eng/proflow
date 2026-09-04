@@ -1,12 +1,11 @@
-export {};
+import { parseCarrierAttentionViews } from "../src/carrier-attention-view.js";
 
 type ChromePanel = {
 	runtime: { sendMessage(message: unknown): Promise<unknown> };
 };
 declare const chrome: ChromePanel;
 
-const extensionRuntime =
-	typeof chrome !== "undefined" && chrome.runtime ? chrome.runtime : null;
+const extensionRuntime = typeof chrome === "undefined" ? null : chrome.runtime;
 
 type TaskSummary = {
 	taskId: string;
@@ -65,6 +64,7 @@ const startButton = element<HTMLButtonElement>("#start-task");
 const ensureWorkersButton = element<HTMLButtonElement>("#ensure-workers");
 const newTaskForm = element<HTMLFormElement>("#new-task-form");
 const approvalsTarget = element<HTMLElement>("#approvals");
+const carrierAttentionsTarget = element<HTMLElement>("#carrier-attentions");
 const systemAssessmentTarget = element<HTMLElement>("#system-assessment");
 
 let selected: TaskView | null = null;
@@ -101,7 +101,8 @@ async function taskApplication(
 	operation: string,
 	input: Record<string, unknown>,
 ): Promise<unknown> {
-	if (!extensionRuntime) return webApplication("/tasks/api/task", operation, input);
+	if (!extensionRuntime)
+		return webApplication("/tasks/api/task", operation, input);
 	const raw = await extensionRuntime.sendMessage({
 		type: "PROFLOW_TASK_APPLICATION",
 		operation,
@@ -136,6 +137,77 @@ async function approvalApplication(
 				: "APPROVAL_APPLICATION_FAILED",
 		);
 	return response.value;
+}
+
+async function carrierAttentionAction(
+	attentionRef: string,
+	action: "allowOnce" | "deny",
+): Promise<void> {
+	if (!extensionRuntime)
+		throw new Error("CARRIER_ATTENTION_REQUIRES_EXTENSION_RUNTIME");
+	const raw = await extensionRuntime.sendMessage({
+		type: "PROFLOW_CARRIER_ATTENTION_ACTION",
+		input: { attentionRef, action },
+	});
+	const response = record(raw);
+	if (response.ok !== true)
+		throw new Error(
+			typeof response.error === "string"
+				? response.error
+				: "CARRIER_ATTENTION_ACTION_FAILED",
+		);
+}
+
+function renderCarrierAttentions(snapshot: Record<string, unknown>): void {
+	const attentions = parseCarrierAttentionViews(snapshot.carrierAttentions);
+	carrierAttentionsTarget.replaceChildren();
+	if (attentions.length === 0) {
+		carrierAttentionsTarget.textContent = "No carrier attention.";
+		return;
+	}
+	for (const attention of attentions) {
+		const row = document.createElement("div");
+		row.className = "task";
+		const label = document.createElement("div");
+		label.textContent = `${attention.operationId} · ${attention.targetHost ?? "unknown target"}`;
+		const detail = document.createElement("div");
+		detail.className = "meta";
+		detail.textContent = [
+			attention.reason,
+			attention.taskId ? `task ${attention.taskId}` : "task unknown",
+			attention.roleRef ? `role ${attention.roleRef}` : "role unknown",
+		].join(" · ");
+		row.append(label, detail);
+		if (attention.actions.includes("allowOnce")) {
+			const allow = document.createElement("button");
+			allow.type = "button";
+			allow.textContent = "Allow once";
+			allow.addEventListener(
+				"click",
+				() =>
+					void run(async () => {
+						await carrierAttentionAction(attention.attentionRef, "allowOnce");
+						await refreshBrowserStatus();
+					}),
+			);
+			row.append(allow);
+		}
+		if (attention.actions.includes("deny")) {
+			const deny = document.createElement("button");
+			deny.type = "button";
+			deny.textContent = "Deny";
+			deny.addEventListener(
+				"click",
+				() =>
+					void run(async () => {
+						await carrierAttentionAction(attention.attentionRef, "deny");
+						await refreshBrowserStatus();
+					}),
+			);
+			row.append(deny);
+		}
+		carrierAttentionsTarget.append(row);
+	}
 }
 
 async function refreshApprovals() {
@@ -254,7 +326,9 @@ async function refreshTasks() {
 async function pageStatus(): Promise<Record<string, unknown>> {
 	if (extensionRuntime)
 		return record(
-			await extensionRuntime.sendMessage({ type: "PROFLOW_SIDE_PANEL_SNAPSHOT" }),
+			await extensionRuntime.sendMessage({
+				type: "PROFLOW_SIDE_PANEL_SNAPSHOT",
+			}),
 		);
 	const response = await fetch("/tasks/api/status", { cache: "no-store" });
 	const body = record(await response.json());
@@ -267,6 +341,7 @@ async function pageStatus(): Promise<Record<string, unknown>> {
 
 async function refreshBrowserStatus() {
 	const snapshot = await pageStatus();
+	renderCarrierAttentions(snapshot);
 	connection.textContent =
 		snapshot.taskApplicationConfigured === true &&
 		snapshot.approvalApplicationConfigured === true

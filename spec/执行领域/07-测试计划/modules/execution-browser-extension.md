@@ -44,7 +44,7 @@ implementationWave: Wave 5
 - [ ] **CP-EXE-BR-03** — RESTORE/WAKE正确Conversation；`conversationLocator` 必须来自 TaskRoleBinding durable owner fact，禁止用 `roleRef + workerRef` 重构 URL；minimal wake；WAKE success仅physical delivery。
 - [ ] **CP-EXE-BR-04** — Node READY→Task Observer wake→Worker formal `startNode`；Observer不写Task；production composition 由 Task mutation event 触发并在 process startup 做一次 bounded nonterminal recovery scan，不引入 platform-host timer/universal scheduler；同一 task/node/run/trigger 使用稳定 Execution idempotency identity。
 - [ ] **CP-EXE-BR-05** — one Worker Turn支持0..N Actions；Browser无per-action “continue”或natural-language business parsing。
-- [ ] **CP-EXE-BR-06** — routine Action Always Allow主链；unexpected permission prompt可恢复；Execution Approval独立。
+- [ ] **CP-EXE-BR-06** — routine ChatGPT Action Permission 由 Browser Carrier 在真实页面上识别并按 authoritative Role/target/operation/context 做分类；可信 mechanical gate 可自动 `Always Allow` 且必须验证 Turn 继续，unknown/untrusted 保持 BLOCKED/进入 Carrier Attention；Execution Approval 独立且不得复用。
 - [ ] **CP-EXE-BR-07** — DOM-first page operation，异常结构才screenshot→Vision；Vision不直接成为Task/Execution success。
 - [ ] **CP-EXE-BR-08** — Collaboration physical delivery durable/idempotent；`messageRef` 由 Agent pending owner surface 发现，ask/reply 事件触发 + process-start bounded recovery，不引入 platform-host timer/business queue；每个 message 使用稳定 Execution idempotency identity，只有 `SUCCEEDED + APPLIED + delivered=true` 才写 Agent logical DELIVERED；message/reply owner仍Agent。
 - [ ] **CP-EXE-BR-09** — submit/WAKE effect uncertainty按DELIVERED/ABSENT/UNKNOWN reality reconciliation，无blind replay。
@@ -171,3 +171,32 @@ Batch 3 不通过越权补实现来强行关闭以下跨批依赖：
 - [ ] **RF-EXE-BR-18** — Provisioning 变更导致现有 J1-J6 Browser/Observer/Collaboration executable regression。
 
 跨域完整验收统一服从 [`TP-REAL2-CUSTOM-GPT-DEPLOYMENT-PROVISIONING`](../../../智能体运行与协作领域/07-测试计划/REAL2-Custom-GPT-Deployment-Provisioning.md)。
+
+## 2026-09-04 Real-3｜Browser Carrier Reality Hardening Addendum
+
+本增量来自真实 Chrome/ChatGPT 路径证据，不重开 Deployment、不改变 Task/Agent/Execution Owner。长期结构冻结为四条 application line（Deployment / Workflow / Collaboration / System Observer）共享一个 Browser Carrier；本节只加固共享 Carrier 的真实页面最后一公里。
+
+- [ ] **CP-EXE-BR-21** — controlled composer 必须按 `WRITE → COMMIT → READY → CLICK → REALITY` 提交；确定性 delayed-state fixture 能复现旧“一拍错位/shared draft”行为，并证明修复后连续 Product/Dev/Test 文本无前一角色串线。禁止固定 sleep 作为 commit 条件。
+- [ ] **CP-EXE-BR-22** — 当前 ChatGPT Action Permission 即使没有 `[role=dialog]` 也必须由 semantic detector 识别为 `BLOCKED + ACTION_PERMISSION`；composer 同时存在不能把 blocker 误判成 IDLE。selector/button 文案只是 detector 实现细节，不是 contract。
+- [ ] **CP-EXE-BR-23** — blocker strategy registry 可扩展；trusted current ProFlow Role + 当前 Agent Gateway producer shared fact target + Role-authorized operation + matching context 才能 `AUTO_ALLOW`，其余 `HUMAN_REQUIRED/UNKNOWN`。role-carrier validation 的 target 必须与当前 Provider fact 一致；fact 缺失或已漂移时 fail closed。context 必须含 non-null 且完全一致的 Task binding `workerRef + conversationLocator`，不能把未绑定 Role 或仅匹配 Role 首页当成 current Worker。相同“始终允许”按钮出现在未知 connector/operation 时绝不自动点击；`x-openai-isConsequential:false` 不能单独放行。
+- [ ] **CP-EXE-BR-24** — Permission actuator 只能执行 typed semantic action（`allowAlways/allowOnce/deny`），点击前复验 `tab/contentInstanceId/URL/permissionFingerprint`；stale 时 fail-closed。AUTO_ALLOW 前先持久化 transient uncertain-attempt，MV3 background restart 不得重放未确认 click；AUTO_ALLOW 后必须重新观察同一 prompt 已消失或 Action/Turn 已继续才清除 attempt，不能以 `.click()` 返回作为成功。已确认释放后，相同 routine permission 的下一次真实 occurrence 仍可重新分类处理。
+- [ ] **CP-EXE-BR-25** — Workflow、Collaboration、Task Observer、System Observer 不感知具体 ChatGPT blocker case。`BLOCKED/UNKNOWN` 不触发 page-idle Task recovery；只有真实 normalized transition 到 IDLE 或明确 durable resume signal 才可继续。
+- [ ] **CP-EXE-BR-26** — ChatGPT Carrier Permission 与 Workflow/Execution Approval 两层严格分离；mechanical permission/Carrier Attention 不写 `execution_approvals`，Carrier auto-grant 不能绕过 Execution Policy/Approval Owner。
+- [ ] **CP-EXE-BR-27** — Content Script 保持薄 adapter：只做 reality extraction、composer/semantic DOM action、message reality verification；trust classification/strategy orchestration 不沉入 DOM layer，`background.ts` 不增加 case-specific selector/button if/else。
+
+- [ ] **RF-EXE-BR-19** — arbitrary sleep 后直接 click Send，或只验证 send-button 存在不验证 controlled composer readback。
+- [ ] **RF-EXE-BR-20** — 把 `[role=dialog]` 作为唯一 Permission contract，或因为 composer 可见把当前 permission 页面判为 IDLE。
+- [ ] **RF-EXE-BR-21** — generic click 任意“始终允许”、Extension 自建漂移 operation allowlist、模型输出覆盖 Role/target/fingerprint 硬约束。
+- [ ] **RF-EXE-BR-22** — 在 Workflow/Collaboration/Observer 主线为 `getTask`/OAuth/未来 blocker 写专用分支，或把 Carrier Attention 伪装成 Execution Approval。
+- [ ] **RF-EXE-BR-23** — Permission/submit command 在 stale content/session/URL/fingerprint 上继续执行，或 UNKNOWN 后盲重放。
+
+**Executable-first mapping**：
+
+| Proof | Required executable asset | Reality boundary |
+|---|---|---|
+| CP-21 | `tests/chatgpt-composer.test.ts` | controlled-state fixture 先 RED 后 GREEN；最终仍需真实 ChatGPT submit 证明。 |
+| CP-22/23/24 | `tests/chatgpt-carrier-permission.test.ts` | 使用来自真实 current DOM 语义的 fixture；AUTO_ALLOW/HUMAN_REQUIRED/stale lifecycle 可自动 proof，真实按钮行为仍需 Chrome E2E。 |
+| CP-25 | `tests/recovery-trigger.test.ts` + Carrier integration test | BLOCKED 不触发 recovery；permission 解除后真实 IDLE transition 才触发。 |
+| CP-26/27 | boundary/source tests + platform-host permission-classification test | 证明 policy 使用 authoritative Role operation inventory，Content/Workflow/Collaboration 无 case-specific trust logic。 |
+
+**Real Chrome gate**：最终必须在固定 Real-3 Task/Role 资源上证明正确 `WORKER_BIND` 无一拍错位、routine `getTask` permission 零人工处理、Conversation/Task binding reality 一致且不新增 UNKNOWN；controlled human-anomaly path 可用受控 fixture/模拟验证，不制造真实危险副作用。

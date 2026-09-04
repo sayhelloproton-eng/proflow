@@ -1,14 +1,28 @@
+import type { PermissionSemanticAction } from "../src/carrier-permission.js";
+import {
+	observeChatGptPage,
+	performChatGptPermissionAction,
+	submitChatGptComposer,
+	writeChatGptInput,
+} from "../src/chatgpt-runtime-adapter.js";
 import { containsSubmittedFingerprint } from "../src/submitted-message.js";
 
-type PageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 type ContentCommand = {
 	type: "PROFLOW_PAGE_COMMAND";
 	contentInstanceId: string;
 	expectedUrl: string;
-	operation: "observe" | "input" | "click" | "submit" | "verify";
+	operation:
+		| "observe"
+		| "input"
+		| "click"
+		| "submit"
+		| "verify"
+		| "permissionAction";
 	selector?: string;
 	value?: string;
 	fingerprint?: string;
+	permissionFingerprint?: string;
+	permissionAction?: PermissionSemanticAction;
 };
 type ChromeContent = {
 	runtime: {
@@ -28,22 +42,8 @@ declare const chrome: ChromeContent;
 
 const contentInstanceId = `content:${crypto.randomUUID()}`;
 
-function pageState(): { pageState: PageState; activityKind: string | null } {
-	if (document.querySelector('[role="dialog"]'))
-		return { pageState: "BLOCKED", activityKind: "ACTION_PERMISSION" };
-	if (
-		document.querySelector(
-			'[data-testid="stop-button"], button[aria-label*="Stop"]',
-		)
-	)
-		return { pageState: "BUSY", activityKind: "GENERATING" };
-	if (
-		document.querySelector(
-			'#prompt-textarea, textarea, [contenteditable="true"]',
-		)
-	)
-		return { pageState: "IDLE", activityKind: null };
-	return { pageState: "UNKNOWN", activityKind: null };
+function pageState(): ReturnType<typeof observeChatGptPage> {
+	return observeChatGptPage(document);
 }
 
 function observation() {
@@ -88,33 +88,32 @@ chrome.runtime.onMessage.addListener((command, _sender, sendResponse) => {
 				...observation(),
 				verified: hasFingerprint(command.fingerprint),
 			};
-		if (pageState().pageState === "BLOCKED")
-			throw new Error("PAGE_PERMISSION_REQUIRES_HUMAN");
+		if (command.operation === "permissionAction") {
+			if (!command.permissionFingerprint || !command.permissionAction)
+				throw new Error("PERMISSION_ACTION_INVALID");
+			performChatGptPermissionAction(
+				document,
+				command.permissionFingerprint,
+				command.permissionAction,
+			);
+			return observation();
+		}
+		if (pageState().pageState === "BLOCKED") throw new Error("PAGE_BLOCKED");
 		if (command.operation === "click") {
 			safeElement(command.selector).click();
 			return observation();
 		}
-		const input = safeElement(command.selector ?? "#prompt-textarea");
 		if (command.value === undefined || command.value.length > 4_096)
 			throw new Error("INPUT_BUDGET_EXCEEDED");
-		input.focus();
-		if (
-			input instanceof HTMLTextAreaElement ||
-			input instanceof HTMLInputElement
-		)
-			input.value = command.value;
-		else input.textContent = command.value;
-		input.dispatchEvent(
-			new InputEvent("input", {
-				bubbles: true,
-				inputType: "insertText",
-				data: command.value,
-			}),
+		if (command.operation === "submit") {
+			await submitChatGptComposer(document, command.value);
+			return observation();
+		}
+		writeChatGptInput(
+			document,
+			command.selector ?? "#prompt-textarea",
+			command.value,
 		);
-		if (command.operation === "submit")
-			safeElement(
-				'button[data-testid="send-button"], button[aria-label*="Send"]',
-			).click();
 		return observation();
 	})().then(
 		(value) => sendResponse({ ok: true, value }),

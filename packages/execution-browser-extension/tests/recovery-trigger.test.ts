@@ -23,7 +23,10 @@ test("REAL3 recovery starts only on a semantic transition into a new IDLE state"
 		true,
 	);
 	assert.equal(
-		shouldTriggerObserverRecovery(idle, observation({ pageState: "BUSY", activityKind: "GENERATING" })),
+		shouldTriggerObserverRecovery(
+			idle,
+			observation({ pageState: "BUSY", activityKind: "GENERATING" }),
+		),
 		false,
 	);
 	assert.equal(
@@ -40,4 +43,14 @@ test("REAL3 recovery starts only on a semantic transition into a new IDLE state"
 		),
 		true,
 	);
+});
+
+test("CP-EXE-BR-25 Action Permission stays BLOCKED and only its real transition to IDLE resumes recovery", () => {
+	const blocked = observation({
+		pageState: "BLOCKED",
+		activityKind: "ACTION_PERMISSION",
+	});
+	assert.equal(shouldTriggerObserverRecovery(undefined, blocked), false);
+	assert.equal(shouldTriggerObserverRecovery(observation(), blocked), false);
+	assert.equal(shouldTriggerObserverRecovery(blocked, observation()), true);
 });

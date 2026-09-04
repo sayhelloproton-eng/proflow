@@ -24,6 +24,10 @@ import { taskMigrations } from "@tomflow/proflow-task-store-sqlite/migrations";
 import { z } from "zod";
 
 import {
+	classifyBrowserPermission,
+	type RoleCarrierValidation,
+} from "./browser-permission-policy.ts";
+import {
 	type RolePackageRef,
 	roleOperations,
 	rolePackageRefs,
@@ -1157,8 +1161,8 @@ async function constructGraph(
 					request.capability === "worker.restore" ||
 					request.capability === "worker.wake" ||
 					request.capability === "collaboration.deliver";
-			const internalBrowserCaller =
-				request.callerRef === "platform-host:carrier-controller" ||
+				const internalBrowserCaller =
+					request.callerRef === "platform-host:carrier-controller" ||
 					request.callerRef === "extension:task-observer" ||
 					request.callerRef === "extension:collaboration-carrier";
 				if (!internalBrowserCaller) agent.getRegisteredRole(request.callerRef);
@@ -1269,6 +1273,83 @@ async function constructGraph(
 			.find((candidate) => candidate.agentPackageRef === agentPackageRef);
 		if (!role) throw new Error("ROLE_NOT_FOUND");
 		return role;
+	};
+	const browserPermissionRole = (roleRef: string) => {
+		const role = agent
+			.listRegisteredRoles()
+			.find((candidate) => candidate.roleRef === roleRef);
+		if (
+			!role ||
+			!rolePackageRefs.includes(role.agentPackageRef as RolePackageRef)
+		)
+			return null;
+		return { ...role, agentPackageRef: role.agentPackageRef as RolePackageRef };
+	};
+	const roleCarrierValidation = async (
+		agentPackageRef: string,
+	): Promise<RoleCarrierValidation | null> => {
+		try {
+			const value = object(
+				JSON.parse(
+					await readFile(
+						join(
+							config.workspaceRoot,
+							".proflow",
+							"state",
+							"agent",
+							"role-carrier-validation",
+							`${encodeURIComponent(agentPackageRef)}.json`,
+						),
+						"utf8",
+					),
+				),
+				"role carrier validation evidence",
+			);
+			if (value.contract !== "proflow.role-carrier-validation.v1") return null;
+			return {
+				agentPackageRef: string(value.agentPackageRef, "agentPackageRef"),
+				registeredPackageVersion: string(
+					value.registeredPackageVersion,
+					"registeredPackageVersion",
+				),
+				roleRef: string(value.roleRef, "roleRef"),
+				carrierUrl: string(value.carrierUrl, "carrierUrl"),
+				gatewayUrl: string(value.gatewayUrl, "gatewayUrl"),
+			};
+		} catch {
+			return null;
+		}
+	};
+	const currentAgentGatewayUrl = async (): Promise<string | null> => {
+		try {
+			const value = object(
+				JSON.parse(
+					await readFile(
+						join(
+							config.workspaceRoot,
+							".proflow",
+							"runtime",
+							"modules",
+							"agent-gateway",
+							"shared-facts.json",
+						),
+						"utf8",
+					),
+				),
+				"agent gateway shared facts",
+			);
+			if (
+				value.contract !== "proflow.module-shared-facts.v1" ||
+				value.moduleRef !== "agent-gateway"
+			)
+				return null;
+			const facts = object(value.facts, "agent gateway facts");
+			return typeof facts.publicBaseUrl === "string"
+				? facts.publicBaseUrl
+				: null;
+		} catch {
+			return null;
+		}
 	};
 	const roleManagement: PlatformHostRoleManagement = Object.freeze({
 		async invoke(operation, rawInput) {
@@ -1517,6 +1598,48 @@ async function constructGraph(
 				return taskDriverPorts.getTaskDriveProjection(
 					string(value.taskId, "taskId"),
 				);
+			if (operation === "browser.permission.classify") {
+				const roleRef = string(value.roleRef, "roleRef");
+				const taskId = string(value.taskId, "taskId");
+				const operationId = string(value.operationId, "operationId");
+				const conversationLocator = string(
+					value.conversationLocator,
+					"conversationLocator",
+				);
+				const workerRef =
+					typeof value.workerRef === "string" ? value.workerRef : null;
+				const role = browserPermissionRole(roleRef);
+				if (!role)
+					return {
+						decision: "HUMAN_REQUIRED",
+						reason: "ROLE_VALIDATION_MISMATCH",
+					};
+				let taskBinding = null;
+				try {
+					const current = unwrap(task.queries.getTask({ taskId }));
+					taskBinding =
+						current.roleBindings.find(
+							(candidate) =>
+								candidate.roleRef === roleRef &&
+								candidate.agentPackageRef === role.agentPackageRef,
+						) ?? null;
+				} catch {
+					taskBinding = null;
+				}
+				const [validation, currentGatewayUrl] = await Promise.all([
+					roleCarrierValidation(role.agentPackageRef),
+					currentAgentGatewayUrl(),
+				]);
+				return classifyBrowserPermission({
+					role,
+					validation,
+					targetHost:
+						typeof value.targetHost === "string" ? value.targetHost : null,
+					currentGatewayUrl,
+					operationId,
+					context: { conversationLocator, workerRef, taskBinding },
+				});
+			}
 			if (operation === "browser.binding")
 				return browserOwnerPorts.task.getWorkerBinding(
 					string(value.taskId, "taskId"),

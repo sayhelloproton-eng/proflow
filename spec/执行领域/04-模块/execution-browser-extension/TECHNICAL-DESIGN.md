@@ -23,6 +23,8 @@ contractRefs:
 > 2026-08-14 对齐：Extension 不再被描述为一个“Task Driver 万能调度器”。同一 package 内明确分离 Task UI / Approval-Alert UI / Task Observer / System Observer / Background Carrier Controller。Browser Carrier 降为可靠页面载体；Task progression 与 system assessment 分开。
 >
 > 2026-08-23 Deployment Provisioning 增量：同一 Chrome Extension package 新增 **Deployment-only Custom GPT Provisioning** 分支，用于平台 setup 期间确定性操作 `/gpts/editor/*`。它与运行期 `/g/*` Task/Worker Carrier 在 command namespace、content script、state machine、DTO 与 verification 上隔离，只允许共享底层 Chrome API、authenticated loopback transport、heartbeat/session 与通用日志设施。
+>
+> 2026-09-04 Real-3 Reality Hardening：真实 Chrome/ChatGPT E2E 证明，Extension 的长期心智模型应收敛为四条 application line：Deployment、Workflow、Collaboration、System Observer；四条线共享 Browser Carrier 基础层。Browser Carrier 统一承接 page reality、composer、blocker/permission strategy、reality verification、reconcile/evidence 与 human escalation，业务线不得感知具体 ChatGPT DOM case。新增真实页面 case 时优先增加 detector/strategy/handler，而不是向 Workflow、Collaboration、Observer 或 `background.ts` 追加 case-specific 分支。
 
 ---
 
@@ -63,34 +65,24 @@ Agent Runtime
 
 ```text
 extension/
-├── provisioning/                     # Deployment-only；不得 import runtime Task/Worker state machine
-│   ├── provisioning-session
-│   ├── custom-gpt-editor-driver
-│   ├── provisioning-content          # https://chatgpt.com/gpts/editor/*
-│   ├── knowledge-upload
-│   └── provisioning-verification
-├── runtime/
-│   ├── ui/
-│   │   ├── task-list-new-task
-│   │   ├── approval-alert
-│   │   └── side-panel
-│   ├── background/
-│   │   ├── task-observer
-│   │   ├── system-observer
-│   │   ├── carrier-controller
-│   │   ├── recovery
-│   │   └── evidence-log-client
-│   └── content/
-│       ├── chatgpt-page-adapter       # https://chatgpt.com/g/*
-│       ├── deterministic-dom-observer
-│       └── screenshot-capture
-└── shared/
-    ├── runtime-session / heartbeat
-    ├── authenticated-loopback-transport
-    └── bounded logging utilities
+├── deployment-line/                  # 自动化部署：install/setup + Custom GPT provisioning + role identity 回写
+├── workflow-line/                    # Workflow：Task progression、Workflow 自身 Approval、Worker wake/resume
+├── collaboration-line/               # Agent↔Agent 消息订阅、物理投递、反馈恢复
+├── system-observer-line/             # 全系统只读观察、异常诊断、模型推理与 human escalation
+└── browser-carrier/                  # 四条线共享的真实浏览器基础层
+    ├── controller                     # Background composition/controller；只编排 typed operation
+    ├── page-reality                   # IDLE/BUSY/BLOCKED/UNKNOWN + typed blocker facts
+    ├── composer                       # WRITE→COMMIT→READY→CLICK→REALITY
+    ├── blocker-detectors              # 从真实 DOM 提取 permission/auth/unknown blocker facts
+    ├── blocker-strategies             # deterministic first；新增 case 通过 strategy registry 扩展
+    ├── semantic-actions               # allow-always/allow-once/deny 等 typed actuator，不暴露任意 selector
+    ├── reality-verifier               # submitted fingerprint / prompt disappeared / current content session
+    ├── reconcile-recovery             # APPLIED/NOT_APPLIED/UNKNOWN；no blind replay
+    ├── vision-evidence                 # DOM 解释不足时的 screenshot/Vision 辅助证据
+    └── shared-transport-session-log    # authenticated loopback、heartbeat/session、bounded logs
 ```
 
-物理目录不要求完全一致，但职责不得重新合并成一个“万能 task-driver”。
+物理目录不要求完全一致，但长期职责按“四条 application line + 一个共享 Browser Carrier 基础层”理解。Workflow、Collaboration、System Observer 不得 import/复制 ChatGPT selector、按钮文本、React composer 细节或具体 permission case；新增真实页面 case 应局限在 Browser Carrier detector/strategy/handler 内。
 
 ### 2.1 Deployment Provisioning 独立流程
 
@@ -201,7 +193,7 @@ taskId + agentPackageRef + workerRef
 
 ## 5. Background Carrier Controller
 
-唯一负责 typed Browser operations：
+Background 是 Extension 的 composition/controller，不是 ChatGPT DOM 规则库。它唯一编排 typed Browser operations：
 
 ```text
 CREATE_CONVERSATION
@@ -211,23 +203,51 @@ DELIVER_COLLABORATION
 CAPTURE_SCREENSHOT
 OBSERVE_PAGE
 RECOVER_DELIVERY
+HANDLE_BLOCKER
 ```
 
-UI/Observer 只请求 typed operation；不能直接散落调用 Chrome DOM primitives。
+UI/Workflow/Collaboration/Observer 只请求 typed operation；不能直接散落调用 Chrome DOM primitives。Content Adapter 只上报页面事实并执行受限 semantic action；“这个 blocker 是否可信、是否可以自动处理”属于 Carrier strategy/policy，不属于 Content DOM 层。
+
+Background 对新 ChatGPT case 的职责固定为：
+
+```text
+receive normalized reality
+→ select registered blocker strategy
+→ deterministic policy / bounded model diagnostic when allowed
+→ request semantic action or human escalation
+→ re-observe and verify reality
+```
+
+不得为 `getTask`、OAuth、某个按钮文本等具体 case 在主循环里堆叠专用 if/else；未知 case 必须 fail closed。
 
 ---
 
 ## 6. Content Script / DOM strategy
 
-真实 DOM 操作通过受控 Content Script 或 `chrome.scripting.executeScript()`：
+真实 DOM 操作通过受控 Content Script 或 `chrome.scripting.executeScript()`。Content Script 是薄 ChatGPT Runtime Adapter：提取事实、执行受限语义动作，不拥有 Workflow/Collaboration/System Observer 规则，也不拥有 trust policy。
+
+页面观察输出至少区分：
 
 ```text
-scroll to bottom
-locate composer
-programmatic input
-submit
-observe deterministic success/failure indicators
+pageState = IDLE / BUSY / BLOCKED / UNKNOWN
+activityKind = GENERATING / ACTION_PERMISSION / ACTION_RUNNING / ...
+blockerFacts? = kind + bounded semantic facts + fingerprint + available semantic actions
 ```
+
+`[role=dialog]`、某个 CSS selector 或按钮文案只能是 detector 的当前实现细节，不能被当作 Permission contract。多个 detector 可依次解释同一 DOM；无法安全解释时输出 UNKNOWN/BLOCKED，而不是猜测 IDLE。
+
+Composer 提交冻结为状态驱动：
+
+```text
+locate composer
+→ WRITE（使用对应元素 prototype 的 native setter + InputEvent）
+→ COMMIT（readback 等于 expected text）
+→ READY（submit action 当前可用，连续稳定观察）
+→ CLICK
+→ REALITY（真实 user message fingerprint 出现在 Conversation）
+```
+
+禁止用固定 `sleep(300)` 等时间猜测替代 COMMIT/READY。React/controlled input 的异步状态必须通过 readback/ready 状态闭环；页面导航替换 Content Script 后继续依赖新的 `contentInstanceId + URL` 重新验证。
 
 第一版禁止依赖：
 
@@ -245,10 +265,10 @@ DOM first；只有 deterministic DOM 无法解释页面时：
 ```text
 screenshot
 → Model Vision
-→ structured observation
+→ structured observation/diagnostic
 ```
 
-Vision 结果只辅助 Carrier判断，不成为 Task/Execution business success。
+Vision/FAST/REASON 可以帮助 UNKNOWN case 归因或选择下一步观察，但不能覆盖 identity、trusted target、declared operation、stale fingerprint、Execution Approval 等硬规则，也不能直接成为 Task/Execution business success。
 
 ---
 
@@ -429,19 +449,49 @@ compact snapshot
 
 ---
 
-## 14. GPT Action Permission
+## 14. GPT Action Permission / Carrier Blocker Strategy
 
-Routine platform query/control/intent Actions：
+ChatGPT Action Permission 是 Browser Carrier 的机械 gate，不是 Workflow/Execution 的业务审批。真实页面可能在任意 Worker Turn 再次出现 Permission，因此 happy path 不能依赖“用户曾经手工点过一次 Always Allow”。
+
+Permission detector 只提取事实，例如：
 
 ```text
-x-openai-isConsequential:false
-→ user initial Always Allow
-→ happy path no per-action Browser permission click
+permission kind
+target/origin or connector identity
+operationId/tool identity
+bounded shared payload summary
+available actions（allowAlways / allowOnce / deny）
+permissionFingerprint
 ```
 
-unexpected permission prompt / changed schema-domain-auth / truly consequential external UI case 才进入 recovery/human path。
+Carrier strategy 再基于正式平台事实分类：
 
-OpenAI confirmation ≠ Execution Effect Approval。
+```text
+current Role/Worker context matches
++ target belongs to current trusted ProFlow Gateway/Connector
++ operation belongs to current Role authorized Action contract
++ permission fingerprint/session/url remain current
+→ AUTO_ALLOW
+→ semantic allowAlways
+→ re-observe prompt disappeared / action continued
+```
+
+任一关键事实缺失、未知 host/operation、Role/context mismatch、DOM 无法解释或 fingerprint 已变化：
+
+```text
+HUMAN_REQUIRED / UNKNOWN
+→ do not click
+→ preserve page + bounded evidence
+→ surface Carrier Attention / diagnostic
+```
+
+人对异常 Carrier Permission 的一次性放行默认使用 `allowOnce`；除非明确重新建立长期 trust，不把人工异常处理升级成新的永久白名单。
+
+`x-openai-isConsequential:false` 可以作为 Role Action contract 的辅助 metadata，但不能单独决定 auto-grant。Extension 也不得维护与 Host/OpenAPI 脱离的第二份 operation allowlist；优先通过只读 authoritative projection/classification 取得 Role + operation + current target 的判断。
+
+Blocker 机制必须可扩展：新增 OAuth/Auth、Tool Confirmation、文件访问或未来 ChatGPT UI case 时，只增加 detector/strategy/handler；Workflow、Collaboration、System Observer 主流程原则上零修改。
+
+OpenAI/ChatGPT confirmation ≠ Execution Effect Approval。真正 Effect 风险仍由 Execution Policy/Approval Owner 决定，Carrier 自动放行不得绕过该 Owner。
 
 ---
 
@@ -452,11 +502,27 @@ Extension UI 可承接：
 ```text
 Task start confirmation
 Execution Approval
+Carrier Attention（异常 Browser blocker 的人工接管）
 System alerts
 Deployment ACTION_REQUIRED guidance
 ```
 
-但正式结果仍提交给对应 Owner；UI不是 Approval/Task/Deployment真源。Future Feishu 可替换/并存 interaction channel。
+必须区分两种语义：
+
+```text
+Execution Approval
+= durable business/effect approval
+= Execution Owner fact
+
+Carrier Attention
+= 当前 Browser reality 无法自动安全处理
+= transient/derived interaction projection
+= 重新观察页面后可重建或自然消失
+```
+
+Carrier Attention 不复用 `execution_approvals` Store。它可以携带 `attentionRef/kind/taskId/roleRef/workerRef/reason/evidenceRef/actions[]` 等 bounded interaction descriptor；不同 blocker 可以提供不同 semantic actions。用户点击后仍需重新校验同一 tab/contentInstanceId/URL/blocker fingerprint，不一致返回 stale/fail-closed，不能按旧 UI 状态操作新页面。
+
+正式业务结果仍提交给对应 Owner；UI不是 Approval/Task/Deployment真源。Future Feishu 可替换/并存 interaction channel。
 
 ---
 
@@ -526,20 +592,35 @@ Page runtime 可表达：
 
 ```text
 IDLE / BUSY / BLOCKED / UNKNOWN
++ normalized activity/blocker facts
 ```
 
-但不是业务状态机。
+但不是业务状态机。`BLOCKED` 是页面事实，具体 Permission/Auth/Tool Confirmation 等 case 由 Browser Carrier strategy 解释；Workflow/Collaboration/Observer 不理解具体 DOM case。
 
-Recovery：
+Observer 只消费 normalized Carrier transition：BLOCKED/UNKNOWN 页面不得触发“页面可继续”的 Task recovery；只有真实重新观察到可驱动 IDLE（或其他明确 typed resume signal）后才允许触发恢复。
+
+Recovery 定义为 re-observe + re-decide，不等于 retry：
 
 ```text
 extension reload/reconnect
 → discover current tabs
 → rebuild transient sessions
 → query durable unfinished Browser Executions
-→ reconcile real page state
-→ safely resume
+→ re-observe current page/blocker reality
+→ reconcile APPLIED / NOT_APPLIED / UNKNOWN
+→ safely resume or escalate
 ```
+
+任何语义动作执行前都重新验证 transient identity 与目标事实：
+
+```text
+same tab
++ same contentInstanceId
++ same URL
++ same blocker/message fingerprint
+```
+
+不一致即 stale/fail-closed。`UNKNOWN` 继续遵守 no blind replay；模型可以帮助诊断但不能把 uncertain Effect 变成 retry permission。
 
 Task terminal 时 Task Observer stop-driving；历史页面可人工打开，但不主动业务 WAKE。
 

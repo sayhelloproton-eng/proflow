@@ -80,4 +80,8 @@ Conversation memory 可以减少重复解释，但不能替代 Owner current sta
 
 ## 6. Routine Action permission
 
-Role OpenAPI 对不直接产生不可逆真实 Effect 的平台 query/control/intent operation 显式 `x-openai-isConsequential:false`。目标主链按用户已选择 Always Allow 设计；Browser 不把 routine permission click 当正常步骤。Unexpected prompt 只进入 recovery/human interaction。Execution Effect Approval 仍完全独立。
+Role OpenAPI 对不直接产生不可逆真实 Effect 的平台 query/control/intent operation 可显式 `x-openai-isConsequential:false`，但 Worker Turn 不假设用户历史上的一次 `Always Allow` 会永久消除 ChatGPT Permission。
+
+Permission 是 Browser Carrier mechanical gate：Carrier 从当前页面提取 permission facts，再以当前 Role/Worker、trusted ProFlow target、Role authorized operation 与稳定 fingerprint 做分类。可信 routine automation 可由 Carrier 自动 `Always Allow` 并验证 Turn 继续；未知 target/operation/context 或无法消歧时 fail closed，进入 Carrier Attention/diagnostic。Worker/Workflow/Collaboration 不感知具体 Permission DOM case。
+
+`x-openai-isConsequential:false` 不是单独的 auto-grant 依据；Execution Effect Approval 仍完全独立，Carrier permission 不得替代或绕过它。

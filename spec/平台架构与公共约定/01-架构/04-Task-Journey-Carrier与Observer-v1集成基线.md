@@ -149,6 +149,8 @@ mouse/keyboard coordinate automation
 
 Background/Service Worker 是唯一 Carrier Controller；页面 DOM 操作通过受控 Content Script / scripting.executeScript。DOM deterministic observation first；截图 + Vision 只作 ambiguity/recovery fallback。
 
+Real-3 真实浏览器基线进一步冻结：Deployment、Workflow、Agent Collaboration、System Observer 是四条 application line；它们共享 Browser Carrier，不各自理解 ChatGPT DOM。Browser Carrier 内部负责 page reality、controlled composer、blocker/permission strategy、semantic actuator、reality verification 与 recovery。新增 ChatGPT case 通过 detector/strategy/handler 扩展，不把 selector/按钮文本/permission 特判复制进 Workflow、Collaboration 或 Observer。
+
 ## 6. Native GPT capability reuse
 
 ```text
@@ -217,12 +219,12 @@ Hard Rule / Owner Fact
 
 ```text
 Task start confirmation → Extension v1 / Feishu future；不是 Task Approval fact
-Execution safety approval → Execution owner fact
+Workflow/Execution safety approval → 对应 Owner 的 durable business fact
 Module.setup ACTION_REQUIRED → human/external action + Module re-observe reality
-ChatGPT Action permission → OpenAI UI；routine non-consequential main path 使用 Always Allow
+ChatGPT Action permission → Browser Carrier mechanical gate；不是业务 Approval
 ```
 
-Unexpected Action permission prompt 是 Carrier recovery/interaction，不是 Execution Approval。
+ChatGPT Action permission 不再假设“用户此前已手工 Always Allow”即可永久消失。Carrier 必须能够从真实页面识别 Permission，并用当前 Role/Worker、trusted ProFlow target、Role authorized operation、当前 session/URL/fingerprint 做确定性分类：可信 routine automation 可自动 `Always Allow` 并重新观察 reality；未知/不可信/无法消歧则保持 BLOCKED，进入 Carrier Attention/diagnostic。不得把这一机械 gate 写入 `execution_approvals`，也不得让它绕过真正 Execution Approval。
 
 ## 11. Logging / Trace
 

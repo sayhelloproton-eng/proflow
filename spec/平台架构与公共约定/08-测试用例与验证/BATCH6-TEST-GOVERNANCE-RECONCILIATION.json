@@ -7,11 +7,11 @@
   },
   "currentMechanicalInventory": {
     "testPlans": 39,
-    "formalCaseIdentities": 324,
-    "criticalProofs": 207,
-    "requiredFailureBoundaries": 117,
-    "executableTestFiles": 146,
-    "executableTestCalls": 663,
+    "formalCaseIdentities": 336,
+    "criticalProofs": 214,
+    "requiredFailureBoundaries": 122,
+    "executableTestFiles": 153,
+    "executableTestCalls": 702,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -2311,7 +2311,7 @@
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
         "packages/execution-browser-extension/extension/content.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-browser-extension/src/index.ts",
         "packages/execution-browser-extension/src/submitted-message.ts"
       ],
@@ -2422,7 +2422,7 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-browser-extension/src/collaboration-carrier.ts",
         "packages/execution-browser-extension/src/runtime-composition.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
@@ -2622,6 +2622,191 @@
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-21",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/chatgpt-composer.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/composer-submit.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-22",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/chatgpt-carrier-permission.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-permission.ts",
+        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-23",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/carrier-permission-lifecycle.test.ts",
+        "packages/platform-host/tests/browser-permission-policy.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts",
+        "packages/platform-host/src/browser-permission-policy.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-24",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/carrier-permission-attempt.test.ts",
+        "packages/execution-browser-extension/tests/carrier-permission-lifecycle.test.ts",
+        "packages/execution-browser-extension/tests/chatgpt-carrier-permission.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-permission-attempt.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts",
+        "packages/execution-browser-extension/src/carrier-permission.ts",
+        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-25",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/carrier-attention-view.test.ts",
+        "packages/execution-browser-extension/tests/recovery-trigger.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/carrier-attention-view.ts",
+        "packages/execution-browser-extension/src/recovery-trigger.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-26",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
+    },
+    {
+      "caseId": "CP-EXE-BR-27",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/chatgpt-carrier-permission.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-permission.ts",
+        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -3488,7 +3673,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -3582,7 +3767,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -3624,7 +3809,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -6784,7 +6969,6 @@
         "packages/execution-browser-extension/tests/background-observer-application.test.ts",
         "packages/execution-browser-extension/tests/collaboration-carrier-application.test.ts",
         "packages/execution-browser-extension/tests/runtime-composition.test.ts",
-        "packages/execution-browser-extension/tests/side-panel-application.test.ts",
         "packages/execution-browser-extension/tests/system-observer-runtime.test.ts",
         "packages/execution-browser-extension/tests/task-observer-runtime.test.ts",
         "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
@@ -6798,7 +6982,7 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-browser-extension/src/collaboration-carrier.ts",
         "packages/execution-browser-extension/src/runtime-composition.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
@@ -6911,6 +7095,164 @@
       "proofStrengths": [],
       "productionWiringClassification": "REAL_EXTERNAL_PENDING",
       "resultStatus": "REAL_EXTERNAL_PENDING"
+    },
+    {
+      "caseId": "RF-EXE-BR-19",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/chatgpt-carrier-permission.test.ts",
+        "packages/execution-browser-extension/tests/chatgpt-composer.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-permission.ts",
+        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts",
+        "packages/execution-browser-extension/src/composer-submit.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-EXE-BR-20",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/chatgpt-carrier-permission.test.ts",
+        "packages/execution-browser-extension/tests/chatgpt-composer.test.ts",
+        "packages/execution-browser-extension/tests/recovery-trigger.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-permission.ts",
+        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts",
+        "packages/execution-browser-extension/src/composer-submit.ts",
+        "packages/execution-browser-extension/src/recovery-trigger.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-EXE-BR-21",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/chatgpt-carrier-permission.test.ts",
+        "packages/execution-browser-extension/tests/chatgpt-composer.test.ts",
+        "packages/execution-browser-extension/tests/recovery-trigger.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-permission.ts",
+        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts",
+        "packages/execution-browser-extension/src/composer-submit.ts",
+        "packages/execution-browser-extension/src/recovery-trigger.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-EXE-BR-22",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/chatgpt-carrier-permission.test.ts",
+        "packages/execution-browser-extension/tests/chatgpt-composer.test.ts",
+        "packages/execution-browser-extension/tests/recovery-trigger.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-permission.ts",
+        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts",
+        "packages/execution-browser-extension/src/composer-submit.ts",
+        "packages/execution-browser-extension/src/recovery-trigger.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-EXE-BR-23",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/chatgpt-carrier-permission.test.ts",
+        "packages/execution-browser-extension/tests/chatgpt-composer.test.ts",
+        "packages/execution-browser-extension/tests/recovery-trigger.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-permission.ts",
+        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts",
+        "packages/execution-browser-extension/src/composer-submit.ts",
+        "packages/execution-browser-extension/src/recovery-trigger.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
       "caseId": "RF-EXE-CON-01",
@@ -7419,7 +7761,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -7460,7 +7802,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -7554,7 +7896,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -7596,7 +7938,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -7639,7 +7981,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -8285,7 +8627,7 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
         "packages/execution-browser-extension/src/task-observer.ts",
         "packages/model-runtime/src/index.ts",
@@ -8326,7 +8668,7 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
         "packages/execution-browser-extension/src/task-observer.ts",
         "packages/model-runtime/src/index.ts",
@@ -8424,7 +8766,7 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/side-panel.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
         "packages/execution-browser-extension/src/task-observer.ts",
         "packages/model-provider-api/src/resource-adapter.ts",
