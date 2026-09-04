@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
-import { isFreshBrowserOpenObservation } from "../src/carrier-identity.ts";
+import { createBrowserOpenObservationGate } from "../src/carrier-identity.ts";
 import {
 	type BrowserPageObservation,
 	type BrowserRealityPort,
@@ -194,35 +194,63 @@ test("REG-EXE-BR-01 stable role/worker identity rejects stale transient content 
 	);
 });
 
-test("REG-EXE-BR-01 OPEN freshness rejects stale or wrong-role observations", () => {
-	const notBeforeMs = Date.parse("2026-09-05T00:00:00.000Z");
+test("REG-EXE-BR-01 OPEN accepts only post-boundary causal receipts", () => {
+	const gate = createBrowserOpenObservationGate();
 	const requestedUrl =
 		"https://chatgpt.com/g/g-1234567890abcdef1234567890abcdef";
+	const sameMillisecond = "2026-09-05T00:00:00.000Z";
+	gate.recordReceipt({
+		tabId: 7,
+		url: requestedUrl,
+		observedAt: sameMillisecond,
+	});
+	const boundary = gate.beginOpen(requestedUrl);
 	assert.equal(
-		isFreshBrowserOpenObservation({
-			requestedUrl,
-			observedUrl: `${requestedUrl}-readable-role`,
-			observedAt: "2026-09-05T00:00:00.001Z",
-			notBeforeMs,
-		}),
+		gate.accepts(7, boundary),
+		false,
+		"pre-existing receipt is stale",
+	);
+	gate.recordReceipt({
+		tabId: 7,
+		url: requestedUrl,
+		observedAt: sameMillisecond,
+	});
+	assert.equal(
+		gate.accepts(7, boundary),
+		true,
+		"a receipt handled after OPEN is fresh even within the same millisecond",
+	);
+});
+
+test("REG-EXE-BR-01 OPEN canonical target matching is command-specific", () => {
+	const roleRef = "g-1234567890abcdef1234567890abcdef";
+	const rootUrl = `https://chatgpt.com/g/${roleRef}`;
+	const gate = createBrowserOpenObservationGate();
+	const assertReceipt = (requestedUrl: string, observedUrl: string) => {
+		const boundary = gate.beginOpen(requestedUrl);
+		gate.recordReceipt({
+			tabId: 9,
+			url: observedUrl,
+			observedAt: "2026-09-05T00:00:00.000Z",
+		});
+		return gate.accepts(9, boundary);
+	};
+	assert.equal(assertReceipt(rootUrl, rootUrl), true);
+	assert.equal(assertReceipt(rootUrl, `${rootUrl}-readable-role`), true);
+	assert.equal(
+		assertReceipt(
+			rootUrl,
+			"https://chatgpt.com/g/g-abcdefabcdefabcdefabcdefabcdefab",
+		),
+		false,
+	);
+	assert.equal(assertReceipt(rootUrl, `${rootUrl}/c/c-existing`), false);
+	assert.equal(
+		assertReceipt(`${rootUrl}/c/c-requested`, `${rootUrl}/c/c-requested`),
 		true,
 	);
 	assert.equal(
-		isFreshBrowserOpenObservation({
-			requestedUrl,
-			observedUrl: "https://chatgpt.com/g/g-abcdefabcdefabcdefabcdefabcdefab-other",
-			observedAt: "2026-09-05T00:00:00.001Z",
-			notBeforeMs,
-		}),
-		false,
-	);
-	assert.equal(
-		isFreshBrowserOpenObservation({
-			requestedUrl,
-			observedUrl: `${requestedUrl}-readable-role`,
-			observedAt: "2026-09-04T23:59:59.999Z",
-			notBeforeMs,
-		}),
+		assertReceipt(`${rootUrl}/c/c-requested`, `${rootUrl}/c/c-other`),
 		false,
 	);
 });
@@ -318,6 +346,35 @@ test("REG-EXE-BR-02 worker.create rejects a wrong-role OPEN observation before t
 					roleRef: "g-dev",
 					roleUrl: "https://chatgpt.com/g/g-dev",
 					bootstrapFingerprint: "bootstrap:wrong-role",
+				}),
+				admission: {
+					policy: "ALLOW",
+					decisionPath: "deterministic",
+					approval: "NOT_REQUIRED",
+				},
+				onEffectStarted() {
+					effectStarted += 1;
+				},
+			}),
+		/OPENED_ROLE_IDENTITY_MISMATCH/,
+	);
+	assert.equal(effectStarted, 0);
+	assert.equal(browser.submitCount, 0);
+});
+
+test("REG-EXE-BR-02 worker.create rejects an existing same-role conversation before the durable effect boundary", async () => {
+	const { extension, browser } = await fixture();
+	const originalOpen = browser.open.bind(browser);
+	let effectStarted = 0;
+	browser.open = async () =>
+		originalOpen("https://chatgpt.com/g/g-dev/c/c-existing");
+	await assert.rejects(
+		() =>
+			extension.execute({
+				request: request("worker.create", {
+					roleRef: "g-dev",
+					roleUrl: "https://chatgpt.com/g/g-dev",
+					bootstrapFingerprint: "bootstrap:existing-conversation",
 				}),
 				admission: {
 					policy: "ALLOW",
@@ -613,6 +670,68 @@ test("REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality withou
 	assert.equal(first.reconciled[0]?.state, "APPLIED");
 	assert.equal(second.status, "ALREADY_COMPLETED");
 	assert.equal(browser.submitCount, 0);
+});
+
+test("REG-EXE-BR-07 worker.create Recovery accepts a slugged canonical role with the bound worker", async () => {
+	const { extension, browser, bindings } = await fixture();
+	const roleRef = "g-1234567890abcdef1234567890abcdef";
+	bindings.set(`task:1:${roleRef}`, {
+		workerRef: "c-correct",
+		conversationLocator: `https://chatgpt.com/g/${roleRef}/c/c-correct`,
+	});
+	const tab = await browser.open(
+		`https://chatgpt.com/g/${roleRef}-readable-role/c/c-correct`,
+	);
+	browser.messages.get(tab.tabId)?.add("bootstrap:canonical-recovery");
+	const outcome = await extension.recoveryScan([
+		{
+			request: request("worker.create", {
+				roleRef,
+				roleUrl: `https://chatgpt.com/g/${roleRef}`,
+				bootstrapFingerprint: "bootstrap:canonical-recovery",
+			}),
+			effectStarted: true,
+		},
+	]);
+	assert.equal(outcome.reconciled[0]?.state, "APPLIED");
+});
+
+test("REG-EXE-BR-07 worker.create Recovery rejects a foreign canonical role", async () => {
+	const { extension, browser } = await fixture();
+	const tab = await browser.open("https://chatgpt.com/g/g-other/c/c-foreign");
+	browser.messages.get(tab.tabId)?.add("bootstrap:wrong-role-recovery");
+	const outcome = await extension.recoveryScan([
+		{
+			request: request("worker.create", {
+				roleRef: "g-dev",
+				roleUrl: "https://chatgpt.com/g/g-dev",
+				bootstrapFingerprint: "bootstrap:wrong-role-recovery",
+			}),
+			effectStarted: true,
+		},
+	]);
+	assert.equal(outcome.reconciled[0]?.state, "UNKNOWN");
+});
+
+test("REG-EXE-BR-07 worker.create Recovery rejects a same-role foreign worker", async () => {
+	const { extension, browser, bindings } = await fixture();
+	bindings.set("task:1:g-dev", {
+		workerRef: "c-correct",
+		conversationLocator: "https://chatgpt.com/g/g-dev/c/c-correct",
+	});
+	const tab = await browser.open("https://chatgpt.com/g/g-dev/c/c-foreign");
+	browser.messages.get(tab.tabId)?.add("bootstrap:wrong-worker-recovery");
+	const outcome = await extension.recoveryScan([
+		{
+			request: request("worker.create", {
+				roleRef: "g-dev",
+				roleUrl: "https://chatgpt.com/g/g-dev",
+				bootstrapFingerprint: "bootstrap:wrong-worker-recovery",
+			}),
+			effectStarted: true,
+		},
+	]);
+	assert.equal(outcome.reconciled[0]?.state, "UNKNOWN");
 });
 
 test("REG-EXE-BR-08 Module setup invokes the owner pairing capability directly", async (context) => {

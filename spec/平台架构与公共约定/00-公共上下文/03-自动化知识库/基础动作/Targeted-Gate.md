@@ -17,8 +17,10 @@
 仓库已经提供 canonical package gate：
 
 ```text
-pnpm package:gate <package-dir|package-name> [...]
+pnpm package:gate <package-directory-name|package-name> [...]
 ```
+
+`package-directory-name` 是 `packages/` 下的直接目录名（例如 `execution-browser-extension`），不是 `packages/execution-browser-extension` 路径；也可传正式 package name（例如 `@tomflow/proflow-execution-browser-extension`）。`Unknown package` 若发生在 Gate 启动前，只是参数路由失败，不是 package test 失败。
 
 它对每个目标 package 顺序执行 package `test` + `typecheck`，存在 package `lint` 时一并执行。已有 canonical gate 时不要为同一目的临时拼一套全仓命令。快速修复阶段可先跑最相关 regression + package typecheck；进入发布前若影响范围要求完整包级 gate，再使用 `pnpm package:gate <target>`。
 

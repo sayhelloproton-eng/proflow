@@ -3,6 +3,10 @@ import {
 	type CarrierContinuationDenial,
 	createCarrierContinuationControl,
 } from "../src/carrier-continuation-control.js";
+import {
+	createBrowserOpenObservationGate,
+	parseChatGptCarrierIdentity,
+} from "../src/carrier-identity.js";
 import type {
 	ActionPermissionFacts,
 	PermissionSemanticAction,
@@ -176,6 +180,7 @@ declare const chrome: ChromeRuntime;
 
 const extensionInstanceId = `extension:${crypto.randomUUID()}`;
 const sessions = new Map<number, ContentObservation>();
+const browserOpenObservationGate = createBrowserOpenObservationGate();
 const permissionHandling = new Map<number, string>();
 const permissionAutoAttempts = createCarrierPermissionAttemptRegistry();
 const carrierAttentions = createCarrierAttentionRegistry();
@@ -839,28 +844,6 @@ async function contentCommand(
 	return response.value;
 }
 
-function carrierIdentity(
-	url: string,
-): { roleRef: string; workerRef: string | null } | null {
-	try {
-		const parsed = new URL(url);
-		const segments = parsed.pathname.split("/").filter(Boolean);
-		if (
-			parsed.protocol !== "https:" ||
-			parsed.hostname !== "chatgpt.com" ||
-			segments[0] !== "g" ||
-			!segments[1]?.startsWith("g-")
-		)
-			return null;
-		return {
-			roleRef: segments[1],
-			workerRef: segments[2] === "c" && segments[3] ? segments[3] : null,
-		};
-	} catch {
-		return null;
-	}
-}
-
 function permissionAttemptKey(observed: ContentObservation): string | null {
 	return observed.blockerFacts
 		? `${observed.url}:${observed.blockerFacts.fingerprint}`
@@ -873,7 +856,7 @@ function setCarrierAttention(
 ): void {
 	const facts = observed.blockerFacts;
 	if (!facts) return;
-	const identity = carrierIdentity(observed.url);
+	const identity = parseChatGptCarrierIdentity(observed.url);
 	carrierAttentions.derive({
 		tabId: observed.tabId,
 		contentInstanceId: observed.contentInstanceId,
@@ -1049,7 +1032,7 @@ async function handleActionPermission(
 		return;
 	permissionHandling.set(observed.tabId, key);
 	try {
-		const identity = carrierIdentity(observed.url);
+		const identity = parseChatGptCarrierIdentity(observed.url);
 		const humanDenied = () =>
 			carrierContinuationControl.hasMatchingPermissionDenial({
 				tabId: observed.tabId,
@@ -1166,6 +1149,7 @@ function processContentObservation(
 ): void {
 	const previous = sessions.get(observed.tabId);
 	sessions.set(observed.tabId, observed);
+	browserOpenObservationGate.recordReceipt(observed);
 	permissionAutoAttempts.observe(
 		observed.tabId,
 		permissionAttemptKey(observed),
@@ -1349,8 +1333,12 @@ async function executeCommand(command: BridgeCommand): Promise<unknown> {
 		const parsed = new URL(url);
 		if (parsed.protocol !== "https:" || parsed.hostname !== "chatgpt.com")
 			throw new Error("URL_SCOPE_DENIED");
+		const boundary = browserOpenObservationGate.beginOpen(url);
 		const tab = await chrome.tabs.create({ url, active: true });
-		return waitForObservation(numeric(tab.id, "TAB_ID"));
+		const tabId = numeric(tab.id, "TAB_ID");
+		return waitForObservation(tabId, () =>
+			browserOpenObservationGate.accepts(tabId, boundary),
+		);
 	}
 	const tabId = numeric(command.tabId, "TAB_ID");
 	if (command.type === "OBSERVE")

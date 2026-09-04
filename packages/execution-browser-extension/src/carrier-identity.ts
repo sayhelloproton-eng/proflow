@@ -51,16 +51,44 @@ export function sameChatGptCarrierTarget(left: string, right: string): boolean {
 	}
 }
 
-export function isFreshBrowserOpenObservation(input: {
+type BrowserOpenBoundary = Readonly<{
 	requestedUrl: string;
-	observedUrl: string;
+	receiptGeneration: number;
+}>;
+
+type BrowserObservationReceipt = Readonly<{
+	tabId: number;
+	url: string;
 	observedAt: string;
-	notBeforeMs: number;
-}): boolean {
-	const observedAt = Date.parse(input.observedAt);
-	return (
-		Number.isFinite(observedAt) &&
-		observedAt >= input.notBeforeMs &&
-		sameChatGptCarrierTarget(input.requestedUrl, input.observedUrl)
-	);
+}>;
+
+export function createBrowserOpenObservationGate() {
+	let receiptGeneration = 0;
+	const receipts = new Map<
+		number,
+		Readonly<{ url: string; receiptGeneration: number }>
+	>();
+	return Object.freeze({
+		beginOpen(requestedUrl: string): BrowserOpenBoundary {
+			return Object.freeze({ requestedUrl, receiptGeneration });
+		},
+		recordReceipt(observation: BrowserObservationReceipt): void {
+			receiptGeneration += 1;
+			receipts.set(
+				observation.tabId,
+				Object.freeze({
+					url: observation.url,
+					receiptGeneration,
+				}),
+			);
+		},
+		accepts(tabId: number, boundary: BrowserOpenBoundary): boolean {
+			const receipt = receipts.get(tabId);
+			return (
+				receipt !== undefined &&
+				receipt.receiptGeneration > boundary.receiptGeneration &&
+				sameChatGptCarrierTarget(boundary.requestedUrl, receipt.url)
+			);
+		},
+	});
 }
