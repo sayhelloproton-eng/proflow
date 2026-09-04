@@ -38,6 +38,54 @@ Playwright 主要负责观察真实 Browser 页面、业务 Chat、结构证据�
 
 必须区分 **Playwright MCP Extension（测试基础设施）** 与 **ProFlow Execution Browser Extension（产品）**。Playwright 的 `connect.html`、调试 banner、relay token 都不属于 ProFlow 产品状态；出现连接页时按 `基础动作/Tool-Runtime-gptweb-mcp.md` 恢复工具链，禁止把它误判成产品扩展未连接或 Dev Tunnel 登录页。
 
+## Runtime Content Script / 错误页判别
+
+manifest `content_scripts` 是 classic script。`dist/extension/content.js` 必须是自包含 classic/IIFE bundle，不能残留顶层 ESM `import/export`；`provisioning-content.js` 也遵守相同原则。build/publishability 通过后，真实 Workspace 仍要对 repo build、`node_modules`、`.proflow/deployment` 三份产物做 hash/readback，避免拿源码候选代替用户现实。
+
+Chrome Extension Manager 的“错误”徽标会保留历史记录。看到 `Cannot use import statement outside a module` 时，必须进入 `chrome://extensions/?errors=<extensionId>` 看详情，再与当前 materialized `content.js` 对照；若当前文件已经是 `"use strict"; (() => { ... })` 且无 residual import，先执行“清空错误 → reload Extension → reload 最小 GPT 页 → 回错误页看 fresh error”，不要把旧错误继续当当前 runtime root cause。
+
+Extension pairing/readiness 失败时，错误详情页是 privileged Browser reality 的必要诊断入口。卡片只显示“错误”不足以定位根因；AX tree + 系统截图负责此处的视觉/结构证据，普通 GPT 页再交回 Playwright snapshot/page screenshot。
+
+## Pairing / Runtime Bridge 协议漂移定位
+
+`platform setup` 的临时 pairing server 与正常 Browser Reality Bridge 不是同一个运行阶段，但 Extension Background 会复用同一套启动协议。因此 Background 新增启动期强制请求时，**正常 Runtime Bridge 已支持 ≠ pairing server 自动支持**；两边协议面必须一起审计。
+
+遇到 `PAIRING_TIMEOUT` 时不要直接重跑 setup，也不要先怀疑 Chrome/网络。固定先恢复以下真实请求链：
+
+```text
+POST /v1/session/hello
+→ 启动期附加 publish（例如 /v1/carrier/attentions）
+→ GET /v1/commands/next
+→ POST /v1/session/heartbeat
+```
+
+只记录 `METHOD + PATH + STATUS`，不得记录 Authorization、token、request body。定位时看**第一个与预期不一致的状态码**：
+
+```text
+hello 200
+→ carrier/attentions 404
+→ Background catch / retry
+→ hello 200
+→ carrier/attentions 404
+```
+
+这类序列已经可以证明：Extension Background 活着、runtime config/endpoint/token 至少足以完成 hello，真正断点是 pairing server 缺少启动协议路由；因为 loop 在 publish 处重启，所以后续 poll/heartbeat 根本不会发生，最终 `PAIRING_TIMEOUT` 只是派生症状。
+
+必须同时保留 pairing 真值边界：
+
+```text
+hello      != paired
+attention  != paired
+poll       != paired
+heartbeat   = paired
+```
+
+因此修复 pairing compatibility 时，只允许补齐真实 Background 在 pairing 阶段必须经过的安全兼容路由；不得为了让 setup 通过而把 `hello`、attention 或 poll 改成 READY/paired 证据，也不得放宽 origin / bearer / extensionInstanceId 校验。
+
+测试要求不能只覆盖“人工拼出来的旧握手”。至少要有一条组合约束模拟当前真实 Background 启动顺序：`hello → attention publish → first poll → heartbeat`。若 Background 协议以后再新增启动期强制调用，这条组合测试必须同步更新，否则单测全绿仍可能出现真实 Chrome pairing regression。
+
+诊断结束后若主动停止临时 pairing server，DevTools 中后续持续出现的 `hello → ERR_CONNECTION_REFUSED` 只表示 47080 当前无人监听；这是 retry loop 的后续现象，不能反向覆盖之前已经捕获的原始 `200 → 404` 根因序列。
+
 ## 真提交语义
 
 Real-3 Browser submit 的成功不是 Extension API 返回 `ok`。必须在真实 ChatGPT 页面结构中确认对应 user message 已出现。

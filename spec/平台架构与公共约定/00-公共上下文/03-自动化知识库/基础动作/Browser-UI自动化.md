@@ -36,6 +36,31 @@ Extension package / materialization / `platform setup` READY 不能替代 Chrome
 
 同一路径物化已更新但 Chrome 仍执行旧 manifest/action 时，不要连续盲点 Reload。先恢复注册 path authority；若 path 正确而 runtime 仍旧，按 canonical `Remove → Load unpacked → pairing` 恢复，再确认版本与 Extension ID。AX selector 必须兼容中英文并读取 title/value/description/help 的组合文本，不依赖单一 AXTitle，更不写死坐标。
 
+## Chrome Extension 错误页 SOP
+
+`chrome://extensions` 卡片出现“错误”时，不得停在卡片级结论，也不得直接把它解释成当前 Service Worker root cause。必须进入该扩展的错误详情页：`chrome://extensions/?errors=<extensionId>`，读取错误标题、上下文、stack/source preview，并用 privileged UI 截图留证。
+
+Chrome 会保留历史 Extension error。错误列表中的旧 `SyntaxError` 不等于当前已加载版本仍然复现同一错误。固定判别流程：① 记录当前版本/ID；② 读取错误详情；③ 对比当前 materialized artifact；④ 清空错误记录；⑤ reload 当前 Extension；⑥ reload/刷新最小业务页触发 content injection；⑦ 再回错误页只看 fresh errors。只有重新产生的 error 才能作为当前版本 runtime root cause。
+
+对于 manifest `content_scripts`，Chrome 按 classic script 执行；当前产物必须是自包含 IIFE/classic bundle，不得残留顶层 `import/export`。若错误页报 `Cannot use import statement outside a module`，先机械读取当前 `dist/extension/content.js` 与 materialized copy；源码预览已是 `"use strict"; (() => { ... })` 且 residual ESM=0 时，应优先判定为历史 error 待 fresh reproduction，而不是再次修改 build pipeline。
+
+**截图就是浏览器现实的眼睛。** 对 `chrome://extensions` / errors 这类 privileged 页面，每次关键动作都使用 AX tree + 系统/privileged screenshot 双证据；不要只靠 CLI、Extension helper 返回值或历史 error badge 推断用户当前看到的状态。
+
+## Browser Runtime 故障定位路径
+
+遇到“扩展看起来加载成功，但 setup / pairing / runtime 仍失败”时，固定按**现实分层 → fresh reproduction → 请求链定位 → owning root cause**推进，不先改代码：
+
+1. **先区分历史错误与当前错误。** 记录 Extension 版本/ID，清空 Chrome 历史 errors，reload Extension，再刷新一个最小业务页触发真实 content injection；只把随后重新出现的 fresh error 当作当前版本证据。
+2. **视觉事实与协议事实分开取证。** `chrome://extensions` / errors 用 AX + screenshot 证明“浏览器当前实际看到什么”；普通业务页用 Playwright snapshot/page screenshot；本机 listener、PID、materialized config 用 Local Dev。任何一层都不能代替另一层。
+3. **先证明 runtime 有没有活着，再证明它走到哪一步。** Extension 能持续发请求，说明 Service Worker / retry loop 在运行；不要把“请求失败”误判成“Background 没启动”。随后只记录安全的 `METHOD + PATH + STATUS` 请求时间线，不记录 token/header/body。
+4. **按第一处分叉定位，而不是追最后一个报错。** 例如 `hello → 200 → carrier/attentions → 404 → hello 重来` 已经足以证明断点在第二个协议调用；后续 `PAIRING_TIMEOUT` 只是最终症状，不能当根因。
+5. **区分原始根因与停止诊断后的后续现象。** 若诊断结束后主动停止临时 server，Extension 继续 retry 产生的 `ERR_CONNECTION_REFUSED` 只说明当前端口无人监听，不得倒推成原始 pairing root cause。
+6. **真实请求序列优先于静态猜测。** 先用运行时序列收敛到具体 endpoint/阶段，再回源码确认 caller、server route 和成功条件；禁止从一个错误字符串直接跳到 build、Chrome、网络或权限层大修。
+7. **先 RED，再最小修复。** 把真实失败顺序写成组合回归约束，要求修复只扩 owning boundary 的兼容面，不放宽认证、不改变 readiness/pairing 真值；RED 精确命中后才改实现。
+8. **修复后回到同一真人路径复验。** targeted test/typecheck 通过仍不等于 Browser reality；必须再跑同类真实 setup，并证明请求链越过原断点进入后续 poll/heartbeat/readiness。
+
+这套路径的核心不是“多收集日志”，而是尽快找到**第一条与协议预期不一致的真实边**。一旦第一处分叉已被运行时证据证明，就停止无关方向探索。
+
 ## 性能
 
 编译型 helper 在产品 timeout 之外预热。编译和真实 UI mutation 分离；prewarm 不能顺便点击/安装/卸载。普通页面的 snapshot/screenshot 与交互应尽量在一次 Playwright 受控 Tab 会话内完成，避免 AX ↔ Playwright 来回切换。

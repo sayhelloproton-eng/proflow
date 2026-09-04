@@ -1,6 +1,6 @@
 # CURRENT｜Phase 3 当前接力
 
-> 更新时间：2026-09-04。这里是下一 Chat 的唯一滚动执行入口；旧 handoff 只在 `90-历史记录`。
+> 更新时间：2026-09-04 23:03。这里是下一 Chat 的唯一滚动执行入口；旧 handoff 只在 `90-历史记录`。
 
 ## CURRENT_STAGE
 
@@ -10,126 +10,156 @@ REAL_1 = PASS
 REAL_2 = PASS / FROZEN
 DEPLOYMENT_SUCCESS = YES / FROZEN
 CURRENT_EXECUTION_GATE = REAL_3_J0_J4
-PHASE3_FINAL_GO = NO
+REAL3_BROWSER_CARRIER_AUTOMATED_TEST_GATE = PASS
 REAL_3 = NOT_PASS
+PHASE3_FINAL_GO = NO
 ```
 
 ## FINAL_GOAL
 
-完成 Real-3 J0→J4 的真实“人工视角自动化”验收。Deployment 已封版；Real-3 中发现的真实缺陷只做 owning package 最小修复，不重开 Deployment，不重建已有 GPT。
+完成固定 Real-3 Task 的 J1→J4 真实“人工视角自动化”验收。Deployment 不重开；真实缺陷只做 owning package 最小修复。真实 Browser 每个关键状态必须用 screenshot + DOM/AX reality 观察，截图就是眼睛。
 
 ## CURRENT_AUTHORITY_SNAPSHOT
 
 ```text
 branch = main
-HEAD = c85e986b56eca8be3e5c016a14bc1470ee656d87
+HEAD = 629e0dbd78e06325831883b24dc6b859ed0edef0
 Product Workspace = /Users/agent/Desktop/proton-workspace
-current source execution-browser-extension = 0.1.37 candidate
-Registry latest execution-browser-extension = 0.1.36
-Registry exact 0.1.37 = E404 / NOT PUBLISHED
-Workspace materialized extension = 0.1.36
-verification moduleVersion = 0.1.36
-platform runtime processes = STOPPED
-CURRENT_CHECKPOINT = REAL_3_J1_CONTENT_SCRIPT_BUILD_REPAIR
+Registry execution-browser-extension = 0.1.38 VERIFIED
+Registry platform-host = 0.1.17 VERIFIED
+Workspace execution-browser-extension = 0.1.38 VERIFIED
+Workspace platform-host = 0.1.17 VERIFIED
+Chrome ProFlow Execution Browser = 0.1.38
+Extension ID = eehdadpmjffomabiedcjijiakconalab
+CURRENT_CHECKPOINT = REAL_3_J1_EXTENSION_FRESH_ERROR_REPRODUCTION
+```
+
+## FIXED_REAL3_RESOURCES
+
+```text
 Task = task-a6f859c00b1accd027d53d48
+Title = Real-3 read-only smoke
+Product role = g-6a97182669f88191a943e806a3e1b42a
+Dev role = g-6a9717f68ef081918aacd5911916d2ec
+Test role = g-6a97186190108191bc24fb85b2cff584
+Product execution = execution:c3fc60b1-74fc-4cfb-bf45-c9ae18602631
+Dev execution = execution:a510cb5d-2a65-419f-bd7e-254b9d77cdc4
+Test execution = execution:567be187-f585-4d08-bb33-6fbe25e84aed
 ```
-## J0 FIXED ROLE AUTHORITY
+
+禁止创建新 GPT / Task / Execution。旧 worker.create 曾进入 UNKNOWN：Product attempt 11、Dev attempt 10、Test attempt 9；TaskRoleBinding 仍为 null。**UNKNOWN 禁止第二次盲 Recover。**
+
+## BROWSER_CARRIER_AUTOMATED_BASELINE
+
+以下已完成三轮实现 + Codex 实现审计 + 主 Chat 独立审计，不要无证据重开：
 
 ```text
-研发 + 项目总控 = g-6a9717f68ef081918aacd5911916d2ec
-运营 + 产品经理 = g-6a97182669f88191a943e806a3e1b42a
-部署 + 测试验收 = g-6a97186190108191bc24fb85b2cff584
+Composer controlled submit                  PASS
+Permission semantic detection               PASS
+AUTO_ALLOW / DEFER / HUMAN_REQUIRED          PASS
+strict Role/Gateway/operation/context policy PASS
+Carrier Attention primary /tasks bridge      PASS
+MV3 attention rebuild + occurrence identity  PASS
+Human Deny precedence / no auto resume       PASS
+Observer no-blind-replay / denial guard      PASS
+Extension full tests                         148/148 PASS
+Platform Host full tests                     52/52 PASS
 ```
 
-禁止创建第 4/5/6 个 GPT；禁止删除/重建当前三个。产品代码继续 create-only；已有 GPT 的 auth repair 仅走既有 Real-3 manual repair path。
-
-## ROOT_CAUSE_A_CLOSED｜Browser command poll auth
-
-真实 Chrome 网络抓证确认：`POST /v1/session/hello` 会带 `Origin: chrome-extension://...`，但真实 `GET /v1/commands/next` 不带 Origin。旧 Runtime/Pairing Bridge 对每个请求都强制 Extension Origin，导致 hello=200、poll=401，handler 前失败，`lastCommandPollAt=null`。
-
-`0.1.36` 已正式修复认证边界：HELLO 仍必须 Bearer + 精确 Extension Origin + extensionId；后续 session-bound 请求必须 Bearer + 正确 extensionInstanceId，Origin 若存在仍必须精确匹配，但允许 Chrome 真实 originless GET poll。
-
-真实验证已通过：
+## FROZEN_RUNTIME_MENTAL_MODEL
 
 ```text
-Registry exact/latest = 0.1.36
-Workspace/materialized/verification = 0.1.36
-Runtime sessionOnline=true
-Runtime commandConsumerReady=true
-t0 consumerReady=true
-t+12s consumerReady=true
-same extensionInstanceId=true
-ZERO_COMMAND_LIVENESS_PASS=true
-platform status 曾达到 PLATFORM_READY=YES
+① Deployment      = 把系统装起来 / 创建固定 Role GPT
+② Workflow        = Task/Node/Worker 正式流转
+③ Collaboration   = Agent A↔B 独立消息投递
+④ System Observer = 全局异常观察 / 诊断 / 恢复建议
+
+共享 Browser Carrier
+= Tab/Conversation + Page Reality + Composer + Blocker/Permission
++ Semantic Action + Reality Verification + Recovery + Human Attention
 ```
 
-因此“假 online / command consumer 不 poll” blocker 已关闭。
-## CURRENT_BLOCKER｜Content Script build artifact
+Carrier Permission != Execution/Workflow Approval。Content 不拥有 trust policy；Platform Host 做 authoritative classification；Observer 不理解 ChatGPT DOM。
 
-平台启动后 Observer Recovery 自动重驱同三条 stable `worker.create`。Browser transport 已越过旧 timeout；最新 durable reality：
+## RELEASE_AND_MATERIALIZATION_CLOSED
+
+Browser Carrier hardening 最终代码链：
 
 ```text
-Product execution:c3fc60b1-74fc-4cfb-bf45-c9ae18602631
-  FAILED + NOT_APPLIED, attemptCount=8
-  DECISION_UNRESOLVED: INVALID_OUTPUT
-Dev execution:a510cb5d-2a65-419f-bd7e-254b9d77cdc4
-  FAILED + NOT_APPLIED, attemptCount=7
-  CONTENT_SESSION_TIMEOUT
-Test execution:567be187-f585-4d08-bb33-6fbe25e84aed
-  FAILED + NOT_APPLIED, attemptCount=6
-  CONTENT_SESSION_TIMEOUT
-bindings = all workerRef=null / conversationLocator=null
+2e6bbd8 refactor(browser): harden Real-3 carrier reality
+412d24a fix(browser): close Real-3 carrier lifecycle gaps
+edc918f fix(browser): preserve human deny across carrier recovery
+341fef6 chore(release): queue browser carrier hardening
+629e0db chore(release): version execution-browser-extension, platform-host
 ```
 
-真实 Chrome 已出现多份三个 GPT 的 Role 根页 `/g/g-...`，但没有任何 `/c/<conversation>`。因此 `effectStartedAt=null` 只能证明 WORKER_BIND business effect 未开始，不能证明 Browser 没创建 Tab。禁止盲目 Recover。
+Registry 已真实存在 `execution-browser-extension@0.1.38`、`platform-host@0.1.17`；Product Workspace 已 update 到同版本。repo build、Workspace `node_modules`、`.proflow/deployment/browser-extension` 的 `background.js/content.js` SHA 已一致。版本/物化问题已关闭。
 
-`CONTENT_SESSION_TIMEOUT` 的根因已由发布物机械确认：materialized `dist/extension/content.js` 第一行仍有 `import { containsSubmittedFingerprint } ...`，但 manifest content script 是 classic script；`provisioning-content.js` 已正确 bundle 为 IIFE。主 Content Script 因 build pipeline 未 bundle，无法正常注入/publish `PROFLOW_CONTENT_OBSERVATION`。
+## CURRENT_BROWSER_REALITY
 
-当前源码候选已修 `scripts/build-packages.mjs`：`extension/content.ts` 与 provisioning content 一样使用 esbuild `--bundle --format=iife --platform=browser`，并硬校验产物无 ESM。对应契约测试已补 RED→GREEN。
-
-真实 build readback：
+保留旧失败现场，不要手工修：
 
 ```text
-content.js prefix = "use strict"; (() => { ... })();
-HAS_ESM=false
-HAS_FINGERPRINT_IMPL=true
-package gate = 108/108 PASS
-typecheck = PASS
-publishability = PASS
-full command exit = 0
+Product root GPT
+  real user messages = 0
+  composer draft = WORKER_BIND ...:@tomflow/proflow-agent-test-ops
+Dev old conversation
+  real user message = WORKER_BIND ...:@tomflow/proflow-agent-product
+  getTask Permission 卡片仍存在
+Test old conversation
+  real user message = WORKER_BIND ...:@tomflow/proflow-agent-controller-dev
+  getTask Permission 卡片仍存在
 ```
 
-源码 version 已同步为 `0.1.37`，但 Registry exact 0.1.37 当前 E404，latest 仍 0.1.36；因此 **0.1.37 尚未 publish/update/reload/revalidate**。
+这些是旧 composer one-step-lag / permission 故障证据，不是 0.1.38 新执行结果。不要点 Dev/Test 旧 Permission，不要清旧 Chat，不要第二次 Recover。
+
+## CURRENT_BLOCKER｜先区分历史 Extension Error 与 fresh 0.1.38 error
+
+0.1.38 已在真实 `chrome://extensions` 显示并 reload，但 `platform setup` 等不到 pairing，真实结果 `PAIRING_TIMEOUT`。Extension 卡片显示“错误”。
+
+用户打开 `chrome://extensions/?errors=eehdadpmjffomabiedcjijiakconalab` 后截图看到：
+
+```text
+Uncaught SyntaxError: Cannot use import statement outside a module
+context = ChatGPT GPT page
+stack/source = dist/extension/content.js:1
+另有 sendMessage undefined / Failed to fetch 历史记录
+```
+
+但当前 0.1.38 materialized `content.js` 已机械读回为 classic IIFE：开头 `"use strict"; (() => { ... })`，residual import=0；`background.js` residual import=0，三份产物 hash 一致。错误详情源码 preview 也已经显示 IIFE。Chrome 会保留历史 Extension error，因此 **当前不能把该 SyntaxError 直接判成 0.1.38 fresh root cause**。
+
+正确 checkpoint 是 fresh reproduction，而不是继续改 build。
+
 ## NEXT_ACTION
 
-1. 不重新审计已关闭的 Origin/poll 根因。先确认 source `0.1.37` candidate diff，仅针对 Browser Extension/build pipeline 做发布前审计；Registry 0.1.37 已机械证明空位。
-2. 唯一一次 publish `@tomflow/proflow-execution-browser-extension@0.1.37`；若结果不明确只查 Registry，不盲重发。
-3. 单包 update 到 Product Workspace，确认 materialized manifest 0.1.37；Chrome privileged reload；先启动 setup/pairing server再唤醒 Extension，verification 必须回读 0.1.37。
-4. 在恢复平台前，先 reconcile/清理当前遗留的重复 Role 根页；没有 `/c/` Conversation，禁止把这些根页误认为 Worker binding 成功。不要创建新 GPT/Task/Execution。
-5. `platform start` 后立即观察 Observer 自动 Recovery：Content Script 应发布 observation，OPEN 不应再 `CONTENT_SESSION_TIMEOUT`。注意启动本身可能自动 retry，不要同时手点 Recover。
-6. 只有 Owner + Browser reality 确认自动 Recovery 未推进或安全停在 `FAILED + NOT_APPLIED` 时，才考虑同一 Task 的一次 Recover；必须复用 stable executionRef。
-7. J1 通过标准：三个原 GPT 各出现真实 `/g/<gid>/c/<cid>` Conversation，Browser 中能看到真实 WORKER_BIND user message，TaskRoleBinding 持久化 `workerRef + conversationLocator`，Browser reality 与 Owner 一致。
-8. J1 后继续 J2 Confirm/Start → J3 deterministic WAKE → J4 autonomous Agent Loop。
-9. 用户要求：目标完成后必须做一次独立变更审计，确认本轮 0.1.33→0.1.37 修复没有引入认证、readiness、pairing、MV3、Content Script、Observer Recovery、timeout/no-blind-replay 等新问题。
+1. 不改代码、不 Recover、不点旧 Permission。先在 privileged Chrome UI 对当前 Extension error 页做截图/AX readback。
+2. 清空该 Extension 的历史错误记录。
+3. 启动新的 `platform setup`，让 pairing server **先监听**；记录本轮 PID/输出，UNKNOWN 不盲重跑。
+4. pairing server 已进入等待后，用 canonical `browser-extension-ui.mjs reload` 唤醒真实 0.1.38。
+5. reload 现有 Product GPT 根页一次，触发当前 `content.js` 注入；不要创建新业务 Tab。
+6. 立即再打开 `chrome://extensions/?errors=eehdadpmjffomabiedcjijiakconalab`，用 AX + screenshot 只读取 fresh errors。
+7. 若 fresh `Cannot use import...` 再出现：证明还有另一加载路径/旧 artifact，按当前加载 path 与 source URL 精确定位；若不再出现：历史 Content Script error 关闭，不得回头继续改 bundle。
+8. 同时回读 setup pairing。若 pairing 仍 timeout 且无 fresh Content Script error，再从 Background `runtime-config → hello → first poll → heartbeat` 真实链逐层抓 fresh evidence，不猜 Service Worker root cause。
+9. 只有 Extension pairing/runtime READY 后才恢复 `platform start`，先观察 startup Observer Recovery；禁止同时手点 Recover。
+10. J1 仍只认：三个固定 Role 各形成正确 `/g/<gid>/c/<worker>`、真实正确 WORKER_BIND user message、TaskRoleBinding 与 Browser reality 一致、零新增 UNKNOWN。
 
 ## DO_NOT_REPEAT
 
-- 不 Fresh Workspace，不重新 install，不重开 Deployment。
-- 不创建第 4/5/6 个 GPT，不删除/重建当前三个。
-- 不创建新 Real-3 Task；固定 taskId 继续使用。
-- 不因为 bindings 为空就断言 Browser 无副作用；OPEN 已经留下多份 Role 根页。
-- 不在 platform start 后立刻手点 Recover；先看 startup Observer Recovery 是否已自动重驱。
-- 不回到“调大 timeout / MV3 猜测 / 204 framing / Model prompt”继续钻；Browser poll auth 根因已被真实 Chrome 网络证据关闭。
-- 不 reset/clean/revert dirty worktree 的无关内容。
-- `platform stop` 上一次业务 runtime 已退出但 CLI 壳曾悬挂；当前无 active sessions、无 platform runtime processes。
+- 不把 Chrome 卡片“错误”直接等同当前 Service Worker 根因；必须进入 errors detail。
+- 不把 errors detail 中历史记录直接等同当前版本 fresh failure；必须清空后重现。
+- 不因 setup `PAIRING_TIMEOUT` 就反复 reload/setup；先恢复本轮 pairing authority。
+- 不重复发布 0.1.38 / 0.1.17；Registry 与 Workspace 已闭环。
+- 不重开 Browser Carrier 三轮架构/测试审计，除非 fresh runtime evidence 指向其中。
 
 ## REQUIRED_CONTEXT
 
 1. `00-公共上下文/README.md`
 2. `01-长期规则/05-执行纪律与工具规则.md`
 3. `02-当前接力/CURRENT.md`
-4. `03-自动化知识库/流程/Real3-J0-J4.md`
-5. `90-历史记录/Real3/18-Real3当前Chat交接-20260904.md`
-6. `90-历史记录/Real3/19-下一个Chat提示词-Real3-J1继续-20260904.md`
+4. `03-自动化知识库/基础动作/Browser-UI自动化.md`
+5. `03-自动化知识库/包能力/execution-browser-extension.md`
+6. `03-自动化知识库/流程/Real3-J0-J4.md`
+7. `90-历史记录/Real3/20-Real3当前Chat交接-20260904.md`
+8. `90-历史记录/Real3/21-下一个Chat提示词-Real3-J1继续-20260904.md`
 
-新 Chat 先读 CURRENT + 18；19 是可直接作为开场指令使用的执行提示词。
+新 Chat 先读 CURRENT + 20；21 可直接作为开场执行指令。旧 18/19 已被本轮新事实替代，只用于追历史。
