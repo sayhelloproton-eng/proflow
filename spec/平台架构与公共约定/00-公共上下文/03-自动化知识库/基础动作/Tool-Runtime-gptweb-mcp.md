@@ -36,6 +36,14 @@ managed runtime count    = local-dev/codegraph/repomix/playwright-chrome 各 1
 
 守护判断继续使用本地 `~/Library/Application Support/tunnel-client/health/<alias>.url` + `/readyz`，不得把依赖 OpenAI control plane 的 `tunnel-client runtimes status` 作为每分钟 liveness 真源。幂等验收至少包含：`launchctl` 只剩唯一 manager；四个 runtime 各 1；`gptweb-mcp test` 为 `4/4_READY`；显式 `restart` 后恢复 `1/1/1/1`；跨至少一个完整 60 秒 watchdog 周期后四个 managed PID 完全不变。历史重复 runtime 若可能被其它 Chat 使用，不得为了“清爽”直接批量 kill；先删除额外 manager、止住新增，再在明确维护窗口清理。
 
+## 工具 Runtime 与任务路由是两回事
+
+`gptweb-mcp` 只管理 `repomix / codegraph / local-dev / playwright-chrome` 四个 runtime 的可用性；它不决定业务问题第一刀用谁。任务调度统一按 `Chat-高吞吐本地工程执行.md`：Browser/UI reality 可以先于仓库 Context，纯机械事实可以直接 Local Dev。
+
+AX / Swift helper 属于 Reality Plane 的 privileged UI 分支，但**不属于 gptweb-mcp 四个 managed runtime**。因此 `GPTWEB_MCP=4/4_READY` 既不代表 privileged UI 已验证，也不能因为 Playwright 无法 attach `chrome://` 就误判“缺一个 MCP”；此时直接走仓库 canonical AX/helper + screenshot。
+
+恢复原则：工具 runtime 异常只修工具 runtime；恢复后回原业务 checkpoint。不要因为 Repomix/Playwright relay 重建就重跑 Deployment、重建 Task/Conversation 或修改产品代码。
+
 ## Repomix Context Plane
 
 当前 Repomix MCP 被限制在仓库根 `/Users/agent/Desktop/proton-workspace/repos` 的 sandbox 内；工具参数使用相对路径，例如 `proflow`、`job-search-system`，而不是绝对路径。稳定能力面是：
@@ -59,10 +67,13 @@ read_repomix_output
 高吞吐默认不是 `file_system_read_file × N`，也不是“任务一来先 pack 整个仓库”，而是**最小充分范围优先、证据驱动逐层扩张**：
 
 ```text
-已知文件/符号
+任务已经决定进入 Repomix Context Plane，且需要 owning package 的实现/tests/config 邻接上下文
 → pack owning package / 最小相关目录
 → 围绕同一 outputId grep/read，批量建立实现、测试、配置和邻接上下文
 → 再进入 CodeGraph / Local Dev
+
+已知 symbol/入口且当前只做 caller/callee / ownership / composition / blast radius
+→ 不在 Runtime 文档强制 pack；按 `Chat-高吞吐本地工程执行.md` 直接 CodeGraph
 
 未知但可定位到目录/包
 → pack 该 package / 最小相关目录
@@ -158,7 +169,7 @@ Token 更新本身**不等于业务 Browser 控制恢复成功**。更新后必�
 Repomix           → Context Plane：仓库上下文批量读取；窄域 pack 当前包，广域按证据扩张，一次 pack 多次 grep/read
 CodeGraph         → Structure Plane：调用链、依赖、composition、ownership、blast radius
 Local Dev         → Execution Plane：当前源码、文件、CLI、Git、PID/evidence、修改与 test/gate
-Playwright Chrome → Reality Plane：真实网页、登录授权、ChatGPT Conversation、Console/Network、用户可见结果
+Playwright Chrome → Reality Plane/Web：真实网页、登录授权、ChatGPT Conversation、Console/Network、page screenshot；privileged UI 则由 AX/Swift + screenshot 补齐，不属于 gptweb-mcp managed runtime
 ```
 
 协作不是固定四连调用，更不是四个工具各自把同一仓库重新读一遍。上下文必须逐层收敛：`Repomix` 只在最小充分范围内发现候选文件/目录 → `CodeGraph` 只围绕候选 owner/入口证明调用链与影响范围 → `Local Dev` 只补仍缺失的当前磁盘源码并执行修改/验证 → `Playwright` 只在需要用户现实证据时进入。禁止 `Repomix 全仓 → CodeGraph 再全仓 → Local Dev 再批量重读` 这种重复获取上下文。

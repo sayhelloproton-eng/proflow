@@ -1,7 +1,41 @@
 # ProFlow Phase 3｜GPT Chat 公共上下文入口
 
 > 目的：让新的 GPT Chat 在旧 Chat 上下文耗尽后，能像连续工作一样接手，而不是重新学习项目。
-> 更新时间：2026-09-03。
+> 更新时间：2026-09-05。
+
+## 0. 执行前先判“问题起点”
+
+公共上下文的第一目标不是让新 Chat 读更多，而是让它**第一刀进入正确证据层**。完成固定最小读取后，任何诊断/修改动作前先判当前最大不确定性属于哪一类：
+
+| 问题起点 | 第一证据层 / 第一工具 | 第一份必须拿到的 authority | 后续路由 |
+|---|---|---|---|
+| 普通 Web / ChatGPT / Tasks 页面异常 | Reality / Playwright Chrome | 当前 page screenshot + snapshot/DOM + URL | 现实指向代码后再进入 Repomix/CodeGraph/Local Dev |
+| `chrome://`、扩展错误页、工具栏、系统 picker 等 privileged UI | Reality / AX + Swift helper + screenshot | 当前 AX tree + privileged screenshot | 再回普通 Web 或源码层；Playwright attach 失败不等于不可观察 |
+| 仓库实现、跨文件理解、修改任务 | Context / Repomix | 最小充分 scope 的稳定 `outputId` + grep/read 命中 | CodeGraph 证明结构 → Local Dev 修改/验证 |
+| caller/callee、composition、ownership、blast radius 的纯结构问题 | Structure / CodeGraph | 结构关系与相关 current-on-disk source | 需要修改时再补 Repomix 上下文/Local Dev 执行 |
+| Git、test、build、PID、日志、Registry/Workspace 机械 readback | Execution / Local Dev | 当前磁盘/进程/命令的机械事实 | 只有出现新的结构/现实矛盾才升级其它 Plane |
+| MCP runtime、连接、token、manager、controlled group 恢复 | Tool Runtime / `Tool-Runtime-gptweb-mcp.md` | runtime/manager/relay 当前状态 | 恢复工具后回原业务 checkpoint，不把工具故障冒充产品故障 |
+
+**Reality-first override：**当前失败首先表现为 Browser/UI 现实异常时，在取得当前 screenshot/snapshot/AX evidence 之前，禁止先从源码猜 root cause。**Context-first repository rule：**问题已经确认属于仓库理解/修改后，默认先用 Repomix 最小充分范围建立批量上下文，而不是 Local Dev 逐文件探索。两条规则不冲突，关键是先判断问题起点。
+
+这里的路由不是“所有工具按顺序调用一遍”。每个工具只负责它不可替代的 authority；已经被上一层消除的不确定性不得由下一层重复读取。详细调度见 `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md`。
+
+### 0.1 AI 执行时的冲突消解顺序
+
+多份文档出现相似规则时，**不要按出现次数投票，也不要把所有规则平均化**。先判断它们回答的是否是同一个维度，再按下列层级消解：
+
+```text
+Formal Spec / Frozen Contract → 规范上应该是什么
+当前机械 authority            → 现实中现在是什么
+01-长期规则                   → 哪些执行边界绝不能越过
+CURRENT                       → 当前 checkpoint 具体先做什么 / 用什么 evidence / 在哪里 STOP
+Owner Runbook                 → 这个动作具体怎么做、怎么恢复
+README / Routing Index 镜像   → 只负责提醒和导航，不创造新语义
+90-历史记录                   → 只解释过去为什么，不参与当前裁决
+```
+
+更具体的 CURRENT route 可以覆盖通用工具路由，但不能覆盖长期安全/frozen 边界；Owner Runbook 的完整 SOP 可以展开镜像短句，但不能反向修改 CURRENT 的 checkpoint。**同一句护栏重复三次不会获得“三票权威”**，权威来自 owner 与层级。
+
 
 ## 1. 公共上下文是什么
 

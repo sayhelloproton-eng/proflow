@@ -2,6 +2,25 @@
 
 > 目标：站在真人视角自动化真实 Chrome 与系统 UI，不通过内部注入制造成功。
 
+## Reality-first 硬门
+
+Browser/UI 失败的第一任务是回答“用户此刻真正看到了什么”，不是解释源码“应该发生什么”。固定优先级：
+
+```text
+普通 Web / ChatGPT / Tasks
+→ Playwright current URL + page screenshot + snapshot/DOM
+
+chrome:// / Extension errors / toolbar / 系统 picker / 原生确认
+→ AX tree + privileged screenshot
+
+拿到 fresh reality
+→ Owner/runtime readback
+→ 现实证据确实指向实现后，才进入 Repomix/CodeGraph/Local Dev
+→ 修复后回原页面 SAME SCENE 复验
+```
+
+**截图就是眼睛，不是附加证明。**出现 Error、Permission、Unexpected Page、Loading、按钮状态异常等 UI symptom 时，在当前页面证据缺失的情况下禁止 source-first diagnosis。Playwright 不能 debugger attach 某个 privileged 页面，只代表控制边界变化，不代表页面不可由 AX/screenshot 观察。
+
 ## 工具分工
 
 - Playwright Chrome：真实 Web 页面、Tab、登录/授权页面、ChatGPT Conversation，以及**能够被 Playwright debugger attach 的页面**；负责 DOM/网络/page screenshot 证据，这些普通页面默认后台执行，不抢用户前台焦点。

@@ -2,6 +2,19 @@
 
 > 原则：看到问题先路由到既有知识，再诊断；不要依赖 Chat 自己“记得”。
 
+## 第一层：先按“问题起点”选 authority
+
+| 当前最大不确定性 | 第一工具 | 必读 Runbook / 纪律 |
+|---|---|---|
+| 普通 Web / ChatGPT / Tasks 当前页面 | Playwright Chrome | `基础动作/Browser-UI自动化.md` |
+| `chrome://` / Extension errors / 系统 picker / privileged UI | AX / Swift helper + screenshot | `基础动作/Browser-UI自动化.md` |
+| 仓库跨文件理解 / 修改 | Repomix | `基础动作/Chat-高吞吐本地工程执行.md` |
+| 纯结构关系 / ownership / blast radius | CodeGraph | `基础动作/Chat-高吞吐本地工程执行.md` |
+| Git / test / build / PID / Registry / Workspace readback | Local Dev | 对应基础动作；无需为机械事实额外 pack |
+| MCP runtime / relay / token / manager | gptweb-mcp 当前 runtime | `基础动作/Tool-Runtime-gptweb-mcp.md` |
+
+第一层只决定“先去哪里拿第一份不可替代 evidence”。拿到 evidence 后再进入下面的包能力 / 基础动作 / 流程路由。**Browser/UI symptom 必须 Reality-first；仓库理解/修改才是 Repomix-first。**不要把所有工具机械串行调用。
+
 ## 包 / 外部资源路由
 
 | 现象 / 关键词 | 必读 Runbook |
@@ -36,7 +49,7 @@
 
 ## 组合规则
 
-流程是 orchestration，不拥有包的具体操作知识。例如 Real-3 中碰到 Tunnel：
+流程是 orchestration，不拥有包的具体操作知识；工具路由也不属于某个业务流程。先按问题起点拿 authority，再进入 owner Runbook。例如 Real-3 中碰到 Tunnel：
 
 ```text
 Real3 checkpoint

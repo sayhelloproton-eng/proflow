@@ -38,8 +38,12 @@ Structure Plane CodeGraph
 Execution Plane Local Dev
   解决“当前磁盘到底是什么、如何批量修改、如何运行 Git/测试/命令”
 
-Reality Plane   Playwright Chrome
-  解决“真实浏览器里实际上发生了什么、用户最终看到了什么”
+Reality Plane   Playwright Chrome + AX / Swift
+  Playwright 解决普通 Web/ChatGPT/Tasks 的 DOM、URL、Console/Network、page screenshot
+  AX / Swift + screenshot 解决 `chrome://`、Extension privileged UI、系统 picker 等 Chrome 安全边界
+
+Tool Runtime     gptweb-mcp
+  不是第五个业务 Plane；只负责 Repomix/CodeGraph/Local Dev/Playwright 的 runtime、relay、token、manager 恢复
 ```
 
 先分类任务，不机械串四层：
@@ -47,12 +51,41 @@ Reality Plane   Playwright Chrome
 | 任务类型 | 默认第一入口 | 典型链路 |
 |---|---|---|
 | 首次接管大仓、目录/内容未知、跨目录文档/配置交叉审计、迁移覆盖 | Repomix | 最小相关范围 → 按证据扩父级/领域 → 必要时全仓 → CodeGraph → Local Dev |
-| 已知 symbol/入口、单包局部 bug、明确调用链/依赖问题 | Repomix | pack 当前 package / 最小相关目录 → grep/read → CodeGraph → Local Dev |
+| 已知 symbol/入口、单包局部 bug，且准备理解/修改实现 | Repomix | pack 当前 package / 最小相关目录 → grep/read → CodeGraph → Local Dev |
+| 只问 caller/callee、ownership、composition、blast radius，且当前不缺 package 上下文、不立即改码 | CodeGraph | 一次 explore → 必要时 Local Dev current-disk 交叉确认 |
 | 当前文件代码理解/修改 | Repomix | pack owning package / 最小相关目录 → grep/read → 必要时 CodeGraph → Local Dev |
 | 纯 Git/测试/命令、无需代码理解的已知机械动作 | Local Dev | Local Dev |
-| Web UI、登录、授权、扩展、真实 ChatGPT 页面 | Playwright | Playwright 观察 → 必要时 CodeGraph/Local Dev 归因 → Playwright 复验 |
+| 普通 Web UI、登录、授权、真实 ChatGPT/Tasks 页面 | Playwright | screenshot/snapshot 观察 → 必要时 Repomix/CodeGraph/Local Dev 归因 → 原页面复验 |
+| `chrome://`、Extension errors/toolbar、系统 picker 等 privileged UI | AX / Swift + screenshot | AX tree + screenshot → one privileged mutation → screenshot → 回 Playwright/Owner authority |
+| MCP runtime / connect / token / manager 异常 | Tool-Runtime | 恢复工具 runtime → 回原业务 checkpoint；不要进入产品源码猜测 |
 
 **判断标准不是“哪个工具更强”，而是谁能以最少往返消除当前最大的不确定性。**
+
+### 2.1 Reality-first override 与 Context-first 的边界
+
+`Repomix first` 只约束**仓库理解/修改任务**。如果当前问题首先是“页面为什么是这样”“Chrome 为什么显示 Error/Permission/Unexpected Page”，最大不确定性在 Reality Plane，先看现实：
+
+```text
+Browser/UI symptom
+→ current screenshot / snapshot / AX tree
+→ 判断 fresh reality
+→ Owner/runtime readback
+→ 只有证据指向代码时，才切成 repository task
+→ Repomix / CodeGraph / Local Dev
+→ 回 SAME SCENE 复验
+```
+
+因此：`Browser error → 先 pack/read source` 是反模式；`已经证明是 package bug → 还只在 Browser 猜` 同样是反模式。工具切换由证据边界触发。
+
+### 2.2 信息增益优先，而不是“工具齐全”
+
+每次调用前必须回答：**这次调用会新增哪个 authority？它是否会消除当前最大的不确定性？**
+
+- Repomix 的价值是“批量上下文复用”，不是出现一次名字；一个分析阶段优先复用同一 `outputId`。
+- CodeGraph 的价值是“结构关系证明”，不是全文搜索；纯结构问题不必先制造无意义的文件读取。
+- Local Dev 的价值是“当前执行真值”，不是替代 Context Plane 做 per-file 探索。
+- Playwright/AX 的价值是“用户现实”，API/CLI/helper success 不能替代 screenshot/DOM/AX readback。
+- Tool Runtime 的价值是恢复工具，不得把 runtime failure 升级成产品 failure。
 
 ## 3. 仓库任务：Repomix Context Plane
 
@@ -61,10 +94,14 @@ Reality Plane   Playwright Chrome
 仓库上下文获取必须渐进，不允许“还不知道问题在哪里，就先把整个仓库读一遍”。固定阶梯：
 
 ```text
-L0 已知 symbol / 已知文件 / 已知入口
+L0 已知 package / 文件范围，且任务需要跨文件理解或准备修改
    → Repomix pack owning package / 最小相关目录
    → grep/read 同一 outputId，先批量理解实现、测试、配置和邻接文件
    → 再进入 CodeGraph / Local Dev
+
+L0-S 已知 symbol / 已知入口，当前只需要 caller/callee / ownership / composition / blast radius
+   → 直接 CodeGraph；不为了“Context Plane 出现过”制造无信息增益的 pack
+   → 若结构证据表明后续需要跨文件实现/tests/config 上下文，再进入上面的 L0
 
 L1 已知 package / 目录，内容未知
    → Repomix pack 该 package / 最小目录
@@ -102,7 +139,7 @@ pack_codebase(directory)
 
 ## 4. Repomix 后的结构证明：CodeGraph Structure Plane
 
-- 仓库理解/修改任务先由 Repomix 在最小充分范围建立 Context；随后若涉及调用链、ownership、runtime composition、依赖与影响范围，再由 CodeGraph 精确证明。窄域也不跳过 Repomix，只缩小 pack 范围。
+- 需要跨文件仓库理解/修改时，先由 Repomix 在最小充分范围建立 Context；随后若涉及调用链、ownership、runtime composition、依赖与影响范围，再由 CodeGraph 精确证明。窄域修改只缩小 pack 范围。**已知 symbol/入口且当前只做纯结构证明时例外：CodeGraph 可直接第一入口；只有证据要求邻接上下文/修改时才进入 Repomix。**
 - `codegraph_explore` 已返回的 verbatim current-on-disk source 等价于 Read，禁止马上再 `read_file` 同一内容。
 - dirty working tree 仍可用 CodeGraph 导航；若 graph 关系与当前磁盘冲突，以当前 source/diff 为真值，只把冲突节点视为 stale。
 - 一个改动域原则上一次 explore；不要用多个小 query 模拟 grep loop。只有第一轮没有覆盖关键节点时才补第二次。
@@ -193,7 +230,7 @@ git status --short
 
 ## 9. Reality Plane：Browser 不是批量文件任务
 
-Playwright Chrome 是真实 Browser/UI 的眼睛和手。浏览器流程不能为了追求 3～5 次调用而合并成不可观察的大动作：
+Reality Plane 是真实 Browser/UI 的眼睛和手：普通 Web 用 Playwright，privileged Chrome/系统 UI 用 AX/Swift + screenshot。浏览器流程不能为了追求更少调用而合并成不可观察的大动作；**任何 UI 异常在第一次源码归因前原则上必须已经有当前 screenshot/snapshot/AX evidence**：
 
 ```text
 observe / screenshot
@@ -216,12 +253,29 @@ observe / screenshot
 禁止：验证失败后无差别重新扫全仓
 ```
 
+## 10.1 效率异常诊断：Tool Call 变多时先改路由，不是加速低效循环
+
+窄域问题没有固定“最多 N 次调用”的硬上限，Browser Journey 也必须保留动作后的观察。但如果往返明显增长而 authority 没有收敛，先暂停并检查：
+
+```text
+PER_FILE_READ_LOOP?        → 应否 Repomix 一次 pack + grep/read 或 read_multiple_files
+STRUCTURE_GREP_LOOP?       → 应否 CodeGraph 一次覆盖 caller/callee/ownership/blast radius
+REDUNDANT_SOURCE_READ?     → CodeGraph 已返回源码是否又被 Local Dev 原样重读
+NO_REALITY_EVIDENCE?       → Browser/UI 问题是否还没有当前 screenshot/snapshot/AX tree
+FRAGMENTED_VERIFY?         → 幂等 test/typecheck/build/diff 是否可一次 batch verify
+AUTHORITY_RECHECK_LOOP?    → 是否在重复证明同一层事实，而没有升级到下一层未知
+REPACK_LOOP?               → 同一分析阶段是否错误地反复生成 Repomix outputId
+RUNTIME_PRODUCT_CONFUSION? → MCP/relay 故障是否被当成产品代码故障排查
+```
+
+优化目标是缩短 `现象 → authoritative evidence → owner → 最小修复 → SAME SCENE` 的总路径，同时保持证据密度，不以删除验证步骤换速度。
+
 ## 11. 每个 Batch 的自检
 
 结束时快速检查：
 
 ```text
-CONTEXT_PACK_COUNT         = 1（仓库理解/修改任务；窄域也为 1，只缩小范围；纯机械/Browser 可为 0）
+CONTEXT_PACK_COUNT         = 1（需要跨文件仓库理解/修改时；纯结构已知-symbol、纯机械、Browser 可为 0）
 STRUCTURE_DISCOVERY_COUNT  ≈ 1
 FULL_PACK_READ             = NO
 REDUNDANT_REREAD           = 0（原则上）

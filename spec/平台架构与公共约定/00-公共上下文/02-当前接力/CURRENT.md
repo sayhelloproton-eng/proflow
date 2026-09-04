@@ -1,6 +1,6 @@
 # CURRENT｜Phase 3 当前接力
 
-> 更新时间：2026-09-04 23:03。这里是下一 Chat 的唯一滚动执行入口；旧 handoff 只在 `90-历史记录`。
+> 更新时间：2026-09-05 00:09。这里是下一 Chat 的唯一滚动执行入口；旧 handoff 只在 `90-历史记录`。
 
 ## CURRENT_STAGE
 
@@ -23,7 +23,7 @@ PHASE3_FINAL_GO = NO
 
 ```text
 branch = main
-HEAD = 629e0dbd78e06325831883b24dc6b859ed0edef0
+HEAD = ee49198c377a447778128482ea89eb8a8ca90d13
 Product Workspace = /Users/agent/Desktop/proton-workspace
 Registry execution-browser-extension = 0.1.38 VERIFIED
 Registry platform-host = 0.1.17 VERIFIED
@@ -33,6 +33,29 @@ Chrome ProFlow Execution Browser = 0.1.38
 Extension ID = eehdadpmjffomabiedcjijiakconalab
 CURRENT_CHECKPOINT = REAL_3_J1_EXTENSION_FRESH_ERROR_REPRODUCTION
 ```
+
+## CURRENT_PROBLEM_CLASS / TOOL_ROUTE
+
+```text
+CURRENT_PROBLEM_CLASS = BROWSER_PRIVILEGED_REALITY
+CURRENT_TOOL_ROUTE = AX_ERROR_BASELINE → LOCAL_DEV_SETUP_WAIT → AX_EXTENSION_RELOAD → PLAYWRIGHT_PRODUCT_RELOAD → AX_FRESH_ERROR_READBACK → LOCAL_DEV_PAIRING_READBACK → CLASSIFY
+CURRENT_FIRST_EVIDENCE = chrome://extensions/?errors=eehdadpmjffomabiedcjijiakconalab historical-error baseline + cleared state
+FIRST_TOOL = AX / Swift helper + privileged screenshot
+OWNER_PRECONDITION = Local Dev starts one platform setup round and proves pairing server is waiting before Extension reload
+SECOND_REALITY = Playwright reloads the existing Product GPT tab only after Extension reload, then captures page screenshot/snapshot
+FINAL_REALITY = AX reads only fresh Extension errors after current content injection
+OWNER_READBACK = Local Dev reads the same setup round pairing outcome
+SOURCE_ROUTE = only after fresh reality or pairing evidence points to a concrete code owner
+STOP_POINT = fresh errors + same-round pairing outcome are both classified
+```
+
+当前第一轮**不允许从源码开始**。必须先清历史 Extension errors，reload 当前 0.1.38，在最小现有 GPT 页触发当前 content injection，再读取 fresh errors。
+
+- fresh error 存在 → 以错误 context/stack/source URL 为证据，进入 CodeGraph 定位结构 owner，再用 Local Dev 做最小磁盘核验/修复。
+- fresh error 不存在但 pairing 仍失败 → 历史 Content Script error 关闭；用 Local Dev/运行日志沿 `runtime-config → hello → first poll → heartbeat` 取 fresh runtime evidence。
+- pairing READY → 回 Real-3 J1 原 checkpoint；先观察 startup Observer Recovery，禁止并行手点 Recover。
+
+这个 route 是当前 checkpoint 的执行权威；`Repomix first` 只在后续已经转化为仓库理解/修改任务时生效。截图就是眼睛。
 
 ## FIXED_REAL3_RESOURCES
 
@@ -51,7 +74,7 @@ Test execution = execution:567be187-f585-4d08-bb33-6fbe25e84aed
 
 ## BROWSER_CARRIER_AUTOMATED_BASELINE
 
-以下已完成三轮实现 + Codex 实现审计 + 主 Chat 独立审计，不要无证据重开：
+以下已完成三轮实现验证 + 独立代码审计，不要无证据重开：
 
 ```text
 Composer controlled submit                  PASS
@@ -153,13 +176,21 @@ stack/source = dist/extension/content.js:1
 
 ## REQUIRED_CONTEXT
 
-1. `00-公共上下文/README.md`
-2. `01-长期规则/05-执行纪律与工具规则.md`
-3. `02-当前接力/CURRENT.md`
-4. `03-自动化知识库/基础动作/Browser-UI自动化.md`
-5. `03-自动化知识库/包能力/execution-browser-extension.md`
-6. `03-自动化知识库/流程/Real3-J0-J4.md`
-7. `90-历史记录/Real3/20-Real3当前Chat交接-20260904.md`
-8. `90-历史记录/Real3/21-下一个Chat提示词-Real3-J1继续-20260904.md`
+> 以下是完成固定 Core 读取后的**第一轮额外 active context**，路径均相对 `spec/平台架构与公共约定/00-公共上下文/`。不要重复读取 README / 长期规则 / CURRENT，也不要把历史 handoff 当必读。
 
-新 Chat 先读 CURRENT + 20；21 可直接作为开场执行指令。旧 18/19 已被本轮新事实替代，只用于追历史。
+### FIRST_ROUND_REQUIRED
+
+1. `03-自动化知识库/基础动作/Browser-UI自动化.md`
+2. `03-自动化知识库/基础动作/Round-PID-Log与恢复.md`
+3. `03-自动化知识库/包能力/execution-browser-extension.md`
+4. `03-自动化知识库/包能力/platform-cli.md`
+5. `03-自动化知识库/流程/Real3-J0-J4.md`
+
+### ON_DEMAND_CONTEXT
+
+- fresh evidence 指向源码理解/修改 → `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md`；需要结构证明时进入 CodeGraph。
+- Playwright / Repomix / CodeGraph / Local Dev runtime、relay、token、manager 异常 → `03-自动化知识库/基础动作/Tool-Runtime-gptweb-mcp.md`。
+- 确认需要 package fix → `03-自动化知识库/流程/Package-Update-Loop.md` + `基础动作/Targeted-Gate.md`；需要发布时再读 `基础动作/npm发布与Registry回读.md`。
+- 只有 CURRENT/Runbook 无法解释某条旧 evidence 时，才按需读取 `90-历史记录/Real3/20-...` / `21-...`；历史内容不得覆盖 CURRENT 和当前机械事实。
+
+新 Chat 的吸收顺序固定为：`README → 01/02/05 长期规则 → CURRENT → FIRST_ROUND_REQUIRED → 第一真实动作`。其余上下文由 evidence 触发，不做预加载。
