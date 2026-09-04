@@ -193,7 +193,7 @@ export function createExecutionModelDecisionClient(config: {
 	const status = async () => {
 		const response = await fetch(`${endpoint.origin}/status`, {
 			headers: authorizationHeaders,
-			signal: AbortSignal.timeout(Math.min(watchdogMs, 3_000)),
+			signal: AbortSignal.timeout(watchdogMs),
 		});
 		if (!response.ok) throw new Error(`MODEL_STATUS_HTTP_${response.status}`);
 		return modelRuntimeStatusSchema.parse(await response.json());

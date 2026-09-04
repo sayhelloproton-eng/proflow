@@ -7,7 +7,11 @@ import { createReasoningSpec } from "@tomflow/proflow-model-contracts";
 import { z } from "zod";
 import { behaviorAdapter } from "../deployment/adapter.ts";
 import { descriptor as modelRuntimeDescriptor } from "../deployment/descriptor.ts";
-import { createModelRuntime, renderPrompt } from "../src/index.ts";
+import {
+	createModelRuntime,
+	renderPrompt,
+	verifyProviderCapabilities,
+} from "../src/index.ts";
 import { createOpenAICompatibleProvider } from "../src/provider.ts";
 import { createModelRuntimeService } from "../src/service.ts";
 import { fakeProvider, verifiedTestRoles } from "./fixtures.ts";
@@ -299,6 +303,127 @@ test("REAL1 /ready and /status refresh stale model capabilities in the same requ
 		).then((response) => response.json())) as { runtime: string };
 		assert.equal(status.runtime, "READY");
 		assert.equal(refreshCount, 2);
+	} finally {
+		await service.stop();
+	}
+});
+
+test("REAL3 concurrent /status requests refresh one DEGRADED stale-role window exactly once", async () => {
+	const baseTime = Date.parse("2026-09-04T00:00:00.000Z");
+	let currentTime = baseTime + 50;
+	let refreshCount = 0;
+	const probedRoles: Array<"fast" | "reason"> = [];
+	let releaseFirstProbe: (() => void) | undefined;
+	const firstProbeBlocked = new Promise<void>((resolve) => {
+		releaseFirstProbe = resolve;
+	});
+	const provider = fakeProvider(async (call) => {
+		probedRoles.push(call.role);
+		if (probedRoles.length === 1) await firstProbeBlocked;
+		return {
+			content: '{"decision":"ALLOW"}',
+			thinkingStatus: call.role === "fast" ? "absent" : "closed",
+		};
+	});
+	const initialRoles = verifiedTestRoles({
+		fastProfile: { inputModalities: ["text"] },
+		reasonProfile: { inputModalities: ["text"] },
+		fastObserved: { verifiedAt: new Date(baseTime).toISOString() },
+		reasonObserved: { verifiedAt: new Date(baseTime + 50).toISOString() },
+	});
+	const declared = {
+		fast: { profile: initialRoles.fast.profile },
+		reason: { profile: initialRoles.reason.profile },
+	};
+	const fastRequest = { ...request, mode: "fast" as const };
+	const reasonRequest = { ...request, mode: "reason" as const };
+	const runtime = createModelRuntime({
+		specs: [spec],
+		roles: initialRoles,
+		provider,
+		now: () => currentTime,
+		capabilityVerificationMaxAgeMs: 100,
+		refreshRoles: async () => {
+			refreshCount += 1;
+			return verifyProviderCapabilities({
+				declared,
+				provider,
+				probes: {
+					fast: {
+						request: fastRequest,
+						spec,
+						prompt: renderPrompt(spec, fastRequest.payload),
+					},
+					reason: {
+						request: reasonRequest,
+						spec,
+						prompt: renderPrompt(spec, reasonRequest.payload),
+					},
+				},
+				capabilityFacts: {
+					fast: {
+						contextWindow: initialRoles.fast.profile.contextWindow,
+						maxOutputTokens: initialRoles.fast.profile.maxOutputTokens,
+						basis: "provider-config",
+					},
+					reason: {
+						contextWindow: initialRoles.reason.profile.contextWindow,
+						maxOutputTokens: initialRoles.reason.profile.maxOutputTokens,
+						basis: "provider-config",
+					},
+				},
+				verifiedAt: () => new Date(currentTime).toISOString(),
+			});
+		},
+	});
+	currentTime = baseTime + 101;
+	assert.deepEqual(
+		{
+			runtime: runtime.getRuntimeStatus().runtime,
+			fast: runtime.getRuntimeStatus().fast,
+			reason: runtime.getRuntimeStatus().reason,
+		},
+		{ runtime: "DEGRADED", fast: "UNAVAILABLE", reason: "READY" },
+	);
+
+	const service = createModelRuntimeService({ runtime });
+	const address = await service.start();
+	try {
+		const endpoint = `http://${address.host}:${address.port}/status`;
+		const requests = Array.from(
+			{ length: 3 },
+			() =>
+				fetch(endpoint).then((response) => response.json()) as Promise<{
+					runtime: string;
+					fast: string;
+					reason: string;
+				}>,
+		);
+		for (let attempt = 0; attempt < 20; attempt += 1) {
+			if (probedRoles.length === 1) break;
+			await new Promise<void>((resolve) => setImmediate(resolve));
+		}
+		assert.deepEqual(probedRoles, ["fast"]);
+		releaseFirstProbe?.();
+		const statuses = await Promise.all(requests);
+		assert.equal(refreshCount, 1);
+		assert.deepEqual(probedRoles, ["fast", "reason"]);
+		assert.equal(
+			statuses.every(
+				(status) =>
+					status.runtime === "READY" &&
+					status.fast === "READY" &&
+					status.reason === "READY",
+			),
+			true,
+		);
+
+		const readyStatus = (await fetch(endpoint).then((response) =>
+			response.json(),
+		)) as { runtime: string };
+		assert.equal(readyStatus.runtime, "READY");
+		assert.equal(refreshCount, 1);
+		assert.deepEqual(probedRoles, ["fast", "reason"]);
 	} finally {
 		await service.stop();
 	}

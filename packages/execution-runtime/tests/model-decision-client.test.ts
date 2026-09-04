@@ -15,7 +15,11 @@ type InferenceRequestBody = {
 };
 
 async function server(
-	handler: (body: InferenceRequestBody, count: number) => unknown | Promise<unknown>,
+	handler: (
+		body: InferenceRequestBody,
+		count: number,
+	) => unknown | Promise<unknown>,
+	options?: { statusDelayMs?: number },
 ) {
 	let count = 0;
 	const seen: InferenceRequestBody[] = [];
@@ -23,6 +27,10 @@ async function server(
 	const instance = createServer(async (request, response) => {
 		authorizations.push(request.headers.authorization);
 		if (request.url === "/status") {
+			if (options?.statusDelayMs)
+				await new Promise((resolve) =>
+					setTimeout(resolve, options.statusDelayMs),
+				);
 			response.setHeader("content-type", "application/json");
 			response.end(
 				JSON.stringify({
@@ -158,6 +166,58 @@ test("REAL3 model decision timeout is only an outer abnormal watchdog, not a Mod
 		assert.equal(fake.seen[0]?.timeoutMs, undefined);
 	} finally {
 		await fake.close();
+	}
+});
+
+test("REAL3 status uses the configured watchdog, continues to inference after the former cap, and fails closed beyond the watchdog", async (context) => {
+	const nativeTimeout = AbortSignal.timeout;
+	context.mock.method(AbortSignal, "timeout", (delay: number) =>
+		nativeTimeout(Math.max(1, Math.ceil(delay / 20))),
+	);
+
+	const withinWatchdog = await server(
+		() =>
+			success(
+				{
+					decision: "ALLOW",
+					reasonCode: "OK",
+					confidence: 0.9,
+					rationale: "status completed within the configured watchdog",
+				},
+				"fast",
+			),
+		{ statusDelayMs: 250 },
+	);
+	try {
+		const client = createExecutionModelDecisionClient({
+			endpoint: withinWatchdog.endpoint,
+			timeoutMs: 10_000,
+		});
+		assert.equal((await client.port.decide(request())).decision, "ALLOW");
+		assert.equal(withinWatchdog.seen.length, 1);
+	} finally {
+		await withinWatchdog.close();
+	}
+
+	const beyondWatchdog = await server(
+		() =>
+			success({
+				decision: "ALLOW",
+				reasonCode: "OK",
+				confidence: 0.9,
+				rationale: "must not be reached",
+			}),
+		{ statusDelayMs: 600 },
+	);
+	try {
+		const client = createExecutionModelDecisionClient({
+			endpoint: beyondWatchdog.endpoint,
+			timeoutMs: 10_000,
+		});
+		await assert.rejects(client.port.decide(request()), /DECISION_UNRESOLVED/);
+		assert.equal(beyondWatchdog.seen.length, 0);
+	} finally {
+		await beyondWatchdog.close();
 	}
 });
 

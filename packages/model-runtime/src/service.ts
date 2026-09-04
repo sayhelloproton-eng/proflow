@@ -72,7 +72,7 @@ export function createModelRuntimeService(input: {
 	const currentDependency = async (): Promise<ModelRuntimeStatus> => {
 		let dependency = input.runtime.getRuntimeStatus();
 		if (
-			dependency.runtime === "UNAVAILABLE" &&
+			(dependency.fast !== "READY" || dependency.reason !== "READY") &&
 			input.runtime.refreshCapabilities
 		) {
 			try {
