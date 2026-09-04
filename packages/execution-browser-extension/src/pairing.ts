@@ -167,6 +167,21 @@ export async function createBrowserExtensionPairingServer(
 
 			if (
 				request.method === "POST" &&
+				url.pathname === "/v1/carrier/attentions"
+			) {
+				// The production bridge consumes Carrier Attention state immediately after
+				// hello. Pairing only needs to absorb that authenticated snapshot so the
+				// extension can reach its first poll; only heartbeat proves paired=true.
+				if (!originId) throw new Error("PAIRING_AUTH_INVALID");
+				const body = await readJson(request);
+				if (!Array.isArray(body.carrierAttentions))
+					throw new Error("PAIRING_INPUT_INVALID");
+				send(response, 200, { accepted: true });
+				return;
+			}
+
+			if (
+				request.method === "POST" &&
 				url.pathname === "/v1/session/heartbeat"
 			) {
 				paired = { ...identity };

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
+import { isFreshBrowserOpenObservation } from "../src/carrier-identity.ts";
 import {
 	type BrowserPageObservation,
 	type BrowserRealityPort,
@@ -182,6 +183,48 @@ test("REG-EXE-BR-01 stable role/worker identity rejects stale transient content 
 			workerRef: "0198a45c-12ab-7def-9123-abcdef012345",
 		},
 	);
+	assert.deepEqual(
+		extension.parseCarrierIdentity(
+			"https://chatgpt.com/g/g-1234567890abcdef1234567890abcdef-readable-role/c/c-real",
+		),
+		{
+			roleRef: "g-1234567890abcdef1234567890abcdef",
+			workerRef: "c-real",
+		},
+	);
+});
+
+test("REG-EXE-BR-01 OPEN freshness rejects stale or wrong-role observations", () => {
+	const notBeforeMs = Date.parse("2026-09-05T00:00:00.000Z");
+	const requestedUrl =
+		"https://chatgpt.com/g/g-1234567890abcdef1234567890abcdef";
+	assert.equal(
+		isFreshBrowserOpenObservation({
+			requestedUrl,
+			observedUrl: `${requestedUrl}-readable-role`,
+			observedAt: "2026-09-05T00:00:00.001Z",
+			notBeforeMs,
+		}),
+		true,
+	);
+	assert.equal(
+		isFreshBrowserOpenObservation({
+			requestedUrl,
+			observedUrl: "https://chatgpt.com/g/g-abcdefabcdefabcdefabcdefabcdefab-other",
+			observedAt: "2026-09-05T00:00:00.001Z",
+			notBeforeMs,
+		}),
+		false,
+	);
+	assert.equal(
+		isFreshBrowserOpenObservation({
+			requestedUrl,
+			observedUrl: `${requestedUrl}-readable-role`,
+			observedAt: "2026-09-04T23:59:59.999Z",
+			notBeforeMs,
+		}),
+		false,
+	);
 });
 
 test("REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins, duplicate CREATE is zero", async () => {
@@ -258,6 +301,34 @@ test("REG-EXE-BR-02 worker.create does not enter the durable effect boundary whe
 				},
 			}),
 		/OPEN_FAILED/,
+	);
+	assert.equal(effectStarted, 0);
+	assert.equal(browser.submitCount, 0);
+});
+
+test("REG-EXE-BR-02 worker.create rejects a wrong-role OPEN observation before the durable effect boundary", async () => {
+	const { extension, browser } = await fixture();
+	const originalOpen = browser.open.bind(browser);
+	let effectStarted = 0;
+	browser.open = async () => originalOpen("https://chatgpt.com/g/g-other");
+	await assert.rejects(
+		() =>
+			extension.execute({
+				request: request("worker.create", {
+					roleRef: "g-dev",
+					roleUrl: "https://chatgpt.com/g/g-dev",
+					bootstrapFingerprint: "bootstrap:wrong-role",
+				}),
+				admission: {
+					policy: "ALLOW",
+					decisionPath: "deterministic",
+					approval: "NOT_REQUIRED",
+				},
+				onEffectStarted() {
+					effectStarted += 1;
+				},
+			}),
+		/OPENED_ROLE_IDENTITY_MISMATCH/,
 	);
 	assert.equal(effectStarted, 0);
 	assert.equal(browser.submitCount, 0);

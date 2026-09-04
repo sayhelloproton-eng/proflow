@@ -46,6 +46,33 @@ Chrome Extension Manager 的“错误”徽标会保留历史记录。看到 `Ca
 
 Extension pairing/readiness 失败时，错误详情页是 privileged Browser reality 的必要诊断入口。卡片只显示“错误”不足以定位根因；AX tree + 系统截图负责此处的视觉/结构证据，普通 GPT 页再交回 Playwright snapshot/page screenshot。
 
+## OPEN / Page Identity / Side Effect 不变量
+
+Browser Carrier 不得把定位器或缓存事实冒充页面身份：
+
+```text
+tabId 相同 != 页面相同 != content session 相同 != role/worker identity 相同
+OPEN 返回 != OPEN 已被真实页面证明
+```
+
+`OPEN` 成功至少要求：本次操作之后产生的 fresh observation、当前 content session、请求目标对应的 canonical role/worker identity。Background 的 session cache 只能作为观察缓存，不能仅凭 `sessions.get(tabId)` 越过 fresh/identity proof；Tab/Navigation 生命周期产生的 stale observation 必须 fail closed。
+
+`worker.create` 等会向真实 ChatGPT 产生外部写入的能力，顺序必须是：
+
+```text
+OPEN target
+→ fresh observation
+→ canonical identity == requested identity
+→ durable EFFECT_STARTED
+→ SUBMIT
+→ hasMessage reality verification
+→ bind Owner truth
+```
+
+如果 OPEN 实际落到其它 Role/Worker，必须在 durable effect boundary 前失败，保证 `submit = 0`；禁止先发送 `WORKER_BIND`，再用 `CREATE_REALITY_UNCONFIRMED` 发现错页。
+
+ChatGPT 的 Custom GPT Conversation URL 可能在 canonical GPT id 后追加 display slug。Browser reconciliation 必须先恢复持久化的 canonical roleRef，再与 Task/Role Owner truth 比较；不能把整个 slugged path segment 当成新的 role identity。具体 URL 解析实现属于代码，不把偶然 slug 文本固化成合同。
+
 ## Pairing / Runtime Bridge 协议漂移定位
 
 `platform setup` 的临时 pairing server 与正常 Browser Reality Bridge 不是同一个运行阶段，但 Extension Background 会复用同一套启动协议。因此 Background 新增启动期强制请求时，**正常 Runtime Bridge 已支持 ≠ pairing server 自动支持**；两边协议面必须一起审计。

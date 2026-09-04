@@ -21,6 +21,22 @@ chrome:// / Extension errors / toolbar / 系统 picker / 原生确认
 
 **截图就是眼睛，不是附加证明。**出现 Error、Permission、Unexpected Page、Loading、按钮状态异常等 UI symptom 时，在当前页面证据缺失的情况下禁止 source-first diagnosis。Playwright 不能 debugger attach 某个 privileged 页面，只代表控制边界变化，不代表页面不可由 AX/screenshot 观察。
 
+### Browser Side Effect / Identity 异常快速路径
+
+凡是 `UNKNOWN_SIDE_EFFECT`、消息出现在错误 Conversation、OPEN/NAVIGATE 后页面身份异常、submit 结果与 Owner 不一致，第一轮一次采齐相关页面，而不是逐页猜源码：
+
+```text
+1. page screenshot（相关 Product / Dev / Test 等页面一次采齐）
+2. current URL + snapshot/DOM；privileged 页面用 AX tree
+3. Owner truth：请求的 role/worker/conversation 是谁
+4. Execution truth：实际 effect / precondition / UNKNOWN 在哪一步
+5. 建立 Owner / Browser / Execution 三方矩阵，找第一处分叉
+6. 三方首次不一致立即 STOP 新 mutation / Recover / Submit
+7. 现实已把范围指向 owning package 后，才进入 Repomix / CodeGraph / Local Dev
+```
+
+截图必须属于**第一批 evidence**，不得在源码分析结束后补拍来替代事故现场。动作仍遵守 `OBSERVE → one mutation → OBSERVE`；跨多个固定 Worker 的异常应优先批量观察同一 controlled group，避免边查一个边改变另一个。
+
 ## 工具分工
 
 - Playwright Chrome：真实 Web 页面、Tab、登录/授权页面、ChatGPT Conversation，以及**能够被 Playwright debugger attach 的页面**；负责 DOM/网络/page screenshot 证据，这些普通页面默认后台执行，不抢用户前台焦点。

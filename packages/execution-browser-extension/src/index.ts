@@ -10,6 +10,7 @@ import {
 	type ExecutorPrecondition,
 	executeCapabilityRequestSchema,
 } from "@tomflow/proflow-execution-contracts";
+import { parseChatGptCarrierIdentity } from "./carrier-identity.ts";
 import type {
 	BrowserVisionImage,
 	BrowserVisionObservationContext,
@@ -194,36 +195,13 @@ function parseCarrierIdentity(raw: string): {
 	roleRef: string;
 	workerRef: string | null;
 } {
-	let url: URL;
-	try {
-		url = new URL(raw);
-	} catch {
+	const identity = parseChatGptCarrierIdentity(raw);
+	if (!identity)
 		throw new ExecutionBrowserError(
 			"PRECONDITION_FAILED",
 			"CARRIER_URL_INVALID",
 		);
-	}
-	if (url.protocol !== "https:" || url.hostname !== "chatgpt.com")
-		throw new ExecutionBrowserError(
-			"PRECONDITION_FAILED",
-			"CARRIER_URL_INVALID",
-		);
-	const segments = url.pathname.split("/").filter(Boolean);
-	if (segments[0] !== "g" || !segments[1]?.startsWith("g-"))
-		throw new ExecutionBrowserError("PRECONDITION_FAILED", "ROLE_URL_INVALID");
-	if (segments.length === 2) return { roleRef: segments[1], workerRef: null };
-	if (
-		segments[2] !== "c" ||
-		!segments[3] ||
-		segments[3].length > 512 ||
-		!/^[A-Za-z0-9_-]+$/.test(segments[3]) ||
-		segments.length !== 4
-	)
-		throw new ExecutionBrowserError(
-			"PRECONDITION_FAILED",
-			"WORKER_URL_INVALID",
-		);
-	return { roleRef: segments[1], workerRef: segments[3] };
+	return identity;
 }
 
 function browserEvidence(
@@ -511,6 +489,15 @@ export function createExecutionBrowserExtension(
 						"ROLE_URL_MISMATCH",
 					);
 				const opened = await options.browser.open(request.input.roleUrl);
+				const openedIdentity = parseCarrierIdentity(opened.url);
+				if (
+					openedIdentity.roleRef !== request.input.roleRef ||
+					openedIdentity.workerRef !== null
+				)
+					throw new ExecutionBrowserError(
+						"PRECONDITION_FAILED",
+						"OPENED_ROLE_IDENTITY_MISMATCH",
+					);
 				const precondition = await effectStarted(raw);
 				const submitted = await options.browser.submit(
 					opened.tabId,

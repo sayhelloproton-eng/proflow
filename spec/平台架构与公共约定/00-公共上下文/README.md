@@ -50,6 +50,12 @@ README / Routing Index 镜像   → 只负责提醒和导航，不创造新语�
 
 正式架构、Owner、Contract、Test Plan 仍以正式 `spec/` 为规范真源；当前 Git / Registry / Product Workspace / Browser / runtime reality 是机械事实真源。
 
+### 1.1 公共上下文是运行时控制面，不是只读接管材料
+
+固定闭环：`READ → ACT → OBSERVE → LEARN → WRITE BACK → CONTINUE`。机械 authority、checkpoint、blocker、root cause 或稳定执行知识一旦发生变化，必须按 owner **即时写回**，不能因为当前 Chat “自己还记得”而推迟到交接。Round Closeout 只负责第二道防遗漏。
+
+若 `CURRENT` 中的版本、checkpoint、problem 或 `NEXT_ACTION` 已落后于当前机械现实，定义为 `CONTEXT_DRIFT`：先同步公共上下文，再进入下一重大动作。完整触发器与写回矩阵唯一由 `01-长期规则/02-公共上下文治理规则.md` 维护。
+
 ## 2. 新 Chat 固定最小读取顺序
 
 1. 本 `README.md`。

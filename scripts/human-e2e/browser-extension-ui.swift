@@ -8,7 +8,7 @@ let started = Date()
 let previousFrontmost = NSWorkspace.shared.frontmostApplication
 let privilegedActions: Set<String> = [
     "dismiss-help", "open-extensions-menu", "open-proflow-tasks", "inspect-tab-strip",
-    "attach-tab-to-playwright-group", "status", "reload", "install", "uninstall",
+    "select-tab", "attach-tab-to-playwright-group", "status", "reload", "install", "uninstall",
 ]
 let mayActivateChrome = privilegedActions.contains(action)
 
@@ -335,6 +335,15 @@ func tab(named title: String, alreadyGrouped: Bool? = nil) -> AXUIElement? {
     }
 }
 
+func selectExistingTab() throws {
+    let title = ProcessInfo.processInfo.environment["PROFLOW_PLAYWRIGHT_TARGET_TITLE"] ?? "ProFlow Tasks"
+    guard let target = tab(named: title) else {
+        throw NSError(domain: "human-e2e", code: 30, userInfo: [NSLocalizedDescriptionKey: "TAB_TARGET_NOT_FOUND"])
+    }
+    try click(target)
+    usleep(350_000)
+}
+
 func attachTabToPlaywrightGroup() throws {
     let title = ProcessInfo.processInfo.environment["PROFLOW_PLAYWRIGHT_TARGET_TITLE"] ?? "ProFlow Tasks"
     if tab(named: title, alreadyGrouped: true) != nil { return }
@@ -394,6 +403,9 @@ do {
     case "inspect-tab-strip":
         inspectTabStrip()
         finish("TAB_STRIP_INSPECTED")
+    case "select-tab":
+        try selectExistingTab()
+        finish("TAB_SELECTED")
     case "attach-tab-to-playwright-group":
         try attachTabToPlaywrightGroup()
         finish("PLAYWRIGHT_TAB_ATTACHED")
@@ -440,7 +452,7 @@ do {
         guard wait(12.0, extensionPresent) else { throw NSError(domain: "human-e2e", code: 11, userInfo: [NSLocalizedDescriptionKey: "EXTENSION_CARD_NOT_VISIBLE_AFTER_SELECT"]) }
         finish("INSTALLED")
     default:
-        fputs("Usage: swift scripts/human-e2e/browser-extension-ui.swift status|reload|install|uninstall|dismiss-help|open-extensions-menu|open-proflow-tasks|create-real3-task|recover-real3-workers|inspect|inspect-tab-strip|attach-tab-to-playwright-group\n", stderr)
+        fputs("Usage: swift scripts/human-e2e/browser-extension-ui.swift status|reload|install|uninstall|dismiss-help|open-extensions-menu|open-proflow-tasks|create-real3-task|recover-real3-workers|inspect|inspect-tab-strip|select-tab|attach-tab-to-playwright-group\n", stderr)
         exit(64)
     }
 } catch {

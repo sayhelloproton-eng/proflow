@@ -87,6 +87,24 @@ test("CP-EXE-BR-16 pairing binds identity only after authenticated hello + heart
 		assert.equal(hello.status, 200);
 		assert.equal(pairing.status().paired, false);
 
+		const attentions = await request(
+			pairing.endpoint,
+			"/v1/carrier/attentions?extensionInstanceId=extension%3Afirst",
+			{
+				method: "POST",
+				body: JSON.stringify({ carrierAttentions: [] }),
+			},
+		);
+		assert.equal(attentions.status, 200);
+		assert.equal(pairing.status().paired, false);
+
+		const firstPoll = await requestWithoutOrigin(
+			pairing.endpoint,
+			"/v1/commands/next?extensionInstanceId=extension%3Afirst",
+		);
+		assert.equal(firstPoll.status, 204);
+		assert.equal(pairing.status().paired, false);
+
 		const paired = pairing.waitForPairing();
 		const heartbeat = await request(
 			pairing.endpoint,
