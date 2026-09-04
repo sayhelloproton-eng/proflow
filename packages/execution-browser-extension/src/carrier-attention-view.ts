@@ -1,5 +1,6 @@
 export type CarrierAttentionView = {
 	attentionRef: string;
+	occurrenceRef: string;
 	taskId: string | null;
 	roleRef: string | null;
 	workerRef: string | null;
@@ -20,6 +21,7 @@ function parseCarrierAttentionView(
 	if (typeof value !== "object" || value === null || Array.isArray(value))
 		return null;
 	const attentionRef = Reflect.get(value, "attentionRef");
+	const occurrenceRef = Reflect.get(value, "occurrenceRef");
 	const taskId = Reflect.get(value, "taskId");
 	const roleRef = Reflect.get(value, "roleRef");
 	const workerRef = Reflect.get(value, "workerRef");
@@ -31,6 +33,8 @@ function parseCarrierAttentionView(
 	if (
 		typeof attentionRef !== "string" ||
 		attentionRef.length === 0 ||
+		typeof occurrenceRef !== "string" ||
+		occurrenceRef.length === 0 ||
 		!nullableString(taskId) ||
 		!nullableString(roleRef) ||
 		!nullableString(workerRef) ||
@@ -47,6 +51,7 @@ function parseCarrierAttentionView(
 		return null;
 	return {
 		attentionRef,
+		occurrenceRef,
 		taskId,
 		roleRef,
 		workerRef,

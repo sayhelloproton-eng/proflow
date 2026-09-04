@@ -1,3 +1,8 @@
+import { createCarrierAttentionRegistry } from "../src/carrier-attention.js";
+import {
+	type CarrierContinuationDenial,
+	createCarrierContinuationControl,
+} from "../src/carrier-continuation-control.js";
 import type {
 	ActionPermissionFacts,
 	PermissionSemanticAction,
@@ -43,21 +48,6 @@ type ContentObservation = {
 	blockerFacts?: ActionPermissionFacts;
 	observedAt: string;
 };
-type CarrierAttention = {
-	attentionRef: string;
-	tabId: number;
-	contentInstanceId: string;
-	url: string;
-	permissionFingerprint: string;
-	taskId: string | null;
-	roleRef: string | null;
-	workerRef: string | null;
-	targetHost: string | null;
-	operationId: string;
-	reason: string;
-	actions: Array<"allowOnce" | "deny">;
-	observedAt: string;
-};
 type RuntimeMessage = {
 	type:
 		| "PROFLOW_CONTENT_OBSERVATION"
@@ -81,13 +71,17 @@ type BridgeCommand = {
 		| "SUBMIT"
 		| "VERIFY"
 		| "SCREENSHOT"
-		| "PERFORM";
+		| "PERFORM"
+		| "CARRIER_ATTENTION_ACTION";
 	tabId?: number;
 	url?: string;
 	text?: string;
 	fingerprint?: string;
 	request?: Record<string, unknown>;
+	attentionRef?: string;
+	action?: "allowOnce" | "deny";
 };
+type ContentSnapshotRequest = { type: "PROFLOW_PAGE_SNAPSHOT_REQUEST" };
 type ContentCommand = {
 	type: "PROFLOW_PAGE_COMMAND";
 	contentInstanceId: string;
@@ -167,7 +161,10 @@ type ChromeRuntime = {
 		): Promise<ChromeTab>;
 		sendMessage(
 			tabId: number,
-			message: ContentCommand | ProvisioningContentCommand,
+			message:
+				| ContentCommand
+				| ContentSnapshotRequest
+				| ProvisioningContentCommand,
 		): Promise<unknown>;
 		captureVisibleTab(
 			windowId: number,
@@ -181,7 +178,8 @@ const extensionInstanceId = `extension:${crypto.randomUUID()}`;
 const sessions = new Map<number, ContentObservation>();
 const permissionHandling = new Map<number, string>();
 const permissionAutoAttempts = createCarrierPermissionAttemptRegistry();
-const carrierAttentions = new Map<number, CarrierAttention>();
+const carrierAttentions = createCarrierAttentionRegistry();
+const carrierContinuationControl = createCarrierContinuationControl();
 const BROWSER_CARRIER_KEEPALIVE_KEY = "proflowBrowserSnapshot";
 const BROWSER_CARRIER_KEEPALIVE_MS = 20_000;
 const BROWSER_BRIDGE_FETCH_TIMEOUT_MS = 5_000;
@@ -198,6 +196,7 @@ function persistSnapshot(): Promise<void> {
 			observedAt: new Date().toISOString(),
 			sessions: [...sessions.values()],
 			permissionAutoAttempts: permissionAutoAttempts.snapshot(),
+			carrierContinuationDenials: carrierContinuationControl.snapshot(),
 			recoveryScan: "BOUNDED_ON_START",
 		},
 	};
@@ -222,13 +221,19 @@ function restoreTransientPermissionAttempts(): Promise<boolean> {
 				BROWSER_CARRIER_KEEPALIVE_KEY,
 			);
 			const snapshot = stored[BROWSER_CARRIER_KEEPALIVE_KEY];
-			return permissionAutoAttempts.load(
-				isRecord(snapshot) ? snapshot.permissionAutoAttempts : undefined,
+			const validSnapshot = isRecord(snapshot);
+			const attemptsLoaded = permissionAutoAttempts.load(
+				validSnapshot ? snapshot.permissionAutoAttempts : undefined,
 			);
+			const denialsLoaded = carrierContinuationControl.load(
+				validSnapshot ? snapshot.carrierContinuationDenials : undefined,
+			);
+			return attemptsLoaded && denialsLoaded;
 		} catch {
 			// A later pre-click persistence failure still prevents the click. No
 			// automatic-action fact is manufactured from unreadable session data.
 			permissionAutoAttempts.load(undefined);
+			carrierContinuationControl.load(undefined);
 			return false;
 		}
 	})();
@@ -661,8 +666,16 @@ async function persistSystemObserverState(
 
 let observerRecoveryInFlight: Promise<void> | null = null;
 let observerRecoveryRetryCount = 0;
+let nextRecoverySuppressions: readonly CarrierContinuationDenial[] = [];
+function suppressNextObserverRecovery(
+	denials: readonly CarrierContinuationDenial[],
+): void {
+	nextRecoverySuppressions = denials;
+}
 function runObserverRecovery() {
 	if (observerRecoveryInFlight) return observerRecoveryInFlight;
+	const suppressedContinuations = nextRecoverySuppressions;
+	nextRecoverySuppressions = [];
 	observerRecoveryInFlight = (async () => {
 		let recoveryNeedsRetry = false;
 		await collaborationCarrier.recoverPending(50).catch(() => undefined);
@@ -681,6 +694,14 @@ function runObserverRecovery() {
 				)
 					continue;
 				try {
+					if (
+						suppressedContinuations.some(
+							(denial) =>
+								denial.taskId === candidate.taskId &&
+								denial.workerRef === candidate.workerRef,
+						)
+					)
+						continue;
 					const decision =
 						candidate.kind === "RECOVERY_RESUME"
 							? await taskObserver.drive(candidate.taskId, {
@@ -740,6 +761,12 @@ function runObserverRecovery() {
 				}).catch(() => {
 					recoveryNeedsRetry = true;
 				});
+				if (
+					suppressedContinuations.some(
+						(denial) => denial.taskId === candidate.taskId,
+					)
+				)
+					continue;
 				await taskObserver.drive(candidate.taskId).catch(() => {
 					recoveryNeedsRetry = true;
 				});
@@ -845,8 +872,7 @@ function setCarrierAttention(
 	const facts = observed.blockerFacts;
 	if (!facts) return;
 	const identity = carrierIdentity(observed.url);
-	carrierAttentions.set(observed.tabId, {
-		attentionRef: `carrier-attention:${observed.tabId}:${facts.fingerprint}`,
+	carrierAttentions.derive({
 		tabId: observed.tabId,
 		contentInstanceId: observed.contentInstanceId,
 		url: observed.url,
@@ -863,6 +889,48 @@ function setCarrierAttention(
 		),
 		observedAt: new Date().toISOString(),
 	});
+	void publishCarrierAttentions();
+}
+
+function carrierAttentionViews() {
+	return carrierAttentions
+		.values()
+		.map(
+			({
+				attentionRef,
+				occurrenceRef,
+				taskId,
+				roleRef,
+				workerRef,
+				targetHost,
+				operationId,
+				reason,
+				actions,
+				observedAt,
+			}) => ({
+				attentionRef,
+				occurrenceRef,
+				taskId,
+				roleRef,
+				workerRef,
+				targetHost,
+				operationId,
+				reason,
+				actions,
+				observedAt,
+			}),
+		);
+}
+
+async function publishCarrierAttentions(): Promise<void> {
+	const config = await bridgeConfig().catch(() => null);
+	if (!config) return;
+	const query = `?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`;
+	const response = await bridgeFetch(config, `/v1/carrier/attentions${query}`, {
+		method: "POST",
+		body: JSON.stringify({ carrierAttentions: carrierAttentionViews() }),
+	});
+	if (!response.ok) throw new Error("CARRIER_ATTENTION_PUBLISH_REJECTED");
 }
 
 function rawPermissionFingerprint(value: unknown): string | null {
@@ -870,6 +938,73 @@ function rawPermissionFingerprint(value: unknown): string | null {
 	return typeof value.blockerFacts.fingerprint === "string"
 		? value.blockerFacts.fingerprint
 		: null;
+}
+
+function parsePermissionFacts(
+	value: unknown,
+): ActionPermissionFacts | undefined {
+	if (!isRecord(value) || value.kind !== "ACTION_PERMISSION") return undefined;
+	const actions = value.actions;
+	if (
+		(value.targetHost !== null && typeof value.targetHost !== "string") ||
+		typeof value.operationId !== "string" ||
+		(value.taskId !== null && typeof value.taskId !== "string") ||
+		!Array.isArray(actions) ||
+		actions.some(
+			(action) =>
+				action !== "allowAlways" && action !== "allowOnce" && action !== "deny",
+		) ||
+		typeof value.fingerprint !== "string"
+	)
+		return undefined;
+	return {
+		kind: "ACTION_PERMISSION",
+		targetHost: value.targetHost,
+		operationId: value.operationId,
+		taskId: value.taskId,
+		actions: [...actions],
+		fingerprint: value.fingerprint,
+	};
+}
+
+function parseSnapshotObservation(
+	value: unknown,
+	tab: ChromeTab,
+): ContentObservation | null {
+	if (!isRecord(value) || tab.id === undefined || tab.windowId === undefined)
+		return null;
+	const pageState = value.pageState;
+	const activityKind = value.activityKind;
+	if (
+		typeof value.url !== "string" ||
+		typeof value.contentInstanceId !== "string" ||
+		(pageState !== "IDLE" &&
+			pageState !== "BUSY" &&
+			pageState !== "BLOCKED" &&
+			pageState !== "UNKNOWN") ||
+		(activityKind !== null &&
+			activityKind !== "GENERATING" &&
+			activityKind !== "ACTION_PERMISSION" &&
+			activityKind !== "ACTION_RUNNING" &&
+			activityKind !== "WAITING_HUMAN" &&
+			activityKind !== "WAITING_PEER" &&
+			activityKind !== "RECOVERING") ||
+		typeof value.observedAt !== "string"
+	)
+		return null;
+	const blockerFacts = parsePermissionFacts(value.blockerFacts);
+	if (activityKind === "ACTION_PERMISSION" && blockerFacts === undefined)
+		return null;
+	return {
+		tabId: tab.id,
+		windowId: tab.windowId,
+		url: value.url,
+		contentInstanceId: value.contentInstanceId,
+		pageState,
+		activityKind,
+		...(blockerFacts ? { blockerFacts } : {}),
+		observedAt: value.observedAt,
+	};
 }
 
 async function waitForPermissionReleased(
@@ -904,7 +1039,7 @@ async function handleActionPermission(
 	)
 		return;
 	if (permissionHandling.get(observed.tabId) === key) return;
-	const existing = carrierAttentions.get(observed.tabId);
+	const existing = carrierAttentions.current(observed.tabId);
 	if (
 		existing?.contentInstanceId === observed.contentInstanceId &&
 		existing.permissionFingerprint === facts.fingerprint
@@ -940,6 +1075,7 @@ async function handleActionPermission(
 					if (
 						!isRecord(value) ||
 						(value.decision !== "AUTO_ALLOW" &&
+							value.decision !== "DEFER" &&
 							value.decision !== "HUMAN_REQUIRED") ||
 						typeof value.reason !== "string"
 					)
@@ -960,6 +1096,7 @@ async function handleActionPermission(
 						current.blockerFacts?.fingerprint === facts.fingerprint
 					);
 				},
+				waitBeforeReclassify: () => sleep(250),
 				async act(action) {
 					permissionAutoAttempts.begin(observed.tabId, key);
 					// Persist uncertainty before the click. If the MV3 worker restarts
@@ -977,7 +1114,8 @@ async function handleActionPermission(
 		});
 		if (result.status === "RELEASED") {
 			permissionAutoAttempts.release(observed.tabId, key);
-			carrierAttentions.delete(observed.tabId);
+			carrierAttentions.removeTab(observed.tabId);
+			void publishCarrierAttentions();
 			await persistSnapshot();
 			return;
 		}
@@ -1005,6 +1143,76 @@ function handleCarrierBlocker(observed: ContentObservation): void {
 	if (strategy) void strategy(observed);
 }
 
+function processContentObservation(
+	observed: ContentObservation,
+	triggerRecovery: boolean,
+): void {
+	const previous = sessions.get(observed.tabId);
+	sessions.set(observed.tabId, observed);
+	permissionAutoAttempts.observe(
+		observed.tabId,
+		permissionAttemptKey(observed),
+	);
+	const attention = carrierAttentions.current(observed.tabId);
+	if (
+		attention &&
+		(observed.contentInstanceId !== attention.contentInstanceId ||
+			observed.url !== attention.url ||
+			observed.blockerFacts?.fingerprint !== attention.permissionFingerprint)
+	) {
+		carrierAttentions.removeTab(observed.tabId);
+		void publishCarrierAttentions();
+	}
+	handleCarrierBlocker(observed);
+	const shouldRecover =
+		triggerRecovery && shouldTriggerObserverRecovery(previous, observed);
+	const suppressed =
+		shouldRecover &&
+		carrierContinuationControl.suppressRecovery(previous, observed);
+	void persistSnapshot();
+	if (shouldRecover && !suppressed) void runObserverRecovery();
+}
+
+async function rebuildCarrierAttentionsFromTabs(): Promise<
+	CarrierContinuationDenial[]
+> {
+	const consumedDenials: CarrierContinuationDenial[] = [];
+	const tabs = await chrome.tabs.query({ url: "https://chatgpt.com/g/*" });
+	for (const tab of tabs) {
+		if (tab.id === undefined || tab.windowId === undefined) continue;
+		try {
+			const response = await chrome.tabs.sendMessage(tab.id, {
+				type: "PROFLOW_PAGE_SNAPSHOT_REQUEST",
+			});
+			if (!isRecord(response) || response.ok !== true) continue;
+			const observed = parseSnapshotObservation(response.value, tab);
+			if (observed) {
+				processContentObservation(observed, false);
+				const consumed = carrierContinuationControl.consumeRecovery(
+					undefined,
+					observed,
+				);
+				if (consumed) consumedDenials.push(consumed);
+			}
+		} catch {
+			// A tab without a live content receiver is not reconstructed from guesses.
+		}
+	}
+	await persistSnapshot();
+	await publishCarrierAttentions().catch(() => undefined);
+	return [
+		...consumedDenials,
+		...carrierContinuationControl
+			.snapshot()
+			.filter(
+				(denial) =>
+					!consumedDenials.some(
+						(consumed) => consumed.attentionRef === denial.attentionRef,
+					),
+			),
+	];
+}
+
 async function decideCarrierAttention(
 	attentionRef: string,
 	action: "allowOnce" | "deny",
@@ -1013,9 +1221,7 @@ async function decideCarrierAttention(
 	action: "allowOnce" | "deny";
 	status: "APPLIED";
 }> {
-	const attention = [...carrierAttentions.values()].find(
-		(candidate) => candidate.attentionRef === attentionRef,
-	);
+	const attention = carrierAttentions.find(attentionRef);
 	if (!attention?.actions.includes(action))
 		throw new Error("CARRIER_ATTENTION_ACTION_DENIED");
 	await resolveHumanCarrierPermission({
@@ -1028,12 +1234,34 @@ async function decideCarrierAttention(
 				current.blockerFacts?.fingerprint === attention.permissionFingerprint
 			);
 		},
-		act: (semanticAction) =>
-			contentCommand(attention.tabId, {
-				operation: "permissionAction",
-				permissionFingerprint: attention.permissionFingerprint,
-				permissionAction: semanticAction,
-			}).then(() => undefined),
+		async act(semanticAction) {
+			if (semanticAction === "deny") {
+				carrierContinuationControl.beginDenied({
+					attentionRef: attention.attentionRef,
+					tabId: attention.tabId,
+					taskId: attention.taskId,
+					roleRef: attention.roleRef,
+					workerRef: attention.workerRef,
+					url: attention.url,
+					contentInstanceId: attention.contentInstanceId,
+					permissionFingerprint: attention.permissionFingerprint,
+				});
+				await persistSnapshot();
+			}
+			try {
+				await contentCommand(attention.tabId, {
+					operation: "permissionAction",
+					permissionFingerprint: attention.permissionFingerprint,
+					permissionAction: semanticAction,
+				});
+			} catch (error) {
+				if (semanticAction === "deny") {
+					carrierContinuationControl.cancelDenied(attention.attentionRef);
+					await persistSnapshot();
+				}
+				throw error;
+			}
+		},
 		released: () =>
 			waitForPermissionReleased(
 				attention.tabId,
@@ -1044,7 +1272,8 @@ async function decideCarrierAttention(
 		attention.tabId,
 		`${attention.url}:${attention.permissionFingerprint}`,
 	);
-	carrierAttentions.delete(attention.tabId);
+	carrierAttentions.delete(attention.attentionRef);
+	void publishCarrierAttentions();
 	await persistSnapshot();
 	return { attentionRef, action, status: "APPLIED" };
 }
@@ -1082,6 +1311,14 @@ function text(value: unknown, name: string): string {
 }
 
 async function executeCommand(command: BridgeCommand): Promise<unknown> {
+	if (command.type === "CARRIER_ATTENTION_ACTION") {
+		if (command.action !== "allowOnce" && command.action !== "deny")
+			throw new Error("ATTENTION_ACTION_INVALID");
+		return decideCarrierAttention(
+			text(command.attentionRef, "ATTENTION_REF"),
+			command.action,
+		);
+	}
 	if (command.type === "LIST_TABS") {
 		const tabs = await chrome.tabs.query({ url: "https://chatgpt.com/g/*" });
 		return tabs
@@ -1319,6 +1556,7 @@ async function runBridgeLoop() {
 				}),
 			});
 			if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED");
+			await publishCarrierAttentions();
 			// Hello only establishes a session. The first inner-loop action must be
 			// a real command poll so Runtime readiness cannot be granted by hello alone.
 			let lastHeartbeatAt = Date.now();
@@ -1547,28 +1785,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 		sender.tab?.id !== undefined &&
 		sender.tab.windowId !== undefined
 	) {
-		const previous = sessions.get(sender.tab.id);
 		const observed: ContentObservation = {
 			...message.observation,
 			tabId: sender.tab.id,
 			windowId: sender.tab.windowId,
 		};
-		sessions.set(sender.tab.id, observed);
-		permissionAutoAttempts.observe(
-			sender.tab.id,
-			permissionAttemptKey(observed),
-		);
-		const attention = carrierAttentions.get(sender.tab.id);
-		if (
-			attention &&
-			(observed.contentInstanceId !== attention.contentInstanceId ||
-				observed.blockerFacts?.fingerprint !== attention.permissionFingerprint)
-		)
-			carrierAttentions.delete(sender.tab.id);
-		void persistSnapshot();
-		handleCarrierBlocker(observed);
-		if (shouldTriggerObserverRecovery(previous, observed))
-			void runObserverRecovery();
+		processContentObservation(observed, true);
 		sendResponse({ accepted: true, extensionInstanceId });
 		return;
 	}
@@ -1582,7 +1804,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 				extensionInstanceId,
 				observedAt: new Date().toISOString(),
 				sessions: [...sessions.values()],
-				carrierAttentions: [...carrierAttentions.values()],
+				carrierAttentions: carrierAttentionViews(),
 				taskApplicationConfigured: application !== null,
 				approvalApplicationConfigured: approval !== null,
 				systemObserver: observerState
@@ -1739,6 +1961,8 @@ async function startBackgroundRuntime(): Promise<void> {
 	await persistSnapshot();
 	void runBridgeLoop();
 	void runProvisioningBridgeLoop();
+	const suppressedContinuations = await rebuildCarrierAttentionsFromTabs();
+	suppressNextObserverRecovery(suppressedContinuations);
 	void runObserverRecovery();
 }
 
@@ -1750,6 +1974,8 @@ chrome.runtime.onInstalled.addListener(() => {
 		await bootstrapManagedRuntimeConfig();
 		await persistSnapshot();
 		void runBridgeLoop();
+		const suppressedContinuations = await rebuildCarrierAttentionsFromTabs();
+		suppressNextObserverRecovery(suppressedContinuations);
 		void runObserverRecovery();
 	});
 });
@@ -1759,6 +1985,8 @@ chrome.runtime.onStartup.addListener(() => {
 		await bootstrapManagedRuntimeConfig();
 		await persistSnapshot();
 		void runBridgeLoop();
+		const suppressedContinuations = await rebuildCarrierAttentionsFromTabs();
+		suppressNextObserverRecovery(suppressedContinuations);
 		void runObserverRecovery();
 	});
 });

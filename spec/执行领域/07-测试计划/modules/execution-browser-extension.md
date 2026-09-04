@@ -200,3 +200,27 @@ Batch 3 不通过越权补实现来强行关闭以下跨批依赖：
 | CP-26/27 | boundary/source tests + platform-host permission-classification test | 证明 policy 使用 authoritative Role operation inventory，Content/Workflow/Collaboration 无 case-specific trust logic。 |
 
 **Real Chrome gate**：最终必须在固定 Real-3 Task/Role 资源上证明正确 `WORKER_BIND` 无一拍错位、routine `getTask` permission 零人工处理、Conversation/Task binding reality 一致且不新增 UNKNOWN；controlled human-anomaly path 可用受控 fixture/模拟验证，不制造真实危险副作用。
+
+## 2026-09-04 Real-3｜Browser Carrier Lifecycle Closure Addendum
+
+- [ ] **CP-EXE-BR-28** — 已验证 current Role/Gateway/operation/Worker URL 且同 Task/Role binding 已存在、但 `workerRef + conversationLocator` 同时为空时返回 `DEFER`；同 fingerprint bounded reclassify 后只可精确 binding→AUTO_ALLOW，timeout/conflict/missing/partial binding→HUMAN_REQUIRED，全程零提前 click/Attention。
+- [ ] **CP-EXE-BR-29** — `allowOnce` 保留普通 `BLOCKED → IDLE` recovery；`deny` 在 action 前持久化 current occurrence continuation denial，只抑制下一次 matching recovery，其他 tab/Worker 不受影响，且不写 Task/Execution/Approval。
+- [ ] **CP-EXE-BR-30** — MV3 初始化/startup/install 主动 query 现存 `https://chatgpt.com/g/*` 并向 Content Script 请求只读 snapshot，重建 Attention；uncertain automatic attempt restore 后不重复 click，不依赖后续 DOM Mutation。
+- [ ] **CP-EXE-BR-31** — Attention ref 按 occurrence 唯一；同 occurrence 重观察复用 ref，release 后相同 tab+fingerprint 得新 ref，content replacement 立即使旧 action stale。
+- [ ] **CP-EXE-BR-32** — primary `/tasks` 从 authenticated Bridge 读取 bounded Attention mirror，并以 cookie session + exact origin + current ref/action 验证后 relay 到 Extension；wrong origin/no session/stale ref 拒绝，Extension-owned Tasks fallback 保留。
+
+- [ ] **RF-EXE-BR-24** — 以 Role 首页、缺失 binding、部分 binding 或冲突 binding 进入 DEFER/AUTO_ALLOW，或 DEFER 期间 click/提前 Attention。
+- [ ] **RF-EXE-BR-25** — 人工 deny 后 page-idle recovery 自动 WAKE/RESUME 同一 continuation，或 suppression 污染其他 Worker/永久关闭后续 occurrence。
+- [ ] **RF-EXE-BR-26** — restart 仅等待 Mutation、按旧 Attention ref 操作 replacement content，或因重观察重复 permission click。
+- [ ] **RF-EXE-BR-27** — loopback `/tasks` 暴露 owner/bridge token、绕过 Extension 执行、接受 cross-origin/no-session/stale Attention action。
+
+**Executable-first mapping**：
+
+| Proof | Required executable asset | Boundary |
+|---|---|---|
+| CP-28 | `tests/permission-binding-race.test.ts` + `platform-host/tests/browser-permission-policy.test.ts` | pure policy/lifecycle；真实 binding race 仍由 Real Chrome gate 证明。 |
+| CP-29 | `tests/carrier-human-deny-recovery.test.ts` | occurrence-scoped control、session restore 与 Background wiring；不制造真实 deny。 |
+| CP-30/31 | `tests/carrier-attention-restart.test.ts` + `tests/carrier-permission-attempt.test.ts` | 主动 snapshot wiring、occurrence identity 与 no-replay persistence。 |
+| CP-32 | `tests/carrier-attention-web-bridge.test.ts` | real loopback HTTP/auth/command relay；Extension command result 为 controlled fixture。 |
+
+本 Addendum 的 automated PASS 仍不等于 Real-3 J1 PASS；不得据此声称三 Worker 已在真实 Chrome 中创建或绑定。

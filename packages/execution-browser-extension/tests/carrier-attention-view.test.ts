@@ -6,6 +6,7 @@ import { parseCarrierAttentionViews } from "../src/carrier-attention-view.ts";
 test("CP-EXE-BR-25 Carrier Attention validates extension snapshot data at the UI boundary", () => {
 	const valid = {
 		attentionRef: "carrier-attention:17:permission:v1:one",
+		occurrenceRef: "permission-occurrence:one",
 		taskId: "task-1",
 		roleRef: "g-test",
 		workerRef: "worker-test",

@@ -24,13 +24,14 @@ type ContentCommand = {
 	permissionFingerprint?: string;
 	permissionAction?: PermissionSemanticAction;
 };
+type ContentSnapshotRequest = { type: "PROFLOW_PAGE_SNAPSHOT_REQUEST" };
 type ChromeContent = {
 	runtime: {
 		sendMessage(message: unknown): Promise<unknown>;
 		onMessage: {
 			addListener(
 				listener: (
-					message: ContentCommand,
+					message: ContentCommand | ContentSnapshotRequest,
 					sender: unknown,
 					sendResponse: (value: unknown) => void,
 				) => boolean | undefined,
@@ -76,6 +77,7 @@ function hasFingerprint(fingerprint: string | undefined): boolean {
 
 chrome.runtime.onMessage.addListener((command, _sender, sendResponse) => {
 	void (async () => {
+		if (command.type === "PROFLOW_PAGE_SNAPSHOT_REQUEST") return observation();
 		if (
 			command.type !== "PROFLOW_PAGE_COMMAND" ||
 			command.contentInstanceId !== contentInstanceId ||

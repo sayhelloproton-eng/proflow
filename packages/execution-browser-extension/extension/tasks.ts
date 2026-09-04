@@ -143,8 +143,21 @@ async function carrierAttentionAction(
 	attentionRef: string,
 	action: "allowOnce" | "deny",
 ): Promise<void> {
-	if (!extensionRuntime)
-		throw new Error("CARRIER_ATTENTION_REQUIRES_EXTENSION_RUNTIME");
+	if (!extensionRuntime) {
+		const response = await fetch("/tasks/api/carrier-attention", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ attentionRef, action }),
+		});
+		const body = record(await response.json());
+		if (!response.ok || body.ok !== true)
+			throw new Error(
+				typeof body.error === "string"
+					? body.error
+					: "CARRIER_ATTENTION_ACTION_FAILED",
+			);
+		return;
+	}
 	const raw = await extensionRuntime.sendMessage({
 		type: "PROFLOW_CARRIER_ATTENTION_ACTION",
 		input: { attentionRef, action },

@@ -85,3 +85,5 @@ Role OpenAPI 对不直接产生不可逆真实 Effect 的平台 query/control/in
 Permission 是 Browser Carrier mechanical gate：Carrier 从当前页面提取 permission facts，再以当前 Role/Worker、trusted ProFlow target、Role authorized operation 与稳定 fingerprint 做分类。可信 routine automation 可由 Carrier 自动 `Always Allow` 并验证 Turn 继续；未知 target/operation/context 或无法消歧时 fail closed，进入 Carrier Attention/diagnostic。Worker/Workflow/Collaboration 不感知具体 Permission DOM case。
 
 `x-openai-isConsequential:false` 不是单独的 auto-grant 依据；Execution Effect Approval 仍完全独立，Carrier permission 不得替代或绕过它。
+
+首次 Worker Turn 的 Permission 可能早于 TaskRoleBinding 完成绑定。只有 current Role/target/operation 与真实 `/g/{role}/c/{worker}` 已全部验证，且相同 Task/Role binding 已存在但 `workerRef + conversationLocator` 同时为空时，Carrier 才可短暂 `DEFER` 并 bounded reclassify；期间不得点击或通知人工。任何 binding 冲突或超时仍 fail closed。人工 `deny` 只否决当前 Carrier continuation occurrence，不是 Role/Worker 永久禁用，也不是 Agent/Collaboration fact。

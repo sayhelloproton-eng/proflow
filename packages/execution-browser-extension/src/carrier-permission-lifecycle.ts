@@ -4,7 +4,7 @@ import type {
 } from "./carrier-permission.ts";
 
 export type CarrierPermissionDecision = {
-	decision: "AUTO_ALLOW" | "HUMAN_REQUIRED";
+	decision: "AUTO_ALLOW" | "DEFER" | "HUMAN_REQUIRED";
 	reason: string;
 };
 
@@ -16,6 +16,7 @@ export type CarrierPermissionLifecycleResult =
 export type CarrierPermissionLifecyclePort = {
 	classify(): Promise<CarrierPermissionDecision>;
 	revalidate(): boolean | Promise<boolean>;
+	waitBeforeReclassify?(): Promise<void>;
 	act(action: PermissionSemanticAction): Promise<void>;
 	released(): Promise<boolean>;
 };
@@ -23,17 +24,34 @@ export type CarrierPermissionLifecyclePort = {
 export async function resolveRoutineCarrierPermission(input: {
 	facts: ActionPermissionFacts;
 	autoAlreadyAttempted: boolean;
+	maxClassifications?: number;
 	port: CarrierPermissionLifecyclePort;
 }): Promise<CarrierPermissionLifecycleResult> {
-	let decision: CarrierPermissionDecision;
-	try {
-		decision = await input.port.classify();
-	} catch {
+	const maxClassifications = Math.max(1, input.maxClassifications ?? 40);
+	let decision: CarrierPermissionDecision | null = null;
+	for (let attempt = 0; attempt < maxClassifications; attempt += 1) {
+		try {
+			decision = await input.port.classify();
+		} catch {
+			return {
+				status: "HUMAN_REQUIRED",
+				reason: "PERMISSION_CLASSIFICATION_FAILED",
+			};
+		}
+		if (decision.decision !== "DEFER") break;
+		if (!(await input.port.revalidate())) return { status: "STALE" };
+		if (attempt === maxClassifications - 1)
+			return {
+				status: "HUMAN_REQUIRED",
+				reason: "PERMISSION_CONTEXT_DEFER_TIMEOUT",
+			};
+		await input.port.waitBeforeReclassify?.();
+	}
+	if (!decision)
 		return {
 			status: "HUMAN_REQUIRED",
 			reason: "PERMISSION_CLASSIFICATION_FAILED",
 		};
-	}
 	if (decision.decision !== "AUTO_ALLOW")
 		return { status: "HUMAN_REQUIRED", reason: decision.reason };
 	if (!input.facts.actions.includes("allowAlways"))

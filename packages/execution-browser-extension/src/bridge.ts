@@ -6,6 +6,10 @@ import {
 } from "node:http";
 
 import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
+import {
+	type CarrierAttentionView,
+	parseCarrierAttentionViews,
+} from "./carrier-attention-view.ts";
 import type { BrowserPageObservation, BrowserRealityPort } from "./index.ts";
 
 type BridgeCommand =
@@ -26,6 +30,12 @@ type BridgeCommand =
 			type: "PERFORM";
 			tabId: number;
 			request: ExecuteCapabilityRequest;
+	  }
+	| {
+			commandId: string;
+			type: "CARRIER_ATTENTION_ACTION";
+			attentionRef: string;
+			action: "allowOnce" | "deny";
 	  };
 type BridgeCommandInput = BridgeCommand extends infer Command
 	? Command extends { commandId: string }
@@ -44,8 +54,14 @@ type PendingCommand = {
 export interface BrowserRealityBridgeTaskWebOptions {
 	html: string;
 	script: string;
-	invokeTask(operation: string, input: Record<string, unknown>): Promise<unknown>;
-	invokeApproval(operation: string, input: Record<string, unknown>): Promise<unknown>;
+	invokeTask(
+		operation: string,
+		input: Record<string, unknown>,
+	): Promise<unknown>;
+	invokeApproval(
+		operation: string,
+		input: Record<string, unknown>,
+	): Promise<unknown>;
 }
 
 export interface BrowserRealityBridgeOptions {
@@ -200,7 +216,10 @@ function sendText(
 	response.end(value);
 }
 
-function cookieValue(request: IncomingMessage, name: string): string | undefined {
+function cookieValue(
+	request: IncomingMessage,
+	name: string,
+): string | undefined {
 	for (const part of (request.headers.cookie ?? "").split(";")) {
 		const [key, ...rest] = part.trim().split("=");
 		if (key === name) return rest.join("=");
@@ -238,6 +257,14 @@ export async function createBrowserRealityBridgeServer(
 	let lastCommandConsumerAt: number | null = null;
 	let closed = false;
 	let endpoint = "";
+	let carrierAttentions: CarrierAttentionView[] = [];
+	let requestCommand: (command: BridgeCommandInput) => Promise<unknown> = () =>
+		Promise.reject(
+			new BrowserRealityBridgeError(
+				"BRIDGE_OFFLINE",
+				"extension command consumer is not ready",
+			),
+		);
 	const taskBootstrap = new Map<string, number>();
 	const taskSessions = new Map<string, number>();
 	const taskCookie = "proflow_tasks_session";
@@ -291,9 +318,15 @@ export async function createBrowserRealityBridgeServer(
 	const server = createServer(async (request, response) => {
 		try {
 			const url = new URL(request.url ?? "/", "http://127.0.0.1");
-			if (options.taskWeb && request.method === "GET" && url.pathname.startsWith("/tasks/bootstrap/")) {
+			if (
+				options.taskWeb &&
+				request.method === "GET" &&
+				url.pathname.startsWith("/tasks/bootstrap/")
+			) {
 				pruneTaskWebState();
-				const bootstrap = decodeURIComponent(url.pathname.slice("/tasks/bootstrap/".length));
+				const bootstrap = decodeURIComponent(
+					url.pathname.slice("/tasks/bootstrap/".length),
+				);
 				if (!taskBootstrap.has(bootstrap)) {
 					send(response, 401, { error: "TASK_WEB_SESSION_INVALID" });
 					return;
@@ -315,11 +348,21 @@ export async function createBrowserRealityBridgeServer(
 					return;
 				}
 				if (request.method === "GET" && url.pathname === "/tasks") {
-					sendText(response, 200, "text/html; charset=utf-8", options.taskWeb.html);
+					sendText(
+						response,
+						200,
+						"text/html; charset=utf-8",
+						options.taskWeb.html,
+					);
 					return;
 				}
 				if (request.method === "GET" && url.pathname === "/tasks/app.js") {
-					sendText(response, 200, "text/javascript; charset=utf-8", options.taskWeb.script);
+					sendText(
+						response,
+						200,
+						"text/javascript; charset=utf-8",
+						options.taskWeb.script,
+					);
 					return;
 				}
 				if (request.method === "GET" && url.pathname === "/tasks/api/status") {
@@ -329,6 +372,7 @@ export async function createBrowserRealityBridgeServer(
 							taskApplicationConfigured: true,
 							approvalApplicationConfigured: true,
 							systemObserver: null,
+							carrierAttentions,
 							browserCarrier: {
 								online: commandConsumerReady(),
 								sessionOnline: sessionOnline(),
@@ -344,14 +388,62 @@ export async function createBrowserRealityBridgeServer(
 					});
 					return;
 				}
-				if (request.method === "POST" && (url.pathname === "/tasks/api/task" || url.pathname === "/tasks/api/approval")) {
+				if (
+					request.method === "POST" &&
+					url.pathname === "/tasks/api/carrier-attention"
+				) {
 					if (request.headers.origin !== endpoint) {
 						send(response, 403, { error: "TASK_WEB_ORIGIN_INVALID" });
 						return;
 					}
 					const body = await readJson(request);
-					if (!isRecord(body) || typeof body.operation !== "string" || !isRecord(body.input))
-						throw new BrowserRealityBridgeError("BRIDGE_INPUT_INVALID", "task web request is invalid");
+					if (!isRecord(body))
+						throw new BrowserRealityBridgeError(
+							"BRIDGE_INPUT_INVALID",
+							"carrier attention action must be an object",
+						);
+					const attentionRef = stringField(body, "attentionRef");
+					const action = body.action;
+					if (action !== "allowOnce" && action !== "deny")
+						throw new BrowserRealityBridgeError(
+							"BRIDGE_INPUT_INVALID",
+							"carrier attention action is invalid",
+						);
+					const attention = carrierAttentions.find(
+						(candidate) => candidate.attentionRef === attentionRef,
+					);
+					if (!attention?.actions.includes(action))
+						throw new BrowserRealityBridgeError(
+							"BRIDGE_INPUT_INVALID",
+							"carrier attention reference is stale or denied",
+						);
+					const value = await requestCommand({
+						type: "CARRIER_ATTENTION_ACTION",
+						attentionRef,
+						action,
+					});
+					send(response, 200, { ok: true, value });
+					return;
+				}
+				if (
+					request.method === "POST" &&
+					(url.pathname === "/tasks/api/task" ||
+						url.pathname === "/tasks/api/approval")
+				) {
+					if (request.headers.origin !== endpoint) {
+						send(response, 403, { error: "TASK_WEB_ORIGIN_INVALID" });
+						return;
+					}
+					const body = await readJson(request);
+					if (
+						!isRecord(body) ||
+						typeof body.operation !== "string" ||
+						!isRecord(body.input)
+					)
+						throw new BrowserRealityBridgeError(
+							"BRIDGE_INPUT_INVALID",
+							"task web request is invalid",
+						);
 					const value = url.pathname.endsWith("/task")
 						? await options.taskWeb.invokeTask(body.operation, body.input)
 						: await options.taskWeb.invokeApproval(body.operation, body.input);
@@ -365,18 +457,30 @@ export async function createBrowserRealityBridgeServer(
 			response.setHeader("access-control-allow-origin", expectedOrigin);
 			response.setHeader("vary", "origin");
 			if (request.method === "OPTIONS") {
-				response.setHeader("access-control-allow-headers", "authorization, content-type");
-				response.setHeader("access-control-allow-methods", "GET, POST, OPTIONS");
+				response.setHeader(
+					"access-control-allow-headers",
+					"authorization, content-type",
+				);
+				response.setHeader(
+					"access-control-allow-methods",
+					"GET, POST, OPTIONS",
+				);
 				response.writeHead(204);
 				response.end();
 				return;
 			}
 			authenticate(request);
-			if (options.taskWeb && request.method === "POST" && url.pathname === "/v1/tasks/session") {
+			if (
+				options.taskWeb &&
+				request.method === "POST" &&
+				url.pathname === "/v1/tasks/session"
+			) {
 				pruneTaskWebState();
 				const bootstrap = idFactory();
 				taskBootstrap.set(bootstrap, now().getTime() + taskBootstrapTtlMs);
-				send(response, 200, { url: `${endpoint}/tasks/bootstrap/${encodeURIComponent(bootstrap)}` });
+				send(response, 200, {
+					url: `${endpoint}/tasks/bootstrap/${encodeURIComponent(bootstrap)}`,
+				});
 				return;
 			}
 			if (request.method === "POST" && url.pathname === "/v1/session/hello") {
@@ -431,6 +535,30 @@ export async function createBrowserRealityBridgeServer(
 				url.pathname === "/v1/session/heartbeat"
 			) {
 				session.lastHeartbeatAt = now().getTime();
+				send(response, 200, { accepted: true });
+				return;
+			}
+			if (
+				request.method === "POST" &&
+				url.pathname === "/v1/carrier/attentions"
+			) {
+				requireExtensionOrigin(request);
+				const body = await readJson(request);
+				if (!isRecord(body) || !Array.isArray(body.carrierAttentions))
+					throw new BrowserRealityBridgeError(
+						"BRIDGE_INPUT_INVALID",
+						"carrier attentions must be an array",
+					);
+				const parsed = parseCarrierAttentionViews(body.carrierAttentions);
+				if (
+					body.carrierAttentions.length > 128 ||
+					parsed.length !== body.carrierAttentions.length
+				)
+					throw new BrowserRealityBridgeError(
+						"BRIDGE_INPUT_INVALID",
+						"carrier attentions contain invalid entries",
+					);
+				carrierAttentions = parsed;
 				send(response, 200, { accepted: true });
 				return;
 			}
@@ -508,7 +636,7 @@ export async function createBrowserRealityBridgeServer(
 		throw new Error("bridge address missing");
 	endpoint = `http://127.0.0.1:${address.port}`;
 
-	const requestCommand = (command: BridgeCommandInput) => {
+	requestCommand = (command: BridgeCommandInput) => {
 		if (!online())
 			return Promise.reject(
 				new BrowserRealityBridgeError(
@@ -618,6 +746,7 @@ export async function createBrowserRealityBridgeServer(
 		},
 		async close() {
 			closed = true;
+			carrierAttentions = [];
 			for (const item of pending.values()) {
 				clearTimeout(item.timer);
 				item.reject(

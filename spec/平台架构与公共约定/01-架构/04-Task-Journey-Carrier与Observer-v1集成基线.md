@@ -226,6 +226,10 @@ ChatGPT Action permission → Browser Carrier mechanical gate；不是业务 App
 
 ChatGPT Action permission 不再假设“用户此前已手工 Always Allow”即可永久消失。Carrier 必须能够从真实页面识别 Permission，并用当前 Role/Worker、trusted ProFlow target、Role authorized operation、当前 session/URL/fingerprint 做确定性分类：可信 routine automation 可自动 `Always Allow` 并重新观察 reality；未知/不可信/无法消歧则保持 BLOCKED，进入 Carrier Attention/diagnostic。不得把这一机械 gate 写入 `execution_approvals`，也不得让它绕过真正 Execution Approval。
 
+首次 Permission 与 Task binding 写入之间允许一个极窄 transient `DEFER`：仅当真实 `/g/{role}/c/{worker}`、Role/target/operation 均可信，且同 Task/Role binding 已存在但 `workerRef + conversationLocator` 仍同时为空时成立。Carrier 只在相同 transient identity 上 bounded reclassify；不点击、不升级 Attention。精确 binding 到达后恢复正常分类，超时、缺失、部分绑定或冲突一律 fail closed。
+
+人工 Carrier Attention 的 `allowOnce` 允许正常 continuation；`deny` 只抑制当前 occurrence 对应的下一次 matching page-idle recovery，不得写 Task/Execution/Approval 或关闭其他 Worker。Attention action ref 必须按 occurrence 唯一，content replacement 与 release 后旧 ref 必须 stale。主 loopback `/tasks` 通过 authenticated Bridge 展示和 relay，Extension 页面仅作 fallback；MV3 restart 必须主动 re-observe 现存 GPT tabs，且沿用 no-blind-replay uncertain-attempt 事实。
+
 ## 11. Logging / Trace
 
 Business Fact、Evidence、Structured Log 必须分开。统一 trace axes：

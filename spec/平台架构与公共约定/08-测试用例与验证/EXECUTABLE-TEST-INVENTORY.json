@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 153,
-    "testCalls": 702
+    "files": 158,
+    "testCalls": 720
   },
   "tests": [
     {
@@ -2441,6 +2441,70 @@
     },
     {
       "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-attention-restart.test.ts",
+      "line": 23,
+      "title": "CP-EXE-BR-31 same tab and fingerprint get a new occurrence after release",
+      "ids": [
+        "CP-EXE-BR-31"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-permission-attempt.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-attention-restart.test.ts",
+      "line": 39,
+      "title": "CP-EXE-BR-31 repeated observation of one occurrence retains its action ref",
+      "ids": [
+        "CP-EXE-BR-31"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-permission-attempt.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-attention-restart.test.ts",
+      "line": 47,
+      "title": "CP-EXE-BR-31 content replacement invalidates the old Attention action",
+      "ids": [
+        "CP-EXE-BR-31"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-permission-attempt.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-attention-restart.test.ts",
+      "line": 62,
+      "title": "CP-EXE-BR-30 restart re-observes live GPT tabs without losing no-replay state",
+      "ids": [
+        "CP-EXE-BR-30"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/content.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-permission-attempt.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-attention-view.test.ts",
       "line": 6,
       "title": "CP-EXE-BR-25 Carrier Attention validates extension snapshot data at the UI boundary",
@@ -2450,6 +2514,132 @@
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-browser-extension/src/carrier-attention-view.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-attention-web-bridge.test.ts",
+      "line": 61,
+      "title": "CP-EXE-BR-32 primary /tasks reads and acts on bounded Carrier Attention through the authenticated bridge",
+      "ids": [
+        "CP-EXE-BR-32"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/tasks.ts",
+        "packages/execution-browser-extension/src/bridge.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-attention-web-bridge.test.ts",
+      "line": 137,
+      "title": "CP-EXE-BR-32 /tasks Carrier Attention rejects missing session, wrong origin and stale ref",
+      "ids": [
+        "CP-EXE-BR-32"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/tasks.ts",
+        "packages/execution-browser-extension/src/bridge.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-attention-web-bridge.test.ts",
+      "line": 193,
+      "title": "CP-EXE-BR-32 Extension Tasks fallback retains direct runtime action support",
+      "ids": [
+        "CP-EXE-BR-32"
+      ],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/tasks.ts",
+        "packages/execution-browser-extension/src/bridge.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-recovery.test.ts",
+      "line": 31,
+      "title": "CP-EXE-BR-29 allowOnce leaves BLOCKED to IDLE recovery enabled",
+      "ids": [
+        "CP-EXE-BR-29"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-recovery.test.ts",
+      "line": 36,
+      "title": "CP-EXE-BR-29 human deny suppresses exactly the next matching continuation recovery",
+      "ids": [
+        "CP-EXE-BR-29"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-recovery.test.ts",
+      "line": 43,
+      "title": "CP-EXE-BR-29 deny cannot pollute another Worker or tab",
+      "ids": [
+        "CP-EXE-BR-29"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-recovery.test.ts",
+      "line": 57,
+      "title": "CP-EXE-BR-29 failed deny action cancels the pending suppression",
+      "ids": [
+        "CP-EXE-BR-29"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-recovery.test.ts",
+      "line": 64,
+      "title": "CP-EXE-BR-29 pending denial survives MV3 session restoration",
+      "ids": [
+        "CP-EXE-BR-29"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-recovery.test.ts",
+      "line": 72,
+      "title": "CP-EXE-BR-29 Background persists deny before action and gates Observer recovery",
+      "ids": [
+        "CP-EXE-BR-29"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts"
       ]
     },
     {
@@ -3560,6 +3750,45 @@
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-browser-extension/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/permission-binding-race.test.ts",
+      "line": 14,
+      "title": "CP-EXE-BR-28 same permission reclassifies from DEFER to AUTO_ALLOW exactly once",
+      "ids": [
+        "CP-EXE-BR-28"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/permission-binding-race.test.ts",
+      "line": 47,
+      "title": "CP-EXE-BR-28 bounded DEFER becomes human-required without clicking",
+      "ids": [
+        "CP-EXE-BR-28"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/permission-binding-race.test.ts",
+      "line": 74,
+      "title": "CP-EXE-BR-28 conflicting binding during DEFER fails closed",
+      "ids": [
+        "CP-EXE-BR-28"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
       ]
     },
     {
@@ -8237,6 +8466,32 @@
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/platform-host/src/index.ts"
+      ]
+    },
+    {
+      "package": "platform-host",
+      "path": "packages/platform-host/tests/permission-binding-race.test.ts",
+      "line": 36,
+      "title": "CP-EXE-BR-28 trusted Worker with an existing unbound Role binding defers",
+      "ids": [
+        "CP-EXE-BR-28"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-host/src/browser-permission-policy.ts"
+      ]
+    },
+    {
+      "package": "platform-host",
+      "path": "packages/platform-host/tests/permission-binding-race.test.ts",
+      "line": 43,
+      "title": "CP-EXE-BR-28 missing, partial or conflicting binding fails closed",
+      "ids": [
+        "CP-EXE-BR-28"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/platform-host/src/browser-permission-policy.ts"
       ]
     },
     {

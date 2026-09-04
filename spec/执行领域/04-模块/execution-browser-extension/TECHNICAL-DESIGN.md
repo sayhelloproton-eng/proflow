@@ -624,6 +624,18 @@ same tab
 
 Task terminal 时 Task Observer stop-driving；历史页面可人工打开，但不主动业务 WAKE。
 
+### 19.1 Permission 与 Attention 生命周期补充
+
+真实 Worker Conversation 可能先收到第一条 Action Permission，随后 `worker.bindWorker` 才把同一 Role 的 `workerRef + conversationLocator` 写入 TaskRoleBinding。此时 policy 仍须先满足 current Role、trusted Gateway、authorized operation、`/g/{role}/c/{worker}` URL 全部硬约束；只有精确 Role binding 已存在、且两个 Worker 绑定字段同时为空时，才返回 transient `DEFER`。`DEFER` 不点击、不产生 Attention，在同一 tab/content/URL/fingerprint 上 bounded reclassify：精确绑定后进入正常 `AUTO_ALLOW`，超时、binding 缺失、部分绑定或任何冲突均转 `HUMAN_REQUIRED`。
+
+Carrier Attention 是 occurrence-scoped transient projection。`attentionRef` 必须包含独立 occurrence identity，不能只由 `tabId + permissionFingerprint` 推导；同一 occurrence 的重复观察复用 ref，释放后再次出现同 fingerprint 必须得到新 ref。content replacement、URL/fingerprint 改变或 Attention 释放会让旧 ref stale，旧操作必须拒绝。
+
+人工 `allowOnce` 解除 blocker 后仍允许正常 `BLOCKED → IDLE` Observer recovery。人工 `deny` 则在点击前持久化一个只绑定当前 Attention/tab/Task/Role/Worker/URL 的 continuation denial；它只消费并抑制下一次 matching IDLE recovery，不改变 Task、Execution 或 Approval，不影响其他 tab/Worker，也不形成永久停用。
+
+主 `/tasks` loopback 页面通过 authenticated Browser Reality Bridge 接收 bounded Attention mirror，并把 `allowOnce/deny` relay 为 Extension command；cookie session、exact same-origin、current Attention ref 与 action allowlist 任一不满足即拒绝。Extension-owned Tasks 页面继续作为直接 runtime fallback。
+
+MV3 Background 初始化、`onStartup` 与 `onInstalled` 必须主动查询现有 `https://chatgpt.com/g/*` tab，并向 live Content Script 请求只读 snapshot，以重建 session/Attention；不得等待 DOM Mutation 才恢复。持久化的 uncertain auto-attempt 继续禁止 restart 后重复点击。
+
 ---
 
 ## 20. Side Panel / logging

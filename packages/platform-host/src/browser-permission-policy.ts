@@ -16,9 +16,10 @@ export type RoleCarrierValidation = {
 };
 
 export type BrowserPermissionDecision = {
-	decision: "AUTO_ALLOW" | "HUMAN_REQUIRED";
+	decision: "AUTO_ALLOW" | "DEFER" | "HUMAN_REQUIRED";
 	reason:
 		| "KNOWN_PROFLOW_ACTION"
+		| "TASK_BINDING_PENDING"
 		| "ROLE_VALIDATION_MISMATCH"
 		| "GATEWAY_MISMATCH"
 		| "OPERATION_NOT_AUTHORIZED"
@@ -38,21 +39,12 @@ export type BrowserPermissionContext = {
 
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
-function contextMatches(
+function validWorkerConversation(
 	role: BrowserPermissionRole,
 	context: BrowserPermissionContext,
 ): boolean {
 	const workerRef = context.workerRef;
-	const binding = context.taskBinding;
-	if (!workerRef || !binding?.workerRef || !binding.conversationLocator)
-		return false;
-	if (
-		binding.agentPackageRef !== role.agentPackageRef ||
-		binding.roleRef !== role.roleRef ||
-		binding.workerRef !== workerRef ||
-		binding.conversationLocator !== context.conversationLocator
-	)
-		return false;
+	if (!workerRef) return false;
 	try {
 		const locator = new URL(context.conversationLocator);
 		const segments = locator.pathname.split("/").filter(Boolean);
@@ -72,6 +64,29 @@ function contextMatches(
 	} catch {
 		return false;
 	}
+}
+
+function classifyContext(
+	role: BrowserPermissionRole,
+	context: BrowserPermissionContext,
+): BrowserPermissionDecision {
+	if (!validWorkerConversation(role, context))
+		return { decision: "HUMAN_REQUIRED", reason: "CONTEXT_MISMATCH" };
+	const binding = context.taskBinding;
+	if (
+		binding === null ||
+		binding.agentPackageRef !== role.agentPackageRef ||
+		binding.roleRef !== role.roleRef
+	)
+		return { decision: "HUMAN_REQUIRED", reason: "CONTEXT_MISMATCH" };
+	if (binding.workerRef === null && binding.conversationLocator === null)
+		return { decision: "DEFER", reason: "TASK_BINDING_PENDING" };
+	if (
+		binding.workerRef !== context.workerRef ||
+		binding.conversationLocator !== context.conversationLocator
+	)
+		return { decision: "HUMAN_REQUIRED", reason: "CONTEXT_MISMATCH" };
+	return { decision: "AUTO_ALLOW", reason: "KNOWN_PROFLOW_ACTION" };
 }
 
 export function classifyBrowserPermission(input: {
@@ -127,7 +142,5 @@ export function classifyBrowserPermission(input: {
 			decision: "HUMAN_REQUIRED",
 			reason: "OPERATION_NOT_AUTHORIZED",
 		};
-	if (!contextMatches(input.role, input.context))
-		return { decision: "HUMAN_REQUIRED", reason: "CONTEXT_MISMATCH" };
-	return { decision: "AUTO_ALLOW", reason: "KNOWN_PROFLOW_ACTION" };
+	return classifyContext(input.role, input.context);
 }
