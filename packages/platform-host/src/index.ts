@@ -30,6 +30,9 @@ import {
 } from "./role-operations.ts";
 
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+// Business owner calls are Promise-driven. This is only a last-resort transport
+// watchdog for a hung local call, not a normal workflow deadline.
+const OWNER_INVOKE_WATCHDOG_MS = 120_000;
 
 const systemObserverReasonResultSchema = z
 	.object({
@@ -387,7 +390,7 @@ function createOwnerHttpClient(
 								body: JSON.stringify(requestBody),
 							}
 						: {}),
-					signal: AbortSignal.timeout(45_000),
+					signal: AbortSignal.timeout(OWNER_INVOKE_WATCHDOG_MS),
 				}),
 			);
 		},

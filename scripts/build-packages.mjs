@@ -5,7 +5,6 @@ import {
 	readdirSync,
 	readFileSync,
 	rmSync,
-	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -117,24 +116,36 @@ try {
 			);
 		}
 
-		// MV3 content scripts are loaded as classic scripts (no `type: module`), so
-		// they must not contain ES module syntax. The monorepo compiles under
-		// `module: NodeNext`, which appends an `export {};` marker to files that have
-		// no imports/exports; strip it so the content script runs as a classic script.
-		const contentScript = join(
+		// Runtime content is a manifest content script too. Bundle it as a classic
+		// IIFE so shared helpers never leak ESM imports into Chrome's classic-script
+		// loader.
+		const runtimeContent = join(
 			packagesRoot,
 			"execution-browser-extension",
 			"dist",
 			"extension",
 			"content.js",
 		);
-		writeFileSync(
-			contentScript,
-			readFileSync(contentScript, "utf8")
-				.split("\n")
-				.filter((line) => line.trim() !== "export {};")
-				.join("\n"),
+		execFileSync(
+			"pnpm",
+			[
+				"exec",
+				"esbuild",
+				"packages/execution-browser-extension/extension/content.ts",
+				"--bundle",
+				"--platform=browser",
+				"--format=iife",
+				"--target=chrome120",
+				"--tsconfig=tsconfig.build.json",
+				`--outfile=${runtimeContent}`,
+				"--log-level=warning",
+			],
+			{ cwd: repositoryRoot, stdio: "inherit" },
 		);
+		const runtimeContentBundle = readFileSync(runtimeContent, "utf8");
+		if (/(?:^|\n)\s*(?:import|export)\s/m.test(runtimeContentBundle)) {
+			throw new Error("browser runtime content bundle contains ESM syntax");
+		}
 	}
 } finally {
 	rmSync(temporaryRoot, { recursive: true, force: true });

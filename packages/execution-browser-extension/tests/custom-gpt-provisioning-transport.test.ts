@@ -298,6 +298,8 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(content, /knowledgeReadbackMatches\(name\)/);
 	assert.match(build, /provisioning-content\.ts/);
 	assert.match(build, /--format=iife/);
+	assert.match(build, /extension\/content\.ts/);
+	assert.match(build, /browser runtime content bundle contains ESM syntax/);
 	assert.doesNotMatch(
 		content,
 		/ExecuteCapabilityRequest|TaskObserver|workerRef|taskId/,

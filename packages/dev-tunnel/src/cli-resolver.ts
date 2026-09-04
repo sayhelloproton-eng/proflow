@@ -15,11 +15,7 @@ import { promisify } from "node:util";
 
 const execute = promisify(execFile);
 export const MANAGED_DEV_TUNNEL_VERSION = "1.0.2030";
-const VERSION_PROBE_TIMEOUT_MS = 30_000;
 const DOWNLOAD_TIMEOUT_MS = 120_000;
-const COMPATIBLE_VERSION = new RegExp(
-	`^${MANAGED_DEV_TUNNEL_VERSION.replaceAll(".", "\\.")}$`,
-);
 
 type SupportedArtifact = {
 	url: string;
@@ -81,17 +77,6 @@ export function devTunnelCliPath(): string {
 	);
 }
 
-async function version(command: string): Promise<string | undefined> {
-	try {
-		const result = await execute(command, ["--version"], {
-			timeout: VERSION_PROBE_TIMEOUT_MS,
-		});
-		return `${result.stdout}\n${result.stderr}`.match(/\d+\.\d+\.\d+/)?.[0];
-	} catch {
-		return undefined;
-	}
-}
-
 async function sha256(path: string): Promise<string> {
 	return createHash("sha256")
 		.update(await readFile(path))
@@ -100,15 +85,19 @@ async function sha256(path: string): Promise<string> {
 
 async function validCached(path: string): Promise<boolean> {
 	try {
+		const selected = artifact();
 		const metadata = JSON.parse(
 			await readFile(`${path}.json`, "utf8"),
 		) as unknown;
 		if (typeof metadata !== "object" || metadata === null) return false;
-		const expected = Reflect.get(metadata, "sha256");
+		const expectedBinarySha = Reflect.get(metadata, "sha256");
+		const expectedArtifactSha = Reflect.get(metadata, "artifactSha256");
+		const version = Reflect.get(metadata, "version");
 		return (
-			typeof expected === "string" &&
-			expected === (await sha256(path)) &&
-			COMPATIBLE_VERSION.test((await version(path)) ?? "")
+			typeof expectedBinarySha === "string" &&
+			expectedBinarySha === (await sha256(path)) &&
+			expectedArtifactSha === selected.sha256 &&
+			version === MANAGED_DEV_TUNNEL_VERSION
 		);
 	} catch {
 		return false;
@@ -157,17 +146,12 @@ async function downloadManaged(): Promise<string> {
 		await rm(extraction, { recursive: true, force: true });
 	}
 	if (platform() !== "win32") await chmod(target, 0o700);
-	const observedVersion = await version(target);
-	if (!observedVersion || !COMPATIBLE_VERSION.test(observedVersion))
-		throw new Error(
-			`DEV_TUNNEL_VERSION_INCOMPATIBLE: ${observedVersion ?? "unknown"}`,
-		);
 	await writeFile(
 		`${target}.json`,
 		`${JSON.stringify(
 			{
 				source: selected.url,
-				version: observedVersion,
+				version: MANAGED_DEV_TUNNEL_VERSION,
 				sha256: await sha256(target),
 				artifactSha256: selected.sha256,
 				file: basename(target),
@@ -187,7 +171,5 @@ export async function resolveDevTunnelCli(): Promise<{
 	version: string;
 }> {
 	const command = await downloadManaged();
-	const managedVersion = await version(command);
-	if (!managedVersion) throw new Error("DEV_TUNNEL_MANAGED_CLI_INVALID");
-	return { command, source: "package", version: managedVersion };
+	return { command, source: "package", version: MANAGED_DEV_TUNNEL_VERSION };
 }

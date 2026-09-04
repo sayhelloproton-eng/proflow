@@ -43,7 +43,7 @@ REAL_EXTERNAL = ACTION_REQUIRED
 
 Provider 的 generic HTTP(S) probe、inventory/auth/secret reference，以及 Runtime 的能力探测、FAST/REASON 映射、drift/freshness、fail-closed 与本地进程生命周期已经进入 main（`47bc8dc`）。这只证明代码与确定性门，不证明当前机器存在可用外部 Provider。
 
-自动 endpoint discovery 的 Deployment owner 与产品交互边界不得反向污染 Model Domain；不得把 Bonjour/DNS-SD、MLXHub/iPhone identity 塞入本领域，也不得要求用户手填机器可发现的 LAN IP 或按模型拆分 URL。当前 Real-3 模型前沿、FAST/THINK 能力验证与未解决问题见平台公共上下文 `09-Real3当前上下文与未解决问题-20260829.md`。
+自动 endpoint discovery 的 Deployment owner 与产品交互边界不得反向污染 Model Domain；不得把 Bonjour/DNS-SD、MLXHub/iPhone identity 塞入本领域，也不得要求用户手填机器可发现的 LAN IP 或按模型拆分 URL。当前 Real-3 执行状态见平台公共上下文 `02-当前接力/CURRENT.md`；FAST/THINK 自动化与恢复知识见 `03-自动化知识库/包能力/model-provider-runtime.md`。
 
 ## 文档职责
 

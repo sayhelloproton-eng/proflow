@@ -25,6 +25,19 @@ test("PRESMOKE-B3-OBS-EXT-01 Extension Background owns Observer application life
 	);
 });
 
+test("REAL3 Browser Carrier bounds loopback fetches and requires a real poll before readiness", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	assert.match(source, /BROWSER_BRIDGE_FETCH_TIMEOUT_MS = 5_000/);
+	assert.match(
+		source,
+		/AbortSignal\.timeout\(BROWSER_BRIDGE_FETCH_TIMEOUT_MS\)/,
+	);
+	assert.match(source, /const config = await bridgeConfig\(\)\.catch\(\(\) => null\)/);
+	assert.match(source, /let lastHeartbeatAt = Date\.now\(\)/);
+	assert.match(source, /let lastExtensionKeepaliveAt = Date\.now\(\)/);
+	assert.match(source, /\/v1\/commands\/next/);
+});
+
 test("PRESMOKE-B3-OBS-EXT-02 System Observer carry-forward survives Extension service-worker restart", async () => {
 	const source = await readFile(backgroundUrl, "utf8");
 	assert.match(
@@ -107,27 +120,27 @@ test("PRESMOKE-B6-C1 Browser Carrier and Observers emit bounded structured logs 
 	);
 });
 
-test("PRESMOKE-B6-OBS-EXT-06 Side Panel snapshot carries a bounded read-only System Observer summary", async () => {
+test("PRESMOKE-B6-OBS-EXT-06 Task page snapshot carries a bounded read-only System Observer summary", async () => {
 	const source = await readFile(backgroundUrl, "utf8");
 	assert.match(source, /loadSystemObserverState\(\)\.catch/);
 	assert.match(source, /systemObserver:/);
 	assert.match(source, /assessmentRef: observerState\.assessmentRef/);
 	assert.match(source, /needsHumanAttention:/);
 	assert.match(source, /unresolved: observerState\.unresolved/);
-	const sidePanel = await readFile(
-		new URL("../extension/side-panel.ts", import.meta.url),
+	const taskPage = await readFile(
+		new URL("../extension/tasks.ts", import.meta.url),
 		"utf8",
 	);
-	const sidePanelHtml = await readFile(
-		new URL("../extension/side-panel.html", import.meta.url),
+	const taskPageHtml = await readFile(
+		new URL("../extension/tasks.html", import.meta.url),
 		"utf8",
 	);
-	assert.match(sidePanel, /#system-assessment/);
-	assert.match(sidePanel, /needsHumanAttention/);
-	assert.match(sidePanelHtml, /System Assessment/);
-	assert.match(sidePanelHtml, /never mutates Task\/Approval owner facts/);
+	assert.match(taskPage, /#system-assessment/);
+	assert.match(taskPage, /needsHumanAttention/);
+	assert.match(taskPageHtml, /System Assessment/);
+	assert.match(taskPageHtml, /never mutates Task\/Approval owner facts/);
 	assert.doesNotMatch(
-		sidePanel,
+		taskPage,
 		/systemAssessmentTarget\.[\s\S]{0,120}(?:complete|approve|reopen)/,
 	);
 });

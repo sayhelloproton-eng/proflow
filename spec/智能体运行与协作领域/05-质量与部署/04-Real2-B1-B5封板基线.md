@@ -9,7 +9,7 @@ domain: agent-runtime-collaboration
 
 # Real-2｜B1～B5 封板基线
 
-> **SUPERSEDED QUALITY GATE**：本文仅保留 B1～B5 当时的 primitive 封板事实。最终 Real-2 Golden Path 已在后续收敛为 Auth-before-Create、ZIP 本体上传与 `saveCurrentRole` activation rollback；当前合同以 `REAL2-Custom-GPT-Deployment-Provisioning.md` 为准，Real-2 当前冻结结论见公共上下文 `09-Real3当前上下文与未解决问题-20260829.md`。
+> **SUPERSEDED QUALITY GATE**：本文仅保留 B1～B5 当时的 primitive 封板事实。最终 Real-2 Golden Path 已在后续收敛为 Auth-before-Create、ZIP 本体上传与 `saveCurrentRole` activation rollback；当前合同以 `REAL2-Custom-GPT-Deployment-Provisioning.md` 为准，当前阶段与 Real-2 冻结结论统一从公共上下文 `02-当前接力/CURRENT.md` 读取；Custom GPT/Role 的自动化操作知识见 `03-自动化知识库/包能力/custom-gpt-provisioning.md`。
 
 封板日期：2026-08-24。基线 HEAD：`e5da6d28b357`。
 

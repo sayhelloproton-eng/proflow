@@ -63,7 +63,7 @@ contractRefs: []
 3. `REAL_E2E_REQUIRED`：交付后重跑七命令、Chrome/public HTTPS、模型能力与 provider-off recovery。
 4. `HUMAN_BOUNDARY`：只保留 GitHub/ChatGPT 授权、Chrome 首次 Load unpacked、Provider 真正要求的 credential 和已验证候选歧义选择。
 
-当前不得恢复人工填写 Tunnel ID/URL/port、Chrome path、Extension ID、Gateway URL、Provider LAN URL 或模型 ID 的旧正常流程。当前配置自动化边界、Microsoft Dev Tunnel 裁决与未解决问题统一见平台公共上下文 `09-Real3当前上下文与未解决问题-20260829.md`。
+当前不得恢复人工填写 Tunnel ID/URL/port、Chrome path、Extension ID、Gateway URL、Provider LAN URL 或模型 ID 的旧正常流程。当前执行状态统一见平台公共上下文 `02-当前接力/CURRENT.md`；Microsoft Dev Tunnel 的稳定自动化与恢复合同见 `03-自动化知识库/包能力/dev-tunnel.md`。
 
 ## 2026-09-01 Deployment Final Freeze
 

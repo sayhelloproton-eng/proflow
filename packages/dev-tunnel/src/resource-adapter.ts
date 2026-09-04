@@ -55,7 +55,9 @@ export interface DevTunnelRuntime {
 }
 
 const LOGIN_ARGS = ["user", "show", "--json"];
-const LOGIN_TIMEOUT_MS = 30_000;
+const LOGIN_TIMEOUT_MS = 90_000;
+const POST_LOGIN_CONFIRM_TIMEOUT_MS = 90_000;
+const LOGIN_DIAGNOSTIC_TIMEOUT_MS = 8_000;
 const REMOTE_COMMAND_TIMEOUT_MS = 30_000;
 const REMOTE_QUERY_TIMEOUT_MS = 45_000;
 const REMOTE_QUERY_RETRY_DELAY_MS = 250;
@@ -93,7 +95,9 @@ function defaultCommandRunner(
 				resolve({
 					exitCode: timedOut ? null : code,
 					stdout,
-					stderr: timedOut ? "command timed out" : stderr,
+					stderr: timedOut
+						? `${stderr}${stderr ? "\n" : ""}command timed out`
+						: stderr,
 				});
 			});
 		});
@@ -107,10 +111,11 @@ function defaultCommandRunner(
 				if (error) {
 					const err = error as { code?: unknown; killed?: boolean };
 					if (err.killed === true) {
+						const partialStderr = String(stderr ?? "");
 						resolve({
 							exitCode: null,
 							stdout: String(stdout ?? ""),
-							stderr: "command timed out",
+							stderr: `${partialStderr}${partialStderr ? "\n" : ""}command timed out`,
 						});
 						return;
 					}
@@ -213,6 +218,14 @@ export function parseDevTunnelLoginStatus(
 	return "UNKNOWN";
 }
 
+function parseLoginDiagnosticText(text: string): DevTunnelLoginStatus {
+	return /(?:cached access token[^\n]*expired at|login token expired|not logged in|login required|sign[ -]?in required|not authenticated)/i.test(
+		text,
+	)
+		? "NOT_LOGGED_IN"
+		: "UNKNOWN";
+}
+
 export function discoverPublicBaseUrl(input: unknown, port: number): string {
 	const matching = parsePorts(input).filter((item) => item.portNumber === port);
 	if (matching.length !== 1)
@@ -276,23 +289,43 @@ export function createDevTunnelAutomation(input?: {
 		result = await run(command, args, { timeoutMs: REMOTE_QUERY_TIMEOUT_MS });
 		return result;
 	};
-	const loginStatus = async (): Promise<DevTunnelLoginStatus> => {
+	const loginStatus = async (
+		timeoutMs = LOGIN_TIMEOUT_MS,
+	): Promise<DevTunnelLoginStatus> => {
 		let result: CommandResult;
 		try {
 			result = await run(command, ["user", "show", "--json"], {
-				timeoutMs: LOGIN_TIMEOUT_MS,
+				timeoutMs,
 			});
 		} catch {
 			return "UNKNOWN";
 		}
-		if (result.exitCode === null) return "UNKNOWN";
+		if (result.exitCode !== null) {
+			try {
+				return parseDevTunnelLoginStatus(
+					parseJson(result.stdout, "devtunnel user show --json"),
+				);
+			} catch {
+				return "UNKNOWN";
+			}
+		}
 		try {
-			return parseDevTunnelLoginStatus(
+			const timedOutJsonStatus = parseDevTunnelLoginStatus(
 				parseJson(result.stdout, "devtunnel user show --json"),
 			);
+			if (timedOutJsonStatus !== "UNKNOWN") return timedOutJsonStatus;
+		} catch {}
+		const timedOutTextStatus = parseLoginDiagnosticText(commandText(result));
+		if (timedOutTextStatus !== "UNKNOWN") return timedOutTextStatus;
+		let diagnostic: CommandResult;
+		try {
+			diagnostic = await run(command, ["-v", "user", "show", "--json"], {
+				timeoutMs: LOGIN_DIAGNOSTIC_TIMEOUT_MS,
+			});
 		} catch {
 			return "UNKNOWN";
 		}
+		return parseLoginDiagnosticText(commandText(diagnostic));
 	};
 	return {
 		async ensureLogin() {
@@ -306,7 +339,7 @@ export function createDevTunnelAutomation(input?: {
 				{ timeoutMs: 600_000, interactive: true },
 			);
 			assertCommandSucceeded(login, "GitHub browser authentication");
-			const after = await loginStatus();
+			const after = await loginStatus(POST_LOGIN_CONFIRM_TIMEOUT_MS);
 			if (after !== "LOGGED_IN")
 				throw new Error(
 					"Dev Tunnel login was not confirmed after authentication",

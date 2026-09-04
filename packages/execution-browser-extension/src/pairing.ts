@@ -64,17 +64,15 @@ function text(value: unknown): string {
 	return value;
 }
 
-function extensionIdentity(request: IncomingMessage): string {
+function extensionIdentity(request: IncomingMessage): string | undefined {
 	const origin = request.headers.origin;
-	const match =
-		typeof origin === "string"
-			? /^chrome-extension:\/\/([a-z]{32})$/.exec(origin)
-			: null;
+	if (origin === undefined) return undefined;
+	const match = /^chrome-extension:\/\/([a-z]{32})$/.exec(origin);
 	if (!match) throw new Error("PAIRING_AUTH_INVALID");
 	return match[1] as string;
 }
 
-function authenticate(request: IncomingMessage, token: string): string {
+function authenticate(request: IncomingMessage, token: string): void {
 	const authorization = request.headers.authorization;
 	if (
 		!authorization?.startsWith("Bearer ") ||
@@ -82,7 +80,6 @@ function authenticate(request: IncomingMessage, token: string): string {
 	) {
 		throw new Error("PAIRING_AUTH_INVALID");
 	}
-	return extensionIdentity(request);
 }
 
 export async function createBrowserExtensionPairingServer(
@@ -116,12 +113,15 @@ export async function createBrowserExtensionPairingServer(
 	const server = createServer(async (request, response) => {
 		try {
 			const originId = extensionIdentity(request);
-			response.setHeader(
-				"access-control-allow-origin",
-				`chrome-extension://${originId}`,
-			);
-			response.setHeader("vary", "origin");
+			if (originId) {
+				response.setHeader(
+					"access-control-allow-origin",
+					`chrome-extension://${originId}`,
+				);
+				response.setHeader("vary", "origin");
+			}
 			if (request.method === "OPTIONS") {
+				if (!originId) throw new Error("PAIRING_AUTH_INVALID");
 				response.setHeader(
 					"access-control-allow-headers",
 					"authorization, content-type",
@@ -142,7 +142,8 @@ export async function createBrowserExtensionPairingServer(
 				const body = await readJson(request);
 				const extensionId = text(body.extensionId);
 				const extensionInstanceId = text(body.extensionInstanceId);
-				if (extensionId !== originId) throw new Error("PAIRING_AUTH_INVALID");
+				if (!originId || extensionId !== originId)
+					throw new Error("PAIRING_AUTH_INVALID");
 				if (identity && identity.extensionId !== extensionId) {
 					throw new Error("PAIRING_AUTH_INVALID");
 				}
@@ -151,7 +152,10 @@ export async function createBrowserExtensionPairingServer(
 				return;
 			}
 
-			if (!identity || originId !== identity.extensionId) {
+			if (
+				!identity ||
+				(originId !== undefined && originId !== identity.extensionId)
+			) {
 				throw new Error("PAIRING_AUTH_INVALID");
 			}
 			if (

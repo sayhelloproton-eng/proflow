@@ -12,7 +12,10 @@ const digest = createHash("sha256")
 	.digest("hex")
 	.slice(0, 16);
 const binary = join(tmpdir(), `proflow-browser-extension-ui-${digest}`);
-const args = process.argv.slice(2).filter((value) => value !== "--");
+const compileOnly = process.argv.slice(2).includes("--compile-only");
+const args = process.argv
+	.slice(2)
+	.filter((value) => value !== "--" && value !== "--compile-only");
 
 if (!existsSync(binary)) {
 	const started = performance.now();
@@ -25,5 +28,6 @@ if (!existsSync(binary)) {
 	);
 }
 
+if (compileOnly) process.exit(0);
 const result = spawnSync(binary, args, { stdio: "inherit", env: process.env });
 process.exit(result.status ?? 1);

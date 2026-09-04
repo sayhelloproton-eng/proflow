@@ -110,6 +110,8 @@ test("CP-HOST-01 + CP-HOST-02 composition root wires owner packages/public clien
 		"UniversalScheduler",
 	])
 		assert.doesNotMatch(source, new RegExp(forbidden, "i"));
+	assert.match(source, /OWNER_INVOKE_WATCHDOG_MS\s*=\s*120_000/);
+	assert.doesNotMatch(source, /AbortSignal\.timeout\(45_000\)/);
 
 	const packageEntries = await readdir(new URL("..", import.meta.url));
 	assert.equal(packageEntries.includes("src"), true);

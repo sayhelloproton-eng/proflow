@@ -6,7 +6,7 @@ Execution 领域拥有的 Chrome MV3 Extension，负责 Task UI、审批提醒�
 
 ## 主要能力
 
-- 运行期提供 New Task 与 Side Panel UI、Task Observer、System Observer 和 Browser Effect。
+- 运行期提供独立 ProFlow Tasks 扩展页面、Task Observer、System Observer 和 Browser Effect；任务 UI 不再以内嵌 Side Panel 形式占用当前网页。
 - 运行期创建、恢复和唤醒 Custom GPT Conversation，稳定观察 workerRef/c-id。
 - 部署期通过独立 `/gpts/editor` / `/gpts/editor/*` Provisioning Surface 物化 Custom GPT；该分支不进入 Task/Worker 状态机。
 - 正常创建路径在单一 GPT Editor 会话中完成字段、Action Schema、API Key/Bearer、Knowledge ZIP、模型与 Capabilities 配置，再创建 Private GPT；不在 Create 后重新打开同一 GPT 做 Auth。

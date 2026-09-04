@@ -40,6 +40,8 @@ managed runtime count    = local-dev/codegraph/repomix/playwright-chrome 各 1
 
 当前 Repomix MCP 被限制在仓库根 `/Users/agent/Desktop/proton-workspace/repos` 的 sandbox 内；工具参数使用相对路径，例如 `proflow`、`job-search-system`，而不是绝对路径。稳定能力面是：
 
+首次调用固定先做一次低成本 root preflight：`file_system_read_directory(".")`。当前预期只应看到 `proflow/`、`ai-agent-platform/`、`job-search-system/` 等 sandbox 内条目；随后整个 Chat 缓存该根语义。**不要传绝对路径，也不要再额外加一层 `repos/`**：`repos/proflow` 会被解析成 sandbox 下的 `repos/proflow` 而返回 `directory not found`。该错误首先按路径语义错误处理，不得直接归因到 Repomix runtime、不应因此跳过 Context Plane。
+
 ```text
 file_system_read_directory / file_system_read_file
 → 小范围只读探索
@@ -58,10 +60,12 @@ read_repomix_output
 
 ```text
 已知文件/符号
-→ 不 pack；CodeGraph / Local Dev 直接进入
+→ pack owning package / 最小相关目录
+→ 围绕同一 outputId grep/read，批量建立实现、测试、配置和邻接上下文
+→ 再进入 CodeGraph / Local Dev
 
 未知但可定位到目录/包
-→ 先列目录或 pack 最小相关目录
+→ pack 该 package / 最小相关目录
 → grep/read 判断信息是否足够
 
 证据显示跨包/跨领域
@@ -92,6 +96,10 @@ ChatGPT → gptweb-mcp → tunnel-client
 当前本机组合已机械确认：Playwright Extension `0.4.0` + `@playwright/mcp 0.0.80`。真实实测表明：同步正确 token 后，首次 Playwright 调用会打开 `connect.html`，并自动进入 `“Playwright MCP” connected.`。这个页面是 **Extension relay / MCP client 的 bootstrap 成功态**，不是连接失败，也不需要再次人工授权。
 
 Playwright 只会看到当前 **受控标签组 / controlled context** 中的页面，不会自动枚举用户 Chrome 里所有未加入该组的普通 Tab。首次连接后 `browser_tabs` 可能只看到 `connect.html`；随后可通过 `browser_tabs new <url>` 创建受控业务页，或由用户把已有 Tab 加入 Playwright 受控组。只有进入受控组的页面才会出现在 `browser_tabs`，并可被 snapshot/screenshot/navigation 操作。
+
+当前 Playwright Extension 的连接页本身明确给出“后续可把 Tab 拖入 Playwright group”的语义；**group membership 只是纳管第一层，不等于 debugger attach 已成功。** Real-3 不为每个页面建立独立 relay：固定复用同一 connection/group，把 `ProFlow Tasks` 与三个真实 Worker Conversation 原 Tab 纳入同组。对 Conversation 禁止复制打开同 URL 来“让 Playwright 看见”，否则会给产品 Browser Carrier 引入重复 Tab reality。
+
+2026-09-03 已机械确认一个 Chrome 安全边界：Playwright MCP Extension 可以看到并把另一个扩展的 `chrome-extension://...` Tab 加入同一 group，`connectedTabIds` 也可能包含它，但真正执行 `chrome.debugger.attach` 时 Chrome 会拒绝，错误为 `Cannot access a chrome-extension:// URL of different extension`；browser-level CDP 同样可能返回 `Not allowed`。因此固定区分三层：① Tab 在 group；② Playwright debugger attach 成功并出现在 `browser_tabs/context.pages()`；③ 页面可由 snapshot/screenshot/DOM 操作。只有②③成立才算 Playwright 控制 READY。
 
 所以固定判定层级是：
 
@@ -147,7 +155,7 @@ Token 更新本身**不等于业务 Browser 控制恢复成功**。更新后必�
 ## 四工具协同
 
 ```text
-Repomix           → Context Plane：广域仓库上下文、跨目录检索、一次 pack 多次 grep/read
+Repomix           → Context Plane：仓库上下文批量读取；窄域 pack 当前包，广域按证据扩张，一次 pack 多次 grep/read
 CodeGraph         → Structure Plane：调用链、依赖、composition、ownership、blast radius
 Local Dev         → Execution Plane：当前源码、文件、CLI、Git、PID/evidence、修改与 test/gate
 Playwright Chrome → Reality Plane：真实网页、登录授权、ChatGPT Conversation、Console/Network、用户可见结果
@@ -155,4 +163,12 @@ Playwright Chrome → Reality Plane：真实网页、登录授权、ChatGPT Conv
 
 协作不是固定四连调用，更不是四个工具各自把同一仓库重新读一遍。上下文必须逐层收敛：`Repomix` 只在最小充分范围内发现候选文件/目录 → `CodeGraph` 只围绕候选 owner/入口证明调用链与影响范围 → `Local Dev` 只补仍缺失的当前磁盘源码并执行修改/验证 → `Playwright` 只在需要用户现实证据时进入。禁止 `Repomix 全仓 → CodeGraph 再全仓 → Local Dev 再批量重读` 这种重复获取上下文。
 
-广域未知任务：`最小范围 Repomix → 按证据扩张 → CodeGraph → Local Dev`；窄域结构问题：`CodeGraph → Local Dev`；真实 E2E：在源码/执行链之外按需加入 Playwright，固定 `Local Dev 建立产品前置 → Playwright 观察/操作真实 Web → Local Dev 回读 owner/runtime → Playwright 再确认用户可见结果`。最终只在与任务相关的 authority 一致时判 PASS。
+仓库理解/修改任务统一：`Repomix 最小充分范围 → grep/read → CodeGraph（需要结构证明时）→ Local Dev`；窄域把范围锁定到当前 package / 最小相关目录，广域才按证据向父级、多包、领域或全仓扩张。纯 Git/test/command 机械动作可直接 Local Dev。真实 E2E 在源码/执行链之外按需加入 Playwright，固定 `Local Dev 建立产品前置 → Playwright 观察/操作真实 Web → Local Dev 回读 owner/runtime → Playwright 再确认用户可见结果`。最终只在与任务相关的 authority 一致时判 PASS。
+
+## 2026-09-03｜Playwright Runtime / Tasks Tab 受控组经验
+
+- Chrome Tab Group membership 与 Playwright debugger attach 是两层 authority：进组不等于 attach 成功；必须以 `browser_tabs + snapshot/DOM` 证明真正可控。
+- 跨扩展 `chrome-extension://` target 即使进入 Playwright group，也可能被 Chrome 拒绝 debugger attach；这类页面退回 AX + screenshot，不继续消耗 Playwright attach 排障时间。
+- loopback `http://127.0.0.1:<bridge>/tasks` 不受跨扩展 debugger 限制。Real-3 必须把 Extension action 打开的原始 Tasks Tab 加入 controlled group，而不是复制一个同 URL Tab。
+- 对 Worker Conversation 同样遵守原 Tab 纳管：`/g/<roleRef>/c/<workerRef>` 创建后立即进组，禁止为了自动化再打开第二份 Conversation。
+- Playwright 是普通业务页默认执行层；AX 只负责 Chrome privileged UI、group attach 等临界动作。完成 attach 后立即回 Playwright 后台操作，避免抢用户前台。

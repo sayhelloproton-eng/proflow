@@ -3,25 +3,28 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
-		<title>ProFlow</title>
+		<title>ProFlow Tasks</title>
 		<style>
-			body { font: 13px system-ui; margin: 12px; }
-			section { border-top: 1px solid #ddd; margin-top: 14px; padding-top: 10px; }
+			body { background: #f7f7f8; color: #18181b; font: 14px system-ui; margin: 0; }
+			main { box-sizing: border-box; margin: 0 auto; max-width: 1180px; padding: 28px; }
+			header { margin-bottom: 20px; }
+			section { background: #fff; border: 1px solid #e4e4e7; border-radius: 10px; margin-top: 14px; padding: 16px; }
 			label { display: block; margin: 8px 0; }
-			input, textarea { box-sizing: border-box; display: block; margin-top: 4px; width: 100%; }
-			textarea { min-height: 72px; }
-			button { margin: 4px 4px 4px 0; padding: 5px 9px; }
+			input, textarea { box-sizing: border-box; display: block; margin-top: 4px; padding: 8px; width: 100%; }
+			textarea { min-height: 84px; }
+			button { margin: 4px 4px 4px 0; padding: 7px 11px; }
 			button[disabled] { opacity: .55; }
-			.task { border: 1px solid #ddd; margin: 6px 0; padding: 7px; }
-			.meta { color: #555; font-size: 12px; }
+			.task { border: 1px solid #e4e4e7; border-radius: 8px; margin: 8px 0; padding: 10px; }
+			.meta { color: #52525b; font-size: 12px; }
 			#error { color: #a00; white-space: pre-wrap; }
 			#result { white-space: pre-wrap; }
-			#browser-status { max-height: 180px; overflow: auto; }
+			#browser-status { max-height: 220px; overflow: auto; }
 		</style>
 	</head>
 	<body>
+		<main>
 		<header>
-			<h1>ProFlow</h1>
+			<h1>ProFlow Tasks</h1>
 			<div id="connection" class="meta">Connecting…</div>
 		</header>
 
@@ -54,7 +57,7 @@
 
 		<section>
 			<h2>Execution Approval</h2>
-			<p class="meta">Approval is an Execution-owned durable fact. This panel only sends authenticated human decisions to the Execution Owner.</p>
+			<p class="meta">Approval is an Execution-owned durable fact. This page only sends authenticated human decisions to the Execution Owner.</p>
 			<button id="refresh-approvals" type="button">Refresh approvals</button>
 			<div id="approvals"></div>
 		</section>
@@ -72,6 +75,7 @@
 
 		<p id="error" role="alert"></p>
 		<pre id="result" role="status"></pre>
-		<script type="module" src="../dist/extension/side-panel.js"></script>
+		<script type="module" src="../dist/extension/tasks.js"></script>
+		</main>
 	</body>
 </html>

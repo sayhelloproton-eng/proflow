@@ -5,6 +5,9 @@ type ChromePanel = {
 };
 declare const chrome: ChromePanel;
 
+const extensionRuntime =
+	typeof chrome !== "undefined" && chrome.runtime ? chrome.runtime : null;
+
 type TaskSummary = {
 	taskId: string;
 	title: string;
@@ -47,7 +50,7 @@ type TaskView = TaskSummary & {
 
 function element<T extends HTMLElement>(selector: string): T {
 	const value = document.querySelector<T>(selector);
-	if (!value) throw new Error(`SIDE_PANEL_TARGET_MISSING:${selector}`);
+	if (!value) throw new Error(`TASK_PAGE_TARGET_MISSING:${selector}`);
 	return value;
 }
 
@@ -76,11 +79,30 @@ function record(value: unknown): Record<string, unknown> {
 	return value as Record<string, unknown>;
 }
 
+async function webApplication(
+	path: "/tasks/api/task" | "/tasks/api/approval",
+	operation: string,
+	input: Record<string, unknown>,
+): Promise<unknown> {
+	const response = await fetch(path, {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({ operation, input }),
+	});
+	const body = record(await response.json());
+	if (!response.ok || body.ok !== true)
+		throw new Error(
+			typeof body.error === "string" ? body.error : "TASK_WEB_REQUEST_FAILED",
+		);
+	return body.value;
+}
+
 async function taskApplication(
 	operation: string,
 	input: Record<string, unknown>,
 ): Promise<unknown> {
-	const raw = await chrome.runtime.sendMessage({
+	if (!extensionRuntime) return webApplication("/tasks/api/task", operation, input);
+	const raw = await extensionRuntime.sendMessage({
 		type: "PROFLOW_TASK_APPLICATION",
 		operation,
 		input,
@@ -99,7 +121,9 @@ async function approvalApplication(
 	operation: string,
 	input: Record<string, unknown>,
 ): Promise<unknown> {
-	const raw = await chrome.runtime.sendMessage({
+	if (!extensionRuntime)
+		return webApplication("/tasks/api/approval", operation, input);
+	const raw = await extensionRuntime.sendMessage({
 		type: "PROFLOW_APPROVAL_APPLICATION",
 		operation,
 		input,
@@ -152,7 +176,7 @@ async function refreshApprovals() {
 					await approvalApplication("approval.deny", {
 						approvalRef: approval.approvalRef,
 						expectedVersion: approval.version,
-						reason: "Denied from Extension Side Panel",
+						reason: "Denied from Extension Task Page",
 					});
 					await refreshApprovals();
 				}),
@@ -189,7 +213,7 @@ async function loadTask(taskId: string) {
 					await taskApplication("node.reopen", {
 						taskId: selected.taskId,
 						nodeId: node.nodeId,
-						reason: "Human reopen from Extension Side Panel",
+						reason: "Human reopen from Extension Task Page",
 						expectedTaskVersion: selected.version,
 						idempotencyKey: requestId("extension-reopen"),
 					});
@@ -227,10 +251,22 @@ async function refreshTasks() {
 	}
 }
 
+async function pageStatus(): Promise<Record<string, unknown>> {
+	if (extensionRuntime)
+		return record(
+			await extensionRuntime.sendMessage({ type: "PROFLOW_SIDE_PANEL_SNAPSHOT" }),
+		);
+	const response = await fetch("/tasks/api/status", { cache: "no-store" });
+	const body = record(await response.json());
+	if (!response.ok || body.ok !== true)
+		throw new Error(
+			typeof body.error === "string" ? body.error : "TASK_WEB_STATUS_FAILED",
+		);
+	return record(body.value);
+}
+
 async function refreshBrowserStatus() {
-	const snapshot = record(
-		await chrome.runtime.sendMessage({ type: "PROFLOW_SIDE_PANEL_SNAPSHOT" }),
-	);
+	const snapshot = await pageStatus();
 	connection.textContent =
 		snapshot.taskApplicationConfigured === true &&
 		snapshot.approvalApplicationConfigured === true

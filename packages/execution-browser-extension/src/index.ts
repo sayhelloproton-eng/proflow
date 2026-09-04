@@ -510,8 +510,8 @@ export function createExecutionBrowserExtension(
 						"PRECONDITION_FAILED",
 						"ROLE_URL_MISMATCH",
 					);
-				const precondition = await effectStarted(raw);
 				const opened = await options.browser.open(request.input.roleUrl);
+				const precondition = await effectStarted(raw);
 				const submitted = await options.browser.submit(
 					opened.tabId,
 					`WORKER_BIND ${request.input.bootstrapFingerprint}`,

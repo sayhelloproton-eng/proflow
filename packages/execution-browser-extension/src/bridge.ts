@@ -41,6 +41,13 @@ type PendingCommand = {
 	timer: ReturnType<typeof setTimeout>;
 };
 
+export interface BrowserRealityBridgeTaskWebOptions {
+	html: string;
+	script: string;
+	invokeTask(operation: string, input: Record<string, unknown>): Promise<unknown>;
+	invokeApproval(operation: string, input: Record<string, unknown>): Promise<unknown>;
+}
+
 export interface BrowserRealityBridgeOptions {
 	token: string;
 	extensionId: string;
@@ -50,6 +57,7 @@ export interface BrowserRealityBridgeOptions {
 	commandTimeoutMs?: number;
 	now?: () => Date;
 	idFactory?: () => string;
+	taskWeb?: BrowserRealityBridgeTaskWebOptions;
 }
 
 export class BrowserRealityBridgeError extends Error {
@@ -175,6 +183,31 @@ function send(response: ServerResponse, status: number, value?: unknown): void {
 	response.end(value === undefined ? "" : JSON.stringify(value));
 }
 
+function sendText(
+	response: ServerResponse,
+	status: number,
+	contentType: string,
+	value: string,
+): void {
+	response.writeHead(status, {
+		"content-type": contentType,
+		"cache-control": "no-store",
+		"content-security-policy":
+			"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:",
+		"x-content-type-options": "nosniff",
+		"referrer-policy": "no-referrer",
+	});
+	response.end(value);
+}
+
+function cookieValue(request: IncomingMessage, name: string): string | undefined {
+	for (const part of (request.headers.cookie ?? "").split(";")) {
+		const [key, ...rest] = part.trim().split("=");
+		if (key === name) return rest.join("=");
+	}
+	return undefined;
+}
+
 export async function createBrowserRealityBridgeServer(
 	options: BrowserRealityBridgeOptions,
 ) {
@@ -187,7 +220,9 @@ export async function createBrowserRealityBridgeServer(
 	const now = options.now ?? (() => new Date());
 	const idFactory = options.idFactory ?? randomUUID;
 	const freshnessMs = options.heartbeatFreshnessMs ?? 10_000;
-	const commandTimeoutMs = options.commandTimeoutMs ?? 15_000;
+	// Browser commands are Promise-driven. This is only an abnormal hung-command
+	// watchdog; normal page load / content observation must not be scheduled by it.
+	const commandTimeoutMs = options.commandTimeoutMs ?? 120_000;
 	const expectedOrigin = `chrome-extension://${options.extensionId}`;
 	const queue: BridgeCommand[] = [];
 	const pending = new Map<string, PendingCommand>();
@@ -197,7 +232,40 @@ export async function createBrowserRealityBridgeServer(
 				lastHeartbeatAt: number;
 		  }
 		| undefined;
+	let lastCommandPollAt: string | null = null;
+	let lastCommandDeliveredAt: string | null = null;
+	let lastCommandResultAt: string | null = null;
+	let lastCommandConsumerAt: number | null = null;
 	let closed = false;
+	let endpoint = "";
+	const taskBootstrap = new Map<string, number>();
+	const taskSessions = new Map<string, number>();
+	const taskCookie = "proflow_tasks_session";
+	const taskBootstrapTtlMs = 60_000;
+	const taskSessionTtlMs = 8 * 60 * 60_000;
+	const sessionOnline = () =>
+		!closed &&
+		session !== undefined &&
+		now().getTime() - session.lastHeartbeatAt <= freshnessMs;
+	const commandConsumerReady = () =>
+		sessionOnline() &&
+		lastCommandConsumerAt !== null &&
+		now().getTime() - lastCommandConsumerAt <= freshnessMs;
+	const online = commandConsumerReady;
+
+	const pruneTaskWebState = () => {
+		const current = now().getTime();
+		for (const [key, expiresAt] of taskBootstrap)
+			if (expiresAt <= current) taskBootstrap.delete(key);
+		for (const [key, expiresAt] of taskSessions)
+			if (expiresAt <= current) taskSessions.delete(key);
+	};
+
+	const taskSessionValid = (request: IncomingMessage) => {
+		pruneTaskWebState();
+		const value = cookieValue(request, taskCookie);
+		return value !== undefined && taskSessions.has(value);
+	};
 
 	const authenticate = (request: IncomingMessage) => {
 		const authorization = request.headers.authorization;
@@ -205,34 +273,114 @@ export async function createBrowserRealityBridgeServer(
 		if (
 			!authorization?.startsWith("Bearer ") ||
 			!safeEqual(authorization.slice(7), options.token) ||
-			origin !== expectedOrigin
+			(origin !== undefined && origin !== expectedOrigin)
 		)
 			throw new BrowserRealityBridgeError(
 				"BRIDGE_AUTH_INVALID",
 				"bridge authentication failed",
 			);
 	};
+	const requireExtensionOrigin = (request: IncomingMessage) => {
+		if (request.headers.origin !== expectedOrigin)
+			throw new BrowserRealityBridgeError(
+				"BRIDGE_AUTH_INVALID",
+				"bridge extension origin is required",
+			);
+	};
 
 	const server = createServer(async (request, response) => {
 		try {
+			const url = new URL(request.url ?? "/", "http://127.0.0.1");
+			if (options.taskWeb && request.method === "GET" && url.pathname.startsWith("/tasks/bootstrap/")) {
+				pruneTaskWebState();
+				const bootstrap = decodeURIComponent(url.pathname.slice("/tasks/bootstrap/".length));
+				if (!taskBootstrap.has(bootstrap)) {
+					send(response, 401, { error: "TASK_WEB_SESSION_INVALID" });
+					return;
+				}
+				taskBootstrap.delete(bootstrap);
+				const sessionId = idFactory();
+				taskSessions.set(sessionId, now().getTime() + taskSessionTtlMs);
+				response.writeHead(302, {
+					location: "/tasks",
+					"cache-control": "no-store",
+					"set-cookie": `${taskCookie}=${sessionId}; HttpOnly; SameSite=Strict; Path=/tasks; Max-Age=${Math.floor(taskSessionTtlMs / 1000)}`,
+				});
+				response.end();
+				return;
+			}
+			if (options.taskWeb && url.pathname.startsWith("/tasks")) {
+				if (!taskSessionValid(request)) {
+					send(response, 401, { error: "TASK_WEB_SESSION_REQUIRED" });
+					return;
+				}
+				if (request.method === "GET" && url.pathname === "/tasks") {
+					sendText(response, 200, "text/html; charset=utf-8", options.taskWeb.html);
+					return;
+				}
+				if (request.method === "GET" && url.pathname === "/tasks/app.js") {
+					sendText(response, 200, "text/javascript; charset=utf-8", options.taskWeb.script);
+					return;
+				}
+				if (request.method === "GET" && url.pathname === "/tasks/api/status") {
+					send(response, 200, {
+						ok: true,
+						value: {
+							taskApplicationConfigured: true,
+							approvalApplicationConfigured: true,
+							systemObserver: null,
+							browserCarrier: {
+								online: commandConsumerReady(),
+								sessionOnline: sessionOnline(),
+								commandConsumerReady: commandConsumerReady(),
+								extensionInstanceId: session?.extensionInstanceId ?? null,
+								queuedCommands: queue.length,
+								pendingCommands: pending.size,
+								lastCommandPollAt,
+								lastCommandDeliveredAt,
+								lastCommandResultAt,
+							},
+						},
+					});
+					return;
+				}
+				if (request.method === "POST" && (url.pathname === "/tasks/api/task" || url.pathname === "/tasks/api/approval")) {
+					if (request.headers.origin !== endpoint) {
+						send(response, 403, { error: "TASK_WEB_ORIGIN_INVALID" });
+						return;
+					}
+					const body = await readJson(request);
+					if (!isRecord(body) || typeof body.operation !== "string" || !isRecord(body.input))
+						throw new BrowserRealityBridgeError("BRIDGE_INPUT_INVALID", "task web request is invalid");
+					const value = url.pathname.endsWith("/task")
+						? await options.taskWeb.invokeTask(body.operation, body.input)
+						: await options.taskWeb.invokeApproval(body.operation, body.input);
+					send(response, 200, { ok: true, value });
+					return;
+				}
+				send(response, 404, { error: "NOT_FOUND" });
+				return;
+			}
+
 			response.setHeader("access-control-allow-origin", expectedOrigin);
 			response.setHeader("vary", "origin");
 			if (request.method === "OPTIONS") {
-				response.setHeader(
-					"access-control-allow-headers",
-					"authorization, content-type",
-				);
-				response.setHeader(
-					"access-control-allow-methods",
-					"GET, POST, OPTIONS",
-				);
+				response.setHeader("access-control-allow-headers", "authorization, content-type");
+				response.setHeader("access-control-allow-methods", "GET, POST, OPTIONS");
 				response.writeHead(204);
 				response.end();
 				return;
 			}
 			authenticate(request);
-			const url = new URL(request.url ?? "/", "http://127.0.0.1");
+			if (options.taskWeb && request.method === "POST" && url.pathname === "/v1/tasks/session") {
+				pruneTaskWebState();
+				const bootstrap = idFactory();
+				taskBootstrap.set(bootstrap, now().getTime() + taskBootstrapTtlMs);
+				send(response, 200, { url: `${endpoint}/tasks/bootstrap/${encodeURIComponent(bootstrap)}` });
+				return;
+			}
 			if (request.method === "POST" && url.pathname === "/v1/session/hello") {
+				requireExtensionOrigin(request);
 				const body = await readJson(request);
 				if (
 					!isRecord(body) ||
@@ -242,19 +390,25 @@ export async function createBrowserRealityBridgeServer(
 						"BRIDGE_AUTH_INVALID",
 						"extension identity mismatch",
 					);
+				const extensionInstanceId = stringField(body, "extensionInstanceId");
+				if (session?.extensionInstanceId !== extensionInstanceId) {
+					lastCommandPollAt = null;
+					lastCommandDeliveredAt = null;
+					lastCommandResultAt = null;
+					lastCommandConsumerAt = null;
+				}
 				session = {
-					extensionInstanceId: stringField(body, "extensionInstanceId"),
+					extensionInstanceId,
 					lastHeartbeatAt: now().getTime(),
 				};
 				send(response, 200, { accepted: true });
 				return;
 			}
 			if (request.method === "GET" && url.pathname === "/v1/session/status") {
-				const online =
-					session !== undefined &&
-					now().getTime() - session.lastHeartbeatAt <= freshnessMs;
 				send(response, 200, {
-					online,
+					online: commandConsumerReady(),
+					sessionOnline: sessionOnline(),
+					commandConsumerReady: commandConsumerReady(),
 					extensionInstanceId: session?.extensionInstanceId ?? null,
 				});
 				return;
@@ -281,11 +435,15 @@ export async function createBrowserRealityBridgeServer(
 				return;
 			}
 			if (request.method === "GET" && url.pathname === "/v1/commands/next") {
-				session.lastHeartbeatAt = now().getTime();
+				const stamp = now();
+				session.lastHeartbeatAt = stamp.getTime();
+				lastCommandConsumerAt = stamp.getTime();
+				lastCommandPollAt = stamp.toISOString();
 				const command = queue.shift();
 				if (command) {
 					const tracked = pending.get(command.commandId);
 					if (tracked) tracked.stage = "DELIVERED";
+					lastCommandDeliveredAt = lastCommandPollAt;
 				}
 				send(response, command ? 200 : 204, command);
 				return;
@@ -306,6 +464,10 @@ export async function createBrowserRealityBridgeServer(
 					);
 				pending.delete(commandId);
 				clearTimeout(command.timer);
+				const resultStamp = now();
+				session.lastHeartbeatAt = resultStamp.getTime();
+				lastCommandConsumerAt = resultStamp.getTime();
+				lastCommandResultAt = resultStamp.toISOString();
 				if (body.ok === true) command.resolve(body.value);
 				else
 					command.reject(
@@ -344,19 +506,14 @@ export async function createBrowserRealityBridgeServer(
 	const address = server.address();
 	if (!address || typeof address === "string")
 		throw new Error("bridge address missing");
-	const endpoint = `http://127.0.0.1:${address.port}`;
-
-	const online = () =>
-		!closed &&
-		session !== undefined &&
-		now().getTime() - session.lastHeartbeatAt <= freshnessMs;
+	endpoint = `http://127.0.0.1:${address.port}`;
 
 	const requestCommand = (command: BridgeCommandInput) => {
 		if (!online())
 			return Promise.reject(
 				new BrowserRealityBridgeError(
 					"BRIDGE_OFFLINE",
-					"extension heartbeat is not fresh",
+					"extension command consumer is not ready",
 				),
 			);
 		const commandId = `browser-command:${idFactory()}`;
@@ -449,9 +606,14 @@ export async function createBrowserRealityBridgeServer(
 		status() {
 			return {
 				online: online(),
+				sessionOnline: sessionOnline(),
+				commandConsumerReady: commandConsumerReady(),
 				extensionInstanceId: session?.extensionInstanceId ?? null,
 				queuedCommands: queue.length,
 				pendingCommands: pending.size,
+				lastCommandPollAt,
+				lastCommandDeliveredAt,
+				lastCommandResultAt,
 			};
 		},
 		async close() {
@@ -466,6 +628,8 @@ export async function createBrowserRealityBridgeServer(
 				);
 			}
 			pending.clear();
+			taskBootstrap.clear();
+			taskSessions.clear();
 			queue.length = 0;
 			await new Promise<void>((resolve, reject) =>
 				server.close((error) => (error ? reject(error) : resolve())),

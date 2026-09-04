@@ -23,7 +23,7 @@ spec/平台架构与公共约定/00-公共上下文/README.md
 
 你同时是当前业务/验收执行者和公共上下文维护者。接手后不要重新分析已经 PASS/FROZEN 的能力，不要重复 CURRENT.DO_NOT_REPEAT 中的动作；先从 CURRENT.NEXT_ACTION 的第一个未完成 STOP POINT 继续。
 
-本地仓库任务必须遵守 `05-执行纪律与工具规则.md` 的四 Plane 高吞吐 Harness：先判断任务是广域还是窄域。广域/未知/跨目录审计优先 Repomix 一次 pack 建立稳定 Context，再用 grep/read outputId 收敛范围、CodeGraph 证明结构关系、Local Dev 修改与验证；窄域/已知 symbol 直接 CodeGraph → Local Dev，不为形式完整强制 Repomix。CodeGraph 已返回源码不重复 Read；多文件修改禁止 per-file edit/write loop；修改后一次 batch verify。涉及真实 Browser/UI 才进入 Playwright。具体操作读取 `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md`。
+本地仓库任务必须遵守 `05-执行纪律与工具规则.md` 的四 Plane 高吞吐 Harness：仓库理解/修改默认 Repomix first。窄域/已知 symbol 只 pack 当前 package / 最小相关目录，用同一 outputId grep/read 批量建立上下文；广域/未知/跨目录审计才按证据逐级扩大范围。随后用 CodeGraph 证明结构关系、Local Dev 批量修改与验证。CodeGraph 已返回源码不重复 Read；多文件修改禁止 per-file edit/write loop；修改后一次 batch verify。纯 Git/test/command 机械动作可直接 Local Dev；涉及真实 Browser/UI 才进入 Playwright。具体操作读取 `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md`。
 
 每完成一个有意义 Round，都必须按 `02-公共上下文治理规则.md` 做 Round Closeout：判断 CURRENT、包 Runbook、基础动作、流程 Runbook、历史 evidence 哪些需要写回。未形成稳定知识的临时命令输出、猜测、一次性 PID 不得污染知识库。
 ```

@@ -76,7 +76,81 @@ test("CP-DEV-TUNNEL-01 valid login is reused without opening browser auth", asyn
 	});
 	assert.equal(await automation.ensureLogin(), "LOGGED_IN");
 	assert.deepEqual(calls, [["user", "show", "--json"]]);
-	assert.deepEqual(timeouts, [30_000]);
+	assert.deepEqual(timeouts, [90_000]);
+});
+
+test("CP-DEV-TUNNEL-01 post-browser login confirmation allows a slower authoritative user show", async () => {
+	const calls: string[][] = [];
+	const timeouts: Array<number | undefined> = [];
+	const automation = createDevTunnelAutomation({
+		runCommand: async (_command, args, options) => {
+			calls.push(args);
+			timeouts.push(options?.timeoutMs);
+			if (calls.length === 1)
+				return result(JSON.stringify({ status: "Login token expired" }));
+			if (calls.length === 2) return result("");
+			if ((options?.timeoutMs ?? 0) < 61_000)
+				return result("", null, "command timed out");
+			return result(JSON.stringify({ status: "Logged in as test" }));
+		},
+	});
+	assert.equal(await automation.ensureLogin(), "LOGGED_IN");
+	assert.deepEqual(calls, [
+		["user", "show", "--json"],
+		["user", "login", "--github", "--use-browser-auth"],
+		["user", "show", "--json"],
+	]);
+	assert.deepEqual(timeouts, [90_000, 600_000, 90_000]);
+});
+
+test("CP-DEV-TUNNEL-01 timed-out primary login probe consumes conclusive JSON before verbose fallback", async () => {
+	const calls: string[][] = [];
+	const timeouts: Array<number | undefined> = [];
+	const automation = createDevTunnelAutomation({
+		runCommand: async (_command, args, options) => {
+			calls.push(args);
+			timeouts.push(options?.timeoutMs);
+			if (calls.length === 1)
+				return result(JSON.stringify({ status: "Login token expired" }), null, "command timed out");
+			if (calls.length === 2) return result("");
+			return result(JSON.stringify({ status: "Logged in as test" }));
+		},
+	});
+	assert.equal(await automation.ensureLogin(), "LOGGED_IN");
+	assert.deepEqual(calls, [
+		["user", "show", "--json"],
+		["user", "login", "--github", "--use-browser-auth"],
+		["user", "show", "--json"],
+	]);
+	assert.deepEqual(timeouts, [90_000, 600_000, 90_000]);
+});
+
+test("CP-DEV-TUNNEL-01 timed-out login probe uses explicit expired-token evidence for one browser re-auth", async () => {
+	const calls: string[][] = [];
+	const timeouts: Array<number | undefined> = [];
+	const automation = createDevTunnelAutomation({
+		runCommand: async (_command, args, options) => {
+			calls.push(args);
+			timeouts.push(options?.timeoutMs);
+			if (calls.length === 1) return result("", null, "command timed out");
+			if (calls.length === 2)
+				return result(
+					"",
+					null,
+					"Loaded cached GitHub tokens for account(s): test\nThe cached access token for GitHub account 'test' expired at 2026-09-01T21:29:54\ncommand timed out",
+				);
+			if (calls.length === 3) return result("");
+			return result(JSON.stringify({ status: "Logged in as test" }));
+		},
+	});
+	assert.equal(await automation.ensureLogin(), "LOGGED_IN");
+	assert.deepEqual(calls, [
+		["user", "show", "--json"],
+		["-v", "user", "show", "--json"],
+		["user", "login", "--github", "--use-browser-auth"],
+		["user", "show", "--json"],
+	]);
+	assert.deepEqual(timeouts, [90_000, 8_000, 600_000, 90_000]);
 });
 
 test("CP-DEV-TUNNEL-02 automatic creation uses the precomputed workspace Tunnel identity", async () => {

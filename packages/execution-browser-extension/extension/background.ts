@@ -12,6 +12,7 @@ import {
 	type TaskObserverDiagnosticAssessment,
 	type TaskObserverDiagnosticFailure,
 } from "../src/task-observer.js";
+import { shouldTriggerObserverRecovery } from "../src/recovery-trigger.js";
 
 type PageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 type ActivityKind =
@@ -105,19 +106,20 @@ type ChromeRuntime = {
 		onInstalled: { addListener(listener: () => void): void };
 	};
 	storage: {
-		session: { set(value: Record<string, unknown>): Promise<void> };
+		session: {
+			get(key: string): Promise<Record<string, unknown>>;
+			set(value: Record<string, unknown>): Promise<void>;
+		};
 		local: {
 			get(key: string): Promise<Record<string, unknown>>;
 			set(value: Record<string, unknown>): Promise<void>;
 		};
 	};
-	sidePanel: {
-		setPanelBehavior(options: {
-			openPanelOnActionClick: boolean;
-		}): Promise<void>;
+	action: {
+		onClicked: { addListener(listener: () => void): void };
 	};
 	tabs: {
-		query(query: { url?: string }): Promise<ChromeTab[]>;
+		query(query: { url?: string; currentWindow?: boolean }): Promise<ChromeTab[]>;
 		get(tabId: number): Promise<ChromeTab>;
 		create(create: { url: string; active: boolean }): Promise<ChromeTab>;
 		reload(tabId: number): Promise<void>;
@@ -139,6 +141,9 @@ declare const chrome: ChromeRuntime;
 
 const extensionInstanceId = `extension:${crypto.randomUUID()}`;
 const sessions = new Map<number, ContentObservation>();
+const BROWSER_CARRIER_KEEPALIVE_KEY = "proflowBrowserSnapshot";
+const BROWSER_CARRIER_KEEPALIVE_MS = 20_000;
+const BROWSER_BRIDGE_FETCH_TIMEOUT_MS = 5_000;
 
 const sleep = (milliseconds: number) =>
 	new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
@@ -974,6 +979,7 @@ async function bridgeFetch(
 ): Promise<Response> {
 	return fetch(`${config.endpoint}${path}`, {
 		...init,
+		signal: init.signal ?? AbortSignal.timeout(BROWSER_BRIDGE_FETCH_TIMEOUT_MS),
 		headers: {
 			authorization: `Bearer ${config.token}`,
 			"content-type": "application/json",
@@ -987,7 +993,7 @@ async function runBridgeLoop() {
 	if (bridgeLoopStarted) return;
 	bridgeLoopStarted = true;
 	while (true) {
-		const config = await bridgeConfig();
+		const config = await bridgeConfig().catch(() => null);
 		if (!config) {
 			await sleep(1_000);
 			continue;
@@ -1002,8 +1008,20 @@ async function runBridgeLoop() {
 				}),
 			});
 			if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED");
-			let lastHeartbeatAt = 0;
+			// Hello only establishes a session. The first inner-loop action must be
+			// a real command poll so Runtime readiness cannot be granted by hello alone.
+			let lastHeartbeatAt = Date.now();
+			let lastExtensionKeepaliveAt = Date.now();
 			while (true) {
+				if (
+					Date.now() - lastExtensionKeepaliveAt >=
+					BROWSER_CARRIER_KEEPALIVE_MS
+				) {
+					await chrome.storage.session
+						.get(BROWSER_CARRIER_KEEPALIVE_KEY)
+						.catch(() => ({}));
+					lastExtensionKeepaliveAt = Date.now();
+				}
 				if (Date.now() - lastHeartbeatAt >= 5_000) {
 					const heartbeat = await bridgeFetch(
 						config,
@@ -1218,6 +1236,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 		sender.tab?.id !== undefined &&
 		sender.tab.windowId !== undefined
 	) {
+		const previous = sessions.get(sender.tab.id);
 		const observed: ContentObservation = {
 			...message.observation,
 			tabId: sender.tab.id,
@@ -1225,7 +1244,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 		};
 		sessions.set(sender.tab.id, observed);
 		void persistSnapshot();
-		if (observed.pageState === "IDLE") void runObserverRecovery();
+		if (shouldTriggerObserverRecovery(previous, observed))
+			void runObserverRecovery();
 		sendResponse({ accepted: true, extensionInstanceId });
 		return;
 	}
@@ -1316,6 +1336,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	}
 });
 
+async function openTaskPage(): Promise<void> {
+	const bridge = await bridgeConfig();
+	if (bridge) {
+		try {
+			const response = await fetch(`${bridge.endpoint}/v1/tasks/session`, {
+				method: "POST",
+				headers: { authorization: `Bearer ${bridge.token}` },
+			});
+			const body = (await response.json()) as unknown;
+			if (
+				response.ok &&
+				isRecord(body) &&
+				typeof body.url === "string" &&
+				body.url.startsWith(`${bridge.endpoint}/tasks/bootstrap/`)
+			) {
+				const webUrl = `${bridge.endpoint}/tasks`;
+				const [existing] = await chrome.tabs.query({ url: webUrl, currentWindow: true });
+				if (existing?.id !== undefined) {
+					await chrome.tabs.update(existing.id, { url: body.url, active: true });
+				} else {
+					await chrome.tabs.create({ url: body.url, active: true });
+				}
+				return;
+			}
+		} catch {
+			/* bridge-unavailable fallback keeps the extension-owned Task UI reachable */
+		}
+	}
+	const fallbackUrl = chrome.runtime.getURL("extension/tasks.html");
+	const [fallback] = await chrome.tabs.query({
+		url: fallbackUrl,
+		currentWindow: true,
+	});
+	if (fallback?.id !== undefined) {
+		await chrome.tabs.update(fallback.id, { active: true });
+		return;
+	}
+	await chrome.tabs.create({ url: fallbackUrl, active: true });
+}
+
 async function startBackgroundRuntime(): Promise<void> {
 	await bootstrapManagedRuntimeConfig();
 	await persistSnapshot();
@@ -1324,8 +1384,10 @@ async function startBackgroundRuntime(): Promise<void> {
 	void runObserverRecovery();
 }
 
+chrome.action.onClicked.addListener(() => {
+	void openTaskPage();
+});
 chrome.runtime.onInstalled.addListener(() => {
-	void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 	void bootstrapManagedRuntimeConfig().then(async () => {
 		await persistSnapshot();
 		void runBridgeLoop();

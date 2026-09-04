@@ -43,6 +43,22 @@ test("PRESMOKE-B5-MODEL-01 execution.command-risk AUTO is FAST-first and escalat
 	assert.deepEqual(calls, ["fast", "reason"]);
 });
 
+test("REAL3 command-risk preserves the already-authorized Execution identity boundary and treats roleRef as an effect target", () => {
+	assert.match(
+		executionCommandRiskSpec.instruction,
+		/identity authorization has already passed/i,
+	);
+	assert.match(executionCommandRiskSpec.instruction, /roleRef.*target/i);
+	assert.match(
+		executionCommandRiskSpec.instruction,
+		/do not deny.*callerRef.*roleRef.*authorization/i,
+	);
+	assert.match(
+		executionCommandRiskSpec.instruction,
+		/uncertain.*side-effect.*ESCALATE/i,
+	);
+});
+
 test("PRESMOKE-B5-MODEL-02 REASON ESCALATE remains caller-owned Human escalation, not autonomous ALLOW", async () => {
 	const runtime = createModelRuntime({
 		specs: [executionCommandRiskSpec],

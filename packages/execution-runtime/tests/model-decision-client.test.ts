@@ -11,10 +11,11 @@ type InferenceRequestBody = {
 	priority: string;
 	trace: Record<string, string>;
 	payload: Record<string, unknown>;
+	timeoutMs?: number;
 };
 
 async function server(
-	handler: (body: InferenceRequestBody, count: number) => unknown,
+	handler: (body: InferenceRequestBody, count: number) => unknown | Promise<unknown>,
 ) {
 	let count = 0;
 	const seen: InferenceRequestBody[] = [];
@@ -44,7 +45,7 @@ async function server(
 			seen.push(body);
 			count += 1;
 			response.setHeader("content-type", "application/json");
-			response.end(JSON.stringify(handler(body, count)));
+			response.end(JSON.stringify(await handler(body, count)));
 			return;
 		}
 		response.statusCode = 404;
@@ -121,6 +122,7 @@ test("PRESMOKE-B5-EXE-MODEL-01 production client uses auto/business, bounded fac
 		assert.equal(body.specRef, "execution.command-risk.v1");
 		assert.equal(body.mode, "auto");
 		assert.equal(body.priority, "business");
+		assert.equal(body.timeoutMs, undefined);
 		assert.equal(body.trace.executionRef, "execution:server-generated");
 		assert.equal(body.payload.inputFingerprint, "sha256:abc");
 		assert.deepEqual(fake.authorizations, [
@@ -128,6 +130,32 @@ test("PRESMOKE-B5-EXE-MODEL-01 production client uses auto/business, bounded fac
 			`Bearer ${transportCredential}`,
 		]);
 		assert.doesNotMatch(JSON.stringify(body), /SECRET-CONTENT|SECRET-TOKEN/);
+	} finally {
+		await fake.close();
+	}
+});
+
+test("REAL3 model decision timeout is only an outer abnormal watchdog, not a Model Runtime stage budget", async () => {
+	const fake = await server(async () => {
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		return success({
+			decision: "ALLOW",
+			reasonCode: "OK",
+			confidence: 0.9,
+			rationale: "completed through the normal Promise path",
+		}, "fast");
+	});
+	try {
+		const client = createExecutionModelDecisionClient({
+			endpoint: fake.endpoint,
+			timeoutMs: 1_000,
+		});
+		const decision = await client.port.decide(request(), {
+			executionRef: "execution:watchdog",
+			inputFingerprint: "sha256:watchdog",
+		});
+		assert.equal(decision.decision, "ALLOW");
+		assert.equal(fake.seen[0]?.timeoutMs, undefined);
 	} finally {
 		await fake.close();
 	}

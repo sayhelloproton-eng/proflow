@@ -29,13 +29,14 @@ test("Execution Browser module contract C1/C2/C3", async () => {
 	) as {
 		background: { service_worker: string };
 		content_scripts: Array<{ js: string[] }>;
-		side_panel: { default_path: string };
+		action: { default_title: string };
 		options_page: string;
 	};
+	assert.equal(manifest.action.default_title, "Open ProFlow Tasks");
 	for (const artifact of [
 		manifest.background.service_worker,
 		...manifest.content_scripts.flatMap((item) => item.js),
-		manifest.side_panel.default_path,
+		"extension/tasks.html",
 		manifest.options_page,
 	])
 		await access(new URL(`../${artifact}`, import.meta.url));

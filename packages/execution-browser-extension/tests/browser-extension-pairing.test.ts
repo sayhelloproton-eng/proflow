@@ -28,6 +28,20 @@ function request(
 	});
 }
 
+function requestWithoutOrigin(
+	endpoint: string,
+	path: string,
+	init: RequestInit = {},
+) {
+	return fetch(`${endpoint}${path}`, {
+		...init,
+		headers: {
+			authorization: `Bearer ${token}`,
+			"content-type": "application/json",
+		},
+	});
+}
+
 test("CP-EXE-BR-16 pairing binds identity only after authenticated hello + heartbeat", async () => {
 	const { createBrowserExtensionPairingServer } = await pairingModule();
 	const pairing = await createBrowserExtensionPairingServer({ token });
@@ -40,6 +54,19 @@ test("CP-EXE-BR-16 pairing binds identity only after authenticated hello + heart
 			},
 		);
 		assert.equal(unauthenticated.status, 401);
+
+		const missingOrigin = await requestWithoutOrigin(
+			pairing.endpoint,
+			"/v1/session/hello",
+			{
+				method: "POST",
+				body: JSON.stringify({
+					extensionId,
+					extensionInstanceId: "extension:first",
+				}),
+			},
+		);
+		assert.equal(missingOrigin.status, 401);
 
 		const mismatched = await request(pairing.endpoint, "/v1/session/hello", {
 			method: "POST",
@@ -73,11 +100,18 @@ test("CP-EXE-BR-16 pairing binds identity only after authenticated hello + heart
 		});
 		assert.equal(pairing.status().paired, true);
 
-		const empty = await request(
+		const empty = await requestWithoutOrigin(
 			pairing.endpoint,
 			"/v1/commands/next?extensionInstanceId=extension%3Afirst",
 		);
 		assert.equal(empty.status, 204);
+		const wrongOrigin = await request(
+			pairing.endpoint,
+			"/v1/commands/next?extensionInstanceId=extension%3Afirst",
+			{},
+			{ origin: `chrome-extension://${"c".repeat(32)}` },
+		);
+		assert.equal(wrongOrigin.status, 401);
 	} finally {
 		await pairing.close();
 	}

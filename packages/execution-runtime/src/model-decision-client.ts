@@ -182,7 +182,10 @@ export function createExecutionModelDecisionClient(config: {
 		throw new TypeError(
 			"modelDecision credential must contain at least 32 characters",
 		);
-	const timeoutMs = config.timeoutMs ?? 12_000;
+	// Normal model-decision flow is Promise-driven. This timeout is only a
+	// transport watchdog for an abnormally hung call; it is not forwarded to
+	// Model Runtime as a queue or inference-stage budget.
+	const watchdogMs = config.timeoutMs ?? 120_000;
 	const authorizationHeaders = config.credential
 		? { authorization: `Bearer ${config.credential}` }
 		: {};
@@ -190,7 +193,7 @@ export function createExecutionModelDecisionClient(config: {
 	const status = async () => {
 		const response = await fetch(`${endpoint.origin}/status`, {
 			headers: authorizationHeaders,
-			signal: AbortSignal.timeout(Math.min(timeoutMs, 3_000)),
+			signal: AbortSignal.timeout(Math.min(watchdogMs, 3_000)),
 		});
 		if (!response.ok) throw new Error(`MODEL_STATUS_HTTP_${response.status}`);
 		return modelRuntimeStatusSchema.parse(await response.json());
@@ -240,9 +243,8 @@ export function createExecutionModelDecisionClient(config: {
 						: {}),
 				},
 				payload,
-				timeoutMs,
 			}),
-			signal: AbortSignal.timeout(timeoutMs + 1_000),
+			signal: AbortSignal.timeout(watchdogMs),
 		});
 		if (!response.ok) {
 			ready = false;

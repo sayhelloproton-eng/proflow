@@ -234,6 +234,35 @@ test("REG-EXE-BR-02 CREATE captures real URL c-id, existing worker RESTORE wins,
 	);
 });
 
+test("REG-EXE-BR-02 worker.create does not enter the durable effect boundary when opening the role page fails", async () => {
+	const { extension, browser } = await fixture();
+	let effectStarted = 0;
+	browser.open = async () => {
+		throw new Error("OPEN_FAILED");
+	};
+	await assert.rejects(
+		() =>
+			extension.execute({
+				request: request("worker.create", {
+					roleRef: "g-dev",
+					roleUrl: "https://chatgpt.com/g/g-dev",
+					bootstrapFingerprint: "bootstrap:open-failed",
+				}),
+				admission: {
+					policy: "ALLOW",
+					decisionPath: "deterministic",
+					approval: "NOT_REQUIRED",
+				},
+				onEffectStarted() {
+					effectStarted += 1;
+				},
+			}),
+		/OPEN_FAILED/,
+	);
+	assert.equal(effectStarted, 0);
+	assert.equal(browser.submitCount, 0);
+});
+
 test("CP-EXE-BR-02 CREATE does not persist a binding when the bootstrap message is not confirmed", async () => {
 	const { extension, browser, bindings } = await fixture();
 	browser.confirmSubmittedMessages = false;
@@ -413,7 +442,7 @@ test("REG-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministi
 	);
 });
 
-test("REG-EXE-BR-05 permission fallback captures evidence and Side Panel remains read-only", async () => {
+test("REG-EXE-BR-05 permission fallback captures evidence and Extension task UI snapshot remains read-only", async () => {
 	const { extension, browser } = await fixture();
 	const tab = await browser.open("https://chatgpt.com/g/g-dev/c/c-dev");
 	extension.registerContentSession({

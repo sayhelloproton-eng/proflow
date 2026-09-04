@@ -1,5 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
 	type BrowserRealityBridgeOptions,
@@ -14,6 +15,11 @@ type LocalApplicationConfig = {
 	endpoint: string;
 	token: string;
 };
+
+function packageRoot(): string {
+	const candidate = dirname(dirname(fileURLToPath(import.meta.url)));
+	return basename(candidate) === "dist" ? dirname(candidate) : candidate;
+}
 
 export type BrowserExecutorCompositionOptions = {
 	platformHost: LocalApplicationConfig;
@@ -108,12 +114,13 @@ function applicationConfig(
 	return { endpoint: input.endpoint.replace(/\/$/, ""), token: input.token };
 }
 
-async function invokeApplication(
+async function invokeOwnerApplication(
 	config: LocalApplicationConfig,
+	surface: "observer" | "task" | "approval",
 	operation: string,
 	input: Record<string, unknown>,
 ): Promise<unknown> {
-	const response = await fetch(`${config.endpoint}/application/observer`, {
+	const response = await fetch(`${config.endpoint}/application/${surface}`, {
 		method: "POST",
 		headers: {
 			authorization: `Bearer ${config.token}`,
@@ -134,6 +141,14 @@ async function invokeApplication(
 	return body;
 }
 
+async function invokeApplication(
+	config: LocalApplicationConfig,
+	operation: string,
+	input: Record<string, unknown>,
+): Promise<unknown> {
+	return invokeOwnerApplication(config, "observer", operation, input);
+}
+
 /**
  * Node-side Browser Executor composition. This deliberately does NOT create an
  * Execution Runtime process. The single formal execution-runtime binary owns
@@ -143,7 +158,23 @@ export async function createBrowserExecutorComposition(
 	options: BrowserExecutorCompositionOptions,
 ) {
 	const platformHost = applicationConfig(options.platformHost);
-	const bridge = await createBrowserRealityBridgeServer(options.bridge);
+	const root = packageRoot();
+	const taskHtml = (await readFile(resolve(root, "extension/tasks.html"), "utf8")).replace(
+		"../dist/extension/tasks.js",
+		"/tasks/app.js",
+	);
+	const taskScript = await readFile(resolve(root, "dist/extension/tasks.js"), "utf8");
+	const bridge = await createBrowserRealityBridgeServer({
+		...options.bridge,
+		taskWeb: {
+			html: taskHtml,
+			script: taskScript,
+			invokeTask: (operation, input) =>
+				invokeOwnerApplication(platformHost, "task", operation, input),
+			invokeApproval: (operation, input) =>
+				invokeOwnerApplication(platformHost, "approval", operation, input),
+		},
+	});
 	try {
 		const browserExecutor = createExecutionBrowserExtension({
 			browser: bridge.browser,

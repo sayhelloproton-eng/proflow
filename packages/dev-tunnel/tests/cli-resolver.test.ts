@@ -20,4 +20,8 @@ test("Dev Tunnel CLI is pinned and resolved inside the dev-tunnel package", asyn
 	assert.doesNotMatch(source, /systemCommand|source:\s*"system"/);
 	assert.doesNotMatch(source, /\.proflow[\\/]tools[\\/]devtunnel/);
 	assert.match(source, /AbortSignal\.timeout\(DOWNLOAD_TIMEOUT_MS\)/);
+	assert.doesNotMatch(source, /\["--version"\]/);
+	assert.match(source, /artifactSha256/);
+	assert.match(source, /version === MANAGED_DEV_TUNNEL_VERSION/);
+	assert.match(source, /version: MANAGED_DEV_TUNNEL_VERSION/);
 });

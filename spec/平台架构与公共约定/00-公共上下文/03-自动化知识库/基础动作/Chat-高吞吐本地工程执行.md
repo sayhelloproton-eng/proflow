@@ -47,13 +47,14 @@ Reality Plane   Playwright Chrome
 | 任务类型 | 默认第一入口 | 典型链路 |
 |---|---|---|
 | 首次接管大仓、目录/内容未知、跨目录文档/配置交叉审计、迁移覆盖 | Repomix | 最小相关范围 → 按证据扩父级/领域 → 必要时全仓 → CodeGraph → Local Dev |
-| 已知 symbol/入口、单包局部 bug、明确调用链/依赖问题 | CodeGraph | CodeGraph → Local Dev |
-| 当前文件精确读写、Git/测试/命令、已知路径机械动作 | Local Dev | Local Dev；需要结构证明时补 CodeGraph |
+| 已知 symbol/入口、单包局部 bug、明确调用链/依赖问题 | Repomix | pack 当前 package / 最小相关目录 → grep/read → CodeGraph → Local Dev |
+| 当前文件代码理解/修改 | Repomix | pack owning package / 最小相关目录 → grep/read → 必要时 CodeGraph → Local Dev |
+| 纯 Git/测试/命令、无需代码理解的已知机械动作 | Local Dev | Local Dev |
 | Web UI、登录、授权、扩展、真实 ChatGPT 页面 | Playwright | Playwright 观察 → 必要时 CodeGraph/Local Dev 归因 → Playwright 复验 |
 
 **判断标准不是“哪个工具更强”，而是谁能以最少往返消除当前最大的不确定性。**
 
-## 3. 广域任务：Repomix Context Plane
+## 3. 仓库任务：Repomix Context Plane
 
 ### 3.1 Progressive Context Ladder：从最小范围逐层拿文件
 
@@ -61,10 +62,12 @@ Reality Plane   Playwright Chrome
 
 ```text
 L0 已知 symbol / 已知文件 / 已知入口
-   → CodeGraph 或 Local Dev，Repomix = 0
+   → Repomix pack owning package / 最小相关目录
+   → grep/read 同一 outputId，先批量理解实现、测试、配置和邻接文件
+   → 再进入 CodeGraph / Local Dev
 
 L1 已知 package / 目录，内容未知
-   → Repomix list / pack 该最小目录
+   → Repomix pack 该 package / 最小目录
    → grep → 小范围 read
 
 L2 发现问题跨父目录 / 多 package / 一个领域
@@ -95,11 +98,11 @@ pack_codebase(directory)
 - 大仓库先用 `includePatterns / ignorePatterns / outputPatterns` 控制输入域。能 pack 全仓不代表每次都应该 pack 全仓。
 - `outputId` 是 pack 时刻的稳定快照，不是永远最新的磁盘真值。源文件在后续修改后，以 Local Dev 当前磁盘/diff 为准；跨越重大修改阶段继续做广域分析时再重新 pack。
 - Repomix 适合回答“有哪些相关文件/文档/配置、哪些目录涉及某主题、跨版本/跨目录内容如何交叉比较”；**不负责证明 caller/callee、runtime composition、ownership 或 blast radius**，这些交给 CodeGraph。
-- 已知单函数/单文件问题不要强制 Repomix；否则会把 `CodeGraph → Local Dev` 的短链变成多余的 `pack → grep → CodeGraph → Local Dev`。
+- 已知单函数/单文件问题同样先用 Repomix，但 pack 范围只到 owning package / 最小相关目录；目的不是扩大阅读，而是一次批量获得实现、测试、配置和邻接上下文，避免后续 per-file read loop。
 
-## 4. 窄域任务：CodeGraph Structure Plane
+## 4. Repomix 后的结构证明：CodeGraph Structure Plane
 
-- 已进入结构问题后，调用链、ownership、runtime composition、依赖与影响范围必须优先 CodeGraph；广域任务可先由 Repomix Context Plane 收窄候选区域，再进入 CodeGraph。
+- 仓库理解/修改任务先由 Repomix 在最小充分范围建立 Context；随后若涉及调用链、ownership、runtime composition、依赖与影响范围，再由 CodeGraph 精确证明。窄域也不跳过 Repomix，只缩小 pack 范围。
 - `codegraph_explore` 已返回的 verbatim current-on-disk source 等价于 Read，禁止马上再 `read_file` 同一内容。
 - dirty working tree 仍可用 CodeGraph 导航；若 graph 关系与当前磁盘冲突，以当前 source/diff 为真值，只把冲突节点视为 stale。
 - 一个改动域原则上一次 explore；不要用多个小 query 模拟 grep loop。只有第一轮没有覆盖关键节点时才补第二次。
@@ -218,7 +221,7 @@ observe / screenshot
 结束时快速检查：
 
 ```text
-CONTEXT_PACK_COUNT         = 0～1（广域任务通常 1；窄域任务 0）
+CONTEXT_PACK_COUNT         = 1（仓库理解/修改任务；窄域也为 1，只缩小范围；纯机械/Browser 可为 0）
 STRUCTURE_DISCOVERY_COUNT  ≈ 1
 FULL_PACK_READ             = NO
 REDUNDANT_REREAD           = 0（原则上）

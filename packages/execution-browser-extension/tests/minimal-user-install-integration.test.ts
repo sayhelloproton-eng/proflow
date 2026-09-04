@@ -119,6 +119,13 @@ async function reconnectInstalledExtension(workspaceRoot: string) {
 				},
 			);
 			if (!hello.ok) throw new Error("HELLO_REJECTED");
+			const poll = await callExtension(
+				runtime.proflowRuntimeBridge.endpoint,
+				runtime.proflowRuntimeBridge.token,
+				`/v1/commands/next?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`,
+				{},
+			);
+			if (poll.status !== 204) throw new Error("COMMAND_POLL_REJECTED");
 			const heartbeat = await callExtension(
 				runtime.proflowRuntimeBridge.endpoint,
 				runtime.proflowRuntimeBridge.token,
