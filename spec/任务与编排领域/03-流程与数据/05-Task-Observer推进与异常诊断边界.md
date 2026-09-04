@@ -88,6 +88,8 @@ Task Node 可以继续保持 IN_PROGRESS；结果就绪后由 Observer resume Wo
 
 Carrier Attention 的人工 `deny` 不是新的 Task/Node 状态，也不是 business wait command。Browser Carrier 可用 occurrence-scoped continuation denial 抑制当前 tab/Worker 下一次 `BLOCKED → IDLE` 自动 recovery；该记录消费一次即失效，不得影响其他 Worker。`allowOnce` 仍走普通 IDLE recovery。Task Observer 不读取 ChatGPT 按钮、不写该 transient 记录，也不因此修改 Task truth。
 
+Task Observer 的 startup scan、scheduled retry、Task application event 与 durable resume signal 共享同一 Carrier dispatch port；Background 必须在实际 WAKE/RESUME 前执行 active-denial final guard。该 guard 属 Browser Carrier transient control，不进入 Task Observer decision logic 或 Task Store。
+
 ## 6. REASON 只作异常诊断旁路
 
 正常 READY/RESULT/REPLY 不调用模型。只有单 Task 出现：

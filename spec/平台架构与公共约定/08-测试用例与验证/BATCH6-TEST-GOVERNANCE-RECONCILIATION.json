@@ -7,11 +7,11 @@
   },
   "currentMechanicalInventory": {
     "testPlans": 39,
-    "formalCaseIdentities": 345,
-    "criticalProofs": 219,
-    "requiredFailureBoundaries": 126,
-    "executableTestFiles": 158,
-    "executableTestCalls": 720,
+    "formalCaseIdentities": 349,
+    "criticalProofs": 222,
+    "requiredFailureBoundaries": 127,
+    "executableTestFiles": 159,
+    "executableTestCalls": 725,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -2943,6 +2943,90 @@
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-33",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-34",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-35",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -7532,6 +7616,34 @@
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-EXE-BR-28",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {

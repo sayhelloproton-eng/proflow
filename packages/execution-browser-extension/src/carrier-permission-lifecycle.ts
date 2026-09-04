@@ -25,11 +25,18 @@ export async function resolveRoutineCarrierPermission(input: {
 	facts: ActionPermissionFacts;
 	autoAlreadyAttempted: boolean;
 	maxClassifications?: number;
+	humanDenied?: () => boolean;
 	port: CarrierPermissionLifecyclePort;
 }): Promise<CarrierPermissionLifecycleResult> {
+	const denied = (): CarrierPermissionLifecycleResult | null =>
+		input.humanDenied?.()
+			? { status: "HUMAN_REQUIRED", reason: "HUMAN_DENIED" }
+			: null;
 	const maxClassifications = Math.max(1, input.maxClassifications ?? 40);
 	let decision: CarrierPermissionDecision | null = null;
 	for (let attempt = 0; attempt < maxClassifications; attempt += 1) {
+		const beforeClassification = denied();
+		if (beforeClassification) return beforeClassification;
 		try {
 			decision = await input.port.classify();
 		} catch {
@@ -38,6 +45,8 @@ export async function resolveRoutineCarrierPermission(input: {
 				reason: "PERMISSION_CLASSIFICATION_FAILED",
 			};
 		}
+		const afterClassification = denied();
+		if (afterClassification) return afterClassification;
 		if (decision.decision !== "DEFER") break;
 		if (!(await input.port.revalidate())) return { status: "STALE" };
 		if (attempt === maxClassifications - 1)
@@ -65,6 +74,8 @@ export async function resolveRoutineCarrierPermission(input: {
 			reason: "AUTO_ALLOW_REALITY_UNCONFIRMED",
 		};
 	if (!(await input.port.revalidate())) return { status: "STALE" };
+	const beforeAction = denied();
+	if (beforeAction) return beforeAction;
 	try {
 		await input.port.act("allowAlways");
 	} catch {

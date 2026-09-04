@@ -17,6 +17,23 @@ export type CarrierRecoveryObservation = {
 	blockerFacts?: { fingerprint: string };
 };
 
+export type CarrierPermissionDenialContext = {
+	tabId: number;
+	contentInstanceId: string;
+	url: string;
+	permissionFingerprint: string;
+	taskId: string | null;
+	roleRef: string | null;
+	workerRef: string | null;
+};
+
+export type CarrierDispatchDenialContext = {
+	taskId: string;
+	roleRef: string;
+	workerRef: string;
+	conversationLocator: string | null;
+};
+
 function parseDenials(value: unknown): CarrierContinuationDenial[] | null {
 	if (value === undefined) return [];
 	if (!Array.isArray(value) || value.length > 128) return null;
@@ -76,6 +93,31 @@ export function createCarrierContinuationControl(initial?: unknown) {
 		cancelDenied(attentionRef: string): boolean {
 			for (const [tabId, denial] of byTab)
 				if (denial.attentionRef === attentionRef) return byTab.delete(tabId);
+			return false;
+		},
+		hasMatchingPermissionDenial(
+			context: CarrierPermissionDenialContext,
+		): boolean {
+			const denial = byTab.get(context.tabId);
+			return (
+				denial?.contentInstanceId === context.contentInstanceId &&
+				denial.url === context.url &&
+				denial.permissionFingerprint === context.permissionFingerprint &&
+				denial.taskId === context.taskId &&
+				denial.roleRef === context.roleRef &&
+				denial.workerRef === context.workerRef
+			);
+		},
+		hasMatchingDispatchDenial(context: CarrierDispatchDenialContext): boolean {
+			if (context.conversationLocator === null) return false;
+			for (const denial of byTab.values())
+				if (
+					denial.taskId === context.taskId &&
+					denial.roleRef === context.roleRef &&
+					denial.workerRef === context.workerRef &&
+					denial.url === context.conversationLocator
+				)
+					return true;
 			return false;
 		},
 		consumeRecovery(

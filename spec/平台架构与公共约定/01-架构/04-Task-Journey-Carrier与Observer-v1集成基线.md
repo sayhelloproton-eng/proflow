@@ -230,6 +230,8 @@ ChatGPT Action permission 不再假设“用户此前已手工 Always Allow”�
 
 人工 Carrier Attention 的 `allowOnce` 允许正常 continuation；`deny` 只抑制当前 occurrence 对应的下一次 matching page-idle recovery，不得写 Task/Execution/Approval 或关闭其他 Worker。Attention action ref 必须按 occurrence 唯一，content replacement 与 release 后旧 ref 必须 stale。主 loopback `/tasks` 通过 authenticated Bridge 展示和 relay，Extension 页面仅作 fallback；MV3 restart 必须主动 re-observe 现存 GPT tabs，且沿用 no-blind-replay uncertain-attempt 事实。
 
+当前 denial 未被真实 continuation reality 消费前，Human Deny 高于 routine permission classification：restart/re-observe 或后续 binding 变为 trusted 都不得把同一 occurrence 重新 `AUTO_ALLOW`。所有 Observer 来源仍由 Task Observer 形成 typed decision，但 Background Carrier Controller 必须在物理 WAKE/RESUME dispatch 前执行 matching denial guard；它只匹配当前 task/role/worker/locator，不是全局 Task stop 或永久 blacklist。
+
 ## 11. Logging / Trace
 
 Business Fact、Evidence、Structured Log 必须分开。统一 trace axes：

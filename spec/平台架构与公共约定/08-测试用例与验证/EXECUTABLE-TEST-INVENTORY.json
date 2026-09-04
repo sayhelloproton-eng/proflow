@@ -2,8 +2,8 @@
   "contract": "proflow.executable-test-inventory.v2",
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
-    "files": 158,
-    "testCalls": 720
+    "files": 159,
+    "testCalls": 725
   },
   "tests": [
     {
@@ -2556,6 +2556,86 @@
       "implementationRefs": [
         "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-browser-extension/src/bridge.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts",
+      "line": 55,
+      "title": "CP-EXE-BR-33 deny plus same BLOCKED permission survives restart without auto action",
+      "ids": [
+        "CP-EXE-BR-33"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts",
+      "line": 85,
+      "title": "CP-EXE-BR-33 a later trusted context cannot override the same denied continuation",
+      "ids": [
+        "CP-EXE-BR-33"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts",
+      "line": 98,
+      "title": "CP-EXE-BR-33 denial established during classification still wins before auto action",
+      "ids": [
+        "CP-EXE-BR-33"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts",
+      "line": 129,
+      "title": "CP-EXE-BR-34 active denial is the final guard before every Observer WAKE or RESUME",
+      "ids": [
+        "CP-EXE-BR-34"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts",
+      "line": 184,
+      "title": "CP-EXE-BR-35 consumed denial does not blacklist a future permission occurrence",
+      "ids": [
+        "CP-EXE-BR-35"
+      ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
       ]
     },
     {

@@ -224,3 +224,12 @@ Batch 3 不通过越权补实现来强行关闭以下跨批依赖：
 | CP-32 | `tests/carrier-attention-web-bridge.test.ts` | real loopback HTTP/auth/command relay；Extension command result 为 controlled fixture。 |
 
 本 Addendum 的 automated PASS 仍不等于 Real-3 J1 PASS；不得据此声称三 Worker 已在真实 Chrome 中创建或绑定。
+
+### Human Deny final guard invariant
+
+- [ ] **CP-EXE-BR-33** — deny 已持久化且同一 BLOCKED permission 在 MV3 restart 后仍存在时，即使 authoritative policy 已可 `AUTO_ALLOW`，permission lifecycle 仍在 classify/reclassify/action 前返回 `HUMAN_DENIED`，零 `allowAlways/allowOnce/automatic click`，并重建 human-visible Attention。
+- [ ] **CP-EXE-BR-34** — page-idle、startup、scheduled retry、Task application event 与 durable `RECOVERY_RESUME` 的 WAKE/RESUME 在实际 Carrier dispatch 前均受 matching `taskId/roleRef/workerRef/conversationLocator` denial guard；Task Observer 不包含 Permission case logic。
+- [ ] **CP-EXE-BR-35** — denial 被真实 matching IDLE reality 消费后，同 fingerprint 的新 occurrence 使用新 occurrenceRef，并可重新进入正常 trusted AUTO_ALLOW；Deny 不形成永久 blacklist。
+- [ ] **RF-EXE-BR-28** — restart 的 BLOCKED re-observe 先执行 routine auto strategy、或任何 Observer 入口直接 dispatch 而绕过 active human denial。
+
+**Executable proof**：`tests/carrier-human-deny-lifecycle.test.ts`（restart + same BLOCKED、trusted context 不覆盖 Deny、全部 Observer dispatch 最后 guard、消费后未来 occurrence 可正常 AUTO_ALLOW）。真实 Chrome/Deny 行为仍保留在人工 E2E gate。

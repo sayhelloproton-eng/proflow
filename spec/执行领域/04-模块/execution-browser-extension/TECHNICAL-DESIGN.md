@@ -632,6 +632,8 @@ Carrier Attention 是 occurrence-scoped transient projection。`attentionRef` �
 
 人工 `allowOnce` 解除 blocker 后仍允许正常 `BLOCKED → IDLE` Observer recovery。人工 `deny` 则在点击前持久化一个只绑定当前 Attention/tab/Task/Role/Worker/URL 的 continuation denial；它只消费并抑制下一次 matching IDLE recovery，不改变 Task、Execution 或 Approval，不影响其他 tab/Worker，也不形成永久停用。
 
+在该 denial 被真实 `IDLE` continuation 消费前，**Human Deny 是当前 occurrence/context 的最高优先级 transient Carrier guard**。Permission handler 必须在 classify、DEFER reclassify 与 automatic semantic action 前按 `tab/contentInstanceId/URL/fingerprint/task/role/worker` 复验；命中时只保持/重建 `HUMAN_DENIED` Attention，禁止 `AUTO_ALLOW`。Task Observer 保持不了解 Permission，但 Background Carrier Controller 必须在每次实际 `task.wake` dispatch 前按 `taskId/roleRef/workerRef/conversationLocator` 做最后 guard，使 startup、scheduled retry、Task application event 与 durable resume signal 都不能绕过人类拒绝。
+
 主 `/tasks` loopback 页面通过 authenticated Browser Reality Bridge 接收 bounded Attention mirror，并把 `allowOnce/deny` relay 为 Extension command；cookie session、exact same-origin、current Attention ref 与 action allowlist 任一不满足即拒绝。Extension-owned Tasks 页面继续作为直接 runtime fallback。
 
 MV3 Background 初始化、`onStartup` 与 `onInstalled` 必须主动查询现有 `https://chatgpt.com/g/*` tab，并向 live Content Script 请求只读 snapshot，以重建 session/Attention；不得等待 DOM Mutation 才恢复。持久化的 uncertain auto-attempt 继续禁止 restart 后重复点击。

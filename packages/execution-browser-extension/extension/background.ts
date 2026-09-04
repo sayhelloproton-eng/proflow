@@ -527,6 +527,8 @@ const taskObserver = createTaskObserver({
 	},
 	carrier: {
 		async requestWake(input) {
+			if (carrierContinuationControl.hasMatchingDispatchDenial(input))
+				throw new Error("CARRIER_CONTINUATION_HUMAN_DENIED");
 			return invokeObserverApplication("task.wake", input);
 		},
 	},
@@ -1047,11 +1049,25 @@ async function handleActionPermission(
 		return;
 	permissionHandling.set(observed.tabId, key);
 	try {
+		const identity = carrierIdentity(observed.url);
+		const humanDenied = () =>
+			carrierContinuationControl.hasMatchingPermissionDenial({
+				tabId: observed.tabId,
+				contentInstanceId: observed.contentInstanceId,
+				url: observed.url,
+				permissionFingerprint: facts.fingerprint,
+				taskId: facts.taskId,
+				roleRef: identity?.roleRef ?? null,
+				workerRef: identity?.workerRef ?? null,
+			});
+		if (humanDenied()) {
+			setCarrierAttention(observed, "HUMAN_DENIED");
+			return;
+		}
 		if (!(await restoreTransientPermissionAttempts())) {
 			setCarrierAttention(observed, "PERMISSION_ATTEMPT_STATE_UNAVAILABLE");
 			return;
 		}
-		const identity = carrierIdentity(observed.url);
 		if (!identity || !facts.taskId) {
 			setCarrierAttention(observed, "PERMISSION_CONTEXT_INCOMPLETE");
 			return;
@@ -1059,6 +1075,7 @@ async function handleActionPermission(
 		const result = await resolveRoutineCarrierPermission({
 			facts,
 			autoAlreadyAttempted: permissionAutoAttempts.has(observed.tabId, key),
+			humanDenied,
 			port: {
 				async classify(): Promise<CarrierPermissionDecision> {
 					const value = await invokeObserverApplication(
