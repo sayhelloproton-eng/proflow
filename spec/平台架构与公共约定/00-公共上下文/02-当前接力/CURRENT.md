@@ -23,14 +23,15 @@ PHASE3_FINAL_GO = NO
 
 ```text
 branch = main
-HEAD = e02c130fd182b791b57ffe509d1c8dfbb6a4da60
-working tree = 5-file scoped WIP against e02c130; not committed
+HEAD = 842917f74d9eadcfaecf08e8fa63ecfe59d98382
+working tree = clean
 LOCAL_BROWSER_FIX_GREEN = YES / strict causal receipt candidate
 PACKAGE_GATE = PASS / 155 of 155 tests + package typecheck
 ROOT_TYPECHECK = PASS
 BUILD = PASS
 SCOPED_BIOME_AND_DIFF_CHECK = PASS
-NEEDS_REAL_RELEASE = NO / Browser candidate controller audit accepted; UNKNOWN continuation still requires user decision
+BROWSER_REPAIR_CHECKPOINT = COMMITTED / 842917f / controller-audited local candidate
+NEEDS_REAL_RELEASE = NO / UNKNOWN continuation implementation boundary not yet closed
 Registry execution-browser-extension@0.1.39 = PRESENT / VERIFIED
 Product Workspace execution-browser-extension = 0.1.39 / VERIFIED
 Chrome ProFlow Execution Browser = 0.1.39 / VERIFIED
@@ -44,7 +45,7 @@ status reason = Chrome 扩展已加载，但当前运行会话未在线；公开
 ## CURRENT_CHECKPOINT
 
 ```text
-REAL_3_J1_BROWSER_IDENTITY_CAUSAL_REPAIR_AND_UNKNOWN_CONTINUATION_DECISION
+REAL_3_J1_UNKNOWN_CONTINUATION_IMPLEMENTATION_DECISION
 ```
 
 ## CURRENT_PROBLEM
@@ -54,7 +55,7 @@ problem class = BROWSER_IDENTITY_LIFECYCLE + EXECUTION_UNKNOWN_CONTINUATION_GAP
 primary owning package = @tomflow/proflow-execution-browser-extension
 secondary owner for continuation gap = @tomflow/proflow-execution-runtime / execution contracts
 first reality = 已取得固定 Product / Dev / Test Browser 错位证据；后续真实复验仍必须 screenshot-first
-current stop point = Browser causal candidate 已自动化全绿；三个既有 UNKNOWN 均仍不能机械判 NOT_APPLIED，最小 continuation 方案 C 需要用户授权 Public API 边界，禁止 bump / publish / update / Recover
+current stop point = Browser causal patch 已独立提交并冻结；三个既有 UNKNOWN 均仍不能机械判 NOT_APPLIED，下一步只处理 Formal UNKNOWN/Human continuation 的最小实现边界，禁止 bump / publish / update / Recover
 ```
 
 ### 已确认事实
@@ -95,13 +96,14 @@ Test execution = execution:567be187-f585-4d08-bb33-6fbe25e84aed
 
 ## NEXT_ACTION
 
-1. 总控已完成 baseline `e02c130` → 当前 5-file WIP 审计，并独立重跑 critical proofs `24/24 PASS` + `git diff --check PASS`；Browser causal candidate 接受为本地候选，但仍未 commit、bump、publish 或跑真实 Chrome。
-2. 用户裁决 continuation 方案 C 的 Public API 边界；未经授权不得实现 operator resolution，也不得把当前 tab 零候选直接等同 exhaustive `NOT_APPLIED`。
-3. Browser patch 与 UNKNOWN continuation patch 保持分批；只有固定三条 UNKNOWN 有合法 continuation 后，才决定 release package set 与顺序并回 SAME SCENE。
+1. Browser causal repair 已冻结为 commit `842917f`；后续 UNKNOWN continuation 以该 SHA 为新 baseline，不再修改 Browser correctness patch，除非出现新的机械反证。
+2. 下一轮一次性完成 UNKNOWN continuation 的实现审计与最小 patch：先用 Repomix 聚合 `execution-contracts + execution-runtime + execution-browser-extension`，再用 CodeGraph 收敛 public API / runtime transition / verifier blast radius；只允许符合 Frozen `UNKNOWN → SUCCEEDED/FAILED/UNKNOWN` 语义的实现。
+3. 自动 `NOT_APPLIED` 仅可建立在完备 negative authority 上；`listTabs()==0` 不得视为 absence。若 legacy UNKNOWN 无法机械收敛，最小 Human/operator resolution 必须 Execution-owned、认证、幂等、可审计并 fail-closed；不新增 `ABANDONED` 状态，不改 DB 绕过。
+4. UNKNOWN patch 本地 Gate 完成后由总控审计，再统一决定受影响 package release set 与顺序；Browser/Execution 都未闭环前不回真实 SAME SCENE。
 
 ## STOP_POINT
 
-当前 STOP POINT 是：`BROWSER_CAUSAL_CANDIDATE_GREEN / NO_RELEASE_AUTHORIZATION / OPERATOR_RESOLUTION_PUBLIC_API_DECISION_REQUIRED`。禁止 bump/publish/update/Recover、创建第二笔 Execution、修改 Owner DB 或清理旧 Browser evidence。
+当前 STOP POINT 是：`BROWSER_REPAIR_COMMITTED / UNKNOWN_CONTINUATION_IMPLEMENTATION_DECISION / NO_RELEASE_AUTHORIZATION`。禁止 bump/publish/update/Recover、创建第二笔 Execution、修改 Owner DB 或清理旧 Browser evidence。
 
 ## RECENTLY_CLOSED
 
