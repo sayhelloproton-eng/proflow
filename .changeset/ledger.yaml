@@ -575,6 +575,10 @@
   dir: packages/execution-browser-extension
   intents:
     - real3-tasks-web-self-contained
+"@tomflow/proflow-execution-browser-extension@0.1.41":
+  dir: packages/execution-browser-extension
+  intents:
+    - real3-task-observer-recovery
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
