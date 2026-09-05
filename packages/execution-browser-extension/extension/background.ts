@@ -540,6 +540,30 @@ const taskObserver = createTaskObserver({
 	},
 });
 
+async function resumeAfterApprovalDecision(approvalRef: string) {
+	const context = await invokeObserverApplication("approval.executionContext", {
+		approvalRef,
+	});
+	if (
+		!isRecord(context) ||
+		typeof context.executionRef !== "string" ||
+		typeof context.taskId !== "string" ||
+		typeof context.nodeId !== "string" ||
+		!Number.isInteger(context.runNo) ||
+		Number(context.runNo) <= 0 ||
+		typeof context.roleRef !== "string" ||
+		typeof context.workerRef !== "string"
+	)
+		throw new Error("APPROVAL_EXECUTION_GENERATION_REQUIRED");
+	return taskObserver.drive(context.taskId, {
+		trigger: "RECOVERY_RESUME",
+		ref: approvalRef,
+		targetWorkerRef: context.workerRef,
+		nodeId: context.nodeId,
+		runNo: Number(context.runNo),
+	});
+}
+
 const collaborationCarrier = createCollaborationCarrierApplication({
 	task: {
 		async getWorkerBinding(taskId, roleRef) {
@@ -710,29 +734,37 @@ function runObserverRecovery() {
 						)
 					)
 						continue;
-					const decision =
-						candidate.kind === "RECOVERY_RESUME"
-							? await taskObserver.drive(candidate.taskId, {
-									trigger: "RECOVERY_RESUME",
-									ref: candidate.executionRef,
-									targetWorkerRef: candidate.workerRef,
-									...(typeof candidate.nodeId === "string"
-										? { nodeId: candidate.nodeId }
-										: {}),
-									...(typeof candidate.runNo === "number"
-										? { runNo: candidate.runNo }
-										: {}),
-								})
-							: candidate.kind === "UNKNOWN_REALITY"
-								? await taskObserver.drive(candidate.taskId, undefined, {
-										kind: "UNKNOWN_REALITY",
-										ref: candidate.executionRef,
-										facts: {
-											executionRef: candidate.executionRef,
-											summary: `Execution ${candidate.executionRef} recovery remains UNKNOWN`,
-										},
-									})
-								: null;
+					let decision;
+					if (candidate.kind === "RECOVERY_RESUME") {
+						if (
+							typeof candidate.nodeId !== "string" ||
+							typeof candidate.runNo !== "number"
+						) {
+							// Missing generation is a permanent malformed resume intent, not a
+							// transient binding condition. Dispose it without ever waking a Worker
+							// so an old signal cannot occupy the bounded pending queue forever.
+							await invokeObserverApplication("execution.ackSignal", {
+								signalRef: candidate.signalRef,
+							});
+							continue;
+						}
+						decision = await taskObserver.drive(candidate.taskId, {
+							trigger: "RECOVERY_RESUME",
+							ref: candidate.executionRef,
+							targetWorkerRef: candidate.workerRef,
+							nodeId: candidate.nodeId,
+							runNo: candidate.runNo,
+						});
+					} else if (candidate.kind === "UNKNOWN_REALITY")
+						decision = await taskObserver.drive(candidate.taskId, undefined, {
+							kind: "UNKNOWN_REALITY",
+							ref: candidate.executionRef,
+							facts: {
+								executionRef: candidate.executionRef,
+								summary: `Execution ${candidate.executionRef} recovery remains UNKNOWN`,
+							},
+						});
+					else decision = null;
 					if (!decision) continue;
 					if (
 						decision.kind === "NOOP" &&
@@ -1880,17 +1912,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 						message.operation === "approval.deny" ||
 						message.operation === "approval.revoke") &&
 					isRecord(value) &&
-					typeof value.approvalRef === "string" &&
-					typeof value.taskId === "string" &&
-					typeof value.workerRef === "string"
+					typeof value.approvalRef === "string"
 				)
-					void taskObserver
-						.drive(value.taskId, {
-							trigger: "RECOVERY_RESUME",
-							ref: value.approvalRef,
-							targetWorkerRef: value.workerRef,
-						})
-						.catch(() => undefined);
+					void resumeAfterApprovalDecision(value.approvalRef).catch(
+						() => undefined,
+					);
 				sendResponse({ ok: true, value });
 			},
 			(error: unknown) =>

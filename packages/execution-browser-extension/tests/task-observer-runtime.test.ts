@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
 	createTaskObserver,
 	type TaskDriveProjection,
+	type TaskObserverResumeSignal,
 } from "../src/task-observer.ts";
 
 function projection(
@@ -151,6 +152,8 @@ test("PRESMOKE-B3-OBSERVER-04 async owner event emits RESUME with the same durab
 		trigger: "PEER_REPLY_READY",
 		ref: "message:reply-1",
 		targetWorkerRef: "c-dev",
+		nodeId: "node:dev",
+		runNo: 1,
 	});
 	assert.deepEqual(decision, {
 		kind: "RESUME",
@@ -198,6 +201,8 @@ test("PRESMOKE-B3-OBSERVER-05 async readiness is ignored when binding target/loc
 		trigger: "RECOVERY_RESUME",
 		ref: "recovery:1",
 		targetWorkerRef: "c-other",
+		nodeId: "node:dev",
+		runNo: 1,
 	});
 	assert.deepEqual(wrongWorker, {
 		kind: "NOOP",
@@ -376,13 +381,49 @@ test("RF-B3-OBSERVER-RESUME-01 resume is fenced by active IN_PROGRESS state and 
 		nodeId: "node:dev",
 		runNo: 1,
 	};
+	const currentRun = await observer.drive("task:1", {
+		...signal,
+		ref: "execution:current-run",
+		runNo: 2,
+	});
+	assert.equal(currentRun.kind, "RESUME");
+	assert.equal(wakeCount, 1);
+
+	const missingGeneration = await observer.drive(
+		"task:1",
+		{
+			trigger: "RECOVERY_RESUME",
+			ref: "execution:missing-generation",
+			targetWorkerRef: "c-dev",
+		} as unknown as TaskObserverResumeSignal,
+	);
+	assert.deepEqual(missingGeneration, {
+		kind: "NOOP",
+		taskId: "task:1",
+		reason: "RESUME_GENERATION_REQUIRED",
+	});
+	assert.equal(wakeCount, 1);
+
 	const stale = await observer.drive("task:1", signal);
 	assert.deepEqual(stale, {
 		kind: "NOOP",
 		taskId: "task:1",
 		reason: "RESUME_GENERATION_MISMATCH",
 	});
-	assert.equal(wakeCount, 0);
+	assert.equal(wakeCount, 1);
+
+	const staleNode = await observer.drive("task:1", {
+		...signal,
+		ref: "execution:stale-node",
+		nodeId: "node:old",
+		runNo: 2,
+	});
+	assert.deepEqual(staleNode, {
+		kind: "NOOP",
+		taskId: "task:1",
+		reason: "RESUME_GENERATION_MISMATCH",
+	});
+	assert.equal(wakeCount, 1);
 
 	current = { ...current, taskStatus: "PAUSED" };
 	const paused = await observer.drive("task:1", {
@@ -395,7 +436,7 @@ test("RF-B3-OBSERVER-RESUME-01 resume is fenced by active IN_PROGRESS state and 
 		taskId: "task:1",
 		reason: "BINDING_NOT_READY",
 	});
-	assert.equal(wakeCount, 0);
+	assert.equal(wakeCount, 1);
 
 	current = {
 		...current,
@@ -412,5 +453,5 @@ test("RF-B3-OBSERVER-RESUME-01 resume is fenced by active IN_PROGRESS state and 
 		taskId: "task:1",
 		reason: "BINDING_NOT_READY",
 	});
-	assert.equal(wakeCount, 0);
+	assert.equal(wakeCount, 1);
 });

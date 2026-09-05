@@ -82,7 +82,7 @@ function identityHost(stateRoot: string, workspaceRoot: string, dependencyBaseUr
 async function seedTask(
 	stateRoot: string,
 	workspaceRoot: string,
-	nodeState: "READY" | "IN_PROGRESS" | "PAUSED" = "READY",
+	nodeState: "READY" | "IN_PROGRESS" | "PAUSED" | "REOPEN_READY" = "READY",
 ) {
 	await mkdir(workspaceRoot, { recursive: true });
 	const databasePath = join(stateRoot, "state", "task.sqlite");
@@ -203,6 +203,31 @@ async function seedTask(
 						idempotencyKey: "pause:execution-identity",
 					}),
 				);
+			if (nodeState === "REOPEN_READY") {
+				const failed = ok(
+					services.commands.failNode({
+						taskId: created.taskId,
+						nodeId: "node-dev",
+						expectedTaskVersion: running.taskVersion,
+						expectedNodeVersion: running.nodeVersion,
+						errorCode: "TEST_REOPEN",
+						errorMessage: "prepare reopened generation",
+						retryable: true,
+						actorRef: `worker:${workers.dev}`,
+						idempotencyKey: "fail-node:execution-identity",
+					}),
+				);
+				ok(
+					services.commands.reopenNode({
+						taskId: created.taskId,
+						nodeId: "node-dev",
+						reason: "verify REOPEN admission",
+						expectedTaskVersion: failed.version,
+						actorRef: "human:operator",
+						idempotencyKey: "reopen-node:execution-identity",
+					}),
+				);
+			}
 			projection = ok(
 				services.queries.getTaskDriveProjection({ taskId: created.taskId }),
 			);
@@ -211,12 +236,18 @@ async function seedTask(
 		assert.equal(projection.currentNode?.nodeId, "node-dev");
 		assert.equal(
 			projection.currentNode?.status,
-			nodeState === "READY" ? "READY" : "IN_PROGRESS",
+			nodeState === "READY" || nodeState === "REOPEN_READY"
+				? "READY"
+				: "IN_PROGRESS",
 		);
-		assert.equal(projection.currentNode?.runNo, 1);
+		assert.equal(projection.currentNode?.runNo, nodeState === "REOPEN_READY" ? 2 : 1);
 		assert.equal(projection.roleBinding?.roleRef, roles.dev);
 		assert.equal(projection.roleBinding?.workerRef, workers.dev);
-		return { taskId: created.taskId, currentNodeId: "node-dev", runNo: 1 };
+		return {
+			taskId: created.taskId,
+			currentNodeId: "node-dev",
+			runNo: nodeState === "REOPEN_READY" ? 2 : 1,
+		};
 	} finally {
 		store.close();
 	}
@@ -481,4 +512,32 @@ test("RF-HOST-EXEC-IDENTITY-03 PAUSED Task cannot keep executing the current IN_
 		),
 		false,
 	);
+});
+
+test("CP-HOST-EXEC-IDENTITY-04 reopened READY generation admits REOPEN and rejects NODE_READY", async (context) => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-execution-identity-reopen-"));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	const stateRoot = join(root, ".proflow");
+	const workspaceRoot = join(root, "project");
+	const seeded = await seedTask(stateRoot, workspaceRoot, "REOPEN_READY");
+	const dependency = await readinessStub();
+	context.after(() => dependency.close());
+	const host = identityHost(stateRoot, workspaceRoot, dependency.baseUrl);
+	context.after(() => host.stop());
+	await host.start();
+	const base = {
+		taskId: seeded.taskId,
+		nodeId: seeded.currentNodeId,
+		runNo: seeded.runNo,
+		roleRef: roles.dev,
+		workerRef: workers.dev,
+		workspaceRoot,
+	};
+	assert.equal(
+		await host.executionIdentity.authorize(
+			wakeRequest({ ...base, trigger: "REOPEN" }),
+		),
+		true,
+	);
+	assert.equal(await host.executionIdentity.authorize(wakeRequest(base)), false);
 });

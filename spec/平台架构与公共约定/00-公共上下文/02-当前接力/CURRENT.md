@@ -1,6 +1,6 @@
 # CURRENT｜Phase 3 当前接力
 
-> 更新时间：2026-09-05。这里是下一 Chat 的唯一滚动执行入口；旧 handoff 只在 `90-历史记录`。
+> 更新时间：2026-09-06。这里是下一 Chat 的唯一滚动执行入口；旧 handoff 只在 `90-历史记录`。
 
 ## CURRENT_STAGE
 
@@ -47,34 +47,34 @@ BOSS_INCIDENT = SAFE_STOP / old locator opened BOSS Agent Bridge remove confirma
 MODEL_RUNTIME_0124 = RELEASED_AND_WORKSPACE_UPDATED
 MODEL_PROVIDER_BOUND_URL = http://192.168.0.108:8080/v1 / current /v1/models = HTTP 200 / 4 models
 platform lifecycle = RUNNING / setup 3/3 COMPLETE / start 4 success 19 skipped 0 failed / PLATFORM_READY=YES
-CURRENT_HIGH_CONFIDENCE_CANDIDATE = Platform Host authorizeExecution passes extra runNo into strict getNodeContext({taskId,nodeId}) query; exception is swallowed into false -> IDENTITY_INVALID
-CANDIDATE_STATUS = NOT_YET_CLAIMED_ROOT_CAUSE / must first complete end-to-end Task Orchestration + runNo fencing review before production edit
+ROOT_CAUSE = VERIFIED / Platform Host authorizeExecution passed extra runNo into strict getNodeContext({taskId,nodeId}) query; validation exception collapsed to IDENTITY_INVALID
+LOCAL_FIX_GATE = PASS / A1-A3 generation closure audited by primary Chat; Host 56/56, Execution Runtime 57/57, Extension 159/159, all typechecks and diff-check PASS; release/update pending
 ```
 
-J1/J2 已完成，固定 Task 保持 `ACTIVE/v7/currentNodeId=dev`，Dev=`READY/run1`，Test=`PENDING/run1`。`execution-browser-extension 0.1.41` 已完成 Registry/Workspace/loadDir/Chrome runtime adoption，且真实 `TASK_OBSERVER_RECOVER` 已 `SUCCEEDED`、`task.projection` 已 `SUCCEEDED`，因此“Tasks mutation 后 Observer 不再 drive”的缺口已经 runtime-proven 关闭。当前唯一 blocker 已继续下沉到 `task.wake → worker.wake Execution`：同一 durable wake Execution `execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd` 为 `FAILED/NOT_APPLIED`，Execution Runtime 记录 `ADMISSION_REJECTED / IDENTITY_INVALID`。wake request 的 Task/Node/run/role/worker facts 与 Owner 当前事实一致。当前平台 `3/3` 且 `PLATFORM_READY=YES`，手机模型 `/v1/models` HTTP 200。下一 Chat **不得直接改 authorizeExecution**；必须先完整通读 Task Orchestration 主链与 runNo fencing，再裁决当前高置信候选。
+J1/J2 已完成，固定 Task 仍保持 `ACTIVE/v7/currentNodeId=dev`，Dev=`READY/run1`，Test=`PENDING/run1`；原失败 Execution `execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd` 保留为 `FAILED/NOT_APPLIED/IDENTITY_INVALID` 证据。Task Orchestration 端到端审计、独立反证审计、Codex 实现与主 Chat 二次审计均已完成：strict `getNodeContext` mismatch 为 VERIFIED root cause，A1–A3 generation/identity closure 已通过 targeted + 三包 full/typecheck + diff gate。当前不是继续改代码，而是把候选正式 release/update 到 Product Workspace 与 Chrome runtime，再回同一失败 checkpoint 重试 J3。
 
 ## CURRENT_CHECKPOINT
 
 ```text
-REAL_3_J1_PASS_J2_PASS_J3_WAKE_IDENTITY_ADMISSION_BLOCKED_TASK_ORCHESTRATION_REVIEW_REQUIRED
+REAL_3_J1_PASS_J2_PASS_J3_GENERATION_IDENTITY_FIX_LOCAL_GATE_PASS_RELEASE_UPDATE_PENDING
 ```
 
 ## CURRENT_PROBLEM
 
 ```text
-problem class = REAL3_J3_WORKER_WAKE_EXECUTION_IDENTITY_ADMISSION
-primary current owner = Platform Host execution identity admission + Task Orchestration contract boundary
-browser extension status = 0.1.41 runtime-proven; TASK_OBSERVER_RECOVER SUCCEEDED; task.projection SUCCEEDED; do not reopen Browser recovery wiring
-platform status = setup 3/3 COMPLETE / PLATFORM_READY=YES
-first reality = fixed Task ACTIVE/v7/currentNodeId=dev; Dev READY/run1; Test PENDING/run1; all three RoleBindings exact
-wake reality = task.wake attempted current Dev NODE_READY and returned TASK_WAKE_NOT_CONFIRMED:FAILED:NOT_APPLIED
-execution reality = execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd / worker.wake / FAILED / NOT_APPLIED / ADMISSION_REJECTED / IDENTITY_INVALID
-request reality = callerRef extension:task-observer; taskId/nodeId/runNo/roleRef/workerRef exactly match current Owner truth; Dev Role registration exists; REQUIREMENT document exists on disk
-high-confidence candidate = authorizeExecution invokes strict task.queries.getNodeContext with extra runNo even though getNodeContext contract is strict {taskId,nodeId}; thrown validation failure would be swallowed by authorize catch and surface only as IDENTITY_INVALID
-candidate safety = do NOT patch yet; user requires full Task Orchestration end-to-end review first so runNo fencing/ownership semantics are not weakened merely to make Real-3 pass
-required next proof = read Task creation → requirement → role binding → Human Start → Node READY → Observer → worker.wake → Worker accept/startNode → Execution → complete/fail/wait → next Node → reopen/runNo fencing → Test → terminal, then define positive + stale-run/wrong-worker/wrong-role/wrong-node identity tests before production edit
-non-blocking diagnostic owner = Gateway typed-error collapse remains known and off critical path; do not reopen without new evidence
-current stop point = TASK_ORCHESTRATION_REVIEW_FIRST → adjudicate identity candidate → targeted RED → minimal fix if confirmed → same wake intent retry (safe because prior Execution is FAILED/NOT_APPLIED) → Dev NODE_READY → J3 Execution → Test wake/Execution → Task SUCCEEDED
+problem class = REAL3_J3_GENERATION_IDENTITY_FIX_WAITING_RUNTIME_ADOPTION
+root cause = VERIFIED / Platform Host passed runNo into strict getNodeContext({taskId,nodeId}) query; validation failed and authorizeExecution collapsed it to IDENTITY_INVALID
+fix status = LOCAL_ACCEPTED / A1 Platform Host capability-specific node/run admission + A2 Observer/Approval generation provenance + A3 Execution durable runNo identity
+primary owners = Platform Host admission composition + Execution Runtime durable identity + Execution Browser Extension resume provenance
+browser extension current runtime = 0.1.41 / TASK_OBSERVER_RECOVER SUCCEEDED / fixed Chrome ID retained
+fixed Task reality = ACTIVE/v7/currentNodeId=dev; Dev READY/run1; Test PENDING/run1; all three RoleBindings exact
+original failed wake = execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd / FAILED / NOT_APPLIED / IDENTITY_INVALID; preserved as evidence
+local targeted proof = Host 4/4 PASS; Execution generation 1/1 PASS; Observer/Approval generation 4/4 PASS
+local full proof = Platform Host 56/56 + typecheck PASS; Execution Runtime 57/57 + typecheck PASS; Extension 159/159 + typecheck PASS; git diff --check PASS
+primary-chat audit additions = legacy durable request_json/runNo vs record_json/runNo mismatch now fail-closed; malformed durable RECOVERY_RESUME is terminally acked with zero WAKE
+A4 Browser physical target ownership = DEFERRED / valid independent risk, not part of current fixed Real-3 read-only happy path
+REAL3_REENTRY_AUTHORIZED = YES_AFTER_RELEASE_UPDATE_AND_CHROME_RUNTIME_ADOPTION
+current stop point = RELEASE_CANDIDATE → Registry exact → Product Workspace update → materialized loadDir → Chrome runtime adoption → SAME FIXED TASK J3 wake retry → Dev startNode/J4 → Test → Task SUCCEEDED
 ```
 
 ### 已确认事实
@@ -143,17 +143,16 @@ Test execution = execution:567be187-f585-4d08-bb33-6fbe25e84aed
 
 ## NEXT_ACTION
 
-1. **先完整通读 Task Orchestration，不改生产代码。** 至少按顺序读：`spec/任务与编排领域/README.md` → `01-领域/01-领域宪章与Bounded-Context-Map.md` → `01-领域/02-统一语言与领域模型.md` → `01-领域/03-上下文继承与跨领域边界.md` → `01-领域/04-当前设计原则与非目标.md` → `02-契约/01-Public-API-契约.md` → `03-流程与数据/01-关键流程与状态转换.md` → `04-模块/00-Service与npm模块设计.md` → `04-模块/task-orchestration/TECHNICAL-DESIGN.md` → `07-测试计划/modules/task-orchestration.md`。目标不是复述文档，而是画出 Task creation→binding→start→READY→wake→startNode→Execution→complete/fail/wait→next→reopen/runNo→terminal 的 Owner/State/Fencing 链。
-2. 用 CodeGraph + 当前源码交叉验证 `@tomflow/proflow-task-orchestration`、Platform Host `authorizeExecution`、Execution identity composition、Agent worker validation 的实际调用链。必须明确：TaskRoleBinding vs Node.workerRef、runNo 何时增长、stale run 如何拒绝、Observer 为什么只能 wake、Worker 何时正式 startNode、Execution 与 Node/run 的 scope 是什么。
-3. 只有在 1-2 证明当前高置信候选没有破坏 Frozen Contract 后，才写 targeted RED。最少覆盖：current run/current worker allow；stale run deny；wrong worker deny；wrong role deny；wrong node deny。禁止用“删除 runNo 校验”让 current case 通过。
-4. 若 RED 证明 `getNodeContext(...runNo)` strict-input mismatch 就是 owning root cause，做最小修复：按正式 `getNodeContext({taskId,nodeId})` query 读取 Owner node，再独立比较 `request.runNo` 与 owner `node.runNo`；若完整通读证明应有其它 contract，则 STOP 并按 Spec/Contract 处理，不能自行改语义。
-5. 修复 Gate/发布/Workspace 更新后回**同一个失败 checkpoint**：不得重建 Task、不得重做 Human Start。由于 wake Execution 当前是 `FAILED/NOT_APPLIED`，可按正式 Execution redecision/retry 语义重试同一 intent；必须看到 Dev Conversation 真实 `NODE_READY` 才进入 J3。
-6. J3：Dev Worker 正式 `startNode` 后，通过 Execution 真实读取 `repos/proflow/package.json` 的 name+version，不能由 Controller 本地读取代替。Dev 完成后必须由 Task Owner 自动推进 Test READY。
-7. J4：Test/Ops 由 Observer 自动 wake，并独立通过 Execution 再读同一文件验证相同 name+version。最终 Owner 必须 `Task=SUCCEEDED/currentNodeId=null`，两个 Node 的正式 execution/history/evidence 闭环，才可宣判 `REAL_3=PASS`。
+1. 按 `Package-Update-Loop.md` 对当前 generation/identity closure 做正式 package release plan，只发布真正受变更影响的包；publish 后必须 Registry exact readback，UNKNOWN 时禁止盲重试。
+2. Product Workspace 走公开生命周期 `platform stop → platform update --package <target> → platform setup/start`；验证 Workspace package + `.proflow/deployment` materialization，不直接复制 repo/node_modules。
+3. Browser Extension 若版本变化，完成 Chrome runtime adoption：fresh reality → 一次安全 Reload/Load → fresh screenshot/AX + `service_worker_registration_info.version` readback；禁止复用旧 card ancestor heuristic。
+4. 回同一个 fixed Task/J3 checkpoint；不重建 Task/GPT/Worker，不重做 Human Start。原 wake 为 `FAILED/NOT_APPLIED`，按正式 redecision/retry 语义重放同一 NODE_READY intent；必须在 Dev Conversation 真实看到 NODE_READY 才算 J3 wake PASS。
+5. Dev Worker 正式 `startNode` 后，通过 Execution 真实读取 `repos/proflow/package.json` 的 name+version；完成 Node 后 Owner 必须自动推进 Test READY。
+6. Test/Ops 由 Observer 自动 wake，正式 `startNode` 后独立通过 Execution 再读同一文件；最终 Owner 必须 `Task=SUCCEEDED/currentNodeId=null`，两个 Node history/evidence 闭环，才可宣判 `REAL_3=PASS`。
 
 ## STOP_POINT
 
-当前 STOP POINT 是：`J1_PASS / J2_PASS / TASK_ACTIVE_V7_CURRENT_DEV_READY / PLATFORM_READY_YES / MODEL_RUNTIME_0124_PASS / EXTENSION_0141_CHROME_RUNTIME_PASS / TASK_OBSERVER_RECOVER_RUNTIME_PASS / TASK_WAKE_EXECUTION_FAILED_NOT_APPLIED_IDENTITY_INVALID / TASK_ORCHESTRATION_FULL_REVIEW_REQUIRED_BEFORE_EDIT / J3_DEV_NODE_READY_PENDING / J4_NOT_STARTED / LEGACY_UNKNOWN_PRESERVED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；禁止重新 Human Start、直接 task.start、Recover legacy UNKNOWN、创建新 Task/GPT/Execution、修改 Owner DB、重新发布 0.1.41、再次进入 Extension Manager，或在完整 Task Orchestration 审计前直接修改 `authorizeExecution`。
+当前 STOP POINT 是：`J1_PASS / J2_PASS / TASK_ACTIVE_V7_CURRENT_DEV_READY / GENERATION_IDENTITY_ROOT_CAUSE_VERIFIED / A1_A2_A3_LOCAL_GATE_PASS / REAL3_REENTRY_AUTHORIZED_AFTER_RUNTIME_ADOPTION / RELEASE_UPDATE_PENDING / J3_DEV_NODE_READY_PENDING / J4_NOT_STARTED / LEGACY_UNKNOWN_PRESERVED / A4_BROWSER_TARGET_OWNERSHIP_DEFERRED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；禁止重新 Human Start、直接 task.start、Recover legacy UNKNOWN、创建新 Task/GPT/Execution、修改 Owner DB。
 
 ## RECENTLY_CLOSED
 

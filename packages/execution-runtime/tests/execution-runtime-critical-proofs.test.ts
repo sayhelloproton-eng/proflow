@@ -205,6 +205,68 @@ test("RF-EXE-RT-GENERATION-01 runNo participates in durable Execution idempotenc
 		},
 	);
 	runtime.close();
+
+	const legacyFingerprint = executionInputFingerprint({
+		...run1,
+		runNo: undefined,
+	});
+	const database = new DatabaseSync(databasePath);
+	const durable = database
+		.prepare("SELECT record_json FROM executions WHERE execution_ref=?")
+		.get(first.executionRef) as { record_json: string };
+	const legacyRecord = {
+		...(JSON.parse(durable.record_json) as Record<string, unknown>),
+		inputFingerprint: legacyFingerprint,
+	};
+	database
+		.prepare(
+			"UPDATE executions SET input_fingerprint=?, record_json=? WHERE execution_ref=?",
+		)
+		.run(legacyFingerprint, JSON.stringify(legacyRecord), first.executionRef);
+	database.close();
+
+	const reopened = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => readResult()),
+	});
+	const legacyReplay = await reopened.executeCapability(run1);
+	assert.equal(legacyReplay.executionRef, first.executionRef);
+	await assert.rejects(
+		() => reopened.executeCapability(run2SameKey),
+		(error) =>
+			error instanceof ExecutionRuntimeError &&
+			error.code === "IDEMPOTENCY_CONFLICT",
+	);
+	reopened.close();
+
+	// The old runtime could update request_json to a later generation while
+	// retaining the prior Execution record/runNo. Compatibility must trust both
+	// durable facts, otherwise a run1 terminal record can be returned for run2
+	// before fresh identity admission runs.
+	const inconsistent = new DatabaseSync(databasePath);
+	inconsistent
+		.prepare("UPDATE executions SET request_json=? WHERE execution_ref=?")
+		.run(JSON.stringify(run2SameKey), first.executionRef);
+	inconsistent.close();
+	let crossGenerationAdmissions = 0;
+	const reopenedInconsistent = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => readResult()),
+		identity: {
+			authorize() {
+				crossGenerationAdmissions += 1;
+				return true;
+			},
+		},
+	});
+	await assert.rejects(
+		() => reopenedInconsistent.executeCapability(run2SameKey),
+		(error) =>
+			error instanceof ExecutionRuntimeError &&
+			error.code === "IDEMPOTENCY_CONFLICT",
+	);
+	assert.equal(crossGenerationAdmissions, 0);
+	reopenedInconsistent.close();
 });
 
 test("CP-EXE-RT-02 deterministic deny precedes model and approval cannot be overridden", async () => {

@@ -34,8 +34,8 @@ export type TaskObserverResumeSignal = {
 	trigger: "EXECUTION_RESULT_READY" | "PEER_REPLY_READY" | "RECOVERY_RESUME";
 	ref: string;
 	targetWorkerRef: string;
-	nodeId?: string;
-	runNo?: number;
+	nodeId: string;
+	runNo: number;
 };
 
 export type TaskObserverAnomalySignal = {
@@ -130,6 +130,14 @@ export function createTaskObserver(options: {
 		resumeSignal?: TaskObserverResumeSignal,
 		anomalySignal?: TaskObserverAnomalySignal,
 	): Promise<TaskObserverDecision> => {
+		if (
+			resumeSignal &&
+			(typeof resumeSignal.nodeId !== "string" ||
+				resumeSignal.nodeId.length === 0 ||
+				!Number.isInteger(resumeSignal.runNo) ||
+				resumeSignal.runNo <= 0)
+		)
+			return { kind: "NOOP", taskId, reason: "RESUME_GENERATION_REQUIRED" };
 		const projection = await options.owner.getTaskDriveProjection(taskId);
 		// Terminal Tasks stop driving; history and bindings are retained.
 		if (projection.terminal || projection.currentNode === null)
@@ -191,8 +199,8 @@ export function createTaskObserver(options: {
 			if (projection.taskStatus !== "ACTIVE" || node.status !== "IN_PROGRESS")
 				return { kind: "NOOP", taskId, reason: "BINDING_NOT_READY" };
 			if (
-				(resumeSignal.nodeId !== undefined && resumeSignal.nodeId !== node.nodeId) ||
-				(resumeSignal.runNo !== undefined && resumeSignal.runNo !== node.runNo)
+				resumeSignal.nodeId !== node.nodeId ||
+				resumeSignal.runNo !== node.runNo
 			)
 				return {
 					kind: "NOOP",

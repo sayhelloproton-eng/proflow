@@ -202,10 +202,51 @@ export function executionInputFingerprint(input: unknown): string {
 		callerRef: request.callerRef,
 		taskId: request.taskId,
 		nodeId: request.nodeId,
+		runNo: request.runNo,
 		roleRef: request.roleRef,
 		workerRef: request.workerRef,
 		projectRoot: request.projectRoot,
 	});
+}
+
+function legacyExecutionInputFingerprint(input: unknown): string {
+	const request = parseExecuteCapabilityRequest(input);
+	return sha({
+		capability: request.capability,
+		input: protectedValue(request.input),
+		callerRef: request.callerRef,
+		taskId: request.taskId,
+		nodeId: request.nodeId,
+		roleRef: request.roleRef,
+		workerRef: request.workerRef,
+		projectRoot: request.projectRoot,
+	});
+}
+
+function compatibleDurableInputFingerprint(
+	row: Row,
+	request: ExecuteCapabilityRequest,
+	currentFingerprint: string,
+): string | undefined {
+	const durableFingerprint = String(row.input_fingerprint);
+	if (durableFingerprint === currentFingerprint) return durableFingerprint;
+	try {
+		const durableRequest = parseExecuteCapabilityRequest(
+			JSON.parse(String(row.request_json)),
+		);
+		const durableRecord = parseExecutionRecord(
+			JSON.parse(String(row.record_json)),
+		);
+		if (
+			durableFingerprint === legacyExecutionInputFingerprint(request) &&
+			durableRequest.runNo === request.runNo &&
+			durableRecord.runNo === request.runNo
+		)
+			return durableFingerprint;
+	} catch {
+		return undefined;
+	}
+	return undefined;
 }
 function materializeArtifactRefs(
 	artifacts: readonly ExecutorArtifact[],
@@ -808,7 +849,13 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 				"INVALID_REQUEST",
 				"execution intent was not found",
 			);
-		if (String(row.input_fingerprint) !== executionInputFingerprint(request))
+		if (
+			compatibleDurableInputFingerprint(
+				row,
+				request,
+				executionInputFingerprint(request),
+			) === undefined
+		)
 			throw new ExecutionRuntimeError(
 				"IDEMPOTENCY_CONFLICT",
 				"execution intent lookup input does not match durable input",
@@ -824,7 +871,7 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			);
 		const request = parseExecuteCapabilityRequest(input);
 		assertPatchArtifactScope(request);
-		const inputFingerprint = executionInputFingerprint(request);
+		let inputFingerprint = executionInputFingerprint(request);
 		const existing = database
 			.prepare(
 				"SELECT * FROM executions WHERE caller_ref=? AND capability=? AND idempotency_key=?",
@@ -834,11 +881,17 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 			| undefined;
 		let record: ExecutionRecord;
 		if (existing) {
-			if (String(existing.input_fingerprint) !== inputFingerprint)
+			const durableFingerprint = compatibleDurableInputFingerprint(
+				existing,
+				request,
+				inputFingerprint,
+			);
+			if (durableFingerprint === undefined)
 				throw new ExecutionRuntimeError(
 					"IDEMPOTENCY_CONFLICT",
 					"idempotency key was already used with different critical input",
 				);
+			inputFingerprint = durableFingerprint;
 			const prior = fromRow(existing);
 			const safelyResumable =
 				(prior.status === "PENDING" &&
@@ -898,7 +951,14 @@ export async function createExecutionRuntime(options: ExecutionRuntimeOptions) {
 					.get(request.callerRef, request.capability, request.idempotencyKey) as
 					| Row
 					| undefined;
-				if (!raced || String(raced.input_fingerprint) !== inputFingerprint)
+				if (
+					!raced ||
+					compatibleDurableInputFingerprint(
+						raced,
+						request,
+						inputFingerprint,
+					) === undefined
+				)
 					throw new ExecutionRuntimeError(
 						"IDEMPOTENCY_CONFLICT",
 						"concurrent idempotency conflict",

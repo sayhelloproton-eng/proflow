@@ -87,9 +87,14 @@ test("PRESMOKE-B4-OBS-EXT-04 human Approval decision resumes the bound Worker th
 	assert.match(source, /message\.operation === "approval\.allow"/);
 	assert.match(source, /message\.operation === "approval\.deny"/);
 	assert.match(source, /message\.operation === "approval\.revoke"/);
+	assert.match(source, /approval\.executionContext/);
+	assert.match(source, /resumeAfterApprovalDecision\(value\.approvalRef\)/);
 	assert.match(source, /trigger: "RECOVERY_RESUME"/);
-	assert.match(source, /ref: value\.approvalRef/);
-	assert.match(source, /targetWorkerRef: value\.workerRef/);
+	assert.match(source, /ref: approvalRef/);
+	assert.match(source, /targetWorkerRef: context\.workerRef/);
+	assert.match(source, /nodeId: context\.nodeId/);
+	assert.match(source, /runNo: Number\(context\.runNo\)/);
+	assert.doesNotMatch(source, /targetWorkerRef: value\.workerRef/);
 	assert.doesNotMatch(source, /approvalState\s*=|approved\s*=\s*true/);
 });
 
@@ -104,6 +109,24 @@ test("PRESMOKE-B4-OBS-EXT-05 durable Execution recovery signals are acknowledged
 	);
 	assert.match(source, /decision\.reason === "DIAGNOSTIC_UNAVAILABLE"/);
 	assert.match(source, /continue;[\s\S]*execution\.ackSignal/);
+});
+
+test("RF-B4-OBS-EXT-GENERATION malformed durable RECOVERY_RESUME is terminally disposed without TaskObserver dispatch", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	const recovery = source.slice(
+		source.indexOf("function runObserverRecovery()"),
+		source.indexOf("function observationFor", source.indexOf("function runObserverRecovery()")),
+	);
+	const malformedStart = recovery.indexOf('typeof candidate.nodeId !== "string"');
+	const dispatchStart = recovery.indexOf(
+		"decision = await taskObserver.drive",
+		malformedStart,
+	);
+	assert.ok(malformedStart >= 0 && dispatchStart > malformedStart);
+	const malformedBranch = recovery.slice(malformedStart, dispatchStart);
+	assert.match(malformedBranch, /execution\.ackSignal/);
+	assert.match(malformedBranch, /signalRef: candidate\.signalRef/);
+	assert.match(malformedBranch, /continue;/);
 });
 
 test("PRESMOKE-B6-C1 Browser Carrier and Observers emit bounded structured logs through authenticated local ingestion", async () => {

@@ -1178,7 +1178,14 @@ async function constructGraph(
 					resolve(request.projectRoot) !== config.workspaceRoot
 				)
 					return false;
-				if ((request.nodeId || request.runNo) && !request.taskId) return false;
+				const nodeScoped =
+					request.nodeId !== undefined || request.runNo !== undefined;
+				if (
+					nodeScoped &&
+					(request.nodeId === undefined || request.runNo === undefined)
+				)
+					return false;
+				if (nodeScoped && !request.taskId) return false;
 				if (request.workerRef && !request.taskId) return false;
 				if (internalBrowserCaller && (!browserCapability || !request.taskId))
 					return false;
@@ -1203,10 +1210,12 @@ async function constructGraph(
 								nodeId: request.nodeId,
 							}),
 						);
+						if (taskFact.status !== "ACTIVE") return false;
 						if (taskFact.currentNodeId !== nodeContext.node.nodeId) return false;
+						if (request.runNo !== nodeContext.node.runNo) return false;
 						if (
-							request.runNo !== undefined &&
-							request.runNo !== nodeContext.node.runNo
+							!browserCapability &&
+							nodeContext.node.status !== "IN_PROGRESS"
 						)
 							return false;
 						const nodeBinding = taskFact.roleBindings.find(
@@ -1245,6 +1254,25 @@ async function constructGraph(
 									browserInput.runNo !== request.runNo)
 							)
 								return false;
+							if (request.capability === "worker.wake") {
+								const nodeContext = unwrap(
+									task.queries.getNodeContext({
+										taskId: request.taskId,
+										nodeId: string(browserInput.nodeId, "input.nodeId"),
+									}),
+								);
+								const trigger = string(browserInput.trigger, "input.trigger");
+								const readyWake =
+									nodeContext.node.status === "READY" &&
+									((trigger === "NODE_READY" && nodeContext.node.runNo === 1) ||
+										(trigger === "REOPEN" && nodeContext.node.runNo > 1));
+								const resumeWake =
+									nodeContext.node.status === "IN_PROGRESS" &&
+									(trigger === "RECOVERY_RESUME" ||
+										trigger === "EXECUTION_RESULT_READY" ||
+										trigger === "PEER_REPLY_READY");
+								if (!readyWake && !resumeWake) return false;
+							}
 						}
 					}
 				}
@@ -1624,6 +1652,32 @@ async function constructGraph(
 				return taskDriverPorts.getTaskDriveProjection(
 					string(value.taskId, "taskId"),
 				);
+			if (operation === "approval.executionContext") {
+				const approval = object(
+					await execution.invoke("getExecutionApproval", {
+						approvalRef: string(value.approvalRef, "approvalRef"),
+					}),
+					"approval fact",
+				);
+				const executionFact = object(
+					await execution.invoke("getExecution", {
+						executionRef: string(approval.executionRef, "executionRef"),
+						callerRef: string(approval.callerRef, "callerRef"),
+					}),
+					"execution fact",
+				);
+				const runNo = Number(executionFact.runNo);
+				if (!Number.isInteger(runNo) || runNo <= 0)
+					throw new Error("EXECUTION_RUN_GENERATION_REQUIRED");
+				return {
+					executionRef: string(executionFact.executionRef, "executionRef"),
+					taskId: string(executionFact.taskId, "taskId"),
+					nodeId: string(executionFact.nodeId, "nodeId"),
+					runNo,
+					roleRef: string(executionFact.roleRef, "roleRef"),
+					workerRef: string(executionFact.workerRef, "workerRef"),
+				};
+			}
 			if (operation === "browser.permission.classify") {
 				const roleRef = string(value.roleRef, "roleRef");
 				const taskId = string(value.taskId, "taskId");
