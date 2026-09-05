@@ -145,6 +145,6 @@ Registry = target version
 
 当唯一剩余动作只是 Chrome runtime adoption（Reload/Load unpacked）时，必须按 `Browser-UI自动化.md` 的 privileged 一次前台原子回合处理：一次截图定位、一次 mutation、一次截图验证，然后立即回后台用 heartbeat / platform status / 目标 Browser 行为回读。禁止在一张截图已经足够后继续尝试 Playwright privileged navigation、AppleScript JS 或多套 AX 路径。
 
-`browser-extension-ui.swift` 的 Extension Manager mutation 必须以 `PROFLOW_BROWSER_EXTENSION_ID`（默认当前 ProFlow Extension ID）+ `PROFLOW_BROWSER_EXTENSION_NAME` 锁定目标卡片，再在卡片 descendants 内查找 `Reload/Remove`。禁止依赖“第几个卡片”或“名称之后第一个按钮”的全局 AX 顺序；其它扩展的安装/删除会改变网格位置，但不能改变目标 identity。
+`browser-extension-ui.swift` 的 Extension Manager mutation 必须以 `PROFLOW_BROWSER_EXTENSION_ID`（默认当前 ProFlow Extension ID）+ `PROFLOW_BROWSER_EXTENSION_NAME` 先确认目标 identity，但**禁止再把“最小 AX 祖先/卡片容器 + descendants”当作可靠 mutation 边界**。Chrome 152 已实证该启发式可跨到相邻扩展卡片。Reload/Remove 必须在当前 fresh AX + screenshot 下额外验证与目标 ID 的可见/几何关系；selector 未经当前 Chrome 版本 fresh validation 不得直接复用。Remove 等 destructive action 还必须在 Chrome 原生确认 UI 中再次核对目标名称/身份，二次校验失败立即 STOP。禁止依赖“第几个卡片”“名称之后第一个按钮”或任何未经本轮 reality 验证的 AX ancestor 假设。
 
 真实 Browser 已 READY 时，后续流程直接从业务 checkpoint 继续，不为“保险”重复 Browser setup。

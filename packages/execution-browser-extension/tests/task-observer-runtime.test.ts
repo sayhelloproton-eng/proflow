@@ -135,6 +135,8 @@ test("PRESMOKE-B3-OBSERVER-04 async owner event emits RESUME with the same durab
 						runNo: 1,
 						requiredAgentPackageRef: "@tomflow/proflow-agent-controller-dev",
 					},
+					canDrive: false,
+					blockedReason: "NODE_NOT_READY",
 				});
 			},
 		},
@@ -180,6 +182,8 @@ test("PRESMOKE-B3-OBSERVER-05 async readiness is ignored when binding target/loc
 						runNo: 1,
 						requiredAgentPackageRef: "@tomflow/proflow-agent-controller-dev",
 					},
+					canDrive: false,
+					blockedReason: "NODE_NOT_READY",
 				});
 			},
 		},
@@ -217,6 +221,8 @@ test("PRESMOKE-B3-OBSERVER-06 abnormal single-Task reality invokes bounded diagn
 						runNo: 1,
 						requiredAgentPackageRef: "@tomflow/proflow-agent-controller-dev",
 					},
+					canDrive: false,
+					blockedReason: "NODE_NOT_READY",
 				});
 			},
 		},
@@ -318,8 +324,8 @@ test("PRESMOKE-B5-TASK-DIAG-02 typed Model diagnostic failure defers without Car
 						workerRef: "worker:1",
 						conversationLocator: "https://chatgpt.com/c/1",
 					},
-					canDrive: true,
-					blockedReason: null,
+					canDrive: false,
+					blockedReason: "NODE_NOT_READY",
 				};
 			},
 		},
@@ -343,4 +349,68 @@ test("PRESMOKE-B5-TASK-DIAG-02 typed Model diagnostic failure defers without Car
 	if (decision.kind === "NOOP")
 		assert.equal(decision.reason, "DIAGNOSTIC_UNAVAILABLE");
 	assert.equal(wakes, 0);
+});
+
+
+test("RF-B3-OBSERVER-RESUME-01 resume is fenced by active IN_PROGRESS state and current generation", async () => {
+	let current = projection({
+		currentNode: {
+			nodeId: "node:dev",
+			status: "IN_PROGRESS",
+			version: 4,
+			runNo: 2,
+			requiredAgentPackageRef: "@tomflow/proflow-agent-controller-dev",
+		},
+		canDrive: false,
+		blockedReason: "NODE_NOT_READY",
+	});
+	let wakeCount = 0;
+	const observer = createTaskObserver({
+		owner: { async getTaskDriveProjection() { return current; } },
+		carrier: { async requestWake() { wakeCount += 1; } },
+	});
+	const signal = {
+		trigger: "RECOVERY_RESUME" as const,
+		ref: "execution:old-run",
+		targetWorkerRef: "c-dev",
+		nodeId: "node:dev",
+		runNo: 1,
+	};
+	const stale = await observer.drive("task:1", signal);
+	assert.deepEqual(stale, {
+		kind: "NOOP",
+		taskId: "task:1",
+		reason: "RESUME_GENERATION_MISMATCH",
+	});
+	assert.equal(wakeCount, 0);
+
+	current = { ...current, taskStatus: "PAUSED" };
+	const paused = await observer.drive("task:1", {
+		...signal,
+		ref: "execution:current-paused",
+		runNo: 2,
+	});
+	assert.deepEqual(paused, {
+		kind: "NOOP",
+		taskId: "task:1",
+		reason: "BINDING_NOT_READY",
+	});
+	assert.equal(wakeCount, 0);
+
+	current = {
+		...current,
+		taskStatus: "WAITING",
+		currentNode: { ...current.currentNode!, status: "WAITING" },
+	};
+	const waiting = await observer.drive("task:1", {
+		...signal,
+		ref: "execution:current-waiting",
+		runNo: 2,
+	});
+	assert.deepEqual(waiting, {
+		kind: "NOOP",
+		taskId: "task:1",
+		reason: "BINDING_NOT_READY",
+	});
+	assert.equal(wakeCount, 0);
 });

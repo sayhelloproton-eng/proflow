@@ -15,6 +15,7 @@ import {
 import { createLocalExecutorPort } from "../src/executors/local-adapter.ts";
 import {
 	createExecutionRuntime,
+	executionInputFingerprint,
 	type ExecutionExecutorPort,
 	ExecutionRuntimeError,
 	type ExecutorResult,
@@ -143,6 +144,66 @@ test("idempotency companion: same request is one effect and changed input confli
 			error.code === "IDEMPOTENCY_CONFLICT",
 	);
 	assert.equal(effects, 1);
+	runtime.close();
+});
+
+test("RF-EXE-RT-GENERATION-01 runNo participates in durable Execution idempotency identity", async () => {
+	const { databasePath } = await fixture();
+	let effects = 0;
+	const admittedRuns: number[] = [];
+	const runtime = await createExecutionRuntime({
+		databasePath,
+		localExecutor: fakeExecutor(async () => {
+			effects += 1;
+			return readResult();
+		}),
+		identity: {
+			authorize(request) {
+				if (request.runNo !== undefined) admittedRuns.push(request.runNo);
+				return true;
+			},
+		},
+	});
+	const run1 = input("file.read", { path: "value.txt" }, "generation", {
+		taskId: "task:generation",
+		nodeId: "node:generation",
+		runNo: 1,
+		roleRef: "caller:test",
+		workerRef: "worker:generation",
+	});
+	const run2SameKey = { ...run1, runNo: 2 };
+	const first = await runtime.executeCapability(run1);
+	const replay = await runtime.executeCapability(run1);
+	const crossRun = await runtime.executeCapability(run2SameKey).then(
+		(record) => ({ kind: "record" as const, executionRef: record.executionRef }),
+		(error: unknown) => ({
+			kind: "error" as const,
+			code: error instanceof ExecutionRuntimeError ? error.code : "UNKNOWN",
+		}),
+	);
+	const run2 = await runtime.executeCapability({
+		...run2SameKey,
+		idempotencyKey: "generation:run2",
+	});
+	assert.deepEqual(
+		{
+			fingerprintEqual:
+				executionInputFingerprint(run1) === executionInputFingerprint(run2SameKey),
+			replaySameExecution: replay.executionRef === first.executionRef,
+			crossRun,
+			distinctRunExecution: run2.executionRef !== first.executionRef,
+			admittedRuns,
+			effects,
+		},
+		{
+			fingerprintEqual: false,
+			replaySameExecution: true,
+			crossRun: { kind: "error", code: "IDEMPOTENCY_CONFLICT" },
+			distinctRunExecution: true,
+			admittedRuns: [1, 2],
+			effects: 2,
+		},
+	);
 	runtime.close();
 });
 

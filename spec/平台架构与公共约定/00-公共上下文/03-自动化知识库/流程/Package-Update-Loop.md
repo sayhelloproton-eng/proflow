@@ -47,7 +47,7 @@ Registry exact version
 
 前一层 PASS 不能替代后一层。尤其是 `platform setup` 显示 Browser Extension 配置步骤完成，只能证明 pairing/setup 观察满足当前判据；**不能单独证明 Chrome 当前可见 loaded version 已切到目标版本**。Extension 更新后至少需要 fresh `chrome://extensions` 版本/ID截图，再用真实 action / Tasks / content behavior 证明新 runtime 正在执行。
 
-若 Workspace 与 materialized loadDir 已是 N+1，而 fresh Chrome screenshot 仍是 N，则当前动作只属于 **Chrome runtime adoption**，不得重新 publish、不得重复 `platform update`。此时按 `Browser-UI自动化.md` 的 privileged 一次前台原子回合完成 Reload/Load，再回后台做 heartbeat 和 SAME SCENE readback。
+若 Workspace 与 materialized loadDir 已是 N+1，而 fresh Chrome screenshot 仍是 N，则当前动作只属于 **Chrome runtime adoption**，不得重新 publish、不得重复 `platform update`。此时按 `Browser-UI自动化.md` 的 privileged 一次前台原子回合完成 Reload/Load，再回后台做 heartbeat 和 SAME SCENE readback。Extension ID + 名称只能证明目标 identity，不能自动证明 AX card boundary；任何 Reload/Remove locator 都必须先在当前 Chrome fresh reality 中验证其动作与目标身份的独立可见/几何关系。Remove 等 destructive action 还必须通过原生确认框做第二身份校验，失败立即 STOP。
 
 ## 当前实例不得固化在 Flow
 

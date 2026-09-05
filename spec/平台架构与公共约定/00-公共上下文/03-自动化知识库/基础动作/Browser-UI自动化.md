@@ -78,7 +78,7 @@ Playwright 只控制**受控标签组**中的页面，不会自动看到用户 C
 
 - 一张截图已经足够定位目标时，禁止继续尝试 Playwright privileged navigation、extension-origin navigation、AppleScript JS、AX 菜单探测等第二/第三条路线。
 - 不能为了“更自动化”反复 activate Chrome、切 Tab、开 privileged page、抢焦点；这属于**执行方式错误**，不是产品 defect。
-- Chrome Extension Manager 的卡片位置不是 identity。新增/删除其它扩展会让卡片从第二格、第三格等位置漂移；helper 禁止按列号、DOM/AX 全局顺序或“目标名称之后第一个 Reload/Remove”定位 mutation。必须先用 **Extension ID + 名称** 锁定目标卡片容器，再只在该卡片 descendants 内查找 Reload/Remove。
+- Chrome Extension Manager 的卡片位置不是 identity。新增/删除其它扩展会让卡片从第二格、第三格等位置漂移；helper 禁止按列号、DOM/AX 全局顺序或“目标名称之后第一个 Reload/Remove”定位 mutation。**Extension ID + 名称只用于确认目标身份，不得把“包含 ID/名称的最小 AX ancestor”当作稳定卡片边界。** Chrome AX tree 可能把相邻卡片折叠进同一祖先，导致跨卡片命中错误 action。真正 mutation 前必须在当前 fresh screenshot/AX reality 中独立验证动作与目标身份的几何/可见关系；Reload/Remove selector 必须经过当前 Chrome 版本 fresh validation。Remove 等 destructive action 还必须在 Chrome 原生确认框中再次核对目标名称/身份，不一致立即 STOP。
 - privileged mutation 的“命令返回成功 / AXPress 返回成功 / AppleScript 返回成功”都不能替代动作后的截图；截图是视觉真值，Owner/heartbeat 是业务真值。
 - 若第一次 screenshot 发现页面不对，先纠正到正确页面后再开始原子回合；错误页面截图不能拿来推断目标按钮坐标。
 

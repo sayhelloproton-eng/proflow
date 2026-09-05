@@ -23,54 +23,58 @@ PHASE3_FINAL_GO = NO
 
 ```text
 branch = main
-HEAD = be8b7390f09eba4e0d294ed236ee46a596310a28 / model-runtime 0.1.24 release facts
-working tree = WIP / execution-browser-extension Tasks mutation → Observer recovery bridge fix + tests + CURRENT
-LOCAL_BROWSER_FIX_GREEN = YES / prior causal receipt candidate remains closed
-J2_TASKS_WEB_FIX_GREEN = YES / self-contained Tasks web patch released as execution-browser-extension 0.1.40
+HEAD = cd15248c18074838ff0db7f91a89092fd624cb77 / execution-browser-extension 0.1.41 release commit
+working tree = WIP / public-context correction + handoff sedimentation only; no new Task/Owner mutation
+J1 = PASS
 J2_SAME_SCENE = PASS / /tasks loads normally; old /src/carrier-attention-view.js 401 absent; fixed Task visible
 J2_HUMAN_START = PASS / official Confirm / Start clicked exactly once
-TASK_OWNER_AFTER_START = ACTIVE / v7 / currentNodeId=dev / dev READY run1 / test PENDING run1
-J3_WAKE_GAP_ROOT_CAUSE = VERIFIED / Tasks Web durable task mutation bypassed Extension runtime message path, so no observer recovery pass was triggered
-J3_WAKE_FIX = LOCAL GREEN / successful Tasks mutations enqueue TASK_OBSERVER_RECOVER; Background re-enters existing runObserverRecovery(); TaskObserver still owns NODE_READY/REOPEN decision
-TARGETED_GATE = PASS / Bridge 5 of 5 + Bridge/Background 16 of 16
-PACKAGE_GATE = PASS / execution-browser-extension 157 of 157 tests
-PACKAGE_TYPECHECK = PASS
-ROOT_TYPECHECK = PASS
-BUILD = PASS
-DIFF_CHECK = PASS
-Registry execution-browser-extension@0.1.40 = PRESENT / EXACT VERIFIED
-Product Workspace execution-browser-extension = 0.1.40 / EXACT VERIFIED
-materialized Chrome loadDir manifest = 0.1.40 / VERIFIED
-Chrome loaded ProFlow Execution Browser = 0.1.40 / SAME ID VERIFIED
+TASK_OWNER = ACTIVE / v7 / currentNodeId=dev / dev READY run1 / test PENDING run1
+TASK_BINDINGS = EXACT / Product + Dev + Test all bound to fixed Worker Conversations
+J3_WAKE_FIX_0141 = RUNTIME_PROVEN / TASK_OBSERVER_RECOVER command SUCCEEDED and task.projection SUCCEEDED
+J3_WAKE = FAILED_AT_EXECUTION_IDENTITY / task.wake -> TASK_WAKE_NOT_CONFIRMED:FAILED:NOT_APPLIED
+J3_WAKE_EXECUTION = execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd / FAILED / NOT_APPLIED / IDENTITY_INVALID
+J3_WAKE_REQUEST_FACTS = MATCH_OWNER / taskId,nodeId,runNo,roleRef,workerRef all match current Task/Node/Binding truth
+J3_DEV_NODE_READY = NOT_DELIVERED
+J4 = NOT_STARTED
+Registry execution-browser-extension@0.1.41 = PRESENT / EXACT VERIFIED / latest=0.1.41
+Product Workspace execution-browser-extension = 0.1.41 / EXACT VERIFIED
+materialized Chrome loadDir manifest = 0.1.41 / VERIFIED
+Chrome loaded ProFlow Execution Browser = 0.1.41 / SAME ID / user fresh screenshot + service_worker_registration_info.version=0.1.41 VERIFIED
 Extension ID = eehdadpmjffomabiedcjijiakconalab
-MODEL_RUNTIME_0124 = RELEASED_AND_WORKSPACE_UPDATED / additive unrelated inventory no longer invalidates stable FAST/THINK mapping
-platform setup = 3/3 COMPLETE
-platform start = 4 success / 19 skipped / 0 failed
-platform status = PLATFORM_READY=YES
-MODEL_PROVIDER_BOUND_URL = http://192.168.0.108:8080/v1 / GET /v1/models = 200
+CHROME_0141_ADOPTION = PASS
+AX_CARD_CONTAINER_RULE = INVALID / Extension ID + Name is identity anchor only; AX ancestor/card container is not a safe mutation boundary
+BOSS_INCIDENT = SAFE_STOP / old locator opened BOSS Agent Bridge remove confirmation; target mismatch prevented confirmation; BOSS was not removed
+MODEL_RUNTIME_0124 = RELEASED_AND_WORKSPACE_UPDATED
+MODEL_PROVIDER_BOUND_URL = http://192.168.0.108:8080/v1 / current /v1/models = HTTP 200 / 4 models
+platform lifecycle = RUNNING / setup 3/3 COMPLETE / start 4 success 19 skipped 0 failed / PLATFORM_READY=YES
+CURRENT_HIGH_CONFIDENCE_CANDIDATE = Platform Host authorizeExecution passes extra runNo into strict getNodeContext({taskId,nodeId}) query; exception is swallowed into false -> IDENTITY_INVALID
+CANDIDATE_STATUS = NOT_YET_CLAIMED_ROOT_CAUSE / must first complete end-to-end Task Orchestration + runNo fencing review before production edit
 ```
 
-`PLATFORM_READY=YES`。J2 已完成真实 SAME-SCENE 与 Human Start：Task Owner 已从 `READY/v6/currentNodeId=null` 推进为 `ACTIVE/v7/currentNodeId=dev`，Dev=`READY/run1`，Test=`PENDING/run1`。当前唯一 critical path 在 J3：Start 后 Dev 没收到 `NODE_READY`，已机械证明是 Tasks Web mutation 成功后没有触发 Extension Task Observer recovery。最小修复已完成 RED→GREEN，并通过 157/157 + package/root typecheck + root build + diff-check；下一步只发布/update `execution-browser-extension 0.1.41`，然后对**现有 ACTIVE/v7 Task**触发 Observer recovery，禁止重新 Start。
+J1/J2 已完成，固定 Task 保持 `ACTIVE/v7/currentNodeId=dev`，Dev=`READY/run1`，Test=`PENDING/run1`。`execution-browser-extension 0.1.41` 已完成 Registry/Workspace/loadDir/Chrome runtime adoption，且真实 `TASK_OBSERVER_RECOVER` 已 `SUCCEEDED`、`task.projection` 已 `SUCCEEDED`，因此“Tasks mutation 后 Observer 不再 drive”的缺口已经 runtime-proven 关闭。当前唯一 blocker 已继续下沉到 `task.wake → worker.wake Execution`：同一 durable wake Execution `execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd` 为 `FAILED/NOT_APPLIED`，Execution Runtime 记录 `ADMISSION_REJECTED / IDENTITY_INVALID`。wake request 的 Task/Node/run/role/worker facts 与 Owner 当前事实一致。当前平台 `3/3` 且 `PLATFORM_READY=YES`，手机模型 `/v1/models` HTTP 200。下一 Chat **不得直接改 authorizeExecution**；必须先完整通读 Task Orchestration 主链与 runNo fencing，再裁决当前高置信候选。
 
 ## CURRENT_CHECKPOINT
 
 ```text
-REAL_3_J2_PASS_J3_TASK_WEB_TO_OBSERVER_RECOVERY_FIX_GREEN_0141_RELEASE_NEXT
+REAL_3_J1_PASS_J2_PASS_J3_WAKE_IDENTITY_ADMISSION_BLOCKED_TASK_ORCHESTRATION_REVIEW_REQUIRED
 ```
 
 ## CURRENT_PROBLEM
 
 ```text
-problem class = REAL3_J3_TASK_WEB_MUTATION_OBSERVER_WAKE_GAP
-primary current owner = @tomflow/proflow-execution-browser-extension Bridge → Background observer-recovery notification boundary
-runtime boundary = Browser Extension 0.1.40 Registry/Workspace/loadDir/Chrome loaded aligned; Model Runtime 0.1.24 Registry/Workspace aligned; platform 3/3 + PLATFORM_READY=YES
-non-blocking diagnostic owner = @tomflow/proflow-agent-gateway / known typed-error collapse only; not on current critical path
-first reality = J1 PASS + J2 PASS；fixed Task is ACTIVE/v7/currentNodeId=dev；Dev READY/run1；Test PENDING/run1；all three role bindings remain exact
-blocking reality = official Tasks Web `task.start` durably advanced Task Owner but did not notify Extension runtime to re-run Task Observer, so Dev Conversation received no fresh NODE_READY despite Owner dev READY
-fix reality = successful Task Web mutations (`task.create/task.start/task.ensureWorkers/node.reopen`) enqueue one fire-and-forget `TASK_OBSERVER_RECOVER` command only when Browser command consumer is ready；Background command handler only schedules existing `runObserverRecovery()` and immediately ACKs；TaskObserver remains sole authority for NODE_READY/REOPEN decision
-proof = RED: task.start followed by commands/next returned 204；GREEN: Bridge 5/5, Bridge+Background 16/16, package 157/157, package/root typecheck PASS, root build PASS, git diff --check PASS
-release reality = execution-browser-extension 0.1.40 currently live；0.1.41 patch release is next；do not re-run Human Start
-current stop point = create only execution-browser-extension patch changeset → plan must be 0.1.40→0.1.41 only → release/update/adopt Chrome once → recover existing ACTIVE/dev READY Task → Dev NODE_READY → J3 Execution → J4 independent Execution → Task SUCCEEDED
+problem class = REAL3_J3_WORKER_WAKE_EXECUTION_IDENTITY_ADMISSION
+primary current owner = Platform Host execution identity admission + Task Orchestration contract boundary
+browser extension status = 0.1.41 runtime-proven; TASK_OBSERVER_RECOVER SUCCEEDED; task.projection SUCCEEDED; do not reopen Browser recovery wiring
+platform status = setup 3/3 COMPLETE / PLATFORM_READY=YES
+first reality = fixed Task ACTIVE/v7/currentNodeId=dev; Dev READY/run1; Test PENDING/run1; all three RoleBindings exact
+wake reality = task.wake attempted current Dev NODE_READY and returned TASK_WAKE_NOT_CONFIRMED:FAILED:NOT_APPLIED
+execution reality = execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd / worker.wake / FAILED / NOT_APPLIED / ADMISSION_REJECTED / IDENTITY_INVALID
+request reality = callerRef extension:task-observer; taskId/nodeId/runNo/roleRef/workerRef exactly match current Owner truth; Dev Role registration exists; REQUIREMENT document exists on disk
+high-confidence candidate = authorizeExecution invokes strict task.queries.getNodeContext with extra runNo even though getNodeContext contract is strict {taskId,nodeId}; thrown validation failure would be swallowed by authorize catch and surface only as IDENTITY_INVALID
+candidate safety = do NOT patch yet; user requires full Task Orchestration end-to-end review first so runNo fencing/ownership semantics are not weakened merely to make Real-3 pass
+required next proof = read Task creation → requirement → role binding → Human Start → Node READY → Observer → worker.wake → Worker accept/startNode → Execution → complete/fail/wait → next Node → reopen/runNo fencing → Test → terminal, then define positive + stale-run/wrong-worker/wrong-role/wrong-node identity tests before production edit
+non-blocking diagnostic owner = Gateway typed-error collapse remains known and off critical path; do not reopen without new evidence
+current stop point = TASK_ORCHESTRATION_REVIEW_FIRST → adjudicate identity candidate → targeted RED → minimal fix if confirmed → same wake intent retry (safe because prior Execution is FAILED/NOT_APPLIED) → Dev NODE_READY → J3 Execution → Test wake/Execution → Task SUCCEEDED
 ```
 
 ### 已确认事实
@@ -101,9 +105,17 @@ current stop point = create only execution-browser-extension patch changeset →
 24. J2 Human Start 前置复验已把 Tasks cold-load 401 升级为真实 blocker：原始 Tasks Tab SAME-SCENE reload 后仍 `Connecting...`，Console exact `GET /src/carrier-attention-view.js -> 401`。最小修复只改 Tasks 单文件入口边界与 targeted regression：CP-EXE-BR-33 先 RED（3/4）后 GREEN（4/4）；package `156/156`、package/root typecheck、root build、scoped Biome、`git diff --check` 均 PASS，built `dist/extension/tasks.js` 无 runtime import。当前真实 Product Workspace / Chrome 仍是 0.1.39，因此必须经过正式 release/update 才能回 SAME SCENE 证明 401 真正关闭。
 25. `pnpm package:release --plan` 已只读确认 execution-browser-extension 需要独立 patch release；随后已完成 `0.1.39 → 0.1.40` 发布。publish 子步骤明确成功，但 release 脚本紧接着的 Registry exact 因传播延迟短暂失败；独立 authoritative readback 随后返回 `0.1.40`，因此裁决为 Registry propagation race，禁止重复 publish。Product Workspace 已通过公开 `platform stop → platform update --package @tomflow/proflow-execution-browser-extension` 更新到 0.1.40，loadDir manifest 也是 0.1.40。
 26. 2026-09-05 Chrome privileged UI 执行方式事故已沉淀：为完成同一 ProFlow Extension Reload，先后尝试 Playwright `chrome://` navigation、`chrome-extension://` navigation、AppleScript JS、AX 菜单等多条路径，造成反复切窗/抢用户前台；这些尝试没有增加业务 authority。最终一次正确的 `chrome://extensions` 截图已经足够确认同一 Extension ID、当前可见版本 `0.1.39` 和 Reload 控件。该事件定义为**执行方式错误，不是产品 defect**。以后 privileged UI 固定“一次切前台 → 一张截图定位 → 一次 mutation → 一张截图验证 → 后台 authority readback”，截图足够后禁止继续探索更“程序化”的替代路线。
-27. 用户新增其它 Chrome Extension 后，ProFlow 卡片从原第二位置移动到第一排第三位置，暴露 `browser-extension-ui.swift` 旧 locator 的结构风险：旧 `reloadButtonAfterExtension()/removeButtonAfterExtension()` 是“找到名称后，在全局后续 AX 节点中取第一个 Reload/Remove”，虽不是固定坐标，但仍依赖全局顺序。helper 已改为 `Extension ID + 名称 → 最小目标卡片容器 → 仅卡片 descendants 内 Reload/Remove`，compile-only PASS；随后正式 Reload 返回 `BROWSER_UI_RESULT=RELOADED`，fresh reload-after screenshot 明确显示 ProFlow `0.1.40` + 同一 Extension ID，loaded-version 已闭环。
+27. **历史中间态，已被事实 37 废弃。** 用户新增其它 Chrome Extension 后，ProFlow 卡片位置漂移，暴露最早“名称后全局取第一个 Reload/Remove”的结构风险；当时曾改成 `Extension ID + 名称 → 最小目标卡片容器 → descendants` 并在一次 0.1.40 Reload 中通过，但 Chrome 152 后续真实现场证明“最小 AX card container”本身也不可靠。此条只保留演进历史，禁止作为当前 mutation 规则；当前唯一有效裁决见事实 37 与 `Browser-UI自动化.md`。
 28. Browser update 后平台恢复暴露新的真实 blocker：Remote Connection 已从 1/3 恢复到 2/3，但 `platform start` exact 阻塞于 `MODEL_MAPPING_STALE`。连续 `platform setup` 都输出“全部模块均已就绪”却最终仍 2/3，源码/已安装 dist 对齐审计证明不是 CLI 版本漂移。
 29. `MODEL_MAPPING_STALE` 根因已机械定位：`model-runtime.status()` 用 live Provider `/models` 检测 drift；旧 `model-runtime.setup()` 却先用 model-provider shared facts 计算 fingerprint，若旧 mapping 与旧 shared facts 相等就 early-return，因此真实 live drift 无法被 setup 自动修复。现有测试曾在 stale 后手工 `providerFacts(workspaceRoot, observed)`，替产品提前刷新 shared facts，掩盖了真实用户路径。回归已改为不手工刷新 provider facts，先 RED `mappingCalls 1 !== 2`；实现改为 setup 先读取 live inventory，用 live fingerprint 决定复用/重映射，并将 live models 传给原 mapInventory，targeted GREEN。全 package 67/67、package typecheck、root typecheck、root build、git diff --check 均 PASS。
+30. `model-runtime 0.1.24` 已真实解决“新增无关 Embedding 导致稳定 FAST/THINK 全量重探测”问题：旧 FAST/THINK modelRef 仍存在时只同步 inventory fingerprint，不重新全量 probe；Registry/Workspace 已对齐，真实 `platform setup` 已重新 3/3。
+31. `execution-browser-extension 0.1.41` 已正式发布、Workspace/loadDir 对齐，并由用户手动完成 Chrome adoption；fresh screenshot 显示 `ProFlow Execution Browser 0.1.41`，Extension ID 仍 `eehdadpmjffomabiedcjijiakconalab`，Chrome `service_worker_registration_info.version=0.1.41`。旧 `0.1.40` Background 证据已失效，不得再把 Chrome adoption 当当前 blocker。
+32. 0.1.41 新接线已被真实 runtime 证明：Tasks `task.ensureWorkers` HTTP 200 后，Browser Carrier `TASK_OBSERVER_RECOVER` 记录 `SUCCEEDED`，随后 `execution.listSignals` 与 `task.projection` 均 `SUCCEEDED`。因此“Tasks mutation 成功后没有触发 Task Observer recovery”这一缺口已经关闭。
+33. 当前 J3 失败发生在下一跳 `task.wake`：browser-observer 日志记录 `TASK_WAKE_NOT_CONFIRMED:FAILED:NOT_APPLIED`，Dev Conversation 没收到新的 `NODE_READY`。对应 Execution 为 `execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd`，Execution Runtime 记录 `EXECUTION_REDECISION_REQUESTED → ADMISSION_REJECTED / IDENTITY_INVALID`。
+34. 该 wake Execution 的 durable request 已独立读取：`callerRef=extension:task-observer`，`taskId=task-a6f859c00b1accd027d53d48`，`nodeId=dev`，`runNo=1`，Dev `roleRef` 与 `workerRef` 均与当前 Task Owner/TaskRoleBinding exact match；Dev Role 仍在 Agent Runtime 注册。REQUIREMENT 文档 Owner 路径 `.proflow/tasks/task-a6f859c00b1accd027d53d48/documents/requirement.md` 真实存在。
+35. 当前高置信候选位于 Platform Host `authorizeExecution()`：对带 `nodeId/runNo` 的 Browser Execution，它调用 `task.queries.getNodeContext({ taskId, nodeId, ...(runNo ? { runNo } : {}) })`；但 Task Orchestration 的 `getNodeContext` 正式 schema 是 `z.object({ taskId, nodeId }).strict()`。若 strict validation 因多余 `runNo` 失败，`authorizeExecution` 外层 `catch { return false }` 会把真实合同错误压成统一 `IDENTITY_INVALID`，与现场完全吻合。
+36. **但 35 目前只能写 HIGH-CONFIDENCE CANDIDATE，不能直接写 ROOT_CAUSE。** 用户明确要求：修改此身份门禁前，下一 Chat 必须先端到端通读 Task Orchestration，特别是 runNo/reopen fencing、Worker accept/startNode、Execution 与 Node scope、TaskRoleBinding vs node.workerRef、stale wake/stale execution rejection，再决定正确修法。禁止为了让 Real-3 过而删除 runNo fencing。
+37. 前台扩展自动化规则已修正：旧“Extension ID + 名称 → 最小 AX card container → descendants action”正式 INVALID。Chrome 152 下该启发式曾误打开 `BOSS Agent Bridge` 的 Remove 确认，但二次目标校验立即 STOP，BOSS 未被删除。Extension ID + 名称以后只作为身份锚点，mutation 必须 fresh reality + 独立几何/位置验证，destructive action 必须原生确认框二次验身份。
 
 ### 尚未宣称证明的部分
 
@@ -131,15 +143,17 @@ Test execution = execution:567be187-f585-4d08-bb33-6fbe25e84aed
 
 ## NEXT_ACTION
 
-1. 为 `@tomflow/proflow-execution-browser-extension` 创建唯一 patch changeset；`package:release --plan` 必须只包含 `0.1.40 → 0.1.41`，若带出其它 package 立即 STOP。
-2. 正式 release 0.1.41，并以 Registry exact authority 回读；随后公开 `platform update --package @tomflow/proflow-execution-browser-extension --workspace /Users/agent/Desktop/proton-workspace` 更新 Product Workspace，禁止直接改 node_modules/loadDir。
-3. 完成 materialized loadDir 对齐后，Chrome privileged UI 只允许一次原子 adoption：一次定位 → 一次 Reload → 一张立即截图 → 退出前台；禁止重做 Human Start。
-4. 0.1.41 生效后，对现有 `ACTIVE/v7/currentNodeId=dev` Task 触发/等待 Observer recovery；Dev Conversation 必须收到真实 `NODE_READY`。随后 Dev Worker 通过 Execution 读取 `repos/proflow/package.json` 的 name+version，完成 J3。
-5. Dev 成功后验证 Task 自动推进 Test READY + 自动 wake；Test/Ops 独立通过 Execution 再读同一文件并验证相同 name+version。最终 Owner 必须 `SUCCEEDED` 才可宣判 J4/REAL_3 PASS。
+1. **先完整通读 Task Orchestration，不改生产代码。** 至少按顺序读：`spec/任务与编排领域/README.md` → `01-领域/01-领域宪章与Bounded-Context-Map.md` → `01-领域/02-统一语言与领域模型.md` → `01-领域/03-上下文继承与跨领域边界.md` → `01-领域/04-当前设计原则与非目标.md` → `02-契约/01-Public-API-契约.md` → `03-流程与数据/01-关键流程与状态转换.md` → `04-模块/00-Service与npm模块设计.md` → `04-模块/task-orchestration/TECHNICAL-DESIGN.md` → `07-测试计划/modules/task-orchestration.md`。目标不是复述文档，而是画出 Task creation→binding→start→READY→wake→startNode→Execution→complete/fail/wait→next→reopen/runNo→terminal 的 Owner/State/Fencing 链。
+2. 用 CodeGraph + 当前源码交叉验证 `@tomflow/proflow-task-orchestration`、Platform Host `authorizeExecution`、Execution identity composition、Agent worker validation 的实际调用链。必须明确：TaskRoleBinding vs Node.workerRef、runNo 何时增长、stale run 如何拒绝、Observer 为什么只能 wake、Worker 何时正式 startNode、Execution 与 Node/run 的 scope 是什么。
+3. 只有在 1-2 证明当前高置信候选没有破坏 Frozen Contract 后，才写 targeted RED。最少覆盖：current run/current worker allow；stale run deny；wrong worker deny；wrong role deny；wrong node deny。禁止用“删除 runNo 校验”让 current case 通过。
+4. 若 RED 证明 `getNodeContext(...runNo)` strict-input mismatch 就是 owning root cause，做最小修复：按正式 `getNodeContext({taskId,nodeId})` query 读取 Owner node，再独立比较 `request.runNo` 与 owner `node.runNo`；若完整通读证明应有其它 contract，则 STOP 并按 Spec/Contract 处理，不能自行改语义。
+5. 修复 Gate/发布/Workspace 更新后回**同一个失败 checkpoint**：不得重建 Task、不得重做 Human Start。由于 wake Execution 当前是 `FAILED/NOT_APPLIED`，可按正式 Execution redecision/retry 语义重试同一 intent；必须看到 Dev Conversation 真实 `NODE_READY` 才进入 J3。
+6. J3：Dev Worker 正式 `startNode` 后，通过 Execution 真实读取 `repos/proflow/package.json` 的 name+version，不能由 Controller 本地读取代替。Dev 完成后必须由 Task Owner 自动推进 Test READY。
+7. J4：Test/Ops 由 Observer 自动 wake，并独立通过 Execution 再读同一文件验证相同 name+version。最终 Owner 必须 `Task=SUCCEEDED/currentNodeId=null`，两个 Node 的正式 execution/history/evidence 闭环，才可宣判 `REAL_3=PASS`。
 
 ## STOP_POINT
 
-当前 STOP POINT 是：`J1_PASS / J2_PASS / TASK_ACTIVE_V7_CURRENT_DEV_READY / PLATFORM_READY_YES / MODEL_RUNTIME_0124_RELEASED_AND_WORKSPACE_UPDATED / EXTENSION_0140_LOADED_PASS / TASK_WEB_TO_OBSERVER_RECOVERY_FIX_LOCAL_GREEN_157_OF_157 / EXTENSION_0141_RELEASE_NEXT / J3_DEV_NODE_READY_PENDING / J4_NOT_STARTED / LEGACY_UNKNOWN_PRESERVED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；禁止重新 Human Start、直接 task.start、Recover、创建新 Task/GPT/Execution、修改 Owner DB、重复发布 0.1.40 或再次进入 Extension Manager 探索。
+当前 STOP POINT 是：`J1_PASS / J2_PASS / TASK_ACTIVE_V7_CURRENT_DEV_READY / PLATFORM_READY_YES / MODEL_RUNTIME_0124_PASS / EXTENSION_0141_CHROME_RUNTIME_PASS / TASK_OBSERVER_RECOVER_RUNTIME_PASS / TASK_WAKE_EXECUTION_FAILED_NOT_APPLIED_IDENTITY_INVALID / TASK_ORCHESTRATION_FULL_REVIEW_REQUIRED_BEFORE_EDIT / J3_DEV_NODE_READY_PENDING / J4_NOT_STARTED / LEGACY_UNKNOWN_PRESERVED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；禁止重新 Human Start、直接 task.start、Recover legacy UNKNOWN、创建新 Task/GPT/Execution、修改 Owner DB、重新发布 0.1.41、再次进入 Extension Manager，或在完整 Task Orchestration 审计前直接修改 `authorizeExecution`。
 
 ## RECENTLY_CLOSED
 
@@ -154,28 +168,39 @@ REGISTRY_AND_WORKSPACE_0139 = CLOSED / VERIFIED
 ## DO_NOT_REPEAT
 
 - 不回到 0.1.38 historical Extension error / import bundle 路线。
-- 不重复发布或 update 0.1.39；它已经是 Registry/Workspace 已验证事实。
-- 不因当前 `PLATFORM_READY=NO` 就把已关闭 pairing root cause重新猜一遍；先完成当前 package candidate，再走公开 setup 恢复 live session。
-- 不创建新 Task/GPT/Execution，不复制第二份 Worker Conversation，不点旧 Permission，不 blind Recover UNKNOWN。
+- 不重复发布/update 已闭环的 `execution-browser-extension 0.1.41` 或 `model-runtime 0.1.24`；Registry/Workspace/Chrome runtime 已有 authority。
+- 当前 `PLATFORM_READY=YES`；不得把模型、Tunnel、pairing、Extension adoption 重新拉回主线，除非出现新的可复现 regression evidence。
+- 不创建新 Task/GPT/Execution，不复制第二份 Worker Conversation，不点旧 Permission，不 blind Recover legacy UNKNOWN。
+- 不重新 Human Start，不直接 `task.start`，不再次 `WORKER_BIND/browser.bindWorker`。
+- 当前 Browser Observer recovery 已 runtime-proven；不得因为 Dev 未收到 NODE_READY 就再次修改 Browser wake wiring，先处理 Execution identity admission。
+- 不在完整 Task Orchestration/runNo fencing 审计前直接修改 `authorizeExecution`；尤其禁止删掉 runNo 校验或放宽 identity gate 只为跑通 Real-3。
 - Browser side-effect/identity 异常必须 screenshot-first；不得先从源码猜，再回头补截图。
-- 不把这次老缺陷借机升级成 Browser Carrier 大重构；只修当前可复现不变量。
 
 ## REQUIRED_CONTEXT
 
-完成 Core 读取后，第一轮额外 active context：
+完成 Core 读取后，**下一 Chat 第一轮必须先读 Task Orchestration normative context**：
 
-1. `03-自动化知识库/基础动作/Browser-UI自动化.md`
-2. `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md`
-3. `03-自动化知识库/包能力/execution-browser-extension.md`
-4. `03-自动化知识库/流程/Package-Update-Loop.md`
-5. `03-自动化知识库/基础动作/Targeted-Gate.md`
-6. `03-自动化知识库/流程/Real3-J0-J4.md`
+1. `spec/任务与编排领域/README.md`
+2. `spec/任务与编排领域/01-领域/01-领域宪章与Bounded-Context-Map.md`
+3. `spec/任务与编排领域/01-领域/02-统一语言与领域模型.md`
+4. `spec/任务与编排领域/01-领域/03-上下文继承与跨领域边界.md`
+5. `spec/任务与编排领域/01-领域/04-当前设计原则与非目标.md`
+6. `spec/任务与编排领域/02-契约/01-Public-API-契约.md`
+7. `spec/任务与编排领域/03-流程与数据/01-关键流程与状态转换.md`
+8. `spec/任务与编排领域/04-模块/00-Service与npm模块设计.md`
+9. `spec/任务与编排领域/04-模块/task-orchestration/TECHNICAL-DESIGN.md`
+10. `spec/任务与编排领域/07-测试计划/modules/task-orchestration.md`
+11. `03-自动化知识库/流程/Real3-J0-J4.md`
+12. `03-自动化知识库/基础动作/Targeted-Gate.md`
 
 ### ON_DEMAND_CONTEXT
 
-- targeted GREEN 后需要发布 → `03-自动化知识库/基础动作/npm发布与Registry回读.md`。
+- 只有需要重新进入 Browser runtime 现实验证时才读 `03-自动化知识库/基础动作/Browser-UI自动化.md` 与 `03-自动化知识库/包能力/execution-browser-extension.md`；当前 0.1.41 Observer recovery 已闭环，不作为第一阅读域。
+- targeted GREEN 后需要发布 → `03-自动化知识库/基础动作/npm发布与Registry回读.md` + `03-自动化知识库/流程/Package-Update-Loop.md`。
 - MCP / Playwright / Local Dev runtime 异常 → `03-自动化知识库/基础动作/Tool-Runtime-gptweb-mcp.md`。
-- 只有 CURRENT/Runbook 无法解释某条旧 evidence 时才读 `90-历史记录`；正常换 Chat 不再创建新的 handoff + 提示词文件。
+- 只有 CURRENT/Normative Task Domain 无法解释某条旧 evidence 时才读 `90-历史记录`。本次用户明确要求生成一次下个 Chat 的 handoff 提示词，属于显式例外。
+
+显式交接提示词：`02-当前接力/20260905-Real3-J3-Task-Orchestration-接手提示词.md`。
 
 ## CONTEXT_DRIFT_GUARD
 

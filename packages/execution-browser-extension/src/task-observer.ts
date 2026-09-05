@@ -34,6 +34,8 @@ export type TaskObserverResumeSignal = {
 	trigger: "EXECUTION_RESULT_READY" | "PEER_REPLY_READY" | "RECOVERY_RESUME";
 	ref: string;
 	targetWorkerRef: string;
+	nodeId?: string;
+	runNo?: number;
 };
 
 export type TaskObserverAnomalySignal = {
@@ -162,12 +164,14 @@ export function createTaskObserver(options: {
 		}
 		const binding = projection.roleBinding;
 		if (
-			!projection.canDrive ||
 			!binding?.workerRef ||
-			!binding.conversationLocator
+			!binding.conversationLocator ||
+			binding.agentPackageRef !== node.requiredAgentPackageRef
 		)
 			return { kind: "NOOP", taskId, reason: "BINDING_NOT_READY" };
 		if (node.status === "READY") {
+			if (!projection.canDrive)
+				return { kind: "NOOP", taskId, reason: "BINDING_NOT_READY" };
 			// WAKE the correct Worker with a minimal trigger; the Worker then
 			// performs formal work acceptance through the Task owner. A reopened
 			// run reuses the same TaskRoleBinding/Conversation but keeps the reason
@@ -184,6 +188,17 @@ export function createTaskObserver(options: {
 			};
 		}
 		if (resumeSignal) {
+			if (projection.taskStatus !== "ACTIVE" || node.status !== "IN_PROGRESS")
+				return { kind: "NOOP", taskId, reason: "BINDING_NOT_READY" };
+			if (
+				(resumeSignal.nodeId !== undefined && resumeSignal.nodeId !== node.nodeId) ||
+				(resumeSignal.runNo !== undefined && resumeSignal.runNo !== node.runNo)
+			)
+				return {
+					kind: "NOOP",
+					taskId,
+					reason: "RESUME_GENERATION_MISMATCH",
+				};
 			if (resumeSignal.targetWorkerRef !== binding.workerRef)
 				return {
 					kind: "NOOP",

@@ -642,6 +642,7 @@ async function constructGraph(
 		return {
 			taskId: value.taskId,
 			status: value.status,
+			currentNodeId: value.currentNodeId,
 			roleBindings: value.roleBindings,
 		};
 	};
@@ -1195,14 +1196,30 @@ async function constructGraph(
 							taskId: request.taskId,
 							workerRef: request.workerRef,
 						});
-					if (request.nodeId)
-						unwrap(
+					if (request.nodeId) {
+						const nodeContext = unwrap(
 							task.queries.getNodeContext({
 								taskId: request.taskId,
 								nodeId: request.nodeId,
-								...(request.runNo ? { runNo: request.runNo } : {}),
 							}),
 						);
+						if (taskFact.currentNodeId !== nodeContext.node.nodeId) return false;
+						if (
+							request.runNo !== undefined &&
+							request.runNo !== nodeContext.node.runNo
+						)
+							return false;
+						const nodeBinding = taskFact.roleBindings.find(
+							(candidate) =>
+								candidate.agentPackageRef ===
+								nodeContext.node.requiredAgentPackageRef,
+						);
+						if (!nodeBinding?.workerRef) return false;
+						const scopedRoleRef =
+							request.roleRef ?? (internalBrowserCaller ? undefined : request.callerRef);
+						if (scopedRoleRef !== nodeBinding.roleRef) return false;
+						if (request.workerRef !== nodeBinding.workerRef) return false;
+					}
 					const browserInput = object(request.input, "execution input");
 					if (browserCapability) {
 						const targetRoleRef = string(browserInput.roleRef, "input.roleRef");
@@ -1219,6 +1236,15 @@ async function constructGraph(
 								"input.workerRef",
 							);
 							if (binding.workerRef !== targetWorkerRef) return false;
+							if (
+								request.capability === "worker.wake" &&
+								(targetRoleRef !== request.roleRef ||
+									targetWorkerRef !== request.workerRef ||
+									browserInput.taskId !== request.taskId ||
+									browserInput.nodeId !== request.nodeId ||
+									browserInput.runNo !== request.runNo)
+							)
+								return false;
 						}
 					}
 				}

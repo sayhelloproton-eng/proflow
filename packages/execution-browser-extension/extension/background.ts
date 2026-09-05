@@ -716,6 +716,12 @@ function runObserverRecovery() {
 									trigger: "RECOVERY_RESUME",
 									ref: candidate.executionRef,
 									targetWorkerRef: candidate.workerRef,
+									...(typeof candidate.nodeId === "string"
+										? { nodeId: candidate.nodeId }
+										: {}),
+									...(typeof candidate.runNo === "number"
+										? { runNo: candidate.runNo }
+										: {}),
 								})
 							: candidate.kind === "UNKNOWN_REALITY"
 								? await taskObserver.drive(candidate.taskId, undefined, {
