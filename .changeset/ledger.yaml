@@ -579,6 +579,10 @@
   dir: packages/execution-browser-extension
   intents:
     - real3-task-observer-recovery
+"@tomflow/proflow-execution-browser-extension@0.1.42":
+  dir: packages/execution-browser-extension
+  intents:
+    - real3-generation-identity-closure
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
@@ -707,6 +711,10 @@
   dir: packages/execution-runtime
   intents:
     - phase3-real3-browser-status-closeout
+"@tomflow/proflow-execution-runtime@0.1.18":
+  dir: packages/execution-runtime
+  intents:
+    - real3-generation-identity-closure
 "@tomflow/proflow-execution-runtime@0.1.2":
   dir: packages/execution-runtime
   intents:
@@ -1212,6 +1220,10 @@
   dir: packages/platform-host
   intents:
     - real3-browser-carrier-reality
+"@tomflow/proflow-platform-host@0.1.18":
+  dir: packages/platform-host
+  intents:
+    - real3-generation-identity-closure
 "@tomflow/proflow-platform-host@0.1.2":
   dir: packages/platform-host
   intents:

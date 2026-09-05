@@ -3,7 +3,7 @@ export const descriptor = {
 	contractVersion: "1.0.0",
 	moduleRef: "execution-runtime",
 	packageName: "@tomflow/proflow-execution-runtime",
-	moduleVersion: "0.1.17",
+	moduleVersion: "0.1.18",
 	kind: "service",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
