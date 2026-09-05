@@ -23,46 +23,49 @@ PHASE3_FINAL_GO = NO
 
 ```text
 branch = main
-HEAD = 0bcf01c8835c89374630e2f0f665ba618749afec
-working tree = WIP / Tasks web source + targeted regression test + CURRENT only; DO NOT COMMIT YET
+HEAD = 06fffc6 / chore(browser): scope privileged extension actions to card
+working tree = WIP / model-runtime live-inventory remap fix + changeset + CURRENT; release preparation in progress
 LOCAL_BROWSER_FIX_GREEN = YES / prior causal receipt candidate remains closed
-J2_TASKS_WEB_FIX_GREEN = YES / local candidate removes published Tasks runtime import without weakening auth/session boundaries
+J2_TASKS_WEB_FIX_GREEN = YES / self-contained Tasks web patch committed as 09d33aa
 TARGETED_GATE = PASS / CP-EXE-BR-32 + CP-EXE-BR-33 = 4 of 4
 PACKAGE_GATE = PASS / 156 of 156 tests
 PACKAGE_TYPECHECK = PASS
-ROOT_TYPECHECK = PASS / current patch
-BUILD = PASS / current patch
+ROOT_TYPECHECK = PASS
+BUILD = PASS
 SCOPED_BIOME_AND_DIFF_CHECK = PASS
 BUILT_TASKS_SELF_CONTAINED = YES / dist/extension/tasks.js has no runtime import
-BROWSER_REPAIR_CHECKPOINT = COMMITTED / 842917f / prior causal-receipt repair; current Tasks web patch remains uncommitted WIP
-NEEDS_REAL_RELEASE = YES / AUTHORIZED / release plan exact @tomflow/proflow-execution-browser-extension 0.1.39 → 0.1.40 only
-Registry execution-browser-extension@0.1.39 = PRESENT / VERIFIED; 0.1.40 = MISSING before release
-Product Workspace execution-browser-extension = 0.1.39 / VERIFIED / STILL OLD RUNTIME
-Chrome ProFlow Execution Browser = 0.1.39 / VERIFIED / STILL OLD RUNTIME
-Extension ID = eehdadpmjffomabiedcjijiakconalab
-platform status current readback = PLATFORM_READY=NO
-status reason = Chrome 扩展已加载，但当前运行会话未在线；公开恢复入口仍是 platform setup
+RELEASE_COMMIT = 86ab99b / execution-browser-extension 0.1.40 version facts
+Registry execution-browser-extension@0.1.40 = PRESENT / EXACT VERIFIED
+Product Workspace execution-browser-extension = 0.1.40 / EXACT VERIFIED
+materialized Chrome loadDir manifest = 0.1.40 / VERIFIED
+Chrome loaded ProFlow Execution Browser = 0.1.40 / fresh reload-after chrome://extensions screenshot VERIFIED
+Extension ID = eehdadpmjffomabiedcjijiakconalab / SAME ID VERIFIED
+platform setup = 2/3 CORE STEPS COMPLETE / browser extension COMPLETE + remote connection RECOVERED; model-runtime still BLOCKED by MODEL_MAPPING_STALE
+platform start = BLOCKED / exact reason: Provider model inventory 已变化，需要自动重新映射
+MODEL_RUNTIME_FIX = LOCAL GREEN / targeted drift test RED→GREEN; package 67/67 PASS; package/root typecheck PASS; root build PASS; git diff --check PASS
+MODEL_RUNTIME_RELEASE_PLAN = EXACT / only @tomflow/proflow-model-runtime 0.1.22 → 0.1.23 (patch); Registry 0.1.23 MISSING before release
+Chrome 0.1.40 runtime = LOADED_VERSION_VISUALLY_PROVEN / reload-after screenshot shows 0.1.40 + same Extension ID
 ```
 
-`PLATFORM_READY=NO` 是当前 live-session readback，不反向重开已经真实通过的 0.1.39 pairing 修复。当前 Tasks Browser candidate 已完成自动化 Gate，用户已明确授予 release/update 权限；正式 release set 已机械确认仅为 execution-browser-extension `0.1.39 → 0.1.40`。
+`PLATFORM_READY=NO` 当前不是 Browser Extension 回归，而是 update 后平台恢复时暴露的独立 `MODEL_MAPPING_STALE`。Browser Extension 0.1.40 已完成 Registry → Workspace → loadDir → Chrome loaded-version 四层对齐；Remote Connection 也已恢复。Real-3 J2 现在必须先让 Model Runtime 的自动 remap 真正闭环，使 `platform start` 恢复，再回 `ProFlow Tasks` SAME SCENE 验证 401 和 Human Start。
 
 ## CURRENT_CHECKPOINT
 
 ```text
-REAL_3_J2_BLOCKED_TASKS_WEB_LOCAL_FIX_GREEN_RELEASE_REQUIRED
+REAL_3_J2_PLATFORM_RECOVERY_MODEL_RUNTIME_FIX_GREEN_RELEASE_NEXT
 ```
 
 ## CURRENT_PROBLEM
 
 ```text
-problem class = REAL3_J2_TASKS_WEB_BLOCKER + REAL_RELEASE_REQUIRED + GATEWAY_DIAGNOSTIC_COLLAPSE
-primary current owner = @tomflow/proflow-execution-browser-extension Tasks Human Start surface
-release boundary = Registry / Product Workspace / Chrome runtime
+problem class = REAL3_J2_PLATFORM_RECOVERY_MODEL_MAPPING_STALE + TASKS_WEB_SAME_SCENE_VERIFY_PENDING + GATEWAY_DIAGNOSTIC_COLLAPSE
+primary current owner = @tomflow/proflow-model-runtime setup/remap boundary; browser Tasks fix remains awaiting SAME-SCENE proof after platform recovery
+runtime boundary = Browser Extension 0.1.40 Registry/Workspace/loadDir/Chrome loaded all aligned; Remote Connection recovered; platform start currently blocked only by model-runtime MODEL_MAPPING_STALE
 non-blocking diagnostic owner = @tomflow/proflow-agent-gateway
 first reality = J1 已机械闭环：Product / Dev / Test 三个固定 Role 均 formal browser.bindWorker exact + getTask PASS；Task Owner 当前 READY/v6/readiness=true/canStart=true，三份 Role binding exact，两个 Node 仍 PENDING/currentNodeId=null
-blocking reality = J2 前置 SAME-SCENE reload 真实复现 Tasks UI `Connecting...`；Console exact `GET /src/carrier-attention-view.js -> 401`。root cause 已机械定位为发布后的 `/tasks/app.js` 保留 runtime relative import，逃逸 `/tasks` task-session surface 后命中 Bridge Bearer auth
-local repair = Tasks entry 仅保留 type-only shared type，并在单文件 web entry 内保留 bounded parser；新增 CP-EXE-BR-33 防止发布产物再次出现 runtime import。targeted RED=3/4 后 GREEN=4/4；package=156/156；package/root typecheck=PASS；build=PASS；scoped Biome/diff=PASS；built tasks.js NO_RUNTIME_IMPORT=YES
-current stop point = 本地 candidate 已 GREEN，但 Registry / Product Workspace / Chrome 仍是 0.1.39 old runtime。未经明确 release/update 授权，不得 bump/publish/update；因此不能声称真实 401 已关闭，也不得绕过 UI 直接 task.start。下一步只有获得授权后发布/更新并回原 Tasks scene 做截图 + Console + Human Start + Owner readback
+blocking reality = `model-runtime.status()` 读取 live Provider `/models` 能发现 inventory drift，但旧 `setup()` 先用 model-provider shared facts 算 fingerprint，若旧 mapping 与旧 shared facts 相等就 early-return，导致 `platform setup` 连续返回“全部模块均已就绪”而最终 status 仍 `MODEL_MAPPING_STALE`。targeted 回归已改为真实用户路径（不手工刷新 provider facts）并先 RED `mappingCalls 1 !== 2`；实现改为 setup 先读取 live inventory，用 live fingerprint 判断复用并用 live models remap，随后 targeted GREEN、package 67/67、package/root typecheck、root build、diff-check 全 PASS
+release reality = Browser Extension 0.1.40 已真实 publish/update/load；Model Runtime 当前仍是 0.1.22，local fix 尚未发布。下一 release 必须只包含 model-runtime patch，目标 0.1.23
+current stop point = model-runtime local candidate GREEN；先 changeset + release plan 确认唯一 release set 0.1.22→0.1.23，正式 publish/update 后运行 `platform setup` 证明自动 remap，再 `platform start`；只有平台恢复后才回 ProFlow Tasks SAME SCENE 验证 401 消失与 Human Start
 ```
 
 ### 已确认事实
@@ -91,7 +94,11 @@ current stop point = 本地 candidate 已 GREEN，但 Registry / Product Workspa
 22. Dev 人工换人已完整闭环：固定 Dev Role root 只发送一次 `WORKER_BIND`，真实 worker/c-id=`6a9b4632-ca8c-83e9-a4bc-9de9e229e515`；Playwright screenshot + URL + DOM exact 验证 role/locator；`browser.binding` pre-read=`null` 后唯一一次 `browser.bindWorker` 返回 HTTP 200 `{bound:true}`，post-read exact match。随后同一 Dev Conversation 普通请求成功 `getTask`，读到 Task v4/PENDING 与 dev Node PENDING，Owner 再回读仍 v4，证明 getTask 为纯读且未开始 Execution。
 23. Test 人工换人也已完整闭环：固定 Test Role root 只发送一次 `WORKER_BIND`，真实 worker/c-id=`6a9b8ae0-f694-83e8-b4a2-0d20cbc5c04a`，canonical role/locator verified；Owner pre-bind=`null`，唯一一次 `browser.bindWorker` 返回 200 `{bound:true}`，post-read `EXACT_MATCH=YES`。Test bind 后 Owner 自动推进 Task 到 `READY/v6/readiness=true/canStart=true/blockedReason=null`，三份 Role binding 全 exact。Test 初始 GPT reply 出现约 30 秒 UI BUSY，截图确认无 Permission/新增文本后仅停止该 Chat generation；同一 c-id reload 后普通 getTask 请求成功读到 Task READY/v6 与 test Node PENDING，最终 Owner 再回读仍 READY/v6，证明 J1 已完整闭环且尚未启动任何 Node。
 24. J2 Human Start 前置复验已把 Tasks cold-load 401 升级为真实 blocker：原始 Tasks Tab SAME-SCENE reload 后仍 `Connecting...`，Console exact `GET /src/carrier-attention-view.js -> 401`。最小修复只改 Tasks 单文件入口边界与 targeted regression：CP-EXE-BR-33 先 RED（3/4）后 GREEN（4/4）；package `156/156`、package/root typecheck、root build、scoped Biome、`git diff --check` 均 PASS，built `dist/extension/tasks.js` 无 runtime import。当前真实 Product Workspace / Chrome 仍是 0.1.39，因此必须经过正式 release/update 才能回 SAME SCENE 证明 401 真正关闭。
-25. `pnpm package:release --plan` 已只读确认当前没有 execution-browser-extension 可复用的 pending release；唯一 resumable release 是已发布完成的 `@tomflow/proflow-platform-host@0.1.17`。因此 0.1.39 不能原版本复用；真实回归需要新的 Extension changeset/version → Registry exact publish/readback → Product Workspace update → Chrome reload/setup。授权前禁止执行这些 mutation。
+25. `pnpm package:release --plan` 已只读确认 execution-browser-extension 需要独立 patch release；随后已完成 `0.1.39 → 0.1.40` 发布。publish 子步骤明确成功，但 release 脚本紧接着的 Registry exact 因传播延迟短暂失败；独立 authoritative readback 随后返回 `0.1.40`，因此裁决为 Registry propagation race，禁止重复 publish。Product Workspace 已通过公开 `platform stop → platform update --package @tomflow/proflow-execution-browser-extension` 更新到 0.1.40，loadDir manifest 也是 0.1.40。
+26. 2026-09-05 Chrome privileged UI 执行方式事故已沉淀：为完成同一 ProFlow Extension Reload，先后尝试 Playwright `chrome://` navigation、`chrome-extension://` navigation、AppleScript JS、AX 菜单等多条路径，造成反复切窗/抢用户前台；这些尝试没有增加业务 authority。最终一次正确的 `chrome://extensions` 截图已经足够确认同一 Extension ID、当前可见版本 `0.1.39` 和 Reload 控件。该事件定义为**执行方式错误，不是产品 defect**。以后 privileged UI 固定“一次切前台 → 一张截图定位 → 一次 mutation → 一张截图验证 → 后台 authority readback”，截图足够后禁止继续探索更“程序化”的替代路线。
+27. 用户新增其它 Chrome Extension 后，ProFlow 卡片从原第二位置移动到第一排第三位置，暴露 `browser-extension-ui.swift` 旧 locator 的结构风险：旧 `reloadButtonAfterExtension()/removeButtonAfterExtension()` 是“找到名称后，在全局后续 AX 节点中取第一个 Reload/Remove”，虽不是固定坐标，但仍依赖全局顺序。helper 已改为 `Extension ID + 名称 → 最小目标卡片容器 → 仅卡片 descendants 内 Reload/Remove`，compile-only PASS；随后正式 Reload 返回 `BROWSER_UI_RESULT=RELOADED`，fresh reload-after screenshot 明确显示 ProFlow `0.1.40` + 同一 Extension ID，loaded-version 已闭环。
+28. Browser update 后平台恢复暴露新的真实 blocker：Remote Connection 已从 1/3 恢复到 2/3，但 `platform start` exact 阻塞于 `MODEL_MAPPING_STALE`。连续 `platform setup` 都输出“全部模块均已就绪”却最终仍 2/3，源码/已安装 dist 对齐审计证明不是 CLI 版本漂移。
+29. `MODEL_MAPPING_STALE` 根因已机械定位：`model-runtime.status()` 用 live Provider `/models` 检测 drift；旧 `model-runtime.setup()` 却先用 model-provider shared facts 计算 fingerprint，若旧 mapping 与旧 shared facts 相等就 early-return，因此真实 live drift 无法被 setup 自动修复。现有测试曾在 stale 后手工 `providerFacts(workspaceRoot, observed)`，替产品提前刷新 shared facts，掩盖了真实用户路径。回归已改为不手工刷新 provider facts，先 RED `mappingCalls 1 !== 2`；实现改为 setup 先读取 live inventory，用 live fingerprint 决定复用/重映射，并将 live models 传给原 mapInventory，targeted GREEN。全 package 67/67、package typecheck、root typecheck、root build、git diff --check 均 PASS。
 
 ### 尚未宣称证明的部分
 
@@ -119,14 +126,14 @@ Test execution = execution:567be187-f585-4d08-bb33-6fbe25e84aed
 
 ## NEXT_ACTION
 
-1. release/update 授权已获得；changeset release plan exact 仅为 `@tomflow/proflow-execution-browser-extension 0.1.39 → 0.1.40`。先提交当前最小 release unit，使正式 release clean-tree 前置成立。
-2. 按 Package Update Loop 发布 `0.1.40` 并做 Registry exact readback，再用公开 update/setup 路径更新 Product Workspace + Chrome；任何非幂等步骤 timeout 都先恢复权威状态，禁止盲重试。
-3. 更新后回现有原始 `ProFlow Tasks` SAME SCENE：screenshot + Console 必须先证明 `/src/carrier-attention-view.js` 401 消失、Tasks 正常列出固定 Task；点击 Start 前再 Owner readback `READY/v6/canStart=true`。
-4. Human Start 只点击一次，立即 ACT → screenshot/snapshot → Owner readback，验证 Task/currentNode/dev Node 正式推进后再继续 J2；Gateway typed-error、Model readiness、legacy UNKNOWN 继续非阻塞。
+1. 为 `@tomflow/proflow-model-runtime` 创建唯一 patch changeset，先跑 `pnpm package:release --plan`；release set 必须只包含 `model-runtime 0.1.22 → 0.1.23`，若带出其它 package 立即 STOP。
+2. 将 browser privileged helper/context hardening 与 model-runtime source/test/changeset 按逻辑提交，满足正式 release clean-tree 前置；随后执行一次正式 `package:release`。publish 超时/Registry propagation race 仍按 authority readback，禁止 blind republish。
+3. Registry exact 证明 `model-runtime@0.1.23` 后，通过公开 `platform update --package @tomflow/proflow-model-runtime --workspace /Users/agent/Desktop/proton-workspace` 更新 Product Workspace；当前平台未启动，可直接走单包 update。然后运行 `platform setup --workspace ...`，要求 `MODEL_MAPPING_STALE` 消失、3/3 COMPLETE，再 `platform start`。
+4. 平台恢复后只回 ProFlow Tasks SAME SCENE：screenshot + Console/DOM 证明 0.1.40 的 `/src/carrier-attention-view.js` 401 消失；再 Owner readback `READY/v6/canStart=true`。Human Start 只点击一次，ACT → screenshot/snapshot → Owner readback，验证 Task/currentNode/dev Node 正式推进后继续 J2/J3。
 
 ## STOP_POINT
 
-当前 STOP POINT 是：`J1_PASS / TASK_READY_V6 / ALL_THREE_WORKERS_OWNER_BOUND_EXACT / J2_TASKS_401_CONFIRMED / LOCAL_FIX_GREEN / RELEASE_0140_AUTHORIZED / LEGACY_UNKNOWN_PRESERVED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；真实 0.1.39 Tasks UI 仍是旧 runtime，J2 尚未开始。下一动作是提交当前最小 release unit 并正式发布/update 0.1.40；仍禁止直接 task.start、Recover、创建第二笔 Execution、修改 Owner DB 或清理旧 Browser evidence。
+当前 STOP POINT 是：`J1_PASS / TASK_READY_V6 / EXTENSION_0140_LOADED_PASS / REMOTE_CONNECTION_2_OF_3_RECOVERED / MODEL_MAPPING_STALE_ROOT_CAUSE_FIXED_LOCAL_GREEN / MODEL_RUNTIME_0123_RELEASE_NEXT / J2_HUMAN_START_NOT_YET / LEGACY_UNKNOWN_PRESERVED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；禁止直接 task.start、Recover、创建第二笔 Execution、修改 Owner DB、重复发布 0.1.40 或再进入 Extension Manager。
 
 ## RECENTLY_CLOSED
 

@@ -555,12 +555,28 @@ export function createModelRuntimeBehaviorAdapter(
 					observedEffects: [],
 				};
 			const existing = await readMapping(context);
-			const inventoryFingerprint = fingerprint(provider.models);
+			const providerSecret = await credential(provider.providerCredentialFile);
+			let live: readonly string[];
+			try {
+				live = await observeInventory({
+					providerBaseUrl: provider.providerBaseUrl,
+					...(providerSecret ? { credential: providerSecret } : {}),
+				});
+			} catch (error) {
+				const message = `模型能力验证失败：${error instanceof Error ? error.message : String(error)}`;
+				return { result: failed("SETUP_FAILED", message), observedEffects: [] };
+			}
+			const providerModelsById = new Map(
+				provider.models.map((model) => [model.id, model] as const),
+			);
+			const liveModels: readonly InventoryModel[] = live.map(
+				(id) => providerModelsById.get(id) ?? { id },
+			);
+			const inventoryFingerprint = fingerprint(liveModels);
 			if (existing?.inventoryFingerprint === inventoryFingerprint) {
 				await ownFacts(context);
 				return { result: base, observedEffects: [] };
 			}
-			const providerSecret = await credential(provider.providerCredentialFile);
 			const selected = selectedRoles(context);
 			const preferred = {
 				...(existing?.mapping ?? {}),
@@ -570,6 +586,7 @@ export function createModelRuntimeBehaviorAdapter(
 			try {
 				decision = await mapInventory({
 					...provider,
+					models: liveModels,
 					...(providerSecret ? { credential: providerSecret } : {}),
 					...(Object.keys(preferred).length > 0 ? { previous: preferred } : {}),
 				});

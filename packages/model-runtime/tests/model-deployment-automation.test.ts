@@ -385,6 +385,7 @@ test("ambiguous mapping requests only irreducible model choice while missing rol
 	const ambiguousRoot = await workspace(context);
 	await providerFacts(ambiguousRoot, ["fast-a", "fast-b", "reason"]);
 	const ambiguous = createModelRuntimeBehaviorAdapter({
+		observeInventory: async () => ["fast-a", "fast-b", "reason"],
 		mapInventory: async ({ previous }) =>
 			decideRoleMapping(
 				[
@@ -411,6 +412,7 @@ test("ambiguous mapping requests only irreducible model choice while missing rol
 	const missingRoot = await workspace(context);
 	await providerFacts(missingRoot, ["fast"]);
 	const missing = createModelRuntimeBehaviorAdapter({
+		observeInventory: async () => ["fast"],
 		mapInventory: async () => ({
 			status: "MISSING_ROLE",
 			role: "reason",
@@ -463,7 +465,8 @@ test("provider inventory drift makes an existing mapping stale until automatic r
 	const stale = await adapter.status({ workspaceRoot });
 	assert.equal(stale.result.data.setupStatus, "BLOCKED");
 	assert.equal(stale.result.data.issues?.[0]?.code, "MODEL_MAPPING_STALE");
-	await providerFacts(workspaceRoot, observed);
+	// Real setup must reconcile directly from the live Provider inventory. The
+	// provider shared-facts snapshot may still contain the previous inventory.
 	assert.equal(
 		(
 			await adapter.setup({
