@@ -571,6 +571,10 @@
   dir: packages/execution-browser-extension
   intents:
     - real3-browser-carrier-reality
+"@tomflow/proflow-execution-browser-extension@0.1.40":
+  dir: packages/execution-browser-extension
+  intents:
+    - real3-tasks-web-self-contained
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
