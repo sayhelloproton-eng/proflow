@@ -63,6 +63,25 @@ Playwright 只控制**受控标签组**中的页面，不会自动看到用户 C
 
 只有 Chrome privileged UI 临界区允许短暂激活 Chrome，例如：扩展工具栏菜单、`chrome://extensions`、Load unpacked、系统 picker、Chrome 原生确认框。此时固定模式为 `activate Chrome → locate current bounds → act → verify → 立即退出 privileged 临界区`，尽量一个原子 helper 内完成，不把激活状态带入后续普通页面步骤。
 
+### Privileged UI 一次前台原子回合
+
+当 Playwright 已机械证明不能直接 attach `chrome://` / `chrome-extension://` 页面时，**不要继续把“找到更程序化的控制方式”当目标**。如果真人只需要看一眼并点一次，自动化也必须保持同样低心智：
+
+```text
+一次切 Chrome 前台
+→ 一张 fresh privileged screenshot，确认当前页面、目标卡片/按钮和当前版本
+→ 只做一次必要 mutation（Reload / Load unpacked / Confirm 等）
+→ 立即再截一张 screenshot，确认可见结果
+→ 立刻退出前台临界区
+→ 后台用 platform / Owner / heartbeat / Registry 等 authority 证明业务状态
+```
+
+- 一张截图已经足够定位目标时，禁止继续尝试 Playwright privileged navigation、extension-origin navigation、AppleScript JS、AX 菜单探测等第二/第三条路线。
+- 不能为了“更自动化”反复 activate Chrome、切 Tab、开 privileged page、抢焦点；这属于**执行方式错误**，不是产品 defect。
+- Chrome Extension Manager 的卡片位置不是 identity。新增/删除其它扩展会让卡片从第二格、第三格等位置漂移；helper 禁止按列号、DOM/AX 全局顺序或“目标名称之后第一个 Reload/Remove”定位 mutation。必须先用 **Extension ID + 名称** 锁定目标卡片容器，再只在该卡片 descendants 内查找 Reload/Remove。
+- privileged mutation 的“命令返回成功 / AXPress 返回成功 / AppleScript 返回成功”都不能替代动作后的截图；截图是视觉真值，Owner/heartbeat 是业务真值。
+- 若第一次 screenshot 发现页面不对，先纠正到正确页面后再开始原子回合；错误页面截图不能拿来推断目标按钮坐标。
+
 不要在 AX helper 正操作 privileged UI/系统选择器时调用 Playwright 抢前台；也不要让 Terminal/ChatGPT 成为焦点。禁止写死一次截图的坐标。普通页面失败时使用 Playwright page screenshot；只有 privileged UI 失败才允许系统级截图。
 
 ## 版本与现实回读

@@ -32,6 +32,23 @@ Package Runbook 决定“怎么验证目标功能”；本流程不复制 Browse
 - update 完成后以 Product Workspace package version +目标功能现实为准，不以 repo package.json 替代。
 - 已稳定的 install/setup/其它包不因单包修复重测。
 
+## Browser Extension 包的额外闭环
+
+Browser Extension 的“更新成功”不是一个单点，而是一条必须逐层对齐的现实链：
+
+```text
+Registry exact version
+→ Product Workspace node_modules version
+→ .proflow/deployment materialized manifest/artifact version
+→ Chrome 当前已加载 Extension version / ID
+→ platform setup / heartbeat runtime evidence
+→ 原失败 Browser SAME SCENE 行为
+```
+
+前一层 PASS 不能替代后一层。尤其是 `platform setup` 显示 Browser Extension 配置步骤完成，只能证明 pairing/setup 观察满足当前判据；**不能单独证明 Chrome 当前可见 loaded version 已切到目标版本**。Extension 更新后至少需要 fresh `chrome://extensions` 版本/ID截图，再用真实 action / Tasks / content behavior 证明新 runtime 正在执行。
+
+若 Workspace 与 materialized loadDir 已是 N+1，而 fresh Chrome screenshot 仍是 N，则当前动作只属于 **Chrome runtime adoption**，不得重新 publish、不得重复 `platform update`。此时按 `Browser-UI自动化.md` 的 privileged 一次前台原子回合完成 Reload/Load，再回后台做 heartbeat 和 SAME SCENE readback。
+
 ## 当前实例不得固化在 Flow
 
 具体 target package、repo candidate、Registry version、Product Workspace installed version、当前 blocker 与返回 checkpoint **只写 `02-当前接力/CURRENT.md`**。本 Flow 只保存稳定编排，禁止再把某一轮 `0.1.x → 0.1.y` 版本事实写进来，否则新 Chat 会把历史实例误当当前任务。

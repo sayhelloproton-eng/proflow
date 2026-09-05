@@ -3,6 +3,7 @@ import ApplicationServices
 import Foundation
 
 let extensionName = ProcessInfo.processInfo.environment["PROFLOW_BROWSER_EXTENSION_NAME"] ?? "ProFlow Execution Browser"
+let extensionId = ProcessInfo.processInfo.environment["PROFLOW_BROWSER_EXTENSION_ID"] ?? "eehdadpmjffomabiedcjijiakconalab"
 let action = CommandLine.arguments.dropFirst().first(where: { $0 != "--" }) ?? "status"
 let started = Date()
 let previousFrontmost = NSWorkspace.shared.frontmostApplication
@@ -130,25 +131,35 @@ func pressable(named names: Set<String>) -> AXUIElement? {
         return values.contains(kAXPressAction as String)
     }
 }
-func removeButtonAfterExtension() -> AXUIElement? {
-    let all = nodes()
-    guard let index = all.firstIndex(where: { text($0).contains(extensionName) }) else { return nil }
-    return all.dropFirst(index + 1).first {
+func extensionCard() -> AXUIElement? {
+    let candidates = nodes().compactMap { element -> (AXUIElement, CGFloat)? in
+        let descendants = flatten(element)
+        let hasName = descendants.contains { text($0).contains(extensionName) }
+        let hasId = descendants.contains { text($0).contains(extensionId) }
+        let hasCardAction = descendants.contains {
+            guard role($0) == kAXButtonRole as String else { return false }
+            let value = text($0)
+            return ["重新加载", "Reload", "移除", "Remove"].contains(value)
+        }
+        guard hasName, hasId, hasCardAction, let rect = bounds(element), rect.width > 0, rect.height > 0 else { return nil }
+        return (element, rect.width * rect.height)
+    }
+    return candidates.min(by: { $0.1 < $1.1 })?.0
+}
+func cardButton(named names: Set<String>) -> AXUIElement? {
+    guard let card = extensionCard() else { return nil }
+    return flatten(card).first {
         guard role($0) == kAXButtonRole as String else { return false }
         let title = stringAttribute($0, kAXTitleAttribute as CFString)
         let combined = text($0)
-        return ["移除", "Remove"].contains(title) || ["移除", "Remove"].contains(combined)
+        return names.contains(title) || names.contains(combined)
     }
 }
+func removeButtonAfterExtension() -> AXUIElement? {
+    cardButton(named: ["移除", "Remove"])
+}
 func reloadButtonAfterExtension() -> AXUIElement? {
-    let all = nodes()
-    guard let index = all.firstIndex(where: { text($0).contains(extensionName) }) else { return nil }
-    return all.dropFirst(index + 1).first {
-        guard role($0) == kAXButtonRole as String else { return false }
-        let title = stringAttribute($0, kAXTitleAttribute as CFString)
-        let combined = text($0)
-        return ["重新加载", "Reload"].contains(title) || ["重新加载", "Reload"].contains(combined)
-    }
+    cardButton(named: ["重新加载", "Reload"])
 }
 func confirmationVisible() -> Bool {
     nodes().contains {
@@ -419,6 +430,7 @@ do {
         }
         try click(reload)
         usleep(750_000)
+        screenshot("reload-after")
         finish("RELOADED")
     case "uninstall":
         try ensureExtensionsPage()

@@ -130,4 +130,21 @@ WAKE success       != Node success
 
 若 repo/Registry/Workspace materialization 版本不一致，先恢复版本真值，再走 `流程/Package-Update-Loop.md`。禁止 repo 直接复制 extension 源码到 Product Workspace、禁止改 node_modules 代替 `platform update`。
 
+Extension update 的完成条件必须分层验证：
+
+```text
+Registry = target version
+→ Product Workspace = target version
+→ materialized loadDir manifest/artifact = target version
+→ Chrome loaded Extension = target version + same Extension ID
+→ pairing/heartbeat = current runtime evidence
+→ 原失败 Browser SAME SCENE = PASS
+```
+
+`platform setup` 中 Browser Extension 步骤变成“已完成”不能替代 fresh Chrome loaded-version 证明。若 setup 已进入后续 Tunnel/Model 步骤，但最后一张 fresh `chrome://extensions` 截图仍显示旧版本，则只能裁决“setup Browser step satisfied / loaded version 尚未视觉证明”，禁止把两者合并成 `Chrome update PASS`。
+
+当唯一剩余动作只是 Chrome runtime adoption（Reload/Load unpacked）时，必须按 `Browser-UI自动化.md` 的 privileged 一次前台原子回合处理：一次截图定位、一次 mutation、一次截图验证，然后立即回后台用 heartbeat / platform status / 目标 Browser 行为回读。禁止在一张截图已经足够后继续尝试 Playwright privileged navigation、AppleScript JS 或多套 AX 路径。
+
+`browser-extension-ui.swift` 的 Extension Manager mutation 必须以 `PROFLOW_BROWSER_EXTENSION_ID`（默认当前 ProFlow Extension ID）+ `PROFLOW_BROWSER_EXTENSION_NAME` 锁定目标卡片，再在卡片 descendants 内查找 `Reload/Remove`。禁止依赖“第几个卡片”或“名称之后第一个按钮”的全局 AX 顺序；其它扩展的安装/删除会改变网格位置，但不能改变目标 identity。
+
 真实 Browser 已 READY 时，后续流程直接从业务 checkpoint 继续，不为“保险”重复 Browser setup。
