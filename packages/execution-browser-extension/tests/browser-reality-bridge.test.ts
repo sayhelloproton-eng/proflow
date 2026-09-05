@@ -278,6 +278,52 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 		assert.equal(task.status, 200);
 		assert.deepEqual(await task.json(), { ok: true, value: { tasks: [] } });
 		assert.deepEqual(calls, [{ surface: "task", operation: "task.list" }]);
+
+		await hello(bridge.endpoint);
+		const readyPoll = await callWithoutOrigin(
+			bridge.endpoint,
+			"/v1/commands/next?extensionInstanceId=extension%3Aone",
+		);
+		assert.equal(readyPoll.status, 204);
+		const readOnly = await fetch(`${bridge.endpoint}/tasks/api/task`, {
+			method: "POST",
+			headers: { cookie: cookieHeader, origin: bridge.endpoint, "content-type": "application/json" },
+			body: JSON.stringify({ operation: "task.list", input: {} }),
+		});
+		assert.equal(readOnly.status, 200);
+		const afterReadOnly = await callWithoutOrigin(
+			bridge.endpoint,
+			"/v1/commands/next?extensionInstanceId=extension%3Aone",
+		);
+		assert.equal(afterReadOnly.status, 204);
+
+		const start = await fetch(`${bridge.endpoint}/tasks/api/task`, {
+			method: "POST",
+			headers: { cookie: cookieHeader, origin: bridge.endpoint, "content-type": "application/json" },
+			body: JSON.stringify({ operation: "task.start", input: { taskId: "task:one" } }),
+		});
+		assert.equal(start.status, 200);
+		const recovery = await callWithoutOrigin(
+			bridge.endpoint,
+			"/v1/commands/next?extensionInstanceId=extension%3Aone",
+		);
+		assert.equal(recovery.status, 200);
+		const recoveryCommand = (await recovery.json()) as Record<string, unknown>;
+		assert.equal(recoveryCommand.type, "TASK_OBSERVER_RECOVER");
+		await call(
+			bridge.endpoint,
+			"/v1/commands/result?extensionInstanceId=extension%3Aone",
+			{
+				method: "POST",
+				body: JSON.stringify({ commandId: recoveryCommand.commandId, ok: true, value: { scheduled: true } }),
+			},
+		);
+		assert.deepEqual(calls, [
+			{ surface: "task", operation: "task.list" },
+			{ surface: "task", operation: "task.list" },
+			{ surface: "task", operation: "task.start" },
+		]);
+
 		const denied = await fetch(`${bridge.endpoint}/tasks/api/task`, {
 			method: "POST",
 			headers: { origin: bridge.endpoint, "content-type": "application/json" },

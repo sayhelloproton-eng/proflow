@@ -36,12 +36,20 @@ type BridgeCommand =
 			type: "CARRIER_ATTENTION_ACTION";
 			attentionRef: string;
 			action: "allowOnce" | "deny";
-	  };
+	  }
+	| { commandId: string; type: "TASK_OBSERVER_RECOVER" };
 type BridgeCommandInput = BridgeCommand extends infer Command
 	? Command extends { commandId: string }
 		? Omit<Command, "commandId">
 		: never
 	: never;
+
+const taskWebObserverRecoveryOperations = new Set([
+	"task.create",
+	"task.start",
+	"task.ensureWorkers",
+	"node.reopen",
+]);
 
 type PendingCommand = {
 	command: BridgeCommand;
@@ -444,9 +452,22 @@ export async function createBrowserRealityBridgeServer(
 							"BRIDGE_INPUT_INVALID",
 							"task web request is invalid",
 						);
-					const value = url.pathname.endsWith("/task")
+					const taskRequest = url.pathname.endsWith("/task");
+					const value = taskRequest
 						? await options.taskWeb.invokeTask(body.operation, body.input)
 						: await options.taskWeb.invokeApproval(body.operation, body.input);
+					if (
+						taskRequest &&
+						taskWebObserverRecoveryOperations.has(body.operation) &&
+						commandConsumerReady()
+					) {
+						// The Task mutation is already durable and must not be coupled to
+						// transient Browser delivery. Notify the Extension asynchronously so
+						// its existing Task Observer can derive the next NODE_READY/REOPEN wake.
+						void requestCommand({ type: "TASK_OBSERVER_RECOVER" }).catch(
+							() => undefined,
+						);
+					}
 					send(response, 200, { ok: true, value });
 					return;
 				}

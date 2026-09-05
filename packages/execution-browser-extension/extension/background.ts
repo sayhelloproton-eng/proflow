@@ -76,7 +76,8 @@ type BridgeCommand = {
 		| "VERIFY"
 		| "SCREENSHOT"
 		| "PERFORM"
-		| "CARRIER_ATTENTION_ACTION";
+		| "CARRIER_ATTENTION_ACTION"
+		| "TASK_OBSERVER_RECOVER";
 	tabId?: number;
 	url?: string;
 	text?: string;
@@ -1312,6 +1313,10 @@ function text(value: unknown, name: string): string {
 }
 
 async function executeCommand(command: BridgeCommand): Promise<unknown> {
+	if (command.type === "TASK_OBSERVER_RECOVER") {
+		void runObserverRecovery();
+		return { scheduled: true };
+	}
 	if (command.type === "CARRIER_ATTENTION_ACTION") {
 		if (command.action !== "allowOnce" && command.action !== "deny")
 			throw new Error("ATTENTION_ACTION_INVALID");

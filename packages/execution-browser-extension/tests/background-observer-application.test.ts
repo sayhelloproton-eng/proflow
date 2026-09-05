@@ -73,6 +73,15 @@ test("PRESMOKE-B3-OBS-EXT-03 concurrent recovery triggers share one in-flight re
 	assert.match(source, /observerRecoveryInFlight = null/);
 });
 
+test("REAL3 Tasks web mutation recovery command re-enters the existing Task Observer", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	assert.match(source, /command\.type === "TASK_OBSERVER_RECOVER"/);
+	assert.match(
+		source,
+		/command\.type === "TASK_OBSERVER_RECOVER"[\s\S]{0,160}void runObserverRecovery\(\)/,
+	);
+});
+
 test("PRESMOKE-B4-OBS-EXT-04 human Approval decision resumes the bound Worker through Task Observer rather than UI-owned state", async () => {
 	const source = await readFile(backgroundUrl, "utf8");
 	assert.match(source, /message\.operation === "approval\.allow"/);

@@ -23,50 +23,54 @@ PHASE3_FINAL_GO = NO
 
 ```text
 branch = main
-HEAD = 93e4bb11e169770d7b30700f7b0741e1272ce1ce / model-runtime 0.1.23 release facts
-working tree = WIP / model-runtime additive-inventory stable-mapping fix + CURRENT + release preparation
+HEAD = be8b7390f09eba4e0d294ed236ee46a596310a28 / model-runtime 0.1.24 release facts
+working tree = WIP / execution-browser-extension Tasks mutation → Observer recovery bridge fix + tests + CURRENT
 LOCAL_BROWSER_FIX_GREEN = YES / prior causal receipt candidate remains closed
-J2_TASKS_WEB_FIX_GREEN = YES / self-contained Tasks web patch committed as 09d33aa
-TARGETED_GATE = PASS / CP-EXE-BR-32 + CP-EXE-BR-33 = 4 of 4
-PACKAGE_GATE = PASS / 156 of 156 tests
+J2_TASKS_WEB_FIX_GREEN = YES / self-contained Tasks web patch released as execution-browser-extension 0.1.40
+J2_SAME_SCENE = PASS / /tasks loads normally; old /src/carrier-attention-view.js 401 absent; fixed Task visible
+J2_HUMAN_START = PASS / official Confirm / Start clicked exactly once
+TASK_OWNER_AFTER_START = ACTIVE / v7 / currentNodeId=dev / dev READY run1 / test PENDING run1
+J3_WAKE_GAP_ROOT_CAUSE = VERIFIED / Tasks Web durable task mutation bypassed Extension runtime message path, so no observer recovery pass was triggered
+J3_WAKE_FIX = LOCAL GREEN / successful Tasks mutations enqueue TASK_OBSERVER_RECOVER; Background re-enters existing runObserverRecovery(); TaskObserver still owns NODE_READY/REOPEN decision
+TARGETED_GATE = PASS / Bridge 5 of 5 + Bridge/Background 16 of 16
+PACKAGE_GATE = PASS / execution-browser-extension 157 of 157 tests
 PACKAGE_TYPECHECK = PASS
 ROOT_TYPECHECK = PASS
 BUILD = PASS
-SCOPED_BIOME_AND_DIFF_CHECK = PASS
-BUILT_TASKS_SELF_CONTAINED = YES / dist/extension/tasks.js has no runtime import
-RELEASE_COMMIT = 86ab99b / execution-browser-extension 0.1.40 version facts
+DIFF_CHECK = PASS
 Registry execution-browser-extension@0.1.40 = PRESENT / EXACT VERIFIED
 Product Workspace execution-browser-extension = 0.1.40 / EXACT VERIFIED
 materialized Chrome loadDir manifest = 0.1.40 / VERIFIED
-Chrome loaded ProFlow Execution Browser = 0.1.40 / fresh reload-after chrome://extensions screenshot VERIFIED
-Extension ID = eehdadpmjffomabiedcjijiakconalab / SAME ID VERIFIED
-platform setup/status = 2/3 CORE STEPS COMPLETE / browser extension COMPLETE + remote connection COMPLETE; Provider HTTP recovered, but model setup failed by full inventory reprobe after an additive Embedding model appeared
-platform start = NOT_RETRIED / current blocker is additive inventory forcing irrelevant full capability reprobe, not Provider reachability
-MODEL_RUNTIME_FIX_0123 = RELEASED_AND_WORKSPACE_UPDATED / live-inventory remap bug fixed; prior MODEL_MAPPING_STALE early-return defect closed
-MODEL_RUNTIME_ADDITIVE_FIX = LOCAL GREEN / additive inventory keeps existing FAST/THINK mapping when both mapped refs remain; true mapped-model replacement still remaps; package 68/68 PASS; package/root typecheck PASS; root build PASS; git diff --check PASS
-MODEL_PROVIDER_BOUND_URL = http://192.168.0.108:8080/v1 / GET /v1/models = 200 / live inventory = prior 3 models + mlx-community/Qwen3-Embedding-0.6B-8bit only
-Chrome 0.1.40 runtime = LOADED_VERSION_VISUALLY_PROVEN / reload-after screenshot shows 0.1.40 + same Extension ID
+Chrome loaded ProFlow Execution Browser = 0.1.40 / SAME ID VERIFIED
+Extension ID = eehdadpmjffomabiedcjijiakconalab
+MODEL_RUNTIME_0124 = RELEASED_AND_WORKSPACE_UPDATED / additive unrelated inventory no longer invalidates stable FAST/THINK mapping
+platform setup = 3/3 COMPLETE
+platform start = 4 success / 19 skipped / 0 failed
+platform status = PLATFORM_READY=YES
+MODEL_PROVIDER_BOUND_URL = http://192.168.0.108:8080/v1 / GET /v1/models = 200
 ```
 
-`PLATFORM_READY=NO` 当前不是 Browser Extension 回归，也不是 Provider 不可达。手机模型服务已恢复，`/v1/models` 200；live inventory 相比已验证 mapping 只新增一个 Embedding 模型，原 FAST/THINK 两个 Qwen modelRef 均仍存在。0.1.23 setup 仍按完整 inventory fingerprint 触发全量能力重探测，Embedding probe timeout/abort 后两个 Qwen 返回 409，导致稳定 mapping 被无关 inventory 变化阻塞。该 owning defect 已完成最小 local 修复与完整 Gate，下一步只发布/update `model-runtime 0.1.24`，再回真实 `platform setup`。
+`PLATFORM_READY=YES`。J2 已完成真实 SAME-SCENE 与 Human Start：Task Owner 已从 `READY/v6/currentNodeId=null` 推进为 `ACTIVE/v7/currentNodeId=dev`，Dev=`READY/run1`，Test=`PENDING/run1`。当前唯一 critical path 在 J3：Start 后 Dev 没收到 `NODE_READY`，已机械证明是 Tasks Web mutation 成功后没有触发 Extension Task Observer recovery。最小修复已完成 RED→GREEN，并通过 157/157 + package/root typecheck + root build + diff-check；下一步只发布/update `execution-browser-extension 0.1.41`，然后对**现有 ACTIVE/v7 Task**触发 Observer recovery，禁止重新 Start。
 
 ## CURRENT_CHECKPOINT
 
 ```text
-REAL_3_J2_PLATFORM_RECOVERY_ADDITIVE_INVENTORY_FIX_GREEN_0124_RELEASE_NEXT
+REAL_3_J2_PASS_J3_TASK_WEB_TO_OBSERVER_RECOVERY_FIX_GREEN_0141_RELEASE_NEXT
 ```
 
 ## CURRENT_PROBLEM
 
 ```text
-problem class = REAL3_J2_PLATFORM_RECOVERY_ADDITIVE_MODEL_INVENTORY + TASKS_WEB_SAME_SCENE_VERIFY_PENDING + GATEWAY_DIAGNOSTIC_COLLAPSE
-primary current owner = @tomflow/proflow-model-runtime stable mapping reuse boundary; browser Tasks fix remains awaiting SAME-SCENE proof after platform recovery
-runtime boundary = Browser Extension 0.1.40 Registry/Workspace/loadDir/Chrome loaded all aligned; Remote Connection recovered; Provider `/v1/models` 200; Model Runtime 0.1.23 Registry/Workspace aligned
-non-blocking diagnostic owner = @tomflow/proflow-agent-gateway
-first reality = J1 已机械闭环：Product / Dev / Test 三个固定 Role 均 formal browser.bindWorker exact + getTask PASS；Task Owner 当前 READY/v6/readiness=true/canStart=true，三份 Role binding exact，两个 Node 仍 PENDING/currentNodeId=null
-blocking reality = live inventory 由原 3 个模型仅新增 `mlx-community/Qwen3-Embedding-0.6B-8bit`；既有 FAST=`sayhelloproton/Qwen3.5-4B-MLX-4bit-no-think` 与 THINK=`mlx-community/Qwen3.5-4B-MLX-4bit` 均仍存在。0.1.23 因完整 inventory fingerprint 变化触发全量能力重探测，Embedding probe abort 后两个 Qwen 返回 HTTP 409，导致 setup 失败。targeted 已证明：真正替换 mapped refs 仍 remap；仅 additive unrelated inventory 时应复用既有 mapping，不再调用 mapInventory
-release reality = Browser Extension 0.1.40 已真实 publish/update/load；Model Runtime 0.1.23 已真实 release；additive mapping fix 当前 local GREEN，package 68/68 + package/root typecheck + root build + diff-check PASS，0.1.24 release next
-current stop point = 创建唯一 model-runtime patch changeset → release plan 必须仅 0.1.23→0.1.24 → 正式 publish/update → `platform setup` 验证 3/3 → `platform start` → ProFlow Tasks SAME SCENE → Human Start
+problem class = REAL3_J3_TASK_WEB_MUTATION_OBSERVER_WAKE_GAP
+primary current owner = @tomflow/proflow-execution-browser-extension Bridge → Background observer-recovery notification boundary
+runtime boundary = Browser Extension 0.1.40 Registry/Workspace/loadDir/Chrome loaded aligned; Model Runtime 0.1.24 Registry/Workspace aligned; platform 3/3 + PLATFORM_READY=YES
+non-blocking diagnostic owner = @tomflow/proflow-agent-gateway / known typed-error collapse only; not on current critical path
+first reality = J1 PASS + J2 PASS；fixed Task is ACTIVE/v7/currentNodeId=dev；Dev READY/run1；Test PENDING/run1；all three role bindings remain exact
+blocking reality = official Tasks Web `task.start` durably advanced Task Owner but did not notify Extension runtime to re-run Task Observer, so Dev Conversation received no fresh NODE_READY despite Owner dev READY
+fix reality = successful Task Web mutations (`task.create/task.start/task.ensureWorkers/node.reopen`) enqueue one fire-and-forget `TASK_OBSERVER_RECOVER` command only when Browser command consumer is ready；Background command handler only schedules existing `runObserverRecovery()` and immediately ACKs；TaskObserver remains sole authority for NODE_READY/REOPEN decision
+proof = RED: task.start followed by commands/next returned 204；GREEN: Bridge 5/5, Bridge+Background 16/16, package 157/157, package/root typecheck PASS, root build PASS, git diff --check PASS
+release reality = execution-browser-extension 0.1.40 currently live；0.1.41 patch release is next；do not re-run Human Start
+current stop point = create only execution-browser-extension patch changeset → plan must be 0.1.40→0.1.41 only → release/update/adopt Chrome once → recover existing ACTIVE/dev READY Task → Dev NODE_READY → J3 Execution → J4 independent Execution → Task SUCCEEDED
 ```
 
 ### 已确认事实
@@ -117,7 +121,7 @@ Test role = g-6a97186190108191bc24fb85b2cff584
 Product manual worker = 6a9b243c-7af8-83e9-a005-2ccfb8c5c8cb / OWNER BOUND EXACT, GETTASK PASS, REQUIREMENT OWNER V3
 Dev manual worker = 6a9b4632-ca8c-83e9-a4bc-9de9e229e515 / OWNER BOUND EXACT, GETTASK PASS
 Test manual worker = 6a9b8ae0-f694-83e8-b4a2-0d20cbc5c04a / OWNER BOUND EXACT, GETTASK PASS
-Task current = READY / v6 / readiness=true / canStart=true / currentNodeId=null
+Task current = ACTIVE / v7 / currentNodeId=dev / Dev READY run1 / Test PENDING run1 / J2 HUMAN START PASS
 Product execution = execution:c3fc60b1-74fc-4cfb-bf45-c9ae18602631
 Dev execution = execution:a510cb5d-2a65-419f-bd7e-254b9d77cdc4
 Test execution = execution:567be187-f585-4d08-bb33-6fbe25e84aed
@@ -127,14 +131,15 @@ Test execution = execution:567be187-f585-4d08-bb33-6fbe25e84aed
 
 ## NEXT_ACTION
 
-1. 为 `@tomflow/proflow-model-runtime` 创建唯一 patch changeset，release plan 必须只包含 `0.1.23 → 0.1.24`；若带出其它 package 立即 STOP。
-2. 正式 publish 0.1.24，并以 Registry exact 为 authority；随后公开 `platform update --package @tomflow/proflow-model-runtime --workspace /Users/agent/Desktop/proton-workspace` 更新 Product Workspace，禁止直接改 node_modules 或 `.proflow` mapping。
-3. 执行一次公开 `platform setup --workspace /Users/agent/Desktop/proton-workspace`；期望 additive Embedding inventory 只同步 fingerprint、保留原 FAST/THINK mapping，不再触发 capability reprobe，最终达到 3/3 COMPLETE。随后执行 `platform start --workspace ...` 并读 status。
-4. 平台恢复后只回 ProFlow Tasks SAME SCENE：screenshot + Console/DOM 证明 0.1.40 的 `/src/carrier-attention-view.js` 401 消失；再 Owner readback `READY/v6/canStart=true`。Human Start 只点击一次，ACT → screenshot/snapshot → Owner readback，验证 Task/currentNode/dev Node 正式推进后继续 J2/J3。
+1. 为 `@tomflow/proflow-execution-browser-extension` 创建唯一 patch changeset；`package:release --plan` 必须只包含 `0.1.40 → 0.1.41`，若带出其它 package 立即 STOP。
+2. 正式 release 0.1.41，并以 Registry exact authority 回读；随后公开 `platform update --package @tomflow/proflow-execution-browser-extension --workspace /Users/agent/Desktop/proton-workspace` 更新 Product Workspace，禁止直接改 node_modules/loadDir。
+3. 完成 materialized loadDir 对齐后，Chrome privileged UI 只允许一次原子 adoption：一次定位 → 一次 Reload → 一张立即截图 → 退出前台；禁止重做 Human Start。
+4. 0.1.41 生效后，对现有 `ACTIVE/v7/currentNodeId=dev` Task 触发/等待 Observer recovery；Dev Conversation 必须收到真实 `NODE_READY`。随后 Dev Worker 通过 Execution 读取 `repos/proflow/package.json` 的 name+version，完成 J3。
+5. Dev 成功后验证 Task 自动推进 Test READY + 自动 wake；Test/Ops 独立通过 Execution 再读同一文件并验证相同 name+version。最终 Owner 必须 `SUCCEEDED` 才可宣判 J4/REAL_3 PASS。
 
 ## STOP_POINT
 
-当前 STOP POINT 是：`J1_PASS / TASK_READY_V6 / EXTENSION_0140_LOADED_PASS / MODEL_RUNTIME_0123_RELEASED_AND_WORKSPACE_UPDATED / PROVIDER_HTTP_RECOVERED_V1_MODELS_200 / ADDITIVE_EMBEDDING_INVENTORY_ROOT_CAUSE_FIXED_LOCAL_GREEN / MODEL_RUNTIME_0124_RELEASE_NEXT / J2_HUMAN_START_NOT_YET / LEGACY_UNKNOWN_PRESERVED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；禁止直接 task.start、Recover、创建第二笔 Execution、修改 Owner DB、重复发布 0.1.40 或再进入 Extension Manager。
+当前 STOP POINT 是：`J1_PASS / J2_PASS / TASK_ACTIVE_V7_CURRENT_DEV_READY / PLATFORM_READY_YES / MODEL_RUNTIME_0124_RELEASED_AND_WORKSPACE_UPDATED / EXTENSION_0140_LOADED_PASS / TASK_WEB_TO_OBSERVER_RECOVERY_FIX_LOCAL_GREEN_157_OF_157 / EXTENSION_0141_RELEASE_NEXT / J3_DEV_NODE_READY_PENDING / J4_NOT_STARTED / LEGACY_UNKNOWN_PRESERVED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；禁止重新 Human Start、直接 task.start、Recover、创建新 Task/GPT/Execution、修改 Owner DB、重复发布 0.1.40 或再次进入 Extension Manager 探索。
 
 ## RECENTLY_CLOSED
 
