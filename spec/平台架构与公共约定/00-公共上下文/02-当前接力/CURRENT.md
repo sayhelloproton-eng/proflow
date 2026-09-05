@@ -23,8 +23,8 @@ PHASE3_FINAL_GO = NO
 
 ```text
 branch = main
-HEAD = 06fffc6 / chore(browser): scope privileged extension actions to card
-working tree = WIP / model-runtime live-inventory remap fix + changeset + CURRENT; release preparation in progress
+HEAD = 93e4bb11e169770d7b30700f7b0741e1272ce1ce / model-runtime 0.1.23 release facts
+working tree = WIP / model-runtime additive-inventory stable-mapping fix + CURRENT + release preparation
 LOCAL_BROWSER_FIX_GREEN = YES / prior causal receipt candidate remains closed
 J2_TASKS_WEB_FIX_GREEN = YES / self-contained Tasks web patch committed as 09d33aa
 TARGETED_GATE = PASS / CP-EXE-BR-32 + CP-EXE-BR-33 = 4 of 4
@@ -40,32 +40,33 @@ Product Workspace execution-browser-extension = 0.1.40 / EXACT VERIFIED
 materialized Chrome loadDir manifest = 0.1.40 / VERIFIED
 Chrome loaded ProFlow Execution Browser = 0.1.40 / fresh reload-after chrome://extensions screenshot VERIFIED
 Extension ID = eehdadpmjffomabiedcjijiakconalab / SAME ID VERIFIED
-platform setup = 2/3 CORE STEPS COMPLETE / browser extension COMPLETE + remote connection RECOVERED; model-runtime still BLOCKED by MODEL_MAPPING_STALE
-platform start = BLOCKED / exact reason: Provider model inventory 已变化，需要自动重新映射
-MODEL_RUNTIME_FIX = LOCAL GREEN / targeted drift test RED→GREEN; package 67/67 PASS; package/root typecheck PASS; root build PASS; git diff --check PASS
-MODEL_RUNTIME_RELEASE_PLAN = EXACT / only @tomflow/proflow-model-runtime 0.1.22 → 0.1.23 (patch); Registry 0.1.23 MISSING before release
+platform setup/status = 2/3 CORE STEPS COMPLETE / browser extension COMPLETE + remote connection COMPLETE; Provider HTTP recovered, but model setup failed by full inventory reprobe after an additive Embedding model appeared
+platform start = NOT_RETRIED / current blocker is additive inventory forcing irrelevant full capability reprobe, not Provider reachability
+MODEL_RUNTIME_FIX_0123 = RELEASED_AND_WORKSPACE_UPDATED / live-inventory remap bug fixed; prior MODEL_MAPPING_STALE early-return defect closed
+MODEL_RUNTIME_ADDITIVE_FIX = LOCAL GREEN / additive inventory keeps existing FAST/THINK mapping when both mapped refs remain; true mapped-model replacement still remaps; package 68/68 PASS; package/root typecheck PASS; root build PASS; git diff --check PASS
+MODEL_PROVIDER_BOUND_URL = http://192.168.0.108:8080/v1 / GET /v1/models = 200 / live inventory = prior 3 models + mlx-community/Qwen3-Embedding-0.6B-8bit only
 Chrome 0.1.40 runtime = LOADED_VERSION_VISUALLY_PROVEN / reload-after screenshot shows 0.1.40 + same Extension ID
 ```
 
-`PLATFORM_READY=NO` 当前不是 Browser Extension 回归，而是 update 后平台恢复时暴露的独立 `MODEL_MAPPING_STALE`。Browser Extension 0.1.40 已完成 Registry → Workspace → loadDir → Chrome loaded-version 四层对齐；Remote Connection 也已恢复。Real-3 J2 现在必须先让 Model Runtime 的自动 remap 真正闭环，使 `platform start` 恢复，再回 `ProFlow Tasks` SAME SCENE 验证 401 和 Human Start。
+`PLATFORM_READY=NO` 当前不是 Browser Extension 回归，也不是 Provider 不可达。手机模型服务已恢复，`/v1/models` 200；live inventory 相比已验证 mapping 只新增一个 Embedding 模型，原 FAST/THINK 两个 Qwen modelRef 均仍存在。0.1.23 setup 仍按完整 inventory fingerprint 触发全量能力重探测，Embedding probe timeout/abort 后两个 Qwen 返回 409，导致稳定 mapping 被无关 inventory 变化阻塞。该 owning defect 已完成最小 local 修复与完整 Gate，下一步只发布/update `model-runtime 0.1.24`，再回真实 `platform setup`。
 
 ## CURRENT_CHECKPOINT
 
 ```text
-REAL_3_J2_PLATFORM_RECOVERY_MODEL_RUNTIME_FIX_GREEN_RELEASE_NEXT
+REAL_3_J2_PLATFORM_RECOVERY_ADDITIVE_INVENTORY_FIX_GREEN_0124_RELEASE_NEXT
 ```
 
 ## CURRENT_PROBLEM
 
 ```text
-problem class = REAL3_J2_PLATFORM_RECOVERY_MODEL_MAPPING_STALE + TASKS_WEB_SAME_SCENE_VERIFY_PENDING + GATEWAY_DIAGNOSTIC_COLLAPSE
-primary current owner = @tomflow/proflow-model-runtime setup/remap boundary; browser Tasks fix remains awaiting SAME-SCENE proof after platform recovery
-runtime boundary = Browser Extension 0.1.40 Registry/Workspace/loadDir/Chrome loaded all aligned; Remote Connection recovered; platform start currently blocked only by model-runtime MODEL_MAPPING_STALE
+problem class = REAL3_J2_PLATFORM_RECOVERY_ADDITIVE_MODEL_INVENTORY + TASKS_WEB_SAME_SCENE_VERIFY_PENDING + GATEWAY_DIAGNOSTIC_COLLAPSE
+primary current owner = @tomflow/proflow-model-runtime stable mapping reuse boundary; browser Tasks fix remains awaiting SAME-SCENE proof after platform recovery
+runtime boundary = Browser Extension 0.1.40 Registry/Workspace/loadDir/Chrome loaded all aligned; Remote Connection recovered; Provider `/v1/models` 200; Model Runtime 0.1.23 Registry/Workspace aligned
 non-blocking diagnostic owner = @tomflow/proflow-agent-gateway
 first reality = J1 已机械闭环：Product / Dev / Test 三个固定 Role 均 formal browser.bindWorker exact + getTask PASS；Task Owner 当前 READY/v6/readiness=true/canStart=true，三份 Role binding exact，两个 Node 仍 PENDING/currentNodeId=null
-blocking reality = `model-runtime.status()` 读取 live Provider `/models` 能发现 inventory drift，但旧 `setup()` 先用 model-provider shared facts 算 fingerprint，若旧 mapping 与旧 shared facts 相等就 early-return，导致 `platform setup` 连续返回“全部模块均已就绪”而最终 status 仍 `MODEL_MAPPING_STALE`。targeted 回归已改为真实用户路径（不手工刷新 provider facts）并先 RED `mappingCalls 1 !== 2`；实现改为 setup 先读取 live inventory，用 live fingerprint 判断复用并用 live models remap，随后 targeted GREEN、package 67/67、package/root typecheck、root build、diff-check 全 PASS
-release reality = Browser Extension 0.1.40 已真实 publish/update/load；Model Runtime 当前仍是 0.1.22，local fix 尚未发布。下一 release 必须只包含 model-runtime patch，目标 0.1.23
-current stop point = model-runtime local candidate GREEN；先 changeset + release plan 确认唯一 release set 0.1.22→0.1.23，正式 publish/update 后运行 `platform setup` 证明自动 remap，再 `platform start`；只有平台恢复后才回 ProFlow Tasks SAME SCENE 验证 401 消失与 Human Start
+blocking reality = live inventory 由原 3 个模型仅新增 `mlx-community/Qwen3-Embedding-0.6B-8bit`；既有 FAST=`sayhelloproton/Qwen3.5-4B-MLX-4bit-no-think` 与 THINK=`mlx-community/Qwen3.5-4B-MLX-4bit` 均仍存在。0.1.23 因完整 inventory fingerprint 变化触发全量能力重探测，Embedding probe abort 后两个 Qwen 返回 HTTP 409，导致 setup 失败。targeted 已证明：真正替换 mapped refs 仍 remap；仅 additive unrelated inventory 时应复用既有 mapping，不再调用 mapInventory
+release reality = Browser Extension 0.1.40 已真实 publish/update/load；Model Runtime 0.1.23 已真实 release；additive mapping fix 当前 local GREEN，package 68/68 + package/root typecheck + root build + diff-check PASS，0.1.24 release next
+current stop point = 创建唯一 model-runtime patch changeset → release plan 必须仅 0.1.23→0.1.24 → 正式 publish/update → `platform setup` 验证 3/3 → `platform start` → ProFlow Tasks SAME SCENE → Human Start
 ```
 
 ### 已确认事实
@@ -126,14 +127,14 @@ Test execution = execution:567be187-f585-4d08-bb33-6fbe25e84aed
 
 ## NEXT_ACTION
 
-1. 为 `@tomflow/proflow-model-runtime` 创建唯一 patch changeset，先跑 `pnpm package:release --plan`；release set 必须只包含 `model-runtime 0.1.22 → 0.1.23`，若带出其它 package 立即 STOP。
-2. 将 browser privileged helper/context hardening 与 model-runtime source/test/changeset 按逻辑提交，满足正式 release clean-tree 前置；随后执行一次正式 `package:release`。publish 超时/Registry propagation race 仍按 authority readback，禁止 blind republish。
-3. Registry exact 证明 `model-runtime@0.1.23` 后，通过公开 `platform update --package @tomflow/proflow-model-runtime --workspace /Users/agent/Desktop/proton-workspace` 更新 Product Workspace；当前平台未启动，可直接走单包 update。然后运行 `platform setup --workspace ...`，要求 `MODEL_MAPPING_STALE` 消失、3/3 COMPLETE，再 `platform start`。
+1. 为 `@tomflow/proflow-model-runtime` 创建唯一 patch changeset，release plan 必须只包含 `0.1.23 → 0.1.24`；若带出其它 package 立即 STOP。
+2. 正式 publish 0.1.24，并以 Registry exact 为 authority；随后公开 `platform update --package @tomflow/proflow-model-runtime --workspace /Users/agent/Desktop/proton-workspace` 更新 Product Workspace，禁止直接改 node_modules 或 `.proflow` mapping。
+3. 执行一次公开 `platform setup --workspace /Users/agent/Desktop/proton-workspace`；期望 additive Embedding inventory 只同步 fingerprint、保留原 FAST/THINK mapping，不再触发 capability reprobe，最终达到 3/3 COMPLETE。随后执行 `platform start --workspace ...` 并读 status。
 4. 平台恢复后只回 ProFlow Tasks SAME SCENE：screenshot + Console/DOM 证明 0.1.40 的 `/src/carrier-attention-view.js` 401 消失；再 Owner readback `READY/v6/canStart=true`。Human Start 只点击一次，ACT → screenshot/snapshot → Owner readback，验证 Task/currentNode/dev Node 正式推进后继续 J2/J3。
 
 ## STOP_POINT
 
-当前 STOP POINT 是：`J1_PASS / TASK_READY_V6 / EXTENSION_0140_LOADED_PASS / REMOTE_CONNECTION_2_OF_3_RECOVERED / MODEL_MAPPING_STALE_ROOT_CAUSE_FIXED_LOCAL_GREEN / MODEL_RUNTIME_0123_RELEASE_NEXT / J2_HUMAN_START_NOT_YET / LEGACY_UNKNOWN_PRESERVED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；禁止直接 task.start、Recover、创建第二笔 Execution、修改 Owner DB、重复发布 0.1.40 或再进入 Extension Manager。
+当前 STOP POINT 是：`J1_PASS / TASK_READY_V6 / EXTENSION_0140_LOADED_PASS / MODEL_RUNTIME_0123_RELEASED_AND_WORKSPACE_UPDATED / PROVIDER_HTTP_RECOVERED_V1_MODELS_200 / ADDITIVE_EMBEDDING_INVENTORY_ROOT_CAUSE_FIXED_LOCAL_GREEN / MODEL_RUNTIME_0124_RELEASE_NEXT / J2_HUMAN_START_NOT_YET / LEGACY_UNKNOWN_PRESERVED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；禁止直接 task.start、Recover、创建第二笔 Execution、修改 Owner DB、重复发布 0.1.40 或再进入 Extension Manager。
 
 ## RECENTLY_CLOSED
 

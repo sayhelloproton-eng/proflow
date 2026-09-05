@@ -578,6 +578,23 @@ export function createModelRuntimeBehaviorAdapter(
 				return { result: base, observedEffects: [] };
 			}
 			const selected = selectedRoles(context);
+			const liveModelIds = new Set(live);
+			if (
+				existing &&
+				!selected &&
+				liveModelIds.has(existing.mapping.fast) &&
+				liveModelIds.has(existing.mapping.reason)
+			) {
+				// Inventory additions/removals that do not remove either verified role
+				// model must not force a full capability re-probe. This keeps an
+				// already-valid FAST/THINK mapping stable while still requiring remap
+				// when a mapped model actually disappears or the user explicitly
+				// selects a different role model.
+				await writeMapping(context, { ...existing, inventoryFingerprint });
+				await clearSetupFailure(context);
+				await ownFacts(context);
+				return { result: base, observedEffects: [] };
+			}
 			const preferred = {
 				...(existing?.mapping ?? {}),
 				...(selected ?? {}),

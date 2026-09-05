@@ -479,6 +479,44 @@ test("provider inventory drift makes an existing mapping stale until automatic r
 	assert.equal(mappingCalls, 2);
 });
 
+test("additive inventory drift reuses an existing valid role mapping without probing unrelated models", async (context) => {
+	const workspaceRoot = await workspace(context);
+	await providerFacts(workspaceRoot);
+	let observed = ["fast", "reason"];
+	let mappingCalls = 0;
+	const adapter = createModelRuntimeBehaviorAdapter({
+		observeInventory: async () => observed,
+		mapInventory: async () => {
+			mappingCalls += 1;
+			if (mappingCalls > 1)
+				throw new Error("unrelated inventory must not trigger role reprobe");
+			return decideRoleMapping([
+				evidence("fast", "no-thinking"),
+				evidence("reason", "thinking"),
+			]);
+		},
+	});
+	assert.equal(
+		(
+			await adapter.setup({
+				workspaceRoot,
+				input: { fastModel: "fast", reasonModel: "reason" },
+			})
+		).result.status,
+		"SUCCEEDED",
+	);
+	observed = ["fast", "reason", "embedding"];
+	const stale = await adapter.status({ workspaceRoot });
+	assert.equal(stale.result.data.setupStatus, "BLOCKED");
+	assert.equal(stale.result.data.issues?.[0]?.code, "MODEL_MAPPING_STALE");
+	assert.equal((await adapter.setup({ workspaceRoot })).result.status, "SUCCEEDED");
+	assert.equal(mappingCalls, 1);
+	assert.equal(
+		(await adapter.status({ workspaceRoot })).result.data.setupStatus,
+		"READY",
+	);
+});
+
 test("wall-clock age alone does not invalidate unchanged capability mapping", async (context) => {
 	const workspaceRoot = await workspace(context);
 	await providerFacts(workspaceRoot);
