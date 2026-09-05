@@ -198,3 +198,13 @@ test("CP-EXE-BR-32 Extension Tasks fallback retains direct runtime action suppor
 	assert.match(source, /PROFLOW_CARRIER_ATTENTION_ACTION/);
 	assert.match(source, /\/tasks\/api\/carrier-attention/);
 });
+
+test("CP-EXE-BR-33 published Tasks web app is a self-contained browser module", async () => {
+	// The loopback Tasks surface serves only /tasks/app.js. Any runtime import in
+	// the published artifact escapes that authenticated surface and cannot load.
+	const built = await readFile(
+		new URL("../dist/extension/tasks.js", import.meta.url),
+		"utf8",
+	);
+	assert.doesNotMatch(built, /^\s*import\s/m);
+});

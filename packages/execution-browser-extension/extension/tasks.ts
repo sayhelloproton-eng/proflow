@@ -1,4 +1,67 @@
-import { parseCarrierAttentionViews } from "../src/carrier-attention-view.js";
+import type { CarrierAttentionView } from "../src/carrier-attention-view.js";
+
+// The loopback Tasks surface publishes this entry as one authenticated
+// `/tasks/app.js` module. A runtime relative import would escape `/tasks`, so keep
+// the bounded parser local while sharing only the erased TypeScript type above.
+function nullableString(value: unknown): value is string | null {
+	return value === null || typeof value === "string";
+}
+
+function parseCarrierAttentionView(
+	value: unknown,
+): CarrierAttentionView | null {
+	if (typeof value !== "object" || value === null || Array.isArray(value))
+		return null;
+	const attentionRef = Reflect.get(value, "attentionRef");
+	const occurrenceRef = Reflect.get(value, "occurrenceRef");
+	const taskId = Reflect.get(value, "taskId");
+	const roleRef = Reflect.get(value, "roleRef");
+	const workerRef = Reflect.get(value, "workerRef");
+	const targetHost = Reflect.get(value, "targetHost");
+	const operationId = Reflect.get(value, "operationId");
+	const reason = Reflect.get(value, "reason");
+	const actions = Reflect.get(value, "actions");
+	const observedAt = Reflect.get(value, "observedAt");
+	if (
+		typeof attentionRef !== "string" ||
+		attentionRef.length === 0 ||
+		typeof occurrenceRef !== "string" ||
+		occurrenceRef.length === 0 ||
+		!nullableString(taskId) ||
+		!nullableString(roleRef) ||
+		!nullableString(workerRef) ||
+		!nullableString(targetHost) ||
+		typeof operationId !== "string" ||
+		operationId.length === 0 ||
+		typeof reason !== "string" ||
+		reason.length === 0 ||
+		!Array.isArray(actions) ||
+		actions.some((action) => action !== "allowOnce" && action !== "deny") ||
+		typeof observedAt !== "string" ||
+		observedAt.length === 0
+	)
+		return null;
+	return {
+		attentionRef,
+		occurrenceRef,
+		taskId,
+		roleRef,
+		workerRef,
+		targetHost,
+		operationId,
+		reason,
+		actions: [...actions],
+		observedAt,
+	};
+}
+
+function parseCarrierAttentionViews(value: unknown): CarrierAttentionView[] {
+	if (!Array.isArray(value)) return [];
+	return value
+		.slice(0, 128)
+		.map(parseCarrierAttentionView)
+		.filter((item): item is CarrierAttentionView => item !== null);
+}
 
 type ChromePanel = {
 	runtime: { sendMessage(message: unknown): Promise<unknown> };
