@@ -1384,8 +1384,13 @@ async function executeCommand(command: BridgeCommand): Promise<unknown> {
 		);
 	}
 	const tabId = numeric(command.tabId, "TAB_ID");
-	if (command.type === "OBSERVE")
-		return contentCommand(tabId, { operation: "observe" });
+	if (command.type === "OBSERVE") {
+		const value = await contentCommand(tabId, { operation: "observe" });
+		const tab = await chrome.tabs.get(tabId);
+		const observed = parseSnapshotObservation(value, tab);
+		if (!observed) throw new Error("CONTENT_OBSERVATION_INVALID");
+		return observed;
+	}
 	if (command.type === "SUBMIT") {
 		const before = observationFor(tabId);
 		const fingerprint = text(command.fingerprint, "FINGERPRINT");

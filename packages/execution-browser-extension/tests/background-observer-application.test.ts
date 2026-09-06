@@ -129,6 +129,21 @@ test("RF-B4-OBS-EXT-GENERATION malformed durable RECOVERY_RESUME is terminally d
 	assert.match(malformedBranch, /continue;/);
 });
 
+test("RF-BR-OBSERVE-WIRE-01 Background enriches OBSERVE with Chrome-owned tab/window identity", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	const executeStart = source.indexOf("async function executeCommand");
+	const observeStart = source.indexOf('if (command.type === "OBSERVE")', executeStart);
+	const submitStart = source.indexOf('if (command.type === "SUBMIT")', observeStart);
+	assert.ok(executeStart >= 0 && observeStart > executeStart && submitStart > observeStart);
+	const observeBranch = source.slice(observeStart, submitStart);
+	assert.match(observeBranch, /const value = await contentCommand\(tabId, \{ operation: "observe" \}\)/);
+	assert.match(observeBranch, /const tab = await chrome\.tabs\.get\(tabId\)/);
+	assert.match(observeBranch, /const observed = parseSnapshotObservation\(value, tab\)/);
+	assert.match(observeBranch, /if \(!observed\) throw new Error\("CONTENT_OBSERVATION_INVALID"\)/);
+	assert.match(observeBranch, /return observed/);
+	assert.doesNotMatch(observeBranch, /return contentCommand\(tabId, \{ operation: "observe" \}\)/);
+});
+
 test("PRESMOKE-B6-C1 Browser Carrier and Observers emit bounded structured logs through authenticated local ingestion", async () => {
 	const source = await readFile(backgroundUrl, "utf8");
 	assert.match(source, /\/application\/log/);
