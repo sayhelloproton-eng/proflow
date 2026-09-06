@@ -587,6 +587,10 @@
   dir: packages/execution-browser-extension
   intents:
     - real3-browser-observe-wire
+"@tomflow/proflow-execution-browser-extension@0.1.44":
+  dir: packages/execution-browser-extension
+  intents:
+    - real3-chatgpt-composer-selection
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
