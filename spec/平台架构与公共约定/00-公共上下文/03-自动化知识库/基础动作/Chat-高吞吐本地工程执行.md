@@ -236,18 +236,88 @@ git status --short
 
 这部分仍受 `基础动作/Round-PID-Log与恢复.md` 约束。
 
-## 8. Reality Plane：Browser 不是仓库 Batch
+## 8. Reality Plane：Runtime / Browser Reality Batch
 
-Reality Plane 是真实 Browser/UI 的眼睛和手：普通 Web 用 Playwright，privileged Chrome/系统 UI 用 AX/Swift + screenshot。浏览器流程不能为了追求更少调用而合并成不可观察的大动作；**任何 UI 异常在第一次源码归因前原则上必须已经有当前 screenshot/snapshot/AX evidence**：
+Reality Plane 不执行仓库 Batch，但**同样禁止逐动作试探**。高吞吐目标不是把多个 UI mutation 合成一个命令，而是把“观察/诊断”批量化，把 mutation 限定为冻结计划中的原子动作。
 
 ```text
-observe / screenshot
-→ one meaningful mutation
-→ observe visible result
-→ next mutation
+REALITY_OBSERVE_BATCH
+  → 一次收齐当前假设的 Browser + runtime + config/storage/log/Owner 只读 authority
+
+REALITY_PLAN_FROZEN
+  → 冻结 expected chain、FIRST_DIVERGENCE、允许动作、readback、STOP POINT
+
+BOUNDED_ATOMIC_ACTIONS
+  → 每个 UI/外部 mutation 仍独立执行；动作后立即 visible/Owner readback
+
+AUTHORITY_READBACK
+  → 用动作真正拥有的 authority 判定 PASS/FAIL，不拿 helper exit code 代替现实
+
+REALITY_CLOSEOUT
+  → SAME SCENE PASS，或由新的 FIRST_DIVERGENCE 开启下一 Batch
 ```
 
-高吞吐原则主要解决本地仓库的结构发现、读写和 Gate；真实 UI 仍以可观察、可恢复为优先。
+### 8.1 批量观察，而不是边看边猜
+
+第一次 mutation 前，尽量在一个观察回合收齐当前假设需要的低风险只读事实。例如 Browser runtime/pairing 问题通常应一起看：当前 screenshot/AX 或 DOM、`platform status`、materialized runtime config、Browser storage、相关 runtime log/port/process。不要按 `看 UI → 写脚本 → 失败 → 再看 storage → 再写脚本` 的顺序推进。
+
+### 8.2 FIRST_DIVERGENCE 是唯一诊断入口
+
+先写出最短 expected chain，再找第一处分叉：
+
+```text
+materialized config
+→ Extension bootstrap
+→ Chrome storage
+→ bridge hello/heartbeat
+→ platform evidence/readiness
+```
+
+若 materialized config 已正确而 Chrome storage 不一致，当前 owner 就是 `materialized config → bootstrap/storage`；此时禁止继续 reload、setup、检查更后面的 Worker/Task 逻辑。后层失败只是前层分叉的派生症状。
+
+### 8.3 Mutation 预算与换 Plane 规则
+
+- 普通 Web：Playwright screenshot/snapshot → one canonical mutation → screenshot/DOM/Owner readback。
+- privileged UI：fresh screenshot + identity/geometry → one canonical mutation → fresh screenshot → 后台 authority readback。
+- canonical mutation 未产生预期 visible result：**STOP 同一操作路线**。除非 Runbook 明确规定唯一恢复动作，否则禁止临时发明第二种 AX/Swift/坐标/AppleScript/导航方案。
+- `reload/restart/setup/recover` 不能拿来“看看会不会好”；只有 root-cause 假设要求它，且已冻结成功判据时才执行。
+- 任何异常产生新 authority 后，重新冻结下一 Reality Batch；不要在旧计划里追加临时动作。
+
+### 8.4 Runtime 也适用同一纪律
+
+非 UI 的 service/runtime/pairing 排障同样先聚合 read-only facts，再做有限 mutation。优先一次读取 process/status/log/config/storage/port ownership，避免 `start → poll → stop → 改参数 → start` 的试探循环。长进程仍遵守“一次启动 + 合理间隔读取”，非幂等动作仍遵守 UNKNOWN 先恢复 authority。
+
+### 8.5 纵向编排：State Trigger，不是步骤清单
+
+`Batch` 解决同一阶段内的横向吞吐；跨阶段流程必须用 **authority state 触发下一 mutation**。执行前先写最短状态机，后一步只有在前一步机械状态成立时才获得执行许可：
+
+```text
+PRECONDITION_STATE
+→ AUTHORITY_READBACK
+→ ALLOWED_MUTATION
+→ POSTCONDITION_READBACK
+```
+
+典型例子：
+
+```text
+Registry exact=PRESENT
+→ 才允许 Workspace update
+
+Workspace/materialized=target version
+→ 才允许进入 setup
+
+SETUP_STATE=WAITING_FOR_EXTENSION
+→ 才允许 Reload / Load unpacked
+
+Extension heartbeat/pairing=PASS
+→ 才允许 platform start / SAME-SCENE J3
+
+Dev Conversation NODE_READY 可见 + Owner generation exact
+→ 才允许 startNode
+```
+
+禁止把“最终需要做 A、B、C”误写成“现在就依次执行 A→B→C”。若前序状态没有出现，后续 mutation 必须保持 `NOT_AUTHORIZED_YET`，先恢复缺失的 authority。
 
 ## 9. 反模式
 

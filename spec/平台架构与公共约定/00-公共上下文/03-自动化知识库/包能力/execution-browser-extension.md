@@ -6,16 +6,23 @@
 
 Browser setup 必须走真实 Chrome 扩展 UI / 产品 pairing，不允许直接写 pairing evidence、Extension ID 或 `.proflow` 配置。
 
-正常路径：
+正常路径不是固定动作清单，而是状态触发链：
 
 ```text
-platform setup
-→ 开发者模式
-→ Load unpacked 真实 materialization
-→ pairing token/config
-→ extension heartbeat
-→ Platform 观察 READY
+Workspace package / materialized loadDir = target version
+→ platform setup
+→ materialize runtime-config + pairing listener ready
+→ SETUP_STATE=WAITING_FOR_EXTENSION
+→ fresh Chrome reality
+   ├─ 已注册且 path/version 正确：Reload 一次
+   └─ 未安装/registration 失效：Load unpacked
+→ Background bootstrap managed config
+→ hello / attention / poll / heartbeat
+→ pairing evidence current
+→ Platform Browser step READY
 ```
+
+**Reload / Load unpacked 是 `WAITING_FOR_EXTENSION` 的响应动作，不是 `platform setup` 的前置动作。** 更新 Extension 时禁止先 Reload 再启动 setup；否则 Background 可能在 managed runtime config / pairing listener 尚未准备好时完成一次无效 bootstrap。
 
 Fresh/旧 session 恢复的已验证人工路径：`Remove → 系统确认 → Load unpacked`。只有真实状态证明旧扩展失效/陈旧时才走恢复；READY 后不要每轮重复 Remove/Load。
 
@@ -24,7 +31,8 @@ Fresh/旧 session 恢复的已验证人工路径：`Remove → 系统确认 → 
 稳定资产：`scripts/human-e2e/browser-extension-ui.mjs` + `scripts/human-e2e/browser-extension-ui.swift` + `scripts/human-e2e/platform-setup.exp`。已有 canonical helper 时禁止再写 `/tmp/*.swift`、临时 expect、固定坐标或第二套浏览器安装流程。
 
 - helper 编译必须在 pairing 临界区外 `--compile-only` 预热。
-- 2026-09-02 首次编译曾 187s，直接超过 pairing 120s；预热后 UI 扫描降到秒级。
+- 2026-09-02 首次编译曾 187s，直接超过 pairing 120s；预热后 UI 扫描降到秒级。**禁止在 pairing window 内执行 `swift -e` / 临时 `swiftc`。**
+- Chrome 152 下旧 `reload` 入口固定 fail-fast `RELOAD_REQUIRES_FRESH_POINT`，不得再使用 card-ancestor selector。当前 canonical 更新动作是：`screenshot-extensions` 取得 fresh screenshot → 人/模型确认同一 ProFlow ID/版本和 Reload 几何位置 → 通过 `PROFLOW_BROWSER_RELOAD_X/Y` 调 `reload-at-point` → helper 自动 after-screenshot → pairing/platform authority readback。坐标只属于这一张 fresh screenshot，禁止跨回合复用。
 - 只扫描当前 Chrome focused window，避免全局 AX 扫描变慢。
 - install 入口先清理遗留系统文件选择器/“前往文件夹”面板，再操作当前 UI。
 

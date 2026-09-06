@@ -23,60 +23,63 @@ PHASE3_FINAL_GO = NO
 
 ```text
 branch = main
-HEAD = 691e55cf2e09285b0c4d724dc8697d965186f106 / generation-identity three-package release version commit
-working tree = clean before current Browser observation repair investigation; no Task/Owner mutation from code work
+HEAD = d40d371 / composer-selection product fix committed; 0.1.44 release not yet executed
+working tree = execution-efficiency docs + privileged Browser Harness only; product fix is committed separately
 J1 = PASS
 J2_SAME_SCENE = PASS / fixed Task visible
 J2_HUMAN_START = PASS / official Confirm / Start clicked exactly once
 TASK_OWNER = ACTIVE / v7 / currentNodeId=dev / dev READY run1 / test PENDING run1
 TASK_BINDINGS = EXACT / Product + Dev + Test all bound to fixed Worker Conversations
-GENERATION_IDENTITY_RELEASE = PASS / platform-host 0.1.18 + execution-runtime 0.1.18 + execution-browser-extension 0.1.42 Registry/Workspace updated
-CHROME_0142_ADOPTION = PASS / fresh screenshot same Extension ID, visible 0.1.42, safe dynamic Reload geometry verified; BOSS untouched
-PLATFORM_READY = YES / setup 3/3 + start 4 success 19 skipped 0 failed
-J3_IDENTITY_GATE = RUNTIME_PASS / same durable wake now reaches EXECUTION_STARTED; prior IDENTITY_INVALID blocker is CLOSED
-J3_WAKE_EXECUTION = execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd / current FAILED / NOT_APPLIED / EXECUTION_FAILED
-J3_WAKE_ERROR = observation tab and window identity must be integers
+GENERATION_IDENTITY_RELEASE = PASS / platform-host 0.1.18 + execution-runtime 0.1.18
+OBSERVE_WIRE_ROOT_CAUSE = CLOSED / execution-browser-extension 0.1.43 released/adopted
+CHROME_0143_ADOPTION = PASS / ID eehdadpmjffomabiedcjijiakconalab / visible 0.1.43
+PLATFORM_SETUP = PASS / 3/3
+PLATFORM_START = PASS / 4 success / 19 skipped / 0 failed
+PLATFORM_READY = YES
+BROWSER_CARRIER = ONLINE / sessionOnline=true / commandConsumerReady=true
+MODEL_PROVIDER = ONLINE / http://192.168.0.108:8080/v1 / models HTTP 200
+MODEL_RUNTIME = READY / fast READY / reason READY
+EXECUTION_MODEL_DECISION = READY
+J3_IDENTITY_GATE = PASS
+J3_OBSERVE_GATE = PASS
+J3_WAKE_EXECUTION = execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd / FAILED / NOT_APPLIED
+J3_WAKE_LATEST_ERROR = COMPOSER_SUBMIT_NOT_READY
+J3_COMPOSER_ROOT_CAUSE = VERIFIED / selector list matched earlier auxiliary textarea before real #prompt-textarea
+J3_COMPOSER_FIX = LOCAL_PASS + COMMITTED / d40d371 / full Extension 161/161 + typecheck + root build + git diff --check PASS
+J3_COMPOSER_RELEASE_PLAN = execution-browser-extension 0.1.43 -> 0.1.44 patch / Registry target MISSING / publish pending
 J3_DEV_NODE_READY = NOT_DELIVERED
 J4 = NOT_STARTED
-Registry platform-host@0.1.18 = PRESENT / EXACT VERIFIED
-Registry execution-runtime@0.1.18 = PRESENT / EXACT VERIFIED
-Registry execution-browser-extension@0.1.42 = PRESENT / EXACT VERIFIED
-Product Workspace versions = platform-host 0.1.18 / execution-runtime 0.1.18 / extension 0.1.42
-materialized Chrome loadDir manifest = 0.1.42 / VERIFIED
-Chrome loaded ProFlow Execution Browser = 0.1.42 / SAME ID eehdadpmjffomabiedcjijiakconalab / VERIFIED
-AX_CARD_CONTAINER_RULE = INVALID / Extension ID + Name is identity anchor only; AX ancestor/card container is not a safe mutation boundary
-BOSS_INCIDENT = SAFE_STOP / old locator opened BOSS Agent Bridge remove confirmation; target mismatch prevented confirmation; BOSS was not removed
-MODEL_RUNTIME_0124 = RELEASED_AND_WORKSPACE_UPDATED
-MODEL_PROVIDER_BOUND_URL = http://192.168.0.108:8080/v1 / current /v1/models = HTTP 200 / 4 models
-platform lifecycle = RUNNING / setup 3/3 COMPLETE / start 4 success 19 skipped 0 failed / PLATFORM_READY=YES
-IDENTITY_ROOT_CAUSE = CLOSED / strict getNodeContext mismatch was VERIFIED, fixed, released and now real-runtime proven past admission
-GENERATION_IDENTITY_GATE = PASS / Host 56/56, Execution Runtime 57/57, Extension 159/159 + typechecks/diff; released and adopted
-CURRENT_BROWSER_ROOT_CAUSE = VERIFIED / Background OBSERVE returns raw content-script observation without Chrome-owned tabId/windowId; Bridge parseObservation requires both integers
-OBSERVE_FIX_CANDIDATE = LOCAL_PASS / Background chrome.tabs.get(tabId) + parseSnapshotObservation enrichment; targeted 13/13 + Extension full 160/160 + typecheck + root build + diff-check PASS; release/update pending
+A4_BROWSER_TARGET_OWNERSHIP = DEFERRED / unrelated
 ```
 
-J1/J2 已完成，固定 Task 仍保持 `ACTIVE/v7/currentNodeId=dev`，Dev=`READY/run1`，Test=`PENDING/run1`。A1–A3 已不只是 local GREEN：三包新版本已发布、Workspace/Chrome 已采用，且同一 durable `worker.wake` 在真实 runtime 从原来的 `ADMISSION_REJECTED/IDENTITY_INVALID` 推进到 `EXECUTION_STARTED`，因此旧身份门禁 blocker 正式关闭。当前失败继续下沉到 Browser Reality wire：Execution 最终 `FAILED/NOT_APPLIED`，错误为 `observation tab and window identity must be integers`。源码与合同交叉证明 Background `OBSERVE` 裸返回 content-script `response.value`，而 content script 不拥有 tab/window identity；Node Bridge `parseObservation()` 则要求完整 BrowserPageObservation。当前只修这个 owning package wire mismatch。
+J1/J2 已完成。Generation identity、Browser OBSERVE wire、0.1.43 adoption、Browser pairing、Platform READY、Model Runtime/Decision 都已经真实 runtime 关闭。当前 J3 只剩 Browser composer 提交缺陷：真实 Dev 页面同时存在前置辅助 `textarea` 与真正 `#prompt-textarea`，旧 selector-list 按 DOM 顺序误选辅助 textarea，导致 `COMPOSER_SUBMIT_NOT_READY`。最小修复已经提交并通过 161/161 + typecheck + root build + diff-check；当前唯一下一动作是完成 0.1.44 release/adoption，然后 SAME-SCENE 重放同一 `FAILED/NOT_APPLIED` wake。只有 Dev Conversation 真实出现新 `NODE_READY` 才算 J3 PASS。
 
 ## CURRENT_CHECKPOINT
 
 ```text
-REAL_3_J1_PASS_J2_PASS_J3_IDENTITY_RUNTIME_PASS_BROWSER_OBSERVATION_WIRE_BLOCKED
+REAL_3_J1_PASS_J2_PASS_J3_COMPOSER_FIX_LOCAL_PASS_0144_RELEASE_PENDING
 ```
 
 ## CURRENT_PROBLEM
 
 ```text
-problem class = REAL3_J3_BROWSER_OBSERVATION_WIRE_IDENTITY
-previous identity blocker = CLOSED / same durable worker.wake now reaches EXECUTION_STARTED under released A1-A3
-primary owner = Execution Browser Extension Background ↔ Browser Reality Bridge wire
-browser extension current runtime = 0.1.42 / Registry + Workspace + materialized loadDir + Chrome adoption VERIFIED
-fixed Task reality = ACTIVE/v7/currentNodeId=dev; Dev READY/run1; Test PENDING/run1; all three RoleBindings exact
-current wake = execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd / FAILED / NOT_APPLIED / EXECUTION_FAILED
-current error = observation tab and window identity must be integers
-mechanical cause = Background executeCommand(OBSERVE) returns raw contentCommand value; content script observation intentionally omits tabId/windowId; Bridge browser.observe parses result as full BrowserPageObservation and fails closed
-correct ownership = Chrome Background enriches content observation with chrome.tabs.get(tabId) id/windowId before returning wire result; content script must not invent Chrome identity
-A4 Browser physical target ownership = DEFERRED / separate from this wire-shape defect
-current stop point = targeted RED → minimal Extension Background OBSERVE enrichment → Extension full/typecheck/build/diff → patch release/update/Chrome adoption → SAME fixed J3 wake retry → Dev NODE_READY/startNode/J4
+problem class = REAL3_J3_CHATGPT_COMPOSER_SELECTION
+previous identity blocker = CLOSED
+previous OBSERVE wire blocker = CLOSED_IN_0.1.43
+previous Browser setup/pairing blocker = CLOSED / setup 3/3 + Platform READY
+previous Model decision blocker = CLOSED / Provider online + Model Runtime READY + Execution modelDecision READY
+primary owner = execution-browser-extension ChatGPT runtime adapter
+fixed Task reality = ACTIVE/v7/currentNodeId=dev; Dev READY/run1; Test PENDING/run1; all RoleBindings exact
+latest durable wake = execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd / FAILED / NOT_APPLIED
+latest failure = COMPOSER_SUBMIT_NOT_READY after EXECUTION_STARTED -> EFFECT_STARTED
+FIRST_DIVERGENCE = production composerElement() used selector-list querySelector; current ChatGPT DOM places an auxiliary textarea before canonical #prompt-textarea, so DOM order selected the wrong element
+real-browser proof = direct write to #prompt-textarea + InputEvent changes action button from voice state to `发送提示词` within ~250ms
+candidate = explicit `#prompt-textarea` first, then textarea, then contenteditable fallback
+candidate gate = Extension full 161/161 PASS + typecheck PASS + root build PASS + git diff --check PASS
+candidate commit = d40d371
+release target = execution-browser-extension 0.1.44 patch
+current stop point = clean-tree release gate -> publish 0.1.44 -> Registry exact -> Workspace update -> Chrome adoption -> SAME-SCENE recovery once -> Dev NODE_READY
+execution invariant = no revisit of identity/model/pairing unless new regression evidence appears
 ```
 
 ### 已确认事实
@@ -145,16 +148,16 @@ Test execution = execution:567be187-f585-4d08-bb33-6fbe25e84aed
 
 ## NEXT_ACTION
 
-1. 按 `Package-Update-Loop.md` 对当前 generation/identity closure 做正式 package release plan，只发布真正受变更影响的包；publish 后必须 Registry exact readback，UNKNOWN 时禁止盲重试。
-2. Product Workspace 走公开生命周期 `platform stop → platform update --package <target> → platform setup/start`；验证 Workspace package + `.proflow/deployment` materialization，不直接复制 repo/node_modules。
-3. Browser Extension 若版本变化，完成 Chrome runtime adoption：fresh reality → 一次安全 Reload/Load → fresh screenshot/AX + `service_worker_registration_info.version` readback；禁止复用旧 card ancestor heuristic。
-4. 回同一个 fixed Task/J3 checkpoint；不重建 Task/GPT/Worker，不重做 Human Start。原 wake 为 `FAILED/NOT_APPLIED`，按正式 redecision/retry 语义重放同一 NODE_READY intent；必须在 Dev Conversation 真实看到 NODE_READY 才算 J3 wake PASS。
-5. Dev Worker 正式 `startNode` 后，通过 Execution 真实读取 `repos/proflow/package.json` 的 name+version；完成 Node 后 Owner 必须自动推进 Test READY。
-6. Test/Ops 由 Observer 自动 wake，正式 `startNode` 后独立通过 Execution 再读同一文件；最终 Owner 必须 `Task=SUCCEEDED/currentNodeId=null`，两个 Node history/evidence 闭环，才可宣判 `REAL_3=PASS`。
+1. 将本轮已请求的执行纪律 / Browser Harness 变更独立提交，使 release clean-tree gate 满足；不得和产品修复 commit 混合。
+2. 正式 release `execution-browser-extension 0.1.44`；publish 后先 Registry exact readback，UNKNOWN 禁止盲重试。
+3. Product Workspace 只更新 Extension 到 0.1.44；readback node_modules + materialized manifest。
+4. Chrome 采用 0.1.44：遵守 fresh reality + 一次必要 mutation + immediate readback；不复用旧 AX card ancestor。
+5. 回同一个 fixed Task/J3，确认 Provider/Model/Execution READY 后只执行一次正式 recovery；同一 durable wake 必须 `SUCCEEDED/APPLIED` 且 Dev Conversation 真正出现新 `NODE_READY` 才算 J3 PASS。
+6. J3 PASS 后立即进入 J4：Dev startNode -> Execution 真读 `repos/proflow/package.json` -> Dev completeNode -> Test 自动 READY/NODE_READY -> Test startNode -> 独立真读 -> completeNode -> Owner Task SUCCEEDED/currentNodeId=null。
 
 ## STOP_POINT
 
-当前 STOP POINT 是：`J1_PASS / J2_PASS / TASK_ACTIVE_V7_CURRENT_DEV_READY / GENERATION_IDENTITY_ROOT_CAUSE_VERIFIED / A1_A2_A3_LOCAL_GATE_PASS / REAL3_REENTRY_AUTHORIZED_AFTER_RUNTIME_ADOPTION / RELEASE_UPDATE_PENDING / J3_DEV_NODE_READY_PENDING / J4_NOT_STARTED / LEGACY_UNKNOWN_PRESERVED / A4_BROWSER_TARGET_OWNERSHIP_DEFERRED`。Product/Dev/Test 均禁止再次 WORKER_BIND/bind；禁止重新 Human Start、直接 task.start、Recover legacy UNKNOWN、创建新 Task/GPT/Execution、修改 Owner DB。
+当前 STOP POINT 是：`J1_PASS / J2_PASS / PLATFORM_READY / MODEL_READY / J3_IDENTITY_PASS / J3_OBSERVE_PASS / J3_COMPOSER_ROOT_CAUSE_VERIFIED / COMPOSER_FIX_D40D371_LOCAL_PASS / EXTENSION_0.1.44_RELEASE_PENDING / J3_DEV_NODE_READY_PENDING / J4_NOT_STARTED / LEGACY_UNKNOWN_PRESERVED / A4_BROWSER_TARGET_OWNERSHIP_DEFERRED`。禁止重建 Task/GPT/Worker、重新 Human Start、再次 WORKER_BIND/bind、修改 Owner DB；0.1.44 adoption 前不得再次 Recover。
 
 ## RECENTLY_CLOSED
 
@@ -170,7 +173,7 @@ REGISTRY_AND_WORKSPACE_0139 = CLOSED / VERIFIED
 
 - 不回到 0.1.38 historical Extension error / import bundle 路线。
 - 不重复发布/update 已闭环的 `execution-browser-extension 0.1.41` 或 `model-runtime 0.1.24`；Registry/Workspace/Chrome runtime 已有 authority。
-- 当前 `PLATFORM_READY=YES`；不得把模型、Tunnel、pairing、Extension adoption 重新拉回主线，除非出现新的可复现 regression evidence。
+- 当前 `PLATFORM_READY=YES`、Model Runtime/Decision=READY；不得把 pairing、模型、Tunnel、Task Orchestration 重新拉回主线，除非出现新的可复现 regression evidence。
 - 不创建新 Task/GPT/Execution，不复制第二份 Worker Conversation，不点旧 Permission，不 blind Recover legacy UNKNOWN。
 - 不重新 Human Start，不直接 `task.start`，不再次 `WORKER_BIND/browser.bindWorker`。
 - 当前 Browser Observer recovery 已 runtime-proven；不得因为 Dev 未收到 NODE_READY 就再次修改 Browser wake wiring，先处理 Execution identity admission。
@@ -179,7 +182,7 @@ REGISTRY_AND_WORKSPACE_0139 = CLOSED / VERIFIED
 
 ## REQUIRED_CONTEXT
 
-完成 Core 读取后，当前 checkpoint 已从 Task Orchestration identity/admission 排障切到 **Execution Browser Extension 单包修复候选的 release/adoption + SAME-SCENE J3**。下一 Chat 第一轮只额外读取当前动作真正需要的 Runbook：
+完成 Core 读取后，当前 checkpoint 已切到 **execution-browser-extension 0.1.44 release/adoption + SAME-SCENE J3/J4**。下一 Chat 第一轮只额外读取当前动作真正需要的 Runbook：
 
 1. `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md`
 2. `03-自动化知识库/流程/Package-Update-Loop.md`

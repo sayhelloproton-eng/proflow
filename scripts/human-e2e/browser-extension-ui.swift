@@ -9,7 +9,8 @@ let started = Date()
 let previousFrontmost = NSWorkspace.shared.frontmostApplication
 let privilegedActions: Set<String> = [
     "dismiss-help", "open-extensions-menu", "open-proflow-tasks", "inspect-tab-strip",
-    "select-tab", "attach-tab-to-playwright-group", "status", "reload", "install", "uninstall",
+    "select-tab", "attach-tab-to-playwright-group", "status", "screenshot-extensions",
+    "reload-at-point", "reload", "install", "uninstall",
 ]
 let mayActivateChrome = privilegedActions.contains(action)
 
@@ -204,8 +205,54 @@ func screenshot(_ suffix: String) {
         return
     }
     let path = "/tmp/proflow-browser-harness-\(suffix)-\(Int(Date().timeIntervalSince1970)).png"
-    let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture"); p.arguments = ["-x", path]
-    try? p.run(); p.waitUntilExit(); fputs("SCREENSHOT=\(path)\n", stderr)
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+    process.arguments = ["-x", path]
+    do {
+        try process.run()
+        let deadline = Date().addingTimeInterval(3.0)
+        while Date() < deadline {
+            if FileManager.default.fileExists(atPath: path) {
+                if process.isRunning { process.terminate() }
+                fputs("SCREENSHOT=\(path)\n", stderr)
+                return
+            }
+            if !process.isRunning { break }
+            usleep(50_000)
+        }
+        if process.isRunning { process.terminate() }
+        if FileManager.default.fileExists(atPath: path) {
+            fputs("SCREENSHOT=\(path)\n", stderr)
+        } else {
+            fputs("SCREENSHOT_FAILED=1\n", stderr)
+        }
+    } catch {
+        fputs("SCREENSHOT_FAILED=1\n", stderr)
+    }
+}
+
+func requiredReloadPoint() throws -> CGPoint {
+    let environment = ProcessInfo.processInfo.environment
+    guard let rawX = environment["PROFLOW_BROWSER_RELOAD_X"],
+          let rawY = environment["PROFLOW_BROWSER_RELOAD_Y"],
+          let x = Double(rawX), let y = Double(rawY),
+          x.isFinite, y.isFinite, x >= 0, y >= 0 else {
+        throw NSError(domain: "human-e2e", code: 26, userInfo: [NSLocalizedDescriptionKey: "RELOAD_FRESH_POINT_REQUIRED"])
+    }
+    return CGPoint(x: x, y: y)
+}
+
+func clickScreenPoint(_ point: CGPoint) throws {
+    guard let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left),
+          let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left),
+          let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left) else {
+        throw NSError(domain: "human-e2e", code: 27, userInfo: [NSLocalizedDescriptionKey: "RELOAD_POINT_EVENT_UNAVAILABLE"])
+    }
+    move.post(tap: .cghidEventTap)
+    usleep(120_000)
+    down.post(tap: .cghidEventTap)
+    usleep(80_000)
+    up.post(tap: .cghidEventTap)
 }
 
 func finish(_ result: String) {
@@ -423,15 +470,22 @@ do {
     case "status":
         try ensureExtensionsPage()
         finish(extensionPresent() ? "PRESENT" : "MISSING")
-    case "reload":
+    case "screenshot-extensions":
         try ensureExtensionsPage()
-        guard let reload = reloadButtonAfterExtension() else {
-            throw NSError(domain: "human-e2e", code: 24, userInfo: [NSLocalizedDescriptionKey: "RELOAD_BUTTON_NOT_FOUND"])
+        screenshot("extensions-current")
+        finish(extensionPresent() ? "SCREENSHOT_PRESENT" : "SCREENSHOT_MISSING")
+    case "reload-at-point":
+        try ensureExtensionsPage()
+        guard extensionPresent() else {
+            throw NSError(domain: "human-e2e", code: 28, userInfo: [NSLocalizedDescriptionKey: "TARGET_EXTENSION_NOT_PRESENT"])
         }
-        try click(reload)
+        let point = try requiredReloadPoint()
+        try clickScreenPoint(point)
         usleep(750_000)
-        screenshot("reload-after")
-        finish("RELOADED")
+        screenshot("reload-at-point-after")
+        finish("RELOADED_AT_FRESH_POINT")
+    case "reload":
+        throw NSError(domain: "human-e2e", code: 29, userInfo: [NSLocalizedDescriptionKey: "RELOAD_REQUIRES_FRESH_POINT"])
     case "uninstall":
         try ensureExtensionsPage()
         if !extensionPresent() { finish("ALREADY_MISSING"); exit(0) }
@@ -464,7 +518,7 @@ do {
         guard wait(12.0, extensionPresent) else { throw NSError(domain: "human-e2e", code: 11, userInfo: [NSLocalizedDescriptionKey: "EXTENSION_CARD_NOT_VISIBLE_AFTER_SELECT"]) }
         finish("INSTALLED")
     default:
-        fputs("Usage: swift scripts/human-e2e/browser-extension-ui.swift status|reload|install|uninstall|dismiss-help|open-extensions-menu|open-proflow-tasks|create-real3-task|recover-real3-workers|inspect|inspect-tab-strip|select-tab|attach-tab-to-playwright-group\n", stderr)
+        fputs("Usage: swift scripts/human-e2e/browser-extension-ui.swift status|screenshot-extensions|reload-at-point|reload|install|uninstall|dismiss-help|open-extensions-menu|open-proflow-tasks|create-real3-task|recover-real3-workers|inspect|inspect-tab-strip|select-tab|attach-tab-to-playwright-group\n", stderr)
         exit(64)
     }
 } catch {
