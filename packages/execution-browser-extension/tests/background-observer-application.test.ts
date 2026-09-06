@@ -192,6 +192,21 @@ test("PRESMOKE-B6-OBS-EXT-06 Task page snapshot carries a bounded read-only Syst
 	);
 });
 
+test("B1-OBS-STARTUP-BOUNDARY tab snapshot reconstruction cannot indefinitely block Observer recovery", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	assert.match(source, /BROWSER_RECOVERY_SNAPSHOT_TIMEOUT_MS = 1_000/);
+	assert.match(source, /boundedRecoveryObservation\(/);
+	assert.match(source, /const snapshots = await Promise\.all\(/);
+	const startup = source.slice(
+		source.indexOf("async function startBackgroundRuntime()"),
+		source.indexOf("chrome.action.onClicked.addListener"),
+	);
+	assert.ok(
+		startup.indexOf("await rebuildCarrierAttentionsFromTabs()") <
+			startup.indexOf("void runObserverRecovery()"),
+	);
+});
+
 test("P1-18 bounded startup/event recovery replenishes missing Task Workers before Task progression", async () => {
 	const source = await readFile(backgroundUrl, "utf8");
 	const recovery = source.slice(

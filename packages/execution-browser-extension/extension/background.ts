@@ -18,7 +18,10 @@ import {
 	resolveRoutineCarrierPermission,
 } from "../src/carrier-permission-lifecycle.js";
 import { createCollaborationCarrierApplication } from "../src/collaboration-carrier.js";
-import { shouldTriggerObserverRecovery } from "../src/recovery-trigger.js";
+import {
+	boundedRecoveryObservation,
+	shouldTriggerObserverRecovery,
+} from "../src/recovery-trigger.js";
 import {
 	createSystemObserver,
 	type SystemObserverReasonFailure,
@@ -192,6 +195,7 @@ const carrierContinuationControl = createCarrierContinuationControl();
 const BROWSER_CARRIER_KEEPALIVE_KEY = "proflowBrowserSnapshot";
 const BROWSER_CARRIER_KEEPALIVE_MS = 20_000;
 const BROWSER_BRIDGE_FETCH_TIMEOUT_MS = 5_000;
+const BROWSER_RECOVERY_SNAPSHOT_TIMEOUT_MS = 1_000;
 let snapshotPersistence = Promise.resolve();
 let transientPermissionAttemptsRestore: Promise<boolean> | null = null;
 
@@ -1235,24 +1239,32 @@ async function rebuildCarrierAttentionsFromTabs(): Promise<
 > {
 	const consumedDenials: CarrierContinuationDenial[] = [];
 	const tabs = await chrome.tabs.query({ url: "https://chatgpt.com/g/*" });
-	for (const tab of tabs) {
-		if (tab.id === undefined || tab.windowId === undefined) continue;
-		try {
-			const response = await chrome.tabs.sendMessage(tab.id, {
-				type: "PROFLOW_PAGE_SNAPSHOT_REQUEST",
-			});
-			if (!isRecord(response) || response.ok !== true) continue;
-			const observed = parseSnapshotObservation(response.value, tab);
-			if (observed) {
-				processContentObservation(observed, false);
-				const consumed = carrierContinuationControl.consumeRecovery(
-					undefined,
-					observed,
-				);
-				if (consumed) consumedDenials.push(consumed);
-			}
-		} catch {
-			// A tab without a live content receiver is not reconstructed from guesses.
+	const snapshots = await Promise.all(
+		tabs.map(async (tab) => {
+			const tabId = tab.id;
+			if (tabId === undefined || tab.windowId === undefined) return null;
+			const response = await boundedRecoveryObservation(
+				() =>
+					chrome.tabs.sendMessage(tabId, {
+						type: "PROFLOW_PAGE_SNAPSHOT_REQUEST",
+					}),
+				BROWSER_RECOVERY_SNAPSHOT_TIMEOUT_MS,
+			);
+			return { tab, response };
+		}),
+	);
+	for (const snapshot of snapshots) {
+		if (!snapshot) continue;
+		const { tab, response } = snapshot;
+		if (!isRecord(response) || response.ok !== true) continue;
+		const observed = parseSnapshotObservation(response.value, tab);
+		if (observed) {
+			processContentObservation(observed, false);
+			const consumed = carrierContinuationControl.consumeRecovery(
+				undefined,
+				observed,
+			);
+			if (consumed) consumedDenials.push(consumed);
 		}
 	}
 	await persistSnapshot();
