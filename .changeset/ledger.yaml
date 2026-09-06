@@ -30,6 +30,10 @@
   dir: packages/agent-controller-dev
   intents:
     - small-seals-thank
+"@tomflow/proflow-agent-controller-dev@0.1.17":
+  dir: packages/agent-controller-dev
+  intents:
+    - real3-b1-runtime-adoption
 "@tomflow/proflow-agent-controller-dev@0.1.2":
   dir: packages/agent-controller-dev
   intents:
@@ -82,6 +86,10 @@
   dir: packages/agent-gateway
   intents:
     - six-mice-eat
+"@tomflow/proflow-agent-gateway@0.1.16":
+  dir: packages/agent-gateway
+  intents:
+    - real3-b1-runtime-adoption
 "@tomflow/proflow-agent-gateway@0.1.2":
   dir: packages/agent-gateway
   intents:
@@ -234,6 +242,10 @@
   dir: packages/agent-test-ops
   intents:
     - small-seals-thank
+"@tomflow/proflow-agent-test-ops@0.1.17":
+  dir: packages/agent-test-ops
+  intents:
+    - real3-b1-runtime-adoption
 "@tomflow/proflow-agent-test-ops@0.1.2":
   dir: packages/agent-test-ops
   intents:
@@ -591,6 +603,10 @@
   dir: packages/execution-browser-extension
   intents:
     - real3-chatgpt-composer-selection
+"@tomflow/proflow-execution-browser-extension@0.1.45":
+  dir: packages/execution-browser-extension
+  intents:
+    - real3-b1-runtime-adoption
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
@@ -1232,6 +1248,10 @@
   dir: packages/platform-host
   intents:
     - real3-generation-identity-closure
+"@tomflow/proflow-platform-host@0.1.19":
+  dir: packages/platform-host
+  intents:
+    - real3-b1-runtime-adoption
 "@tomflow/proflow-platform-host@0.1.2":
   dir: packages/platform-host
   intents:
@@ -1296,6 +1316,10 @@
   dir: packages/task-orchestration
   intents:
     - real3-workspace-loop
+"@tomflow/proflow-task-orchestration@0.1.11":
+  dir: packages/task-orchestration
+  intents:
+    - real3-b1-runtime-adoption
 "@tomflow/proflow-task-orchestration@0.1.4":
   dir: packages/task-orchestration
   intents:
