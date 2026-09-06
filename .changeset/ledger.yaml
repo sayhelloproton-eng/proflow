@@ -583,6 +583,10 @@
   dir: packages/execution-browser-extension
   intents:
     - real3-generation-identity-closure
+"@tomflow/proflow-execution-browser-extension@0.1.43":
+  dir: packages/execution-browser-extension
+  intents:
+    - real3-browser-observe-wire
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
