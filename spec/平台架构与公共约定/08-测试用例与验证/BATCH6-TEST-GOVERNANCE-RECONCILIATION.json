@@ -7,11 +7,11 @@
   },
   "currentMechanicalInventory": {
     "testPlans": 39,
-    "formalCaseIdentities": 349,
-    "criticalProofs": 222,
-    "requiredFailureBoundaries": 127,
+    "formalCaseIdentities": 355,
+    "criticalProofs": 225,
+    "requiredFailureBoundaries": 130,
     "executableTestFiles": 161,
-    "executableTestCalls": 755,
+    "executableTestCalls": 762,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -38,6 +38,7 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
@@ -65,6 +66,7 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
@@ -92,6 +94,7 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
@@ -119,6 +122,7 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
@@ -264,18 +268,59 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/agent-controller-dev/tests/current-spec-alignment.test.ts"
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-controller-dev/tests/current-spec-alignment.test.ts",
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts"
       ],
       "ownerPackages": [
-        "agent-controller-dev"
+        "agent-controller-dev",
+        "agent-runtime"
       ],
       "implementationRefs": [
-        "packages/agent-controller-dev/src/index.ts"
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-runtime/src/index.ts"
       ],
       "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
-      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-DEV-13",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-CONTROLLER-DEV",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-controller-dev/tests/current-spec-alignment.test.ts",
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-runtime"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-runtime/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -1110,6 +1155,42 @@
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
+      "caseId": "CP-AGT-RUNTIME-13",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-RUNTIME",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-runtime.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-runtime/tests/role-management-client.test.ts",
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
+        "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-runtime",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-runtime/src/role-management-client.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts",
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
       "caseId": "CP-AGT-TEST-01",
       "caseType": "CRITICAL_PROOF",
       "sourcePlans": [
@@ -1127,6 +1208,7 @@
       ],
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
@@ -1154,6 +1236,7 @@
       ],
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
@@ -1181,6 +1264,7 @@
       ],
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
@@ -1208,6 +1292,7 @@
       ],
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
@@ -1328,14 +1413,20 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
         "packages/agent-test-ops/tests/current-spec-alignment.test.ts",
         "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
       ],
       "ownerPackages": [
+        "agent-runtime",
         "agent-test-ops",
         "platform-host"
       ],
       "implementationRefs": [
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/platform-host/src/index.ts",
         "packages/platform-host/src/role-operations.ts",
@@ -1345,6 +1436,7 @@
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1361,14 +1453,20 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
         "packages/agent-test-ops/tests/current-spec-alignment.test.ts",
         "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
       ],
       "ownerPackages": [
+        "agent-runtime",
         "agent-test-ops",
         "platform-host"
       ],
       "implementationRefs": [
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/platform-host/src/index.ts",
         "packages/platform-host/src/role-operations.ts",
@@ -1378,6 +1476,47 @@
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-TEST-13",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-TEST-OPS",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-test-ops.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/agent-test-ops/tests/current-spec-alignment.test.ts",
+        "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-runtime",
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts",
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -5122,9 +5261,11 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
@@ -5164,10 +5305,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -5217,10 +5360,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -5270,10 +5415,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -5323,10 +5470,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -5376,10 +5525,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -5429,10 +5580,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -5482,10 +5635,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -5535,10 +5690,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -5588,10 +5745,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -5641,10 +5800,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -6276,6 +6437,7 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
@@ -6303,6 +6465,7 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
@@ -6330,6 +6493,7 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
@@ -6357,6 +6521,7 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ],
       "proofStrengths": [
@@ -6377,18 +6542,59 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/agent-controller-dev/tests/current-spec-alignment.test.ts"
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-controller-dev/tests/current-spec-alignment.test.ts",
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts"
       ],
       "ownerPackages": [
-        "agent-controller-dev"
+        "agent-controller-dev",
+        "agent-runtime"
       ],
       "implementationRefs": [
-        "packages/agent-controller-dev/src/index.ts"
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-runtime/src/index.ts"
       ],
       "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
-      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-AGT-DEV-13",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-CONTROLLER-DEV",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-controller-dev/tests/current-spec-alignment.test.ts",
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-runtime"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-runtime/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -6682,6 +6888,7 @@
       "executableRefs": [
         "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
         "packages/agent-runtime/tests/role-management-client.test.ts",
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
         "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
       ],
       "ownerPackages": [
@@ -6842,6 +7049,7 @@
       "executableRefs": [
         "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
         "packages/agent-runtime/tests/role-management-client.test.ts",
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
         "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
       ],
       "ownerPackages": [
@@ -6877,6 +7085,43 @@
       "executableRefs": [
         "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
         "packages/agent-runtime/tests/role-management-client.test.ts",
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
+        "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-runtime",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-runtime/src/role-management-client.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts",
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-AGT-RUNTIME-09",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-RUNTIME",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-runtime.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+        "packages/agent-runtime/tests/role-management-client.test.ts",
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
         "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
       ],
       "ownerPackages": [
@@ -6917,6 +7162,7 @@
       ],
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
@@ -6944,6 +7190,7 @@
       ],
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
@@ -6971,6 +7218,7 @@
       ],
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
@@ -6998,6 +7246,7 @@
       ],
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ],
       "proofStrengths": [
@@ -7018,14 +7267,20 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
         "packages/agent-test-ops/tests/current-spec-alignment.test.ts",
         "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
       ],
       "ownerPackages": [
+        "agent-runtime",
         "agent-test-ops",
         "platform-host"
       ],
       "implementationRefs": [
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/platform-host/src/index.ts",
         "packages/platform-host/src/role-operations.ts",
@@ -7035,6 +7290,47 @@
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-AGT-TEST-12",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-TEST-OPS",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-test-ops.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/agent-test-ops/tests/current-spec-alignment.test.ts",
+        "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-runtime",
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts",
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -9252,10 +9548,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -9307,10 +9605,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -9362,10 +9662,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -9417,10 +9719,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -9472,10 +9776,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -9527,10 +9833,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",
@@ -9582,10 +9890,12 @@
       ],
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts",
         "packages/agent-product/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
         "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/extension/provisioning-content.ts",

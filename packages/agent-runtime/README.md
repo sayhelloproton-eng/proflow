@@ -4,4 +4,6 @@ Agent-owned Role Registry, role credential binding, Task-bound worker-context de
 
 v1 uses exactly three generic Agent Packages. Role Registry list/get is a management/Deployment/Carrier lookup surface, not Product New Task dynamic discovery. Task owns `agentPackageRef→roleRef/workerRef/conversationLocator` binding; Agent Runtime validates authenticated role/worker context without mirroring that Task truth. Collaboration owns `askPeer/replyPeer` facts only and does not create Task Nodes or Browser scheduling state.
 
+Package-version drift resolution uses the narrow `adoptCurrentRoleVersion` owner capability: it requires the current package, roleRef, carrierUrl, and credential to match, updates only `registeredPackageVersion`, and preserves the existing credential and carrier identity. It is not a generic Role update or replacement API.
+
 Normative source: `spec/智能体运行与协作领域/`.

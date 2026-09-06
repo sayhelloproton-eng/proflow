@@ -1,6 +1,6 @@
 # agent-controller-dev Setup
 
-> Real-2 冻结合同：`Module.setup` 已完成真实 Custom GPT 自动部署闭环。`READY` 直接复用；`MISSING` 自动走 candidate credential → 单 Editor 配置 Auth/Schema/Knowledge/Capabilities → Private Create → `saveCurrentRole` → Gateway probe；`DRIFT` 不自动编辑旧 GPT，必须 fail closed。
+> Real-2 冻结合同：`Module.setup` 已完成真实 Custom GPT 自动部署闭环。`READY` 直接复用；`MISSING` 自动走 candidate credential → 单 Editor 配置 Auth/Schema/Knowledge/Capabilities → Private Create → `saveCurrentRole` → Gateway probe；`DRIFT` 不自动编辑旧 GPT，必须 fail closed。远端原 GPT 经 operator/Browser 明确同步后，使用 package-scoped `role adopt` 保持 identity/credential 并采用当前版本。
 
 ## STEP-AGENT-CONTROLLER-DEV-01 — Module.setup 自动部署合同
 Responsible: AI

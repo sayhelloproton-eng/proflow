@@ -176,3 +176,10 @@ implementationWave: Wave 4
 - [ ] **RF-AGT-DEV-12** — Role CLI surface 缺命令、直接写 Task DB、或绕过受认证的 local management boundary。
 
 **Executable proof**：`packages/agent-controller-dev/tests/current-spec-alignment.test.ts` 的 `PRESMOKE-B2 role package CLI...`。
+
+## 2026-09-07 Real-3 D1｜Role Drift Adoption Addendum
+
+- [ ] **CP-AGT-DEV-13** — Controller/Dev CLI 提供 package-scoped `role adopt <current-carrier-url> --workspace <workspace>`；版本只能来自当前 package material，且调用 Agent owner adoption primitive，不创建 GPT、不轮换 credential。
+- [ ] **RF-AGT-DEV-13** — DRIFT setup 仍 fail closed，但 ACTION_REQUIRED 必须明确指向 operator 完成远端同步后的正式 adopt 命令；roleRef/carrierUrl mismatch 零 mutation。
+
+**Executable proof**：`packages/agent-runtime/tests/role-package-cli-subprocess.test.ts` + `packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts`。

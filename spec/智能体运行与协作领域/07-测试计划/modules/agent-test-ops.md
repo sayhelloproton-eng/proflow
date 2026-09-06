@@ -176,3 +176,10 @@ implementationWave: Wave 4
 - [ ] **RF-AGT-TEST-11** — Role CLI 绕过 owner boundary，或 Test/Ops OpenAPI/Host ACL 再次漂移。
 
 **Executable proof**：`packages/agent-test-ops/tests/current-spec-alignment.test.ts` + `packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts` 的 `CP-HOST-10`。
+
+## 2026-09-07 Real-3 D1｜Role Drift Adoption Addendum
+
+- [ ] **CP-AGT-TEST-13** — Test/Ops CLI 提供 package-scoped `role adopt <current-carrier-url> --workspace <workspace>`；版本只能来自当前 package material，且调用 Agent owner adoption primitive，不创建 GPT、不轮换 credential。
+- [ ] **RF-AGT-TEST-12** — DRIFT setup 仍 fail closed，但 ACTION_REQUIRED 必须明确指向 operator 完成远端同步后的正式 adopt 命令；roleRef/carrierUrl mismatch 零 mutation。
+
+**Executable proof**：`packages/agent-runtime/tests/role-package-cli-subprocess.test.ts` + `packages/agent-test-ops/tests/agent-test-ops-static.test.ts`。

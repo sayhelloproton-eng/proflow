@@ -249,7 +249,7 @@ export const behaviorAdapter = {
 					actionRequired: {
 						action: "resolve-custom-gpt-role-drift",
 						description:
-							"Existing Custom GPT Role is drifted. Automatic setup does not edit an existing GPT.",
+							"Existing Custom GPT Role is drifted. Automatic setup does not edit an existing GPT. After operator/browser synchronizes and verifies the current package material, run: proflow-agent-controller-dev role adopt <current-carrier-url> --workspace <workspace>.",
 					},
 				},
 				observedEffects: [] as string[],

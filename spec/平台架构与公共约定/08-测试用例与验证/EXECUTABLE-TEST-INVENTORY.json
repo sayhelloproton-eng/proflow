@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 161,
-    "testCalls": 755
+    "testCalls": 762
   },
   "tests": [
     {
@@ -17,6 +17,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
@@ -31,6 +32,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
@@ -43,6 +45,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
@@ -57,6 +60,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
@@ -71,6 +75,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
@@ -85,6 +90,7 @@
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
@@ -99,6 +105,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
@@ -111,6 +118,20 @@
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
       "implementationRefs": [
         "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-controller-dev",
+      "path": "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+      "line": 231,
+      "title": "REAL3-D1 Controller/Dev exposes explicit fail-closed Role adoption guidance",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
         "packages/agent-controller-dev/src/index.ts"
       ]
     },
@@ -801,6 +822,50 @@
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
       "line": 222,
+      "title": "REAL3-D1-01 current Role version adoption preserves identity and credential and is idempotent",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-runtime",
+      "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+      "line": 269,
+      "title": "REAL3-D1-02 current Role adoption rejects identity and credential gaps with zero side effect",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-runtime",
+      "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+      "line": 336,
+      "title": "REAL3-D1-03 adoption persistence failure restores in-memory and durable Role",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-runtime",
+      "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+      "line": 367,
+      "title": "REAL3-D1-04 adoption rejects a missing current package Role",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-runtime",
+      "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
+      "line": 395,
       "title": "CP-AGT-RUNTIME-02 one credential rotates without role identity or secret leakage",
       "ids": [
         "CP-AGT-RUNTIME-02"
@@ -813,7 +878,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 269,
+      "line": 442,
       "title": "CP-AGT-RUNTIME-03 worker validation uses authenticated role plus Task owner facts without a binding copy",
       "ids": [
         "CP-AGT-RUNTIME-03"
@@ -826,7 +891,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 294,
+      "line": 467,
       "title": "CP-AGT-RUNTIME-04 ask/reply is idempotent and next question waits for physical reply delivery",
       "ids": [
         "CP-AGT-RUNTIME-04"
@@ -839,7 +904,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 414,
+      "line": 587,
       "title": "RF-AGT-RUNTIME-04 an existing pair thread cannot be retargeted to a third Task participant",
       "ids": [
         "RF-AGT-RUNTIME-04"
@@ -852,7 +917,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 464,
+      "line": 637,
       "title": "CP-AGT-RUNTIME-05 terminal, missing participant, duplicate and concurrency paths fail safe",
       "ids": [
         "CP-AGT-RUNTIME-05"
@@ -865,7 +930,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 521,
+      "line": 694,
       "title": "CP-AGT-RUNTIME-06 integration is through injected Public Contract ports only",
       "ids": [
         "CP-AGT-RUNTIME-06"
@@ -878,7 +943,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 540,
+      "line": 713,
       "title": "B2-AGT-01 DELIVERED outcome requires non-empty executionRef and evidenceRef",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -889,7 +954,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 594,
+      "line": 767,
       "title": "B2-AGT-02 reply DELIVERED thread transition is atomic and checks its own row",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -900,7 +965,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 647,
+      "line": 820,
       "title": "B2-AGT-03 FAILED/UNKNOWN delivery update refuses a silent stale no-op",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -911,7 +976,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 731,
+      "line": 904,
       "title": "B2-AGT-07 UNKNOWN delivery stays durable PENDING for external reconciliation without Agent-side replay",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -922,7 +987,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 771,
+      "line": 944,
       "title": "B2-AGT-04 terminal PENDING history never starves later active pending messages",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -933,7 +998,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 869,
+      "line": 1042,
       "title": "B2-AGT-05 terminal task delivery report never mutates historical PENDING messages",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -944,7 +1009,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 917,
+      "line": 1090,
       "title": "B2-AGT-06 rotateCredential publishes only durable current authority",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -955,7 +1020,7 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts",
-      "line": 944,
+      "line": 1117,
       "title": "PRESMOKE-B6-AGT-01 register/delete cross-file failure converges or surfaces half-state in-process",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -1094,7 +1159,18 @@
     {
       "package": "agent-runtime",
       "path": "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
-      "line": 67,
+      "line": 85,
+      "title": "REAL3-D1-CLI package-scoped role adopt uses current material version and preserves credential",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/agent-runtime/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-runtime",
+      "path": "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
+      "line": 147,
       "title": "PRESMOKE-B6-ROLE-CLI real subprocesses route the full frozen role/key surface through authenticated Agent owner HTTP",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -1113,6 +1189,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
@@ -1127,6 +1204,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
@@ -1139,6 +1217,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
@@ -1153,6 +1232,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
@@ -1167,6 +1247,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
@@ -1181,6 +1262,7 @@
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
@@ -1195,6 +1277,7 @@
       "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },
@@ -1207,6 +1290,20 @@
       "proofStrength": "REAL_EXTERNAL_DECLARATION",
       "implementationRefs": [
         "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts"
+      ]
+    },
+    {
+      "package": "agent-test-ops",
+      "path": "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+      "line": 197,
+      "title": "REAL3-D1 Test/Ops exposes explicit fail-closed Role adoption guidance",
+      "ids": [],
+      "proofStrength": "STATIC_OR_SOURCE_ALIGNMENT",
+      "implementationRefs": [
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts"
       ]
     },

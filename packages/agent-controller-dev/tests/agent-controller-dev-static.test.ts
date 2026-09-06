@@ -227,3 +227,16 @@ test("Real-2 Controller/Dev Module.setup uses the reusable Custom GPT role API",
 		/setup 0[1-4]|openCustomGptEditor|create\/update the real Custom GPT/,
 	);
 });
+
+test("REAL3-D1 Controller/Dev exposes explicit fail-closed Role adoption guidance", async () => {
+	const [cli, adapter] = await Promise.all([
+		readFile(new URL("../src/cli.ts", import.meta.url), "utf8"),
+		readFile(new URL("../deployment/adapter.ts", import.meta.url), "utf8"),
+	]);
+	assert.match(cli, /role adopt https:\/\/chatgpt\.com\/g\/g-/);
+	assert.match(cli, /adoptCurrentRoleVersion/);
+	assert.doesNotMatch(cli, /updateRole|replaceRole/);
+	assert.match(adapter, /resolve-custom-gpt-role-drift/);
+	assert.match(adapter, /role adopt/);
+	assert.match(adapter, /does not edit an existing GPT/i);
+});

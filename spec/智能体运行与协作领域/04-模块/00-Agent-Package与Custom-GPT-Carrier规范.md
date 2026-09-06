@@ -306,7 +306,8 @@ role key rotate
 - Role/credential 的 canonical owner 是 Agent Domain；严格 `registerRole`、deployment-only `saveCurrentRole`、`showCredential/...` 都是 owner capability；
 - CLI 只是该本地管理能力的显式入口之一，不是 Deployment 唯一调用方式；
 - `role delete` / `role key ...` 是本地管理命令，不是 GPT Action；
-- v1 不提供通用 role update / replace API；普通 `registerRole` 继续拒绝同 package 重复注册。只有明确重新创建角色且新 GPT 已真实 `LIVE_CREATED` 后，Deployment 才可用 `saveCurrentRole` 原子替换同 package 当前 Role/credential；该能力不是 active Task Role migration，也不改变正常 setup retry / package upgrade 复用现有 roleRef 的规则。
+- v1 不提供通用 role update / replace API；普通 `registerRole` 继续拒绝同 package 重复注册。明确重新创建角色且新 GPT 已真实 `LIVE_CREATED` 后，Deployment 可用 `saveCurrentRole` 原子替换同 package 当前 Role/credential；该能力不是 active Task Role migration。
+- package upgrade 优先复用现有 GPT。operator/Browser 必须先在真实 owner editor 中把当前 package material 明确同步并验证，再通过 package-scoped `role adopt <current-carrier-url> --workspace <workspace>` 正式采用当前 package version。adoption 只允许同 `agentPackageRef + roleRef + carrierUrl` 原地更新 `registeredPackageVersion`，必须原样保留 credential 与其余 Role identity；不创建 GPT、不轮换 credential，也不接受调用方指定任意版本。
 
 ---
 
@@ -379,7 +380,7 @@ Auth 语义、credential 生成与 secret persistence 始终属于 Agent Runtime
 - Action Contract 不兼容变化；
 - Carrier 配置出现不兼容变化。
 
-升级 Agent Package 不创建新的“逻辑 Agent”。当前 v1 不提供 Edit-existing Carrier 的自动升级 happy path。
+升级 Agent Package 不创建新的“逻辑 Agent”。当前 v1 不提供 Edit-existing Carrier 的自动升级 happy path；既有 GPT 的更新必须是显式 operator/Browser 步骤，随后才允许显式 adoption。
 
 包版本与 current Role 发生 drift 时：
 
@@ -387,12 +388,13 @@ Auth 语义、credential 生成与 secret persistence 始终属于 Agent Runtime
 Module.setup / status 检测 registeredPackageVersion drift
 → fail closed / ACTION_REQUIRED: resolve-custom-gpt-role-drift
 → 不自动 Edit 旧 GPT
-→ 若明确要求重新物化该角色，则显式 recreate
-→ 创建新 GPT + 新 g-id + candidate credential
-→ saveCurrentRole 原子替换同 package current binding
+→ operator 在 owner editor 同步并验证 current package material
+→ package CLI role adopt 当前 carrier URL
+→ Agent Runtime 核验同 package / 同 roleRef / 同 carrierUrl / credential 存在
+→ 仅更新 registeredPackageVersion；roleRef / carrierUrl / credential 保持不变
 ```
 
-普通 setup retry 在 `READY` 时继续复用现有 current Role；只有显式 recreate 才产生新的 carrier identity。
+`role adopt` 对 READY/current version 重入是 idempotent NOOP。任何 Role、URL、package 或 credential 不匹配均 typed reject 且 zero side effect。普通 setup retry 在 `READY` 时继续复用现有 current Role；显式 recreate 仍是独立 provisioning 路径，只在确实需要新 GPT identity 时使用。
 
 ---
 
@@ -412,7 +414,7 @@ start
 stop
 ```
 
-其中 `Module.setup` 的最终 Real-2 合同是自身 Custom GPT 的完整、可重入部署闭环：materialize Agent Package → `READY + current validation evidence` 复用 / `MISSING` 请求 Browser Extension provisioning / `READY + validation missing-or-stale` 只重做 Gateway/Carrier validation → 预生成 candidate credential → 同一 Editor 完成 Schema/Auth/ZIP/Capabilities → 创建真实 Private GPT → `saveCurrentRole` → validate/Gateway probe。`DRIFT` 仍按 exact package version fail closed，不自动 Edit 旧 GPT。`Module.status` 仍是唯一 management 状态真源。`custom-gpt ...`、`role register/show/validate/delete`、`role key ...` 等命令仍是 Agent Package 自身真实 extra capability，可以被 AI/用户直接调用，但 Platform 不代理、不解释其业务语义。
+其中 `Module.setup` 的最终 Real-2 合同是自身 Custom GPT 的完整、可重入部署闭环：materialize Agent Package → `READY + current validation evidence` 复用 / `MISSING` 请求 Browser Extension provisioning / `READY + validation missing-or-stale` 只重做 Gateway/Carrier validation → 预生成 candidate credential → 同一 Editor 完成 Schema/Auth/ZIP/Capabilities → 创建真实 Private GPT → `saveCurrentRole` → validate/Gateway probe。`DRIFT` 仍按 exact package version fail closed，不自动 Edit 旧 GPT；ACTION_REQUIRED 必须明确指向 operator 完成远端同步后的 package-scoped `role adopt`。`Module.status` 仍是唯一 management 状态真源。`custom-gpt ...`、`role register/adopt/show/validate/delete`、`role key ...` 等命令仍是 Agent Package 自身真实 extra capability，可以被 AI/用户直接调用，但 Platform 不代理、不解释其业务语义。
 
 Real-2 已完成真实验收；2026-09-01 Deployment Fresh regression 对恢复合同做最小修订：三个真实 Agent Role、Auth-before-Create、ZIP Knowledge、显式 recreate 覆盖与 workspace queue 语义保持不变；post-LIVE_CREATED validation failure 改为保留 durable Role 并重试 validation，禁止因本地 rollback 重复创建不可逆远端 GPT。历史 B1～B6 过程文档不得恢复人工复制粘贴或 post-create Auth happy path。
 

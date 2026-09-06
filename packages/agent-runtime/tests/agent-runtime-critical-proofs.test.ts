@@ -219,6 +219,179 @@ test("CP-AGT-RUNTIME-01A deployment save replaces only the package current role"
 	assert.equal(rolledBackCredentials["g-dev-2"], undefined);
 	await assert.rejects(() => saved.rollback(), /ROLE_ROLLBACK_CONSUMED/);
 });
+test("REAL3-D1-01 current Role version adoption preserves identity and credential and is idempotent", async (context) => {
+	const { runtime, proflowRoot } = await fixture(context);
+	const beforeRole = runtime.getRegisteredRole("g-dev");
+	const beforeCredential = await runtime.showCredential("g-dev");
+	const adopted = await runtime.adoptCurrentRoleVersion({
+		agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+		registeredPackageVersion: "0.1.17",
+		roleRef: "g-dev",
+		carrierUrl: "https://chatgpt.com/g/g-dev",
+	});
+	assert.equal(adopted.changed, true);
+	assert.equal(adopted.role.registeredPackageVersion, "0.1.17");
+	assert.equal(adopted.role.roleRef, beforeRole.roleRef);
+	assert.equal(adopted.role.carrierUrl, beforeRole.carrierUrl);
+	assert.equal(adopted.role.registeredAt, beforeRole.registeredAt);
+	assert.equal("credential" in adopted, false);
+	assert.deepEqual(await runtime.showCredential("g-dev"), beforeCredential);
+	const durableRoles = JSON.parse(
+		await readFile(join(proflowRoot, "agent/roles.json"), "utf8"),
+	) as Array<{ roleRef: string; registeredPackageVersion: string }>;
+	assert.equal(
+		durableRoles.find((role) => role.roleRef === "g-dev")
+			?.registeredPackageVersion,
+		"0.1.17",
+	);
+	const repeated = await runtime.adoptCurrentRoleVersion({
+		agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+		registeredPackageVersion: "0.1.17",
+		roleRef: "g-dev",
+		carrierUrl: "https://chatgpt.com/g/g-dev",
+	});
+	assert.equal(repeated.changed, false);
+	assert.deepEqual(await runtime.showCredential("g-dev"), beforeCredential);
+	await assert.rejects(
+		() =>
+			runtime.registerRole({
+				agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+				registeredPackageVersion: "0.1.17",
+				roleRef: "g-dev",
+				carrierUrl: "https://chatgpt.com/g/g-dev",
+			}),
+		/ROLE_ALREADY_REGISTERED/,
+	);
+	assert.equal("updateRole" in runtime, false);
+	assert.equal("replaceRole" in runtime, false);
+});
+
+test("REAL3-D1-02 current Role adoption rejects identity and credential gaps with zero side effect", async (context) => {
+	const { runtime, proflowRoot } = await fixture(context);
+	const rolePath = join(proflowRoot, "agent/roles.json");
+	const credentialPath = join(
+		proflowRoot,
+		"agent/secrets/role-credentials.json",
+	);
+	const rolesBefore = await readFile(rolePath, "utf8");
+	const credentialsBefore = await readFile(credentialPath, "utf8");
+	for (const input of [
+		{
+			agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+			registeredPackageVersion: "0.1.17",
+			roleRef: "g-test",
+			carrierUrl: "https://chatgpt.com/g/g-test",
+		},
+		{
+			agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+			registeredPackageVersion: "0.1.17",
+			roleRef: "g-dev",
+			carrierUrl: "https://chatgpt.com/g/g-other",
+		},
+		{
+			agentPackageRef: "@tomflow/proflow-agent-product",
+			registeredPackageVersion: "0.1.17",
+			roleRef: "g-dev",
+			carrierUrl: "https://chatgpt.com/g/g-dev",
+		},
+	] as const) {
+		await assert.rejects(
+			() => runtime.adoptCurrentRoleVersion(input),
+			/ROLE_ADOPTION_IDENTITY_MISMATCH/,
+		);
+		assert.equal(await readFile(rolePath, "utf8"), rolesBefore);
+		assert.equal(await readFile(credentialPath, "utf8"), credentialsBefore);
+	}
+	runtime.close();
+	const credentials = JSON.parse(credentialsBefore) as Record<string, string>;
+	delete credentials["g-dev"];
+	await writeFile(credentialPath, `${JSON.stringify(credentials, null, 2)}\n`, {
+		mode: 0o600,
+	});
+	const reopened = await createAgentRuntime({
+		proflowRoot,
+		task: {
+			async getTask() {
+				return { taskId: "task:1", status: "ACTIVE", roleBindings: [] };
+			},
+			async hasNonTerminalRoleUsage() {
+				return false;
+			},
+		},
+	});
+	context.after(() => reopened.close());
+	await assert.rejects(
+		() =>
+			reopened.adoptCurrentRoleVersion({
+				agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+				registeredPackageVersion: "0.1.17",
+				roleRef: "g-dev",
+				carrierUrl: "https://chatgpt.com/g/g-dev",
+			}),
+		/CREDENTIAL_NOT_FOUND/,
+	);
+	assert.equal(await readFile(rolePath, "utf8"), rolesBefore);
+});
+
+test("REAL3-D1-03 adoption persistence failure restores in-memory and durable Role", async (context) => {
+	if (process.platform === "win32") return context.skip("POSIX mode proof");
+	const { runtime, proflowRoot } = await fixture(context);
+	const rolePath = join(proflowRoot, "agent/roles.json");
+	const credentialPath = join(
+		proflowRoot,
+		"agent/secrets/role-credentials.json",
+	);
+	const beforeRole = structuredClone(runtime.getRegisteredRole("g-dev"));
+	const rolesBefore = await readFile(rolePath, "utf8");
+	const credentialsBefore = await readFile(credentialPath, "utf8");
+	const agentDir = join(proflowRoot, "agent");
+	await chmod(agentDir, 0o500);
+	try {
+		await assert.rejects(
+			() =>
+				runtime.adoptCurrentRoleVersion({
+					agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+					registeredPackageVersion: "0.1.17",
+					roleRef: "g-dev",
+					carrierUrl: "https://chatgpt.com/g/g-dev",
+				}),
+			/EACCES|EPERM/,
+		);
+	} finally {
+		await chmod(agentDir, 0o700);
+	}
+	assert.deepEqual(runtime.getRegisteredRole("g-dev"), beforeRole);
+	assert.equal(await readFile(rolePath, "utf8"), rolesBefore);
+	assert.equal(await readFile(credentialPath, "utf8"), credentialsBefore);
+});
+test("REAL3-D1-04 adoption rejects a missing current package Role", async (context) => {
+	const proflowRoot = await mkdtemp(
+		join(tmpdir(), "proflow-agent-adopt-missing-"),
+	);
+	context.after(() => rm(proflowRoot, { recursive: true, force: true }));
+	const runtime = await createAgentRuntime({
+		proflowRoot,
+		task: {
+			async getTask() {
+				return { taskId: "task:1", status: "ACTIVE", roleBindings: [] };
+			},
+			async hasNonTerminalRoleUsage() {
+				return false;
+			},
+		},
+	});
+	context.after(() => runtime.close());
+	await assert.rejects(
+		() =>
+			runtime.adoptCurrentRoleVersion({
+				agentPackageRef: "@tomflow/proflow-agent-controller-dev",
+				registeredPackageVersion: "0.1.17",
+				roleRef: "g-dev",
+				carrierUrl: "https://chatgpt.com/g/g-dev",
+			}),
+		/ROLE_NOT_FOUND/,
+	);
+});
 test("CP-AGT-RUNTIME-02 one credential rotates without role identity or secret leakage", async (context) => {
 	const { runtime, proflowRoot } = await fixture(context);
 	const oldCredential = await runtime.showCredential("g-dev");

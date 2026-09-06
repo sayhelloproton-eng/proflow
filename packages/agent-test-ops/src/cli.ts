@@ -38,6 +38,7 @@ function help() {
 	  ${binary} custom-gpt show-instructions
 	  ${binary} custom-gpt action-schema --gateway-url https://public.example
 	  ${binary} role register https://chatgpt.com/g/g-... --workspace /absolute/workspace
+	  ${binary} role adopt https://chatgpt.com/g/g-... --workspace /absolute/workspace
 	  ${binary} role show --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow
 	  ${binary} role list --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow
 	  ${binary} role validate --platform-host-url http://127.0.0.1:PORT --state-root /absolute/.proflow --gateway-url https://public.example
@@ -94,6 +95,20 @@ async function runRoleCommand() {
 					input,
 				)
 			: await managementClient().invoke("role.register", input);
+	} else if (command === "adopt") {
+		const carrierUrl = args[2];
+		if (!carrierUrl || carrierUrl.startsWith("--"))
+			throw new Error("CUSTOM_GPT_URL_REQUIRED");
+		const workspace = workspaceRoot();
+		if (!workspace) throw new Error("WORKSPACE_REQUIRED");
+		result = await (
+			await createWorkspaceRoleSetupClient(workspace)
+		).adoptCurrentRoleVersion({
+			agentPackageRef: material.packageName,
+			registeredPackageVersion: material.version,
+			roleRef: roleRefFromCarrierUrl(carrierUrl),
+			carrierUrl,
+		});
 	} else if (command === "list") {
 		const client = managementClient();
 		result = await client.invoke("role.list");

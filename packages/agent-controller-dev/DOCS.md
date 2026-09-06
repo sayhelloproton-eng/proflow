@@ -27,7 +27,7 @@
 
 ## 使用方式
 
-`Module.setup` 已接入正式自动创建路径：Role 为 `READY` 时直接复用当前绑定；Role 为 `MISSING` 时由 Agent Runtime 预生成 candidate credential，Extension 在同一个 GPT Editor 内完成 Action Schema、API Key/Bearer、Knowledge ZIP、模型与三项 Capabilities 配置后创建 Private GPT，再由 `saveCurrentRole` 持久化最新 g-id / carrierUrl / credential 并执行 Gateway authenticated probe。`DRIFT` 不自动 Edit 旧 GPT，必须 fail closed 进入显式处理。
+`Module.setup` 已接入正式自动创建路径：Role 为 `READY` 时直接复用当前绑定；Role 为 `MISSING` 时由 Agent Runtime 预生成 candidate credential，Extension 在同一个 GPT Editor 内完成 Action Schema、API Key/Bearer、Knowledge ZIP、模型与三项 Capabilities 配置后创建 Private GPT，再由 `saveCurrentRole` 持久化最新 g-id / carrierUrl / credential 并执行 Gateway authenticated probe。`DRIFT` 不自动 Edit 旧 GPT；operator/Browser 完成当前 package material 的远端同步与验证后，运行 `proflow-agent-controller-dev role adopt <current-carrier-url> --workspace <workspace>`，由 Agent owner 保持原 roleRef/carrierUrl/credential 并采用当前 package version。
 
 当前角色名固定为 `研发 + 项目总控`；`webSearch / imageGeneration / codeInterpreter` 全部开启；Knowledge 固定上传 `knowledge/custom-gpt-knowledge.zip` 本体。`custom-gpt setup`、`role ...` 与 `verify` 只用于 material 检查、诊断、恢复或显式本地管理，不承担正常部署的人工复制 Instructions / Schema / URL / Bearer 流程。
 

@@ -106,6 +106,14 @@ const roleRegistrationSchema = z
 				message: "carrierUrl must exactly bind roleRef",
 			});
 	});
+const roleAdoptionSchema = z
+	.object({
+		agentPackageRef: z.enum(fixedAgentPackageRefs),
+		registeredPackageVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
+		roleRef: z.string().regex(/^g-[A-Za-z0-9_-]+$/),
+		carrierUrl: z.url(),
+	})
+	.strict();
 const registeredRoleSchema = roleRegistrationSchema.safeExtend({
 	carrierType: z.literal("custom-gpt"),
 	registeredAt: z.iso.datetime(),
@@ -639,6 +647,35 @@ export async function createAgentRuntime(options: AgentRuntimeOptions) {
 					rollbackAvailable = false;
 				},
 			};
+		},
+		async adoptCurrentRoleVersion(raw: unknown) {
+			const input = roleAdoptionSchema.parse(raw);
+			const current = [...roles.values()].find(
+				(role) => role.agentPackageRef === input.agentPackageRef,
+			);
+			if (!current) throw new AgentRuntimeError("ROLE_NOT_FOUND");
+			if (
+				current.roleRef !== input.roleRef ||
+				current.carrierUrl !== input.carrierUrl ||
+				input.carrierUrl !== `https://chatgpt.com/g/${input.roleRef}`
+			)
+				throw new AgentRuntimeError("ROLE_ADOPTION_IDENTITY_MISMATCH");
+			if (!credentials.has(current.roleRef))
+				throw new AgentRuntimeError("CREDENTIAL_NOT_FOUND");
+			if (current.registeredPackageVersion === input.registeredPackageVersion)
+				return { role: current, changed: false as const };
+			const adopted: RegisteredRole = {
+				...current,
+				registeredPackageVersion: input.registeredPackageVersion,
+			};
+			roles.set(adopted.roleRef, adopted);
+			try {
+				await persistRoles();
+			} catch (error) {
+				roles.set(current.roleRef, current);
+				throw error;
+			}
+			return { role: adopted, changed: true as const };
 		},
 		async deleteRole(roleRef: string) {
 			if (!roles.has(roleRef)) throw new AgentRuntimeError("ROLE_NOT_FOUND");

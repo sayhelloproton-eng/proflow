@@ -183,6 +183,13 @@ Agent Runtime 若复制 Task binding、身份校验宽松或 Collaboration 顺�
 - [ ] **RF-AGT-RUNTIME-07** — Role Package/管理面绕过 Agent Owner、直接查询 Task DB、管理凭据缺失仍允许 key show/rotate/delete、或未知 Agent Package 被注册。
 
 **Executable proof**：`packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts` 的 `CP-HOST-08` + `packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts` 的 `CP-AGT-RUNTIME-01/02` + `packages/agent-runtime/tests/role-management-client.test.ts` 的 `CP-AGT-RUNTIME-11`。
+
+## 2026-09-07 Real-3 D1｜Current Role Version Adoption Addendum
+
+- [ ] **CP-AGT-RUNTIME-13** — `adoptCurrentRoleVersion` 仅允许同 `agentPackageRef + roleRef + carrierUrl` 把 current Role 采用到请求版本；只更新 `registeredPackageVersion`，原样保留 `registeredAt` 与 credential。current version 重入为 idempotent NOOP。
+- [ ] **RF-AGT-RUNTIME-09** — missing Role/credential、跨 package、roleRef/carrierUrl mismatch 或 persistence failure 必须 typed reject、zero side effect，并保留 adoption 前 durable/in-memory Role 与 credential；普通 duplicate `registerRole` 语义不变，且不新增 generic `updateRole/replaceRole` surface。
+
+**Executable proof**：`packages/agent-runtime/tests/agent-runtime-critical-proofs.test.ts` 的 `REAL3-D1-*` + `packages/agent-runtime/tests/role-package-cli-subprocess.test.ts` 的 package-scoped adoption proof。
 - [ ] **CP-AGT-RUNTIME-12** — Collaboration `FAILED/UNKNOWN` delivery report 只更新 Agent durable message fact；`UNKNOWN` 保持 `PENDING` 并保留 Execution/Evidence refs 供 Browser/Execution reality reconciliation，Agent Runtime 不拥有物理投递 scheduler，也不合成第二次 delivery intent。
 - [ ] **RF-AGT-RUNTIME-08** — Agent Runtime 因 `PENDING/UNKNOWN` 自行定时重放 Browser delivery、创建第二个 physical intent，或在 Execution 未确认 APPLIED 前写 logical `DELIVERED`。
 
