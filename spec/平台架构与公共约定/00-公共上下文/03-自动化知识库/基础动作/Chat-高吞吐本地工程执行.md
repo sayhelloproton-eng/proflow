@@ -50,10 +50,8 @@ Tool Runtime     gptweb-mcp
 
 | 任务类型 | 默认第一入口 | 典型链路 |
 |---|---|---|
-| 首次接管大仓、目录/内容未知、跨目录文档/配置交叉审计、迁移覆盖 | Repomix | 最小相关范围 → 按证据扩父级/领域 → 必要时全仓 → CodeGraph → Local Dev |
-| 已知 symbol/入口、单包局部 bug，且准备理解/修改实现 | Repomix | pack 当前 package / 最小相关目录 → grep/read → CodeGraph → Local Dev |
-| 只问 caller/callee、ownership、composition、blast radius，且当前不缺 package 上下文、不立即改码 | CodeGraph | 一次 explore → 必要时 Local Dev current-disk 交叉确认 |
-| 当前文件代码理解/修改 | Repomix | pack owning package / 最小相关目录 → grep/read → 必要时 CodeGraph → Local Dev |
+| 仓库理解或准备修改 | Repomix | 先确定最小充分 scope → 一次批量上下文 → 必要时 CodeGraph → 进入统一 Batch 修改协议 |
+| 只问 caller/callee、ownership、composition、blast radius，且不立即改码 | CodeGraph | 一次 explore → 必要时 Local Dev current-disk 交叉确认 |
 | 纯 Git/测试/命令、无需代码理解的已知机械动作 | Local Dev | Local Dev |
 | 普通 Web UI、登录、授权、真实 ChatGPT/Tasks 页面 | Playwright | screenshot/snapshot 观察 → 必要时 Repomix/CodeGraph/Local Dev 归因 → 原页面复验 |
 | `chrome://`、Extension errors/toolbar、系统 picker 等 privileged UI | AX / Swift + screenshot | AX tree + screenshot → one privileged mutation → screenshot → 回 Playwright/Owner authority |
@@ -89,120 +87,130 @@ Browser/UI symptom
 
 ## 3. 仓库任务：Repomix Context Plane
 
-### 3.1 Progressive Context Ladder：从最小范围逐层拿文件
+### 3.1 Context Scope Ladder：只决定“读多少”
 
-仓库上下文获取必须渐进，不允许“还不知道问题在哪里，就先把整个仓库读一遍”。固定阶梯：
-
-```text
-L0 已知 package / 文件范围，且任务需要跨文件理解或准备修改
-   → Repomix pack owning package / 最小相关目录
-   → grep/read 同一 outputId，先批量理解实现、测试、配置和邻接文件
-   → 再进入 CodeGraph / Local Dev
-
-L0-S 已知 symbol / 已知入口，当前只需要 caller/callee / ownership / composition / blast radius
-   → 直接 CodeGraph；不为了“Context Plane 出现过”制造无信息增益的 pack
-   → 若结构证据表明后续需要跨文件实现/tests/config 上下文，再进入上面的 L0
-
-L1 已知 package / 目录，内容未知
-   → Repomix pack 该 package / 最小目录
-   → grep → 小范围 read
-
-L2 发现问题跨父目录 / 多 package / 一个领域
-   → 向上扩大一级，或 includePatterns 只纳入相关区域
-   → 继续 grep/read
-
-L3 证据确认是 repo-wide / 全仓迁移 / 全仓一致性 / 首次全局架构审计
-   → 才允许 full-repo pack
-   → 仍然只 grep/read 命中片段，不全量读取聚合输出
-```
-
-**升级范围必须由上一层证据触发。**如果 L1 已经能回答问题，不进入 L2；如果相关 owner 已被 CodeGraph 定位，不为了“上下文更完整”再升到 L3。排障性能/稳定性时也使用同一方法：小目录 → 父目录 → packages/领域 → 全仓，记录每一级成功/失败与规模，先找拐点，再查原因。
-
-Repomix 的核心收益不是单纯压缩，而是把“反复目录遍历 + 文件发现 + 重复读取”变成一个稳定的仓库上下文对象：
+Batch 流程始终相同，Context Ladder 只负责决定本批要读多大范围：
 
 ```text
-pack_codebase(directory)
-→ outputId
-→ grep_repomix_output(outputId, pattern)
-→ read_repomix_output(outputId, 精确行段)
+S0 当前问题相关实现 + tests/config/package scripts 足以闭合
+   → pack 最小相关目录 / owning package
+
+S1 证据表明需要父目录或多 package
+   → 只扩大到能解释新证据的边界
+
+S2 证据确认 repo-wide / 全仓迁移 / 全仓一致性
+   → 才扩大到 repo-wide
 ```
+
+**范围升级必须由上一层证据触发。**scope 小不等于逐文件读，scope 大也不等于全量灌入上下文；两者都要求批量建立上下文并优先复用同一 `outputId`。
 
 固定纪律：
 
-- **最小充分 pack，一次 pack，多次 grep/read**。先 pack 能回答当前问题的最小目录；只有上一层证据证明范围不足才扩大。同一分析阶段优先复用 `outputId`，不要每问一个问题重新 pack。
-- **grep first, read second**。百万 Token 输出不是给 Chat 全量读取的；先 grep 找文件/术语/heading/符号，再读取几十到几百行局部。全仓 pack 即使成功，也不等于应该整包阅读。
-- 默认 `compress=false`，利用完整 pack + 增量 grep/read；只有确实要把大范围骨架整体放进上下文时才启用 Tree-sitter compression。
-- 大仓库先用 `includePatterns / ignorePatterns / outputPatterns` 控制输入域。能 pack 全仓不代表每次都应该 pack 全仓。
-- `outputId` 是 pack 时刻的稳定快照，不是永远最新的磁盘真值。源文件在后续修改后，以 Local Dev 当前磁盘/diff 为准；跨越重大修改阶段继续做广域分析时再重新 pack。
-- Repomix 适合回答“有哪些相关文件/文档/配置、哪些目录涉及某主题、跨版本/跨目录内容如何交叉比较”；**不负责证明 caller/callee、runtime composition、ownership 或 blast radius**，这些交给 CodeGraph。
-- 已知单函数/单文件问题同样先用 Repomix，但 pack 范围只到 owning package / 最小相关目录；目的不是扩大阅读，而是一次批量获得实现、测试、配置和邻接上下文，避免后续 per-file read loop。
+- 最小充分 scope，一次 pack，多次 grep/read；不要每问一个问题重新 pack。
+- `grep first, read second`；聚合输出用于定位和批量理解，不等于整包全文读取。
+- 默认 `compress=false`；大范围先用 include/ignore/output patterns 去掉无关输入。
+- `outputId` 是 pack 时刻快照；源码实质修改后以 Local Dev 当前磁盘/diff 为准。
+- Repomix 负责批量上下文；caller/callee、composition、ownership、blast radius 交给 CodeGraph。
+- package scripts / canonical verify command 属于 Batch Context 的必读内容，不能留到写后再猜。
 
 ## 4. Repomix 后的结构证明：CodeGraph Structure Plane
 
-- 需要跨文件仓库理解/修改时，先由 Repomix 在最小充分范围建立 Context；随后若涉及调用链、ownership、runtime composition、依赖与影响范围，再由 CodeGraph 精确证明。窄域修改只缩小 pack 范围。**已知 symbol/入口且当前只做纯结构证明时例外：CodeGraph 可直接第一入口；只有证据要求邻接上下文/修改时才进入 Repomix。**
+- 准备修改时先由 Repomix 在最小充分 scope 建立批量 Context；若涉及调用链、ownership、runtime composition、依赖与影响范围，再由 CodeGraph 精确证明。纯结构只读可以直接 CodeGraph；一旦转入修改，再进入统一 Batch 协议。
 - `codegraph_explore` 已返回的 verbatim current-on-disk source 等价于 Read，禁止马上再 `read_file` 同一内容。
 - dirty working tree 仍可用 CodeGraph 导航；若 graph 关系与当前磁盘冲突，以当前 source/diff 为真值，只把冲突节点视为 stale。
 - 一个改动域原则上一次 explore；不要用多个小 query 模拟 grep loop。只有第一轮没有覆盖关键节点时才补第二次。
 
-## 5. Batch Read
+## 4.1 标准 Batch 状态机
 
-需要补读多个文件时：
-
-```text
-GOOD
-read_multiple_files([A, B, C, D])
-
-BAD
-read_file(A)
-read_file(B)
-read_file(C)
-read_file(D)
-```
-
-不要为了“确认一下”把 CodeGraph 已返回源码重新读一遍。修改后的确认优先依赖 diff + gate；只有精确内容仍不确定时才补读。
-
-## 6. Batch Transform
-
-当前 Local Dev 原子写工具偏向小修改，因此多文件任务不要让 Chat 自己循环 `write_file/edit_block`。
-
-### 6.1 何时仍可用 edit_block
-
-- 只改 1～2 个文件；
-- 修改点少且可用唯一上下文精确匹配；
-- 不会演化成连续十几个 tool call。
-
-### 6.2 何时切换到单次 transform
-
-满足任一条件就默认 batch：
-
-- 修改文件数 > 2；
-- 同一 rename / heading / import / reference 需要跨文件同步；
-- 同一个逻辑修改包含多处 replacement；
-- 文档迁移、目录整理、批量索引更新；
-- 预计会出现 `edit A → edit B → edit C → ...`。
-
-批处理脚本必须 fail-closed：
-
-1. 明确允许修改的 path whitelist；
-2. 对每个 expected old text / match count 做断言；
-3. 任一断言不满足立即退出，不做“尽力而为”的模糊替换；
-4. 输出 changed file list；
-5. 不修改任务范围外的文件；
-6. 若该 transform 会重复使用，再沉淀成仓库 helper；一次性动作无需污染产品源码。
-
-推荐形态：
+任何仓库修改都按同一 Batch 状态机执行。文件数、目录层级和影响范围只改变 `BATCH_SCOPE`，不产生第二套修改流程：
 
 ```text
-start_process(一次 Python/Node transform)
-  ├─ assert preconditions
-  ├─ edit/create/rename N files
-  ├─ print changed files
-  └─ exit non-zero on mismatch
+BATCH_CONTEXT
+  → 建立最小充分上下文；本阶段只读，不写产品文件
+
+BATCH_PLAN_FROZEN
+  → 行为目标、文件白名单、验证命令、STOP POINT 已冻结
+  → 到这里才允许写
+
+BATCH_TRANSFORM
+  → 一次 fail-closed transform 写完整批次
+
+BATCH_VERIFY
+  → 一次统一 gate；不逐文件 reread / 不每改一处跑一次 test
+
+BATCH_CLOSEOUT
+  → 裁决 LOCAL_PASS / FAIL；同步 CURRENT 或稳定 Runbook owner
 ```
 
-不要用 `write_file` 25～30 行 chunk loop 来完成几十/几百行的仓库重构。
+**禁止 `BATCH_CONTEXT → 写一点 → 再读一点 → 再写一点`。**只有第一 Batch 的验证产生了新的机械 evidence，才允许开启第二 Batch。
 
-## 7. Batch Verify
+### 4.2 写前必须冻结 Batch Contract
+
+进入第一次 write/mutation 前，至少明确下面这些字段；可以在 Chat 中短报，不要求新建文件：
+
+```text
+BATCH_ID               = 本轮可辨识短名
+BATCH_SCOPE            = owning package / 最小相关目录
+PROBLEM                 = 当前唯一 blocker / 目标
+CONTEXT_AUTHORITY      = Repomix outputId + 必要的 CodeGraph / Reality evidence
+EXPECTED_CHANGED_FILES = 允许修改的 path whitelist
+CHANGE_INTENT          = 每个文件为什么属于同一闭环
+VERIFY_SOURCE          = package.json / owner Runbook / 当前机械 authority
+VERIFY_COMMANDS        = targeted / full / typecheck / build / diff 中本批真正需要的命令
+STOP_POINT             = release / Registry / Workspace / Browser / Owner mutation 前的停止点
+```
+
+经验规则：
+
+- Context 阶段不仅要读实现/tests/config，也要把 **package scripts / canonical verify command** 一起冻结；“代码想清楚了但验证命令靠猜”仍然属于 Harness 不完整。
+- `EXPECTED_CHANGED_FILES` 是 transform 白名单，也是 verify 的 changed-files 预期；批处理出现额外文件立即 STOP。
+- `CHANGE_INTENT` 必须能用一句话描述同一行为闭环；如果需要两个无关目标，拆成两个 Batch。
+- `STOP_POINT` 把幂等本地 gate 与 release/install/Browser/remote mutation 分开，不能为了少调用把非幂等步骤塞进一个巨型脚本。
+
+### 4.3 Batch 失败分类与第二轮准入
+
+Batch Verify 失败后先分类，不允许条件反射式再改源码：
+
+| 分类 | 典型 evidence | 正确动作 | 是否允许改产品源码 |
+|---|---|---|---|
+| `HARNESS_FAILURE` | runner/命令写错、依赖工具不存在、path/参数错误 | 修正验证 Harness；源码未变时复用同一 Repomix outputId | 否 |
+| `CANDIDATE_FAILURE` | targeted/typecheck/build/diff 明确由候选行为失败 | 从失败 evidence 反推最小 owner，开启第二 Batch | 是，第二 Batch |
+| `NEW_AUTHORITY` | Browser/Registry/Owner/runtime 新现实改变原前提 | 先同步 CURRENT / tool route，再重新冻结 Batch | 视新 checkpoint |
+
+Harness failure 不是“代码红灯”。例如 package 自己的 `test` script 已定义 runner 时，禁止绕过 package script 凭记忆拼一条新的 test 命令；若猜错，修 Harness，不污染产品实现。
+
+### 4.4 聚合且透明的状态汇报
+
+高吞吐不是黑箱执行。对用户只在有信息增益的状态迁移点汇报，格式尽量稳定：
+
+```text
+BATCH_STATE=PLAN_FROZEN
+SCOPE=<...>
+CONTEXT=<outputId / authority>
+EXPECTED_FILES=<...>
+VERIFY=<...>
+STOP_POINT=<...>
+
+BATCH_STATE=TRANSFORM_APPLIED
+CHANGED_FILES=<...>
+
+BATCH_STATE=LOCAL_PASS | FAIL
+GATES=<targeted/full/typecheck/build/diff>
+FAIL_CLASS=<HARNESS_FAILURE | CANDIDATE_FAILURE | NEW_AUTHORITY | none>
+NEXT=<下一 authority / SAME SCENE / STOP>
+```
+
+不要汇报“刚 read 了 A、又 grep 了 B、现在准备 edit C”这种 tool-call 流水账；透明的是**当前 Batch 的 scope、证据、状态、失败类型和下一 stop point**。
+
+## 5. Batch Read / Transform
+
+`Batch` 描述执行形态，不描述文件数量。`EXPECTED_CHANGED_FILES=[A]` 和 `[A,B,C,...]` 都执行同一流程。
+
+- **读：**优先 Repomix 同一 `outputId` / 一次 `read_multiple_files` 聚合相关实现、tests/config、package scripts；禁止 `read A → 想 → read B → 想`。CodeGraph 已返回的 current-on-disk source 视为已读。
+- **写：**一次完成当前白名单的全部修改。底层可以是原子 edit 或 fail-closed Python/Node transform，但工具差异不产生新的修改流程。
+- **写入护栏：**白名单 path、expected match 断言、失败即停、输出 changed-files、禁止 transform 内扩大 scope。
+
+## 6. Batch Verify
 
 修改完成后优先一次性验证，而不是逐文件 reread：
 
@@ -218,7 +226,7 @@ git status --short
 
 若验证失败，先从失败 evidence 反推最小 owner，再补 CodeGraph/source inspection；不要直接重新扫描全仓。
 
-## 8. 长任务与 process output
+## 7. 长任务与 process output
 
 - 一次启动，保存本轮 PID/session；
 - 合理间隔读取输出，禁止高频 `read_process_output`；
@@ -228,7 +236,7 @@ git status --short
 
 这部分仍受 `基础动作/Round-PID-Log与恢复.md` 约束。
 
-## 9. Reality Plane：Browser 不是批量文件任务
+## 8. Reality Plane：Browser 不是仓库 Batch
 
 Reality Plane 是真实 Browser/UI 的眼睛和手：普通 Web 用 Playwright，privileged Chrome/系统 UI 用 AX/Swift + screenshot。浏览器流程不能为了追求更少调用而合并成不可观察的大动作；**任何 UI 异常在第一次源码归因前原则上必须已经有当前 screenshot/snapshot/AX evidence**：
 
@@ -241,7 +249,7 @@ observe / screenshot
 
 高吞吐原则主要解决本地仓库的结构发现、读写和 Gate；真实 UI 仍以可观察、可恢复为优先。
 
-## 10. 反模式
+## 9. 反模式
 
 ```text
 禁止：CodeGraph → 再逐个 Read CodeGraph 已返回的文件
@@ -253,9 +261,9 @@ observe / screenshot
 禁止：验证失败后无差别重新扫全仓
 ```
 
-## 10.1 效率异常诊断：Tool Call 变多时先改路由，不是加速低效循环
+## 9.1 效率异常诊断：Tool Call 变多时先改路由，不是加速低效循环
 
-窄域问题没有固定“最多 N 次调用”的硬上限，Browser Journey 也必须保留动作后的观察。但如果往返明显增长而 authority 没有收敛，先暂停并检查：
+仓库任务没有固定“最多 N 次调用”的硬上限，Browser Journey 也必须保留动作后的观察。但如果往返明显增长而 authority 没有收敛，先暂停并检查：
 
 ```text
 PER_FILE_READ_LOOP?        → 应否 Repomix 一次 pack + grep/read 或 read_multiple_files
@@ -270,7 +278,7 @@ RUNTIME_PRODUCT_CONFUSION? → MCP/relay 故障是否被当成产品代码故障
 
 优化目标是缩短 `现象 → authoritative evidence → owner → 最小修复 → SAME SCENE` 的总路径，同时保持证据密度，不以删除验证步骤换速度。
 
-## 11. 每个 Batch 的自检
+## 10. 每个 Batch 的自检
 
 结束时快速检查：
 
@@ -280,10 +288,10 @@ STRUCTURE_DISCOVERY_COUNT  ≈ 1
 FULL_PACK_READ             = NO
 REDUNDANT_REREAD           = 0（原则上）
 PER_FILE_TOOL_LOOP         = NO
-BATCH_TRANSFORM            = YES（多文件时）
+BATCH_TRANSFORM            = YES（任何修改）
 BATCH_VERIFY               = YES
 HIGH_FREQUENCY_POLL        = NO
 OUT_OF_SCOPE_CHANGE        = 0
 ```
 
-如果一个普通多文件改动已经出现十几到几十次 Tool Call，先停下来重构执行方式，不要继续用更快的节奏重复低吞吐模式。
+如果一个普通仓库修改已经出现十几到几十次 Tool Call，先停下来重构执行方式，不要继续用更快的节奏重复低吞吐模式。

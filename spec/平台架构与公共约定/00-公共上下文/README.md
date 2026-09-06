@@ -1,7 +1,7 @@
 # ProFlow Phase 3｜GPT Chat 公共上下文入口
 
 > 目的：让新的 GPT Chat 在旧 Chat 上下文耗尽后，能像连续工作一样接手，而不是重新学习项目。
-> 更新时间：2026-09-05。
+> 更新时间：2026-09-06。
 
 ## 0. 执行前先判“问题起点”
 
@@ -11,12 +11,14 @@
 |---|---|---|---|
 | 普通 Web / ChatGPT / Tasks 页面异常 | Reality / Playwright Chrome | 当前 page screenshot + snapshot/DOM + URL | 现实指向代码后再进入 Repomix/CodeGraph/Local Dev |
 | `chrome://`、扩展错误页、工具栏、系统 picker 等 privileged UI | Reality / AX + Swift helper + screenshot | 当前 AX tree + privileged screenshot | 再回普通 Web 或源码层；Playwright attach 失败不等于不可观察 |
-| 仓库实现、跨文件理解、修改任务 | Context / Repomix | 最小充分 scope 的稳定 `outputId` + grep/read 命中 | CodeGraph 证明结构 → Local Dev 修改/验证 |
+| 仓库实现 / 修改任务 | Context / Repomix | 最小充分 scope 的稳定 `outputId` + grep/read 命中 | CodeGraph 证明结构 → Local Dev 批量写 / 统一验证 |
 | caller/callee、composition、ownership、blast radius 的纯结构问题 | Structure / CodeGraph | 结构关系与相关 current-on-disk source | 需要修改时再补 Repomix 上下文/Local Dev 执行 |
 | Git、test、build、PID、日志、Registry/Workspace 机械 readback | Execution / Local Dev | 当前磁盘/进程/命令的机械事实 | 只有出现新的结构/现实矛盾才升级其它 Plane |
 | MCP runtime、连接、token、manager、controlled group 恢复 | Tool Runtime / `Tool-Runtime-gptweb-mcp.md` | runtime/manager/relay 当前状态 | 恢复工具后回原业务 checkpoint，不把工具故障冒充产品故障 |
 
 **Reality-first override：**当前失败首先表现为 Browser/UI 现实异常时，在取得当前 screenshot/snapshot/AX evidence 之前，禁止先从源码猜 root cause。**Context-first repository rule：**问题已经确认属于仓库理解/修改后，默认先用 Repomix 最小充分范围建立批量上下文，而不是 Local Dev 逐文件探索。两条规则不冲突，关键是先判断问题起点。
+
+**仓库修改短句镜像：范围大小只决定读多少，不决定执行形态。**任何仓库修改——即使只改 1 个文件——都统一执行 `批量读 → 想清楚 → 批量写 → 统一验证`；完整 Batch SOP 唯一由 `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md` 维护。
 
 这里的路由不是“所有工具按顺序调用一遍”。每个工具只负责它不可替代的 authority；已经被上一层消除的不确定性不得由下一层重复读取。详细调度见 `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md`。
 
