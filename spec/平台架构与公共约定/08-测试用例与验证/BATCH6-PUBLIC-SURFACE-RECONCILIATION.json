@@ -1304,8 +1304,10 @@
   "extension": {
     "messageTypes": [
       "PROFLOW_APPROVAL_APPLICATION",
+      "PROFLOW_CARRIER_ATTENTION_ACTION",
       "PROFLOW_CONTENT_OBSERVATION",
       "PROFLOW_PAGE_COMMAND",
+      "PROFLOW_PAGE_SNAPSHOT_REQUEST",
       "PROFLOW_PROVISIONING_COMMAND",
       "PROFLOW_PROVISIONING_RELAY_FETCH",
       "PROFLOW_SIDE_PANEL_SNAPSHOT",
@@ -1315,11 +1317,13 @@
       "approval.allow",
       "approval.deny",
       "approval.list",
+      "message.acknowledge",
       "node.reopen",
       "task.create",
       "task.ensureWorkers",
       "task.get",
       "task.list",
+      "task.resume",
       "task.start"
     ]
   },

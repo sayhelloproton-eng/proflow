@@ -30,6 +30,7 @@ function projection(
 		},
 		canDrive: true,
 		blockedReason: null,
+		resumeSignalRef: null,
 		...overrides,
 	};
 }
@@ -172,6 +173,126 @@ test("PRESMOKE-B3-OBSERVER-04 async owner event emits RESUME with the same durab
 	);
 });
 
+test("B1-OBSERVER-01 TASK_RESUMED resumes only the exact current node generation and Worker", async () => {
+	const wakes: unknown[] = [];
+	const observer = createTaskObserver({
+		owner: {
+			async getTaskDriveProjection() {
+				return projection({
+					currentNode: {
+						nodeId: "node:dev",
+						status: "IN_PROGRESS",
+						version: 5,
+						runNo: 3,
+						requiredAgentPackageRef: "@tomflow/proflow-agent-controller-dev",
+					},
+					canDrive: false,
+					blockedReason: "NODE_NOT_READY",
+				});
+			},
+		},
+		carrier: {
+			async requestWake(input) {
+				wakes.push(input);
+			},
+		},
+	});
+	const exact = await observer.drive("task:1", {
+		trigger: "TASK_RESUMED",
+		ref: "resume:task:1:v8",
+		targetWorkerRef: "c-dev",
+		nodeId: "node:dev",
+		runNo: 3,
+	});
+	assert.equal(exact.kind, "RESUME");
+	assert.equal(wakes.length, 1);
+	for (const stale of [
+		{ nodeId: "node:old", runNo: 3, targetWorkerRef: "c-dev" },
+		{ nodeId: "node:dev", runNo: 2, targetWorkerRef: "c-dev" },
+		{ nodeId: "node:dev", runNo: 3, targetWorkerRef: "c-other" },
+	]) {
+		const decision = await observer.drive("task:1", {
+			trigger: "TASK_RESUMED",
+			ref: "resume:stale",
+			...stale,
+		});
+		assert.equal(decision.kind, "NOOP");
+	}
+	assert.equal(wakes.length, 1);
+});
+
+test("B1-OBSERVER-02 an arbitrary ACTIVE IN_PROGRESS startup scan never resumes a Worker without an explicit signal", async () => {
+	let wakeCount = 0;
+	const observer = createTaskObserver({
+		owner: {
+			async getTaskDriveProjection() {
+				return projection({
+					currentNode: {
+						nodeId: "node:dev",
+						status: "IN_PROGRESS",
+						version: 4,
+						runNo: 1,
+						requiredAgentPackageRef: "@tomflow/proflow-agent-controller-dev",
+					},
+					canDrive: false,
+					blockedReason: "NODE_NOT_READY",
+				});
+			},
+		},
+		carrier: {
+			async requestWake() {
+				wakeCount += 1;
+			},
+		},
+	});
+	assert.deepEqual(await observer.drive("task:1"), {
+		kind: "NOOP",
+		taskId: "task:1",
+		reason: "NO_NEXT_STEP",
+	});
+	assert.equal(wakeCount, 0);
+});
+
+test("B1-OBSERVER-03 durable TASK_RESUMED owner event reconstructs the same resume intent after transient bridge loss", async () => {
+	const wakes: Array<{ trigger: string; underlyingRef?: string }> = [];
+	const observer = createTaskObserver({
+		owner: {
+			async getTaskDriveProjection() {
+				return projection({
+					currentNode: {
+						nodeId: "node:dev",
+						status: "IN_PROGRESS",
+						version: 6,
+						runNo: 1,
+						requiredAgentPackageRef: "@tomflow/proflow-agent-controller-dev",
+					},
+					canDrive: false,
+					blockedReason: "NODE_NOT_READY",
+					resumeSignalRef: "task-event:42",
+				});
+			},
+		},
+		carrier: {
+			async requestWake(input) {
+				wakes.push({
+					trigger: input.trigger,
+					...(input.underlyingRef !== undefined
+						? { underlyingRef: input.underlyingRef }
+						: {}),
+				});
+			},
+		},
+	});
+	for (let attempt = 0; attempt < 2; attempt += 1) {
+		const decision = await observer.drive("task:1");
+		assert.equal(decision.kind, "RESUME");
+	}
+	assert.deepEqual(wakes, [
+		{ trigger: "TASK_RESUMED", underlyingRef: "task-event:42" },
+		{ trigger: "TASK_RESUMED", underlyingRef: "task-event:42" },
+	]);
+});
+
 test("PRESMOKE-B3-OBSERVER-05 async readiness is ignored when binding target/locator does not match current worker", async () => {
 	let wakeCount = 0;
 	const observer = createTaskObserver({
@@ -290,6 +411,7 @@ test("PRESMOKE-B3-TASKOBS-REPLAY-01 repeated recovery of the same READY run emit
 					},
 					canDrive: true,
 					blockedReason: null,
+					resumeSignalRef: null,
 				};
 			},
 		},
@@ -331,6 +453,7 @@ test("PRESMOKE-B5-TASK-DIAG-02 typed Model diagnostic failure defers without Car
 					},
 					canDrive: false,
 					blockedReason: "NODE_NOT_READY",
+					resumeSignalRef: null,
 				};
 			},
 		},
@@ -356,7 +479,6 @@ test("PRESMOKE-B5-TASK-DIAG-02 typed Model diagnostic failure defers without Car
 	assert.equal(wakes, 0);
 });
 
-
 test("RF-B3-OBSERVER-RESUME-01 resume is fenced by active IN_PROGRESS state and current generation", async () => {
 	let current = projection({
 		currentNode: {
@@ -371,8 +493,16 @@ test("RF-B3-OBSERVER-RESUME-01 resume is fenced by active IN_PROGRESS state and 
 	});
 	let wakeCount = 0;
 	const observer = createTaskObserver({
-		owner: { async getTaskDriveProjection() { return current; } },
-		carrier: { async requestWake() { wakeCount += 1; } },
+		owner: {
+			async getTaskDriveProjection() {
+				return current;
+			},
+		},
+		carrier: {
+			async requestWake() {
+				wakeCount += 1;
+			},
+		},
 	});
 	const signal = {
 		trigger: "RECOVERY_RESUME" as const,
@@ -389,14 +519,11 @@ test("RF-B3-OBSERVER-RESUME-01 resume is fenced by active IN_PROGRESS state and 
 	assert.equal(currentRun.kind, "RESUME");
 	assert.equal(wakeCount, 1);
 
-	const missingGeneration = await observer.drive(
-		"task:1",
-		{
-			trigger: "RECOVERY_RESUME",
-			ref: "execution:missing-generation",
-			targetWorkerRef: "c-dev",
-		} as unknown as TaskObserverResumeSignal,
-	);
+	const missingGeneration = await observer.drive("task:1", {
+		trigger: "RECOVERY_RESUME",
+		ref: "execution:missing-generation",
+		targetWorkerRef: "c-dev",
+	} as unknown as TaskObserverResumeSignal);
 	assert.deepEqual(missingGeneration, {
 		kind: "NOOP",
 		taskId: "task:1",
@@ -438,10 +565,12 @@ test("RF-B3-OBSERVER-RESUME-01 resume is fenced by active IN_PROGRESS state and 
 	});
 	assert.equal(wakeCount, 1);
 
+	const currentNode = current.currentNode;
+	assert.ok(currentNode);
 	current = {
 		...current,
 		taskStatus: "WAITING",
-		currentNode: { ...current.currentNode!, status: "WAITING" },
+		currentNode: { ...currentNode, status: "WAITING" },
 	};
 	const waiting = await observer.drive("task:1", {
 		...signal,

@@ -150,7 +150,7 @@ components:
         expectedTaskVersion: {type: integer, minimum: 1}
         expectedNodeVersion: {type: integer, minimum: 1}
         idempotencyKey: {type: string}
-        waitType: {type: string}
+        waitType: {type: string, enum: [BUSINESS_CONFIRMATION, REQUIREMENT_BLOCKED, EXTERNAL_BUSINESS_DEPENDENCY]}
         reasonCode: {type: string}
         message: {type: string}
         relatedRef: {type: string}
@@ -170,23 +170,21 @@ components:
     ReopenNodeInput:
       type: object
       additionalProperties: false
-      required: [taskId, nodeId, expectedTaskVersion, expectedNodeVersion, idempotencyKey, reason]
+      required: [taskId, nodeId, expectedTaskVersion, idempotencyKey, reason]
       properties:
         taskId: {type: string}
         nodeId: {type: string}
         expectedTaskVersion: {type: integer, minimum: 1}
-        expectedNodeVersion: {type: integer, minimum: 1}
         idempotencyKey: {type: string}
         reason: {type: string}
     PutTaskDocumentInput:
       type: object
       additionalProperties: false
-      required: [taskId, nodeId, expectedTaskVersion, expectedNodeVersion, idempotencyKey, documentType]
+      required: [taskId, nodeId, expectedTaskVersion, idempotencyKey, documentType]
       properties:
         taskId: {type: string}
-        nodeId: {type: string}
+        nodeId: {type: [string, 'null']}
         expectedTaskVersion: {type: integer, minimum: 1}
-        expectedNodeVersion: {type: integer, minimum: 1}
         idempotencyKey: {type: string}
         documentType: {type: string}
         content: {type: string}
@@ -229,7 +227,7 @@ components:
     ExecuteCapabilityInput:
       type: object
       additionalProperties: false
-      required: [contract, contractVersion, idempotencyKey, capability, input]
+      required: [contract, contractVersion, idempotencyKey, taskId, nodeId, runNo, capability, input]
       properties:
         contract: {type: string, const: execution}
         contractVersion: {type: string, const: 1.0.0}
@@ -239,9 +237,21 @@ components:
         taskId: {type: string}
         nodeId: {type: string}
         runNo: {type: integer, minimum: 1}
-        workerRef: {type: string}
-        projectRoot: {type: string}
         approvalRef: {type: string}
         timeoutMs: {type: integer, minimum: 1}
         capability: {type: string, description: Exact frozen Execution capability ID.}
         input: {type: object, description: Typed input for the selected capability.}
+      anyOf:
+        - properties:
+            capability: {type: string, const: file.read}
+            input: {$ref: '#/components/schemas/FileReadInput'}
+        - properties:
+            capability: {type: string, not: {const: file.read}}
+            input: {type: object, description: Execution-owner typed input; non-file.read capability shapes remain deferred.}
+    FileReadInput:
+      type: object
+      additionalProperties: false
+      required: [path]
+      properties:
+        path: {type: string}
+        encoding: {type: string, const: utf8}

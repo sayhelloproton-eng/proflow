@@ -4,6 +4,13 @@ export const requiredTaskAgentPackageRefs = [
 	"@tomflow/proflow-agent-test-ops",
 ] as const;
 
+export const taskWaitTypes = [
+	"BUSINESS_CONFIRMATION",
+	"REQUIREMENT_BLOCKED",
+	"EXTERNAL_BUSINESS_DEPENDENCY",
+] as const;
+export type TaskWaitType = (typeof taskWaitTypes)[number];
+
 export type TaskGroupStatus = "READY" | "ACTIVE" | "SUCCEEDED";
 export type TaskStatus =
 	| "PENDING"

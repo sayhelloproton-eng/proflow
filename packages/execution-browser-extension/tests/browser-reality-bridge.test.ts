@@ -61,9 +61,18 @@ const observation = {
 };
 
 test("REAL3 Browser command timeout is an abnormal watchdog, not a normal 15s workflow clock", async () => {
-	const source = await readFile(new URL("../src/bridge.ts", import.meta.url), "utf8");
-	assert.match(source, /commandTimeoutMs = options\.commandTimeoutMs \?\? 120_000/);
-	assert.doesNotMatch(source, /commandTimeoutMs = options\.commandTimeoutMs \?\? 15_000/);
+	const source = await readFile(
+		new URL("../src/bridge.ts", import.meta.url),
+		"utf8",
+	);
+	assert.match(
+		source,
+		/commandTimeoutMs = options\.commandTimeoutMs \?\? 120_000/,
+	);
+	assert.doesNotMatch(
+		source,
+		/commandTimeoutMs = options\.commandTimeoutMs \?\? 15_000/,
+	);
 });
 
 test("REG-EXE-BR-08 loopback bridge authenticates exact extension session and transports typed reality", async () => {
@@ -216,14 +225,13 @@ test("REG-EXE-BR-07 lost bridge result times out once and is never requeued", as
 	}
 });
 
-
 test("REAL3 loopback Tasks web surface is extension-minted and proxies owner applications without exposing owner tokens", async () => {
 	const calls: Array<{ surface: string; operation: string }> = [];
 	const bridge = await createBrowserRealityBridgeServer({
 		token,
 		extensionId,
 		taskWeb: {
-			html: "<!doctype html><title>ProFlow Tasks</title><script type=\"module\" src=\"/tasks/app.js\"></script>",
+			html: '<!doctype html><title>ProFlow Tasks</title><script type="module" src="/tasks/app.js"></script>',
 			script: "document.body.dataset.ready = '1';",
 			async invokeTask(operation) {
 				calls.push({ surface: "task", operation });
@@ -236,10 +244,17 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 		},
 	});
 	try {
-		const session = await call(bridge.endpoint, "/v1/tasks/session", { method: "POST" });
+		const session = await call(bridge.endpoint, "/v1/tasks/session", {
+			method: "POST",
+		});
 		assert.equal(session.status, 200);
-		const bootstrapUrl = String((await session.json() as { url: string }).url);
-		assert.match(bootstrapUrl, /^http:\/\/127\.0\.0\.1:\d+\/tasks\/bootstrap\//);
+		const bootstrapUrl = String(
+			((await session.json()) as { url: string }).url,
+		);
+		assert.match(
+			bootstrapUrl,
+			/^http:\/\/127\.0\.0\.1:\d+\/tasks\/bootstrap\//,
+		);
 		assert.doesNotMatch(bootstrapUrl, /bridge-token|authorization/i);
 		const bootstrap = await fetch(bootstrapUrl, { redirect: "manual" });
 		assert.equal(bootstrap.status, 302);
@@ -247,10 +262,14 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 		const cookie = bootstrap.headers.get("set-cookie");
 		assert.ok(cookie?.includes("HttpOnly"));
 		const cookieHeader = cookie?.split(";", 1)[0] ?? "";
-		const page = await fetch(`${bridge.endpoint}/tasks`, { headers: { cookie: cookieHeader } });
+		const page = await fetch(`${bridge.endpoint}/tasks`, {
+			headers: { cookie: cookieHeader },
+		});
 		assert.equal(page.status, 200);
 		assert.match(await page.text(), /ProFlow Tasks/);
-		const script = await fetch(`${bridge.endpoint}/tasks/app.js`, { headers: { cookie: cookieHeader } });
+		const script = await fetch(`${bridge.endpoint}/tasks/app.js`, {
+			headers: { cookie: cookieHeader },
+		});
 		assert.equal(script.status, 200);
 		const status = await fetch(`${bridge.endpoint}/tasks/api/status`, {
 			headers: { cookie: cookieHeader },
@@ -272,7 +291,11 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 		});
 		const task = await fetch(`${bridge.endpoint}/tasks/api/task`, {
 			method: "POST",
-			headers: { cookie: cookieHeader, origin: bridge.endpoint, "content-type": "application/json" },
+			headers: {
+				cookie: cookieHeader,
+				origin: bridge.endpoint,
+				"content-type": "application/json",
+			},
 			body: JSON.stringify({ operation: "task.list", input: {} }),
 		});
 		assert.equal(task.status, 200);
@@ -287,7 +310,11 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 		assert.equal(readyPoll.status, 204);
 		const readOnly = await fetch(`${bridge.endpoint}/tasks/api/task`, {
 			method: "POST",
-			headers: { cookie: cookieHeader, origin: bridge.endpoint, "content-type": "application/json" },
+			headers: {
+				cookie: cookieHeader,
+				origin: bridge.endpoint,
+				"content-type": "application/json",
+			},
 			body: JSON.stringify({ operation: "task.list", input: {} }),
 		});
 		assert.equal(readOnly.status, 200);
@@ -299,8 +326,15 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 
 		const start = await fetch(`${bridge.endpoint}/tasks/api/task`, {
 			method: "POST",
-			headers: { cookie: cookieHeader, origin: bridge.endpoint, "content-type": "application/json" },
-			body: JSON.stringify({ operation: "task.start", input: { taskId: "task:one" } }),
+			headers: {
+				cookie: cookieHeader,
+				origin: bridge.endpoint,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({
+				operation: "task.start",
+				input: { taskId: "task:one" },
+			}),
 		});
 		assert.equal(start.status, 200);
 		const recovery = await callWithoutOrigin(
@@ -315,7 +349,11 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 			"/v1/commands/result?extensionInstanceId=extension%3Aone",
 			{
 				method: "POST",
-				body: JSON.stringify({ commandId: recoveryCommand.commandId, ok: true, value: { scheduled: true } }),
+				body: JSON.stringify({
+					commandId: recoveryCommand.commandId,
+					ok: true,
+					value: { scheduled: true },
+				}),
 			},
 		);
 		assert.deepEqual(calls, [
@@ -323,6 +361,49 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 			{ surface: "task", operation: "task.list" },
 			{ surface: "task", operation: "task.start" },
 		]);
+
+		const resume = await fetch(`${bridge.endpoint}/tasks/api/task`, {
+			method: "POST",
+			headers: {
+				cookie: cookieHeader,
+				origin: bridge.endpoint,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({
+				operation: "task.resume",
+				input: {
+					taskId: "task:one",
+					expectedTaskVersion: 2,
+					idempotencyKey: "b1:bridge:resume",
+				},
+			}),
+		});
+		assert.equal(resume.status, 200);
+		const resumePoll = await callWithoutOrigin(
+			bridge.endpoint,
+			"/v1/commands/next?extensionInstanceId=extension%3Aone",
+		);
+		assert.equal(resumePoll.status, 200);
+		const resumeCommand = (await resumePoll.json()) as Record<string, unknown>;
+		assert.equal(resumeCommand.type, "TASK_OBSERVER_RESUME");
+		assert.equal(resumeCommand.taskId, "task:one");
+		assert.equal("ref" in resumeCommand, false);
+		await call(
+			bridge.endpoint,
+			"/v1/commands/result?extensionInstanceId=extension%3Aone",
+			{
+				method: "POST",
+				body: JSON.stringify({
+					commandId: resumeCommand.commandId,
+					ok: true,
+					value: { resumed: true },
+				}),
+			},
+		);
+		assert.deepEqual(calls.at(-1), {
+			surface: "task",
+			operation: "task.resume",
+		});
 
 		const denied = await fetch(`${bridge.endpoint}/tasks/api/task`, {
 			method: "POST",

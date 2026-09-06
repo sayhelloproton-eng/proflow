@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-
+import { createAgentGatewayProcess } from "@tomflow/proflow-agent-gateway/process";
+import { parseExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
 import { applyMigrations } from "@tomflow/proflow-task-migration-runner";
 import { createTaskServices } from "@tomflow/proflow-task-orchestration";
 import {
@@ -46,7 +47,11 @@ async function readinessStub() {
 	};
 }
 
-function identityHost(stateRoot: string, workspaceRoot: string, dependencyBaseUrl: string) {
+function identityHost(
+	stateRoot: string,
+	workspaceRoot: string,
+	dependencyBaseUrl: string,
+) {
 	return createPlatformHost({
 		config: parsePlatformHostConfig({
 			stateRoot,
@@ -82,7 +87,12 @@ function identityHost(stateRoot: string, workspaceRoot: string, dependencyBaseUr
 async function seedTask(
 	stateRoot: string,
 	workspaceRoot: string,
-	nodeState: "READY" | "IN_PROGRESS" | "PAUSED" | "REOPEN_READY" = "READY",
+	nodeState:
+		| "READY"
+		| "IN_PROGRESS"
+		| "WAITING"
+		| "PAUSED"
+		| "REOPEN_READY" = "READY",
 ) {
 	await mkdir(workspaceRoot, { recursive: true });
 	const databasePath = join(stateRoot, "state", "task.sqlite");
@@ -203,6 +213,20 @@ async function seedTask(
 						idempotencyKey: "pause:execution-identity",
 					}),
 				);
+			if (nodeState === "WAITING")
+				ok(
+					services.commands.waitNode({
+						taskId: created.taskId,
+						nodeId: "node-dev",
+						expectedTaskVersion: running.taskVersion,
+						expectedNodeVersion: running.nodeVersion,
+						waitType: "BUSINESS_CONFIRMATION",
+						reasonCode: "BUSINESS_DECISION_REQUIRED",
+						message: "Choose the business option",
+						actorRef: `worker:${workers.dev}`,
+						idempotencyKey: "wait-node:execution-identity",
+					}),
+				);
 			if (nodeState === "REOPEN_READY") {
 				const failed = ok(
 					services.commands.failNode({
@@ -232,15 +256,27 @@ async function seedTask(
 				services.queries.getTaskDriveProjection({ taskId: created.taskId }),
 			);
 		}
-		assert.equal(projection.taskStatus, nodeState === "PAUSED" ? "PAUSED" : "ACTIVE");
+		assert.equal(
+			projection.taskStatus,
+			nodeState === "PAUSED"
+				? "PAUSED"
+				: nodeState === "WAITING"
+					? "WAITING"
+					: "ACTIVE",
+		);
 		assert.equal(projection.currentNode?.nodeId, "node-dev");
 		assert.equal(
 			projection.currentNode?.status,
 			nodeState === "READY" || nodeState === "REOPEN_READY"
 				? "READY"
-				: "IN_PROGRESS",
+				: nodeState === "WAITING"
+					? "WAITING"
+					: "IN_PROGRESS",
 		);
-		assert.equal(projection.currentNode?.runNo, nodeState === "REOPEN_READY" ? 2 : 1);
+		assert.equal(
+			projection.currentNode?.runNo,
+			nodeState === "REOPEN_READY" ? 2 : 1,
+		);
 		assert.equal(projection.roleBinding?.roleRef, roles.dev);
 		assert.equal(projection.roleBinding?.workerRef, workers.dev);
 		return {
@@ -260,7 +296,11 @@ function wakeRequest(input: {
 	roleRef: string;
 	workerRef: string;
 	workspaceRoot: string;
-	trigger?: "NODE_READY" | "REOPEN" | "EXECUTION_RESULT_READY" | "RECOVERY_RESUME";
+	trigger?:
+		| "NODE_READY"
+		| "REOPEN"
+		| "EXECUTION_RESULT_READY"
+		| "RECOVERY_RESUME";
 }) {
 	const trigger = input.trigger ?? "NODE_READY";
 	return {
@@ -380,6 +420,203 @@ test("RF-HOST-EXEC-IDENTITY-01 worker.wake admission fences current node generat
 	});
 });
 
+test("B1-HOST-APP-01 Human application acknowledges the blocker before same-run task.resume", async (context) => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-b1-human-resume-"));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	const stateRoot = join(root, ".proflow");
+	const workspaceRoot = join(root, "project");
+	await seedTask(stateRoot, workspaceRoot, "WAITING");
+	const dependency = await readinessStub();
+	context.after(() => dependency.close());
+	const host = identityHost(stateRoot, workspaceRoot, dependency.baseUrl);
+	context.after(() => host.stop());
+	const started = await host.start();
+	const token = (
+		await readFile(
+			join(stateRoot, "browser", "secrets", "task-application.token"),
+			"utf8",
+		)
+	).trim();
+	const invoke = async (operation: string, input: Record<string, unknown>) => {
+		const response = await fetch(
+			`http://${started.host}:${started.port}/application/task`,
+			{
+				method: "POST",
+				headers: {
+					authorization: `Bearer ${token}`,
+					"content-type": "application/json",
+				},
+				body: JSON.stringify({ operation, input }),
+			},
+		);
+		return {
+			response,
+			body: (await response.json()) as Record<string, unknown>,
+		};
+	};
+	const current = await invoke("task.get", {
+		taskId: "task-execution-identity",
+	});
+	assert.equal(current.response.status, 200);
+	const taskVersion = Number(current.body.version);
+	const pending = current.body.pendingMessages as Array<{ messageId: string }>;
+	assert.equal(pending.length, 1);
+	const blocked = await invoke("task.resume", {
+		taskId: "task-execution-identity",
+		expectedTaskVersion: taskVersion,
+		idempotencyKey: "b1:resume:blocked",
+	});
+	assert.equal(blocked.response.status, 400);
+	assert.match(String(blocked.body.error), /TASK_BLOCKER_UNRESOLVED/);
+	const pendingMessage = pending[0];
+	assert.ok(pendingMessage);
+	const acknowledged = await invoke("message.acknowledge", {
+		messageId: pendingMessage.messageId,
+		resolution: "Approved business choice",
+		idempotencyKey: "b1:message:ack",
+	});
+	assert.equal(acknowledged.response.status, 200);
+	const resumed = await invoke("task.resume", {
+		taskId: "task-execution-identity",
+		expectedTaskVersion: taskVersion,
+		idempotencyKey: "b1:resume:after-ack",
+	});
+	assert.equal(resumed.response.status, 200);
+	assert.equal(resumed.body.status, "ACTIVE");
+	const after = await invoke("task.get", { taskId: "task-execution-identity" });
+	const node = (after.body.nodes as Array<Record<string, unknown>>)[0];
+	assert.ok(node);
+	assert.equal(node.status, "IN_PROGRESS");
+	assert.equal(node.runNo, 1);
+	assert.equal(node.workerRef, workers.dev);
+});
+
+test("B1-HOST-EXEC-01 GPT-shaped file.read is exact-node scoped before one durable Execution parse", async (context) => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-b1-action-chain-"));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	const stateRoot = join(root, ".proflow");
+	const workspaceRoot = join(root, "project");
+	const seeded = await seedTask(stateRoot, workspaceRoot, "IN_PROGRESS");
+	let durableParses = 0;
+	const execution = createServer(async (request, response) => {
+		response.setHeader("content-type", "application/json");
+		if (request.url === "/ready") return response.end('{"status":"READY"}');
+		if (request.url !== "/executions" || request.method !== "POST") {
+			response.statusCode = 404;
+			return response.end('{"error":"NOT_FOUND"}');
+		}
+		const chunks: Buffer[] = [];
+		for await (const chunk of request) chunks.push(Buffer.from(chunk));
+		try {
+			const parsed = parseExecuteCapabilityRequest(
+				JSON.parse(Buffer.concat(chunks).toString("utf8")),
+			);
+			durableParses += 1;
+			assert.equal(parsed.workerRef, workers.dev);
+			assert.equal(parsed.projectRoot, undefined);
+			response.end(
+				JSON.stringify({
+					executionRef: `execution:b1:${durableParses}`,
+					status: "SUCCEEDED",
+					sideEffectState: "APPLIED",
+				}),
+			);
+		} catch {
+			response.statusCode = 400;
+			response.end('{"error":"INVALID_REQUEST"}');
+		}
+	});
+	await new Promise<void>((resolve) =>
+		execution.listen(0, "127.0.0.1", resolve),
+	);
+	context.after(
+		() => new Promise<void>((resolve) => execution.close(() => resolve())),
+	);
+	const executionAddress = execution.address();
+	if (!executionAddress || typeof executionAddress === "string")
+		assert.fail("missing execution");
+	const dependencyBaseUrl = `http://127.0.0.1:${executionAddress.port}`;
+	const host = identityHost(stateRoot, workspaceRoot, dependencyBaseUrl);
+	context.after(() => host.stop());
+	const hostAddress = await host.start();
+	const credentialFile = join(root, "gateway-roles.json");
+	await writeFile(
+		credentialFile,
+		JSON.stringify({
+			[roles.dev]: "dev-gateway-credential-long-enough",
+			[roles.test]: "test-gateway-credential-long-enough",
+		}),
+		{ mode: 0o600 },
+	);
+	const gateway = await createAgentGatewayProcess({
+		config: {
+			host: "127.0.0.1",
+			port: 0,
+			publicBaseUrl: "https://gateway.example.test",
+			downstreamBaseUrl: `http://${hostAddress.host}:${hostAddress.port}`,
+			credentialFile,
+		},
+	});
+	context.after(() => gateway.stop());
+	const gatewayAddress = await gateway.start();
+	const call = async (credential: string, body: Record<string, unknown>) => {
+		const response = await fetch(
+			`http://${gatewayAddress.host}:${gatewayAddress.port}/actions/executeCapability`,
+			{
+				method: "POST",
+				headers: {
+					authorization: `Bearer ${credential}`,
+					"content-type": "application/json",
+				},
+				body: JSON.stringify(body),
+			},
+		);
+		return {
+			response,
+			body: (await response.json()) as Record<string, unknown>,
+		};
+	};
+	const base = {
+		contract: "execution",
+		contractVersion: "1.0.0",
+		idempotencyKey: "b1:file-read",
+		taskId: seeded.taskId,
+		nodeId: seeded.currentNodeId,
+		runNo: seeded.runNo,
+		capability: "file.read",
+		input: { path: "repos/proflow/package.json" },
+	};
+	for (const missing of ["taskId", "nodeId", "runNo"] as const) {
+		const body = { ...base };
+		delete body[missing];
+		const result = await call("dev-gateway-credential-long-enough", body);
+		assert.equal(result.response.status, 400);
+		assert.deepEqual(result.body, { error: "INVALID_REQUEST" });
+	}
+	assert.equal(durableParses, 0);
+	const stale = await call("dev-gateway-credential-long-enough", {
+		...base,
+		runNo: 99,
+	});
+	assert.equal(stale.response.status, 403);
+	assert.equal(stale.body.error, "EXECUTION_GENERATION_MISMATCH");
+	const wrongRole = await call("test-gateway-credential-long-enough", base);
+	assert.equal(wrongRole.response.status, 403);
+	assert.equal(wrongRole.body.error, "EXECUTION_ROLE_SCOPE_MISMATCH");
+	assert.equal(durableParses, 0);
+	const invalidInput = await call("dev-gateway-credential-long-enough", {
+		...base,
+		idempotencyKey: "b1:file-read:invalid",
+		input: { path: "package.json", encoding: "utf16" },
+	});
+	assert.equal(invalidInput.response.status, 400);
+	assert.deepEqual(invalidInput.body, { error: "INVALID_REQUEST" });
+	assert.equal(durableParses, 0);
+	const valid = await call("dev-gateway-credential-long-enough", base);
+	assert.equal(valid.response.status, 200);
+	assert.equal(valid.body.status, "SUCCEEDED");
+	assert.equal(durableParses, 1);
+});
 
 function nodeExecutionRequest(input: {
 	taskId: string;
@@ -403,7 +640,9 @@ function nodeExecutionRequest(input: {
 }
 
 test("RF-HOST-EXEC-IDENTITY-02 IN_PROGRESS node Execution keeps current generation/role/worker fencing", async (context) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-execution-identity-running-"));
+	const root = await mkdtemp(
+		join(tmpdir(), "proflow-execution-identity-running-"),
+	);
 	context.after(() => rm(root, { recursive: true, force: true }));
 	const stateRoot = join(root, ".proflow");
 	const workspaceRoot = join(root, "project");
@@ -460,7 +699,11 @@ test("RF-HOST-EXEC-IDENTITY-02 IN_PROGRESS node Execution keeps current generati
 			nodeExecutionRequest({ ...base, workerRef: "c-dev-wrong" }),
 		),
 		wrongRole: await host.executionIdentity.authorize(
-			nodeExecutionRequest({ ...base, roleRef: roles.test, workerRef: workers.test }),
+			nodeExecutionRequest({
+				...base,
+				roleRef: roles.test,
+				workerRef: workers.test,
+			}),
 		),
 		wrongNode: await host.executionIdentity.authorize(
 			nodeExecutionRequest({ ...base, nodeId: "node-dev-later" }),
@@ -484,7 +727,9 @@ test("RF-HOST-EXEC-IDENTITY-02 IN_PROGRESS node Execution keeps current generati
 });
 
 test("RF-HOST-EXEC-IDENTITY-03 PAUSED Task cannot keep executing the current IN_PROGRESS Node", async (context) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-execution-identity-paused-"));
+	const root = await mkdtemp(
+		join(tmpdir(), "proflow-execution-identity-paused-"),
+	);
 	context.after(() => rm(root, { recursive: true, force: true }));
 	const stateRoot = join(root, ".proflow");
 	const workspaceRoot = join(root, "project");
@@ -515,7 +760,9 @@ test("RF-HOST-EXEC-IDENTITY-03 PAUSED Task cannot keep executing the current IN_
 });
 
 test("CP-HOST-EXEC-IDENTITY-04 reopened READY generation admits REOPEN and rejects NODE_READY", async (context) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-execution-identity-reopen-"));
+	const root = await mkdtemp(
+		join(tmpdir(), "proflow-execution-identity-reopen-"),
+	);
 	context.after(() => rm(root, { recursive: true, force: true }));
 	const stateRoot = join(root, ".proflow");
 	const workspaceRoot = join(root, "project");
@@ -539,5 +786,8 @@ test("CP-HOST-EXEC-IDENTITY-04 reopened READY generation admits REOPEN and rejec
 		),
 		true,
 	);
-	assert.equal(await host.executionIdentity.authorize(wakeRequest(base)), false);
+	assert.equal(
+		await host.executionIdentity.authorize(wakeRequest(base)),
+		false,
+	);
 });

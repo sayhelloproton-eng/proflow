@@ -237,3 +237,100 @@ test("RF-AGT-GW-14 downstream transport credential rejects group/world-readable 
 		/DOWNSTREAM_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID/,
 	);
 });
+
+test("B1-GW-01 downstream typed errors are bounded, safe, and preserve actionable owner codes", async (context) => {
+	const root = await mkdtemp(join(tmpdir(), "proflow-gateway-errors-"));
+	context.after(() => rm(root, { recursive: true, force: true }));
+	const credentialFile = join(root, "credentials.json");
+	await writeFile(
+		credentialFile,
+		JSON.stringify({ "g-dev": "gateway-role-credential-long-enough" }),
+		{ mode: 0o600 },
+	);
+	const downstream = createServer((request, response) => {
+		response.setHeader("content-type", "application/json");
+		if (request.url === "/ready") return response.end('{"status":"READY"}');
+		if (request.url === "/actions/invalid") {
+			response.statusCode = 400;
+			return response.end(
+				JSON.stringify({ error: "INVALID_REQUEST", stack: "SECRET_STACK" }),
+			);
+		}
+		if (request.url === "/actions/admission") {
+			response.statusCode = 403;
+			return response.end(
+				JSON.stringify({
+					error: "TASK_ROLE_BINDING_REQUIRED",
+					credential: "SECRET_TOKEN",
+				}),
+			);
+		}
+		if (request.url === "/actions/failure") {
+			response.statusCode = 500;
+			return response.end(
+				JSON.stringify({
+					error: "SQLITE_PASSWORD_secret",
+					stack: "SECRET_STACK",
+				}),
+			);
+		}
+		response.statusCode = 418;
+		return response.end("not-json SECRET_TOKEN");
+	});
+	await new Promise<void>((resolve) =>
+		downstream.listen(0, "127.0.0.1", resolve),
+	);
+	context.after(
+		() => new Promise<void>((resolve) => downstream.close(() => resolve())),
+	);
+	const address = downstream.address();
+	if (!address || typeof address === "string")
+		assert.fail("missing downstream");
+	const gateway = await createAgentGatewayProcess({
+		config: {
+			host: "127.0.0.1",
+			port: 0,
+			publicBaseUrl: "https://gateway.example.test",
+			downstreamBaseUrl: `http://127.0.0.1:${address.port}`,
+			credentialFile,
+		},
+	});
+	context.after(() => gateway.stop());
+	const started = await gateway.start();
+	const call = async (operation: string) => {
+		const response = await fetch(
+			`http://${started.host}:${started.port}/actions/${operation}`,
+			{
+				method: "POST",
+				headers: {
+					authorization: "Bearer gateway-role-credential-long-enough",
+					"content-type": "application/json",
+				},
+				body: "{}",
+			},
+		);
+		return { status: response.status, text: await response.text() };
+	};
+	const invalid = await call("invalid");
+	assert.equal(invalid.status, 400);
+	assert.deepEqual(JSON.parse(invalid.text), { error: "INVALID_REQUEST" });
+	const admission = await call("admission");
+	assert.equal(admission.status, 403);
+	assert.deepEqual(JSON.parse(admission.text), {
+		error: "TASK_ROLE_BINDING_REQUIRED",
+	});
+	const failure = await call("failure");
+	assert.equal(failure.status, 500);
+	assert.deepEqual(JSON.parse(failure.text), {
+		error: "OWNER_SERVICE_UNAVAILABLE",
+	});
+	const malformed = await call("malformed");
+	assert.equal(malformed.status, 418);
+	assert.deepEqual(JSON.parse(malformed.text), {
+		error: "DOWNSTREAM_UNAVAILABLE",
+	});
+	for (const result of [invalid, admission, failure, malformed]) {
+		assert.doesNotMatch(result.text, /SECRET|STACK|TOKEN|PASSWORD/i);
+		assert.ok(result.text.length < 256);
+	}
+});

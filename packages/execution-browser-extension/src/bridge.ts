@@ -37,7 +37,12 @@ type BridgeCommand =
 			attentionRef: string;
 			action: "allowOnce" | "deny";
 	  }
-	| { commandId: string; type: "TASK_OBSERVER_RECOVER" };
+	| { commandId: string; type: "TASK_OBSERVER_RECOVER" }
+	| {
+			commandId: string;
+			type: "TASK_OBSERVER_RESUME";
+			taskId: string;
+	  };
 type BridgeCommandInput = BridgeCommand extends infer Command
 	? Command extends { commandId: string }
 		? Omit<Command, "commandId">
@@ -457,6 +462,15 @@ export async function createBrowserRealityBridgeServer(
 						? await options.taskWeb.invokeTask(body.operation, body.input)
 						: await options.taskWeb.invokeApproval(body.operation, body.input);
 					if (
+						taskRequest &&
+						body.operation === "task.resume" &&
+						commandConsumerReady()
+					) {
+						void requestCommand({
+							type: "TASK_OBSERVER_RESUME",
+							taskId: stringField(body.input, "taskId"),
+						}).catch(() => undefined);
+					} else if (
 						taskRequest &&
 						taskWebObserverRecoveryOperations.has(body.operation) &&
 						commandConsumerReady()

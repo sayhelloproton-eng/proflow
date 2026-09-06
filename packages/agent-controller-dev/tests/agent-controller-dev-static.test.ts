@@ -21,6 +21,7 @@ const parsed = parse(openapi) as {
 	openapi: string;
 	security: unknown[];
 	paths: Record<string, Record<string, OpenApiOperation>>;
+	components: { schemas: Record<string, Record<string, unknown>> };
 };
 const operations = Object.values(parsed.paths).flatMap((path) =>
 	Object.values(path).map((operation) => operation.operationId),
@@ -63,6 +64,62 @@ test("CP-AGT-DEV-02 Task and Execution access is owner Public Contract shaped", 
 	assert.ok(operations.includes("getNodeContext"));
 	assert.ok(operations.includes("executeCapability"));
 	assert.doesNotMatch(openapi, /sqlite|repository|deep import|task-store/);
+});
+
+test("B1-AGT-DEV-01 Action schemas match Task owner versions and exact node-scoped file.read", () => {
+	const schemas = parsed.components.schemas;
+	const reopen = schemas.ReopenNodeInput;
+	assert.ok(reopen);
+	assert.deepEqual(reopen.required, [
+		"taskId",
+		"nodeId",
+		"expectedTaskVersion",
+		"idempotencyKey",
+		"reason",
+	]);
+	assert.equal("expectedNodeVersion" in (reopen.properties as object), false);
+	const document = schemas.PutTaskDocumentInput;
+	assert.ok(document);
+	assert.equal("expectedNodeVersion" in (document.properties as object), false);
+	assert.deepEqual((document.properties as Record<string, unknown>).nodeId, {
+		type: ["string", "null"],
+	});
+	const execute = schemas.ExecuteCapabilityInput;
+	assert.ok(execute);
+	for (const field of ["taskId", "nodeId", "runNo"])
+		assert.ok((execute.required as string[]).includes(field));
+	assert.equal("workerRef" in (execute.properties as object), false);
+	assert.equal("projectRoot" in (execute.properties as object), false);
+	const fileRead = (execute.anyOf as Array<Record<string, unknown>>)[0];
+	assert.ok(fileRead);
+	assert.deepEqual(
+		(fileRead.properties as Record<string, unknown>).capability,
+		{ type: "string", const: "file.read" },
+	);
+	assert.deepEqual((fileRead.properties as Record<string, unknown>).input, {
+		$ref: "#/components/schemas/FileReadInput",
+	});
+	assert.deepEqual(schemas.FileReadInput, {
+		type: "object",
+		additionalProperties: false,
+		required: ["path"],
+		properties: {
+			path: { type: "string" },
+			encoding: { type: "string", const: "utf8" },
+		},
+	});
+	assert.match(
+		metadata.proflowAgent.instructions,
+		/waitNode 只用于真实业务阻塞/,
+	);
+	assert.match(
+		metadata.proflowAgent.instructions,
+		/尚未形成可信 run 失败结论时保持 Node IN_PROGRESS/,
+	);
+	assert.match(
+		metadata.proflowAgent.instructions,
+		/UNKNOWN side effect 禁止盲重放/,
+	);
 });
 test("CP-AGT-DEV-03 sandbox artifact is explicitly not real apply", () => {
 	assert.match(

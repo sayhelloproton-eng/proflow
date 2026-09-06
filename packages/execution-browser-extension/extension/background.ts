@@ -29,6 +29,7 @@ import {
 import {
 	createTaskObserver,
 	type TaskDriveProjection,
+	type TaskObserverDecision,
 	type TaskObserverDiagnosticAssessment,
 	type TaskObserverDiagnosticFailure,
 } from "../src/task-observer.js";
@@ -77,7 +78,8 @@ type BridgeCommand = {
 		| "SCREENSHOT"
 		| "PERFORM"
 		| "CARRIER_ATTENTION_ACTION"
-		| "TASK_OBSERVER_RECOVER";
+		| "TASK_OBSERVER_RECOVER"
+		| "TASK_OBSERVER_RESUME";
 	tabId?: number;
 	url?: string;
 	text?: string;
@@ -85,6 +87,7 @@ type BridgeCommand = {
 	request?: Record<string, unknown>;
 	attentionRef?: string;
 	action?: "allowOnce" | "deny";
+	taskId?: string;
 };
 type ContentSnapshotRequest = { type: "PROFLOW_PAGE_SNAPSHOT_REQUEST" };
 type ContentCommand = {
@@ -540,6 +543,20 @@ const taskObserver = createTaskObserver({
 	},
 });
 
+async function resumeTaskWorker(taskId: string) {
+	const projection = (await invokeObserverApplication("task.projection", {
+		taskId,
+	})) as TaskDriveProjection;
+	if (
+		projection.taskId !== taskId ||
+		projection.taskStatus !== "ACTIVE" ||
+		projection.currentNode?.status !== "IN_PROGRESS" ||
+		!projection.resumeSignalRef
+	)
+		throw new Error("TASK_RESUMED_OWNER_FACTS_INVALID");
+	return taskObserver.drive(taskId);
+}
+
 async function resumeAfterApprovalDecision(approvalRef: string) {
 	const context = await invokeObserverApplication("approval.executionContext", {
 		approvalRef,
@@ -734,7 +751,7 @@ function runObserverRecovery() {
 						)
 					)
 						continue;
-					let decision;
+					let decision: TaskObserverDecision | null;
 					if (candidate.kind === "RECOVERY_RESUME") {
 						if (
 							typeof candidate.nodeId !== "string" ||
@@ -1355,6 +1372,8 @@ async function executeCommand(command: BridgeCommand): Promise<unknown> {
 		void runObserverRecovery();
 		return { scheduled: true };
 	}
+	if (command.type === "TASK_OBSERVER_RESUME")
+		return resumeTaskWorker(text(command.taskId, "TASK_ID"));
 	if (command.type === "CARRIER_ATTENTION_ACTION") {
 		if (command.action !== "allowOnce" && command.action !== "deny")
 			throw new Error("ATTENTION_ACTION_INVALID");
@@ -1941,8 +1960,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 			return;
 		}
 		void invokeTaskApplication(message.operation, message.input).then(
-			(value) => {
-				void runObserverRecovery();
+			async (value) => {
+				if (message.operation === "task.resume")
+					await resumeTaskWorker(text(message.input?.taskId, "TASK_ID"));
+				else void runObserverRecovery();
 				sendResponse({ ok: true, value });
 			},
 			(error: unknown) =>

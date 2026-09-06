@@ -28,6 +28,7 @@ import type {
 	TaskRepositories,
 	TaskResult,
 	TaskStore,
+	TaskWaitType,
 } from "./model.ts";
 import { requiredTaskAgentPackageRefs } from "./model.ts";
 
@@ -99,7 +100,7 @@ interface CompleteInput extends NodeControls {
 	resultSummary: string;
 }
 interface WaitInput extends NodeControls {
-	waitType: string;
+	waitType: TaskWaitType;
 	reasonCode: string;
 	message: string;
 	relatedRef?: string;
@@ -1188,18 +1189,36 @@ export function createTaskServices(options: {
 				const current = task.currentNodeId
 					? tx.nodes.get(task.currentNodeId)
 					: undefined;
+				if (task.status === "WAITING" && current?.status !== "WAITING")
+					throw new DomainError(
+						"TASK_INVALID_STATE",
+						"A WAITING Task must have a current WAITING Node.",
+					);
 				if (current?.status === "FAILED")
 					throw new DomainError(
 						"TASK_INVALID_STATE",
 						"A failed Node must be explicitly reopened before resume.",
 					);
-				if (current?.status === "WAITING")
+				if (current?.status === "WAITING") {
+					const unresolved = tx.messages
+						.listPending()
+						.some(
+							(message) =>
+								message.taskId === task.taskId &&
+								message.nodeId === current.nodeId,
+						);
+					if (unresolved)
+						throw new DomainError(
+							"TASK_BLOCKER_UNRESOLVED",
+							"The current Node still has an unresolved business blocker.",
+						);
 					tx.nodes.update({
 						...current,
 						status: "IN_PROGRESS",
 						version: current.version + 1,
 						updatedAt: timestamp,
 					});
+				}
 				const updated = {
 					...task,
 					status: "ACTIVE" as const,
@@ -1461,6 +1480,11 @@ export function createTaskServices(options: {
 						"TASK_INVALID_STATE",
 						"Task must be ACTIVE before a Node can wait.",
 					);
+				if (task.currentNodeId !== node.nodeId)
+					throw new DomainError(
+						"NODE_NOT_CURRENT",
+						"Only the current Node can enter WAITING.",
+					);
 				if (
 					node.status !== "IN_PROGRESS" ||
 					!matchesWorker(input.actorRef, node.workerRef)
@@ -1515,13 +1539,26 @@ export function createTaskServices(options: {
 					input.expectedNodeVersion,
 					"NODE_VERSION_CONFLICT",
 				);
-				if (!["ACTIVE", "WAITING"].includes(task.status))
+				if (task.status !== "ACTIVE")
 					throw new DomainError(
 						"TASK_INVALID_STATE",
-						"Task cannot accept a Node failure in its current state.",
+						"Task must be ACTIVE before the current run can fail.",
 					);
-				if (!["IN_PROGRESS", "WAITING"].includes(node.status))
-					throw new DomainError("NODE_INVALID_STATE", "Node cannot fail.");
+				if (task.currentNodeId !== node.nodeId)
+					throw new DomainError(
+						"NODE_NOT_CURRENT",
+						"Only the current Node can record a run failure.",
+					);
+				if (!matchesWorker(input.actorRef, node.workerRef))
+					throw new DomainError(
+						"WORKER_MISMATCH",
+						"Only the bound running Worker may fail the current Node.",
+					);
+				if (node.status !== "IN_PROGRESS")
+					throw new DomainError(
+						"NODE_INVALID_STATE",
+						"Only the current IN_PROGRESS run can fail.",
+					);
 				const failedNode: TaskNode = {
 					...node,
 					status: "FAILED",
@@ -1748,6 +1785,7 @@ export function createTaskServices(options: {
 			} | null;
 			canDrive: boolean;
 			blockedReason: string | null;
+			resumeSignalRef: string | null;
 		}> =>
 			query<
 				{ taskId: string },
@@ -1771,6 +1809,7 @@ export function createTaskServices(options: {
 					} | null;
 					canDrive: boolean;
 					blockedReason: string | null;
+					resumeSignalRef: string | null;
 				}
 			>("getTaskDriveProjection", raw, (tx, input) => {
 				const task = requireTask(tx, input.taskId);
@@ -1791,6 +1830,15 @@ export function createTaskServices(options: {
 				else if (!terminal && !roleBinding?.workerRef)
 					blockedReason = "TASK_ROLE_BINDING_REQUIRED";
 				const canDrive = !terminal && blockedReason === null;
+				let durableResumeEventId: number | undefined;
+				if (task.status === "ACTIVE" && currentNode?.status === "IN_PROGRESS")
+					for (const taskEvent of tx.events.listByTask(task.taskId))
+						if (
+							taskEvent.eventType === "TASK_RESUMED" &&
+							taskEvent.taskVersion === task.version &&
+							taskEvent.eventId !== undefined
+						)
+							durableResumeEventId = taskEvent.eventId;
 				return {
 					taskId: task.taskId,
 					taskStatus: task.status,
@@ -1815,6 +1863,10 @@ export function createTaskServices(options: {
 						: null,
 					canDrive,
 					blockedReason,
+					resumeSignalRef:
+						durableResumeEventId === undefined
+							? null
+							: `task-event:${durableResumeEventId}`,
 				};
 			}),
 		getNodeContext: (

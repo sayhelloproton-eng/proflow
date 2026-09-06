@@ -21,7 +21,10 @@ async function dependencyServer() {
 			response.end(JSON.stringify({ status: ready ? "READY" : "NOT_READY" }));
 			return;
 		}
-		if (request.url === "/executions") {
+		if (
+			request.url === "/executions" ||
+			request.url?.startsWith("/executions/")
+		) {
 			entered?.();
 			await new Promise<void>((resolve) => {
 				release = resolve;
@@ -29,6 +32,7 @@ async function dependencyServer() {
 			response.end(
 				JSON.stringify({
 					executionRef: "execution:host-proof",
+					callerRef: request.headers["x-proflow-caller-ref"],
 					status: "SUCCEEDED",
 				}),
 			);
@@ -144,15 +148,13 @@ test("CP-HOST-03 local transport is loopback-only, restartable, and shutdown dra
 		const baseUrl = `http://${first.host}:${first.port}`;
 		assert.equal((await fetch(`${baseUrl}/ready`)).status, 200);
 
-		const inFlight = fetch(`${baseUrl}/actions/executeCapability`, {
+		const inFlight = fetch(`${baseUrl}/actions/getExecution`, {
 			method: "POST",
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify({
 				authenticatedRoleRef: "g-controller",
 				input: {
-					capability: "project.inspect",
-					input: {},
-					idempotencyKey: "host-drain",
+					executionRef: "execution:host-proof",
 				},
 			}),
 		});
@@ -598,6 +600,16 @@ async function securedExecutionServer(credential: string) {
 			);
 			return;
 		}
+		if (request.method === "GET" && request.url?.startsWith("/executions/")) {
+			response.end(
+				JSON.stringify({
+					executionRef: "execution:secured",
+					callerRef: request.headers["x-proflow-caller-ref"],
+					status: "SUCCEEDED",
+				}),
+			);
+			return;
+		}
 		response.end(JSON.stringify({ status: "READY" }));
 	});
 	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -657,16 +669,14 @@ test("PRESMOKE-B6-HOST-EXEC-01 Host→Execution transport credential is wired fr
 		assert.equal(status.dependencies.execution.liveness, "UP");
 
 		const action = await fetch(
-			`http://${started.host}:${started.port}/actions/executeCapability`,
+			`http://${started.host}:${started.port}/actions/getExecution`,
 			{
 				method: "POST",
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({
 					authenticatedRoleRef: "g-controller",
 					input: {
-						capability: "project.inspect",
-						input: {},
-						idempotencyKey: "host-exec-auth",
+						executionRef: "execution:secured",
 					},
 				}),
 			},

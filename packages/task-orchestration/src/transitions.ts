@@ -14,7 +14,7 @@ const taskTransitions: Readonly<Record<TaskStatus, readonly TaskStatus[]>> = {
 	READY: ["ACTIVE", "TERMINATED"],
 	ACTIVE: ["WAITING", "PAUSED", "FAILED", "SUCCEEDED", "TERMINATED"],
 	WAITING: ["ACTIVE", "PAUSED", "TERMINATED"],
-	FAILED: ["PAUSED", "TERMINATED"],
+	FAILED: ["TERMINATED"],
 	PAUSED: ["ACTIVE", "TERMINATED"],
 	SUCCEEDED: [],
 	TERMINATED: [],

@@ -1,7 +1,7 @@
 {
   "contract": "proflow.ui-interaction-reconciliation.v1",
   "semantics": "Mechanical shipped UI inventory. Controls prove an implemented interaction surface only; real Chrome/Custom GPT behavior remains REAL_EXTERNAL where applicable.",
-  "sidePanel": {
+  "taskPage": {
     "forms": [
       {
         "id": "new-task-form",
@@ -22,6 +22,11 @@
       {
         "id": "start-task",
         "label": "Confirm / Start",
+        "classification": "SHIPPED_UI_CONTROL"
+      },
+      {
+        "id": "resume-task",
+        "label": "Resume",
         "classification": "SHIPPED_UI_CONTROL"
       },
       {
@@ -47,6 +52,16 @@
         "classification": "SHIPPED_UI_CONTROL"
       },
       {
+        "label": "Resolve blocker",
+        "operation": "message.acknowledge",
+        "classification": "SHIPPED_UI_CONTROL"
+      },
+      {
+        "label": "Resume",
+        "operation": "task.resume",
+        "classification": "SHIPPED_UI_CONTROL"
+      },
+      {
         "label": "Reopen",
         "operation": "node.reopen",
         "classification": "SHIPPED_UI_CONTROL"
@@ -61,11 +76,13 @@
       "approval.allow",
       "approval.deny",
       "approval.list",
+      "message.acknowledge",
       "node.reopen",
       "task.create",
       "task.ensureWorkers",
       "task.get",
       "task.list",
+      "task.resume",
       "task.start"
     ]
   },

@@ -2,7 +2,65 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { createAgentGateway } from "./index.ts";
+import { AgentGatewayError, createAgentGateway } from "./index.ts";
+
+const MAX_DOWNSTREAM_ERROR_BYTES = 8_192;
+const safeDownstreamErrorCodes = new Set([
+	"INVALID_REQUEST",
+	"ROLE_OPERATION_DENIED",
+	"TASK_ROLE_BINDING_REQUIRED",
+	"TASK_WORKER_BINDING_MISMATCH",
+	"ROLE_NOT_TASK_PARTICIPANT",
+	"WORKER_IDENTITY_INVALID",
+	"WORKER_MISMATCH",
+	"TASK_TERMINAL",
+	"EXECUTION_TASK_NOT_ACTIVE",
+	"EXECUTION_NODE_NOT_CURRENT",
+	"EXECUTION_NODE_NOT_RUNNING",
+	"EXECUTION_GENERATION_MISMATCH",
+	"EXECUTION_ROLE_SCOPE_MISMATCH",
+	"EXECUTION_WORKER_SCOPE_MISMATCH",
+]);
+
+async function boundedDownstreamErrorCode(
+	response: Response,
+): Promise<string | null> {
+	if (!response.body) return null;
+	const reader = response.body.getReader();
+	const chunks: Uint8Array[] = [];
+	let bytes = 0;
+	try {
+		while (true) {
+			const next = await reader.read();
+			if (next.done) break;
+			bytes += next.value.byteLength;
+			if (bytes > MAX_DOWNSTREAM_ERROR_BYTES) {
+				await reader.cancel();
+				return null;
+			}
+			chunks.push(next.value);
+		}
+	} catch {
+		return null;
+	}
+	const merged = new Uint8Array(bytes);
+	let offset = 0;
+	for (const chunk of chunks) {
+		merged.set(chunk, offset);
+		offset += chunk.byteLength;
+	}
+	try {
+		const value: unknown = JSON.parse(new TextDecoder().decode(merged));
+		if (typeof value !== "object" || value === null || Array.isArray(value))
+			return null;
+		const code = Reflect.get(value, "error");
+		return typeof code === "string" && safeDownstreamErrorCodes.has(code)
+			? code
+			: null;
+	} catch {
+		return null;
+	}
+}
 
 export type AgentGatewayProcessConfig = {
 	host: string;
@@ -132,24 +190,49 @@ export async function createAgentGatewayProcess(input: {
 		const downstreamCredential = input.config.downstreamCredentialFile
 			? await readDownstreamCredential(input.config.downstreamCredentialFile)
 			: undefined;
-		const response = await fetchImplementation(
-			`${input.config.downstreamBaseUrl}${path}`,
-			{
-				method: body === undefined ? "GET" : "POST",
-				headers: {
-					...(body === undefined ? {} : { "content-type": "application/json" }),
-					...(downstreamCredential
-						? { authorization: `Bearer ${downstreamCredential}` }
-						: {}),
+		let response: Response;
+		try {
+			response = await fetchImplementation(
+				`${input.config.downstreamBaseUrl}${path}`,
+				{
+					method: body === undefined ? "GET" : "POST",
+					headers: {
+						...(body === undefined
+							? {}
+							: { "content-type": "application/json" }),
+						...(downstreamCredential
+							? { authorization: `Bearer ${downstreamCredential}` }
+							: {}),
+					},
+					...(body === undefined ? {} : { body: JSON.stringify(body) }),
+					...(signal ? { signal } : {}),
 				},
-				...(body === undefined ? {} : { body: JSON.stringify(body) }),
-				...(signal ? { signal } : {}),
-			},
-		);
-		if (!response.ok)
-			throw Object.assign(new Error("DOWNSTREAM_UNAVAILABLE"), {
+			);
+		} catch {
+			throw Object.assign(
+				new AgentGatewayError(
+					signal?.aborted
+						? "OPENAI_ACTION_TIMEOUT"
+						: "OWNER_SERVICE_UNAVAILABLE",
+				),
+				{ httpStatus: signal?.aborted ? 504 : 503 },
+			);
+		}
+		if (!response.ok) {
+			const downstreamCode = await boundedDownstreamErrorCode(response);
+			const code =
+				response.status >= 500 || response.status === 401
+					? "OWNER_SERVICE_UNAVAILABLE"
+					: (downstreamCode ??
+						(response.status === 400
+							? "INVALID_REQUEST"
+							: response.status === 403
+								? "ROLE_OPERATION_DENIED"
+								: "DOWNSTREAM_UNAVAILABLE"));
+			throw Object.assign(new AgentGatewayError(code), {
 				httpStatus: response.status,
 			});
+		}
 		return response.json();
 	};
 	const gateway = await createAgentGateway({

@@ -10,8 +10,8 @@
     "formalCaseIdentities": 349,
     "criticalProofs": 222,
     "requiredFailureBoundaries": 127,
-    "executableTestFiles": 159,
-    "executableTestCalls": 725,
+    "executableTestFiles": 161,
+    "executableTestCalls": 755,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -2120,6 +2120,7 @@
         "execution-browser-extension"
       ],
       "implementationRefs": [
+        "packages/execution-browser-extension/src/carrier-identity.ts",
         "packages/execution-browser-extension/src/index.ts",
         "packages/execution-browser-extension/src/install-workflow.ts",
         "packages/execution-contracts/src/index.ts"
@@ -2641,6 +2642,7 @@
         "execution-browser-extension"
       ],
       "implementationRefs": [
+        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts",
         "packages/execution-browser-extension/src/composer-submit.ts"
       ],
       "proofStrengths": [
@@ -2660,7 +2662,8 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/execution-browser-extension/tests/chatgpt-carrier-permission.test.ts"
+        "packages/execution-browser-extension/tests/chatgpt-carrier-permission.test.ts",
+        "packages/execution-browser-extension/tests/chatgpt-composer.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension"
@@ -2669,7 +2672,8 @@
         "packages/execution-browser-extension/extension/background.ts",
         "packages/execution-browser-extension/extension/content.ts",
         "packages/execution-browser-extension/src/carrier-permission.ts",
-        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts"
+        "packages/execution-browser-extension/src/chatgpt-runtime-adapter.ts",
+        "packages/execution-browser-extension/src/composer-submit.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
@@ -2956,6 +2960,7 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
+        "packages/execution-browser-extension/tests/carrier-attention-web-bridge.test.ts",
         "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts"
       ],
       "ownerPackages": [
@@ -2963,14 +2968,17 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
+        "packages/execution-browser-extension/src/bridge.ts",
         "packages/execution-browser-extension/src/carrier-attention.ts",
         "packages/execution-browser-extension/src/carrier-continuation-control.ts",
         "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
       ],
       "proofStrengths": [
-        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
-      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {

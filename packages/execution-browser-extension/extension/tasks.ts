@@ -108,6 +108,13 @@ type TaskView = TaskSummary & {
 		runNo: number;
 		version: number;
 	}>;
+	pendingMessages: Array<{
+		messageId: string;
+		nodeId: string | null;
+		messageType: string;
+		reasonCode: string;
+		message: string;
+	}>;
 };
 
 function element<T extends HTMLElement>(selector: string): T {
@@ -124,7 +131,9 @@ const nodesTarget = element<HTMLElement>("#nodes");
 const errorTarget = element<HTMLElement>("#error");
 const resultTarget = element<HTMLElement>("#result");
 const startButton = element<HTMLButtonElement>("#start-task");
+const resumeButton = element<HTMLButtonElement>("#resume-task");
 const ensureWorkersButton = element<HTMLButtonElement>("#ensure-workers");
+const pendingMessagesTarget = element<HTMLElement>("#pending-messages");
 const newTaskForm = element<HTMLFormElement>("#new-task-form");
 const approvalsTarget = element<HTMLElement>("#approvals");
 const carrierAttentionsTarget = element<HTMLElement>("#carrier-attentions");
@@ -342,8 +351,37 @@ async function loadTask(taskId: string) {
 	selected = (await taskApplication("task.get", { taskId })) as TaskView;
 	selectedTarget.textContent = `${selected.taskId} · ${selected.status} · v${selected.version}`;
 	startButton.disabled = selected.status !== "READY";
+	resumeButton.hidden = !["WAITING", "PAUSED"].includes(selected.status);
+	resumeButton.disabled =
+		selected.status === "WAITING" && selected.pendingMessages.length > 0;
 	ensureWorkersButton.disabled =
 		selected.status === "SUCCEEDED" || selected.status === "TERMINATED";
+	pendingMessagesTarget.replaceChildren();
+	for (const message of selected.pendingMessages) {
+		const row = document.createElement("div");
+		row.className = "task";
+		const label = document.createElement("div");
+		label.textContent = `${message.messageType} · ${message.reasonCode}`;
+		const detail = document.createElement("div");
+		detail.className = "meta";
+		detail.textContent = message.message;
+		const acknowledge = document.createElement("button");
+		acknowledge.type = "button";
+		acknowledge.textContent = "Resolve blocker";
+		acknowledge.addEventListener("click", () => {
+			void run(async () => {
+				if (!selected) return;
+				await taskApplication("message.acknowledge", {
+					messageId: message.messageId,
+					resolution: "Resolved from Extension Task Page",
+					idempotencyKey: requestId("extension-acknowledge-message"),
+				});
+				await loadTask(selected.taskId);
+			});
+		});
+		row.append(label, detail, acknowledge);
+		pendingMessagesTarget.append(row);
+	}
 	nodesTarget.replaceChildren();
 	for (const node of selected.nodes) {
 		const row = document.createElement("div");
@@ -351,7 +389,7 @@ async function loadTask(taskId: string) {
 		const label = document.createElement("span");
 		label.textContent = `${node.title} · ${node.status} · run ${node.runNo}`;
 		row.append(label);
-		if (["SUCCEEDED", "FAILED", "WAITING"].includes(node.status)) {
+		if (["SUCCEEDED", "FAILED"].includes(node.status)) {
 			const reopen = document.createElement("button");
 			reopen.type = "button";
 			reopen.textContent = "Reopen";
@@ -511,6 +549,26 @@ startButton.addEventListener("click", () => {
 			await refreshTasks();
 		} finally {
 			startButton.disabled = selected?.status !== "READY";
+		}
+	});
+});
+
+resumeButton.addEventListener("click", () => {
+	void run(async () => {
+		if (!selected) return;
+		setBusy(resumeButton, true);
+		try {
+			await taskApplication("task.resume", {
+				taskId: selected.taskId,
+				expectedTaskVersion: selected.version,
+				idempotencyKey: requestId("extension-resume-task"),
+			});
+			await loadTask(selected.taskId);
+			await refreshTasks();
+		} finally {
+			resumeButton.disabled =
+				selected?.status === "WAITING" &&
+				(selected.pendingMessages?.length ?? 0) > 0;
 		}
 	});
 });

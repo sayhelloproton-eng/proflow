@@ -21,6 +21,7 @@ const parsed = parse(openapi) as {
 	openapi: string;
 	security: unknown[];
 	paths: Record<string, Record<string, OpenApiOperation>>;
+	components: { schemas: Record<string, Record<string, unknown>> };
 };
 const operations = Object.values(parsed.paths).flatMap((path) =>
 	Object.values(path).map((operation) => operation.operationId),
@@ -47,6 +48,43 @@ test("CP-AGT-TEST-02 test result and evidence remain owner contract facts", () =
 	assert.ok(operations.includes("putTaskDocument"));
 	assert.ok(operations.includes("getExecution"));
 	assert.match(metadata.proflowAgent.instructions, /TaskDocument\/Evidence/);
+});
+
+test("B1-AGT-TEST-01 Action schemas require exact Node generation and expose typed file.read without caller Worker/root", () => {
+	const schemas = parsed.components.schemas;
+	const document = schemas.PutTaskDocumentInput;
+	assert.ok(document);
+	assert.equal("expectedNodeVersion" in (document.properties as object), false);
+	assert.deepEqual((document.properties as Record<string, unknown>).nodeId, {
+		type: ["string", "null"],
+	});
+	const execute = schemas.ExecuteCapabilityInput;
+	assert.ok(execute);
+	for (const field of ["taskId", "nodeId", "runNo"])
+		assert.ok((execute.required as string[]).includes(field));
+	assert.equal("workerRef" in (execute.properties as object), false);
+	assert.equal("projectRoot" in (execute.properties as object), false);
+	const fileRead = (execute.anyOf as Array<Record<string, unknown>>)[0];
+	assert.ok(fileRead);
+	assert.deepEqual(
+		(fileRead.properties as Record<string, unknown>).capability,
+		{ type: "string", const: "file.read" },
+	);
+	assert.deepEqual((fileRead.properties as Record<string, unknown>).input, {
+		$ref: "#/components/schemas/FileReadInput",
+	});
+	assert.match(
+		metadata.proflowAgent.instructions,
+		/waitNode 只用于真实业务阻塞/,
+	);
+	assert.match(
+		metadata.proflowAgent.instructions,
+		/尚未形成可信 run 失败结论时保持 Node IN_PROGRESS/,
+	);
+	assert.match(
+		metadata.proflowAgent.instructions,
+		/UNKNOWN side effect 禁止盲重放/,
+	);
 });
 test("CP-AGT-TEST-03 doctor verify recovery keep Deployment and Execution ownership", () => {
 	assert.match(

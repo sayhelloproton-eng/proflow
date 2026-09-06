@@ -28,10 +28,15 @@ export type TaskDriveProjection = {
 	} | null;
 	canDrive: boolean;
 	blockedReason: string | null;
+	resumeSignalRef: string | null;
 };
 
 export type TaskObserverResumeSignal = {
-	trigger: "EXECUTION_RESULT_READY" | "PEER_REPLY_READY" | "RECOVERY_RESUME";
+	trigger:
+		| "EXECUTION_RESULT_READY"
+		| "PEER_REPLY_READY"
+		| "RECOVERY_RESUME"
+		| "TASK_RESUMED";
 	ref: string;
 	targetWorkerRef: string;
 	nodeId: string;
@@ -195,19 +200,32 @@ export function createTaskObserver(options: {
 				conversationLocator: binding.conversationLocator,
 			};
 		}
-		if (resumeSignal) {
+		const effectiveResumeSignal =
+			resumeSignal ??
+			(projection.resumeSignalRef &&
+			projection.taskStatus === "ACTIVE" &&
+			node.status === "IN_PROGRESS"
+				? {
+						trigger: "TASK_RESUMED" as const,
+						ref: projection.resumeSignalRef,
+						targetWorkerRef: binding.workerRef,
+						nodeId: node.nodeId,
+						runNo: node.runNo,
+					}
+				: undefined);
+		if (effectiveResumeSignal) {
 			if (projection.taskStatus !== "ACTIVE" || node.status !== "IN_PROGRESS")
 				return { kind: "NOOP", taskId, reason: "BINDING_NOT_READY" };
 			if (
-				resumeSignal.nodeId !== node.nodeId ||
-				resumeSignal.runNo !== node.runNo
+				effectiveResumeSignal.nodeId !== node.nodeId ||
+				effectiveResumeSignal.runNo !== node.runNo
 			)
 				return {
 					kind: "NOOP",
 					taskId,
 					reason: "RESUME_GENERATION_MISMATCH",
 				};
-			if (resumeSignal.targetWorkerRef !== binding.workerRef)
+			if (effectiveResumeSignal.targetWorkerRef !== binding.workerRef)
 				return {
 					kind: "NOOP",
 					taskId,
@@ -220,9 +238,9 @@ export function createTaskObserver(options: {
 				runNo: node.runNo,
 				roleRef: binding.roleRef,
 				workerRef: binding.workerRef,
-				trigger: resumeSignal.trigger,
+				trigger: effectiveResumeSignal.trigger,
 				conversationLocator: binding.conversationLocator,
-				underlyingRef: resumeSignal.ref,
+				underlyingRef: effectiveResumeSignal.ref,
 			};
 		}
 		return { kind: "NOOP", taskId, reason: "NO_NEXT_STEP" };

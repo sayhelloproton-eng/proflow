@@ -411,6 +411,11 @@ function string(value: unknown, name: string): string {
 		throw new TypeError(`${name} must be a non-empty string`);
 	return value;
 }
+function positiveInteger(value: unknown, name: string): number {
+	if (!Number.isInteger(value) || Number(value) <= 0)
+		throw new TypeError(`${name} must be a positive integer`);
+	return Number(value);
+}
 function unwrap<Value>(result: {
 	ok: boolean;
 	data?: Value;
@@ -595,6 +600,7 @@ export type PlatformHostTaskDriverPorts = {
 		} | null;
 		canDrive: boolean;
 		blockedReason: string | null;
+		resumeSignalRef: string | null;
 	}>;
 	getNodeContext(
 		taskId: string,
@@ -929,6 +935,45 @@ async function constructGraph(
 		}
 		return rawRecord;
 	};
+	const admissionError = (code: string, httpStatus = 403): never => {
+		throw Object.assign(new Error(code), { httpStatus });
+	};
+	const admitExactNodeExecution = async (
+		input: Record<string, unknown>,
+		authenticatedRoleRef: string,
+	) => {
+		const taskId = string(input.taskId, "taskId");
+		const nodeId = string(input.nodeId, "nodeId");
+		const runNo = positiveInteger(input.runNo, "runNo");
+		const workerRef = await admitTaskParticipant(taskId, authenticatedRoleRef);
+		await agent.validateWorker({ authenticatedRoleRef, taskId, workerRef });
+		const taskFact = taskFacts(taskId);
+		const nodeContext = unwrap(task.queries.getNodeContext({ taskId, nodeId }));
+		if (taskFact.status !== "ACTIVE")
+			admissionError("EXECUTION_TASK_NOT_ACTIVE");
+		if (taskFact.currentNodeId !== nodeId)
+			admissionError("EXECUTION_NODE_NOT_CURRENT");
+		if (nodeContext.node.status !== "IN_PROGRESS")
+			admissionError("EXECUTION_NODE_NOT_RUNNING");
+		if (nodeContext.node.runNo !== runNo)
+			admissionError("EXECUTION_GENERATION_MISMATCH");
+		const nodeBinding = taskFact.roleBindings.find(
+			(binding) =>
+				binding.agentPackageRef === nodeContext.node.requiredAgentPackageRef,
+		);
+		if (!nodeBinding)
+			throw Object.assign(new Error("TASK_ROLE_BINDING_REQUIRED"), {
+				httpStatus: 403,
+			});
+		if (nodeBinding.roleRef !== authenticatedRoleRef)
+			admissionError("EXECUTION_ROLE_SCOPE_MISMATCH");
+		if (
+			nodeBinding.workerRef !== workerRef ||
+			nodeContext.node.workerRef !== workerRef
+		)
+			admissionError("EXECUTION_WORKER_SCOPE_MISMATCH");
+		return { taskId, nodeId, runNo, workerRef };
+	};
 
 	const route = async (
 		operationId: string,
@@ -1017,28 +1062,22 @@ async function constructGraph(
 			return taskResult;
 		}
 		if (operationId === "executeCapability") {
-			const taskId =
-				typeof input.taskId === "string" ? input.taskId : undefined;
-			let canonicalWorkerRef: string | undefined;
-			if (taskId) {
-				canonicalWorkerRef = await admitTaskParticipant(
-					taskId,
-					authenticatedRoleRef,
-					typeof input.workerRef === "string" ? input.workerRef : undefined,
-				);
-				await agent.validateWorker({
-					authenticatedRoleRef,
-					taskId,
-					workerRef: canonicalWorkerRef,
-				});
-			}
+			const scope = await admitExactNodeExecution(input, authenticatedRoleRef);
+			const {
+				workerRef: _suppliedWorkerRef,
+				projectRoot: _suppliedProjectRoot,
+				roleRef: _suppliedRoleRef,
+				callerRef: _suppliedCallerRef,
+				...ownerInput
+			} = input;
 			const result = await execution.invoke(operationId, {
-				...input,
+				...ownerInput,
 				callerRef: authenticatedRoleRef,
 				roleRef: authenticatedRoleRef,
-				...(canonicalWorkerRef !== undefined
-					? { workerRef: canonicalWorkerRef }
-					: {}),
+				taskId: scope.taskId,
+				nodeId: scope.nodeId,
+				runNo: scope.runNo,
+				workerRef: scope.workerRef,
 			});
 			// A normal Action may complete synchronously inside the current Worker Turn.
 			// Do not manufacture a Browser RESUME for every terminal Execution record.
@@ -1211,12 +1250,10 @@ async function constructGraph(
 							}),
 						);
 						if (taskFact.status !== "ACTIVE") return false;
-						if (taskFact.currentNodeId !== nodeContext.node.nodeId) return false;
+						if (taskFact.currentNodeId !== nodeContext.node.nodeId)
+							return false;
 						if (request.runNo !== nodeContext.node.runNo) return false;
-						if (
-							!browserCapability &&
-							nodeContext.node.status !== "IN_PROGRESS"
-						)
+						if (!browserCapability && nodeContext.node.status !== "IN_PROGRESS")
 							return false;
 						const nodeBinding = taskFact.roleBindings.find(
 							(candidate) =>
@@ -1225,7 +1262,8 @@ async function constructGraph(
 						);
 						if (!nodeBinding?.workerRef) return false;
 						const scopedRoleRef =
-							request.roleRef ?? (internalBrowserCaller ? undefined : request.callerRef);
+							request.roleRef ??
+							(internalBrowserCaller ? undefined : request.callerRef);
 						if (scopedRoleRef !== nodeBinding.roleRef) return false;
 						if (request.workerRef !== nodeBinding.workerRef) return false;
 					}
@@ -1270,6 +1308,7 @@ async function constructGraph(
 									nodeContext.node.status === "IN_PROGRESS" &&
 									(trigger === "RECOVERY_RESUME" ||
 										trigger === "EXECUTION_RESULT_READY" ||
+										trigger === "TASK_RESUMED" ||
 										trigger === "PEER_REPLY_READY");
 								if (!readyWake && !resumeWake) return false;
 							}
@@ -1591,6 +1630,29 @@ async function constructGraph(
 					task.commands.startTask({
 						taskId: string(value.taskId, "taskId"),
 						expectedTaskVersion: Number(value.expectedTaskVersion),
+						actorRef: "extension:human",
+						idempotencyKey: string(value.idempotencyKey, "idempotencyKey"),
+					}),
+				);
+			if (operation === "message.acknowledge")
+				return unwrap(
+					task.commands.acknowledgeMessage({
+						messageId: string(value.messageId, "messageId"),
+						...(typeof value.resolution === "string"
+							? { resolution: value.resolution }
+							: {}),
+						actorRef: "extension:human",
+						idempotencyKey: string(value.idempotencyKey, "idempotencyKey"),
+					}),
+				);
+			if (operation === "task.resume")
+				return unwrap(
+					task.commands.resumeTask({
+						taskId: string(value.taskId, "taskId"),
+						expectedTaskVersion: positiveInteger(
+							value.expectedTaskVersion,
+							"expectedTaskVersion",
+						),
 						actorRef: "extension:human",
 						idempotencyKey: string(value.idempotencyKey, "idempotencyKey"),
 					}),
@@ -1965,20 +2027,25 @@ async function constructGraph(
 					});
 					return admitExecutionRead(authenticatedRoleRef, record);
 				}
-				const taskId =
-					typeof value.taskId === "string" ? value.taskId : undefined;
-				let canonicalWorkerRef: string | undefined;
-				if (taskId)
-					canonicalWorkerRef = await admitTaskParticipant(
-						taskId,
-						authenticatedRoleRef,
-						typeof value.workerRef === "string" ? value.workerRef : undefined,
-					);
+				const scope = await admitExactNodeExecution(
+					value,
+					authenticatedRoleRef,
+				);
+				const {
+					workerRef: _suppliedWorkerRef,
+					projectRoot: _suppliedProjectRoot,
+					roleRef: _suppliedRoleRef,
+					callerRef: _suppliedCallerRef,
+					...ownerInput
+				} = value;
 				const record = await execution.invoke("lookupExecutionIntent", {
-					...value,
+					...ownerInput,
 					callerRef: authenticatedRoleRef,
 					roleRef: authenticatedRoleRef,
-					...(canonicalWorkerRef ? { workerRef: canonicalWorkerRef } : {}),
+					taskId: scope.taskId,
+					nodeId: scope.nodeId,
+					runNo: scope.runNo,
+					workerRef: scope.workerRef,
 				});
 				return admitExecutionRead(authenticatedRoleRef, record);
 			}

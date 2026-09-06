@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { requiredTaskAgentPackageRefs } from "./model.ts";
+import { requiredTaskAgentPackageRefs, taskWaitTypes } from "./model.ts";
 
 export const publicOperationNames = [
 	"createTaskGroup",
@@ -149,7 +149,7 @@ const schemas: Record<PublicOperationName, z.ZodType> = {
 	waitNode: z
 		.object({
 			...nodeVersion,
-			waitType: id,
+			waitType: z.enum(taskWaitTypes),
 			reasonCode: id,
 			message: id,
 			relatedRef: id.optional(),

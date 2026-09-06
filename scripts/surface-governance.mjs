@@ -187,18 +187,12 @@ async function main() {
 		),
 		"utf8",
 	);
-	const panelTs = await readFile(
-		resolve(
-			ROOT,
-			"packages/execution-browser-extension/extension/side-panel.ts",
-		),
+	const taskPageTs = await readFile(
+		resolve(ROOT, "packages/execution-browser-extension/extension/tasks.ts"),
 		"utf8",
 	);
-	const panelHtml = await readFile(
-		resolve(
-			ROOT,
-			"packages/execution-browser-extension/extension/side-panel.html",
-		),
+	const taskPageHtml = await readFile(
+		resolve(ROOT, "packages/execution-browser-extension/extension/tasks.html"),
 		"utf8",
 	);
 	const optionsHtml = await readFile(
@@ -209,25 +203,25 @@ async function main() {
 		"utf8",
 	);
 	const messageTypes = uniq(
-		[...`${background}\n${panelTs}`.matchAll(/"(PROFLOW_[A-Z0-9_]+)"/g)].map(
+		[...`${background}\n${taskPageTs}`.matchAll(/"(PROFLOW_[A-Z0-9_]+)"/g)].map(
 			(m) => m[1],
 		),
 	);
 	const applicationOperations = uniq(
 		[
-			...panelTs.matchAll(
+			...taskPageTs.matchAll(
 				/(?:taskApplication|approvalApplication)\("([a-z][A-Za-z0-9.]+)"/g,
 			),
 		].map((m) => m[1]),
 	);
 	const staticButtons = [
-		...panelHtml.matchAll(/<button\s+id="([^"]+)"[^>]*>([^<]+)<\/button>/g),
+		...taskPageHtml.matchAll(/<button\s+id="([^"]+)"[^>]*>([^<]+)<\/button>/g),
 	].map((m) => ({
 		id: m[1],
 		label: m[2].trim(),
 		classification: "SHIPPED_UI_CONTROL",
 	}));
-	const staticForms = [...panelHtml.matchAll(/<form\s+id="([^"]+)"/g)].map(
+	const staticForms = [...taskPageHtml.matchAll(/<form\s+id="([^"]+)"/g)].map(
 		(m) => ({ id: m[1], classification: "SHIPPED_UI_FORM" }),
 	);
 	const optionForms = [...optionsHtml.matchAll(/<form\s+id="([^"]+)"/g)].map(
@@ -236,6 +230,8 @@ async function main() {
 	const dynamicControls = [
 		{ label: "Allow", operation: "approval.allow" },
 		{ label: "Deny", operation: "approval.deny" },
+		{ label: "Resolve blocker", operation: "message.acknowledge" },
+		{ label: "Resume", operation: "task.resume" },
 		{ label: "Reopen", operation: "node.reopen" },
 		{ label: "Task row open", operation: "task.get" },
 	].map((item) => ({
@@ -268,7 +264,7 @@ async function main() {
 		contract: "proflow.ui-interaction-reconciliation.v1",
 		semantics:
 			"Mechanical shipped UI inventory. Controls prove an implemented interaction surface only; real Chrome/Custom GPT behavior remains REAL_EXTERNAL where applicable.",
-		sidePanel: {
+		taskPage: {
 			forms: staticForms,
 			staticButtons,
 			dynamicControls,
