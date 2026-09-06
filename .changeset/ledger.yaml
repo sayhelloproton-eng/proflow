@@ -34,6 +34,10 @@
   dir: packages/agent-controller-dev
   intents:
     - real3-b1-runtime-adoption
+"@tomflow/proflow-agent-controller-dev@0.1.18":
+  dir: packages/agent-controller-dev
+  intents:
+    - social-pugs-doubt
 "@tomflow/proflow-agent-controller-dev@0.1.2":
   dir: packages/agent-controller-dev
   intents:
@@ -186,6 +190,10 @@
   dir: packages/agent-runtime
   intents:
     - retry-role-carrier-action-probe
+"@tomflow/proflow-agent-runtime@0.1.14":
+  dir: packages/agent-runtime
+  intents:
+    - social-pugs-doubt
 "@tomflow/proflow-agent-runtime@0.1.2":
   dir: packages/agent-runtime
   intents:
@@ -246,6 +254,10 @@
   dir: packages/agent-test-ops
   intents:
     - real3-b1-runtime-adoption
+"@tomflow/proflow-agent-test-ops@0.1.18":
+  dir: packages/agent-test-ops
+  intents:
+    - social-pugs-doubt
 "@tomflow/proflow-agent-test-ops@0.1.2":
   dir: packages/agent-test-ops
   intents:
