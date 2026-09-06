@@ -509,6 +509,36 @@ test("REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims No
 	);
 });
 
+test("REG-EXE-BR-03B TASK_RESUMED remains a typed bounded worker.wake trigger", async () => {
+	const { extension, browser, bindings } = await fixture();
+	bindings.set("task:1:g-dev", {
+		workerRef: "c-dev",
+		conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+	});
+	const result = await extension.execute({
+		request: request("worker.wake", {
+			roleRef: "g-dev",
+			workerRef: "c-dev",
+			taskId: "task:1",
+			nodeId: "node:1",
+			runNo: 1,
+			trigger: "TASK_RESUMED",
+			fingerprint: "wake:resume:1",
+		}),
+		admission: {
+			policy: "ALLOW",
+			decisionPath: "deterministic",
+			approval: "NOT_REQUIRED",
+		},
+		onEffectStarted() {},
+	});
+	assert.equal(result.result.capability, "worker.wake");
+	assert.equal(result.result.data.delivered, true);
+	assert.equal(browser.submitCount, 1);
+	assert.match(browser.submittedTexts[0] ?? "", /"triggerType":"TASK_RESUMED"/);
+	assert.match(browser.submittedTexts[0] ?? "", /"fingerprint":"wake:resume:1"/);
+});
+
 test("PRESMOKE-B3-WAKE-01 worker.wake rejects untyped/arbitrary wake reasons before Browser effect", async () => {
 	const { extension, browser, bindings } = await fixture();
 	bindings.set("task:1:g-dev", {

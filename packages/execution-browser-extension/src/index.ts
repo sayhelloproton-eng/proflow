@@ -189,6 +189,7 @@ const workerWakeTriggerTypes = new Set([
 	"EXECUTION_RESULT_READY",
 	"PEER_REPLY_READY",
 	"RECOVERY_RESUME",
+	"TASK_RESUMED",
 ]);
 
 function parseCarrierIdentity(raw: string): {
