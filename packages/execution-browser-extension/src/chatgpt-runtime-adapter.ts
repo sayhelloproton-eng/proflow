@@ -121,9 +121,17 @@ export function performChatGptPermissionAction(
 	return permission.facts;
 }
 
+export function selectChatGptComposerElement(document: Document): Element | null {
+	return (
+		document.querySelector("#prompt-textarea") ??
+		document.querySelector("textarea") ??
+		document.querySelector('[contenteditable="true"]')
+	);
+}
+
 function composerElement(document: Document): HTMLElement {
 	const view = document.defaultView;
-	const element = document.querySelector(composerSelector);
+	const element = selectChatGptComposerElement(document);
 	if (!view || !(element instanceof view.HTMLElement))
 		throw new Error("COMPOSER_NOT_FOUND");
 	return element;

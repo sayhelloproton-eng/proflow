@@ -2,6 +2,24 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { submitControlledComposer } from "../src/composer-submit.ts";
+import { selectChatGptComposerElement } from "../src/chatgpt-runtime-adapter.ts";
+
+test("CP-EXE-BR-22 prefers the canonical prompt editor over an earlier fallback textarea", () => {
+	const prompt = { kind: "prompt" } as unknown as Element;
+	const fallback = { kind: "textarea" } as unknown as Element;
+	const calls: string[] = [];
+	const document = {
+		querySelector(selector: string) {
+			calls.push(selector);
+			if (selector === "#prompt-textarea") return prompt;
+			if (selector === "textarea") return fallback;
+			return null;
+		},
+	} as unknown as Document;
+
+	assert.equal(selectChatGptComposerElement(document), prompt);
+	assert.deepEqual(calls, ["#prompt-textarea"]);
+});
 
 class DelayedComposer {
 	committed = "previous";
