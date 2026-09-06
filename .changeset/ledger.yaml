@@ -619,6 +619,10 @@
   dir: packages/execution-browser-extension
   intents:
     - real3-b1-runtime-adoption
+"@tomflow/proflow-execution-browser-extension@0.1.46":
+  dir: packages/execution-browser-extension
+  intents:
+    - resumed-worker-wake
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
