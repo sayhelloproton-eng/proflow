@@ -10,7 +10,7 @@ let previousFrontmost = NSWorkspace.shared.frontmostApplication
 let privilegedActions: Set<String> = [
     "dismiss-help", "open-extensions-menu", "open-proflow-tasks", "inspect-tab-strip",
     "select-tab", "attach-tab-to-playwright-group", "status", "screenshot-extensions",
-    "reload-at-point", "reload", "install", "uninstall",
+    "inspect-extension-geometry", "reload-at-point", "reload", "install", "uninstall",
 ]
 let mayActivateChrome = privilegedActions.contains(action)
 
@@ -162,6 +162,18 @@ func removeButtonAfterExtension() -> AXUIElement? {
 func reloadButtonAfterExtension() -> AXUIElement? {
     cardButton(named: ["重新加载", "Reload"])
 }
+func inspectExtensionGeometry() throws {
+    try ensureExtensionsPage()
+    let all = nodes()
+    for element in all {
+        let value = text(element)
+        let isIdentity = value.contains(extensionName) || value.contains(extensionId)
+        let isReload = role(element) == kAXButtonRole as String && ["重新加载", "Reload"].contains(value)
+        guard (isIdentity || isReload), let rect = bounds(element) else { continue }
+        print("AX_GEOMETRY role=\(role(element)) text=\(value) x=\(rect.origin.x) y=\(rect.origin.y) w=\(rect.size.width) h=\(rect.size.height)")
+    }
+}
+
 func confirmationVisible() -> Bool {
     nodes().contains {
         let value = text($0)
@@ -474,6 +486,9 @@ do {
         try ensureExtensionsPage()
         screenshot("extensions-current")
         finish(extensionPresent() ? "SCREENSHOT_PRESENT" : "SCREENSHOT_MISSING")
+    case "inspect-extension-geometry":
+        try inspectExtensionGeometry()
+        finish("EXTENSION_GEOMETRY_INSPECTED")
     case "reload-at-point":
         try ensureExtensionsPage()
         guard extensionPresent() else {
@@ -518,7 +533,7 @@ do {
         guard wait(12.0, extensionPresent) else { throw NSError(domain: "human-e2e", code: 11, userInfo: [NSLocalizedDescriptionKey: "EXTENSION_CARD_NOT_VISIBLE_AFTER_SELECT"]) }
         finish("INSTALLED")
     default:
-        fputs("Usage: swift scripts/human-e2e/browser-extension-ui.swift status|screenshot-extensions|reload-at-point|reload|install|uninstall|dismiss-help|open-extensions-menu|open-proflow-tasks|create-real3-task|recover-real3-workers|inspect|inspect-tab-strip|select-tab|attach-tab-to-playwright-group\n", stderr)
+        fputs("Usage: swift scripts/human-e2e/browser-extension-ui.swift status|screenshot-extensions|inspect-extension-geometry|reload-at-point|reload|install|uninstall|dismiss-help|open-extensions-menu|open-proflow-tasks|create-real3-task|recover-real3-workers|inspect|inspect-tab-strip|select-tab|attach-tab-to-playwright-group\n", stderr)
         exit(64)
     }
 } catch {
