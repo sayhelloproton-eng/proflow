@@ -24,8 +24,9 @@ CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_CHROME_ADOPTION_HARDENING
 
 ```text
 branch = main
-HEAD = 0662615 chore(release): version execution-browser-extension
-worktree = CLEAN
+worktree at last frozen context = CLEAN
+Browser Reload harness hardening acceptance first frozen in context commit = 48b7912
+0.1.50 release commit authority = 0662615 chore(release): version execution-browser-extension
 0.1.50 source commit base = 112fee7 docs: hand off Real-3 integration hardening
 0.1.49 release commit = 6e9b51a chore(release): version execution-browser-extension
 0.1.49 source fix = 5464f7d fix(browser): rearm observer recovery on bridge reconnect
