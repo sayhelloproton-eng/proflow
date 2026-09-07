@@ -20,6 +20,8 @@ const expectedCases = [
 	"point-overlaps-details",
 	"point-outside-reload",
 	"derived-midpoint-and-result-semantics",
+	"real-shared-ancestor-legacy-selector-red",
+	"real-shared-ancestor-selector-green",
 	"extensions-exact-base-url",
 	"extensions-trailing-slash-url",
 	"extensions-error-query-rejected",
@@ -50,7 +52,7 @@ test("browser reload selector passes the frozen deterministic matrix", () => {
 	for (const name of expectedCases) {
 		assert.match(result.stdout, new RegExp(`HARNESS_TEST=${name} PASS`));
 	}
-	assert.match(result.stdout, /HARNESS_TESTS=25\/25/);
+	assert.match(result.stdout, /HARNESS_TESTS=27\/27/);
 });
 
 test("all Extension-card actions share the URL-first canonical page gate", () => {
@@ -88,4 +90,21 @@ test("real reload action reports dispatch only and has no coordinate authority f
 	assert.doesNotMatch(source, /PROFLOW_BROWSER_RELOAD_[XY]/);
 	assert.match(source, /TARGET_RELOAD_UNIQUE=YES/);
 	assert.match(source, /TARGET_RELOAD_POINT_CONTROL_OVERLAP=NO/);
+});
+
+test("semantic card-binding diagnostic is read-only and shares the canonical page gate", () => {
+	const source = readFileSync(swiftUrl, "utf8");
+	assert.match(source, /func inspectReloadSemanticBinding\(\) throws/);
+	assert.match(
+		source,
+		/case "inspect-reload-semantic-binding":\s*try ensureExtensionsPage\(\)\s*try inspectReloadSemanticBinding\(\)/s,
+	);
+	const diagnostic = source.match(
+		/func inspectReloadSemanticBinding\(\) throws \{([\s\S]*?)\n\}/,
+	)?.[1];
+	assert.ok(diagnostic, "diagnostic body must be present");
+	assert.doesNotMatch(
+		diagnostic,
+		/dispatchReloadPress|AXUIElementPerformAction|click\(|CGEvent/,
+	);
 });

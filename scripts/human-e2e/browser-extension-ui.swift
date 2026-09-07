@@ -10,7 +10,8 @@ let previousFrontmost = NSWorkspace.shared.frontmostApplication
 let privilegedActions: Set<String> = [
     "dismiss-help", "open-extensions-menu", "open-proflow-tasks", "inspect-tab-strip",
     "select-tab", "attach-tab-to-playwright-group", "status", "screenshot-extensions",
-    "inspect-extension-geometry", "reload-at-point", "reload", "install", "uninstall",
+    "inspect-extension-geometry", "inspect-reload-semantic-binding", "reload-at-point",
+    "reload", "install", "uninstall",
 ]
 let mayActivateChrome = privilegedActions.contains(action)
 let targetReloadClickDispatchedResult = "TARGET_RELOAD_CLICK_DISPATCHED"
@@ -55,6 +56,32 @@ struct ReloadTargetSelection {
     let card: ReloadSemanticNode
     let reload: ReloadSemanticNode
     let point: CGPoint
+}
+
+struct CardIdentityEvaluation {
+    let candidate: ReloadSemanticNode
+    let targetId: String
+    let hasValidBounds: Bool
+    let hasName: Bool
+    let descendantIds: Set<String>
+    let hasTargetId: Bool
+    let boundedName: Bool
+    let boundedId: Bool
+
+    var matches: Bool {
+        hasValidBounds && hasName && descendantIds == [targetId] &&
+            hasTargetId && boundedName && boundedId
+    }
+
+    var firstFailedPredicate: String {
+        if !hasValidBounds { return "VALID_BOUNDS" }
+        if !hasName { return "DESCENDANT_NAME_PRESENT" }
+        if descendantIds != [targetId] { return "DESCENDANT_ID_SET_EXACT_TARGET" }
+        if !hasTargetId { return "TARGET_ID_NODE_PRESENT" }
+        if !boundedName { return "BOUNDED_NAME_CONTAINMENT" }
+        if !boundedId { return "BOUNDED_ID_CONTAINMENT" }
+        return "NONE"
+    }
 }
 
 enum ExtensionsPageDisposition: Equatable {
@@ -150,30 +177,174 @@ func validateReloadPoint(
     }
 }
 
-func selectReloadTarget(
+func evaluateCardIdentity(
+    _ candidate: ReloadSemanticNode,
+    extensionName: String,
+    extensionId: String
+) -> CardIdentityEvaluation {
+    let cardBounds = candidate.rect
+    let hasValidBounds = cardBounds.map { $0.width > 0 && $0.height > 0 } ?? false
+    let descendants = flattenSemantic(candidate)
+    let nameNodes = descendants.filter { $0.value.contains(extensionName) }
+    let ids = descendants.reduce(into: Set<String>()) { result, node in
+        result.formUnion(chromeExtensionIds(in: node.value))
+    }
+    let idNodes = descendants.filter { chromeExtensionIds(in: $0.value).contains(extensionId) }
+    let boundedName = cardBounds.map { bounds in
+        nameNodes.contains { node in
+            guard let nodeBounds = node.rect else { return false }
+            return rectContains(bounds, nodeBounds)
+        }
+    } ?? false
+    let boundedId = cardBounds.map { bounds in
+        idNodes.contains { node in
+            guard let nodeBounds = node.rect else { return false }
+            return rectContains(bounds, nodeBounds)
+        }
+    } ?? false
+    return CardIdentityEvaluation(
+        candidate: candidate,
+        targetId: extensionId,
+        hasValidBounds: hasValidBounds,
+        hasName: !nameNodes.isEmpty,
+        descendantIds: ids,
+        hasTargetId: !idNodes.isEmpty,
+        boundedName: boundedName,
+        boundedId: boundedId
+    )
+}
+
+func minimalSemanticNodes(
+    in root: ReloadSemanticNode,
+    matching predicate: (ReloadSemanticNode) -> Bool
+) -> [ReloadSemanticNode] {
+    flattenSemantic(root).filter(predicate).filter { candidate in
+        !candidate.children.flatMap(flattenSemantic).contains(where: predicate)
+    }
+}
+
+func semanticPath(
+    from root: ReloadSemanticNode,
+    to target: ReloadSemanticNode,
+    ancestors: [ReloadSemanticNode] = []
+) -> [ReloadSemanticNode]? {
+    if root === target { return ancestors + [root] }
+    for child in root.children {
+        if let path = semanticPath(from: child, to: target, ancestors: ancestors + [root]) {
+            return path
+        }
+    }
+    return nil
+}
+
+func horizontallyOverlaps(_ first: CGRect, _ second: CGRect) -> Bool {
+    max(first.minX, second.minX) <= min(first.maxX, second.maxX)
+}
+
+func identityGeometryMatches(nameBounds: CGRect, idBounds: CGRect) -> Bool {
+    let lineHeight = max(nameBounds.height, idBounds.height)
+    return horizontallyOverlaps(nameBounds, idBounds) &&
+        idBounds.minY >= nameBounds.minY &&
+        idBounds.minY - nameBounds.maxY <= lineHeight * 5
+}
+
+func reloadGeometryMatches(idBounds: CGRect, reloadBounds: CGRect) -> Bool {
+    let controlHeight = max(idBounds.height, reloadBounds.height)
+    return horizontallyOverlaps(idBounds, reloadBounds) &&
+        reloadBounds.minY >= idBounds.maxY &&
+        reloadBounds.minY - idBounds.maxY <= controlHeight * 4
+}
+
+func selectReloadTargetByGeometry(
+    root: ReloadSemanticNode,
+    extensionName: String,
+    extensionId: String
+) throws -> ReloadTargetSelection {
+    let idNodes = minimalSemanticNodes(in: root) {
+        chromeExtensionIds(in: $0.value).count == 1
+    }
+    let targetIdNodes = idNodes.filter {
+        chromeExtensionIds(in: $0.value) == [extensionId] && $0.rect != nil
+    }
+    guard targetIdNodes.count == 1, let idBounds = targetIdNodes[0].rect else {
+        throw HarnessDecisionError(code: "TARGET_EXTENSION_CARD_NOT_FOUND")
+    }
+    let targetIdNode = targetIdNodes[0]
+
+    let nameNodes = minimalSemanticNodes(in: root) {
+        $0.value.contains(extensionName) && $0.rect != nil
+    }.filter { nameNode in
+        guard let path = semanticPath(from: root, to: nameNode),
+              let nearestIdentityAncestor = path.reversed().first(where: { ancestor in
+                  flattenSemantic(ancestor).contains {
+                      !chromeExtensionIds(in: $0.value).isEmpty
+                  }
+              }) else { return false }
+        let ancestorIds = flattenSemantic(nearestIdentityAncestor).reduce(into: Set<String>()) {
+            $0.formUnion(chromeExtensionIds(in: $1.value))
+        }
+        return ancestorIds.contains(extensionId)
+    }.filter { nameNode in
+        guard let nameBounds = nameNode.rect else { return false }
+        return identityGeometryMatches(nameBounds: nameBounds, idBounds: idBounds)
+    }
+    guard nameNodes.count == 1, let nameBounds = nameNodes[0].rect else {
+        throw HarnessDecisionError(code: "TARGET_EXTENSION_CARD_NOT_FOUND")
+    }
+    let targetNameNode = nameNodes[0]
+
+    guard let idPath = semanticPath(from: root, to: targetIdNode),
+          let nearestNamedAncestor = idPath.reversed().first(where: { ancestor in
+              flattenSemantic(ancestor).contains { $0.value.contains(extensionName) }
+          }),
+          flattenSemantic(nearestNamedAncestor).contains(where: { $0 === targetNameNode }) else {
+        throw HarnessDecisionError(code: "TARGET_EXTENSION_CARD_NOT_FOUND")
+    }
+
+    let reloads = minimalSemanticNodes(in: root, matching: isReloadControl).filter { reload in
+        guard let reloadBounds = reload.rect else { return false }
+        return reloadGeometryMatches(idBounds: idBounds, reloadBounds: reloadBounds)
+    }
+    guard reloads.count == 1 else {
+        throw HarnessDecisionError(code: reloads.isEmpty ? "TARGET_RELOAD_NOT_FOUND" : "TARGET_RELOAD_NOT_UNIQUE")
+    }
+    let reload = reloads[0]
+    guard reload.isEnabled else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_DISABLED")
+    }
+    guard reload.actionNames.contains(kAXPressAction as String) else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_NOT_PRESSABLE")
+    }
+    guard let reloadBounds = reload.rect else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_BOUNDS_INVALID")
+    }
+    let cardBounds = nameBounds.union(idBounds).union(reloadBounds)
+    let card = ReloadSemanticNode(
+        key: "geometry-card-\(extensionId)",
+        roleName: "AXGeometryGroup",
+        value: "",
+        rect: cardBounds,
+        children: [targetNameNode, targetIdNode, reload]
+    )
+    let point = CGPoint(x: reloadBounds.midX, y: reloadBounds.midY)
+    let otherControls = flattenSemantic(root).filter {
+        $0 !== reload && isAdjacentMutationControl($0)
+    }
+    try validateReloadPoint(point, reloadBounds: reloadBounds, otherControls: otherControls)
+    return ReloadTargetSelection(card: card, reload: reload, point: point)
+}
+
+func selectReloadTargetByContainer(
     root: ReloadSemanticNode,
     extensionName: String,
     extensionId: String
 ) throws -> ReloadTargetSelection {
     func matchesCardIdentity(_ candidate: ReloadSemanticNode) -> Bool {
-        guard let cardBounds = candidate.rect, cardBounds.width > 0, cardBounds.height > 0 else { return false }
-        let descendants = flattenSemantic(candidate)
-        let nameNodes = descendants.filter { $0.value.contains(extensionName) }
-        let ids = descendants.reduce(into: Set<String>()) { result, node in
-            result.formUnion(chromeExtensionIds(in: node.value))
-        }
-        guard !nameNodes.isEmpty, ids == [extensionId] else { return false }
-        let idNodes = descendants.filter { chromeExtensionIds(in: $0.value).contains(extensionId) }
-        guard !idNodes.isEmpty else { return false }
-        let boundedName = nameNodes.contains { node in
-            guard let nodeBounds = node.rect else { return false }
-            return rectContains(cardBounds, nodeBounds)
-        }
-        let boundedId = idNodes.contains { node in
-            guard let nodeBounds = node.rect else { return false }
-            return rectContains(cardBounds, nodeBounds)
-        }
-        return boundedName && boundedId
+        evaluateCardIdentity(
+            candidate,
+            extensionName: extensionName,
+            extensionId: extensionId
+        ).matches
     }
 
     let allCandidates = flattenSemantic(root).filter(matchesCardIdentity)
@@ -206,6 +377,26 @@ func selectReloadTarget(
     let otherControls = descendants.filter { $0 !== reload && isAdjacentMutationControl($0) }
     try validateReloadPoint(point, reloadBounds: reloadBounds, otherControls: otherControls)
     return ReloadTargetSelection(card: card, reload: reload, point: point)
+}
+
+func selectReloadTarget(
+    root: ReloadSemanticNode,
+    extensionName: String,
+    extensionId: String
+) throws -> ReloadTargetSelection {
+    do {
+        return try selectReloadTargetByContainer(
+            root: root,
+            extensionName: extensionName,
+            extensionId: extensionId
+        )
+    } catch let error as HarnessDecisionError where error.code == "TARGET_EXTENSION_CARD_NOT_FOUND" {
+        return try selectReloadTargetByGeometry(
+            root: root,
+            extensionName: extensionName,
+            extensionId: extensionId
+        )
+    }
 }
 
 func attribute(_ element: AXUIElement, _ name: CFString) -> AnyObject? {
@@ -381,6 +572,74 @@ func liveReloadTarget() throws -> ReloadTargetSelection {
 
 func formatRect(_ rect: CGRect) -> String {
     String(format: "x=%.1f,y=%.1f,w=%.1f,h=%.1f", rect.minX, rect.minY, rect.width, rect.height)
+}
+
+func formatOptionalRect(_ rect: CGRect?) -> String {
+    rect.map(formatRect) ?? "MISSING"
+}
+
+func yesNo(_ value: Bool) -> String { value ? "YES" : "NO" }
+
+func semanticPaths(
+    from node: ReloadSemanticNode,
+    ancestors: [ReloadSemanticNode] = []
+) -> [(node: ReloadSemanticNode, ancestors: [ReloadSemanticNode])] {
+    [(node, ancestors)] + node.children.flatMap {
+        semanticPaths(from: $0, ancestors: ancestors + [node])
+    }
+}
+
+func inspectReloadSemanticBinding() throws {
+    var remaining = 5000
+    let snapshot = semanticSnapshot(scanRoot(), remaining: &remaining)
+    let paths = semanticPaths(from: snapshot)
+    let namePaths = paths.filter { $0.node.value.contains(extensionName) }
+    let idPaths = paths.filter { chromeExtensionIds(in: $0.node.value).contains(extensionId) }
+    let reloadPaths = paths.filter { isReloadControl($0.node) }
+    let evaluations = paths.map {
+        evaluateCardIdentity(
+            $0.node,
+            extensionName: extensionName,
+            extensionId: extensionId
+        )
+    }
+    let candidates = evaluations.filter(\.matches)
+    let minimalCandidates = candidates.filter { evaluation in
+        !evaluation.candidate.children.flatMap(flattenSemantic).contains { child in
+            evaluateCardIdentity(
+                child,
+                extensionName: extensionName,
+                extensionId: extensionId
+            ).matches
+        }
+    }
+
+    print("SEMANTIC_NODE_COUNT=\(paths.count)")
+    print("SEMANTIC_SNAPSHOT_BUDGET_REMAINING=\(remaining)")
+    print("NAME_NODE_COUNT=\(namePaths.count)")
+    print("ID_NODE_COUNT=\(idPaths.count)")
+    print("RELOAD_NODE_COUNT=\(reloadPaths.count)")
+    print("CANDIDATE_COUNT=\(candidates.count)")
+    print("MINIMAL_CANDIDATE_COUNT=\(minimalCandidates.count)")
+
+    func emitNode(_ label: String, index: Int, path: (node: ReloadSemanticNode, ancestors: [ReloadSemanticNode])) {
+        let node = path.node
+        print("\(label)_\(index) role=\(node.roleName) text=\(node.value) bounds=\(formatOptionalRect(node.rect)) enabled=\(yesNo(node.isEnabled)) actions=\(node.actionNames.sorted().joined(separator: ","))")
+        for (level, ancestor) in path.ancestors.reversed().enumerated() {
+            let evaluation = evaluateCardIdentity(
+                ancestor,
+                extensionName: extensionName,
+                extensionId: extensionId
+            )
+            let descendants = flattenSemantic(ancestor)
+            let reloadCount = descendants.filter(isReloadControl).count
+            print("ANCESTOR target=\(label)_\(index) level=\(level) role=\(ancestor.roleName) bounds=\(formatOptionalRect(ancestor.rect)) hasName=\(yesNo(evaluation.hasName)) ids=[\(evaluation.descendantIds.sorted().joined(separator: ","))] hasTargetId=\(yesNo(evaluation.hasTargetId)) boundedName=\(yesNo(evaluation.boundedName)) boundedId=\(yesNo(evaluation.boundedId)) reloadCount=\(reloadCount) matches=\(yesNo(evaluation.matches)) firstFailed=\(evaluation.firstFailedPredicate)")
+        }
+    }
+
+    for (index, path) in namePaths.enumerated() { emitNode("NAME_NODE", index: index + 1, path: path) }
+    for (index, path) in idPaths.enumerated() { emitNode("ID_NODE", index: index + 1, path: path) }
+    for (index, path) in reloadPaths.enumerated() { emitNode("RELOAD_NODE", index: index + 1, path: path) }
 }
 
 func emitReloadAttestation(_ selection: ReloadTargetSelection) throws {
@@ -633,6 +892,82 @@ func runHarnessSelfTests() throws {
             throw HarnessDecisionError(code: "SELF_TEST_RESULT_OVERCLAIMS")
         }
     }
+    let realSharedAncestorShape = node(
+        "shared-extension-grid",
+        "AXGroup",
+        "",
+        rect: CGRect(x: 256, y: 258, width: 1532, height: 822),
+        children: [
+            node(
+                "other-id",
+                "AXStaticText",
+                "ID: \(otherId)",
+                rect: CGRect(x: 502, y: 452, width: 236, height: 17)
+            ),
+            node(
+                "other-reload",
+                buttonRole,
+                "重新加载",
+                rect: CGRect(x: 720, y: 515, width: 32, height: 33),
+                actions: [press]
+            ),
+            node(
+                "target-heading",
+                "AXHeading",
+                targetName,
+                rect: CGRect(x: 914, y: 363, width: 164, height: 21),
+                children: [
+                    node(
+                        "target-name",
+                        "AXStaticText",
+                        targetName,
+                        rect: CGRect(x: 914, y: 365, width: 164, height: 17)
+                    ),
+                ]
+            ),
+            node(
+                "target-id-group",
+                "AXGroup",
+                "",
+                rect: CGRect(x: 914, y: 450, width: 288, height: 21),
+                children: [
+                    node(
+                        "target-id",
+                        "AXStaticText",
+                        "ID: \(targetId)",
+                        rect: CGRect(x: 914, y: 452, width: 236, height: 17)
+                    ),
+                ]
+            ),
+            node(
+                "target-reload",
+                buttonRole,
+                "重新加载",
+                rect: CGRect(x: 1132, y: 515, width: 32, height: 33),
+                actions: [press]
+            ),
+        ]
+    )
+    try expectFailure(
+        "real-shared-ancestor-legacy-selector-red",
+        "TARGET_EXTENSION_CARD_NOT_FOUND"
+    ) {
+        _ = try selectReloadTargetByContainer(
+            root: realSharedAncestorShape,
+            extensionName: targetName,
+            extensionId: targetId
+        )
+    }
+    try expectPass("real-shared-ancestor-selector-green") {
+        let selection = try selectReloadTarget(
+            root: realSharedAncestorShape,
+            extensionName: targetName,
+            extensionId: targetId
+        )
+        guard selection.reload.key == "target-reload" else {
+            throw HarnessDecisionError(code: "SELF_TEST_WRONG_SHARED_ANCESTOR_RELOAD")
+        }
+    }
     try expectPass("extensions-exact-base-url") {
         guard isCanonicalExtensionsURL("chrome://extensions") else {
             throw HarnessDecisionError(code: "SELF_TEST_EXACT_BASE_REJECTED")
@@ -702,7 +1037,7 @@ func runHarnessSelfTests() throws {
     ) {
         try requireCanonicalExtensionsPage(currentURL: nil, listSurfaceReady: true)
     }
-    print("HARNESS_TESTS=25/25")
+    print("HARNESS_TESTS=27/27")
 }
 
 func finish(_ result: String) {
@@ -930,6 +1265,10 @@ do {
     case "inspect-extension-geometry":
         try inspectExtensionGeometry()
         finish("EXTENSION_GEOMETRY_INSPECTED")
+    case "inspect-reload-semantic-binding":
+        try ensureExtensionsPage()
+        try inspectReloadSemanticBinding()
+        finish("RELOAD_SEMANTIC_BINDING_INSPECTED")
     case "reload-at-point":
         try ensureExtensionsPage()
         let selection = try liveReloadTarget()
@@ -972,7 +1311,7 @@ do {
         guard wait(12.0, extensionPresent) else { throw NSError(domain: "human-e2e", code: 11, userInfo: [NSLocalizedDescriptionKey: "EXTENSION_CARD_NOT_VISIBLE_AFTER_SELECT"]) }
         finish("INSTALLED")
     default:
-        fputs("Usage: swift scripts/human-e2e/browser-extension-ui.swift harness-self-test|status|screenshot-extensions|inspect-extension-geometry|reload-at-point|reload|install|uninstall|dismiss-help|open-extensions-menu|open-proflow-tasks|create-real3-task|recover-real3-workers|inspect|inspect-tab-strip|select-tab|attach-tab-to-playwright-group\n", stderr)
+        fputs("Usage: swift scripts/human-e2e/browser-extension-ui.swift harness-self-test|status|screenshot-extensions|inspect-extension-geometry|inspect-reload-semantic-binding|reload-at-point|reload|install|uninstall|dismiss-help|open-extensions-menu|open-proflow-tasks|create-real3-task|recover-real3-workers|inspect|inspect-tab-strip|select-tab|attach-tab-to-playwright-group\n", stderr)
         exit(64)
     }
 } catch {
