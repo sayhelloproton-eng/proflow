@@ -44,13 +44,49 @@ AX / Swift helper 属于 Reality Plane 的 privileged UI 分支，但**不属于
 
 恢复原则：工具 runtime 异常只修工具 runtime；恢复后回原业务 checkpoint。不要因为 Repomix/Playwright relay 重建就重跑 Deployment、重建 Task/Conversation 或修改产品代码。
 
-## Repomix Runtime / Sandbox 语义
+## Repomix Context Plane
 
-本节只拥有 Repomix 的**运行时与路径语义**；Context Scope、pack/grep/read 的任务调度统一由 `Chat-高吞吐本地工程执行.md` 拥有。
+当前 Repomix MCP 被限制在仓库根 `/Users/agent/Desktop/proton-workspace/repos` 的 sandbox 内；工具参数使用相对路径，例如 `proflow`、`job-search-system`，而不是绝对路径。稳定能力面是：
 
-当前 Repomix MCP sandbox 根是 `/Users/agent/Desktop/proton-workspace/repos`。首次调用先用 `file_system_read_directory(".")` 机械确认根；后续参数必须使用 sandbox 相对路径（如 `proflow`），禁止传绝对路径，也不要额外再加一层 `repos/`。`directory not found` 首先按路径语义错误处理，不得直接归因于 Repomix runtime。
+首次调用固定先做一次低成本 root preflight：`file_system_read_directory(".")`。当前预期只应看到 `proflow/`、`ai-agent-platform/`、`job-search-system/` 等 sandbox 内条目；随后整个 Chat 缓存该根语义。**不要传绝对路径，也不要再额外加一层 `repos/`**：`repos/proflow` 会被解析成 sandbox 下的 `repos/proflow` 而返回 `directory not found`。该错误首先按路径语义错误处理，不得直接归因到 Repomix runtime、不应因此跳过 Context Plane。
 
-Repomix outputId 是 pack 时刻的只读快照；源码变更后旧 outputId 不代表最新磁盘。当前修改/Git/test/build 永远回 Local Dev。
+```text
+file_system_read_directory / file_system_read_file
+→ 小范围只读探索
+
+pack_codebase
+→ 把指定仓库/目录构造成稳定 outputId
+
+grep_repomix_output
+→ 在聚合上下文中快速定位主题、文件、heading、符号
+
+read_repomix_output
+→ 只读取命中附近的精确行段
+```
+
+高吞吐默认不是 `file_system_read_file × N`，也不是“任务一来先 pack 整个仓库”，而是**最小充分范围优先、证据驱动逐层扩张**：
+
+```text
+任务已经决定进入 Repomix Context Plane，且需要 owning package 的实现/tests/config 邻接上下文
+→ pack owning package / 最小相关目录
+→ 围绕同一 outputId grep/read，批量建立实现、测试、配置和邻接上下文
+→ 再进入 CodeGraph / Local Dev
+
+已知 symbol/入口且当前只做 caller/callee / ownership / composition / blast radius
+→ 不在 Runtime 文档强制 pack；按 `Chat-高吞吐本地工程执行.md` 直接 CodeGraph
+
+未知但可定位到目录/包
+→ pack 该 package / 最小相关目录
+→ grep/read 判断信息是否足够
+
+证据显示跨包/跨领域
+→ 扩到父目录、相关 packages，或用 includePatterns 精确扩大
+
+只有任务本身确实 repo-wide / 全局迁移 / 全仓一致性审计
+→ 才 pack 整个仓库
+```
+
+每扩大一级都必须回答“当前不确定性为什么需要更大的范围”；不能因为 Repomix 能打全仓，就把全仓 pack 当默认入口。已有 `outputId` 时固定 `grep many → read small ranges`，禁止把百万 Token 输出整体灌入 Chat。工具本身是只读 Context Plane；任何当前源码修改、Git、测试和命令仍由 Local Dev 执行。任务路由细则见 `Chat-高吞吐本地工程执行.md`。
 
 ## Playwright Chrome 真实控制链
 
@@ -127,9 +163,18 @@ Token 更新本身**不等于业务 Browser 控制恢复成功**。更新后必�
 
 必须区分：**Playwright MCP Extension = 自动化控制基础设施**；**ProFlow Execution Browser Extension = 被测产品扩展**。二者绝不能因为都出现在 Chrome 扩展体系里而混为同一个对象；具体 Extension ID 可能变化，以当前 Chrome/runtime evidence 为准，不在长期 Runbook 写死。
 
-## 工具调度归属
+## 四工具协同
 
-四 Plane 的任务路由、Repomix/CodeGraph/Local Dev/Playwright 协作顺序统一由 `Chat-高吞吐本地工程执行.md` 拥有；本 Runbook 不再复制第二套调度规则。这里仅处理 gptweb-mcp runtime、manager、relay、sandbox、token 与连接恢复。
+```text
+Repomix           → Context Plane：仓库上下文批量读取；窄域 pack 当前包，广域按证据扩张，一次 pack 多次 grep/read
+CodeGraph         → Structure Plane：调用链、依赖、composition、ownership、blast radius
+Local Dev         → Execution Plane：当前源码、文件、CLI、Git、PID/evidence、修改与 test/gate
+Playwright Chrome → Reality Plane/Web：真实网页、登录授权、ChatGPT Conversation、Console/Network、page screenshot；privileged UI 则由 AX/Swift + screenshot 补齐，不属于 gptweb-mcp managed runtime
+```
+
+协作不是固定四连调用，更不是四个工具各自把同一仓库重新读一遍。上下文必须逐层收敛：`Repomix` 只在最小充分范围内发现候选文件/目录 → `CodeGraph` 只围绕候选 owner/入口证明调用链与影响范围 → `Local Dev` 只补仍缺失的当前磁盘源码并执行修改/验证 → `Playwright` 只在需要用户现实证据时进入。禁止 `Repomix 全仓 → CodeGraph 再全仓 → Local Dev 再批量重读` 这种重复获取上下文。
+
+仓库理解/修改任务统一：`Repomix 最小充分范围 → grep/read → CodeGraph（需要结构证明时）→ Local Dev`；窄域把范围锁定到当前 package / 最小相关目录，广域才按证据向父级、多包、领域或全仓扩张。纯 Git/test/command 机械动作可直接 Local Dev。真实 E2E 在源码/执行链之外按需加入 Playwright，固定 `Local Dev 建立产品前置 → Playwright 观察/操作真实 Web → Local Dev 回读 owner/runtime → Playwright 再确认用户可见结果`。最终只在与任务相关的 authority 一致时判 PASS。
 
 ## 2026-09-03｜Playwright Runtime / Tasks Tab 受控组经验
 
