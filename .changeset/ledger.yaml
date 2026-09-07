@@ -627,6 +627,10 @@
   dir: packages/execution-browser-extension
   intents:
     - bounded-startup-recovery
+"@tomflow/proflow-execution-browser-extension@0.1.48":
+  dir: packages/execution-browser-extension
+  intents:
+    - browser-runtime-version-attestation
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
