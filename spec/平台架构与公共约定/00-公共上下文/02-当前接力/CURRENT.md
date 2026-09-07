@@ -1,6 +1,6 @@
 # CURRENT｜Phase 3 当前接力
 
-> 更新时间：2026-09-07。这里是下一 Chat 的唯一滚动执行入口；历史过程见 `90-历史记录/Real3/`。
+> 更新时间：2026-09-08。这里是下一 Chat 的唯一滚动执行入口；历史过程见 `90-历史记录/Real3/`。
 
 ## CURRENT_STAGE
 
@@ -15,10 +15,10 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL_3_J4_WAITING_ONE_RECOVERY_ADOPTION_ACCEPTANCE
+CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_ONE_RECOVERY_ADOPTION_ROUND
 ```
 
-0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50；但首次受控 Chrome adoption 在唯一一次 `reload-at-point` 后仍停留 0.1.49，并被 targeted setup 以 `EXTENSION_VERSION_MISMATCH` 拒绝。当前已停止 release 与 runtime replay，进入 **Chrome actual adoption / Browser Reload harness hardening**；未经新 acceptance 不得第二次 Reload、setup 或 start。
+0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50；首次受控 Chrome adoption 在旧 `reload-at-point` 语义下失败后，Browser Reload harness hardening 已完成本地机械门。当前正式进入 **0.1.50 ONE recovery adoption round**：只重新准入一次 targeted setup + 一次语义绑定后的 Chrome Reload；`platform start` 仍未准入，必须等本轮 Chrome 0.1.50 pairing/verification/READY 全 PASS 后由网页总控另行裁决。
 
 ## CURRENT_AUTHORITY
 
@@ -26,6 +26,7 @@ CURRENT_EXECUTION_MODE = REAL_3_J4_WAITING_ONE_RECOVERY_ADOPTION_ACCEPTANCE
 branch = main
 worktree at last frozen context = CLEAN
 Browser Reload harness hardening acceptance first frozen in context commit = 48b7912
+Browser Reload harness FIX_COMMIT = 3d1eb52 fix(browser-harness): harden extension reload targeting
 0.1.50 release commit authority = 0662615 chore(release): version execution-browser-extension
 0.1.50 source commit base = 112fee7 docs: hand off Real-3 integration hardening
 0.1.49 release commit = 6e9b51a chore(release): version execution-browser-extension
@@ -108,7 +109,8 @@ browser_reload_harness_hardening_acceptance = FROZEN / LOCAL_ONLY
 browser_reload_harness_hardening = PASS / LOCAL_MECHANICAL_GATE
 future_reload_semantic_attestation = READY / CARD_LOCAL_NAME_AND_ID + UNIQUE_PRESSABLE_RELOAD
 previous_adoption_failure_root_cause = NOT_PROVEN
-second_reload_setup_start_admitted = NO
+recovery_adoption_round_2 = ADMITTED / EXACTLY_ONE_SETUP_PLUS_ONE_SEMANTIC_RELOAD
+platform_start_admitted = NO
 ```
 
 ## CURRENT_FIRST_EVIDENCE
@@ -182,21 +184,20 @@ ROOT_CAUSE_OF_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 ## NEXT_ACTION
 
 1. **停止 0.1.50 release/workspace 重做**：Registry、version、publish、Product Workspace update、materialization 已 PASS；不得再次 version/publish/update。
-2. **Browser Reload harness hardening 本地机械门已 PASS**：未来 `reload-at-point` 必须 card-local 同时匹配 name + exact Extension ID，只接受唯一 enabled `AXPress` Reload control，并在 dispatch 前输出完整 bounds/point/overlap attestation。
-3. deterministic matrix `12/12`、Node targeted tests `2/2`、Swift compile-only、scoped Biome、`git diff --check` 均 PASS；产品 Extension source hash 与 0.1.50 version facts 未变化，本批没有任何真实 Browser/runtime/Task mutation。
-4. 下一步只允许网页总控单独冻结 **ONE recovery adoption round**。第二次 targeted setup + 第二次 Chrome mutation当前仍 `NOT_ADMITTED`；harness PASS 不证明上一轮点错、Chrome 已采用或下一轮必然成功。
-5. 在新 adoption round 前，平台保持 stopped / owner ABSENT；禁止 `platform start`、人工 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry、task.resume/ACK/reopen。只有 Chrome actual adoption 0.1.50 + fresh verification PASS 后，才可重新裁一次 production start。
+2. **ONE recovery adoption round 已冻结并准入**：只允许按 `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE` 执行一次 targeted setup + 一次 canonical semantic Reload；不得复用旧 `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的其它 mutation 配额。
+3. 执行前必须重新冻结 SAME-SCENE 与 owner=ABSENT；若 preflight 漂移、setup 未进入 WAITING、helper attestation fail-closed，则立即 STOP，且不得把未 dispatch 的动作算作 Reload。
+4. Reload 一旦成功 dispatch，本 round 不论 PASS/FAIL 都不允许第二次 setup/Reload。唯一 PASS authority 是同一 setup 返回 0.1.50 pairing heartbeat、新 extensionInstanceId、verification 0.1.50 与 Browser READY。
+5. 即使 Chrome actual adoption 0.1.50 PASS，本 round 也必须 STOP；`platform start` 当前仍 `NOT_ADMITTED`，由网页总控另行冻结 production-runtime one-start acceptance。人工 recovery/wake/retry/resume/ACK/reopen 继续禁止。
 
 ## BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE
 
 ```text
-ACCEPTANCE_FROZEN = YES
+ACCEPTANCE_FROZEN = YES / LOCAL_HARNESS_BATCH_COMPLETED
 SCOPE = canonical browser-extension-ui harness + harness tests only
 PRODUCT_EXTENSION_SOURCE_MUTATION = FORBIDDEN
 PACKAGE_VERSION_RELEASE_MUTATION = FORBIDDEN
-REAL_BROWSER_MUTATION = FORBIDDEN
-SECOND_TARGETED_SETUP = NOT_ADMITTED
-SECOND_CHROME_RELOAD = NOT_ADMITTED
+REAL_BROWSER_MUTATION = FORBIDDEN / THIS_HARNESS_BATCH_ONLY
+NEXT_REAL_MUTATION_AUTHORITY = ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE
 PLATFORM_START = NOT_ADMITTED
 ROOT_CAUSE_OF_0.1.50_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 ```
@@ -242,7 +243,69 @@ ROOT_CAUSE_OF_PREVIOUS_ADOPTION_FAILURE = NOT_PROVEN
 SECOND_RELOAD_SETUP_START_ADMITTED = NO
 ```
 
-本批只消除了未来 Reload mutation 的 target/card/control/geometry 语义歧义；没有重新解释上一轮失败，也没有形成第二次 setup、Reload 或 platform start 授权。下一步只允许网页总控单独冻结 `ONE recovery adoption round`。
+本批只消除了未来 Reload mutation 的 target/card/control/geometry 语义歧义；没有重新解释上一轮失败，也没有形成第二次 setup、Reload 或 platform start 授权。
+
+## ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE
+
+```text
+ACCEPTANCE_FROZEN = YES
+ROUND = 0.1.50_CHROME_RECOVERY_ADOPTION_2
+TARGET_VERSION = 0.1.50
+TARGET_EXTENSION_ID = eehdadpmjffomabiedcjijiakconalab
+HARNESS_FIX_COMMIT = 3d1eb52c72e03ea9c7ff4d48b584686827433156
+TARGETED_SETUP_ADMITTED = YES / EXACTLY_ONE
+CHROME_RELOAD_ADMITTED = YES / EXACTLY_ONE / CANONICAL_SEMANTIC_HELPER_ONLY
+PLATFORM_UPDATE = FORBIDDEN
+PACKAGE_RELEASE_VERSION_PUBLISH = FORBIDDEN
+PLATFORM_STOP = NOT_NEEDED / OWNER_MUST_ALREADY_BE_ABSENT
+PLATFORM_START = NOT_ADMITTED_IN_THIS_ROUND
+TASK_EXECUTION_MUTATION = FORBIDDEN
+PUSH_ADMITTED = NO
+```
+
+本 round 仅恢复 Chrome 对已物化 0.1.50 的 actual adoption；不重做 release/update，也不执行 production start。严格顺序如下：
+
+1. **Preflight freeze**：HEAD 必须包含 `3d1eb52`，worktree clean；0.1.50 产品 source hash、四份 package-owned version facts、Registry/Workspace/materialization、三方 `background.js` hash 必须仍与 `CURRENT_AUTHORITY` 一致。start-owner 必须只读确认 `ABSENT`；若非 ABSENT，STOP，不再次 `platform stop`。
+2. **SAME-SCENE baseline**：重新只读冻结固定 Task/Dev/Test、`execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0` identity/idempotency/inputFingerprint/updatedAt、Execution 总数、Browser/Execution 日志行数、Extension ID、旧 verification `0.1.49 / extension:4a03f111-...`。任一 durable identity 漂移立即 STOP。
+3. **一次 targeted setup**：只允许一次 `platform setup --module execution-browser-extension --workspace /Users/agent/Desktop/proton-workspace`。必须先进入 pairing `WAITING_FOR_EXTENSION`，再允许 Browser action；setup 若在 Browser action 前就异常退出，STOP，不重跑。
+4. **Fresh Browser pre-attestation**：使用 canonical helper 打开/观察当前 `chrome://extensions` 并获取 fresh reality；不得使用旧截图坐标。目标必须唯一绑定 `ProFlow Execution Browser` + exact Extension ID。
+5. **一次 semantic Reload**：只允许一次 `node scripts/human-e2e/browser-extension-ui.mjs reload-at-point`，不得再传 `PROFLOW_BROWSER_RELOAD_X/Y`。helper 在 mutation 前必须输出 `TARGET_EXTENSION_NAME/ID`、card bounds、唯一 enabled AXPress Reload、Reload bounds、derived point、inside/overlap attestation；任一缺失或 fail-closed error 时视为 **reload count=0** 并 STOP，不得旁路点击。
+6. helper 成功回执只接受 `TARGET_RELOAD_CLICK_DISPATCHED`，它只证明正确 target control 的 AXPress 已 dispatch；不得把该结果当作 runtime adoption PASS。
+7. **唯一 adoption authority**：同一 setup 必须随后机械证明 Chrome runtime/moduleVersion=`0.1.50`、Extension ID 不变、产生新的 `extensionInstanceId`（必须不同于 `extension:4a03f111-954d-412a-bb5c-c4968105c965`）、pairing heartbeat PASS、`verification.moduleVersion=0.1.50`、verification instance=新实例、`evidenceSource=PAIRING_HEARTBEAT`、Browser status=READY。
+8. 若 setup 返回 `EXTENSION_VERSION_MISMATCH`、PAIRING_TIMEOUT、旧 instance、旧 0.1.49、registration/path mismatch 或任何 UNKNOWN，则立即 STOP；**禁止第二次 setup、第二次 Reload、Remove/Load unpacked、enable/disable、update、rollback 或 start**。
+9. 若 Chrome actual adoption 0.1.50 全部 PASS，本 round 仍立即 STOP。只读重新冻结 Task/Execution/log baseline 后交回网页总控；`platform start` 必须另行冻结 production-runtime acceptance，不能从本 round 继承。
+10. 全程禁止 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry、task.resume/ACK/reopen、新 Task/Worker/GPT/Execution、SQLite/direct durable mutation、git push。
+
+### Immediate STOP
+
+```text
+PRECONDITION_DRIFT
+START_OWNER_NOT_ABSENT
+SETUP_NOT_WAITING
+TARGET_IDENTITY_AMBIGUOUS
+RELOAD_ATTESTATION_INCOMPLETE
+RELOAD_HELPER_FAIL_CLOSED
+SECOND_SETUP_REQUIRED
+SECOND_RELOAD_REQUIRED
+CHROME_RUNTIME_NOT_0.1.50
+EXTENSION_ID_CHANGED
+NEW_EXTENSION_INSTANCE_NOT_PROVEN
+PAIRING_OR_VERIFICATION_FAIL
+BROWSER_STATUS_NOT_READY
+TASK_OR_EXECUTION_IDENTITY_DRIFT
+ANY_PLATFORM_START_REQUEST
+```
+
+成功停止点只有：
+
+```text
+CHROME_ACTUAL_ADOPTION_0.1.50 = PASS
+VERIFICATION_0.1.50 = PASS
+BROWSER_READY = PASS
+PLATFORM_START_COUNT = 0
+SAME_EXECUTION = UNCHANGED
+NEXT_GATE = PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE
+```
 
 ## TRAILING_RECOVERY_FIX_ACCEPTANCE
 
@@ -443,13 +506,14 @@ Final Real Gate != Integration Hardening
 ## DO_NOT_REPEAT
 
 - 不重开 0.1.45～0.1.48 Browser adoption、Tunnel、TASK_RESUMED allowlist 等已闭环问题。
-- `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的 stop/update/setup/Reload 配额均已消费；不得把旧 acceptance 当作第二次真实 mutation 授权。
-- 当前禁止任何新的 `platform update/setup/start` 与 Extension / Chrome Reload；Browser Reload harness hardening 机械门虽已 PASS，仍只有新的 recovery-adoption acceptance 明确冻结后才可单独重新准入。
+- `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的旧 stop/update/setup/Reload 配额均已消费；不得把旧 acceptance 当作当前 mutation authority。
+- 当前唯一真实 Browser mutation authority 是 `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE`：恰好一次 targeted setup + 恰好一次 semantic Reload；不得执行 platform update/stop/start，且不得第二次 setup/Reload。
+- semantic Reload 必须由 `3d1eb52` canonical helper 直接解析 card-local name+ID、唯一 enabled AXPress Reload 并输出完整 pre-mutation attestation；外部 X/Y、旧截图坐标、旁路 helper 全部禁止。
 - 不人工发 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry。
 - 不再次 task.resume / ACK / reopen；不新建 Task、Worker、GPT、Execution。
 - 不直接写 SQLite、roles registry、verification、node_modules 或 durable Owner state。
 - 不因为发现真实 defect 就立即 release；`VALID_DEFECT != CURRENT_ROOT_CAUSE`。
-- 0.1.50 release 已完成；首次 adoption acceptance 已在 Chrome FAIL 后消费结束。任何重复 Browser mutation、新 adoption round 或新修复都必须重新裁决。
+- 0.1.50 release/Workspace/materialization 已完成；本 recovery adoption round 不得重新 version/publish/update/rollback。Chrome adoption PASS 后仍必须 STOP，platform start 另行准入。
 - 不 push；npm Registry publish 与 git push 仍是独立授权边界。
 
 ## REQUIRED_CONTEXT
@@ -463,4 +527,4 @@ Final Real Gate != Integration Hardening
 
 ## STOP_POINT
 
-`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / TARGETED_SETUP_COUNT_1_FAIL_EXTENSION_VERSION_MISMATCH / CHROME_RELOAD_AT_POINT_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / BROWSER_RELOAD_HARNESS_HARDENING_PASS / CARD_LOCAL_NAME_ID_BINDING / UNIQUE_ENABLED_AXPRESS_RELOAD / DERIVED_POINT_OVERLAP_GUARD / PRE_MUTATION_ATTESTATION / ACTION_RESULT_CLICK_DISPATCHED_ONLY / DETERMINISTIC_12_OF_12_PASS / NODE_2_OF_2_PASS / SWIFT_COMPILE_PASS / PRODUCT_SOURCE_VERSION_UNCHANGED / REAL_BROWSER_MUTATION_NONE / WAITING_ONE_RECOVERY_ADOPTION_ACCEPTANCE / SECOND_RELOAD_SETUP_START_NOT_ADMITTED / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
+`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / FIRST_ADOPTION_SETUP_FAIL_EXTENSION_VERSION_MISMATCH / FIRST_RELOAD_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / HARNESS_FIX_COMMIT_3d1eb52 / BROWSER_RELOAD_HARNESS_HARDENING_PASS / CARD_LOCAL_NAME_ID_BINDING / UNIQUE_ENABLED_AXPRESS_RELOAD / DERIVED_POINT_OVERLAP_GUARD / PRE_MUTATION_ATTESTATION / ACTION_RESULT_CLICK_DISPATCHED_ONLY / DETERMINISTIC_12_OF_12_PASS / NODE_2_OF_2_PASS / SWIFT_COMPILE_PASS / PRODUCT_SOURCE_VERSION_UNCHANGED / ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE_FROZEN / ROUND2_ONE_TARGETED_SETUP_ADMITTED / ROUND2_ONE_SEMANTIC_RELOAD_ADMITTED / PLATFORM_START_NOT_ADMITTED / NEXT_EXECUTION_ROUND2_PREFLIGHT_SETUP_RELOAD_VERIFY_AND_STOP / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
