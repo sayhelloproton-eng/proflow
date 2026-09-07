@@ -103,6 +103,7 @@ targeted_setup = FAIL / EXTENSION_VERSION_MISMATCH
 platform_runtime_after_attempt = STOPPED / START_NOT_RUN
 same_execution_redecision = NOT_RUN
 evidence_gap = OPEN / EXACT_RELOAD_MUTATION_SEMANTICS_NOT_PROVEN
+browser_reload_harness_hardening_acceptance = FROZEN / LOCAL_ONLY
 second_reload_setup_start_admitted = NO
 ```
 
@@ -177,10 +178,39 @@ ROOT_CAUSE_OF_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 ## NEXT_ACTION
 
 1. **停止 0.1.50 release/workspace 重做**：Registry、version、publish、Product Workspace update、materialization 已 PASS；不得再次 version/publish/update。
-2. 当前唯一下一门是 **Browser Reload harness hardening acceptance**：先只读恢复 22:37/22:38 两张 fresh screenshot、当前 AX geometry、helper `reload-at-point` 控制流，并冻结“如何机械证明目标 ID 的 Reload 控件与 mutation 后 runtime adoption”的验收；在 acceptance 落库前不得第二次 Reload。
-3. 修复范围默认只允许 canonical `scripts/human-e2e/browser-extension-ui.*` / 相关 harness tests，不得修改 0.1.50 Extension 产品源码来绕过 Browser adoption。核心目标：`reload-at-point` 不能仅凭页面存在目标名称 + 外部坐标返回成功；必须 fail-closed 证明目标 Extension identity、Reload 控件空间/语义绑定、点击点命中目标 Reload，并把实际 runtime/version readback 留给 pairing/verification authority。
-4. harness 本地机械门 PASS 后，再单独冻结 **ONE recovery adoption round**。新 round 是否允许第二次 targeted setup + 第二次 Chrome mutation必须由网页总控明确 `ADMITTED=YES`；不得沿用上一 acceptance 自动重试。
+2. **Browser Reload harness hardening acceptance 已冻结**；下一执行者只允许按 `BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE` 修改 canonical `scripts/human-e2e/browser-extension-ui.*` 与 harness tests，消除 target-card / Reload-control / point-click 的语义歧义。
+3. 本批只做本地 harness implementation + deterministic tests + Swift compile-only + source/version/hash readback；不得执行 `platform setup/update/start`，不得真实 Reload/点击 Extension 控件，不得修改 0.1.50 Extension 产品源码或 package version。
+4. harness 本地机械门 PASS 后，只允许提交 harness fix + tests + CURRENT 结果并 STOP；随后由网页总控单独冻结 **ONE recovery adoption round**。第二次 targeted setup + 第二次 Chrome mutation当前仍 `NOT_ADMITTED`。
 5. 在新 adoption round 前，平台保持 stopped / owner ABSENT；禁止 `platform start`、人工 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry、task.resume/ACK/reopen。只有 Chrome actual adoption 0.1.50 + fresh verification PASS 后，才可重新裁一次 production start。
+
+## BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE
+
+```text
+ACCEPTANCE_FROZEN = YES
+SCOPE = canonical browser-extension-ui harness + harness tests only
+PRODUCT_EXTENSION_SOURCE_MUTATION = FORBIDDEN
+PACKAGE_VERSION_RELEASE_MUTATION = FORBIDDEN
+REAL_BROWSER_MUTATION = FORBIDDEN
+SECOND_TARGETED_SETUP = NOT_ADMITTED
+SECOND_CHROME_RELOAD = NOT_ADMITTED
+PLATFORM_START = NOT_ADMITTED
+ROOT_CAUSE_OF_0.1.50_CHROME_ADOPTION_FAILURE = NOT_PROVEN
+```
+
+必须同时满足：
+
+1. **Target identity must be card-local**：Reload 目标必须来自同一个最小 Extension card，该 card 内同时唯一包含 `ProFlow Execution Browser` 与 Extension ID `eehdadpmjffomabiedcjijiakconalab`；只匹配名称、全页存在名称、卡片顺序或历史坐标均不得作为 mutation authority。
+2. **Reload control must be semantically bound**：优先从目标 card descendants 中解析 AX `Reload/重新加载` control；必须证明唯一。找不到、重复、AX role/action 不可按压时 fail closed。不得退化为“调用方传一个 X/Y 就点击”。
+3. **Geometry guard**：若底层仍需 screen-point click，点击点只能由已证明的 target-card-owned Reload control bounds 派生，或在执行前机械证明 point ∈ Reload bounds；同时必须证明 point ∉ enable toggle / Remove / Details 等相邻 control bounds。任何 overlap/ambiguity 都 fail closed。
+4. **Pre-mutation attestation**：真实 action 入口必须在点击前输出/冻结目标 Extension name、ID、card bounds、Reload bounds、derived click point 与唯一性结果；任何缺失不得执行 click。
+5. **Action result semantics corrected**：helper 成功只能声明 `TARGET_RELOAD_CLICK_DISPATCHED`（或等价动作事实），不得用 `RELOADED` / `ADOPTED` 暗示 runtime 已更新。Chrome runtime/moduleVersion adoption 继续只由 pairing heartbeat、verification 与 Browser status 证明。
+6. **No hidden fallback**：禁止旧 screenshot 坐标、`第几个扩展`、全页第一个 Reload、外部 env 坐标直接点击、AppleScript JS、临时 Swift/CG helper 旁路。若 canonical AX surface 无法唯一绑定，必须返回明确错误并 STOP。
+7. **Mechanical regression matrix** 至少覆盖：正确 name+ID+唯一 Reload PASS；同名不同 ID FAIL；ID 不在同一卡片 FAIL；重复 Reload FAIL；Reload 缺失 FAIL；point 落在 toggle FAIL；point 落在 Remove/Details FAIL；point 超出 Reload bounds FAIL；唯一 target Reload 时 derived point PASS；成功结果不得包含 runtime/adoption assertion。
+8. **Local gate only**：允许修改 `scripts/human-e2e/browser-extension-ui.swift`、必要的 `browser-extension-ui.mjs` 与新增/更新 harness tests；允许 compile-only / deterministic tests / static readback；禁止打开一次新的真实 mutation round，禁止 setup/Reload/start/update/publish/version。
+9. harness mechanical gate 必须至少包含：targeted harness tests PASS、Swift compile-only PASS、`git diff --check` PASS、产品 Extension source hash 未变化、0.1.50 package-owned version facts 未变化。
+10. 本批完成后只允许提交 harness fix + tests + CURRENT 机械结果，`git push` 仍禁止；随后立即 STOP 并交回网页总控冻结 **ONE recovery adoption round**。不得自行把 harness PASS 推导成第二次 Reload 授权。
+
+验收目标不是证明上一轮到底“点错了”还是“点对但 Chrome 未采用”；上一轮 `ROOT_CAUSE_OF_0.1.50_CHROME_ADOPTION_FAILURE` 继续保持 `NOT_PROVEN`。本批只消除下一次 Browser mutation 的证据歧义，使未来一次 Reload 在点击前就具有可审计的目标语义。
 
 ## TRAILING_RECOVERY_FIX_ACCEPTANCE
 
@@ -401,4 +431,4 @@ Final Real Gate != Integration Hardening
 
 ## STOP_POINT
 
-`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / TARGETED_23_OF_23_PASS / EXTENSION_178_OF_178_PASS / TYPECHECK_PASS / TEST_GOVERNANCE_PASS / SURFACE_GOVERNANCE_PASS / NON_RUNTIME_BUILD_PASS / LOCAL_FIX_MECHANICAL_GATE_PASS / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / PLATFORM_STOP_COUNT_1_OWNER_ABSENT / TARGETED_SETUP_COUNT_1_FAIL_EXTENSION_VERSION_MISMATCH / CHROME_RELOAD_AT_POINT_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / RELOAD_TARGET_SEMANTIC_ATTESTATION_NOT_PROVEN / OLD_ADOPTION_ACCEPTANCE_CONSUMED / NEXT_GATE_BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE / SECOND_RELOAD_SETUP_START_NOT_ADMITTED / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
+`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / TARGETED_23_OF_23_PASS / EXTENSION_178_OF_178_PASS / TYPECHECK_PASS / TEST_GOVERNANCE_PASS / SURFACE_GOVERNANCE_PASS / NON_RUNTIME_BUILD_PASS / LOCAL_FIX_MECHANICAL_GATE_PASS / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / PLATFORM_STOP_COUNT_1_OWNER_ABSENT / TARGETED_SETUP_COUNT_1_FAIL_EXTENSION_VERSION_MISMATCH / CHROME_RELOAD_AT_POINT_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / RELOAD_TARGET_SEMANTIC_ATTESTATION_NOT_PROVEN / OLD_ADOPTION_ACCEPTANCE_CONSUMED / BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE_FROZEN / LOCAL_HARNESS_FIX_ADMITTED / REAL_BROWSER_MUTATION_FORBIDDEN / NEXT_EXECUTION_HARNESS_IMPLEMENTATION_AND_MECHANICAL_GATE / SECOND_RELOAD_SETUP_START_NOT_ADMITTED / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
