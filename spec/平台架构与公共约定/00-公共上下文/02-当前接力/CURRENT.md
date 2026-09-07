@@ -15,16 +15,16 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_RECOVERY_ADOPTION_ROUND_4_ADMITTED
+CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_CHROME_ADOPTION_PASS_STOPPED
 ```
 
-0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50。Recovery adoption round 3 暴露的 semantic card-binding 失败已完成独立机械闭环：真实 AX tree 没有单卡片 container，目标 name/ID/Reload 的最低共同 ancestor 是包含 11 个 Extension ID 的 shared grid，导致旧 `ids == [targetId]` 首先失败。真实 shape legacy-RED / hardened selector GREEN，local mechanical gate PASS。网页总控现已单独冻结 Round 4：先在 setup 前完成只读 Browser + semantic snapshot preflight，只有 preflight PASS 才允许一次 targeted setup 与一次 semantic Reload；platform start 仍未准入。
+0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50。Recovery adoption round 3 暴露的 semantic card-binding 失败已完成独立机械闭环。Round 4 已严格按独立 acceptance 完成：setup 前 Browser/AX preflight PASS，唯一 targeted setup 进入 waiting，唯一 semantic Reload 通过完整 target attestation 并 dispatch；同一 setup 随后以 browser-reported heartbeat 写入 `0.1.50`、同 Extension ID 与新 instance，Browser module status=`READY`。Task/Execution/log identity 全部不变，platform start=0；当前立即 STOP，下一门只能由网页总控另行准入 `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE`。
 
 ## CURRENT_AUTHORITY
 
 ```text
 branch = main
-current context commit before this gate = 48eff56 fix(browser-harness): harden semantic card binding
+current context commit before this gate = c25e075 docs: admit 0.1.50 recovery adoption round 4
 worktree at last frozen context = CLEAN
 Extensions page canonicalization FIX_COMMIT = c4f640a fix(browser-harness): canonicalize extensions page
 Browser Reload harness hardening acceptance first frozen in context commit = 48b7912
@@ -65,6 +65,18 @@ recovery adoption round 3 semantic Reload command = FAIL_CLOSED / TARGET_EXTENSI
 recovery adoption round 3 Reload dispatch = NOT_DISPATCHED / count=0
 semantic card-binding root cause = PROVEN / DESCENDANT_ID_SET_TOO_STRICT_ON_SHARED_MULTI_CARD_AX_ANCESTOR
 semantic card-binding hardening = LOCAL_MECHANICAL_PASS / REAL_EXTENSION_MUTATION_NOT_RUN
+recovery adoption round 4 Browser preflight = PASS / EXACT_BASE + 0.1.50_CARD + TARGET_NAME_ID_RELOAD
+recovery adoption round 4 semantic snapshot = PASS / count=1 / nodes=356 / budgetRemaining=4644
+recovery adoption round 4 targeted setup = PASS / READY / count=1
+recovery adoption round 4 semantic Reload = TARGET_RELOAD_CLICK_DISPATCHED / count=1
+Chrome visible card version after round 4 = 0.1.50
+Chrome runtime moduleVersion after round 4 = 0.1.50 / BROWSER_REPORTED
+verification.moduleVersion after round 4 = 0.1.50
+verification.extensionInstanceId after round 4 = extension:b8a13837-6f82-4467-8ab2-e18821478edf
+verification.evidenceSource after round 4 = PAIRING_HEARTBEAT
+Browser module status after round 4 = READY / runtimeStatus=NOT_APPLICABLE
+platform overall status after round 4 = PLATFORM_READY_NO / DEV_TUNNEL_FAILED / OUT_OF_SCOPE
+platform start count after round 4 = 0
 ```
 
 0.1.49 已完成 package → Registry → Workspace → materialized loadDir → Chrome registered Service Worker → browser-attested verification 的真实 adoption；不得再把版本采用问题重新当当前 blocker。
@@ -112,9 +124,9 @@ original_class = REAL3_OBSERVER_RECOVERY_POST_RECONNECT
 original_root_cause = PROVEN / OBSERVER_RECOVERY_SINGLE_FLIGHT_DROPS_REARM_EPOCH
 0.1.50_release = PASS
 0.1.50_workspace_materialization = PASS
-current_class = REAL3_CHROME_RECOVERY_ADOPTION_ROUND_4
+current_class = REAL3_PRODUCTION_RUNTIME_ONE_START_PENDING_ADMISSION
 chrome_registration_path = MATCH / CURRENT_0.1.50_LOADDIR
-chrome_runtime_version = 0.1.49 / FAIL_TO_ADOPT_0.1.50
+chrome_runtime_version = 0.1.50 / BROWSER_REPORTED_HEARTBEAT
 platform_runtime_after_attempt = STOPPED / START_NOT_RUN
 same_execution_redecision = NOT_RUN
 browser_reload_harness_hardening = PASS / LOCAL_MECHANICAL_GATE
@@ -127,7 +139,7 @@ recovery_adoption_round_3 = CONSUMED / PREFLIGHT_PASS / ONE_SETUP / RELOAD_FAIL_
 semantic_card_binding_audit = COMPLETED / REAL_AX_READ_ONLY_SNAPSHOT
 semantic_card_binding_root_cause = PROVEN / SHARED_MULTI_CARD_ANCESTOR_ID_CONTAMINATION
 semantic_card_binding_hardening = LOCAL_MECHANICAL_PASS / LEGACY_RED_NEW_GREEN
-recovery_adoption_round_4 = ADMITTED / READ_ONLY_PREFLIGHT_BEFORE_SETUP / ONE_SETUP / ONE_SEMANTIC_RELOAD
+recovery_adoption_round_4 = PASS / CONSUMED / ONE_SETUP / ONE_SEMANTIC_RELOAD / NEW_INSTANCE
 previous_adoption_failure_root_cause = NOT_PROVEN
 platform_start_admitted = NO
 ```
@@ -202,10 +214,10 @@ ROOT_CAUSE_OF_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 
 ## NEXT_ACTION
 
-1. **Semantic card-binding local gate 已 PASS，Round 4 已单独准入**：FIX_COMMIT=`48eff56`；真实 shared-ancestor shape 已证明旧 exact-ID-set predicate 为 root cause，legacy RED / hardened selector GREEN，产品 0.1.50 source/version 未变化。
-2. Round 4 必须先在 **setup 之前**完成 Browser read-only preflight：exact `chrome://extensions[/]`、fresh screenshot/status/geometry，以及一次 `inspect-reload-semantic-binding`。目标 name/ID/Reload 与已证明 shared-ancestor AX shape必须仍存在；任一 preflight 失败则 setup=0 / Reload=0 并 STOP。
-3. 只有 preflight PASS 才允许一次 targeted setup；setup 必须进入 `WAITING_FOR_EXTENSION`。之后只允许一次 canonical `reload-at-point`；helper 必须由 hardened `liveReloadTarget()` 输出完整 pre-mutation attestation 后才可 AXPress。
-4. Round 4 唯一成功目标是 Chrome actual adoption `0.1.50` + 新 `extensionInstanceId` + pairing/verification 0.1.50 + Browser READY；成功或失败都立即 STOP。**platform start 仍不准入**，不得从 Round 4 继承任何 start/recovery/Task/Execution mutation 权限。
+1. **Chrome actual adoption 0.1.50 已 PASS**：Round 4 的 exact Extensions preflight、一次 semantic snapshot、一次 targeted setup、一次 canonical semantic Reload 均按序完成；目标 name/ID/Reload attestation 全 PASS。
+2. 同一 setup 已通过 browser-reported `PAIRING_HEARTBEAT` 写入 verification `moduleVersion=0.1.50`；Extension ID 仍为 `eehdadpmjffomabiedcjijiakconalab`，新 instance=`extension:b8a13837-6f82-4467-8ab2-e18821478edf`，Browser module status=`READY`。
+3. SAME-SCENE 保持：Task=`ACTIVE v10 / dev`；原 `execution:e9...` 仍 `FAILED / NOT_APPLIED / attemptCount=1`，identity/idempotency/fingerprint/updatedAt 不变；Execution count=5，Browser/Execution 日志仍为 5041/4295。
+4. **现在 STOP**：Round 4 的 setup/Reload 配额已消费，platform start count=0 且仍未准入。下一动作只能由网页总控单独冻结 `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE`；不得从本 round 继承 start/recovery/Task/Execution mutation 权限。
 
 ## SEMANTIC_CARD_BINDING_AUDIT_ACCEPTANCE
 
@@ -284,7 +296,7 @@ PRODUCT_SOURCE_CHANGED = NO
 VERSION_FACTS = 0.1.50 / UNCHANGED
 REAL_EXTENSION_CARD_MUTATION = NONE
 TARGETED_SETUP_RELOAD_START = 0 / 0 / 0
-ROUND_4_ADMITTED = YES / ONE_RECOVERY_ADOPTION_ROUND_4_ACCEPTANCE
+ROUND_4_ADMITTED = CONSUMED / CHROME_ACTUAL_ADOPTION_PASS
 ```
 
 真实只读 AX tree 证明 Chrome 把多张 Extension card 的可访问性节点扁平化到共享 grid，而不是提供满足旧 predicate 的单卡 container。修复保留旧 container selector 为第一路径，仅在其精确返回 `TARGET_EXTENSION_CARD_NOT_FOUND` 后，用目标 name、exact ID 与 Reload 的唯一相对几何关系重建 card ownership。该 harness gate 自身不是 adoption PASS；真实 mutation 仅由下面独立 Round 4 acceptance 准入。
@@ -332,6 +344,66 @@ BROWSER_READY = PASS
 PLATFORM_START_COUNT = 0
 SAME_EXECUTION = UNCHANGED
 NEXT_GATE = PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE
+```
+
+## ONE_RECOVERY_ADOPTION_ROUND_4_REALITY
+
+2026-09-08 严格按冻结顺序完成 Round 4。setup 前 static/SAME-SCENE authority 无漂移，start-owner=`ABSENT`；canonical Browser preflight 证明 exact `chrome://extensions`、目标 0.1.50 card/name/ID/Reload 均存在。唯一只读 semantic snapshot 为 356 nodes、预算剩余 4644，target name/ID/Reload 与已证明 shared-grid shape一致，无 truncation；legacy container candidate=0 不构成失败。
+
+唯一 targeted setup 进入正式 waiting 后，唯一 canonical `reload-at-point` 先完成 target name/exact ID、唯一 card/reload、enabled AXPress、bounds、derived midpoint、inside/no-overlap attestation，再返回 `TARGET_RELOAD_CLICK_DISPATCHED`。同一 setup 自然完成；正式 verification 由 browser-reported `PAIRING_HEARTBEAT` 更新为 0.1.50 与新 instance。独立 module status 回读 `execution-browser-extension setupStatus=READY / runtimeStatus=NOT_APPLICABLE / version=0.1.50`。整体 `PLATFORM_READY=NO` 的明确原因是未处理且本 round 禁止处理的 Dev Tunnel，不否定 Browser module READY。
+
+```text
+ROUND_4_BROWSER_PREFLIGHT = PASS
+CANONICAL_EXTENSIONS_URL = chrome://extensions
+EXTENSION_STATUS = PRESENT
+FRESH_SCREENSHOT = PRESENT
+FRESH_EXTENSION_NAME = ProFlow Execution Browser
+FRESH_EXTENSION_ID = eehdadpmjffomabiedcjijiakconalab
+FRESH_CARD_VERSION = 0.1.50
+TARGET_NAME_GEOMETRY = x=914,y=363,w=164,h=21 + x=914,y=365,w=164,h=17
+TARGET_ID_GEOMETRY = x=914,y=452,w=236,h=17
+TARGET_RELOAD_GEOMETRY = x=1132,y=515,w=32,h=33
+SEMANTIC_SNAPSHOT_COUNT = 1
+SEMANTIC_NODE_COUNT = 356
+SEMANTIC_SNAPSHOT_BUDGET_REMAINING = 4644
+SEMANTIC_SNAPSHOT_TRUNCATED = NO
+SEMANTIC_TARGET_NAME_ID_RELOAD = PRESENT / PRESENT / PRESENT
+SEMANTIC_CONTAINER_CANDIDATE_COUNT = 0 / EXPECTED_SHARED_GRID_SHAPE
+TARGETED_SETUP_COUNT = 1
+SETUP_WAITING_BEFORE_RELOAD = YES
+TARGET_EXTENSION_NAME_ATTESTED = ProFlow Execution Browser
+TARGET_EXTENSION_ID_ATTESTED = eehdadpmjffomabiedcjijiakconalab
+TARGET_CARD_UNIQUE = YES
+TARGET_CARD_BOUNDS = x=914,y=365,w=250,h=183
+TARGET_RELOAD_UNIQUE = YES
+TARGET_RELOAD_PRESSABLE = YES / ENABLED_AXPRESS
+TARGET_RELOAD_BOUNDS = x=1132,y=515,w=32,h=33
+TARGET_RELOAD_POINT = x=1148,y=531.5 / DERIVED
+TARGET_RELOAD_POINT_INSIDE = YES
+TARGET_RELOAD_OVERLAP_OTHER_CONTROL = NO
+CHROME_RELOAD_COUNT = 1
+RELOAD_ACTION_RESULT = TARGET_RELOAD_CLICK_DISPATCHED
+TARGETED_SETUP_RESULT = PASS / BROWSER_EXTENSION_READY
+CHROME_MODULE_VERSION = 0.1.50 / BROWSER_REPORTED
+CHROME_EXTENSION_ID = eehdadpmjffomabiedcjijiakconalab / UNCHANGED
+OLD_EXTENSION_INSTANCE_ID = extension:4a03f111-954d-412a-bb5c-c4968105c965
+NEW_EXTENSION_INSTANCE_ID = extension:b8a13837-6f82-4467-8ab2-e18821478edf
+INSTANCE_CHANGED = YES
+PAIRING_HEARTBEAT = PASS
+VERIFICATION_MODULE_VERSION = 0.1.50
+VERIFICATION_INSTANCE_ID = extension:b8a13837-6f82-4467-8ab2-e18821478edf
+VERIFICATION_EVIDENCE_SOURCE = PAIRING_HEARTBEAT
+BROWSER_MODULE_STATUS = READY / runtimeStatus=NOT_APPLICABLE
+PLATFORM_READY = NO / DEV_TUNNEL_FAILED / OUT_OF_SCOPE
+TASK_AFTER_ROUND = ACTIVE / version=10 / currentNodeId=dev / UNCHANGED
+EXECUTION_AFTER_ROUND = FAILED / NOT_APPLIED / attemptCount=1 / UNCHANGED
+EXECUTION_COUNT_AFTER_ROUND = 5 / UNCHANGED
+BROWSER_LOG_LINES = 5041 / UNCHANGED
+EXECUTION_LOG_LINES = 4295 / UNCHANGED
+PLATFORM_STOP_UPDATE_START_COUNT = 0 / 0 / 0
+MANUAL_RECOVERY_TASK_WORKER_EXECUTION_CREATED = 0 / 0 / 0 / 0
+CHROME_ACTUAL_ADOPTION_0.1.50 = PASS
+FINAL_STOP_POINT = CHROME_ADOPTION_PASS / PLATFORM_START_NOT_ADMITTED
 ```
 
 ## EXTENSIONS_PAGE_CANONICALIZATION_HARDENING_ACCEPTANCE
@@ -814,7 +886,7 @@ Codex = 已冻结任务的源码分析、实现、tests/typecheck/build/governan
 
 ```text
 0.1.49 = PREVIOUS_RC / REALITY_FAIL
-0.1.50 = RELEASE_PASS / WORKSPACE_PASS / MATERIALIZATION_PASS / CHROME_ACTUAL_ADOPTION_FAIL
+0.1.50 = RELEASE_PASS / WORKSPACE_PASS / MATERIALIZATION_PASS / CHROME_ACTUAL_ADOPTION_PASS
 Final Real Gate != Integration Hardening
 ```
 
@@ -826,6 +898,7 @@ Final Real Gate != Integration Hardening
 - `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的旧 stop/update/setup/Reload 配额均已消费；不得把旧 acceptance 当作当前 mutation authority。
 - 第二轮真实 Browser mutation authority `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE` 已消耗：targeted setup=1，Reload=0，setup 最终 `PAIRING_TIMEOUT`；不得复用或转移其旧配额。
 - `ONE_RECOVERY_ADOPTION_ROUND_3_ACCEPTANCE` 已消耗：Browser preflight=PASS，targeted setup=1，semantic Reload helper 在 AXPress 前 fail closed，Reload dispatch=0，setup=`PAIRING_TIMEOUT`。不得复用该 round 的 setup/Reload 配额；Round 4 的新权限只来自 `ONE_RECOVERY_ADOPTION_ROUND_4_ACCEPTANCE`。
+- `ONE_RECOVERY_ADOPTION_ROUND_4_ACCEPTANCE` 已消耗并 PASS：Browser preflight/semantic snapshot=PASS，targeted setup=1，semantic Reload dispatch=1，verification=0.1.50 + new instance，Browser module=READY。不得复用 setup/Reload 配额；platform start 仍需独立 `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE`。
 - `SEMANTIC_CARD_BINDING_AUDIT_ACCEPTANCE` 已完成：只读 AX snapshot 已证明 shared multi-card ancestor 的 exact-ID-set predicate 是第一失败点；真实 shape legacy-RED/new-GREEN fixture 与 geometry+AX fallback 已通过本地机械门。该 acceptance 已消费，不得复用为 mutation authority。
 - semantic Reload 必须由包含 `48eff56` 的 canonical helper 执行：旧 container path + 经真实 AX shape 验证的 geometry fallback，最终仍需唯一 target name+exact ID、enabled AXPress Reload 与完整 pre-mutation attestation；外部 X/Y、旧截图坐标、旁路 helper全部禁止。
 - `EXTENSIONS_PAGE_CANONICALIZATION_HARDENING_ACCEPTANCE` 已完成本地机械门；不得借此执行 setup/Reload/start。`Load unpacked` 单独存在不再允许作为 Extensions 主列表 authority。
@@ -847,4 +920,4 @@ Final Real Gate != Integration Hardening
 
 ## STOP_POINT
 
-`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / FIRST_ADOPTION_SETUP_FAIL_EXTENSION_VERSION_MISMATCH / FIRST_RELOAD_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / HARNESS_FIX_COMMIT_3d1eb52 / BROWSER_RELOAD_HARNESS_HARDENING_PASS / ROUND2_TARGETED_SETUP_COUNT_1 / ROUND2_RELOAD_COUNT_0 / ROUND2_SETUP_FAIL_PAIRING_TIMEOUT / ROUND2_BUDGET_CONSUMED / EXTENSIONS_PAGE_CANONICALIZATION_ROOT_CAUSE_PROVEN / EXTENSIONS_PAGE_CANONICALIZATION_MECHANICAL_PASS / CANONICALIZATION_FIX_COMMIT_c4f640a / ROUND3_BROWSER_PREFLIGHT_PASS / ROUND3_CANONICAL_URL_EXACT / ROUND3_FRESH_TARGET_NAME_ID_RELOAD_VISIBLE / ROUND3_TARGETED_SETUP_COUNT_1 / ROUND3_SETUP_WAITING_PASS / ROUND3_SEMANTIC_RELOAD_COMMAND_COUNT_1 / ROUND3_HELPER_FAIL_TARGET_EXTENSION_CARD_NOT_FOUND / ROUND3_RELOAD_DISPATCH_COUNT_0 / ROUND3_SETUP_FAIL_PAIRING_TIMEOUT / ROUND3_FIRST_DIVERGENCE_SEMANTIC_CARD_BINDING / ROUND3_BUDGET_CONSUMED / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49_OLD_INSTANCE / BROWSER_NOT_READY / SAME_EXECUTION_UNCHANGED / PLATFORM_START_COUNT_0 / SEMANTIC_CARD_BINDING_REAL_AX_SNAPSHOT_PASS / SEMANTIC_NODE_COUNT_356 / SNAPSHOT_BUDGET_REMAINING_4644 / FIRST_FAILED_PREDICATE_DESCENDANT_ID_SET_EXACT_TARGET / SEMANTIC_CARD_BINDING_ROOT_CAUSE_PROVEN_SHARED_MULTI_CARD_ANCESTOR / LEGACY_REAL_SHAPE_RED / NEW_SELECTOR_GREEN / GEOMETRY_AX_FALLBACK_LOCAL_MECHANICAL_PASS / PRODUCT_SOURCE_UNCHANGED / VERSION_0.1.50_UNCHANGED / TARGETED_SETUP_RELOAD_START_0_0_0 / SEMANTIC_BINDING_FIX_COMMIT_48eff56 / ROUND4_ADMITTED / ROUND4_READ_ONLY_PREFLIGHT_BEFORE_SETUP / ROUND4_ONE_SETUP_ONE_SEMANTIC_RELOAD / PLATFORM_START_NOT_ADMITTED / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
+`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / HARNESS_FIX_COMMIT_3d1eb52 / BROWSER_RELOAD_HARNESS_HARDENING_PASS / EXTENSIONS_PAGE_CANONICALIZATION_ROOT_CAUSE_PROVEN / CANONICALIZATION_FIX_COMMIT_c4f640a / ROUND3_FIRST_DIVERGENCE_SEMANTIC_CARD_BINDING / ROUND3_BUDGET_CONSUMED / SEMANTIC_CARD_BINDING_ROOT_CAUSE_PROVEN_SHARED_MULTI_CARD_ANCESTOR / SEMANTIC_BINDING_FIX_COMMIT_48eff56 / ROUND4_BROWSER_PREFLIGHT_PASS / ROUND4_SEMANTIC_SNAPSHOT_1_NODE_COUNT_356_NOT_TRUNCATED / ROUND4_TARGETED_SETUP_COUNT_1_PASS / ROUND4_SEMANTIC_RELOAD_COUNT_1_TARGET_ATTESTED / CHROME_RUNTIME_0.1.50_BROWSER_REPORTED / EXTENSION_ID_UNCHANGED / NEW_INSTANCE_b8a13837 / VERIFICATION_0.1.50_PAIRING_HEARTBEAT / BROWSER_MODULE_READY / TASK_EXECUTION_LOGS_UNCHANGED / PLATFORM_STOP_UPDATE_START_0_0_0 / CHROME_ACTUAL_ADOPTION_0.1.50_PASS / ROUND4_BUDGET_CONSUMED / PRODUCTION_RUNTIME_ONE_START_PENDING_ADMISSION / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
