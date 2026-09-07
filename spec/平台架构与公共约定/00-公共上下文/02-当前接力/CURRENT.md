@@ -230,9 +230,10 @@ ROOT_CAUSE_OF_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 ## NEXT_ACTION
 
 1. **唯一 production start 已消费并失败**：preflight 时 23/23 module status command 成功且全部 `setupStatus=READY`；dev-tunnel=`setup READY / runtime FAILED`。唯一 `platform start` 正式返回 `成功 0 / 跳过 2 / 失败 dev-tunnel`。
-2. 正式失败 authority：dev-tunnel status issue=`TUNNEL_RUNTIME_FAILED / Tunnel 运行状态检查失败`；start-owner=`ABSENT`，47080/51443 无 listener，Browser/Execution 日志无新增，因此 production bridge/rearm/recovery/application/redecision 均 `NOT_REACHED`。
+2. 正式失败 authority：dev-tunnel status issue=`TUNNEL_RUNTIME_FAILED / Tunnel 运行状态检查失败`；后续只读远端查询已进一步证明 `devtunnel show <persisted tunnelId> --json` 返回 `Login token expired` / exit=3。当前首先失效的是 Dev Tunnel 登录认证；“远端 tunnel 已被删除”仍未证明。
 3. SAME-SCENE 与 0.1.50 adoption 保持：verification 仍为 `0.1.50 / eehdad... / extension:b8a13837... / PAIRING_HEARTBEAT`；Task=`ACTIVE v10 / dev`，原 `execution:e9...` 与 count=5、日志 5041/4295 全部不变。
-4. **现在 STOP**：禁止 setup、stop、retry、第二次 start 或现场 patch。网页总控需另行裁决 dev-tunnel runtime failure 的只读诊断与可能修复 acceptance；当前不准入 production bridge或 Final Dev/Test。
+4. **待修诊断缺陷**：`start()` 实际执行 login check，但 `status()` 不验证 remote login reality；`observeLogin()` 又会把 `Login token expired` 等具体 CLI 原因压成 `UNKNOWN`，最终 Platform 只暴露模糊的 `TUNNEL_RUNTIME_FAILED`。后续必须细分并传播 `AUTH_EXPIRED / NOT_LOGGED_IN / QUERY_TIMEOUT / CLI_ERROR` 等原因，同时把 production start 前的 login+tunnel+port remote preflight 固化为门禁。
+5. **现在 STOP**：先恢复 Dev Tunnel 登录并只读核验原 tunnel/41705 port 是否仍存在，再处理上述诊断缺陷；完成后才重新准入 production runtime start。当前不准入 production bridge或 Final Dev/Test。
 
 ## PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE
 
