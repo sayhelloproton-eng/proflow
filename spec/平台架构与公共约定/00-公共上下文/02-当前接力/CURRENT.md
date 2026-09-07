@@ -15,10 +15,10 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_ONE_RECOVERY_ADOPTION_ROUND
+CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_RECOVERY_ADOPTION_ROUND_STOPPED
 ```
 
-0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50；首次受控 Chrome adoption 在旧 `reload-at-point` 语义下失败后，Browser Reload harness hardening 已完成本地机械门。当前正式进入 **0.1.50 ONE recovery adoption round**：只重新准入一次 targeted setup + 一次语义绑定后的 Chrome Reload；`platform start` 仍未准入，必须等本轮 Chrome 0.1.50 pairing/verification/READY 全 PASS 后由网页总控另行裁决。
+0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50。第二轮 recovery adoption 已消耗唯一 targeted setup，但 fresh Browser pre-attestation 发现 canonical helper 停在 `chrome://extensions/?errors=<target-id>`：截图和 AX 均未见目标 Extension card，因此按 fail-closed gate 未调用 `reload-at-point`。setup 最终 `PAIRING_TIMEOUT`，Chrome/verification 仍为 0.1.49/旧 instance，`platform start` 仍未准入且未执行。
 
 ## CURRENT_AUTHORITY
 
@@ -51,6 +51,10 @@ verification.evidenceSource = PAIRING_HEARTBEAT
 targeted setup = FAIL / EXTENSION_VERSION_MISMATCH
 platform stop count = 1 / owner ABSENT
 platform start after 0.1.50 adoption attempt = NOT_RUN / count=0
+recovery adoption round 2 targeted setup = FAIL / PAIRING_TIMEOUT / count=1
+recovery adoption round 2 semantic Reload = NOT_DISPATCHED / count=0
+fresh privileged page = chrome://extensions/?errors=eehdadpmjffomabiedcjijiakconalab
+fresh target card pre-attestation = FAIL / TARGET_NOT_VISIBLE_ON_CURRENT_ERROR_SUBPAGE
 ```
 
 0.1.49 已完成 package → Registry → Workspace → materialized loadDir → Chrome registered Service Worker → browser-attested verification 的真实 adoption；不得再把版本采用问题重新当当前 blocker。
@@ -109,7 +113,8 @@ browser_reload_harness_hardening_acceptance = FROZEN / LOCAL_ONLY
 browser_reload_harness_hardening = PASS / LOCAL_MECHANICAL_GATE
 future_reload_semantic_attestation = READY / CARD_LOCAL_NAME_AND_ID + UNIQUE_PRESSABLE_RELOAD
 previous_adoption_failure_root_cause = NOT_PROVEN
-recovery_adoption_round_2 = ADMITTED / EXACTLY_ONE_SETUP_PLUS_ONE_SEMANTIC_RELOAD
+recovery_adoption_round_2 = CONSUMED / STOPPED_BEFORE_RELOAD
+recovery_adoption_round_2_first_divergence = FRESH_TARGET_CARD_PRE_ATTESTATION
 platform_start_admitted = NO
 ```
 
@@ -183,11 +188,10 @@ ROOT_CAUSE_OF_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 
 ## NEXT_ACTION
 
-1. **停止 0.1.50 release/workspace 重做**：Registry、version、publish、Product Workspace update、materialization 已 PASS；不得再次 version/publish/update。
-2. **ONE recovery adoption round 已冻结并准入**：只允许按 `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE` 执行一次 targeted setup + 一次 canonical semantic Reload；不得复用旧 `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的其它 mutation 配额。
-3. 执行前必须重新冻结 SAME-SCENE 与 owner=ABSENT；若 preflight 漂移、setup 未进入 WAITING、helper attestation fail-closed，则立即 STOP，且不得把未 dispatch 的动作算作 Reload。
-4. Reload 一旦成功 dispatch，本 round 不论 PASS/FAIL 都不允许第二次 setup/Reload。唯一 PASS authority 是同一 setup 返回 0.1.50 pairing heartbeat、新 extensionInstanceId、verification 0.1.50 与 Browser READY。
-5. 即使 Chrome actual adoption 0.1.50 PASS，本 round 也必须 STOP；`platform start` 当前仍 `NOT_ADMITTED`，由网页总控另行冻结 production-runtime one-start acceptance。人工 recovery/wake/retry/resume/ACK/reopen 继续禁止。
+1. **停止并交回网页总控**：第二轮唯一 targeted setup 已消耗，semantic Reload 因 pre-attestation 失败未 dispatch；不得再次 setup/Reload。
+2. 新的 FIRST_DIVERGENCE 是 fresh privileged reality 停在 target Extension error 子页；`ensureExtensionsPage()` 在该页仍可见“Load unpacked”时不会切回 Extension card list，所以 canonical identity/card attestation 无法成立。这是候选 harness navigation gap，不得在已消耗 round 中现场 patch。
+3. Registry/version/Workspace/materialization/registration path 仍 PASS；固定 Task/Execution 及 Execution 总数、Browser/Execution 日志行数未变，verification 仍为 0.1.49/旧 instance。
+4. `platform start` 仍 `NOT_ADMITTED`；人工 recovery/wake/retry/resume/ACK/reopen 继续禁止。后续任何 harness 修复或新 setup/Reload 配额必须由网页总控重新裁决。
 
 ## BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE
 
@@ -306,6 +310,37 @@ PLATFORM_START_COUNT = 0
 SAME_EXECUTION = UNCHANGED
 NEXT_GATE = PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE
 ```
+
+## ONE_RECOVERY_ADOPTION_ROUND_REALITY
+
+2026-09-08 第二轮按冻结预检完成后只启动一次 targeted setup。setup 已进入“ProFlow 正在自动等待扩展连接”状态；随后 canonical `screenshot-extensions` 取得 fresh screenshot，但 helper 返回 `SCREENSHOT_MISSING`。图像与 `inspect-extension-geometry` 一致证明当前 privileged URL 为 `chrome://extensions/?errors=eehdadpmjffomabiedcjijiakconalab`，页面上是 Extension error detail，没有可供 card-local name+ID+Reload 绑定的目标卡片。
+
+```text
+ROUND_2_PREFLIGHT = PASS
+TARGETED_SETUP_COUNT = 1
+SETUP_WAITING_BEFORE_OBSERVATION = YES
+FRESH_SCREENSHOT = PRESENT / ERROR_DETAIL_SUBPAGE
+FRESH_EXTENSION_CARD_IDENTITY = NOT_PROVEN
+TARGET_CARD_UNIQUE = NO / TARGET_CARD_NOT_VISIBLE
+SEMANTIC_RELOAD_COMMAND_INVOKED = NO
+CHROME_RELOAD_COUNT = 0
+TARGETED_SETUP_RESULT = FAIL / PAIRING_TIMEOUT
+CHROME_MODULE_VERSION = 0.1.49 / LAST_VERIFIED_PRE_ROUND
+VERIFICATION_MODULE_VERSION = 0.1.49
+VERIFICATION_INSTANCE_ID = extension:4a03f111-954d-412a-bb5c-c4968105c965
+VERIFICATION_EVIDENCE_SOURCE = PAIRING_HEARTBEAT
+BROWSER_STATUS = NOT_READY
+PLATFORM_START_COUNT = 0
+TASK_EXECUTION_IDENTITY = UNCHANGED
+EXECUTION_COUNT = 5 / UNCHANGED
+BROWSER_LOG_LINES = 5041 / UNCHANGED
+EXECUTION_LOG_LINES = 4295 / UNCHANGED
+ROOT_CAUSE_OF_PREVIOUS_ADOPTION_FAILURE = NOT_PROVEN
+FIRST_DIVERGENCE = FRESH_TARGET_CARD_PRE_ATTESTATION
+FINAL_STOP_POINT = RELOAD_NOT_DISPATCHED / ROUND_BUDGET_CONSUMED
+```
+
+`reload-at-point` 未被调用，所以本轮不存在 Reload action success/failure 的过度解读；也不能由本轮反推上一轮 adoption 失败的子因。任何对 `ensureExtensionsPage()` 的导航语义修复、新 setup/Reload round 或 production start 都需要新的独立 acceptance。
 
 ## TRAILING_RECOVERY_FIX_ACCEPTANCE
 
@@ -507,7 +542,8 @@ Final Real Gate != Integration Hardening
 
 - 不重开 0.1.45～0.1.48 Browser adoption、Tunnel、TASK_RESUMED allowlist 等已闭环问题。
 - `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的旧 stop/update/setup/Reload 配额均已消费；不得把旧 acceptance 当作当前 mutation authority。
-- 当前唯一真实 Browser mutation authority 是 `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE`：恰好一次 targeted setup + 恰好一次 semantic Reload；不得执行 platform update/stop/start，且不得第二次 setup/Reload。
+- 本次真实 Browser mutation authority 曾为 `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE`；该 authority 已消耗，当前没有新的 Browser mutation authority。
+- `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE` 已在 fresh target-card pre-attestation 失败处消耗：targeted setup=1，Reload=0，setup 最终 `PAIRING_TIMEOUT`。不得把未使用的 Reload 配额带入另一次 setup，也不得在本 round 重试。
 - semantic Reload 必须由 `3d1eb52` canonical helper 直接解析 card-local name+ID、唯一 enabled AXPress Reload 并输出完整 pre-mutation attestation；外部 X/Y、旧截图坐标、旁路 helper 全部禁止。
 - 不人工发 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry。
 - 不再次 task.resume / ACK / reopen；不新建 Task、Worker、GPT、Execution。
@@ -527,4 +563,4 @@ Final Real Gate != Integration Hardening
 
 ## STOP_POINT
 
-`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / FIRST_ADOPTION_SETUP_FAIL_EXTENSION_VERSION_MISMATCH / FIRST_RELOAD_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / HARNESS_FIX_COMMIT_3d1eb52 / BROWSER_RELOAD_HARNESS_HARDENING_PASS / CARD_LOCAL_NAME_ID_BINDING / UNIQUE_ENABLED_AXPRESS_RELOAD / DERIVED_POINT_OVERLAP_GUARD / PRE_MUTATION_ATTESTATION / ACTION_RESULT_CLICK_DISPATCHED_ONLY / DETERMINISTIC_12_OF_12_PASS / NODE_2_OF_2_PASS / SWIFT_COMPILE_PASS / PRODUCT_SOURCE_VERSION_UNCHANGED / ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE_FROZEN / ROUND2_ONE_TARGETED_SETUP_ADMITTED / ROUND2_ONE_SEMANTIC_RELOAD_ADMITTED / PLATFORM_START_NOT_ADMITTED / NEXT_EXECUTION_ROUND2_PREFLIGHT_SETUP_RELOAD_VERIFY_AND_STOP / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
+`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / FIRST_ADOPTION_SETUP_FAIL_EXTENSION_VERSION_MISMATCH / FIRST_RELOAD_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / HARNESS_FIX_COMMIT_3d1eb52 / BROWSER_RELOAD_HARNESS_HARDENING_PASS / ROUND2_PREFLIGHT_PASS / ROUND2_TARGETED_SETUP_COUNT_1 / ROUND2_SETUP_WAITING_PASS / ROUND2_FRESH_PRIVILEGED_PAGE_ERROR_SUBPAGE / ROUND2_TARGET_CARD_PRE_ATTESTATION_FAIL / ROUND2_RELOAD_COUNT_0 / ROUND2_SETUP_FAIL_PAIRING_TIMEOUT / ROUND2_BUDGET_CONSUMED / PLATFORM_START_NOT_ADMITTED / NEXT_DECISION_HARNESS_NAVIGATION_GAP_AND_NEW_ROUND_REQUIRE_SEPARATE_ACCEPTANCE / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
