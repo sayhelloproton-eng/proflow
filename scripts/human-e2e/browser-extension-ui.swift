@@ -57,6 +57,41 @@ struct ReloadTargetSelection {
     let point: CGPoint
 }
 
+enum ExtensionsPageDisposition: Equatable {
+    case ready
+    case navigate
+    case waitForListSurface
+    case failURLAuthority
+}
+
+func isCanonicalExtensionsURL(_ value: String) -> Bool {
+    value == "chrome://extensions" || value == "chrome://extensions/"
+}
+
+func classifyExtensionsPage(
+    currentURL: String?,
+    listSurfaceReady: Bool
+) -> ExtensionsPageDisposition {
+    guard let currentURL, !currentURL.isEmpty else { return .failURLAuthority }
+    guard isCanonicalExtensionsURL(currentURL) else { return .navigate }
+    return listSurfaceReady ? .ready : .waitForListSurface
+}
+
+func requireCanonicalExtensionsPage(
+    currentURL: String?,
+    listSurfaceReady: Bool
+) throws {
+    guard let currentURL, !currentURL.isEmpty else {
+        throw HarnessDecisionError(code: "EXTENSIONS_URL_AUTHORITY_UNAVAILABLE")
+    }
+    guard isCanonicalExtensionsURL(currentURL) else {
+        throw HarnessDecisionError(code: "EXTENSIONS_CANONICAL_URL_NOT_CONFIRMED")
+    }
+    guard listSurfaceReady else {
+        throw HarnessDecisionError(code: "EXTENSIONS_LIST_SURFACE_NOT_READY")
+    }
+}
+
 func flattenSemantic(_ root: ReloadSemanticNode) -> [ReloadSemanticNode] {
     var result: [ReloadSemanticNode] = []
     var stack = [root]
@@ -397,20 +432,73 @@ func goToFolderVisible() -> Bool {
     }
 }
 
+func currentChromeURL() -> String? {
+    let values = Set(nodes().compactMap { element -> String? in
+        guard role(element) == kAXTextFieldRole as String else { return nil }
+        let label = [
+            stringAttribute(element, kAXTitleAttribute as CFString),
+            stringAttribute(element, kAXDescriptionAttribute as CFString),
+            stringAttribute(element, kAXHelpAttribute as CFString),
+        ].joined(separator: " | ").lowercased()
+        guard label.contains("地址和搜索栏") || label.contains("address and search bar") else {
+            return nil
+        }
+        let value = stringAttribute(element, kAXValueAttribute as CFString)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    })
+    guard values.count == 1 else { return nil }
+    return values.first
+}
+
+func extensionsListSurfaceReady() -> Bool {
+    button(named: ["加载未打包的扩展程序", "Load unpacked"]) != nil
+}
+
 func ensureExtensionsPage() throws {
     for _ in 0..<4 {
         if !goToFolderVisible() && !pickerVisible() { break }
         key(53)
         usleep(250_000)
     }
-    if button(named: ["加载未打包的扩展程序", "Load unpacked"]) != nil { return }
+    let initialURL = currentChromeURL()
+    switch classifyExtensionsPage(
+        currentURL: initialURL,
+        listSurfaceReady: extensionsListSurfaceReady()
+    ) {
+    case .failURLAuthority:
+        throw HarnessDecisionError(code: "EXTENSIONS_URL_AUTHORITY_UNAVAILABLE")
+    case .ready:
+        return
+    case .waitForListSurface:
+        guard wait(8.0, {
+            guard let currentURL = currentChromeURL() else { return false }
+            return isCanonicalExtensionsURL(currentURL) && extensionsListSurfaceReady()
+        }) else {
+            try requireCanonicalExtensionsPage(
+                currentURL: currentChromeURL(),
+                listSurfaceReady: extensionsListSurfaceReady()
+            )
+            return
+        }
+        return
+    case .navigate:
+        break
+    }
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
     process.arguments = ["-a", "Google Chrome", "chrome://extensions"]
     try process.run()
     process.waitUntilExit()
-    guard wait(8.0, { button(named: ["加载未打包的扩展程序", "Load unpacked"]) != nil }) else {
-        throw NSError(domain: "human-e2e", code: 10, userInfo: [NSLocalizedDescriptionKey: "EXTENSIONS_PAGE_NOT_READY"])
+    guard wait(8.0, {
+        guard let currentURL = currentChromeURL() else { return false }
+        return isCanonicalExtensionsURL(currentURL) && extensionsListSurfaceReady()
+    }) else {
+        try requireCanonicalExtensionsPage(
+            currentURL: currentChromeURL(),
+            listSurfaceReady: extensionsListSurfaceReady()
+        )
+        return
     }
 }
 
@@ -545,7 +633,76 @@ func runHarnessSelfTests() throws {
             throw HarnessDecisionError(code: "SELF_TEST_RESULT_OVERCLAIMS")
         }
     }
-    print("HARNESS_TESTS=12/12")
+    try expectPass("extensions-exact-base-url") {
+        guard isCanonicalExtensionsURL("chrome://extensions") else {
+            throw HarnessDecisionError(code: "SELF_TEST_EXACT_BASE_REJECTED")
+        }
+    }
+    try expectPass("extensions-trailing-slash-url") {
+        guard isCanonicalExtensionsURL("chrome://extensions/") else {
+            throw HarnessDecisionError(code: "SELF_TEST_TRAILING_SLASH_REJECTED")
+        }
+    }
+    for (name, value) in [
+        ("extensions-error-query-rejected", "chrome://extensions/?errors=abc"),
+        ("extensions-generic-query-rejected", "chrome://extensions?foo=bar"),
+        ("extensions-hash-rejected", "chrome://extensions/#foo"),
+        ("extensions-subroute-rejected", "chrome://extensions/shortcuts"),
+        ("non-extensions-url-rejected", "https://example.com"),
+    ] {
+        try expectPass(name) {
+            guard !isCanonicalExtensionsURL(value) else {
+                throw HarnessDecisionError(code: "SELF_TEST_NON_CANONICAL_URL_ACCEPTED")
+            }
+        }
+    }
+    try expectPass("error-page-with-load-unpacked-rejected") {
+        guard classifyExtensionsPage(
+            currentURL: "chrome://extensions/?errors=abc",
+            listSurfaceReady: true
+        ) == .navigate else {
+            throw HarnessDecisionError(code: "SELF_TEST_ERROR_SHELL_ACCEPTED")
+        }
+    }
+    try expectPass("exact-base-with-load-unpacked-ready") {
+        guard classifyExtensionsPage(
+            currentURL: "chrome://extensions",
+            listSurfaceReady: true
+        ) == .ready else {
+            throw HarnessDecisionError(code: "SELF_TEST_EXACT_BASE_NOT_READY")
+        }
+    }
+    try expectPass("navigation-rechecks-exact-url-and-surface") {
+        guard classifyExtensionsPage(
+            currentURL: "chrome://extensions/?errors=abc",
+            listSurfaceReady: true
+        ) == .navigate else {
+            throw HarnessDecisionError(code: "SELF_TEST_NAVIGATION_NOT_REQUIRED")
+        }
+        try requireCanonicalExtensionsPage(
+            currentURL: "chrome://extensions",
+            listSurfaceReady: true
+        )
+    }
+    try expectFailure(
+        "navigation-rejects-still-noncanonical-url",
+        "EXTENSIONS_CANONICAL_URL_NOT_CONFIRMED"
+    ) {
+        try requireCanonicalExtensionsPage(
+            currentURL: "chrome://extensions/?errors=abc",
+            listSurfaceReady: true
+        )
+    }
+    try expectFailure("unknown-url-fails-closed", "EXTENSIONS_URL_AUTHORITY_UNAVAILABLE") {
+        try requireCanonicalExtensionsPage(currentURL: nil, listSurfaceReady: false)
+    }
+    try expectFailure(
+        "unknown-url-with-load-unpacked-fails-closed",
+        "EXTENSIONS_URL_AUTHORITY_UNAVAILABLE"
+    ) {
+        try requireCanonicalExtensionsPage(currentURL: nil, listSurfaceReady: true)
+    }
+    print("HARNESS_TESTS=25/25")
 }
 
 func finish(_ result: String) {

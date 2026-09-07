@@ -20,6 +20,19 @@ const expectedCases = [
 	"point-overlaps-details",
 	"point-outside-reload",
 	"derived-midpoint-and-result-semantics",
+	"extensions-exact-base-url",
+	"extensions-trailing-slash-url",
+	"extensions-error-query-rejected",
+	"extensions-generic-query-rejected",
+	"extensions-hash-rejected",
+	"extensions-subroute-rejected",
+	"non-extensions-url-rejected",
+	"error-page-with-load-unpacked-rejected",
+	"exact-base-with-load-unpacked-ready",
+	"navigation-rechecks-exact-url-and-surface",
+	"navigation-rejects-still-noncanonical-url",
+	"unknown-url-fails-closed",
+	"unknown-url-with-load-unpacked-fails-closed",
 ];
 
 test("browser reload selector passes the frozen deterministic matrix", () => {
@@ -37,7 +50,35 @@ test("browser reload selector passes the frozen deterministic matrix", () => {
 	for (const name of expectedCases) {
 		assert.match(result.stdout, new RegExp(`HARNESS_TEST=${name} PASS`));
 	}
-	assert.match(result.stdout, /HARNESS_TESTS=12\/12/);
+	assert.match(result.stdout, /HARNESS_TESTS=25\/25/);
+});
+
+test("all Extension-card actions share the URL-first canonical page gate", () => {
+	const source = readFileSync(swiftUrl, "utf8");
+	assert.match(source, /func currentChromeURL\(\) -> String\?/);
+	assert.match(
+		source,
+		/func isCanonicalExtensionsURL\(_ value: String\) -> Bool/,
+	);
+	assert.match(source, /EXTENSIONS_URL_AUTHORITY_UNAVAILABLE/);
+	assert.match(source, /EXTENSIONS_CANONICAL_URL_NOT_CONFIRMED/);
+	assert.match(
+		source,
+		/func inspectExtensionGeometry\(\) throws \{\s*try ensureExtensionsPage\(\)/s,
+	);
+	for (const action of [
+		"status",
+		"screenshot-extensions",
+		"reload-at-point",
+		"uninstall",
+		"install",
+	]) {
+		const escaped = action.replaceAll("-", "\\-");
+		assert.match(
+			source,
+			new RegExp(`case "${escaped}":[\\s\\S]*?try ensureExtensionsPage\\(\\)`),
+		);
+	}
 });
 
 test("real reload action reports dispatch only and has no coordinate authority fallback", () => {
