@@ -15,16 +15,16 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_CHROME_ADOPTION_PASS_STOPPED
+CURRENT_EXECUTION_MODE = REAL_3_J4_PRODUCTION_RUNTIME_ONE_START_ADMITTED
 ```
 
-0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50。Recovery adoption round 3 暴露的 semantic card-binding 失败已完成独立机械闭环。Round 4 已严格按独立 acceptance 完成：setup 前 Browser/AX preflight PASS，唯一 targeted setup 进入 waiting，唯一 semantic Reload 通过完整 target attestation 并 dispatch；同一 setup 随后以 browser-reported heartbeat 写入 `0.1.50`、同 Extension ID 与新 instance，Browser module status=`READY`。Task/Execution/log identity 全部不变，platform start=0；当前立即 STOP，下一门只能由网页总控另行准入 `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE`。
+0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50。Recovery adoption round 3 暴露的 semantic card-binding 失败已完成独立机械闭环。Round 4 已严格按独立 acceptance 完成：setup 前 Browser/AX preflight PASS，唯一 targeted setup 进入 waiting，唯一 semantic Reload 通过完整 target attestation 并 dispatch；同一 setup 随后以 browser-reported heartbeat 写入 `0.1.50`、同 Extension ID 与新 instance，Browser module status=`READY`。Task/Execution/log identity 全部不变，platform start=0。网页总控现已单独冻结 `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE`：只允许一次正式 `platform start`，随后仅被动读取 0.1.50 bridge/recovery/application 与同一 Execution redecision 证据；Browser/setup/update/release/Task/Execution 人工 mutation 全部继续禁止。
 
 ## CURRENT_AUTHORITY
 
 ```text
 branch = main
-current context commit before this gate = c25e075 docs: admit 0.1.50 recovery adoption round 4
+current context commit before this gate = e7eb229 docs: record 0.1.50 recovery adoption round 4 pass
 worktree at last frozen context = CLEAN
 Extensions page canonicalization FIX_COMMIT = c4f640a fix(browser-harness): canonicalize extensions page
 Browser Reload harness hardening acceptance first frozen in context commit = 48b7912
@@ -124,7 +124,7 @@ original_class = REAL3_OBSERVER_RECOVERY_POST_RECONNECT
 original_root_cause = PROVEN / OBSERVER_RECOVERY_SINGLE_FLIGHT_DROPS_REARM_EPOCH
 0.1.50_release = PASS
 0.1.50_workspace_materialization = PASS
-current_class = REAL3_PRODUCTION_RUNTIME_ONE_START_PENDING_ADMISSION
+current_class = REAL3_PRODUCTION_RUNTIME_ONE_START_ADMITTED
 chrome_registration_path = MATCH / CURRENT_0.1.50_LOADDIR
 chrome_runtime_version = 0.1.50 / BROWSER_REPORTED_HEARTBEAT
 platform_runtime_after_attempt = STOPPED / START_NOT_RUN
@@ -141,7 +141,7 @@ semantic_card_binding_root_cause = PROVEN / SHARED_MULTI_CARD_ANCESTOR_ID_CONTAM
 semantic_card_binding_hardening = LOCAL_MECHANICAL_PASS / LEGACY_RED_NEW_GREEN
 recovery_adoption_round_4 = PASS / CONSUMED / ONE_SETUP / ONE_SEMANTIC_RELOAD / NEW_INSTANCE
 previous_adoption_failure_root_cause = NOT_PROVEN
-platform_start_admitted = NO
+platform_start_admitted = YES / EXACTLY_ONE / PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE
 ```
 
 ## CURRENT_FIRST_EVIDENCE
@@ -214,10 +214,55 @@ ROOT_CAUSE_OF_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 
 ## NEXT_ACTION
 
-1. **Chrome actual adoption 0.1.50 已 PASS**：Round 4 的 exact Extensions preflight、一次 semantic snapshot、一次 targeted setup、一次 canonical semantic Reload 均按序完成；目标 name/ID/Reload attestation 全 PASS。
-2. 同一 setup 已通过 browser-reported `PAIRING_HEARTBEAT` 写入 verification `moduleVersion=0.1.50`；Extension ID 仍为 `eehdadpmjffomabiedcjijiakconalab`，新 instance=`extension:b8a13837-6f82-4467-8ab2-e18821478edf`，Browser module status=`READY`。
-3. SAME-SCENE 保持：Task=`ACTIVE v10 / dev`；原 `execution:e9...` 仍 `FAILED / NOT_APPLIED / attemptCount=1`，identity/idempotency/fingerprint/updatedAt 不变；Execution count=5，Browser/Execution 日志仍为 5041/4295。
-4. **现在 STOP**：Round 4 的 setup/Reload 配额已消费，platform start count=0 且仍未准入。下一动作只能由网页总控单独冻结 `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE`；不得从本 round 继承 start/recovery/Task/Execution mutation 权限。
+1. **Chrome actual adoption 0.1.50 已 PASS**：verification=`0.1.50 / PAIRING_HEARTBEAT`，Extension ID 不变，新 instance=`extension:b8a13837-6f82-4467-8ab2-e18821478edf`，Browser module=`READY`；Round 4 setup/Reload 配额已消费，后续禁止再次 Browser mutation。
+2. **Production one-start 已单独准入**：先只读重冻结 SAME-SCENE、0.1.50 verification、start-owner 与所有模块 setupStatus；其中 dev-tunnel 当前 `runtimeStatus=FAILED` 不构成额外 setup gate，只要其持久 `setupStatus=READY`，正式 `platform start` 会按既有 lifecycle 尝试恢复 runtime。
+3. 只允许一次正式 `platform start --workspace /Users/agent/Desktop/proton-workspace`。start 之后只做 passive readback，不人工 reconnect/recover/wake/retry，不第二次 start，不 stop/update/setup。
+4. 唯一成功目标：production bridge=`0.1.50`、`sessionOnline=YES`、`commandConsumerReady=YES`、instance 与 verification 一致；Observer recovery 越过 rearm/single-flight/trailing/application，并在**同一** `execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0` 上产生 durable redecision。成功后立即 STOP，Dev/Test 属于最后一个独立 final gate。
+
+## PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE
+
+```text
+ACCEPTANCE_FROZEN = YES
+TARGET_VERSION = 0.1.50
+TARGET_EXECUTION = execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0
+EXPECTED_EXTENSION_ID = eehdadpmjffomabiedcjijiakconalab
+EXPECTED_EXTENSION_INSTANCE_ID = extension:b8a13837-6f82-4467-8ab2-e18821478edf
+PLATFORM_START = ADMITTED / EXACTLY_ONE
+PLATFORM_STOP = FORBIDDEN
+PLATFORM_SETUP = FORBIDDEN
+PLATFORM_UPDATE = FORBIDDEN
+BROWSER_MUTATION = FORBIDDEN
+MANUAL_RECOVERY_WAKE_RETRY = FORBIDDEN
+TASK_EXECUTION_MANUAL_MUTATION = FORBIDDEN
+PUSH_ADMITTED = NO
+```
+
+严格顺序与验收：
+
+1. **Preflight / no mutation**：HEAD/worktree clean；0.1.50 product source/version/Registry/Workspace/materialization 不漂移；verification 必须仍为 `moduleVersion=0.1.50 / extensionId=eehdad... / extensionInstanceId=extension:b8a13837... / evidenceSource=PAIRING_HEARTBEAT`；Browser module status 必须 `READY`。任何 Browser identity 漂移 STOP，禁止 reload/setup。
+2. **SAME-SCENE freeze**：Task 必须 `ACTIVE / version=10 / currentNodeId=dev`；Dev=`IN_PROGRESS / runNo=1 / worker=6a9b4632-ca8c-83e9-a4bc-9de9e229e515`；Test=`PENDING / runNo=1`。固定 Execution 必须仍 `FAILED / NOT_APPLIED / attemptCount=1`，同 idempotencyKey、inputFingerprint、updatedAt；Execution count=5。冻结 Browser/Execution log baselines与 start-owner。
+3. **Start precondition semantics**：所有模块 `status` command 必须成功且 `setupStatus=READY`，否则 STOP 并保持 start count=0。dev-tunnel 若 `setupStatus=READY` 但 `runtimeStatus=FAILED/STOPPED`，**不要求额外 setup**；这是正式 start 的 runtime recovery 输入。不得因整体 `PLATFORM_READY=NO` 自动增加 setup。
+4. **唯一 mutation**：只执行一次 `/Users/agent/Desktop/proton-workspace/node_modules/.bin/platform start --workspace /Users/agent/Desktop/proton-workspace`。命令 timeout/UNKNOWN 时先恢复 owner/process/module truth，禁止第二次 start。若 start 正式 FAIL，记录首个 failed module/原因并 STOP；不得在同 batch setup/stop/retry。
+5. start completed 后必须被动证明 production bridge：`moduleVersion=0.1.50`、`sessionOnline=YES`、`commandConsumerReady=YES`、`extensionInstanceId=verification.extensionInstanceId`。任一 identity mismatch/UNKNOWN 立即 STOP。
+6. 必须在新 log/event 区间观察同一 production reconnect epoch：`BRIDGE_EPOCH_ACCEPTED -> REARM_CALLBACK_ENTERED`。随后 recovery 必须出现 `STARTED`；若先出现 `REUSED_IN_FLIGHT`，允许，但旧 pass settle 后必须**自然**出现更新 attempt `STARTED`，不得靠第二次 reconnect/start。
+7. Recovery application 必须自然越过 `COLLABORATION_RECOVERY_BEGIN/SETTLED`，并产生新的 `execution.listSignals` 与后续正式 Owner application readback。若 marker 出现但 application progress 停止，冻结新的 `FIRST_DIVERGENCE` 后 STOP，不现场 patch。
+8. 最终只接受**同一** `execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0` 的 durable redecision；预期 `EXECUTION_REDECISION_REQUESTED` 或当前 Owner canonical 同义事实。executionRef/idempotency identity 不得被替代；出现新 Execution 立即 STOP。
+9. same-execution redecision PASS 后立即 STOP。不得继续 Dev `file.read/complete`、Test 或 Task terminal transition；这些只由网页总控另行冻结 Final Real Gate。
+10. 全程禁止 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry、task.resume/ACK/reopen、新 Task/Worker/GPT/Execution、direct SQLite/durable mutation、Browser reload、git push。
+
+成功停止点：
+
+```text
+PLATFORM_START_COUNT = 1
+PRODUCTION_BRIDGE_0.1.50 = PASS
+PRODUCTION_EXTENSION_INSTANCE_MATCH = PASS
+REARM_CALLBACK = PASS
+TRAILING_RECOVERY = PASS / OR_DIRECT_NEW_RECOVERY
+RECOVERY_APPLICATION_PROGRESS = PASS
+SAME_EXECUTION_REDECISION = PASS
+NEW_EXECUTION_CREATED = NO
+NEXT_GATE = REAL3_FINAL_DEV_TEST_TASK
+```
 
 ## SEMANTIC_CARD_BINDING_AUDIT_ACCEPTANCE
 
@@ -898,7 +943,8 @@ Final Real Gate != Integration Hardening
 - `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的旧 stop/update/setup/Reload 配额均已消费；不得把旧 acceptance 当作当前 mutation authority。
 - 第二轮真实 Browser mutation authority `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE` 已消耗：targeted setup=1，Reload=0，setup 最终 `PAIRING_TIMEOUT`；不得复用或转移其旧配额。
 - `ONE_RECOVERY_ADOPTION_ROUND_3_ACCEPTANCE` 已消耗：Browser preflight=PASS，targeted setup=1，semantic Reload helper 在 AXPress 前 fail closed，Reload dispatch=0，setup=`PAIRING_TIMEOUT`。不得复用该 round 的 setup/Reload 配额；Round 4 的新权限只来自 `ONE_RECOVERY_ADOPTION_ROUND_4_ACCEPTANCE`。
-- `ONE_RECOVERY_ADOPTION_ROUND_4_ACCEPTANCE` 已消耗并 PASS：Browser preflight/semantic snapshot=PASS，targeted setup=1，semantic Reload dispatch=1，verification=0.1.50 + new instance，Browser module=READY。不得复用 setup/Reload 配额；platform start 仍需独立 `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE`。
+- `ONE_RECOVERY_ADOPTION_ROUND_4_ACCEPTANCE` 已消耗并 PASS：Browser preflight/semantic snapshot=PASS，targeted setup=1，semantic Reload dispatch=1，verification=0.1.50 + new instance，Browser module=READY。不得复用 setup/Reload 配额。
+- 当前唯一真实 mutation authority 是 `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE`：只允许一次正式 `platform start`。dev-tunnel 的 `runtimeStatus=FAILED` 若同时 `setupStatus=READY`，由 start lifecycle 自己恢复；不得因此先运行额外 setup。start 后禁止第二次 start、stop/setup/update、Browser mutation与人工 recovery/wake/retry。
 - `SEMANTIC_CARD_BINDING_AUDIT_ACCEPTANCE` 已完成：只读 AX snapshot 已证明 shared multi-card ancestor 的 exact-ID-set predicate 是第一失败点；真实 shape legacy-RED/new-GREEN fixture 与 geometry+AX fallback 已通过本地机械门。该 acceptance 已消费，不得复用为 mutation authority。
 - semantic Reload 必须由包含 `48eff56` 的 canonical helper 执行：旧 container path + 经真实 AX shape 验证的 geometry fallback，最终仍需唯一 target name+exact ID、enabled AXPress Reload 与完整 pre-mutation attestation；外部 X/Y、旧截图坐标、旁路 helper全部禁止。
 - `EXTENSIONS_PAGE_CANONICALIZATION_HARDENING_ACCEPTANCE` 已完成本地机械门；不得借此执行 setup/Reload/start。`Load unpacked` 单独存在不再允许作为 Extensions 主列表 authority。
@@ -906,7 +952,7 @@ Final Real Gate != Integration Hardening
 - 不再次 task.resume / ACK / reopen；不新建 Task、Worker、GPT、Execution。
 - 不直接写 SQLite、roles registry、verification、node_modules 或 durable Owner state。
 - 不因为发现真实 defect 就立即 release；`VALID_DEFECT != CURRENT_ROOT_CAUSE`。
-- 0.1.50 release/Workspace/materialization 已完成；本 recovery adoption round 不得重新 version/publish/update/rollback。Chrome adoption PASS 后仍必须 STOP，platform start 另行准入。
+- 0.1.50 release/Workspace/materialization/Chrome adoption 已完成；不得重新 version/publish/update/rollback/setup/Reload。当前仅一次 production start 已独立准入。
 - 不 push；npm Registry publish 与 git push 仍是独立授权边界。
 
 ## REQUIRED_CONTEXT
@@ -920,4 +966,4 @@ Final Real Gate != Integration Hardening
 
 ## STOP_POINT
 
-`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / HARNESS_FIX_COMMIT_3d1eb52 / BROWSER_RELOAD_HARNESS_HARDENING_PASS / EXTENSIONS_PAGE_CANONICALIZATION_ROOT_CAUSE_PROVEN / CANONICALIZATION_FIX_COMMIT_c4f640a / ROUND3_FIRST_DIVERGENCE_SEMANTIC_CARD_BINDING / ROUND3_BUDGET_CONSUMED / SEMANTIC_CARD_BINDING_ROOT_CAUSE_PROVEN_SHARED_MULTI_CARD_ANCESTOR / SEMANTIC_BINDING_FIX_COMMIT_48eff56 / ROUND4_BROWSER_PREFLIGHT_PASS / ROUND4_SEMANTIC_SNAPSHOT_1_NODE_COUNT_356_NOT_TRUNCATED / ROUND4_TARGETED_SETUP_COUNT_1_PASS / ROUND4_SEMANTIC_RELOAD_COUNT_1_TARGET_ATTESTED / CHROME_RUNTIME_0.1.50_BROWSER_REPORTED / EXTENSION_ID_UNCHANGED / NEW_INSTANCE_b8a13837 / VERIFICATION_0.1.50_PAIRING_HEARTBEAT / BROWSER_MODULE_READY / TASK_EXECUTION_LOGS_UNCHANGED / PLATFORM_STOP_UPDATE_START_0_0_0 / CHROME_ACTUAL_ADOPTION_0.1.50_PASS / ROUND4_BUDGET_CONSUMED / PRODUCTION_RUNTIME_ONE_START_PENDING_ADMISSION / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
+`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / HARNESS_FIX_COMMIT_3d1eb52 / BROWSER_RELOAD_HARNESS_HARDENING_PASS / EXTENSIONS_PAGE_CANONICALIZATION_ROOT_CAUSE_PROVEN / CANONICALIZATION_FIX_COMMIT_c4f640a / ROUND3_FIRST_DIVERGENCE_SEMANTIC_CARD_BINDING / ROUND3_BUDGET_CONSUMED / SEMANTIC_CARD_BINDING_ROOT_CAUSE_PROVEN_SHARED_MULTI_CARD_ANCESTOR / SEMANTIC_BINDING_FIX_COMMIT_48eff56 / ROUND4_BROWSER_PREFLIGHT_PASS / ROUND4_SEMANTIC_SNAPSHOT_1_NODE_COUNT_356_NOT_TRUNCATED / ROUND4_TARGETED_SETUP_COUNT_1_PASS / ROUND4_SEMANTIC_RELOAD_COUNT_1_TARGET_ATTESTED / CHROME_RUNTIME_0.1.50_BROWSER_REPORTED / EXTENSION_ID_UNCHANGED / NEW_INSTANCE_b8a13837 / VERIFICATION_0.1.50_PAIRING_HEARTBEAT / BROWSER_MODULE_READY / TASK_EXECUTION_LOGS_UNCHANGED / PLATFORM_STOP_UPDATE_START_0_0_0 / CHROME_ACTUAL_ADOPTION_0.1.50_PASS / ROUND4_BUDGET_CONSUMED / PRODUCTION_RUNTIME_ONE_START_ADMITTED / PLATFORM_START_EXACTLY_ONE / DEV_TUNNEL_RUNTIME_FAILURE_RECOVERED_BY_START_IF_SETUP_READY / BROWSER_MUTATION_FORBIDDEN / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
