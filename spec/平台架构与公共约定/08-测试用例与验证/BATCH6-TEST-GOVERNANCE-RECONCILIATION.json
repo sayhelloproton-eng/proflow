@@ -11,7 +11,7 @@
     "criticalProofs": 225,
     "requiredFailureBoundaries": 130,
     "executableTestFiles": 161,
-    "executableTestCalls": 771,
+    "executableTestCalls": 776,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {

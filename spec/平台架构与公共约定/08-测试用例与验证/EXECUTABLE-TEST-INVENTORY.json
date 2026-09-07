@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 161,
-    "testCalls": 771
+    "testCalls": 776
   },
   "tests": [
     {
@@ -2441,7 +2441,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 109,
+      "line": 106,
       "title": "PRESMOKE-B3-OBS-EXT-02 System Observer carry-forward survives Extension service-worker restart",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2454,7 +2454,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 131,
+      "line": 128,
       "title": "PRESMOKE-B3-OBS-EXT-03 concurrent recovery triggers share one in-flight recovery rather than running duplicate scans",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2467,7 +2467,72 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 144,
+      "line": 141,
+      "title": "REAL3-RECOVERY-TRAILING-01 in-flight recovery coalesces all new demand into one trailing pass after settle",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
+        "packages/execution-browser-extension/src/observer-recovery-rearm.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+      "line": 175,
+      "title": "REAL3-RECOVERY-TRAILING-02 suppression state is consumed only when a real recovery pass starts",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
+        "packages/execution-browser-extension/src/observer-recovery-rearm.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+      "line": 195,
+      "title": "REAL3-RECOVERY-TRAILING-03 bounded retry timer is stale once a newer recovery attempt has started",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
+        "packages/execution-browser-extension/src/observer-recovery-rearm.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+      "line": 208,
+      "title": "REAL3-RECOVERY-TRAILING-04 every recovery trigger enters the same central coordinator",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
+        "packages/execution-browser-extension/src/observer-recovery-rearm.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+      "line": 217,
+      "title": "REAL3-RECOVERY-DIAGNOSTIC-01 diagnostic seam distinguishes bridge rearm, single-flight reuse and the first collaboration await without changing control flow",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/tasks.ts",
+        "packages/execution-browser-extension/src/observer-recovery-rearm.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+      "line": 285,
       "title": "REAL3 Tasks web mutation recovery command re-enters the existing Task Observer",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2480,7 +2545,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 153,
+      "line": 294,
       "title": "PRESMOKE-B4-OBS-EXT-04 human Approval decision resumes the bound Worker through Task Observer rather than UI-owned state",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2493,7 +2558,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 169,
+      "line": 310,
       "title": "PRESMOKE-B4-OBS-EXT-05 durable Execution recovery signals are acknowledged only after an actionable/terminal Observer decision",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2506,7 +2571,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 182,
+      "line": 323,
       "title": "RF-B4-OBS-EXT-GENERATION malformed durable RECOVERY_RESUME is terminally disposed without TaskObserver dispatch",
       "ids": [
         "RF-B4-OBS-EXT-GENERATION"
@@ -2521,7 +2586,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 205,
+      "line": 341,
       "title": "RF-BR-OBSERVE-WIRE-01 Background enriches OBSERVE with Chrome-owned tab/window identity",
       "ids": [
         "RF-BR-OBSERVE-WIRE-01"
@@ -2536,7 +2601,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 242,
+      "line": 356,
       "title": "PRESMOKE-B6-C1 Browser Carrier and Observers emit bounded structured logs through authenticated local ingestion",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2549,7 +2614,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 265,
+      "line": 379,
       "title": "PRESMOKE-B6-OBS-EXT-06 Task page snapshot carries a bounded read-only System Observer summary",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2562,7 +2627,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 290,
+      "line": 404,
       "title": "B1-OBS-STARTUP-BOUNDARY tab snapshot reconstruction cannot indefinitely block Observer recovery",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2575,7 +2640,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 305,
+      "line": 419,
       "title": "P1-18 bounded startup/event recovery replenishes missing Task Workers before Task progression",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2588,7 +2653,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 334,
+      "line": 448,
       "title": "CP-EXE-BR-09 bounded recovery retries rejected wake delivery without bypassing Execution idempotency",
       "ids": [
         "CP-EXE-BR-09"

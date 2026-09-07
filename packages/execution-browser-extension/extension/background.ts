@@ -473,6 +473,21 @@ async function emitStructuredLog(entry: BrowserStructuredLogEntry) {
 	}).catch(() => undefined);
 }
 
+function emitObserverRecoveryDiagnostic(
+	status: string,
+	attemptNo: number,
+	operationRef: string,
+): void {
+	void emitStructuredLog({
+		level: "INFO",
+		component: "browser-observer-recovery",
+		operation: "observer.recovery",
+		status,
+		attemptNo,
+		operationRef,
+	}).catch(() => undefined);
+}
+
 async function invokeObserverApplication(
 	operation: string,
 	input: Record<string, unknown>,
@@ -599,15 +614,29 @@ const collaborationCarrier = createCollaborationCarrierApplication({
 	},
 	agent: {
 		async listPendingMessages(limit) {
-			return (await invokeObserverApplication("collaboration.listPending", {
-				limit,
-			})) as Awaited<
-				ReturnType<
-					Parameters<
-						typeof createCollaborationCarrierApplication
-					>[0]["agent"]["listPendingMessages"]
-				>
-			>;
+			const recoveryTriggerRef = `bridge-session:${bridgeSessionEpoch}`;
+			emitObserverRecoveryDiagnostic(
+				"COLLABORATION_LIST_PENDING_BEGIN",
+				observerRecoveryAttemptNo,
+				recoveryTriggerRef,
+			);
+			try {
+				return (await invokeObserverApplication("collaboration.listPending", {
+					limit,
+				})) as Awaited<
+					ReturnType<
+						Parameters<
+							typeof createCollaborationCarrierApplication
+						>[0]["agent"]["listPendingMessages"]
+					>
+				>;
+			} finally {
+				emitObserverRecoveryDiagnostic(
+					"COLLABORATION_LIST_PENDING_SETTLED",
+					observerRecoveryAttemptNo,
+					recoveryTriggerRef,
+				);
+			}
 		},
 		async getPendingMessage(messageRef) {
 			return (await invokeObserverApplication("collaboration.getPending", {
@@ -721,7 +750,9 @@ async function persistSystemObserverState(
 }
 
 let observerRecoveryInFlight: Promise<void> | null = null;
+let observerRecoveryTrailingRequested = false;
 let observerRecoveryRetryCount = 0;
+let observerRecoveryAttemptNo = 0;
 let nextRecoverySuppressions: readonly CarrierContinuationDenial[] = [];
 function suppressNextObserverRecovery(
 	denials: readonly CarrierContinuationDenial[],
@@ -729,12 +760,38 @@ function suppressNextObserverRecovery(
 	nextRecoverySuppressions = denials;
 }
 function runObserverRecovery() {
-	if (observerRecoveryInFlight) return observerRecoveryInFlight;
+	const recoveryTriggerRef = `bridge-session:${bridgeSessionEpoch}`;
+	if (observerRecoveryInFlight) {
+		observerRecoveryTrailingRequested = true;
+		emitObserverRecoveryDiagnostic(
+			"REUSED_IN_FLIGHT",
+			observerRecoveryAttemptNo,
+			recoveryTriggerRef,
+		);
+		return observerRecoveryInFlight;
+	}
+	observerRecoveryAttemptNo += 1;
+	const recoveryAttemptNo = observerRecoveryAttemptNo;
+	emitObserverRecoveryDiagnostic(
+		"STARTED",
+		recoveryAttemptNo,
+		recoveryTriggerRef,
+	);
 	const suppressedContinuations = nextRecoverySuppressions;
 	nextRecoverySuppressions = [];
 	observerRecoveryInFlight = (async () => {
 		let recoveryNeedsRetry = false;
+		emitObserverRecoveryDiagnostic(
+			"COLLABORATION_RECOVERY_BEGIN",
+			recoveryAttemptNo,
+			recoveryTriggerRef,
+		);
 		await collaborationCarrier.recoverPending(50).catch(() => undefined);
+		emitObserverRecoveryDiagnostic(
+			"COLLABORATION_RECOVERY_SETTLED",
+			recoveryAttemptNo,
+			recoveryTriggerRef,
+		);
 		const signalBatch = await invokeObserverApplication(
 			"execution.listSignals",
 			{ limit: 50 },
@@ -846,7 +903,11 @@ function runObserverRecovery() {
 		// remains the no-blind-replay authority for APPLIED/NOT_APPLIED/UNKNOWN.
 		if (recoveryNeedsRetry && observerRecoveryRetryCount < 6) {
 			observerRecoveryRetryCount += 1;
-			setTimeout(() => void runObserverRecovery(), 2_000);
+			const retryScheduledFromAttemptNo = recoveryAttemptNo;
+			setTimeout(() => {
+				if (observerRecoveryAttemptNo !== retryScheduledFromAttemptNo) return;
+				void runObserverRecovery();
+			}, 2_000);
 		} else if (!recoveryNeedsRetry) {
 			observerRecoveryRetryCount = 0;
 		}
@@ -864,11 +925,19 @@ function runObserverRecovery() {
 		}
 	})().finally(() => {
 		observerRecoveryInFlight = null;
+		if (!observerRecoveryTrailingRequested) return;
+		observerRecoveryTrailingRequested = false;
+		void runObserverRecovery();
 	});
 	return observerRecoveryInFlight;
 }
 
 const observerRecoveryRearm = createObserverRecoveryRearm(() => {
+	emitObserverRecoveryDiagnostic(
+		"REARM_CALLBACK_ENTERED",
+		bridgeSessionEpoch,
+		`bridge-session:${bridgeSessionEpoch}`,
+	);
 	void runObserverRecovery();
 });
 
@@ -1650,6 +1719,11 @@ async function runBridgeLoop() {
 			});
 			if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED");
 			bridgeSessionEpoch += 1;
+			emitObserverRecoveryDiagnostic(
+				"BRIDGE_EPOCH_ACCEPTED",
+				bridgeSessionEpoch,
+				`bridge-session:${bridgeSessionEpoch}`,
+			);
 			observerRecoveryRearm.bridgeSessionEstablished(bridgeSessionEpoch);
 			await publishCarrierAttentions();
 			// Hello only establishes a session. The first inner-loop action must be

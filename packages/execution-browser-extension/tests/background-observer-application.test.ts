@@ -133,9 +133,153 @@ test("PRESMOKE-B3-OBS-EXT-03 concurrent recovery triggers share one in-flight re
 	);
 	assert.match(
 		source,
-		/if \(observerRecoveryInFlight\) return observerRecoveryInFlight/,
+		/if \(observerRecoveryInFlight\) \{[\s\S]{0,240}"REUSED_IN_FLIGHT"[\s\S]{0,240}return observerRecoveryInFlight;/,
 	);
 	assert.match(source, /observerRecoveryInFlight = null/);
+});
+
+test("REAL3-RECOVERY-TRAILING-01 in-flight recovery coalesces all new demand into one trailing pass after settle", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	const recovery = source.slice(
+		source.indexOf("function runObserverRecovery()"),
+		source.indexOf("const observerRecoveryRearm"),
+	);
+	assert.match(source, /let observerRecoveryTrailingRequested = false/);
+	const reuseStart = recovery.indexOf("if (observerRecoveryInFlight)");
+	const trailingRequest = recovery.indexOf(
+		"observerRecoveryTrailingRequested = true",
+		reuseStart,
+	);
+	const reuseReturn = recovery.indexOf("return observerRecoveryInFlight", reuseStart);
+	assert.ok(reuseStart >= 0 && trailingRequest > reuseStart && reuseReturn > trailingRequest);
+	const finallyStart = recovery.indexOf("})().finally(() => {");
+	const clearInFlight = recovery.indexOf("observerRecoveryInFlight = null", finallyStart);
+	const trailingCheck = recovery.indexOf(
+		"if (!observerRecoveryTrailingRequested) return",
+		finallyStart,
+	);
+	const consumeTrailing = recovery.indexOf(
+		"observerRecoveryTrailingRequested = false",
+		finallyStart,
+	);
+	const trailingRun = recovery.indexOf("void runObserverRecovery()", finallyStart);
+	assert.ok(
+		finallyStart >= 0 &&
+			clearInFlight > finallyStart &&
+			trailingCheck > clearInFlight &&
+			consumeTrailing > trailingCheck &&
+			trailingRun > consumeTrailing,
+	);
+});
+
+test("REAL3-RECOVERY-TRAILING-02 suppression state is consumed only when a real recovery pass starts", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	const recovery = source.slice(
+		source.indexOf("function runObserverRecovery()"),
+		source.indexOf("const observerRecoveryRearm"),
+	);
+	const reuseReturn = recovery.indexOf("return observerRecoveryInFlight");
+	const suppressionRead = recovery.indexOf(
+		"const suppressedContinuations = nextRecoverySuppressions",
+	);
+	const suppressionClear = recovery.indexOf("nextRecoverySuppressions = []");
+	const promiseStart = recovery.indexOf("observerRecoveryInFlight = (async () => {");
+	assert.ok(
+		reuseReturn >= 0 &&
+			suppressionRead > reuseReturn &&
+			suppressionClear > suppressionRead &&
+			promiseStart > suppressionClear,
+	);
+});
+
+test("REAL3-RECOVERY-TRAILING-03 bounded retry timer is stale once a newer recovery attempt has started", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	const recovery = source.slice(
+		source.indexOf("function runObserverRecovery()"),
+		source.indexOf("const observerRecoveryRearm"),
+	);
+	assert.match(recovery, /const retryScheduledFromAttemptNo = recoveryAttemptNo/);
+	assert.match(
+		recovery,
+		/setTimeout\(\(\) => \{\s*if \(observerRecoveryAttemptNo !== retryScheduledFromAttemptNo\) return;\s*void runObserverRecovery\(\);\s*\}, 2_000\)/,
+	);
+});
+
+test("REAL3-RECOVERY-TRAILING-04 every recovery trigger enters the same central coordinator", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	assert.match(source, /createObserverRecoveryRearm\(\(\) => \{[\s\S]{0,240}void runObserverRecovery\(\)/);
+	assert.match(source, /if \(shouldRecover && !suppressed\) void runObserverRecovery\(\)/);
+	assert.match(source, /command\.type === "TASK_OBSERVER_RECOVER"[\s\S]{0,160}void runObserverRecovery\(\)/);
+	assert.match(source, /message\.operation === "task\.resume"[\s\S]{0,240}void runObserverRecovery\(\)/);
+	assert.match(source, /observerRecoveryRearm\.startupReady\(\)/);
+});
+
+test("REAL3-RECOVERY-DIAGNOSTIC-01 diagnostic seam distinguishes bridge rearm, single-flight reuse and the first collaboration await without changing control flow", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	const diagnostic = source.slice(
+		source.indexOf("function emitObserverRecoveryDiagnostic"),
+		source.indexOf("async function invokeObserverApplication"),
+	);
+	assert.match(diagnostic, /void emitStructuredLog\(/);
+	assert.doesNotMatch(diagnostic, /await |AbortSignal|setTimeout/);
+
+	const bridgeLoop = source.slice(
+		source.indexOf("async function runBridgeLoop()"),
+		source.indexOf("let provisioningBridgeLoopStarted"),
+	);
+	const bridgeEpochAccepted = bridgeLoop.indexOf('"BRIDGE_EPOCH_ACCEPTED"');
+	const establishEpoch = bridgeLoop.indexOf(
+		"observerRecoveryRearm.bridgeSessionEstablished(bridgeSessionEpoch)",
+	);
+	assert.ok(bridgeEpochAccepted >= 0 && establishEpoch > bridgeEpochAccepted);
+
+	const rearm = source.slice(
+		source.indexOf("const observerRecoveryRearm"),
+		source.indexOf("function observationFor"),
+	);
+	assert.ok(
+		rearm.indexOf('"REARM_CALLBACK_ENTERED"') >= 0 &&
+			rearm.indexOf('"REARM_CALLBACK_ENTERED"') <
+				rearm.indexOf("void runObserverRecovery()"),
+	);
+
+	const listPendingPort = source.slice(
+		source.indexOf("async listPendingMessages(limit)"),
+		source.indexOf("async getPendingMessage(messageRef)"),
+	);
+	const listPendingBegin = listPendingPort.indexOf(
+		'"COLLABORATION_LIST_PENDING_BEGIN"',
+	);
+	const listPendingAwait = listPendingPort.indexOf(
+		'await invokeObserverApplication("collaboration.listPending"',
+	);
+	const listPendingSettled = listPendingPort.indexOf(
+		'"COLLABORATION_LIST_PENDING_SETTLED"',
+	);
+	assert.ok(
+		listPendingBegin >= 0 &&
+			listPendingAwait > listPendingBegin &&
+			listPendingSettled > listPendingAwait,
+	);
+	assert.match(listPendingPort, /finally \{/);
+
+	const recovery = source.slice(
+		source.indexOf("function runObserverRecovery()"),
+		source.indexOf("const observerRecoveryRearm"),
+	);
+	const reused = recovery.indexOf('"REUSED_IN_FLIGHT"');
+	const reuseReturn = recovery.indexOf("return observerRecoveryInFlight", reused);
+	const started = recovery.indexOf('"STARTED"');
+	const promiseStart = recovery.indexOf("observerRecoveryInFlight = (async () => {");
+	const collaborationBegin = recovery.indexOf('"COLLABORATION_RECOVERY_BEGIN"');
+	const recoverPending = recovery.indexOf("await collaborationCarrier.recoverPending(50)");
+	const collaborationSettled = recovery.indexOf('"COLLABORATION_RECOVERY_SETTLED"');
+	const listSignals = recovery.indexOf('"execution.listSignals"');
+	assert.ok(reused >= 0 && reuseReturn > reused);
+	assert.ok(started >= 0 && promiseStart > started);
+	assert.ok(collaborationBegin > promiseStart && recoverPending > collaborationBegin);
+	assert.ok(collaborationSettled > recoverPending && listSignals > collaborationSettled);
+	assert.doesNotMatch(recovery, /await emitObserverRecoveryDiagnostic/);
 });
 
 test("REAL3 Tasks web mutation recovery command re-enters the existing Task Observer", async () => {
@@ -319,7 +463,12 @@ test("CP-EXE-BR-09 bounded recovery retries rejected wake delivery without bypas
 		recovery,
 		/if \(recoveryNeedsRetry && observerRecoveryRetryCount < 6\)/,
 	);
-	assert.match(recovery, /setTimeout\(\(\) => void runObserverRecovery\(\), 2_000\)/);
+	assert.match(recovery, /const retryScheduledFromAttemptNo = recoveryAttemptNo/);
+	assert.match(
+		recovery,
+		/if \(observerRecoveryAttemptNo !== retryScheduledFromAttemptNo\) return;/,
+	);
+	assert.match(recovery, /void runObserverRecovery\(\)/);
 	assert.match(recovery, /same stable Execution identities/);
 	assert.doesNotMatch(recovery, /executeCapability\(/);
 });
