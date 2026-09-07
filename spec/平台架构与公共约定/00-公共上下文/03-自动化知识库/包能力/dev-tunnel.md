@@ -40,6 +40,38 @@ JSON timeout/null     → **先消费 primary 已返回的 stdout/stderr evidenc
 
 需要观察/操作 GitHub Browser Auth 时，先加载 `基础动作/Tool-Runtime-gptweb-mcp.md` + `基础动作/Browser-UI自动化.md`，**复用当前真实 Chrome 的 Playwright 控制链**。Playwright `connect.html` 不是 GitHub Auth；若它意外出现，先恢复工具 runtime，不重新启动 `platform setup`，也不把工具连接页当 Tunnel blocker。
 
+
+## 高成本 Start 前 Remote Reality Gate
+
+本地 `setup.json.phase=READY` 只表示 Tunnel ID / Gateway port / publicBaseUrl 曾经持久配置成功，**不等于当前 remote login、Tunnel、port 仍然有效**。只要要消费高成本/限次的真实 `platform start`，且 dev-tunnel 当前 `runtimeStatus=FAILED/UNKNOWN/STOPPED`，先做只读 remote preflight。以下 `devtunnel` 只表示命令语义，真实执行仍必须走本包 package-managed CLI / resolver，**不授权 PATH system binary**：
+
+```text
+devtunnel user show --json
+→ 登录 authority
+
+devtunnel show <persisted tunnelId> --json
+→ Tunnel existence authority
+
+devtunnel port list <persisted tunnelId> --json
+→ exact Gateway port existence/protocol authority
+```
+
+固定裁决：
+
+- `AUTH_EXPIRED / NOT_LOGGED_IN`：先恢复一次 canonical 登录事务；**start count 保持 0**。
+- 登录未恢复前，`show/port list` 的失败不能推导 `TUNNEL_MISSING / PORT_MISSING`。
+- `show = EXISTS` 才继续 exact port readback；只有明确 `MISSING` 才进入 stable identity 的既有恢复路径。
+- exact port 只有明确缺失或协议漂移才允许 reconcile；timeout/UNKNOWN 不做 remote mutation。
+- Login + Tunnel + exact port 三层 remote reality 均明确后，才允许消费被单独冻结的 production start。
+
+这条 Gate 的目标是防止“本地 READY + 远端认证/资源已失效”浪费一次真实 start；它不把内部 `devtunnel` 命令变成普通用户日常步骤，后台诊断仍由 owning package/总控机械执行。
+
+## 当前诊断语义缺口
+
+截至 2026-09-08，当前实现存在已证明的诊断缺口：`start()` 会执行 login check，但 `status()` 不验证 remote login reality；`observeLogin()` 又可能把 CLI 已明确给出的 `Login token expired` 等原因压成 `UNKNOWN`，上层因此只能看到笼统的 `TUNNEL_RUNTIME_FAILED / Tunnel 运行状态检查失败`。
+
+在产品修复落地前，遇到该组合时以 managed CLI 的只读 login evidence 作为下一层诊断 authority，不把泛化错误继续向后猜。产品修复应保留并传播可执行分类，例如 `AUTH_EXPIRED / NOT_LOGGED_IN / QUERY_TIMEOUT / CLI_ERROR`，并用 regression 证明原始原因不会再次丢失。
+
 ## Tunnel ownership / Fresh recovery
 
 remote identity 固定由 canonical workspaceRoot 派生：`proflow-${sha256(resolve(workspaceRoot)).slice(0,24)}`。
