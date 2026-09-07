@@ -15,7 +15,7 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_RECOVERY_ADOPTION_ROUND_STOPPED
+CURRENT_EXECUTION_MODE = REAL_3_J4_EXTENSIONS_PAGE_CANONICALIZATION_HARDENING
 ```
 
 0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50。第二轮 recovery adoption 已消耗唯一 targeted setup，但 fresh Browser pre-attestation 发现 canonical helper 停在 `chrome://extensions/?errors=<target-id>`：截图和 AX 均未见目标 Extension card，因此按 fail-closed gate 未调用 `reload-at-point`。setup 最终 `PAIRING_TIMEOUT`，Chrome/verification 仍为 0.1.49/旧 instance，`platform start` 仍未准入且未执行。
@@ -24,6 +24,7 @@ CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_RECOVERY_ADOPTION_ROUND_STOPPED
 
 ```text
 branch = main
+current context commit before this gate = b80b965 docs: record recovery adoption pre-attestation stop
 worktree at last frozen context = CLEAN
 Browser Reload harness hardening acceptance first frozen in context commit = 48b7912
 Browser Reload harness FIX_COMMIT = 3d1eb52 fix(browser-harness): harden extension reload targeting
@@ -102,19 +103,17 @@ original_class = REAL3_OBSERVER_RECOVERY_POST_RECONNECT
 original_root_cause = PROVEN / OBSERVER_RECOVERY_SINGLE_FLIGHT_DROPS_REARM_EPOCH
 0.1.50_release = PASS
 0.1.50_workspace_materialization = PASS
-current_class = REAL3_CHROME_ACTUAL_ADOPTION_RELOAD_ATTESTATION
+current_class = REAL3_EXTENSIONS_PAGE_CANONICALIZATION_PRE_ATTESTATION
 chrome_registration_path = MATCH / CURRENT_0.1.50_LOADDIR
 chrome_runtime_version = 0.1.49 / FAIL_TO_ADOPT_0.1.50
-targeted_setup = FAIL / EXTENSION_VERSION_MISMATCH
 platform_runtime_after_attempt = STOPPED / START_NOT_RUN
 same_execution_redecision = NOT_RUN
-evidence_gap = OPEN / EXACT_RELOAD_MUTATION_SEMANTICS_NOT_PROVEN
-browser_reload_harness_hardening_acceptance = FROZEN / LOCAL_ONLY
 browser_reload_harness_hardening = PASS / LOCAL_MECHANICAL_GATE
 future_reload_semantic_attestation = READY / CARD_LOCAL_NAME_AND_ID + UNIQUE_PRESSABLE_RELOAD
-previous_adoption_failure_root_cause = NOT_PROVEN
 recovery_adoption_round_2 = CONSUMED / STOPPED_BEFORE_RELOAD
 recovery_adoption_round_2_first_divergence = FRESH_TARGET_CARD_PRE_ATTESTATION
+extensions_page_canonicalization_root_cause = PROVEN / LOAD_UNPACKED_SHELL_PREDICATE_ACCEPTS_ERROR_SUBPAGE
+previous_adoption_failure_root_cause = NOT_PROVEN
 platform_start_admitted = NO
 ```
 
@@ -188,10 +187,39 @@ ROOT_CAUSE_OF_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 
 ## NEXT_ACTION
 
-1. **停止并交回网页总控**：第二轮唯一 targeted setup 已消耗，semantic Reload 因 pre-attestation 失败未 dispatch；不得再次 setup/Reload。
-2. 新的 FIRST_DIVERGENCE 是 fresh privileged reality 停在 target Extension error 子页；`ensureExtensionsPage()` 在该页仍可见“Load unpacked”时不会切回 Extension card list，所以 canonical identity/card attestation 无法成立。这是候选 harness navigation gap，不得在已消耗 round 中现场 patch。
-3. Registry/version/Workspace/materialization/registration path 仍 PASS；固定 Task/Execution 及 Execution 总数、Browser/Execution 日志行数未变，verification 仍为 0.1.49/旧 instance。
-4. `platform start` 仍 `NOT_ADMITTED`；人工 recovery/wake/retry/resume/ACK/reopen 继续禁止。后续任何 harness 修复或新 setup/Reload 配额必须由网页总控重新裁决。
+1. **停止真实 adoption 重试**：第二轮唯一 targeted setup 已消耗，semantic Reload 未 dispatch；当前不得再次 setup/Reload/start。
+2. `ensureExtensionsPage()` 的 canonicalization root cause 已机械证明：它仅以全局 `Load unpacked` 按钮存在作为“已在 Extensions 主列表”的判据；`chrome://extensions/?errors=<id>` 仍属于同一 Extensions shell，因此会被错误接受并提前 return，导致 screenshot/geometry/reload 在错误子页执行。
+3. 当前唯一下一门是 `EXTENSIONS_PAGE_CANONICALIZATION_HARDENING_ACCEPTANCE`：只允许本地修改 canonical Browser helper + deterministic tests，使所有依赖 Extension card 的 action 在执行前强制归一化到 exact `chrome://extensions` 主列表并机械证明 canonical page；真实 Browser mutation、setup/start 继续禁止。
+4. canonicalization 本地机械门 PASS 后只允许提交 helper/tests/CURRENT 并 STOP；随后网页总控再单独冻结新的 ONE recovery adoption round。不得把 navigation fix 自动推导为新的 setup/Reload 授权。
+
+## EXTENSIONS_PAGE_CANONICALIZATION_HARDENING_ACCEPTANCE
+
+```text
+ACCEPTANCE_FROZEN = YES
+SCOPE = canonical browser-extension-ui helper + deterministic tests only
+ROOT_CAUSE = PROVEN / LOAD_UNPACKED_SHELL_PREDICATE_ACCEPTS_ERROR_SUBPAGE
+PRODUCT_EXTENSION_SOURCE_MUTATION = FORBIDDEN
+PACKAGE_RELEASE_VERSION_MUTATION = FORBIDDEN
+REAL_BROWSER_MUTATION = FORBIDDEN
+TARGETED_SETUP = NOT_ADMITTED
+CHROME_RELOAD = NOT_ADMITTED
+PLATFORM_START = NOT_ADMITTED
+PUSH_ADMITTED = NO
+```
+
+必须同时满足：
+
+1. **Exact canonical page authority**：`ensureExtensionsPage()` 不得再把 `Load unpacked` 存在当作充分条件；必须机械区分 exact 主列表 `chrome://extensions`（允许尾 `/`）与 `chrome://extensions/?errors=...`、其它 query/hash/subroute。任何非 exact 主列表都必须视为 non-canonical。
+2. **URL-first / fail-closed**：优先从当前前台 Chrome AX/address-bar authority 读取当前 URL；若无法取得足够 URL authority，不得仅靠 shell 按钮猜测 canonical page，必须 fail closed 或执行受控 canonical navigation 后再验证。
+3. **Canonical navigation**：发现 error/detail/其它 extensions 子页时，只允许导航到 exact `chrome://extensions` 主列表；导航完成后必须重新读取当前 URL，并至少结合主列表 surface 证明已 canonicalized，才允许返回成功。
+4. **No shell false-positive**：synthetic fixture 必须覆盖“error 子页也有 `Load unpacked`”场景，并证明旧 predicate 会误判、新逻辑必须强制 navigation/拒绝提前 return。
+5. **All card-dependent actions share gate**：`status`、`screenshot-extensions`、`inspect-extension-geometry`、`reload-at-point`、install/uninstall 等依赖 Extensions card/list 的路径必须继续统一经过 hardened `ensureExtensionsPage()`；不得各自复制一套导航判断。
+6. **No hidden mutation fallback**：禁止旧 screenshot 坐标、外部 X/Y、AppleScript JS、临时 helper；本批只修 page canonicalization，不执行任何真实 Reload/enable/disable/Remove/Load unpacked。
+7. **Deterministic regression matrix** 至少覆盖：exact `chrome://extensions` PASS；exact trailing slash PASS；`?errors=<id>` NON_CANONICAL；任意 query NON_CANONICAL；hash/subroute NON_CANONICAL；非 extensions URL NON_CANONICAL；error 子页即使存在 `Load unpacked` 也不能 PASS；navigation 后 exact URL + list surface PASS；URL authority UNKNOWN 必须 fail closed。
+8. **Mechanical gate**：targeted deterministic tests PASS、Swift compile-only PASS、scoped lint/format PASS、`git diff --check` PASS；0.1.50 产品 source hashes与四份 version facts必须不变。
+9. 本批完成后允许一个本地 harness/navigation fix commit + CURRENT closeout；不得 push；不得自行启动新的 targeted setup/Reload round。
+
+本 acceptance 只修复本轮 fresh pre-attestation 的 canonical-page root cause，不重新解释上一轮 0.1.50 adoption failure，也不证明 Chrome 已采用 0.1.50。
 
 ## BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE
 
@@ -545,6 +573,7 @@ Final Real Gate != Integration Hardening
 - 本次真实 Browser mutation authority 曾为 `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE`；该 authority 已消耗，当前没有新的 Browser mutation authority。
 - `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE` 已在 fresh target-card pre-attestation 失败处消耗：targeted setup=1，Reload=0，setup 最终 `PAIRING_TIMEOUT`。不得把未使用的 Reload 配额带入另一次 setup，也不得在本 round 重试。
 - semantic Reload 必须由 `3d1eb52` canonical helper 直接解析 card-local name+ID、唯一 enabled AXPress Reload 并输出完整 pre-mutation attestation；外部 X/Y、旧截图坐标、旁路 helper 全部禁止。
+- 当前新增的 `EXTENSIONS_PAGE_CANONICALIZATION_HARDENING_ACCEPTANCE` 仅授权本地 helper/test 修复；不得借此执行 setup/Reload/start。`Load unpacked` 单独存在不再允许作为 Extensions 主列表 authority。
 - 不人工发 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry。
 - 不再次 task.resume / ACK / reopen；不新建 Task、Worker、GPT、Execution。
 - 不直接写 SQLite、roles registry、verification、node_modules 或 durable Owner state。
@@ -563,4 +592,4 @@ Final Real Gate != Integration Hardening
 
 ## STOP_POINT
 
-`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / FIRST_ADOPTION_SETUP_FAIL_EXTENSION_VERSION_MISMATCH / FIRST_RELOAD_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / HARNESS_FIX_COMMIT_3d1eb52 / BROWSER_RELOAD_HARNESS_HARDENING_PASS / ROUND2_PREFLIGHT_PASS / ROUND2_TARGETED_SETUP_COUNT_1 / ROUND2_SETUP_WAITING_PASS / ROUND2_FRESH_PRIVILEGED_PAGE_ERROR_SUBPAGE / ROUND2_TARGET_CARD_PRE_ATTESTATION_FAIL / ROUND2_RELOAD_COUNT_0 / ROUND2_SETUP_FAIL_PAIRING_TIMEOUT / ROUND2_BUDGET_CONSUMED / PLATFORM_START_NOT_ADMITTED / NEXT_DECISION_HARNESS_NAVIGATION_GAP_AND_NEW_ROUND_REQUIRE_SEPARATE_ACCEPTANCE / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
+`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / FIRST_ADOPTION_SETUP_FAIL_EXTENSION_VERSION_MISMATCH / FIRST_RELOAD_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / HARNESS_FIX_COMMIT_3d1eb52 / BROWSER_RELOAD_HARNESS_HARDENING_PASS / ROUND2_PREFLIGHT_PASS / ROUND2_TARGETED_SETUP_COUNT_1 / ROUND2_SETUP_WAITING_PASS / ROUND2_FRESH_PRIVILEGED_PAGE_ERROR_SUBPAGE / ROUND2_TARGET_CARD_PRE_ATTESTATION_FAIL / ROUND2_RELOAD_COUNT_0 / ROUND2_SETUP_FAIL_PAIRING_TIMEOUT / ROUND2_BUDGET_CONSUMED / EXTENSIONS_PAGE_CANONICALIZATION_ROOT_CAUSE_PROVEN_LOAD_UNPACKED_SHELL_FALSE_POSITIVE / EXTENSIONS_PAGE_CANONICALIZATION_HARDENING_ACCEPTANCE_FROZEN / LOCAL_HELPER_TEST_FIX_ONLY / REAL_BROWSER_MUTATION_FORBIDDEN / TARGETED_SETUP_NOT_ADMITTED / CHROME_RELOAD_NOT_ADMITTED / PLATFORM_START_NOT_ADMITTED / NEXT_EXECUTION_CANONICALIZATION_FIX_AND_MECHANICAL_GATE / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
