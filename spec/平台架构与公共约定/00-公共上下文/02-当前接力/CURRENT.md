@@ -9,135 +9,170 @@ ARCHITECTURE = FROZEN
 REAL_1 = PASS
 REAL_2 = PASS / FROZEN
 DEPLOYMENT_SUCCESS = YES / FROZEN
-CURRENT_EXECUTION_GATE = REAL_3_J4
 J1 = PASS
 J2 = PASS
 J3 = PASS
-J4 = IN_PROGRESS
+J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
+CURRENT_EXECUTION_MODE = REAL_3_J4_DIAGNOSTIC
 ```
+
+0.1.49 的真实 SAME-SCENE 复验再次暴露阻塞：production bridge 已重连并在线，但 Observer recovery 没有产生首个可见 application event。当前已退出“边验边发 patch”模式，进入有限 Integration Hardening 诊断；**0.1.50 尚未获得发布准入。**
 
 ## CURRENT_AUTHORITY
 
 ```text
 branch = main
-HEAD = 0f4e480 chore: release Real-3 B1 runtime fixes
-B1 implementation = 06eecbb fix: harden task orchestration recovery semantics
-release plan = bcb555c chore: plan Real-3 B1 runtime release
-working tree before this closeout = CLEAN
+HEAD = 6e9b51a chore(release): version execution-browser-extension
+source fix = 5464f7d fix(browser): rearm observer recovery on bridge reconnect
+Registry exact @tomflow/proflow-execution-browser-extension@0.1.49 = PASS
+Product Workspace installed = 0.1.49
+materialized manifest = 0.1.49
+Chrome registered Service Worker = 0.1.49
+Extension ID = eehdadpmjffomabiedcjijiakconalab
+verification.moduleVersion = 0.1.49
+verification.evidenceSource = PAIRING_HEARTBEAT
+platform setup = 3/3 PASS / PLATFORM_READY=YES
 ```
 
-B1 已完成实现、全量验证、发布与 Registry exact readback。六个正式版本：
-
-```text
-@tomflow/proflow-task-orchestration          0.1.11
-@tomflow/proflow-platform-host               0.1.19
-@tomflow/proflow-execution-browser-extension 0.1.45
-@tomflow/proflow-agent-gateway               0.1.16
-@tomflow/proflow-agent-controller-dev        0.1.17
-@tomflow/proflow-agent-test-ops               0.1.17
-```
-
-Workspace 六包已安装新版本。Browser Extension 已 materialize 并由真实 Chrome 加载 `0.1.45`：Extension ID `eehdadpmjffomabiedcjijiakconalab`，Service Worker `RUNNING`，pairing evidence source=`PAIRING_HEARTBEAT`。materialized `background.js` 已确认包含 `resumeSignalRef`、`TASK_OBSERVER_RESUME`、`TASK_RESUMED`。
+0.1.49 已完成 package → Registry → Workspace → materialized loadDir → Chrome registered Service Worker → browser-attested verification 的真实 adoption；不得再把版本采用问题重新当当前 blocker。
 
 ## FIXED_REAL3_TRUTH
 
-固定 Task 不重建、不换 Worker、不换 Conversation：
-
 ```text
 Task = task-a6f859c00b1accd027d53d48
-Task status = WAITING
-Task version = 9
+Task status = ACTIVE
+Task version = 10
 currentNodeId = dev
 
-Dev role/worker = g-6a9717f68ef081918aacd5911916d2ec / 6a9b4632-ca8c-83e9-a4bc-9de9e229e515
-Dev status = WAITING
+Dev role = g-6a9717f68ef081918aacd5911916d2ec
+Dev worker = 6a9b4632-ca8c-83e9-a4bc-9de9e229e515
+Dev status = IN_PROGRESS
 Dev runNo = 1
 
-Test role/worker = g-6a97186190108191bc24fb85b2cff584 / 6a9b8ae0-f694-83e8-b4a2-0d20cbc5c04a
+Test role = g-6a97186190108191bc24fb85b2cff584
+Test role binding worker = 6a9b8ae0-f694-83e8-b4a2-0d20cbc5c04a
 Test status = PENDING
 Test runNo = 1
 
 Product role/worker = g-6a97182669f88191a943e806a3e1b42a / 6a9b243c-7af8-83e9-a005-2ccfb8c5c8cb
-J3 wake execution = execution:fbc00b27-bf5b-4325-a3ef-4269579fdabd / SUCCEEDED
 ```
 
-最后一次 read-only Host 回读与上述事实逐字段一致，并验证 `task.sqlite` 查询前后 SHA-256 未变化。
+正式 same-run resume 已完成，durable `TASK_RESUMED = task-event:10`。不得再次 ACK、resume 或 reopen。
 
-## CURRENT_BLOCKER
-
-当前 blocker 已从代码/发布层收敛到 **两个既有 Custom GPT 的远端 owner adoption**：
+原 durable wake 必须继续复用：
 
 ```text
-agent-controller-dev installed = 0.1.17
-Dev durable Role registration  = 0.1.16 -> DRIFT
-
-agent-test-ops installed        = 0.1.17
-Test durable Role registration = 0.1.16 -> DRIFT
-
-platform start = BLOCKED / ROLE_PACKAGE_VERSION_DRIFT
+executionRef = execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0
+idempotencyKey = task-observer-wake:task-a6f859c00b1accd027d53d48:dev:1:TASK_RESUMED:task-event:10
+status = FAILED
+sideEffectState = NOT_APPLIED
+attemptCount = 1
+error = PRECONDITION_FAILED / WAKE_TRIGGER_TYPE_INVALID
 ```
 
-正式 adapter 在 DRIFT 状态明确返回 `resolve-custom-gpt-role-drift`，不会自动编辑既有 GPT；MISSING 才允许创建，因此禁止通过 setup 新建替代 GPT。
+0.1.49 runtime 复验前后 execution identity / idempotency / inputFingerprint / updatedAt 均未变化，没有 redecision。
 
-真实 Chrome 进一步确认：
+## CURRENT_PROBLEM_CLASS
 
 ```text
-current ChatGPT login = Sayhello Plus
-Dev GPT page creator  = community builder
-Dev GPT 操作菜单无“编辑 GPT”
-/gpts/mine 不包含该 Dev/Test Role GPT
-CURRENT_CHATGPT_ACCOUNT_IS_GPT_OWNER = NO
+class = REAL3_OBSERVER_RECOVERY_POST_RECONNECT
+runtime_version_proven = YES / 0.1.49
+bridge_reconnect_proven = YES
+observer_rearm_reality = FAIL
+same_execution_redecision = FAIL
+root_cause = NOT_PROVEN
+hotfix_0.1.50_admitted = NO
 ```
 
-因此不能只把本地 `roles.json` 的 registeredPackageVersion 改成 `0.1.17`；那会制造假 adoption，让 platform start 表面通过但远端 Instructions/Action/OpenAPI 仍旧。
+## CURRENT_FIRST_EVIDENCE
 
-Chrome `Default` profile 历史记录存在三个 ProFlow GPT 的 `/gpts/editor/<gid>` 访问记录；`Profile 1` 无对应历史。当前只读 Cookie 路径检查返回 `NO_COOKIE_DB`，不能据此判定另一个 profile 是否保留 owner session。Owner 登录态仍需恢复/确认。
+Codex 在 2026-09-07 只执行一次正式 `platform start`：`成功 4 / 跳过 19 / 失败 0`。启动前冻结 Browser Extension 日志 5041 行、Execution Runtime 日志 4292 行；启动后被动观察 20 秒，无人工 recovery/wake/browser mutation。
+
+```text
+BRIDGE_MODULE_VERSION = 0.1.49
+BRIDGE_SESSION_ONLINE = YES
+COMMAND_CONSUMER_READY = YES
+Chrome ↔ 新 production bridge = ESTABLISHED
+new execution.listSignals = NONE
+new task.projection = NONE
+new task.wake = NONE
+REDECISION_EVENT = NONE
+```
+
+production bridge listener 属于本次新 `platform start` 进程，当前 Extension session 已在线，因此本次 start 后新 hello/reconnect epoch 已被现实证明发生。FIRST_DIVERGENCE 只冻结到：
+
+```text
+new production bridge hello/reconnect epoch = YES
+→ expected Observer recovery activity
+→ first visible Observer application completion event = NONE
+```
+
+## CURRENT_CANDIDATES
+
+只允许区分以下三个候选，不得提前选择：
+
+```text
+A. reconnect epoch 成功，但 rearm callback 根本没有调用
+B. rearm callback 调用，但复用长期未完成的 observerRecoveryInFlight，新 epoch 被吸收
+C. recovery 已进入，但卡在 collaborationCarrier.recoverPending / collaboration.listPending 等首个无界 application await
+```
+
+`B/C` 当前只是 HYPOTHESIS；不得据此修改代码或发布 0.1.50。
 
 ## NEXT_ACTION
 
-只沿这一条线继续：
+1. read-only 恢复当前 runtime/start-owner；不得重复 `platform start`。
+2. 只为 A/B/C 区分读取 0.1.49 `rearm controller → runObserverRecovery → observerRecoveryInFlight → collaborationCarrier.recoverPending → execution.listSignals` 的 exact control flow。
+3. 优先找既有 structured logs、Host request log、Service Worker console/可观察状态；不要先新增 instrumentation。
+4. 若现有 evidence 能区分，冻结唯一 FIRST_DIVERGENCE + owning code path + causal regression，再把完整实现/测试/release 批次交给 Codex。
+5. 若现有 evidence 机械上无法区分，报告 `EVIDENCE_GAP`；只准设计最小诊断 seam，不得直接修候选逻辑。
+6. 只有 `CURRENT_ROOT_CAUSE=PROVEN` 后才允许一次 0.1.50 patch，并一次审计同 ownership domain 的相邻 reconnect/recovery failure matrix。
+7. 修复后回同一 `execution:e9...`；same execution redecision PASS 后才恢复 Dev `file.read → Test → Task SUCCEEDED`。
 
-1. 恢复或切换到拥有现有 ProFlow GPT 的 ChatGPT owner 登录态；当前页面 creator=`community builder` 是关键证据。
-2. 在 **原 roleRef** 上更新 Dev GPT 到 `agent-controller-dev@0.1.17` 的当前 Instructions + Action/OpenAPI；不得新建 GPT。
-3. 在 **原 roleRef** 上更新 Test/Ops GPT 到 `agent-test-ops@0.1.17`；不得新建 GPT。
-4. 重新执行正式 Role setup/status，使两个 durable Role registration 真实变为 READY / `0.1.17`。
-5. 恢复 dev-tunnel / agent-gateway / platform runtime，要求 `platform start` 全平台 READY。
-6. fresh read 固定 Task，必须仍为 `WAITING v9 / Dev WAITING run1 / Test PENDING run1`。
-7. 然后才执行 SAME-SCENE：ACK 原错误 blocker -> `task.resume` same-run -> Dev durable `file.read` -> complete Dev -> Test 自动 wake/start -> Test durable `file.read` -> complete Test。
-8. 只有 Task Owner 最终 `SUCCEEDED / currentNodeId=null` 才宣告 `J4=PASS / REAL_3=PASS`。
-
-## SAFETY / DO_NOT_REPEAT
+## EXECUTION_SPLIT
 
 ```text
-TASK_ACKNOWLEDGED = NO
-TASK_RESUMED = NO
-NODE_REOPENED = NO
-NODE_STARTED_AFTER_B1 = NO
-NODE_COMPLETED_AFTER_B1 = NO
-EXECUTION_CREATED_FOR_REAL3_AFTER_B1 = NO
-SQLITE_MUTATED = NO
-NEW_GPT_CREATED = NO
-PUSHED = NO
+网页总控 Chat = Reality / authority / FIRST_DIVERGENCE / patch admission / SAME-SCENE final acceptance
+Codex = 已冻结任务的源码分析、实现、tests/typecheck/build/governance/release、机械 runtime evidence collection
 ```
 
-- 不再重审 B1 源码；`06eecbb` 已完成 build/typecheck/tests/architecture/governance/publishability/Repomix 审计。
-- 不再重复 publish 六包；Registry exact 已闭环。
-- 不再 reload Extension 证明版本；Chrome `0.1.45` actual adoption 已闭环。
-- 不允许绕过 `ROLE_PACKAGE_VERSION_DRIFT`，也不允许伪改 Role registry。
-- 不创建新 Task/GPT/Worker/Execution，不重放 J3 WAKE，不默认 Reopen WAITING Node。
+给 Codex 只提供 repo path、checkpoint、允许范围、验收条件和 STOP POINT；不要求它使用 CodeGraph / Repomix / Local Dev MCP。
+
+## PATCH_TRAIN_GUARD
+
+最近 50 个 commit：release 类 19（38%）、fix 17（34%）、docs 9（18%）；execution-browser-extension 触碰 28/50；四天内 Extension 从 0.1.37 连续到 0.1.49。Real-3 已事实性漂移成 Integration Hardening，因此冻结：
+
+```text
+0.1.49 = CURRENT_RC / REALITY_FAIL
+0.1.50 = NOT_ADMITTED
+Final Real Gate != Integration Hardening
+```
+
+不阻塞 `Observer → same execution → Dev → Test → SUCCEEDED` 的问题全部 backlog。
+
+## DO_NOT_REPEAT
+
+- 不重开 0.1.45～0.1.48 Browser adoption、Tunnel、TASK_RESUMED allowlist 等已闭环问题。
+- 不重复 `platform setup/start/update` 作为诊断循环。
+- 不 reload Extension / Chrome。
+- 不人工发 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry。
+- 不再次 task.resume / ACK / reopen；不新建 Task、Worker、GPT、Execution。
+- 不直接写 SQLite、roles registry、verification、node_modules 或 durable Owner state。
+- 不因为发现真实 defect 就立即 release；`VALID_DEFECT != CURRENT_ROOT_CAUSE`。
+- 没有 A/B/C 唯一 root cause 证明就没有 0.1.50 发布准入。
+- 不 push。
 
 ## REQUIRED_CONTEXT
 
-下一执行者先读：
-
-1. `01-长期规则/05-执行纪律与工具规则.md`
+1. `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md`
 2. `03-自动化知识库/基础动作/Browser-UI自动化.md`
-3. `03-自动化知识库/包能力/custom-gpt-provisioning.md`
-4. `03-自动化知识库/流程/Package-Update-Loop.md`
-5. `90-历史记录/Real3/23-Real3-B1发布采用与CustomGPT-Owner阻塞-20260907.md`
+3. `03-自动化知识库/基础动作/Round-PID-Log与恢复.md`
+4. `03-自动化知识库/流程/Real3-J0-J4.md`
+5. `90-历史记录/Real3/24-Real3执行效率与证据链教训-20260907.md`
+6. `90-历史记录/Real3/25-Real3-0.1.49真实复验失败与当前Chat交接-20260907.md`
 
 ## STOP_POINT
 
-`J1_PASS / J2_PASS / J3_PASS / B1_RELEASED / REGISTRY_PASS / WORKSPACE_PACKAGE_ADOPTION_PASS / CHROME_EXTENSION_0.1.45_PASS / DEV_TEST_CUSTOM_GPT_OWNER_ADOPTION_BLOCKED / FIXED_TASK_UNMUTATED / SAME_SCENE_NOT_STARTED`。
+`0.1.49_RELEASE_PASS / WORKSPACE_PASS / CHROME_ACTUAL_ADOPTION_PASS / PLATFORM_READY_PASS / PLATFORM_START_PASS / BRIDGE_RECONNECT_PASS / OBSERVER_EVENT_NONE / SAME_EXECUTION_UNCHANGED / ROOT_CAUSE_NOT_PROVEN / J4_PAUSED_FOR_INTEGRATION_HARDENING / 0.1.50_NOT_ADMITTED`。
