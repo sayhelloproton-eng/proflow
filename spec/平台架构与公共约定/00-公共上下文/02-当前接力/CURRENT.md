@@ -15,32 +15,40 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_RELEASE_ADOPTION
+CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_CHROME_ADOPTION_HARDENING
 ```
 
-0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，并完成 trailing-recovery 本地完整机械门。当前已退出诊断与源码修复阶段，进入一次性 `0.1.50` release/adoption gate；**release/adoption acceptance 已冻结，0.1.50 获得按本文顺序执行的有限准入。**
+0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50；但首次受控 Chrome adoption 在唯一一次 `reload-at-point` 后仍停留 0.1.49，并被 targeted setup 以 `EXTENSION_VERSION_MISMATCH` 拒绝。当前已停止 release 与 runtime replay，进入 **Chrome actual adoption / Browser Reload harness hardening**；未经新 acceptance 不得第二次 Reload、setup 或 start。
 
 ## CURRENT_AUTHORITY
 
 ```text
 branch = main
+HEAD = 0662615 chore(release): version execution-browser-extension
+worktree = CLEAN
 0.1.50 source commit base = 112fee7 docs: hand off Real-3 integration hardening
 0.1.49 release commit = 6e9b51a chore(release): version execution-browser-extension
 0.1.49 source fix = 5464f7d fix(browser): rearm observer recovery on bridge reconnect
 0.1.50 FIX_COMMIT = d9453c9 fix(browser): preserve trailing observer recovery demand
-0.1.50 candidate state = COMMITTED / LOCAL_FIX_MECHANICAL_GATE_PASS
-0.1.50 change intent = .changeset/observer-recovery-trailing-demand.md
+0.1.50 RELEASE_COMMIT = 0662615 chore(release): version execution-browser-extension
 0.1.50 background.ts sha256 = 857d7d5d5ff058571ac4723f53d6701483ad8dc3949f67c2b12972c7a09b49a7
 0.1.50 background-observer-application.test.ts sha256 = 68ea90c93c0e892fb816fc8d680fa6c51be966d42b58de354b5d2cb62b0f4a4a
 0.1.50 target code+test diff sha256 = c85f18f22e25c7502facb41a6e9483bfe4c287260687d8f74d5b72c445777a5b
-Registry exact @tomflow/proflow-execution-browser-extension@0.1.49 = PASS
-Product Workspace installed = 0.1.49
-materialized manifest = 0.1.49
-Chrome registered Service Worker = 0.1.49
+Registry exact @tomflow/proflow-execution-browser-extension@0.1.50 = PASS / PRESENT
+Product Workspace installed = 0.1.50
+installed descriptor = 0.1.50
+materialized marker = 0.1.50
+materialized manifest = 0.1.50
+background.js repo/node_modules/materialized sha256 = 691200cb74ac1c553e947bcf564be8fecbf7f0e705f0c0b62f2c5c2723319b0f / MATCH
+Chrome registration path = current materialized loadDir / ENABLED
+Chrome visible/runtime moduleVersion after sole Reload = 0.1.49
 Extension ID = eehdadpmjffomabiedcjijiakconalab
 verification.moduleVersion = 0.1.49
+verification.extensionInstanceId = extension:4a03f111-954d-412a-bb5c-c4968105c965
 verification.evidenceSource = PAIRING_HEARTBEAT
-platform setup = 3/3 PASS / PLATFORM_READY=YES
+targeted setup = FAIL / EXTENSION_VERSION_MISMATCH
+platform stop count = 1 / owner ABSENT
+platform start after 0.1.50 adoption attempt = NOT_RUN / count=0
 ```
 
 0.1.49 已完成 package → Registry → Workspace → materialized loadDir → Chrome registered Service Worker → browser-attested verification 的真实 adoption；不得再把版本采用问题重新当当前 blocker。
@@ -84,14 +92,18 @@ error = PRECONDITION_FAILED / WAKE_TRIGGER_TYPE_INVALID
 ## CURRENT_PROBLEM_CLASS
 
 ```text
-class = REAL3_OBSERVER_RECOVERY_POST_RECONNECT
-runtime_version_proven = YES / 0.1.49
-bridge_reconnect_proven = YES
-observer_rearm_reality = FAIL
-same_execution_redecision = FAIL
-root_cause = PROVEN / OBSERVER_RECOVERY_SINGLE_FLIGHT_DROPS_REARM_EPOCH
-evidence_gap = CLOSED / A_C_RULED_OUT_B_PROVEN
-hotfix_0.1.50_admitted = YES / RELEASE_ADOPTION_ACCEPTANCE_FROZEN
+original_class = REAL3_OBSERVER_RECOVERY_POST_RECONNECT
+original_root_cause = PROVEN / OBSERVER_RECOVERY_SINGLE_FLIGHT_DROPS_REARM_EPOCH
+0.1.50_release = PASS
+0.1.50_workspace_materialization = PASS
+current_class = REAL3_CHROME_ACTUAL_ADOPTION_RELOAD_ATTESTATION
+chrome_registration_path = MATCH / CURRENT_0.1.50_LOADDIR
+chrome_runtime_version = 0.1.49 / FAIL_TO_ADOPT_0.1.50
+targeted_setup = FAIL / EXTENSION_VERSION_MISMATCH
+platform_runtime_after_attempt = STOPPED / START_NOT_RUN
+same_execution_redecision = NOT_RUN
+evidence_gap = OPEN / EXACT_RELOAD_MUTATION_SEMANTICS_NOT_PROVEN
+second_reload_setup_start_admitted = NO
 ```
 
 ## CURRENT_FIRST_EVIDENCE
@@ -138,13 +150,37 @@ C = RULED_OUT
 
 证据截图：`.proflow/tmp/real3-options-storage-probe.png`（只读 options page；无 token 回填、无写入）。Diagnostic Extension reload 仍禁止，因为会销毁原 in-flight 现场。
 
+## RELEASE_ADOPTION_0.1.50_REALITY
+
+2026-09-07 Codex 严格按冻结链执行到首次 Chrome adoption 后 STOP：release plan 唯一为 Browser Extension `0.1.49 → 0.1.50`；Registry exact 0.1.50 PRESENT；release/version commit `0662615`；Product Workspace installed / descriptor / materialization / manifest 全为 0.1.50；repo、node_modules、materialized `background.js` 三方 SHA-256 一致。正式 `platform stop` 仅一次且 owner=ABSENT；`platform update` 仅一次；targeted setup 仅一次；Chrome mutation 仅一次；`platform start` 未执行。固定 Task/Dev/Test 与 `execution:e9...` 未变化，也没有新 Task/Worker/Execution 或人工 recovery/wake。
+
+Chrome actual adoption 未通过：唯一一次 `reload-at-point` 后 fresh screenshot 仍显示 `ProFlow Execution Browser 0.1.49`，同一 targeted setup 随后以 `EXTENSION_VERSION_MISMATCH` 失败，verification 仍为 0.1.49 / `extension:4a03f111-954d-412a-bb5c-c4968105c965`。网页总控随后只读调用正式 `probeChromeExtensionState()`，确认 Extension ID 的 registration `path` **精确等于当前 0.1.50 materialized loadDir** 且状态为 ENABLED；因此“Chrome 注册在旧目录”已排除。
+
+新的 Browser harness 审计发现：canonical `reload-at-point` 当前只检查页面上存在目标 Extension 名称，然后无条件点击外部传入坐标、等待 750ms、截图并返回 `RELOADED_AT_FRESH_POINT`；它**没有机械证明该坐标属于目标 ID 的 Reload 控件，也没有在返回成功前证明目标 runtime/version 已变化**。因此该返回值只能证明一次 point-click 已执行，不能作为 target Extension reload attestation。当前 screenshot/targeted setup 已证明 0.1.50 runtime 没有被采用，但“点错控件 / 点中 Reload 后 Chrome 未采用 / 其它 privileged UI 分支”的精确子因仍未唯一证明。
+
+```text
+RELEASE_0.1.50 = PASS
+REGISTRY_0.1.50 = PASS
+WORKSPACE_0.1.50 = PASS
+MATERIALIZATION_0.1.50 = PASS
+REGISTRATION_PATH_MATCH = PASS
+CHROME_ACTUAL_ADOPTION_0.1.50 = FAIL
+RELOAD_AT_POINT_ACTION_COUNT = 1
+RELOAD_TARGET_SEMANTIC_ATTESTATION = FAIL / NOT_PROVEN
+TARGETED_SETUP_COUNT = 1
+TARGETED_SETUP = FAIL / EXTENSION_VERSION_MISMATCH
+PLATFORM_START_COUNT_AFTER_ADOPTION = 0
+SAME_EXECUTION = UNCHANGED / REDECISION_NOT_RUN
+ROOT_CAUSE_OF_CHROME_ADOPTION_FAILURE = NOT_PROVEN
+```
+
 ## NEXT_ACTION
 
-1. `0.1.50` release/adoption acceptance 已冻结并获得有限准入；下一执行者必须严格按 `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的顺序推进，不得自行扩展 mutation。
-2. source/fix commit 已完成：`d9453c9 fix(browser): preserve trailing observer recovery demand`；唯一新 change intent 为 `.changeset/observer-recovery-trailing-demand.md`。后续不得重复提交源码、不得改 source/test，除非 source hash 漂移后重新机械验收。
-3. 下一门直接做 release plan；必须精确为 `@tomflow/proflow-execution-browser-extension 0.1.49 → 0.1.50`。任何其它 package、其它版本或 Registry UNKNOWN/PRESENT 异常立即 STOP。
-4. Registry PASS 后按冻结链执行：一次 `platform stop` → 一次定向 `platform update` → 一次 targeted Browser setup → WAITING 后一次 Chrome Reload → pairing/readback → 一次 `platform start` → passive SAME-SCENE readback。
-5. 禁止人工 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry、task.resume/ACK/reopen；同一 `execution:e9...` redecision PASS 后立即 STOP 并交回网页总控，再继续 Dev/Test/Task 最终链。
+1. **停止 0.1.50 release/workspace 重做**：Registry、version、publish、Product Workspace update、materialization 已 PASS；不得再次 version/publish/update。
+2. 当前唯一下一门是 **Browser Reload harness hardening acceptance**：先只读恢复 22:37/22:38 两张 fresh screenshot、当前 AX geometry、helper `reload-at-point` 控制流，并冻结“如何机械证明目标 ID 的 Reload 控件与 mutation 后 runtime adoption”的验收；在 acceptance 落库前不得第二次 Reload。
+3. 修复范围默认只允许 canonical `scripts/human-e2e/browser-extension-ui.*` / 相关 harness tests，不得修改 0.1.50 Extension 产品源码来绕过 Browser adoption。核心目标：`reload-at-point` 不能仅凭页面存在目标名称 + 外部坐标返回成功；必须 fail-closed 证明目标 Extension identity、Reload 控件空间/语义绑定、点击点命中目标 Reload，并把实际 runtime/version readback 留给 pairing/verification authority。
+4. harness 本地机械门 PASS 后，再单独冻结 **ONE recovery adoption round**。新 round 是否允许第二次 targeted setup + 第二次 Chrome mutation必须由网页总控明确 `ADMITTED=YES`；不得沿用上一 acceptance 自动重试。
+5. 在新 adoption round 前，平台保持 stopped / owner ABSENT；禁止 `platform start`、人工 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry、task.resume/ACK/reopen。只有 Chrome actual adoption 0.1.50 + fresh verification PASS 后，才可重新裁一次 production start。
 
 ## TRAILING_RECOVERY_FIX_ACCEPTANCE
 
@@ -195,8 +231,10 @@ LOCAL_FIX_MECHANICAL_GATE = PASS
 
 ## RELEASE_ADOPTION_0.1.50_ACCEPTANCE
 
+> 历史已执行 gate：release / Workspace / materialization 已 PASS；本 acceptance 在首次 Chrome mutation 后按 STOP 条件结束，**不得作为第二次 setup / Reload / start 的授权来源**。当前 authority 转到 `RELEASE_ADOPTION_0.1.50_REALITY` + `NEXT_ACTION`。
+
 ```text
-ACCEPTANCE_FROZEN = YES
+ACCEPTANCE_FROZEN = YES / CONSUMED_AT_CHROME_ADOPTION_STOP
 TARGET_PACKAGE = @tomflow/proflow-execution-browser-extension
 FROM_VERSION = 0.1.49
 TARGET_VERSION = 0.1.50
@@ -333,8 +371,8 @@ Codex = 已冻结任务的源码分析、实现、tests/typecheck/build/governan
 最近 50 个 commit：release 类 19（38%）、fix 17（34%）、docs 9（18%）；execution-browser-extension 触碰 28/50；四天内 Extension 从 0.1.37 连续到 0.1.49。Real-3 已事实性漂移成 Integration Hardening，因此冻结：
 
 ```text
-0.1.49 = CURRENT_RC / REALITY_FAIL
-0.1.50 = RELEASE_ADOPTION_ADMITTED / NOT_YET_PUBLISHED_OR_ADOPTED
+0.1.49 = PREVIOUS_RC / REALITY_FAIL
+0.1.50 = RELEASE_PASS / WORKSPACE_PASS / MATERIALIZATION_PASS / CHROME_ACTUAL_ADOPTION_FAIL
 Final Real Gate != Integration Hardening
 ```
 
@@ -343,13 +381,13 @@ Final Real Gate != Integration Hardening
 ## DO_NOT_REPEAT
 
 - 不重开 0.1.45～0.1.48 Browser adoption、Tunnel、TASK_RESUMED allowlist 等已闭环问题。
-- 不把 `platform setup/start/update` 恢复为诊断循环；当前仅允许 `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 冻结的各一次 sequential mutation。
-- 不做任意 Extension / Chrome reload；当前仅允许 targeted setup 已进入 `WAITING_FOR_EXTENSION` 后，对已确认同一 Extension ID 的一次 Reload。
+- `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的 stop/update/setup/Reload 配额均已消费；不得把旧 acceptance 当作第二次真实 mutation 授权。
+- 当前禁止任何新的 `platform update/setup/start` 与 Extension / Chrome Reload；只有 Browser Reload harness hardening 机械门 PASS 且新的 recovery-adoption acceptance 明确冻结后，才可单独重新准入。
 - 不人工发 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry。
 - 不再次 task.resume / ACK / reopen；不新建 Task、Worker、GPT、Execution。
 - 不直接写 SQLite、roles registry、verification、node_modules 或 durable Owner state。
 - 不因为发现真实 defect 就立即 release；`VALID_DEFECT != CURRENT_ROOT_CAUSE`。
-- 0.1.50 已获得有限 release/adoption 准入，但只能执行冻结链；任何 release set 扩大、重复 mutation 或新修复都必须重新裁决。
+- 0.1.50 release 已完成；首次 adoption acceptance 已在 Chrome FAIL 后消费结束。任何重复 Browser mutation、新 adoption round 或新修复都必须重新裁决。
 - 不 push；npm Registry publish 与 git push 仍是独立授权边界。
 
 ## REQUIRED_CONTEXT
@@ -363,4 +401,4 @@ Final Real Gate != Integration Hardening
 
 ## STOP_POINT
 
-`0.1.49_RELEASE_PASS / WORKSPACE_PASS / CHROME_ACTUAL_ADOPTION_PASS / PLATFORM_READY_PASS / PLATFORM_START_PASS / BRIDGE_RECONNECT_PASS / OBSERVER_EVENT_NONE / SAME_EXECUTION_UNCHANGED / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_ACCEPTANCE_FROZEN / FIX_IMPLEMENTED_LOCAL / TARGETED_23_OF_23_PASS / EXTENSION_178_OF_178_PASS / TYPECHECK_PASS / TEST_GOVERNANCE_PASS / SURFACE_GOVERNANCE_PASS / NON_RUNTIME_BUILD_PASS / LOCAL_FIX_MECHANICAL_GATE_PASS / 0.1.50_RELEASE_ADOPTION_ACCEPTANCE_FROZEN / FIX_COMMIT_d9453c9 / CHANGE_INTENT_observer-recovery-trailing-demand / 0.1.50_RELEASE_ADMITTED / 0.1.50_ADOPTION_ADMITTED_SEQUENTIAL / NEXT_EXECUTION_EXACT_RELEASE_PLAN / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
+`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / TARGETED_23_OF_23_PASS / EXTENSION_178_OF_178_PASS / TYPECHECK_PASS / TEST_GOVERNANCE_PASS / SURFACE_GOVERNANCE_PASS / NON_RUNTIME_BUILD_PASS / LOCAL_FIX_MECHANICAL_GATE_PASS / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / PLATFORM_STOP_COUNT_1_OWNER_ABSENT / TARGETED_SETUP_COUNT_1_FAIL_EXTENSION_VERSION_MISMATCH / CHROME_RELOAD_AT_POINT_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / RELOAD_TARGET_SEMANTIC_ATTESTATION_NOT_PROVEN / OLD_ADOPTION_ACCEPTANCE_CONSUMED / NEXT_GATE_BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE / SECOND_RELOAD_SETUP_START_NOT_ADMITTED / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
