@@ -90,6 +90,28 @@ Extension package / materialization / `platform setup` READY 不能替代 Chrome
 
 同一路径物化已更新但 Chrome 仍执行旧 manifest/action 时，不要连续盲点 Reload。先恢复注册 path authority；若 path 正确而 runtime 仍旧，按 canonical `Remove → Load unpacked → pairing` 恢复，再确认版本与 Extension ID。AX selector 必须兼容中英文并读取 title/value/description/help 的组合文本，不依赖单一 AXTitle，更不写死坐标。
 
+### Extension actual adoption 五联证据门
+
+从 2026-09-07 起，unpacked Extension 的“已采用新版本”只能在五层事实一致时成立：
+
+```text
+1. Package / Workspace installed version
+2. materialized loadDir manifest.version
+3. chrome://extensions 可见版本 + 同一 Extension ID
+4. Chrome registered Service Worker version / browser-reported runtime moduleVersion
+5. verification.moduleVersion（必须来自 browser-reported version，不得由 descriptor 代填）
+```
+
+判定规则：
+
+- 1/2 只证明磁盘和物化；3 证明 Chrome UI 当前加载声明；4 才证明真实运行进程；5 只允许保存浏览器已经证明过的版本。
+- 任一层不一致，`CHROME_ACTUAL_ADOPTION=NO`。此时**禁止继续排查“新版本为什么没执行”**，因为新版本尚未进入真实 runtime。
+- `PAIRING_HEARTBEAT` 若协议没有携带 `moduleVersion`，只能证明“某个 Extension session 在线”，不能证明“目标版本在线”。不得把 package descriptor version 写进 verification 后再反向声称 Browser 已采用。
+- Reload helper/AXPress 返回成功只证明动作被请求，不证明 Chrome 接受了新 manifest。Reload 后必须重新读取第 3/4 层；若仍旧，进入 registration/adoption recovery，而不是继续 Observer/业务链调试。
+- `Chrome loaded path == materialized loadDir` 仍不足以证明版本一致；Chrome 可能继续持有旧 Service Worker registration。
+
+这个门的目的不是增加 ceremony，而是防止最昂贵的误诊：**磁盘已更新 → verification 假绿 → 在实际上仍运行旧版本的 Chrome 上排查新版本逻辑。**
+
 ## Chrome Extension 错误页 SOP
 
 `chrome://extensions` 卡片出现“错误”时，不得停在卡片级结论，也不得直接把它解释成当前 Service Worker root cause。必须进入该扩展的错误详情页：`chrome://extensions/?errors=<extensionId>`，读取错误标题、上下文、stack/source preview，并用 privileged UI 截图留证。

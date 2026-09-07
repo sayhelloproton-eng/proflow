@@ -319,6 +319,36 @@ Dev Conversation NODE_READY 可见 + Owner generation exact
 
 禁止把“最终需要做 A、B、C”误写成“现在就依次执行 A→B→C”。若前序状态没有出现，后续 mutation 必须保持 `NOT_AUTHORIZED_YET`，先恢复缺失的 authority。
 
+### 8.6 Real Hotfix Admission：先证明因果，再花 Release 成本
+
+真实验收后半段最昂贵的浪费不是“多跑一个 test”，而是**把一个真实存在的旁支 bug 误当成当前 root cause，然后完整走一遍 release/adoption**。
+
+每次准备发布 Real/SAME-SCENE hotfix 前，必须回答：
+
+```text
+CURRENT_RUNTIME_VERSION_PROVEN = YES ?
+FIRST_DIVERGENCE               = 哪一层？
+DEFECT_CAUSALLY_REPRODUCED      = YES ?
+FIX_MOVES_THIS_DIVERGENCE       = 为什么？
+POST_RELEASE_READBACK           = 用哪个 authority 证明？
+```
+
+任何一项答不出来，当前状态只能是 `VALID_DEFECT / HOTFIX_NOT_ADMITTED`。特别是 Browser Extension：在 Chrome actual runtime version 未证明前，禁止分析“新版本为什么没有执行”。
+
+发布后若原 `FIRST_DIVERGENCE` 没移动，立即停止在该假设上追加补丁；新的现实证据优先于“这个代码 bug 看起来很像原因”。
+
+### 8.7 总控与 Codex/领域执行器的高效分工
+
+Codex/领域执行器最适合吃已经冻结的问题，不适合替代 Reality Authority：
+
+```text
+总控：真实现场 → root cause 证明 → blast radius → acceptance / stop point
+执行器：批量实现 → tests/typecheck/governance → release candidate
+总控：Registry / Workspace / Browser actual adoption → SAME-SCENE final acceptance
+```
+
+因此“Codex 执行过”带来的提速前提是**问题已经被压缩成可机械实现的 batch**。如果把未证明的现场假设直接交给执行器，执行速度再快也只会更快地产生错误 patch/release。执行器输出通过后也不得越级代替真实 Browser/Owner/Registry authority。
+
 ## 9. 反模式
 
 ```text

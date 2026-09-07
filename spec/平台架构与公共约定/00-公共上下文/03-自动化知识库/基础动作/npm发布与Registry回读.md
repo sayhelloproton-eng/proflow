@@ -43,6 +43,27 @@ Registry exact <target@next> 先确认 MISSING
 
 这是**隔离修复的恢复路径**，不替代正常 clean-tree changeset release。publish 命令 timeout/UNKNOWN 后仍先 Registry exact；已存在目标版本绝不重复 publish。
 
+### Release Harness 卡死 / 命令形状失败
+
+Release 前置工具失败先分类，不要直接升级成 package/release failure：
+
+```text
+包没有 build script
+build-packages 参数形状错误
+zsh 路径变量被当成一个参数
+changeset status / release plan CLI 长时间不返回
+```
+
+这些默认属于 `HARNESS_FAILURE`。正确处理顺序：
+
+1. 从根 `package.json` / canonical script 读取真实入口和参数，不凭记忆拼命令。
+2. 若 `package:release --plan` / `change status` 之类 plan CLI 自己卡死，先读取 `.changeset/ledger.yaml` 与当前 changeset 文件，确认哪些 intent 已消费、哪些仍 pending；不要无限等待一个辅助 CLI。
+3. 只有 release set 被 authority 证明与授权范围一致，才进入真正的非幂等 publish。
+4. Build/publishability runner session 出现工具层“无退出回执”时，先查 OS process/产物/日志真值；没有对应进程不能直接宣告 build fail，更不能盲启动第二次昂贵 gate。
+5. Harness 修正后复用已经证明过的产品测试结果；若源码未变，不为了修命令形状重复跑与其无关的全量测试。
+
+固定原则：**release ceremony 可以 fail closed，但不能把辅助命令自身的不可靠性伪装成产品 defect。**
+
 ## tarball 边界
 
 正常 Fast Loop 不使用 local tarball 代替 Registry 安装。`pack/.tgz` 只在 publishability 异常、files 配置或“源码修了但包里可能没有”时做诊断性内容检查；最终验收仍必须 publish → Registry → Workspace。
