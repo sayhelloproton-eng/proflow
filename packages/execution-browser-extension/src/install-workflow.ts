@@ -15,7 +15,11 @@ export type BrowserExtensionPair = (
 			endpoint: string;
 		}) => void | Promise<void>;
 	},
-) => Promise<{ extensionId: string; extensionInstanceId: string }>;
+) => Promise<{
+	extensionId: string;
+	extensionInstanceId: string;
+	moduleVersion: string;
+}>;
 
 export function browserExtensionInstallInstruction(loadDir: string): string {
 	return `\n步骤 2/2｜加载浏览器扩展\n\n扩展目录已复制到剪贴板：\n${loadDir}\n\n1. 点击“加载未打包的扩展程序”\n2. 在目录选择窗口按 Cmd+Shift+G\n3. 按 Cmd+V 粘贴路径，然后按 Enter\n4. 点击 Select（选择）\n\n完成后无需返回终端输入内容。ProFlow 正在自动等待扩展连接。\n`;

@@ -15,6 +15,7 @@ export interface BrowserExtensionPairingOptions {
 export type BrowserExtensionPairingResult = {
 	extensionId: string;
 	extensionInstanceId: string;
+	moduleVersion: string;
 };
 
 type PairingIdentity = BrowserExtensionPairingResult;
@@ -142,12 +143,13 @@ export async function createBrowserExtensionPairingServer(
 				const body = await readJson(request);
 				const extensionId = text(body.extensionId);
 				const extensionInstanceId = text(body.extensionInstanceId);
+				const moduleVersion = text(body.moduleVersion);
 				if (!originId || extensionId !== originId)
 					throw new Error("PAIRING_AUTH_INVALID");
 				if (identity && identity.extensionId !== extensionId) {
 					throw new Error("PAIRING_AUTH_INVALID");
 				}
-				identity = { extensionId, extensionInstanceId };
+				identity = { extensionId, extensionInstanceId, moduleVersion };
 				send(response, 200, { accepted: true });
 				return;
 			}
@@ -223,6 +225,7 @@ export async function createBrowserExtensionPairingServer(
 				paired: paired !== undefined,
 				extensionId: identity?.extensionId ?? null,
 				extensionInstanceId: identity?.extensionInstanceId ?? null,
+				moduleVersion: identity?.moduleVersion ?? null,
 			};
 		},
 		waitForPairing() {

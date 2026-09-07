@@ -536,7 +536,10 @@ test("REG-EXE-BR-03B TASK_RESUMED remains a typed bounded worker.wake trigger", 
 	assert.equal(result.result.data.delivered, true);
 	assert.equal(browser.submitCount, 1);
 	assert.match(browser.submittedTexts[0] ?? "", /"triggerType":"TASK_RESUMED"/);
-	assert.match(browser.submittedTexts[0] ?? "", /"fingerprint":"wake:resume:1"/);
+	assert.match(
+		browser.submittedTexts[0] ?? "",
+		/"fingerprint":"wake:resume:1"/,
+	);
 });
 
 test("PRESMOKE-B3-WAKE-01 worker.wake rejects untyped/arbitrary wake reasons before Browser effect", async () => {
@@ -812,6 +815,7 @@ test("REG-EXE-BR-08 Module setup invokes the owner pairing capability directly",
 					return {
 						extensionId: "a".repeat(32),
 						extensionInstanceId: "instance",
+						moduleVersion: "test-browser-module-version",
 					};
 				}) satisfies BrowserExtensionPair,
 			},
@@ -832,6 +836,7 @@ test("REG-EXE-BR-08 Module setup invokes the owner pairing capability directly",
 					return {
 						extensionId: "a".repeat(32),
 						extensionInstanceId: "instance:retry",
+						moduleVersion: "test-browser-module-version",
 					};
 				}) satisfies BrowserExtensionPair,
 			},

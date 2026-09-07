@@ -14,6 +14,7 @@ import { createExecutionBrowserExtension } from "../src/index.ts";
 const extensionId = "a".repeat(32);
 const origin = `chrome-extension://${extensionId}`;
 const token = "bridge-token-that-is-longer-than-thirty-two-characters";
+const moduleVersion = "test-browser-module-version";
 
 async function call(endpoint: string, path: string, init: RequestInit = {}) {
 	return fetch(`${endpoint}${path}`, {
@@ -45,7 +46,11 @@ async function callWithoutOrigin(
 async function hello(endpoint: string, instance = "extension:one") {
 	const response = await call(endpoint, "/v1/session/hello", {
 		method: "POST",
-		body: JSON.stringify({ extensionId, extensionInstanceId: instance }),
+		body: JSON.stringify({
+			extensionId,
+			extensionInstanceId: instance,
+			moduleVersion,
+		}),
 	});
 	assert.equal(response.status, 200);
 }
@@ -106,6 +111,7 @@ test("REG-EXE-BR-08 loopback bridge authenticates exact extension session and tr
 			sessionOnline: false,
 			commandConsumerReady: false,
 			extensionInstanceId: null,
+			moduleVersion: null,
 		});
 		await hello(bridge.endpoint);
 		assert.equal(bridge.status().sessionOnline, true);
@@ -117,6 +123,7 @@ test("REG-EXE-BR-08 loopback bridge authenticates exact extension session and tr
 			sessionOnline: true,
 			commandConsumerReady: false,
 			extensionInstanceId: "extension:one",
+			moduleVersion,
 		});
 		const firstPoll = await callWithoutOrigin(
 			bridge.endpoint,
@@ -137,6 +144,7 @@ test("REG-EXE-BR-08 loopback bridge authenticates exact extension session and tr
 			sessionOnline: true,
 			commandConsumerReady: true,
 			extensionInstanceId: "extension:one",
+			moduleVersion,
 		});
 		const taskStatus = await fetch(`${bridge.endpoint}/tasks/api/status`);
 		assert.equal(taskStatus.status, 401);
@@ -283,6 +291,7 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 			sessionOnline: false,
 			commandConsumerReady: false,
 			extensionInstanceId: null,
+			moduleVersion: null,
 			queuedCommands: 0,
 			pendingCommands: 0,
 			lastCommandPollAt: null,

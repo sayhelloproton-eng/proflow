@@ -261,6 +261,7 @@ export async function createBrowserRealityBridgeServer(
 	let session:
 		| {
 				extensionInstanceId: string;
+				moduleVersion: string;
 				lastHeartbeatAt: number;
 		  }
 		| undefined;
@@ -391,6 +392,7 @@ export async function createBrowserRealityBridgeServer(
 								sessionOnline: sessionOnline(),
 								commandConsumerReady: commandConsumerReady(),
 								extensionInstanceId: session?.extensionInstanceId ?? null,
+								moduleVersion: session?.moduleVersion ?? null,
 								queuedCommands: queue.length,
 								pendingCommands: pending.size,
 								lastCommandPollAt,
@@ -530,7 +532,11 @@ export async function createBrowserRealityBridgeServer(
 						"extension identity mismatch",
 					);
 				const extensionInstanceId = stringField(body, "extensionInstanceId");
-				if (session?.extensionInstanceId !== extensionInstanceId) {
+				const moduleVersion = stringField(body, "moduleVersion");
+				if (
+					session?.extensionInstanceId !== extensionInstanceId ||
+					session?.moduleVersion !== moduleVersion
+				) {
 					lastCommandPollAt = null;
 					lastCommandDeliveredAt = null;
 					lastCommandResultAt = null;
@@ -538,6 +544,7 @@ export async function createBrowserRealityBridgeServer(
 				}
 				session = {
 					extensionInstanceId,
+					moduleVersion,
 					lastHeartbeatAt: now().getTime(),
 				};
 				send(response, 200, { accepted: true });
@@ -549,6 +556,7 @@ export async function createBrowserRealityBridgeServer(
 					sessionOnline: sessionOnline(),
 					commandConsumerReady: commandConsumerReady(),
 					extensionInstanceId: session?.extensionInstanceId ?? null,
+					moduleVersion: session?.moduleVersion ?? null,
 				});
 				return;
 			}

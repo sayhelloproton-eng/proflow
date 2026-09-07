@@ -67,7 +67,11 @@ test("browser install workflow exposes one human installation confirmation", asy
 			loadDir,
 			endpoint: "http://127.0.0.1:43100",
 		});
-		return { extensionId, extensionInstanceId };
+		return {
+			extensionId,
+			extensionInstanceId,
+			moduleVersion: "test-browser-module-version",
+		};
 	};
 
 	const result = await runInteractiveBrowserExtensionSetup({
@@ -78,7 +82,11 @@ test("browser install workflow exposes one human installation confirmation", asy
 	});
 
 	assert.deepEqual(events, [`copy:${loadDir}`, "instruction"]);
-	assert.deepEqual(result, { extensionId, extensionInstanceId });
+	assert.deepEqual(result, {
+		extensionId,
+		extensionInstanceId,
+		moduleVersion: "test-browser-module-version",
+	});
 	assert.match(instruction, /加载未打包的扩展程序/);
 	assert.match(instruction, /扩展目录已复制到剪贴板/);
 	assert.match(instruction, /Cmd\+Shift\+G/);

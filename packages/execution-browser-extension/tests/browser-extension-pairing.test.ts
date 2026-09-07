@@ -6,6 +6,7 @@ import { test } from "node:test";
 const token = "pairing-token-that-is-longer-than-thirty-two-characters";
 const extensionId = "b".repeat(32);
 const origin = `chrome-extension://${extensionId}`;
+const moduleVersion = "test-browser-module-version";
 
 async function pairingModule() {
 	return import("../src/pairing.ts");
@@ -63,6 +64,7 @@ test("CP-EXE-BR-16 pairing binds identity only after authenticated hello + heart
 				body: JSON.stringify({
 					extensionId,
 					extensionInstanceId: "extension:first",
+					moduleVersion,
 				}),
 			},
 		);
@@ -73,6 +75,7 @@ test("CP-EXE-BR-16 pairing binds identity only after authenticated hello + heart
 			body: JSON.stringify({
 				extensionId: "c".repeat(32),
 				extensionInstanceId: "extension:first",
+				moduleVersion,
 			}),
 		});
 		assert.equal(mismatched.status, 401);
@@ -82,6 +85,7 @@ test("CP-EXE-BR-16 pairing binds identity only after authenticated hello + heart
 			body: JSON.stringify({
 				extensionId,
 				extensionInstanceId: "extension:first",
+				moduleVersion,
 			}),
 		});
 		assert.equal(hello.status, 200);
@@ -115,6 +119,7 @@ test("CP-EXE-BR-16 pairing binds identity only after authenticated hello + heart
 		assert.deepEqual(await paired, {
 			extensionId,
 			extensionInstanceId: "extension:first",
+			moduleVersion,
 		});
 		assert.equal(pairing.status().paired, true);
 

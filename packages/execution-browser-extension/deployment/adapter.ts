@@ -398,8 +398,14 @@ async function materializeExecutorConfig(
 async function persistPairedBrowserExtension(
 	context: ModuleCommandContext,
 	prepared: Awaited<ReturnType<typeof materializeRuntimeConfig>>,
-	identity: { extensionId: string; extensionInstanceId: string },
+	identity: {
+		extensionId: string;
+		extensionInstanceId: string;
+		moduleVersion: string;
+	},
 ) {
+	if (identity.moduleVersion !== descriptor.moduleVersion)
+		throw new Error("EXTENSION_VERSION_MISMATCH");
 	const setup: BrowserSetupState = { extensionId: identity.extensionId };
 	await writeFile(setupFile(context), `${JSON.stringify(setup, null, 2)}\n`, {
 		mode: 0o600,
@@ -407,7 +413,7 @@ async function persistPairedBrowserExtension(
 	await materializeExecutorConfig(context, setup, prepared);
 	const evidence: BrowserVerificationEvidence = {
 		contract: "proflow.browser-extension-verification.v1",
-		moduleVersion: descriptor.moduleVersion,
+		moduleVersion: identity.moduleVersion,
 		loadDir: prepared.loadDir,
 		extensionId: identity.extensionId,
 		extensionInstanceId: identity.extensionInstanceId,
@@ -427,12 +433,17 @@ export type RunningBridgeProbe =
 	| { kind: "ABSENT" }
 	| {
 			kind: "PRESENT";
-			identity?: { extensionId: string; extensionInstanceId: string };
+			identity?: {
+				extensionId: string;
+				extensionInstanceId: string;
+				moduleVersion: string;
+			};
 	  };
 
 export function classifyBrowserLiveSetup(input: {
 	baseSetupReady: boolean;
 	evidenceInstanceId?: string;
+	expectedModuleVersion: string;
 	bridgeProbe: RunningBridgeProbe;
 }) {
 	if (!input.baseSetupReady || input.bridgeProbe.kind === "ABSENT")
@@ -441,6 +452,11 @@ export function classifyBrowserLiveSetup(input: {
 		return {
 			setupReady: false,
 			issueCode: "EXTENSION_SESSION_OFFLINE" as const,
+		};
+	if (input.bridgeProbe.identity.moduleVersion !== input.expectedModuleVersion)
+		return {
+			setupReady: false,
+			issueCode: "EXTENSION_VERSION_MISMATCH" as const,
 		};
 	if (
 		input.bridgeProbe.identity.extensionInstanceId !== input.evidenceInstanceId
@@ -483,14 +499,17 @@ async function probeRunningBridgeSession(
 			throw new Error("RUNNING_BRIDGE_STATUS_INVALID");
 		if (Reflect.get(body, "online") !== true) return { kind: "PRESENT" };
 		const extensionInstanceId = Reflect.get(body, "extensionInstanceId");
+		const moduleVersion = Reflect.get(body, "moduleVersion");
 		if (
 			typeof extensionInstanceId !== "string" ||
-			extensionInstanceId.length === 0
+			extensionInstanceId.length === 0 ||
+			typeof moduleVersion !== "string" ||
+			moduleVersion.length === 0
 		)
 			throw new Error("RUNNING_BRIDGE_STATUS_INVALID");
 		return {
 			kind: "PRESENT",
-			identity: { extensionId, extensionInstanceId },
+			identity: { extensionId, extensionInstanceId, moduleVersion },
 		};
 	} catch (error) {
 		if (connectionRefused(error)) return { kind: "ABSENT" };
@@ -542,7 +561,11 @@ export async function pairBrowserExtensionSetup(
 			endpoint: string;
 		}) => void | Promise<void>;
 	} = {},
-): Promise<{ extensionId: string; extensionInstanceId: string }> {
+): Promise<{
+	extensionId: string;
+	extensionInstanceId: string;
+	moduleVersion: string;
+}> {
 	await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
 	await installPackage(context);
 	const existingSetup = await readSetup(context);
@@ -671,6 +694,7 @@ export const behaviorAdapter = {
 		const live = classifyBrowserLiveSetup({
 			baseSetupReady,
 			...(evidence ? { evidenceInstanceId: evidence.extensionInstanceId } : {}),
+			expectedModuleVersion: descriptor.moduleVersion,
 			bridgeProbe,
 		});
 		const issue = !baseSetupReady
@@ -689,7 +713,9 @@ export const behaviorAdapter = {
 						message:
 							live.issueCode === "EXTENSION_SESSION_OFFLINE"
 								? "Chrome 扩展已加载，但当前运行会话未在线"
-								: "Chrome 扩展已重新启动，需要自动刷新当前运行会话证据",
+								: live.issueCode === "EXTENSION_VERSION_MISMATCH"
+									? "Chrome 当前运行的扩展版本与 Workspace 物化版本不一致"
+									: "Chrome 扩展已重新启动，需要自动刷新当前运行会话证据",
 						relatedModuleRefs: ["execution-runtime"],
 						nextCommand: "platform setup",
 					};

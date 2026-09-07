@@ -3,7 +3,7 @@
   "semantics": "Mechanical source inventory only. Presence of a test() call is not a PASS result and cannot substitute for real external E2E evidence.",
   "summary": {
     "files": 161,
-    "testCalls": 762
+    "testCalls": 767
   },
   "tests": [
     {
@@ -2500,6 +2500,18 @@
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
       "line": 195,
+      "title": "B1-OBS-STARTUP-BOUNDARY tab snapshot reconstruction cannot indefinitely block Observer recovery",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/extension/tasks.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+      "line": 210,
       "title": "P1-18 bounded startup/event recovery replenishes missing Task Workers before Task progression",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -2511,7 +2523,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/background-observer-application.test.ts",
-      "line": 224,
+      "line": 239,
       "title": "CP-EXE-BR-09 bounded recovery retries rejected wake delivery without bypassing Execution idempotency",
       "ids": [
         "CP-EXE-BR-09"
@@ -2525,7 +2537,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
-      "line": 45,
+      "line": 46,
       "title": "CP-EXE-BR-16 pairing binds identity only after authenticated hello + heartbeat",
       "ids": [
         "CP-EXE-BR-16"
@@ -2538,7 +2550,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-extension-pairing.test.ts",
-      "line": 138,
+      "line": 143,
       "title": "pairing close is bounded when a browser keeps an HTTP request active",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2549,7 +2561,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-reality-bridge.test.ts",
-      "line": 63,
+      "line": 68,
       "title": "REAL3 Browser command timeout is an abnormal watchdog, not a normal 15s workflow clock",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2562,7 +2574,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-reality-bridge.test.ts",
-      "line": 78,
+      "line": 83,
       "title": "REG-EXE-BR-08 loopback bridge authenticates exact extension session and transports typed reality",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2575,7 +2587,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-reality-bridge.test.ts",
-      "line": 188,
+      "line": 196,
       "title": "REG-EXE-BR-07 lost bridge result times out once and is never requeued",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2588,7 +2600,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-reality-bridge.test.ts",
-      "line": 228,
+      "line": 236,
       "title": "REAL3 loopback Tasks web surface is extension-minted and proxies owner applications without exposing owner tokens",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2601,7 +2613,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/browser-reality-bridge.test.ts",
-      "line": 419,
+      "line": 428,
       "title": "REG-EXE-BR-08 durable Execution Runtime reaches browser reality through the live bridge transport",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -2691,7 +2703,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-attention-web-bridge.test.ts",
-      "line": 61,
+      "line": 62,
       "title": "CP-EXE-BR-32 primary /tasks reads and acts on bounded Carrier Attention through the authenticated bridge",
       "ids": [
         "CP-EXE-BR-32"
@@ -2705,7 +2717,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-attention-web-bridge.test.ts",
-      "line": 137,
+      "line": 139,
       "title": "CP-EXE-BR-32 /tasks Carrier Attention rejects missing session, wrong origin and stale ref",
       "ids": [
         "CP-EXE-BR-32"
@@ -2719,7 +2731,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-attention-web-bridge.test.ts",
-      "line": 193,
+      "line": 195,
       "title": "CP-EXE-BR-32 Extension Tasks fallback retains direct runtime action support",
       "ids": [
         "CP-EXE-BR-32"
@@ -2733,7 +2745,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/carrier-attention-web-bridge.test.ts",
-      "line": 202,
+      "line": 204,
       "title": "CP-EXE-BR-33 published Tasks web app is a self-contained browser module",
       "ids": [
         "CP-EXE-BR-33"
@@ -3615,7 +3627,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/deployment-pairing-setup.test.ts",
-      "line": 31,
+      "line": 32,
       "title": "CP-EXE-BR-16 deployment pairing persists only heartbeat-proven Extension reality",
       "ids": [
         "CP-EXE-BR-16"
@@ -3623,13 +3635,14 @@
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/module-contract/src/index.ts"
       ]
     },
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/deployment-pairing-setup.test.ts",
-      "line": 121,
+      "line": 135,
       "title": "CP-EXE-BR-16 Platform setup surface removes manual Extension ID and fake RUNNING evidence",
       "ids": [
         "CP-EXE-BR-16"
@@ -3637,6 +3650,7 @@
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/module-contract/src/index.ts"
       ]
     },
@@ -3828,6 +3842,20 @@
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
       "line": 512,
+      "title": "REG-EXE-BR-03B TASK_RESUMED remains a typed bounded worker.wake trigger",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/carrier-identity.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts",
+        "packages/execution-contracts/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
+      "line": 545,
       "title": "PRESMOKE-B3-WAKE-01 worker.wake rejects untyped/arbitrary wake reasons before Browser effect",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3841,7 +3869,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 542,
+      "line": 575,
       "title": "REG-EXE-BR-04 page state, Progress Gap and Runtime Stall have deterministic observations",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3855,7 +3883,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 573,
+      "line": 606,
       "title": "REG-EXE-BR-05 permission fallback captures evidence and Extension task UI snapshot remains read-only",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3869,7 +3897,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 599,
+      "line": 632,
       "title": "REG-EXE-BR-06 writes are globally serial and logical delivery follows physical verification",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3883,7 +3911,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 647,
+      "line": 680,
       "title": "REG-EXE-BR-07 bounded Recovery Scan verifies EFFECT_STARTED reality without blind replay",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3897,7 +3925,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 675,
+      "line": 708,
       "title": "REG-EXE-BR-07 worker.create Recovery accepts a slugged canonical role with the bound worker",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3911,7 +3939,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 699,
+      "line": 732,
       "title": "REG-EXE-BR-07 worker.create Recovery rejects a foreign canonical role",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3925,7 +3953,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 716,
+      "line": 749,
       "title": "REG-EXE-BR-07 worker.create Recovery rejects a same-role foreign worker",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3939,7 +3967,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 737,
+      "line": 770,
       "title": "REG-EXE-BR-08 Module setup invokes the owner pairing capability directly",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3953,7 +3981,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 838,
+      "line": 873,
       "title": "REG-EXE-BR-09 deterministic DOM observation makes zero Vision calls",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3967,7 +3995,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 870,
+      "line": 905,
       "title": "REG-EXE-BR-10 screenshot → Vision receives the exact captured image and returns a typed observation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3981,7 +4009,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 954,
+      "line": 989,
       "title": "REG-EXE-BR-11 missing or failing Vision port yields typed defer, never fabricated success",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3995,7 +4023,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 1004,
+      "line": 1039,
       "title": "REG-EXE-BR-12 screenshot boundary rejects unsupported MIME and mismatched dataUrl",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4009,7 +4037,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts",
-      "line": 1037,
+      "line": 1072,
       "title": "REG-EXE-BR-13 Vision verification requires deterministic confidence and no human escalation",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4034,12 +4062,13 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
-      "line": 144,
+      "line": 154,
       "title": "minimal install journey revalidates stale evidence through an already running bridge",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/src/bridge.ts",
         "packages/execution-browser-extension/src/install-workflow.ts",
         "packages/module-contract/src/index.ts"
@@ -4048,12 +4077,13 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
-      "line": 204,
+      "line": 222,
       "title": "stale READY evidence does not suppress the human reinstall path",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/src/bridge.ts",
         "packages/execution-browser-extension/src/install-workflow.ts",
         "packages/module-contract/src/index.ts"
@@ -4062,12 +4092,28 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
-      "line": 231,
+      "line": 249,
       "title": "pairing timeout preserves prepared files but never writes fake READY evidence",
       "ids": [],
       "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "implementationRefs": [
         "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
+        "packages/execution-browser-extension/src/bridge.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts",
+        "packages/module-contract/src/index.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/minimal-user-install-integration.test.ts",
+      "line": 290,
+      "title": "browser-reported stale version can heartbeat but never writes READY evidence",
+      "ids": [],
+      "proofStrength": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "implementationRefs": [
+        "packages/execution-browser-extension/deployment/adapter.ts",
+        "packages/execution-browser-extension/deployment/descriptor.ts",
         "packages/execution-browser-extension/src/bridge.ts",
         "packages/execution-browser-extension/src/install-workflow.ts",
         "packages/module-contract/src/index.ts"
@@ -4100,7 +4146,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/minimal-user-install.test.ts",
-      "line": 96,
+      "line": 104,
       "title": "setup output is human-readable and keeps stable AI recovery semantics",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4192,7 +4238,7 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/recovery-trigger.test.ts",
-      "line": 14,
+      "line": 17,
       "title": "REAL3 recovery starts only on a semantic transition into a new IDLE state",
       "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4203,11 +4249,33 @@
     {
       "package": "execution-browser-extension",
       "path": "packages/execution-browser-extension/tests/recovery-trigger.test.ts",
-      "line": 48,
+      "line": 51,
       "title": "CP-EXE-BR-25 Action Permission stays BLOCKED and only its real transition to IDLE resumes recovery",
       "ids": [
         "CP-EXE-BR-25"
       ],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/recovery-trigger.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/recovery-trigger.test.ts",
+      "line": 61,
+      "title": "B1-RECOVERY-BOUNDARY hung startup snapshot is bounded and treated as unknown",
+      "ids": [],
+      "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/recovery-trigger.ts"
+      ]
+    },
+    {
+      "package": "execution-browser-extension",
+      "path": "packages/execution-browser-extension/tests/recovery-trigger.test.ts",
+      "line": 71,
+      "title": "B1-RECOVERY-BOUNDARY rejected startup snapshot is bounded without fabricated state",
+      "ids": [],
       "proofStrength": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "implementationRefs": [
         "packages/execution-browser-extension/src/recovery-trigger.ts"

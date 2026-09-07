@@ -7,6 +7,7 @@ import { createBrowserRealityBridgeServer } from "../src/bridge.ts";
 const extensionId = "a".repeat(32);
 const origin = `chrome-extension://${extensionId}`;
 const token = "bridge-token-that-is-longer-than-thirty-two-characters";
+const moduleVersion = "test-browser-module-version";
 const attention = {
 	attentionRef: "carrier-attention:7:occurrence-a",
 	occurrenceRef: "occurrence-a",
@@ -80,6 +81,7 @@ test("CP-EXE-BR-32 primary /tasks reads and acts on bounded Carrier Attention th
 			body: JSON.stringify({
 				extensionId,
 				extensionInstanceId: "extension:web-test",
+				moduleVersion,
 			}),
 		});
 		await pollCommand(bridge.endpoint).catch(() => undefined);

@@ -9,6 +9,7 @@ import {
 	browserExtensionLoadDir,
 	pairBrowserExtensionSetup,
 } from "../deployment/adapter.ts";
+import { descriptor } from "../deployment/descriptor.ts";
 import { createBrowserRealityBridgeServer } from "../src/bridge.ts";
 import {
 	type BrowserExtensionDesktop,
@@ -18,6 +19,7 @@ import {
 
 const extensionId = "f".repeat(32);
 const extensionInstanceId = "extension:minimal-user-install-integration";
+const moduleVersion = descriptor.moduleVersion;
 
 async function prepareWorkspace() {
 	const workspaceRoot = await mkdtemp(
@@ -68,7 +70,11 @@ function realPairWithSimulatedChrome(): BrowserExtensionPair {
 					"/v1/session/hello",
 					{
 						method: "POST",
-						body: JSON.stringify({ extensionId, extensionInstanceId }),
+						body: JSON.stringify({
+							extensionId,
+							extensionInstanceId,
+							moduleVersion,
+						}),
 					},
 				);
 				assert.equal(hello.status, 200);
@@ -115,7 +121,11 @@ async function reconnectInstalledExtension(workspaceRoot: string) {
 				"/v1/session/hello",
 				{
 					method: "POST",
-					body: JSON.stringify({ extensionId, extensionInstanceId }),
+					body: JSON.stringify({
+						extensionId,
+						extensionInstanceId,
+						moduleVersion,
+					}),
 				},
 			);
 			if (!hello.ok) throw new Error("HELLO_REJECTED");
@@ -155,7 +165,11 @@ test("minimal install journey revalidates stale evidence through an already runn
 			pair,
 			timeoutMs: 2_000,
 		});
-		assert.deepEqual(first, { extensionId, extensionInstanceId });
+		assert.deepEqual(first, {
+			extensionId,
+			extensionInstanceId,
+			moduleVersion,
+		});
 		assert.deepEqual(events, [
 			`copy:${browserExtensionLoadDir(workspaceRoot)}`,
 			"instruction",
@@ -193,7 +207,11 @@ test("minimal install journey revalidates stale evidence through an already runn
 			desktop: fakeDesktop(events),
 			timeoutMs: 1_000,
 		});
-		assert.deepEqual(second, { extensionId, extensionInstanceId });
+		assert.deepEqual(second, {
+			extensionId,
+			extensionInstanceId,
+			moduleVersion,
+		});
 		assert.equal(events.length, 2);
 	} finally {
 		await bridge?.close();
@@ -264,6 +282,63 @@ test("pairing timeout preserves prepared files but never writes fake READY evide
 				),
 			),
 		);
+	} finally {
+		await rm(workspaceRoot, { recursive: true, force: true });
+	}
+});
+
+test("browser-reported stale version can heartbeat but never writes READY evidence", async () => {
+	const workspaceRoot = await prepareWorkspace();
+	const staleModuleVersion = "0.1.45";
+	try {
+		await assert.rejects(
+			() =>
+				pairBrowserExtensionSetup(
+					{ workspaceRoot },
+					{
+						timeoutMs: 1_000,
+						async onWaiting(input) {
+							const runtime = JSON.parse(
+								await readFile(
+									join(input.loadDir, "runtime-config.json"),
+									"utf8",
+								),
+							) as { proflowRuntimeBridge: { token: string } };
+							const hello = await callExtension(
+								input.endpoint,
+								runtime.proflowRuntimeBridge.token,
+								"/v1/session/hello",
+								{
+									method: "POST",
+									body: JSON.stringify({
+										extensionId,
+										extensionInstanceId,
+										moduleVersion: staleModuleVersion,
+									}),
+								},
+							);
+							assert.equal(hello.status, 200);
+							const heartbeat = await callExtension(
+								input.endpoint,
+								runtime.proflowRuntimeBridge.token,
+								`/v1/session/heartbeat?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`,
+								{ method: "POST", body: "{}" },
+							);
+							assert.equal(heartbeat.status, 200);
+						},
+					},
+				),
+			/EXTENSION_VERSION_MISMATCH/,
+		);
+		const stateRoot = join(
+			workspaceRoot,
+			".proflow/runtime/modules/execution-browser-extension",
+		);
+		await access(
+			join(browserExtensionLoadDir(workspaceRoot), "runtime-config.json"),
+		);
+		await assert.rejects(access(join(stateRoot, "setup.json")));
+		await assert.rejects(access(join(stateRoot, "verification.json")));
 	} finally {
 		await rm(workspaceRoot, { recursive: true, force: true });
 	}

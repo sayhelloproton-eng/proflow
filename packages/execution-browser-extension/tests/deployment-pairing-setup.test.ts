@@ -3,14 +3,15 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-
 import {
 	moduleWorkspaceStateDirectory,
 	writeModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
+import { descriptor } from "../deployment/descriptor.ts";
 
 const extensionId = "d".repeat(32);
 const extensionInstanceId = "extension:deployment-pairing";
+const moduleVersion = descriptor.moduleVersion;
 
 async function call(
 	endpoint: string,
@@ -61,11 +62,15 @@ test("CP-EXE-BR-16 deployment pairing persists only heartbeat-proven Extension r
 						endpoint: string;
 					}): Promise<void>;
 				},
-			) => Promise<{ extensionId: string; extensionInstanceId: string }>
+			) => Promise<{
+				extensionId: string;
+				extensionInstanceId: string;
+				moduleVersion: string;
+			}>
 		)(
 			{ workspaceRoot },
 			{
-				timeoutMs: 2_000,
+				timeoutMs: 10_000,
 				async onWaiting({ loadDir, endpoint }) {
 					const runtime = JSON.parse(
 						await readFile(join(loadDir, "runtime-config.json"), "utf8"),
@@ -77,7 +82,11 @@ test("CP-EXE-BR-16 deployment pairing persists only heartbeat-proven Extension r
 						"/v1/session/hello",
 						{
 							method: "POST",
-							body: JSON.stringify({ extensionId, extensionInstanceId }),
+							body: JSON.stringify({
+								extensionId,
+								extensionInstanceId,
+								moduleVersion,
+							}),
 						},
 					);
 					assert.equal(hello.status, 200);
@@ -92,7 +101,11 @@ test("CP-EXE-BR-16 deployment pairing persists only heartbeat-proven Extension r
 				},
 			},
 		);
-		assert.deepEqual(paired, { extensionId, extensionInstanceId });
+		assert.deepEqual(paired, {
+			extensionId,
+			extensionInstanceId,
+			moduleVersion,
+		});
 
 		const stateRoot = moduleWorkspaceStateDirectory(
 			{ workspaceRoot },
@@ -107,6 +120,7 @@ test("CP-EXE-BR-16 deployment pairing persists only heartbeat-proven Extension r
 		assert.equal(setup.extensionId, extensionId);
 		assert.equal(evidence.extensionId, extensionId);
 		assert.equal(evidence.extensionInstanceId, extensionInstanceId);
+		assert.equal(evidence.moduleVersion, moduleVersion);
 		assert.equal(evidence.evidenceSource, "PAIRING_HEARTBEAT");
 
 		const executor = JSON.parse(

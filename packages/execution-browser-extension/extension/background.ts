@@ -132,6 +132,7 @@ type ChromeTab = {
 type ChromeRuntime = {
 	runtime: {
 		id: string;
+		getManifest(): { version: string };
 		getURL(path: string): string;
 		onMessage: {
 			addListener(
@@ -186,6 +187,7 @@ type ChromeRuntime = {
 declare const chrome: ChromeRuntime;
 
 const extensionInstanceId = `extension:${crypto.randomUUID()}`;
+const extensionModuleVersion = chrome.runtime.getManifest().version;
 const sessions = new Map<number, ContentObservation>();
 const browserOpenObservationGate = createBrowserOpenObservationGate();
 const permissionHandling = new Map<number, string>();
@@ -1637,6 +1639,7 @@ async function runBridgeLoop() {
 				body: JSON.stringify({
 					extensionId: chrome.runtime.id,
 					extensionInstanceId,
+					moduleVersion: extensionModuleVersion,
 				}),
 			});
 			if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED");
