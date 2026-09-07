@@ -18,6 +18,7 @@ import {
 	resolveRoutineCarrierPermission,
 } from "../src/carrier-permission-lifecycle.js";
 import { createCollaborationCarrierApplication } from "../src/collaboration-carrier.js";
+import { createObserverRecoveryRearm } from "../src/observer-recovery-rearm.js";
 import {
 	boundedRecoveryObservation,
 	shouldTriggerObserverRecovery,
@@ -867,6 +868,10 @@ function runObserverRecovery() {
 	return observerRecoveryInFlight;
 }
 
+const observerRecoveryRearm = createObserverRecoveryRearm(() => {
+	void runObserverRecovery();
+});
+
 function observationFor(tabId: number): ContentObservation {
 	const observed = sessions.get(tabId);
 	if (!observed) throw new Error("CONTENT_SESSION_NOT_READY");
@@ -1623,6 +1628,7 @@ async function bridgeFetch(
 }
 
 let bridgeLoopStarted = false;
+let bridgeSessionEpoch = 0;
 async function runBridgeLoop() {
 	if (bridgeLoopStarted) return;
 	bridgeLoopStarted = true;
@@ -1643,6 +1649,8 @@ async function runBridgeLoop() {
 				}),
 			});
 			if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED");
+			bridgeSessionEpoch += 1;
+			observerRecoveryRearm.bridgeSessionEstablished(bridgeSessionEpoch);
 			await publishCarrierAttentions();
 			// Hello only establishes a session. The first inner-loop action must be
 			// a real command poll so Runtime readiness cannot be granted by hello alone.
@@ -2046,7 +2054,7 @@ async function startBackgroundRuntime(): Promise<void> {
 	void runProvisioningBridgeLoop();
 	const suppressedContinuations = await rebuildCarrierAttentionsFromTabs();
 	suppressNextObserverRecovery(suppressedContinuations);
-	void runObserverRecovery();
+	observerRecoveryRearm.startupReady();
 }
 
 chrome.action.onClicked.addListener(() => {
@@ -2059,7 +2067,7 @@ chrome.runtime.onInstalled.addListener(() => {
 		void runBridgeLoop();
 		const suppressedContinuations = await rebuildCarrierAttentionsFromTabs();
 		suppressNextObserverRecovery(suppressedContinuations);
-		void runObserverRecovery();
+		observerRecoveryRearm.startupReady();
 	});
 });
 chrome.runtime.onStartup.addListener(() => {
@@ -2070,7 +2078,7 @@ chrome.runtime.onStartup.addListener(() => {
 		void runBridgeLoop();
 		const suppressedContinuations = await rebuildCarrierAttentionsFromTabs();
 		suppressNextObserverRecovery(suppressedContinuations);
-		void runObserverRecovery();
+		observerRecoveryRearm.startupReady();
 	});
 });
 void startBackgroundRuntime();

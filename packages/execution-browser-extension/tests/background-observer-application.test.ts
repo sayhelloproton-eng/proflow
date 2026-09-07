@@ -1,8 +1,73 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
+import { createObserverRecoveryRearm } from "../src/observer-recovery-rearm.ts";
 
 const backgroundUrl = new URL("../extension/background.ts", import.meta.url);
+
+test("REAL3-BRIDGE-REARM-01 bridge recovery waits for startup denial restoration, then rearms after late availability", () => {
+	let recoveryArms = 0;
+	const rearm = createObserverRecoveryRearm(() => {
+		recoveryArms += 1;
+	});
+
+	assert.equal(rearm.bridgeSessionEstablished(1), false);
+	assert.equal(recoveryArms, 0);
+	rearm.startupReady();
+	assert.equal(recoveryArms, 1);
+
+	// The initial bounded recovery may exhaust while Platform is unavailable.
+	assert.equal(rearm.bridgeSessionEstablished(2), true);
+	assert.equal(recoveryArms, 2);
+});
+
+test("REAL3-BRIDGE-REARM-02 one healthy bridge session cannot repeatedly rearm Observer recovery", () => {
+	let recoveryArms = 0;
+	const rearm = createObserverRecoveryRearm(() => {
+		recoveryArms += 1;
+	});
+	rearm.startupReady();
+
+	assert.equal(rearm.bridgeSessionEstablished(1), true);
+	assert.equal(rearm.bridgeSessionEstablished(1), false);
+	assert.equal(rearm.bridgeSessionEstablished(1), false);
+	assert.equal(recoveryArms, 2);
+});
+
+test("REAL3-BRIDGE-REARM-03 disconnect and later bridge reconnect rearms exactly once for the new epoch", () => {
+	let recoveryArms = 0;
+	const rearm = createObserverRecoveryRearm(() => {
+		recoveryArms += 1;
+	});
+	rearm.startupReady();
+	rearm.bridgeSessionEstablished(1);
+
+	assert.equal(rearm.bridgeSessionEstablished(2), true);
+	assert.equal(rearm.bridgeSessionEstablished(2), false);
+	assert.equal(recoveryArms, 3);
+});
+
+test("REAL3-BRIDGE-REARM-04 production hello establishes one recovery epoch before the healthy poll loop", async () => {
+	const source = await readFile(backgroundUrl, "utf8");
+	const bridgeLoop = source.slice(
+		source.indexOf("async function runBridgeLoop()"),
+		source.indexOf("let provisioningBridgeLoopStarted"),
+	);
+	const helloAccepted = bridgeLoop.indexOf(
+		'if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED")',
+	);
+	const establishEpoch = bridgeLoop.indexOf(
+		"observerRecoveryRearm.bridgeSessionEstablished(bridgeSessionEpoch)",
+	);
+	const healthyPollLoop = bridgeLoop.indexOf("while (true)", helloAccepted);
+	assert.ok(helloAccepted >= 0);
+	assert.ok(establishEpoch > helloAccepted);
+	assert.ok(healthyPollLoop > establishEpoch);
+	assert.equal(
+		bridgeLoop.slice(healthyPollLoop).includes("bridgeSessionEstablished"),
+		false,
+	);
+});
 
 test("PRESMOKE-B3-OBS-EXT-01 Extension Background owns Observer application lifecycle over authenticated owner transport", async () => {
 	const source = await readFile(backgroundUrl, "utf8");
@@ -203,7 +268,7 @@ test("B1-OBS-STARTUP-BOUNDARY tab snapshot reconstruction cannot indefinitely bl
 	);
 	assert.ok(
 		startup.indexOf("await rebuildCarrierAttentionsFromTabs()") <
-			startup.indexOf("void runObserverRecovery()"),
+			startup.indexOf("observerRecoveryRearm.startupReady()"),
 	);
 });
 
@@ -228,11 +293,11 @@ test("P1-18 bounded startup/event recovery replenishes missing Task Workers befo
 	);
 	assert.match(
 		source,
-		/chrome\.runtime\.onStartup[\s\S]*runObserverRecovery\(\)/,
+		/chrome\.runtime\.onStartup[\s\S]*observerRecoveryRearm\.startupReady\(\)/,
 	);
 	assert.match(
 		source,
-		/chrome\.runtime\.onInstalled[\s\S]*runObserverRecovery\(\)/,
+		/chrome\.runtime\.onInstalled[\s\S]*observerRecoveryRearm\.startupReady\(\)/,
 	);
 });
 
