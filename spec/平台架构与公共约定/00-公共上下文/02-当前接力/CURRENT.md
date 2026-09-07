@@ -15,16 +15,16 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL_3_J4_PRODUCTION_RUNTIME_ONE_START_ADMITTED
+CURRENT_EXECUTION_MODE = REAL_3_J4_PRODUCTION_START_FAILED_DEV_TUNNEL_STOPPED
 ```
 
-0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50。Recovery adoption round 3 暴露的 semantic card-binding 失败已完成独立机械闭环。Round 4 已严格按独立 acceptance 完成：setup 前 Browser/AX preflight PASS，唯一 targeted setup 进入 waiting，唯一 semantic Reload 通过完整 target attestation 并 dispatch；同一 setup 随后以 browser-reported heartbeat 写入 `0.1.50`、同 Extension ID 与新 instance，Browser module status=`READY`。Task/Execution/log identity 全部不变，platform start=0。网页总控现已单独冻结 `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE`：只允许一次正式 `platform start`，随后仅被动读取 0.1.50 bridge/recovery/application 与同一 Execution redecision 证据；Browser/setup/update/release/Task/Execution 人工 mutation 全部继续禁止。
+0.1.50 Chrome actual adoption 已 PASS。`PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE` 的唯一 `platform start` 配额已经消费并正式失败：CLI 返回 `成功 0 / 跳过 2 / 失败 dev-tunnel`，正式 status issue=`TUNNEL_RUNTIME_FAILED / Tunnel 运行状态检查失败`。start-owner 仍 `ABSENT`，production bridge/Observer recovery/same-Execution redecision 均未到达；Task/Execution/count/log/verification 无漂移。当前立即 STOP，禁止 setup/stop/retry/第二次 start；下一步必须由网页总控裁决 dev-tunnel runtime failure 的独立只读诊断或修复边界。
 
 ## CURRENT_AUTHORITY
 
 ```text
 branch = main
-current context commit before this gate = e7eb229 docs: record 0.1.50 recovery adoption round 4 pass
+current context commit before this gate = 6c26023 docs: admit production runtime one start
 worktree at last frozen context = CLEAN
 Extensions page canonicalization FIX_COMMIT = c4f640a fix(browser-harness): canonicalize extensions page
 Browser Reload harness hardening acceptance first frozen in context commit = 48b7912
@@ -77,6 +77,11 @@ verification.evidenceSource after round 4 = PAIRING_HEARTBEAT
 Browser module status after round 4 = READY / runtimeStatus=NOT_APPLICABLE
 platform overall status after round 4 = PLATFORM_READY_NO / DEV_TUNNEL_FAILED / OUT_OF_SCOPE
 platform start count after round 4 = 0
+production runtime one-start count = 1 / CONSUMED
+production runtime one-start result = FAILED / firstFailedModule=dev-tunnel
+production runtime one-start reason = TUNNEL_RUNTIME_FAILED / Tunnel 运行状态检查失败
+start-owner after failed start = ABSENT
+production bridge/recovery/redecision after failed start = NOT_REACHED
 ```
 
 0.1.49 已完成 package → Registry → Workspace → materialized loadDir → Chrome registered Service Worker → browser-attested verification 的真实 adoption；不得再把版本采用问题重新当当前 blocker。
@@ -124,10 +129,10 @@ original_class = REAL3_OBSERVER_RECOVERY_POST_RECONNECT
 original_root_cause = PROVEN / OBSERVER_RECOVERY_SINGLE_FLIGHT_DROPS_REARM_EPOCH
 0.1.50_release = PASS
 0.1.50_workspace_materialization = PASS
-current_class = REAL3_PRODUCTION_RUNTIME_ONE_START_ADMITTED
+current_class = REAL3_PRODUCTION_START_BLOCKED_BY_DEV_TUNNEL_RUNTIME
 chrome_registration_path = MATCH / CURRENT_0.1.50_LOADDIR
 chrome_runtime_version = 0.1.50 / BROWSER_REPORTED_HEARTBEAT
-platform_runtime_after_attempt = STOPPED / START_NOT_RUN
+platform_runtime_after_attempt = START_FAILED / DEV_TUNNEL / OWNER_ABSENT
 same_execution_redecision = NOT_RUN
 browser_reload_harness_hardening = PASS / LOCAL_MECHANICAL_GATE
 future_reload_semantic_attestation = READY / CARD_LOCAL_NAME_AND_ID + UNIQUE_PRESSABLE_RELOAD
@@ -141,7 +146,7 @@ semantic_card_binding_root_cause = PROVEN / SHARED_MULTI_CARD_ANCESTOR_ID_CONTAM
 semantic_card_binding_hardening = LOCAL_MECHANICAL_PASS / LEGACY_RED_NEW_GREEN
 recovery_adoption_round_4 = PASS / CONSUMED / ONE_SETUP / ONE_SEMANTIC_RELOAD / NEW_INSTANCE
 previous_adoption_failure_root_cause = NOT_PROVEN
-platform_start_admitted = YES / EXACTLY_ONE / PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE
+platform_start_admitted = CONSUMED / FAILED / RETRY_NOT_ADMITTED
 ```
 
 ## CURRENT_FIRST_EVIDENCE
@@ -188,6 +193,16 @@ C = RULED_OUT
 
 证据截图：`.proflow/tmp/real3-options-storage-probe.png`（只读 options page；无 token 回填、无写入）。Diagnostic Extension reload 仍禁止，因为会销毁原 in-flight 现场。
 
+该段仍是 0.1.49 Observer recovery 的已证明产品根因；当前 0.1.50 production start 尚未到达该链。2026-09-08 唯一 start 的当前事实只冻结为：
+
+```text
+CURRENT_START_FAILURE_ROOT_CAUSE = UNPROVEN
+CURRENT_START_FIRST_DIVERGENCE = platform.start -> dev-tunnel runtime start/status -> TUNNEL_RUNTIME_FAILED
+PRODUCTION_BRIDGE_AND_OBSERVER = NOT_REACHED
+```
+
+不得把 `TUNNEL_RUNTIME_FAILED` 的表层 status 直接冒充 dev-tunnel 内部 root cause；后续诊断需独立准入。
+
 ## RELEASE_ADOPTION_0.1.50_REALITY
 
 2026-09-07 Codex 严格按冻结链执行到首次 Chrome adoption 后 STOP：release plan 唯一为 Browser Extension `0.1.49 → 0.1.50`；Registry exact 0.1.50 PRESENT；release/version commit `0662615`；Product Workspace installed / descriptor / materialization / manifest 全为 0.1.50；repo、node_modules、materialized `background.js` 三方 SHA-256 一致。正式 `platform stop` 仅一次且 owner=ABSENT；`platform update` 仅一次；targeted setup 仅一次；Chrome mutation 仅一次；`platform start` 未执行。固定 Task/Dev/Test 与 `execution:e9...` 未变化，也没有新 Task/Worker/Execution 或人工 recovery/wake。
@@ -214,10 +229,10 @@ ROOT_CAUSE_OF_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 
 ## NEXT_ACTION
 
-1. **Chrome actual adoption 0.1.50 已 PASS**：verification=`0.1.50 / PAIRING_HEARTBEAT`，Extension ID 不变，新 instance=`extension:b8a13837-6f82-4467-8ab2-e18821478edf`，Browser module=`READY`；Round 4 setup/Reload 配额已消费，后续禁止再次 Browser mutation。
-2. **Production one-start 已单独准入**：先只读重冻结 SAME-SCENE、0.1.50 verification、start-owner 与所有模块 setupStatus；其中 dev-tunnel 当前 `runtimeStatus=FAILED` 不构成额外 setup gate，只要其持久 `setupStatus=READY`，正式 `platform start` 会按既有 lifecycle 尝试恢复 runtime。
-3. 只允许一次正式 `platform start --workspace /Users/agent/Desktop/proton-workspace`。start 之后只做 passive readback，不人工 reconnect/recover/wake/retry，不第二次 start，不 stop/update/setup。
-4. 唯一成功目标：production bridge=`0.1.50`、`sessionOnline=YES`、`commandConsumerReady=YES`、instance 与 verification 一致；Observer recovery 越过 rearm/single-flight/trailing/application，并在**同一** `execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0` 上产生 durable redecision。成功后立即 STOP，Dev/Test 属于最后一个独立 final gate。
+1. **唯一 production start 已消费并失败**：preflight 时 23/23 module status command 成功且全部 `setupStatus=READY`；dev-tunnel=`setup READY / runtime FAILED`。唯一 `platform start` 正式返回 `成功 0 / 跳过 2 / 失败 dev-tunnel`。
+2. 正式失败 authority：dev-tunnel status issue=`TUNNEL_RUNTIME_FAILED / Tunnel 运行状态检查失败`；start-owner=`ABSENT`，47080/51443 无 listener，Browser/Execution 日志无新增，因此 production bridge/rearm/recovery/application/redecision 均 `NOT_REACHED`。
+3. SAME-SCENE 与 0.1.50 adoption 保持：verification 仍为 `0.1.50 / eehdad... / extension:b8a13837... / PAIRING_HEARTBEAT`；Task=`ACTIVE v10 / dev`，原 `execution:e9...` 与 count=5、日志 5041/4295 全部不变。
+4. **现在 STOP**：禁止 setup、stop、retry、第二次 start 或现场 patch。网页总控需另行裁决 dev-tunnel runtime failure 的只读诊断与可能修复 acceptance；当前不准入 production bridge或 Final Dev/Test。
 
 ## PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE
 
@@ -262,6 +277,60 @@ RECOVERY_APPLICATION_PROGRESS = PASS
 SAME_EXECUTION_REDECISION = PASS
 NEW_EXECUTION_CREATED = NO
 NEXT_GATE = REAL3_FINAL_DEV_TEST_TASK
+```
+
+## PRODUCTION_RUNTIME_ONE_START_REALITY
+
+2026-09-08 start 前 preflight 全部通过：Git/0.1.50 source/version/artifact/Browser verification 无漂移，start-owner=`ABSENT`；固定 Task/Execution/count/log baseline匹配。正式 module status command 23/23 成功且所有 `setupStatus=READY`，其中 dev-tunnel=`setupStatus=READY / runtimeStatus=FAILED`，符合 acceptance 允许进入一次 start 的前置语义。
+
+唯一 `platform start` 随后正式返回 exit 1：`成功 0 / 跳过 2 / 失败 dev-tunnel`。只读 status 给出 `TUNNEL_RUNTIME_FAILED / Tunnel 运行状态检查失败`；start-owner 仍为 `ABSENT`，production bridge `47080` 与 Platform Host `51443` 均无 listener。Browser/Execution 日志行数未增加，Task、原 Execution、Execution count 与 0.1.50 verification全部不变。因此第一分叉位于 dev-tunnel runtime start/status，后续 production bridge、Observer recovery 与同一 Execution redecision 均未到达。
+
+```text
+BROWSER_VERIFICATION_PRE_START = 0.1.50 / eehdadpmjffomabiedcjijiakconalab / extension:b8a13837-6f82-4467-8ab2-e18821478edf / PAIRING_HEARTBEAT
+BROWSER_MODULE_STATUS_PRE_START = READY / runtimeStatus=NOT_APPLICABLE
+START_OWNER_PRE_START = ABSENT
+TASK_BASELINE = ACTIVE / version=10 / currentNodeId=dev / Dev IN_PROGRESS runNo=1 / Test PENDING runNo=1
+EXECUTION_BASELINE = execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0 / FAILED / NOT_APPLIED / attemptCount=1
+EXECUTION_COUNT_BASELINE = 5
+BROWSER_LOG_BASELINE = 5041
+EXECUTION_LOG_BASELINE = 4295
+ALL_MODULE_STATUS_COMMANDS_PASS = YES / 23_OF_23
+ALL_MODULE_SETUP_STATUS_READY = YES / 23_OF_23
+DEV_TUNNEL_SETUP_STATUS = READY
+DEV_TUNNEL_RUNTIME_STATUS_PRE_START = FAILED
+PLATFORM_START_COUNT = 1
+PLATFORM_START_RESULT = FAILED / exit=1 / success=0 / skipped=2 / failed=dev-tunnel
+FIRST_FAILED_START_MODULE = dev-tunnel
+FIRST_FAILED_START_REASON = TUNNEL_RUNTIME_FAILED / Tunnel 运行状态检查失败
+START_OWNER_AFTER_START = ABSENT
+PRODUCTION_BRIDGE_MODULE_VERSION = NOT_REACHED
+PRODUCTION_BRIDGE_SESSION_ONLINE = NOT_REACHED
+COMMAND_CONSUMER_READY = NOT_REACHED
+PRODUCTION_EXTENSION_INSTANCE_ID = NOT_REACHED
+INSTANCE_MATCH_VERIFICATION = NOT_REACHED
+BRIDGE_EPOCH_ACCEPTED = NOT_REACHED
+REARM_CALLBACK_ENTERED = NOT_REACHED
+RECOVERY_STARTED = NOT_REACHED
+REUSED_IN_FLIGHT = NOT_REACHED
+TRAILING_RECOVERY_STARTED = NOT_REACHED
+COLLABORATION_RECOVERY_BEGIN = NOT_REACHED
+COLLABORATION_RECOVERY_SETTLED = NOT_REACHED
+NEW_EXECUTION_LIST_SIGNALS = 0
+OWNER_APPLICATION_PROGRESS = NONE
+SAME_EXECUTION_REF = YES / UNCHANGED
+SAME_EXECUTION_IDEMPOTENCY = YES / UNCHANGED
+SAME_EXECUTION_REDECISION = NOT_REACHED
+EXECUTION_AFTER = FAILED / NOT_APPLIED / attemptCount=1 / UNCHANGED
+EXECUTION_COUNT_AFTER = 5 / UNCHANGED
+TASK_AFTER = ACTIVE / version=10 / currentNodeId=dev / UNCHANGED
+BROWSER_LOG_AFTER = 5041 / UNCHANGED
+EXECUTION_LOG_AFTER = 4295 / UNCHANGED
+NEW_TASK_WORKER_EXECUTION_CREATED = 0 / 0 / 0
+MANUAL_RECOVERY_PERFORMED = NO
+PLATFORM_SETUP_STOP_BROWSER_MUTATION = 0 / 0 / 0
+PRODUCT_HARNESS_CODE_CHANGED = NO
+FIRST_DIVERGENCE = platform.start -> dev-tunnel runtime start/status -> TUNNEL_RUNTIME_FAILED
+FINAL_STOP_POINT = ONE_START_CONSUMED / DEV_TUNNEL_START_FAILURE / OWNER_ABSENT / RETRY_NOT_ADMITTED
 ```
 
 ## SEMANTIC_CARD_BINDING_AUDIT_ACCEPTANCE
@@ -944,7 +1013,7 @@ Final Real Gate != Integration Hardening
 - 第二轮真实 Browser mutation authority `ONE_RECOVERY_ADOPTION_ROUND_ACCEPTANCE` 已消耗：targeted setup=1，Reload=0，setup 最终 `PAIRING_TIMEOUT`；不得复用或转移其旧配额。
 - `ONE_RECOVERY_ADOPTION_ROUND_3_ACCEPTANCE` 已消耗：Browser preflight=PASS，targeted setup=1，semantic Reload helper 在 AXPress 前 fail closed，Reload dispatch=0，setup=`PAIRING_TIMEOUT`。不得复用该 round 的 setup/Reload 配额；Round 4 的新权限只来自 `ONE_RECOVERY_ADOPTION_ROUND_4_ACCEPTANCE`。
 - `ONE_RECOVERY_ADOPTION_ROUND_4_ACCEPTANCE` 已消耗并 PASS：Browser preflight/semantic snapshot=PASS，targeted setup=1，semantic Reload dispatch=1，verification=0.1.50 + new instance，Browser module=READY。不得复用 setup/Reload 配额。
-- 当前唯一真实 mutation authority 是 `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE`：只允许一次正式 `platform start`。dev-tunnel 的 `runtimeStatus=FAILED` 若同时 `setupStatus=READY`，由 start lifecycle 自己恢复；不得因此先运行额外 setup。start 后禁止第二次 start、stop/setup/update、Browser mutation与人工 recovery/wake/retry。
+- `PRODUCTION_RUNTIME_ONE_START_ACCEPTANCE` 已消耗并正式失败：唯一 start=`成功 0 / 跳过 2 / 失败 dev-tunnel`，issue=`TUNNEL_RUNTIME_FAILED`，start-owner=`ABSENT`。不得复用该 start 配额；禁止 setup/stop/retry/第二次 start。dev-tunnel 的独立诊断或修复必须由网页总控重新冻结。
 - `SEMANTIC_CARD_BINDING_AUDIT_ACCEPTANCE` 已完成：只读 AX snapshot 已证明 shared multi-card ancestor 的 exact-ID-set predicate 是第一失败点；真实 shape legacy-RED/new-GREEN fixture 与 geometry+AX fallback 已通过本地机械门。该 acceptance 已消费，不得复用为 mutation authority。
 - semantic Reload 必须由包含 `48eff56` 的 canonical helper 执行：旧 container path + 经真实 AX shape 验证的 geometry fallback，最终仍需唯一 target name+exact ID、enabled AXPress Reload 与完整 pre-mutation attestation；外部 X/Y、旧截图坐标、旁路 helper全部禁止。
 - `EXTENSIONS_PAGE_CANONICALIZATION_HARDENING_ACCEPTANCE` 已完成本地机械门；不得借此执行 setup/Reload/start。`Load unpacked` 单独存在不再允许作为 Extensions 主列表 authority。
@@ -966,4 +1035,4 @@ Final Real Gate != Integration Hardening
 
 ## STOP_POINT
 
-`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / HARNESS_FIX_COMMIT_3d1eb52 / BROWSER_RELOAD_HARNESS_HARDENING_PASS / EXTENSIONS_PAGE_CANONICALIZATION_ROOT_CAUSE_PROVEN / CANONICALIZATION_FIX_COMMIT_c4f640a / ROUND3_FIRST_DIVERGENCE_SEMANTIC_CARD_BINDING / ROUND3_BUDGET_CONSUMED / SEMANTIC_CARD_BINDING_ROOT_CAUSE_PROVEN_SHARED_MULTI_CARD_ANCESTOR / SEMANTIC_BINDING_FIX_COMMIT_48eff56 / ROUND4_BROWSER_PREFLIGHT_PASS / ROUND4_SEMANTIC_SNAPSHOT_1_NODE_COUNT_356_NOT_TRUNCATED / ROUND4_TARGETED_SETUP_COUNT_1_PASS / ROUND4_SEMANTIC_RELOAD_COUNT_1_TARGET_ATTESTED / CHROME_RUNTIME_0.1.50_BROWSER_REPORTED / EXTENSION_ID_UNCHANGED / NEW_INSTANCE_b8a13837 / VERIFICATION_0.1.50_PAIRING_HEARTBEAT / BROWSER_MODULE_READY / TASK_EXECUTION_LOGS_UNCHANGED / PLATFORM_STOP_UPDATE_START_0_0_0 / CHROME_ACTUAL_ADOPTION_0.1.50_PASS / ROUND4_BUDGET_CONSUMED / PRODUCTION_RUNTIME_ONE_START_ADMITTED / PLATFORM_START_EXACTLY_ONE / DEV_TUNNEL_RUNTIME_FAILURE_RECOVERED_BY_START_IF_SETUP_READY / BROWSER_MUTATION_FORBIDDEN / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
+`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / SEMANTIC_BINDING_FIX_COMMIT_48eff56 / CHROME_ACTUAL_ADOPTION_0.1.50_PASS / NEW_INSTANCE_b8a13837 / VERIFICATION_0.1.50_PAIRING_HEARTBEAT / PRODUCTION_ONE_START_PREFLIGHT_23_OF_23_SETUP_READY / DEV_TUNNEL_PRE_START_READY_FAILED / PLATFORM_START_COUNT_1_CONSUMED / PLATFORM_START_FAILED_SUCCESS_0_SKIPPED_2_DEV_TUNNEL / FIRST_FAILED_MODULE_DEV_TUNNEL / TUNNEL_RUNTIME_FAILED / START_OWNER_ABSENT / PORTS_47080_51443_NO_LISTENER / PRODUCTION_BRIDGE_RECOVERY_REDECISION_NOT_REACHED / TASK_EXECUTION_COUNT_LOGS_VERIFICATION_UNCHANGED / SECOND_START_SETUP_STOP_RETRY_NOT_ADMITTED / DEV_TUNNEL_DIAGNOSTIC_PENDING_CONTROLLER_ADMISSION / BROWSER_MUTATION_FORBIDDEN / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
