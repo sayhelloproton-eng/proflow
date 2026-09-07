@@ -1,0 +1,50 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+const helperUrl = new URL("./browser-extension-ui.mjs", import.meta.url);
+const swiftUrl = new URL("./browser-extension-ui.swift", import.meta.url);
+
+const expectedCases = [
+	"matching-name-id-unique-reload",
+	"same-name-wrong-id",
+	"name-id-in-different-cards",
+	"duplicate-reload",
+	"missing-reload",
+	"reload-not-pressable",
+	"reload-disabled",
+	"point-overlaps-toggle",
+	"point-overlaps-remove",
+	"point-overlaps-details",
+	"point-outside-reload",
+	"derived-midpoint-and-result-semantics",
+];
+
+test("browser reload selector passes the frozen deterministic matrix", () => {
+	const result = spawnSync(
+		process.execPath,
+		[fileURLToPath(helperUrl), "harness-self-test"],
+		{
+			cwd: fileURLToPath(new URL("../..", import.meta.url)),
+			encoding: "utf8",
+			timeout: 120_000,
+		},
+	);
+	assert.equal(result.signal, null, result.stderr);
+	assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+	for (const name of expectedCases) {
+		assert.match(result.stdout, new RegExp(`HARNESS_TEST=${name} PASS`));
+	}
+	assert.match(result.stdout, /HARNESS_TESTS=12\/12/);
+});
+
+test("real reload action reports dispatch only and has no coordinate authority fallback", () => {
+	const source = readFileSync(swiftUrl, "utf8");
+	assert.match(source, /TARGET_RELOAD_CLICK_DISPATCHED/);
+	assert.doesNotMatch(source, /RELOADED_AT_FRESH_POINT/);
+	assert.doesNotMatch(source, /PROFLOW_BROWSER_RELOAD_[XY]/);
+	assert.match(source, /TARGET_RELOAD_UNIQUE=YES/);
+	assert.match(source, /TARGET_RELOAD_POINT_CONTROL_OVERLAP=NO/);
+});

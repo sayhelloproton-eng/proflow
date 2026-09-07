@@ -13,6 +13,165 @@ let privilegedActions: Set<String> = [
     "inspect-extension-geometry", "reload-at-point", "reload", "install", "uninstall",
 ]
 let mayActivateChrome = privilegedActions.contains(action)
+let targetReloadClickDispatchedResult = "TARGET_RELOAD_CLICK_DISPATCHED"
+
+struct HarnessDecisionError: LocalizedError {
+    let code: String
+    var errorDescription: String? { code }
+}
+
+final class ReloadSemanticNode {
+    let key: String
+    let roleName: String
+    let value: String
+    let isEnabled: Bool
+    let actionNames: Set<String>
+    let rect: CGRect?
+    let children: [ReloadSemanticNode]
+    let liveElement: AXUIElement?
+
+    init(
+        key: String,
+        roleName: String,
+        value: String,
+        isEnabled: Bool = true,
+        actionNames: Set<String> = [],
+        rect: CGRect? = nil,
+        children: [ReloadSemanticNode] = [],
+        liveElement: AXUIElement? = nil
+    ) {
+        self.key = key
+        self.roleName = roleName
+        self.value = value
+        self.isEnabled = isEnabled
+        self.actionNames = actionNames
+        self.rect = rect
+        self.children = children
+        self.liveElement = liveElement
+    }
+}
+
+struct ReloadTargetSelection {
+    let card: ReloadSemanticNode
+    let reload: ReloadSemanticNode
+    let point: CGPoint
+}
+
+func flattenSemantic(_ root: ReloadSemanticNode) -> [ReloadSemanticNode] {
+    var result: [ReloadSemanticNode] = []
+    var stack = [root]
+    while let current = stack.popLast() {
+        result.append(current)
+        stack.append(contentsOf: current.children.reversed())
+    }
+    return result
+}
+
+func textSegments(_ value: String) -> Set<String> {
+    Set(value.split(separator: "|").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+}
+
+func chromeExtensionIds(in value: String) -> Set<String> {
+    let pattern = #"(?<![a-p])[a-p]{32}(?![a-p])"#
+    guard let expression = try? NSRegularExpression(pattern: pattern) else { return [] }
+    let range = NSRange(value.startIndex..<value.endIndex, in: value)
+    return Set(expression.matches(in: value, range: range).compactMap {
+        Range($0.range, in: value).map { String(value[$0]) }
+    })
+}
+
+func rectContains(_ outer: CGRect, _ inner: CGRect) -> Bool {
+    outer.contains(CGPoint(x: inner.minX, y: inner.minY)) &&
+        outer.contains(CGPoint(x: inner.maxX, y: inner.maxY))
+}
+
+func isReloadControl(_ node: ReloadSemanticNode) -> Bool {
+    node.roleName == kAXButtonRole as String &&
+        !textSegments(node.value).isDisjoint(with: ["Reload", "重新加载"])
+}
+
+func isAdjacentMutationControl(_ node: ReloadSemanticNode) -> Bool {
+    let segments = textSegments(node.value)
+    let namedMutation = !segments.isDisjoint(with: ["Remove", "移除", "Details", "详细信息"])
+    let toggleRole = ["AXCheckBox", "AXSwitch"].contains(node.roleName)
+    let otherPressableControl = node.actionNames.contains(kAXPressAction as String) &&
+        [kAXButtonRole as String, kAXPopUpButtonRole as String, "AXCheckBox", "AXSwitch"].contains(node.roleName)
+    return namedMutation || toggleRole || otherPressableControl
+}
+
+func validateReloadPoint(
+    _ point: CGPoint,
+    reloadBounds: CGRect,
+    otherControls: [ReloadSemanticNode]
+) throws {
+    guard reloadBounds.contains(point) else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_POINT_OUTSIDE")
+    }
+    for control in otherControls {
+        guard let controlBounds = control.rect else { continue }
+        if controlBounds.contains(point) {
+            throw HarnessDecisionError(code: "TARGET_RELOAD_POINT_CONTROL_OVERLAP")
+        }
+    }
+}
+
+func selectReloadTarget(
+    root: ReloadSemanticNode,
+    extensionName: String,
+    extensionId: String
+) throws -> ReloadTargetSelection {
+    func matchesCardIdentity(_ candidate: ReloadSemanticNode) -> Bool {
+        guard let cardBounds = candidate.rect, cardBounds.width > 0, cardBounds.height > 0 else { return false }
+        let descendants = flattenSemantic(candidate)
+        let nameNodes = descendants.filter { $0.value.contains(extensionName) }
+        let ids = descendants.reduce(into: Set<String>()) { result, node in
+            result.formUnion(chromeExtensionIds(in: node.value))
+        }
+        guard !nameNodes.isEmpty, ids == [extensionId] else { return false }
+        let idNodes = descendants.filter { chromeExtensionIds(in: $0.value).contains(extensionId) }
+        guard !idNodes.isEmpty else { return false }
+        let boundedName = nameNodes.contains { node in
+            guard let nodeBounds = node.rect else { return false }
+            return rectContains(cardBounds, nodeBounds)
+        }
+        let boundedId = idNodes.contains { node in
+            guard let nodeBounds = node.rect else { return false }
+            return rectContains(cardBounds, nodeBounds)
+        }
+        return boundedName && boundedId
+    }
+
+    let allCandidates = flattenSemantic(root).filter(matchesCardIdentity)
+    let minimalCandidates = allCandidates.filter { candidate in
+        !candidate.children.flatMap(flattenSemantic).contains(where: matchesCardIdentity)
+    }
+    guard minimalCandidates.count == 1 else {
+        throw HarnessDecisionError(code: minimalCandidates.isEmpty ? "TARGET_EXTENSION_CARD_NOT_FOUND" : "TARGET_EXTENSION_CARD_NOT_UNIQUE")
+    }
+    let card = minimalCandidates[0]
+    guard let cardBounds = card.rect else {
+        throw HarnessDecisionError(code: "TARGET_EXTENSION_CARD_BOUNDS_MISSING")
+    }
+    let descendants = flattenSemantic(card)
+    let reloads = descendants.filter(isReloadControl)
+    guard reloads.count == 1 else {
+        throw HarnessDecisionError(code: reloads.isEmpty ? "TARGET_RELOAD_NOT_FOUND" : "TARGET_RELOAD_NOT_UNIQUE")
+    }
+    let reload = reloads[0]
+    guard reload.isEnabled else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_DISABLED")
+    }
+    guard reload.actionNames.contains(kAXPressAction as String) else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_NOT_PRESSABLE")
+    }
+    guard let reloadBounds = reload.rect, rectContains(cardBounds, reloadBounds) else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_BOUNDS_INVALID")
+    }
+    let point = CGPoint(x: reloadBounds.midX, y: reloadBounds.midY)
+    let otherControls = descendants.filter { $0 !== reload && isAdjacentMutationControl($0) }
+    try validateReloadPoint(point, reloadBounds: reloadBounds, otherControls: otherControls)
+    return ReloadTargetSelection(card: card, reload: reload, point: point)
+}
 
 func attribute(_ element: AXUIElement, _ name: CFString) -> AnyObject? {
     var value: CFTypeRef?
@@ -26,6 +185,13 @@ func stringAttribute(_ element: AXUIElement, _ name: CFString) -> String {
 
 func enabled(_ element: AXUIElement) -> Bool {
     (attribute(element, kAXEnabledAttribute as CFString) as? Bool) ?? true
+}
+
+func actions(_ element: AXUIElement) -> Set<String> {
+    var names: CFArray?
+    guard AXUIElementCopyActionNames(element, &names) == .success,
+          let values = names as? [String] else { return [] }
+    return Set(values)
 }
 
 func role(_ element: AXUIElement) -> String { stringAttribute(element, kAXRoleAttribute as CFString) }
@@ -98,8 +264,9 @@ func wait(_ seconds: TimeInterval, _ condition: () -> Bool) -> Bool {
     return condition()
 }
 
-let (_, root) = chrome(activate: mayActivateChrome)
+let browserRoot: AXUIElement? = action == "harness-self-test" ? nil : chrome(activate: mayActivateChrome).1
 func scanRoot() -> AXUIElement {
+    guard let root = browserRoot else { fatalError("BROWSER_ROOT_UNAVAILABLE_FOR_SELF_TEST") }
     guard let focused = attribute(root, kAXFocusedWindowAttribute as CFString) else { return root }
     return focused as! AXUIElement
 }
@@ -126,10 +293,7 @@ func pressable(named names: Set<String>) -> AXUIElement? {
         let title = stringAttribute(element, kAXTitleAttribute as CFString)
         let combined = text(element)
         guard names.contains(title) || names.contains(combined) else { return false }
-        var actions: CFArray?
-        guard AXUIElementCopyActionNames(element, &actions) == .success,
-              let values = actions as? [String] else { return false }
-        return values.contains(kAXPressAction as String)
+        return actions(element).contains(kAXPressAction as String)
     }
 }
 func extensionCard() -> AXUIElement? {
@@ -159,8 +323,47 @@ func cardButton(named names: Set<String>) -> AXUIElement? {
 func removeButtonAfterExtension() -> AXUIElement? {
     cardButton(named: ["移除", "Remove"])
 }
-func reloadButtonAfterExtension() -> AXUIElement? {
-    cardButton(named: ["重新加载", "Reload"])
+func semanticSnapshot(_ element: AXUIElement, remaining: inout Int) -> ReloadSemanticNode {
+    remaining -= 1
+    let semanticChildren = remaining > 0 ? children(element).map { semanticSnapshot($0, remaining: &remaining) } : []
+    return ReloadSemanticNode(
+        key: String(describing: element),
+        roleName: role(element),
+        value: text(element),
+        isEnabled: enabled(element),
+        actionNames: actions(element),
+        rect: bounds(element),
+        children: semanticChildren,
+        liveElement: element
+    )
+}
+
+func liveReloadTarget() throws -> ReloadTargetSelection {
+    var remaining = 5000
+    let snapshot = semanticSnapshot(scanRoot(), remaining: &remaining)
+    return try selectReloadTarget(root: snapshot, extensionName: extensionName, extensionId: extensionId)
+}
+
+func formatRect(_ rect: CGRect) -> String {
+    String(format: "x=%.1f,y=%.1f,w=%.1f,h=%.1f", rect.minX, rect.minY, rect.width, rect.height)
+}
+
+func emitReloadAttestation(_ selection: ReloadTargetSelection) throws {
+    guard let cardBounds = selection.card.rect, let reloadBounds = selection.reload.rect else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_ATTESTATION_BOUNDS_MISSING")
+    }
+    print("TARGET_EXTENSION_NAME=\(extensionName)")
+    print("TARGET_EXTENSION_ID=\(extensionId)")
+    print("TARGET_CARD_BOUNDS=\(formatRect(cardBounds))")
+    print("TARGET_CARD_UNIQUE=YES")
+    print("TARGET_RELOAD_ROLE=\(selection.reload.roleName)")
+    print("TARGET_RELOAD_TEXT=\(selection.reload.value)")
+    print("TARGET_RELOAD_BOUNDS=\(formatRect(reloadBounds))")
+    print(String(format: "TARGET_RELOAD_POINT=x=%.1f,y=%.1f", selection.point.x, selection.point.y))
+    print("TARGET_RELOAD_UNIQUE=YES")
+    print("TARGET_RELOAD_POINT_INSIDE=YES")
+    print("TARGET_RELOAD_POINT_CONTROL_OVERLAP=NO")
+    fflush(stdout)
 }
 func inspectExtensionGeometry() throws {
     try ensureExtensionsPage()
@@ -243,28 +446,106 @@ func screenshot(_ suffix: String) {
     }
 }
 
-func requiredReloadPoint() throws -> CGPoint {
-    let environment = ProcessInfo.processInfo.environment
-    guard let rawX = environment["PROFLOW_BROWSER_RELOAD_X"],
-          let rawY = environment["PROFLOW_BROWSER_RELOAD_Y"],
-          let x = Double(rawX), let y = Double(rawY),
-          x.isFinite, y.isFinite, x >= 0, y >= 0 else {
-        throw NSError(domain: "human-e2e", code: 26, userInfo: [NSLocalizedDescriptionKey: "RELOAD_FRESH_POINT_REQUIRED"])
+func dispatchReloadPress(_ selection: ReloadTargetSelection) throws {
+    guard let element = selection.reload.liveElement else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_LIVE_ELEMENT_MISSING")
     }
-    return CGPoint(x: x, y: y)
+    guard AXUIElementPerformAction(element, kAXPressAction as CFString) == .success else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_PRESS_DISPATCH_FAILED")
+    }
 }
 
-func clickScreenPoint(_ point: CGPoint) throws {
-    guard let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left),
-          let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left),
-          let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left) else {
-        throw NSError(domain: "human-e2e", code: 27, userInfo: [NSLocalizedDescriptionKey: "RELOAD_POINT_EVENT_UNAVAILABLE"])
+func runHarnessSelfTests() throws {
+    let press = kAXPressAction as String
+    let buttonRole = kAXButtonRole as String
+    let targetName = "ProFlow Execution Browser"
+    let targetId = "eehdadpmjffomabiedcjijiakconalab"
+    let otherId = "abcdefghijklmnopabcdefghijklmnop"
+    let cardBounds = CGRect(x: 0, y: 0, width: 320, height: 180)
+    let reloadBounds = CGRect(x: 250, y: 120, width: 24, height: 24)
+
+    func node(_ key: String, _ role: String, _ value: String, rect: CGRect?, enabled: Bool = true, actions: Set<String> = [], children: [ReloadSemanticNode] = []) -> ReloadSemanticNode {
+        ReloadSemanticNode(key: key, roleName: role, value: value, isEnabled: enabled, actionNames: actions, rect: rect, children: children)
     }
-    move.post(tap: .cghidEventTap)
-    usleep(120_000)
-    down.post(tap: .cghidEventTap)
-    usleep(80_000)
-    up.post(tap: .cghidEventTap)
+    func card(name: String = targetName, id: String = targetId, reloads: [ReloadSemanticNode]? = nil, extras: [ReloadSemanticNode] = []) -> ReloadSemanticNode {
+        let defaultReload = node("reload", buttonRole, "Reload", rect: reloadBounds, actions: [press])
+        return node("card-\(id)", "AXGroup", "", rect: cardBounds, children: [
+            node("name", "AXStaticText", name, rect: CGRect(x: 20, y: 20, width: 180, height: 20)),
+            node("id", "AXStaticText", "ID: \(id)", rect: CGRect(x: 20, y: 55, width: 260, height: 20)),
+        ] + (reloads ?? [defaultReload]) + extras)
+    }
+    func root(_ cards: [ReloadSemanticNode]) -> ReloadSemanticNode {
+        node("root", "AXGroup", "", rect: CGRect(x: 0, y: 0, width: 900, height: 600), children: cards)
+    }
+    func expectPass(_ name: String, _ body: () throws -> Void) throws {
+        try body()
+        print("HARNESS_TEST=\(name) PASS")
+    }
+    func expectFailure(_ name: String, _ expected: String, _ body: () throws -> Void) throws {
+        do {
+            try body()
+            throw HarnessDecisionError(code: "SELF_TEST_EXPECTED_FAILURE_MISSING_\(name)")
+        } catch let error as HarnessDecisionError {
+            guard error.code == expected else {
+                throw HarnessDecisionError(code: "SELF_TEST_WRONG_FAILURE_\(name)_\(error.code)")
+            }
+            print("HARNESS_TEST=\(name) PASS")
+        }
+    }
+
+    try expectPass("matching-name-id-unique-reload") {
+        _ = try selectReloadTarget(root: root([card()]), extensionName: targetName, extensionId: targetId)
+    }
+    try expectFailure("same-name-wrong-id", "TARGET_EXTENSION_CARD_NOT_FOUND") {
+        _ = try selectReloadTarget(root: root([card(id: otherId)]), extensionName: targetName, extensionId: targetId)
+    }
+    try expectFailure("name-id-in-different-cards", "TARGET_EXTENSION_CARD_NOT_FOUND") {
+        let nameCard = card(id: otherId)
+        let idCard = card(name: "Other Extension", id: targetId)
+        _ = try selectReloadTarget(root: root([nameCard, idCard]), extensionName: targetName, extensionId: targetId)
+    }
+    try expectFailure("duplicate-reload", "TARGET_RELOAD_NOT_UNIQUE") {
+        let first = node("reload-1", buttonRole, "Reload", rect: reloadBounds, actions: [press])
+        let second = node("reload-2", buttonRole, "重新加载", rect: CGRect(x: 280, y: 120, width: 24, height: 24), actions: [press])
+        _ = try selectReloadTarget(root: root([card(reloads: [first, second])]), extensionName: targetName, extensionId: targetId)
+    }
+    try expectFailure("missing-reload", "TARGET_RELOAD_NOT_FOUND") {
+        _ = try selectReloadTarget(root: root([card(reloads: [])]), extensionName: targetName, extensionId: targetId)
+    }
+    try expectFailure("reload-not-pressable", "TARGET_RELOAD_NOT_PRESSABLE") {
+        let reload = node("reload", buttonRole, "Reload", rect: reloadBounds)
+        _ = try selectReloadTarget(root: root([card(reloads: [reload])]), extensionName: targetName, extensionId: targetId)
+    }
+    try expectFailure("reload-disabled", "TARGET_RELOAD_DISABLED") {
+        let reload = node("reload", buttonRole, "Reload", rect: reloadBounds, enabled: false, actions: [press])
+        _ = try selectReloadTarget(root: root([card(reloads: [reload])]), extensionName: targetName, extensionId: targetId)
+    }
+    try expectFailure("point-overlaps-toggle", "TARGET_RELOAD_POINT_CONTROL_OVERLAP") {
+        let toggle = node("toggle", "AXSwitch", "Enabled", rect: reloadBounds, actions: [press])
+        _ = try selectReloadTarget(root: root([card(extras: [toggle])]), extensionName: targetName, extensionId: targetId)
+    }
+    try expectFailure("point-overlaps-remove", "TARGET_RELOAD_POINT_CONTROL_OVERLAP") {
+        let remove = node("remove", buttonRole, "Remove", rect: reloadBounds, actions: [press])
+        _ = try selectReloadTarget(root: root([card(extras: [remove])]), extensionName: targetName, extensionId: targetId)
+    }
+    try expectFailure("point-overlaps-details", "TARGET_RELOAD_POINT_CONTROL_OVERLAP") {
+        let details = node("details", buttonRole, "Details", rect: reloadBounds, actions: [press])
+        _ = try selectReloadTarget(root: root([card(extras: [details])]), extensionName: targetName, extensionId: targetId)
+    }
+    try expectFailure("point-outside-reload", "TARGET_RELOAD_POINT_OUTSIDE") {
+        try validateReloadPoint(CGPoint(x: 10, y: 10), reloadBounds: reloadBounds, otherControls: [])
+    }
+    try expectPass("derived-midpoint-and-result-semantics") {
+        let selection = try selectReloadTarget(root: root([card()]), extensionName: targetName, extensionId: targetId)
+        guard selection.point == CGPoint(x: reloadBounds.midX, y: reloadBounds.midY) else {
+            throw HarnessDecisionError(code: "SELF_TEST_DERIVED_POINT_MISMATCH")
+        }
+        let lower = targetReloadClickDispatchedResult.lowercased()
+        guard !lower.contains("adopt"), !lower.contains("version"), !lower.contains("verified"), !lower.contains("reloaded") else {
+            throw HarnessDecisionError(code: "SELF_TEST_RESULT_OVERCLAIMS")
+        }
+    }
+    print("HARNESS_TESTS=12/12")
 }
 
 func finish(_ result: String) {
@@ -452,6 +733,9 @@ func inspectFocusedWindow() {
 
 do {
     switch action {
+    case "harness-self-test":
+        try runHarnessSelfTests()
+        finish("HARNESS_SELF_TEST_PASS")
     case "dismiss-help":
         try dismissChromeHelpIfPresent()
         finish("HELP_DISMISSED")
@@ -491,14 +775,12 @@ do {
         finish("EXTENSION_GEOMETRY_INSPECTED")
     case "reload-at-point":
         try ensureExtensionsPage()
-        guard extensionPresent() else {
-            throw NSError(domain: "human-e2e", code: 28, userInfo: [NSLocalizedDescriptionKey: "TARGET_EXTENSION_NOT_PRESENT"])
-        }
-        let point = try requiredReloadPoint()
-        try clickScreenPoint(point)
+        let selection = try liveReloadTarget()
+        try emitReloadAttestation(selection)
+        try dispatchReloadPress(selection)
         usleep(750_000)
         screenshot("reload-at-point-after")
-        finish("RELOADED_AT_FRESH_POINT")
+        finish(targetReloadClickDispatchedResult)
     case "reload":
         throw NSError(domain: "human-e2e", code: 29, userInfo: [NSLocalizedDescriptionKey: "RELOAD_REQUIRES_FRESH_POINT"])
     case "uninstall":
@@ -533,7 +815,7 @@ do {
         guard wait(12.0, extensionPresent) else { throw NSError(domain: "human-e2e", code: 11, userInfo: [NSLocalizedDescriptionKey: "EXTENSION_CARD_NOT_VISIBLE_AFTER_SELECT"]) }
         finish("INSTALLED")
     default:
-        fputs("Usage: swift scripts/human-e2e/browser-extension-ui.swift status|screenshot-extensions|inspect-extension-geometry|reload-at-point|reload|install|uninstall|dismiss-help|open-extensions-menu|open-proflow-tasks|create-real3-task|recover-real3-workers|inspect|inspect-tab-strip|select-tab|attach-tab-to-playwright-group\n", stderr)
+        fputs("Usage: swift scripts/human-e2e/browser-extension-ui.swift harness-self-test|status|screenshot-extensions|inspect-extension-geometry|reload-at-point|reload|install|uninstall|dismiss-help|open-extensions-menu|open-proflow-tasks|create-real3-task|recover-real3-workers|inspect|inspect-tab-strip|select-tab|attach-tab-to-playwright-group\n", stderr)
         exit(64)
     }
 } catch {

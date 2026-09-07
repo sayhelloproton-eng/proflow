@@ -15,7 +15,7 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL_3_J4_0.1.50_CHROME_ADOPTION_HARDENING
+CURRENT_EXECUTION_MODE = REAL_3_J4_WAITING_ONE_RECOVERY_ADOPTION_ACCEPTANCE
 ```
 
 0.1.49 的真实 SAME-SCENE 失败根因已经机械证明，trailing-recovery fix 已发布为 0.1.50，Registry / Product Workspace / materialization 均已采用 0.1.50；但首次受控 Chrome adoption 在唯一一次 `reload-at-point` 后仍停留 0.1.49，并被 targeted setup 以 `EXTENSION_VERSION_MISMATCH` 拒绝。当前已停止 release 与 runtime replay，进入 **Chrome actual adoption / Browser Reload harness hardening**；未经新 acceptance 不得第二次 Reload、setup 或 start。
@@ -105,6 +105,9 @@ platform_runtime_after_attempt = STOPPED / START_NOT_RUN
 same_execution_redecision = NOT_RUN
 evidence_gap = OPEN / EXACT_RELOAD_MUTATION_SEMANTICS_NOT_PROVEN
 browser_reload_harness_hardening_acceptance = FROZEN / LOCAL_ONLY
+browser_reload_harness_hardening = PASS / LOCAL_MECHANICAL_GATE
+future_reload_semantic_attestation = READY / CARD_LOCAL_NAME_AND_ID + UNIQUE_PRESSABLE_RELOAD
+previous_adoption_failure_root_cause = NOT_PROVEN
 second_reload_setup_start_admitted = NO
 ```
 
@@ -179,9 +182,9 @@ ROOT_CAUSE_OF_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 ## NEXT_ACTION
 
 1. **停止 0.1.50 release/workspace 重做**：Registry、version、publish、Product Workspace update、materialization 已 PASS；不得再次 version/publish/update。
-2. **Browser Reload harness hardening acceptance 已冻结**；下一执行者只允许按 `BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE` 修改 canonical `scripts/human-e2e/browser-extension-ui.*` 与 harness tests，消除 target-card / Reload-control / point-click 的语义歧义。
-3. 本批只做本地 harness implementation + deterministic tests + Swift compile-only + source/version/hash readback；不得执行 `platform setup/update/start`，不得真实 Reload/点击 Extension 控件，不得修改 0.1.50 Extension 产品源码或 package version。
-4. harness 本地机械门 PASS 后，只允许提交 harness fix + tests + CURRENT 结果并 STOP；随后由网页总控单独冻结 **ONE recovery adoption round**。第二次 targeted setup + 第二次 Chrome mutation当前仍 `NOT_ADMITTED`。
+2. **Browser Reload harness hardening 本地机械门已 PASS**：未来 `reload-at-point` 必须 card-local 同时匹配 name + exact Extension ID，只接受唯一 enabled `AXPress` Reload control，并在 dispatch 前输出完整 bounds/point/overlap attestation。
+3. deterministic matrix `12/12`、Node targeted tests `2/2`、Swift compile-only、scoped Biome、`git diff --check` 均 PASS；产品 Extension source hash 与 0.1.50 version facts 未变化，本批没有任何真实 Browser/runtime/Task mutation。
+4. 下一步只允许网页总控单独冻结 **ONE recovery adoption round**。第二次 targeted setup + 第二次 Chrome mutation当前仍 `NOT_ADMITTED`；harness PASS 不证明上一轮点错、Chrome 已采用或下一轮必然成功。
 5. 在新 adoption round 前，平台保持 stopped / owner ABSENT；禁止 `platform start`、人工 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry、task.resume/ACK/reopen。只有 Chrome actual adoption 0.1.50 + fresh verification PASS 后，才可重新裁一次 production start。
 
 ## BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE
@@ -212,6 +215,34 @@ ROOT_CAUSE_OF_0.1.50_CHROME_ADOPTION_FAILURE = NOT_PROVEN
 10. 本批完成后只允许提交 harness fix + tests + CURRENT 机械结果，`git push` 仍禁止；随后立即 STOP 并交回网页总控冻结 **ONE recovery adoption round**。不得自行把 harness PASS 推导成第二次 Reload 授权。
 
 验收目标不是证明上一轮到底“点错了”还是“点对但 Chrome 未采用”；上一轮 `ROOT_CAUSE_OF_0.1.50_CHROME_ADOPTION_FAILURE` 继续保持 `NOT_PROVEN`。本批只消除下一次 Browser mutation 的证据歧义，使未来一次 Reload 在点击前就具有可审计的目标语义。
+
+## BROWSER_RELOAD_HARNESS_HARDENING_STATUS
+
+```text
+HARNESS_FIX_IMPLEMENTED = YES
+TARGET_CARD_IDENTITY_BINDING = CARD_LOCAL_NAME_AND_EXACT_ID
+TARGET_CARD_UNIQUE = REQUIRED / FAIL_CLOSED
+RELOAD_CONTROL_CARD_LOCAL = YES
+RELOAD_CONTROL_UNIQUE = REQUIRED / FAIL_CLOSED
+RELOAD_CONTROL_PRESSABLE = ENABLED + AX_PRESS_REQUIRED
+CLICK_POINT_SOURCE = VERIFIED_RELOAD_BOUNDS_MIDPOINT
+CLICK_POINT_INSIDE_RELOAD = REQUIRED
+CLICK_POINT_OVERLAP_OTHER_CONTROL = REJECTED
+PRE_MUTATION_ATTESTATION = COMPLETE
+ACTION_RESULT = TARGET_RELOAD_CLICK_DISPATCHED
+DETERMINISTIC_MATRIX = PASS / 12_OF_12
+TARGETED_NODE_TESTS = PASS / 2_OF_2
+SWIFT_COMPILE_ONLY = PASS
+SCOPED_BIOME = PASS
+GIT_DIFF_CHECK = PASS
+PRODUCT_EXTENSION_SOURCE_CHANGED = NO
+PACKAGE_VERSION_CHANGED = NO / 0.1.50
+REAL_BROWSER_MUTATION = NONE
+ROOT_CAUSE_OF_PREVIOUS_ADOPTION_FAILURE = NOT_PROVEN
+SECOND_RELOAD_SETUP_START_ADMITTED = NO
+```
+
+本批只消除了未来 Reload mutation 的 target/card/control/geometry 语义歧义；没有重新解释上一轮失败，也没有形成第二次 setup、Reload 或 platform start 授权。下一步只允许网页总控单独冻结 `ONE recovery adoption round`。
 
 ## TRAILING_RECOVERY_FIX_ACCEPTANCE
 
@@ -413,7 +444,7 @@ Final Real Gate != Integration Hardening
 
 - 不重开 0.1.45～0.1.48 Browser adoption、Tunnel、TASK_RESUMED allowlist 等已闭环问题。
 - `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的 stop/update/setup/Reload 配额均已消费；不得把旧 acceptance 当作第二次真实 mutation 授权。
-- 当前禁止任何新的 `platform update/setup/start` 与 Extension / Chrome Reload；只有 Browser Reload harness hardening 机械门 PASS 且新的 recovery-adoption acceptance 明确冻结后，才可单独重新准入。
+- 当前禁止任何新的 `platform update/setup/start` 与 Extension / Chrome Reload；Browser Reload harness hardening 机械门虽已 PASS，仍只有新的 recovery-adoption acceptance 明确冻结后才可单独重新准入。
 - 不人工发 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry。
 - 不再次 task.resume / ACK / reopen；不新建 Task、Worker、GPT、Execution。
 - 不直接写 SQLite、roles registry、verification、node_modules 或 durable Owner state。
@@ -432,4 +463,4 @@ Final Real Gate != Integration Hardening
 
 ## STOP_POINT
 
-`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / TARGETED_23_OF_23_PASS / EXTENSION_178_OF_178_PASS / TYPECHECK_PASS / TEST_GOVERNANCE_PASS / SURFACE_GOVERNANCE_PASS / NON_RUNTIME_BUILD_PASS / LOCAL_FIX_MECHANICAL_GATE_PASS / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / PLATFORM_STOP_COUNT_1_OWNER_ABSENT / TARGETED_SETUP_COUNT_1_FAIL_EXTENSION_VERSION_MISMATCH / CHROME_RELOAD_AT_POINT_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / RELOAD_TARGET_SEMANTIC_ATTESTATION_NOT_PROVEN / OLD_ADOPTION_ACCEPTANCE_CONSUMED / BROWSER_RELOAD_HARNESS_HARDENING_ACCEPTANCE_FROZEN / LOCAL_HARNESS_FIX_ADMITTED / REAL_BROWSER_MUTATION_FORBIDDEN / NEXT_EXECUTION_HARNESS_IMPLEMENTATION_AND_MECHANICAL_GATE / SECOND_RELOAD_SETUP_START_NOT_ADMITTED / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
+`0.1.49_REALITY_FAIL / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_COMMIT_d9453c9 / 0.1.50_RELEASE_COMMIT_0662615 / REGISTRY_0.1.50_PASS / WORKSPACE_0.1.50_PASS / MATERIALIZATION_0.1.50_PASS / REGISTRATION_PATH_MATCH_PASS / TARGETED_SETUP_COUNT_1_FAIL_EXTENSION_VERSION_MISMATCH / CHROME_RELOAD_AT_POINT_COUNT_1 / CHROME_RUNTIME_STILL_0.1.49 / VERIFICATION_STILL_0.1.49 / PLATFORM_START_COUNT_0 / SAME_EXECUTION_UNCHANGED / PREVIOUS_ADOPTION_ROOT_CAUSE_NOT_PROVEN / BROWSER_RELOAD_HARNESS_HARDENING_PASS / CARD_LOCAL_NAME_ID_BINDING / UNIQUE_ENABLED_AXPRESS_RELOAD / DERIVED_POINT_OVERLAP_GUARD / PRE_MUTATION_ATTESTATION / ACTION_RESULT_CLICK_DISPATCHED_ONLY / DETERMINISTIC_12_OF_12_PASS / NODE_2_OF_2_PASS / SWIFT_COMPILE_PASS / PRODUCT_SOURCE_VERSION_UNCHANGED / REAL_BROWSER_MUTATION_NONE / WAITING_ONE_RECOVERY_ADOPTION_ACCEPTANCE / SECOND_RELOAD_SETUP_START_NOT_ADMITTED / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
