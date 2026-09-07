@@ -18,9 +18,9 @@
 
 **Reality-first override：**当前失败首先表现为 Browser/UI 现实异常时，在取得当前 screenshot/snapshot/AX evidence 之前，禁止先从源码猜 root cause。**Context-first repository rule：**问题已经确认属于仓库理解/修改后，默认先用 Repomix 最小充分范围建立批量上下文，而不是 Local Dev 逐文件探索。两条规则不冲突，关键是先判断问题起点。
 
-**仓库修改短句镜像：范围大小只决定读多少，不决定执行形态。**任何仓库修改——即使只改 1 个文件——都统一执行 `批量读 → 想清楚 → 批量写 → 统一验证`；完整 Batch SOP 唯一由 `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md` 维护。
+**仓库修改短句镜像：范围大小只决定读多少，不决定执行形态。**任何仓库修改——即使只改 1 个文件——都统一执行 `批量读 → 想清楚 → 批量写 → 统一验证`；完整 Batch SOP 唯一由 `03-自动化知识库/基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md` 维护。
 
-这里的路由不是“所有工具按顺序调用一遍”。每个工具只负责它不可替代的 authority；已经被上一层消除的不确定性不得由下一层重复读取。详细调度见 `03-自动化知识库/基础动作/Chat-高吞吐本地工程执行.md`。
+这里的路由不是“所有工具按顺序调用一遍”。每个工具只负责它不可替代的 authority；已经被上一层消除的不确定性不得由下一层重复读取。详细调度见 `03-自动化知识库/基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md`。
 
 ### 0.1 AI 执行时的冲突消解顺序
 
@@ -77,7 +77,7 @@ README / Routing Index 镜像   → 只负责提醒和导航，不创造新语�
 - platform install/update/start/status/stop → `包能力/platform-cli.md`
 - npm publish / Registry → `基础动作/npm发布与Registry回读.md`
 - 长任务 / PID / 日志 / UNKNOWN recovery → `基础动作/Round-PID-Log与恢复.md`
-- Chat 本地仓库理解 / 结构分析 / 批量读取 / 批量修改 / Gate / 降低 Tool Call → `基础动作/Chat-高吞吐本地工程执行.md`
+- Chat 本地仓库理解 / 结构分析 / 批量读取 / 批量修改 / Gate / 降低 Tool Call → `基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md`
 - Repomix / CodeGraph / Local Dev / Playwright 的能力边界、协作顺序、runtime 恢复 → `基础动作/Tool-Runtime-gptweb-mcp.md`
 - Fresh Workspace → `基础动作/Product-Workspace-Fresh.md`
 - Deployment 全流程 → `流程/Deployment-Fresh.md`

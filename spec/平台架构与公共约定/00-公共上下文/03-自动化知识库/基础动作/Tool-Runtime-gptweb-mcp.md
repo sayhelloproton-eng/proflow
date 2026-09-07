@@ -38,7 +38,7 @@ managed runtime count    = local-dev/codegraph/repomix/playwright-chrome 各 1
 
 ## 工具 Runtime 与任务路由是两回事
 
-`gptweb-mcp` 只管理 `repomix / codegraph / local-dev / playwright-chrome` 四个 runtime 的可用性；它不决定业务问题第一刀用谁。任务调度统一按 `Chat-高吞吐本地工程执行.md`：Browser/UI reality 可以先于仓库 Context，纯机械事实可以直接 Local Dev。
+`gptweb-mcp` 只管理 `repomix / codegraph / local-dev / playwright-chrome` 四个 runtime 的可用性；它不决定业务问题第一刀用谁。任务调度统一按 `GPT-Chat-MCP-Mac高吞吐执行规则.md`：Browser/UI reality 可以先于仓库 Context，纯机械事实可以直接 Local Dev。
 
 AX / Swift helper 属于 Reality Plane 的 privileged UI 分支，但**不属于 gptweb-mcp 四个 managed runtime**。因此 `GPTWEB_MCP=4/4_READY` 既不代表 privileged UI 已验证，也不能因为 Playwright 无法 attach `chrome://` 就误判“缺一个 MCP”；此时直接走仓库 canonical AX/helper + screenshot。
 
@@ -46,7 +46,7 @@ AX / Swift helper 属于 Reality Plane 的 privileged UI 分支，但**不属于
 
 ## Repomix Runtime / Sandbox 语义
 
-本节只拥有 Repomix 的**运行时与路径语义**；Context Scope、pack/grep/read 的任务调度统一由 `Chat-高吞吐本地工程执行.md` 拥有。
+本节只拥有 Repomix 的**运行时与路径语义**；Context Scope、pack/grep/read 的任务调度统一由 `GPT-Chat-MCP-Mac高吞吐执行规则.md` 拥有。
 
 当前 Repomix MCP sandbox 根是 `/Users/agent/Desktop/proton-workspace/repos`。首次调用先用 `file_system_read_directory(".")` 机械确认根；后续参数必须使用 sandbox 相对路径（如 `proflow`），禁止传绝对路径，也不要额外再加一层 `repos/`。`directory not found` 首先按路径语义错误处理，不得直接归因于 Repomix runtime。
 
@@ -129,7 +129,7 @@ Token 更新本身**不等于业务 Browser 控制恢复成功**。更新后必�
 
 ## 工具调度归属
 
-四 Plane 的任务路由、Repomix/CodeGraph/Local Dev/Playwright 协作顺序统一由 `Chat-高吞吐本地工程执行.md` 拥有；本 Runbook 不再复制第二套调度规则。这里仅处理 gptweb-mcp runtime、manager、relay、sandbox、token 与连接恢复。
+四 Plane 的任务路由、Repomix/CodeGraph/Local Dev/Playwright 协作顺序统一由 `GPT-Chat-MCP-Mac高吞吐执行规则.md` 拥有；本 Runbook 不再复制第二套调度规则。这里仅处理 gptweb-mcp runtime、manager、relay、sandbox、token 与连接恢复。
 
 ## 2026-09-03｜Playwright Runtime / Tasks Tab 受控组经验
 

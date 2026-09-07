@@ -8,8 +8,8 @@
 |---|---|---|
 | 普通 Web / ChatGPT / Tasks 当前页面 | Playwright Chrome | `基础动作/Browser-UI自动化.md` |
 | `chrome://` / Extension errors / 系统 picker / privileged UI | AX / Swift helper + screenshot | `基础动作/Browser-UI自动化.md` |
-| 仓库跨文件理解 / 修改 | Repomix | `基础动作/Chat-高吞吐本地工程执行.md` |
-| 纯结构关系 / ownership / blast radius | CodeGraph | `基础动作/Chat-高吞吐本地工程执行.md` |
+| 仓库跨文件理解 / 修改 | Repomix | `基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md` |
+| 纯结构关系 / ownership / blast radius | CodeGraph | `基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md` |
 | Git / test / build / PID / Registry / Workspace readback | Local Dev | 对应基础动作；无需为机械事实额外 pack |
 | MCP runtime / relay / token / manager | gptweb-mcp 当前 runtime | `基础动作/Tool-Runtime-gptweb-mcp.md` |
 
@@ -21,7 +21,7 @@
 | 知识类型 | 唯一 owner | 其它文件允许出现什么 |
 |---|---|---|
 | 跨项目测试方法心智模型 | `00-自动化模拟人工总原则.md` | 只做方法概览，不放可执行 SOP |
-| 四 Plane / Batch / Reality Batch / FIRST_DIVERGENCE / Hotfix admission | `基础动作/Chat-高吞吐本地工程执行.md` | README/长期规则只留短句镜像 |
+| 四 Plane / Batch / Reality Batch / FIRST_DIVERGENCE / Hotfix admission | `基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md` | README/长期规则只留短句镜像 |
 | Browser/UI/AX/截图/Extension adoption | `基础动作/Browser-UI自动化.md` | 流程只写业务需要的 Browser checkpoint |
 | gptweb-mcp manager/relay/token/sandbox/Playwright runtime | `基础动作/Tool-Runtime-gptweb-mcp.md` | 不复制工具调度算法 |
 | PID/log/timeout/UNKNOWN 恢复 | `基础动作/Round-PID-Log与恢复.md` | 包 Runbook只写该包特有恢复条件 |
@@ -53,7 +53,7 @@
 | Playwright connect 页、MCP runtime、工具连接/恢复 | `基础动作/Tool-Runtime-gptweb-mcp.md` |
 | CLI prompt、PTY、Expect、交互输入不稳定 | `基础动作/CLI-PTY交互自动化.md` |
 | 长任务、PID、日志、超时/UNKNOWN | `基础动作/Round-PID-Log与恢复.md` |
-| Chat 仓库理解、广域/窄域路由、Repomix/CodeGraph 协作、批量读写、批量 Gate、降低 Tool Call | `基础动作/Chat-高吞吐本地工程执行.md` |
+| Chat 仓库理解、广域/窄域路由、Repomix/CodeGraph 协作、批量读写、批量 Gate、降低 Tool Call | `基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md` |
 | Repomix / CodeGraph / Local Dev / Playwright runtime、能力边界、连接/恢复 | `基础动作/Tool-Runtime-gptweb-mcp.md` |
 
 ## 流程路由
