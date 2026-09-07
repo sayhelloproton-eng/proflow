@@ -27,7 +27,9 @@ branch = main
 0.1.50 source commit base = 112fee7 docs: hand off Real-3 integration hardening
 0.1.49 release commit = 6e9b51a chore(release): version execution-browser-extension
 0.1.49 source fix = 5464f7d fix(browser): rearm observer recovery on bridge reconnect
-0.1.50 local candidate = UNCOMMITTED / LOCAL_FIX_MECHANICAL_GATE_PASS
+0.1.50 FIX_COMMIT = d9453c9 fix(browser): preserve trailing observer recovery demand
+0.1.50 candidate state = COMMITTED / LOCAL_FIX_MECHANICAL_GATE_PASS
+0.1.50 change intent = .changeset/observer-recovery-trailing-demand.md
 0.1.50 background.ts sha256 = 857d7d5d5ff058571ac4723f53d6701483ad8dc3949f67c2b12972c7a09b49a7
 0.1.50 background-observer-application.test.ts sha256 = 68ea90c93c0e892fb816fc8d680fa6c51be966d42b58de354b5d2cb62b0f4a4a
 0.1.50 target code+test diff sha256 = c85f18f22e25c7502facb41a6e9483bfe4c287260687d8f74d5b72c445777a5b
@@ -139,8 +141,8 @@ C = RULED_OUT
 ## NEXT_ACTION
 
 1. `0.1.50` release/adoption acceptance 已冻结并获得有限准入；下一执行者必须严格按 `RELEASE_ADOPTION_0.1.50_ACCEPTANCE` 的顺序推进，不得自行扩展 mutation。
-2. 先冻结当前 candidate hash、补一条新的 Browser Extension patch change intent、提交当前已验收 source/test/governance/CURRENT，使 source working tree clean；不得 push。
-3. release plan 必须精确为 `@tomflow/proflow-execution-browser-extension 0.1.49 → 0.1.50`；任何其它 package、其它版本或 Registry UNKNOWN/PRESENT 异常立即 STOP。
+2. source/fix commit 已完成：`d9453c9 fix(browser): preserve trailing observer recovery demand`；唯一新 change intent 为 `.changeset/observer-recovery-trailing-demand.md`。后续不得重复提交源码、不得改 source/test，除非 source hash 漂移后重新机械验收。
+3. 下一门直接做 release plan；必须精确为 `@tomflow/proflow-execution-browser-extension 0.1.49 → 0.1.50`。任何其它 package、其它版本或 Registry UNKNOWN/PRESENT 异常立即 STOP。
 4. Registry PASS 后按冻结链执行：一次 `platform stop` → 一次定向 `platform update` → 一次 targeted Browser setup → WAITING 后一次 Chrome Reload → pairing/readback → 一次 `platform start` → passive SAME-SCENE readback。
 5. 禁止人工 `TASK_OBSERVER_RECOVER`、`task.wake`、Execution retry、task.resume/ACK/reopen；同一 `execution:e9...` redecision PASS 后立即 STOP 并交回网页总控，再继续 Dev/Test/Task 最终链。
 
@@ -209,8 +211,8 @@ MANUAL_TASK_EXECUTION_MUTATION = FORBIDDEN
 ### A. Release candidate 与 source gate
 
 1. 发布前 `background.ts`、对应 test 与 target diff 必须仍匹配 `CURRENT_AUTHORITY` 中冻结的 SHA-256；任何 source/test 漂移立即 STOP，重新机械验收，不得带新改动进入 0.1.50。
-2. 当前 `.changeset/*.md` 中历史 intent 均已由 `.changeset/ledger.yaml` 记录消费；本轮必须新增 **恰好一条** Browser Extension `patch` change intent，说明 trailing recovery 不丢 reconnect/retry demand。不得修改或重新激活 platform-cli 的已消费 intent。
-3. 当前已验收的 5 个 dirty 文件 + 本轮新 change intent 必须先形成 source/fix commit，使 working tree clean；`package:release` 要求 clean tree。source commit 后冻结 `FIX_COMMIT`；不得 push。
+2. 当前 `.changeset/*.md` 中历史 intent 均已由 `.changeset/ledger.yaml` 记录消费；本轮新的唯一 Browser Extension `patch` intent 已固定为 `.changeset/observer-recovery-trailing-demand.md`。不得再新增第二条同目标 intent，也不得修改或重新激活 platform-cli 的已消费 intent。
+3. source/fix commit gate 已满足：`FIX_COMMIT=d9453c9`，其中包含已验收 source/test/governance/CURRENT 与本轮唯一新 change intent。后续 release 前 source working tree 必须保持 clean；不得重复提交源码、不得 push。
 4. `pnpm package:release --plan` / release plan 必须机械证明唯一 release set 为 `@tomflow/proflow-execution-browser-extension 0.1.49 → 0.1.50`。若出现其它 package、版本不是 0.1.50、plan UNKNOWN/挂起且无法由 ledger + version dry-run恢复权威，则 STOP。
 5. Registry exact preflight `@tomflow/proflow-execution-browser-extension@0.1.50` 必须明确 `MISSING` 才允许首次 publish。若 `PRESENT`，禁止重复 publish并 STOP 核验 provenance；若网络/Registry 为 `UNKNOWN/ERROR`，不得按 MISSING 处理。
 
@@ -361,4 +363,4 @@ Final Real Gate != Integration Hardening
 
 ## STOP_POINT
 
-`0.1.49_RELEASE_PASS / WORKSPACE_PASS / CHROME_ACTUAL_ADOPTION_PASS / PLATFORM_READY_PASS / PLATFORM_START_PASS / BRIDGE_RECONNECT_PASS / OBSERVER_EVENT_NONE / SAME_EXECUTION_UNCHANGED / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_ACCEPTANCE_FROZEN / FIX_IMPLEMENTED_LOCAL / TARGETED_23_OF_23_PASS / EXTENSION_178_OF_178_PASS / TYPECHECK_PASS / TEST_GOVERNANCE_PASS / SURFACE_GOVERNANCE_PASS / NON_RUNTIME_BUILD_PASS / LOCAL_FIX_MECHANICAL_GATE_PASS / 0.1.50_RELEASE_ADOPTION_ACCEPTANCE_FROZEN / 0.1.50_RELEASE_ADMITTED / 0.1.50_ADOPTION_ADMITTED_SEQUENTIAL / NEXT_EXECUTION_SOURCE_COMMIT_CHANGE_INTENT_RELEASE_PLAN / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
+`0.1.49_RELEASE_PASS / WORKSPACE_PASS / CHROME_ACTUAL_ADOPTION_PASS / PLATFORM_READY_PASS / PLATFORM_START_PASS / BRIDGE_RECONNECT_PASS / OBSERVER_EVENT_NONE / SAME_EXECUTION_UNCHANGED / ROOT_CAUSE_PROVEN_SINGLE_FLIGHT_DROPS_REARM_EPOCH / FIX_ACCEPTANCE_FROZEN / FIX_IMPLEMENTED_LOCAL / TARGETED_23_OF_23_PASS / EXTENSION_178_OF_178_PASS / TYPECHECK_PASS / TEST_GOVERNANCE_PASS / SURFACE_GOVERNANCE_PASS / NON_RUNTIME_BUILD_PASS / LOCAL_FIX_MECHANICAL_GATE_PASS / 0.1.50_RELEASE_ADOPTION_ACCEPTANCE_FROZEN / FIX_COMMIT_d9453c9 / CHANGE_INTENT_observer-recovery-trailing-demand / 0.1.50_RELEASE_ADMITTED / 0.1.50_ADOPTION_ADMITTED_SEQUENTIAL / NEXT_EXECUTION_EXACT_RELEASE_PLAN / MANUAL_TASK_EXECUTION_MUTATION_FORBIDDEN / PUSH_FORBIDDEN / J4_PAUSED_FOR_INTEGRATION_HARDENING`。
