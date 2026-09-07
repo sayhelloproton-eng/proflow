@@ -631,6 +631,10 @@
   dir: packages/execution-browser-extension
   intents:
     - browser-runtime-version-attestation
+"@tomflow/proflow-execution-browser-extension@0.1.49":
+  dir: packages/execution-browser-extension
+  intents:
+    - bridge-reconnect-observer-rearm
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
