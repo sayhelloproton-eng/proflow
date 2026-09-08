@@ -15,7 +15,7 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL3_DEV_TUNNEL_0_1_35_ADOPTION_PENDING
+CURRENT_EXECUTION_MODE = REAL3_PRESTART_BLOCKED_BY_EXTERNAL_MODEL_PROVIDER
 ```
 
 ## CURRENT_AUTHORITY
@@ -25,20 +25,36 @@ CURRENT_EXECUTION_MODE = REAL3_DEV_TUNNEL_0_1_35_ADOPTION_PENDING
 ```text
 Browser Extension = 0.1.50 / actual Chrome adoption PASS
 Browser module = READY / runtimeStatus=NOT_APPLICABLE
-old production one-start acceptance = CONSUMED / FAILED at dev-tunnel
+old production one-start acceptance = CONSUMED / FAILED at dev-tunnel / NEVER RETRY
 production bridge / Observer recovery / same-Execution redecision = NOT_REACHED
 
-Dev Tunnel diagnostic hardening 0.1.34 = released + Product Workspace adopted + real status schema replay PASS
-Dev Tunnel auth root cause = AUTH_EXPIRED / mechanically proven
-canonical Browser Auth recovery = mechanically completed / Logged in via GitHub before machine reboot
-Dev Tunnel start auto-reauth fix = PASS
-Dev Tunnel package gate = 46/46 + typecheck + Biome + diff-check PASS
-Dev Tunnel 0.1.35 = Registry publish PASS
-Dev Tunnel 0.1.35 Product Workspace adoption = NOT_YET_EXECUTED
+Dev Tunnel start auto-reauth source gate = PASS / 46/46 + typecheck + Biome + diff-check
+Dev Tunnel 0.1.35 = BAD REGISTRY ARTIFACT / workspace:^ leaked by source-directory publish
+Dev Tunnel 0.1.36 = validated pack artifact + Registry exact/latest PASS
+Dev Tunnel 0.1.36 Product Workspace adoption = PASS
+managed Dev Tunnel CLI = 1.0.2030 / package-owned / checksum PASS / LOGGED_IN
+original Tunnel = proflow-aeb1e6d087caaf089de01d41.jpe1 / EXISTS
+exact Gateway port = 41705 / http / EXISTS
+Dev Tunnel local setup = READY / process MISSING after reboot
+DEV_TUNNEL_REMOTE_REALITY_GATE = PASS
+
+SAME-SCENE pre-start baseline = REVALIDATED
+Browser log baseline = 5041
+Execution log baseline = 4295
+Execution count = 5 / observer signal count = 0
+start-owner = ABSENT
+47080 / 51443 listeners = ABSENT
+Browser verification = 0.1.50 / eehdadpmjffomabiedcjijiakconalab / extension:b8a13837-6f82-4467-8ab2-e18821478edf / PAIRING_HEARTBEAT
+
+model-provider-api = ACTION_REQUIRED / PROVIDER_UNREACHABLE
+configured Provider = http://192.168.0.108:8080/v1
+model-runtime = READY / runtimeStatus=FAILED / PROVIDER_UNAVAILABLE
+platform start implementation = VERIFIED fail-closed when any Module setupStatus != READY
+new production-start acceptance = NOT_FROZEN / NOT_ADMITTED
 ```
 
 功能提交：`1ceb0103bad2 fix(dev-tunnel): reauthorize expired login on start`。
-版本提交：`c9624537bafd chore(release): version dev-tunnel to 0.1.35`。
+0.1.36 版本提交：`635a2f13f01b chore(release): version dev-tunnel to 0.1.36`。
 
 ## FIXED_REAL3_TRUTH
 
@@ -60,49 +76,45 @@ new Task / Worker / Execution = FORBIDDEN
 ## CURRENT_PROBLEM_CLASS
 
 ```text
-current_class = REAL3_DEV_TUNNEL_ADOPTION_AND_REMOTE_REALITY
-code defect = CLOSED at 0.1.35 source/release gate
-current maximum uncertainty = Product Workspace adoption + post-reboot auth/tunnel/port reality
-remote tunnel = proflow-aeb1e6d087caaf089de01d41 / EXISTENCE TO REVERIFY
-exact port = 41705 / http / EXISTENCE+PROTOCOL TO REVERIFY
-platform start = NOT_ADMITTED
+current_class = EXTERNAL_ENVIRONMENT / MODEL_PROVIDER_ENDPOINT_UNREACHABLE
+product regression = NOT_PROVEN
+Dev Tunnel blocker = CLOSED / REMOTE_REALITY_GATE_PASS
+model-provider-api = ACTION_REQUIRED / PROVIDER_UNREACHABLE
+bound Base URL = http://192.168.0.108:8080/v1
+192.168.0.108 LAN reality = ARP incomplete / ICMP no response
+historical candidate 192.168.0.104:8080 = connection timeout
+current ARP candidates .105/.106 = no matching 8080 provider
+full-subnet/device discovery = FORBIDDEN by Model Provider Runbook
+platform start = NOT_ADMITTED because formal start preflight requires every setupStatus=READY
 ```
 
-本地持久配置仍指向：
-
-```text
-tunnelId = proflow-aeb1e6d087caaf089de01d41
-gatewayPort = 41705
-publicBaseUrl = https://0br1cj2q-41705.jpe1.devtunnels.ms/
-```
-
-机器已重启，因此之前的 `LOGGED_IN` / process reality 不能直接当作重启后实时 authority；下一批必须重新只读回读。
+该 blocker 属于外部 Provider 现场，不自动升级为 ProFlow bug。旧 Provider observation 只用于恢复配置，不能覆盖 live probe 失败。
 
 ## NEXT_ACTION
 
-执行一个最小 Reality Batch，不逐步拆成多轮 Chat 决策：
-
 ```text
-1. Product Workspace targeted update @tomflow/proflow-dev-tunnel → 0.1.35
-2. exact readback workspace version = 0.1.35
-3. package-managed CLI read-only auth reality
-4. auth 为 AUTH_EXPIRED / NOT_LOGGED_IN 时，允许既有 Browser Auth 自恢复；UNKNOWN/timeout fail-closed
-5. read-only show original tunnel
-6. read-only exact 41705 port + protocol
-7. local persisted setup/process authority
-8. 输出一份 evidence bundle
+1. 只使用已有、非设备发现的 authority 恢复真实 OpenAI-compatible Provider Base URL
+2. 若机器无法从已有事实确定当前 URL，等待用户恢复手机模型服务/提供当前 Base URL
+3. 通过 canonical Platform setup 输入恢复 Provider；禁止直接编辑 .proflow 配置冒充产品路径
+4. 重新结构化读取 23 Module status
+5. model-provider-api 必须 READY；全部 Module setupStatus 必须 READY
+6. 再次冻结 SAME-SCENE identity/log/start-owner 最终 pre-start bundle
+7. 写入并提交新的 production-start acceptance
+8. 仅随后消费 exactly-one platform start
 ```
 
-只有 `login + original tunnel + exact 41705/http` 全部明确后，才更新 CURRENT 并冻结 **新的** production-start acceptance。旧 acceptance 永久不可 retry。
+Dev Tunnel 不再重查；除非出现新的矛盾 evidence，不重跑 0.1.36 release/adoption/remote reality。
 
 ## CURRENT_MUTATION_AUTHORITY
 
 ```text
-PRODUCT_WORKSPACE_TARGETED_UPDATE_0_1_35 = ADMITTED
-DEV_TUNNEL_AUTH_RECOVERY_IF_EXPLICITLY_EXPIRED_OR_LOGGED_OUT = ADMITTED
+MODEL_PROVIDER_READ_ONLY_REALITY = ADMITTED
+MODEL_PROVIDER_CANONICAL_SETUP_AFTER_VALID_BASE_URL = ADMITTED
+FULL_SUBNET_OR_DEVICE_DISCOVERY = FORBIDDEN
+DIRECT_PROVIDER_CONFIG_EDIT = FORBIDDEN
 REMOTE_TUNNEL_CREATE_DELETE = FORBIDDEN
-REMOTE_PORT_MUTATION = FORBIDDEN_UNTIL_REMOTE_REALITY_PROVEN
-PLATFORM_START = NOT_ADMITTED / OLD ACCEPTANCE CONSUMED
+REMOTE_PORT_MUTATION = FORBIDDEN
+PLATFORM_START = NOT_ADMITTED / NEW ACCEPTANCE NOT_FROZEN
 PLATFORM_STOP = NOT_ADMITTED
 BROWSER_EXTENSION_MUTATION = FORBIDDEN
 TASK_EXECUTION_MANUAL_MUTATION = FORBIDDEN
@@ -111,12 +123,12 @@ PUSH = FORBIDDEN
 
 ## DO_NOT_REPEAT
 
-- 不重新研究 Dev Tunnel 登录命令；canonical Browser Auth 已验证。
-- 不重新 release 0.1.34/0.1.35；0.1.35 Registry publish 已 PASS。
+- 不重新研究 Dev Tunnel 登录/Tunnel/41705；0.1.36 managed CLI + remote reality 已 PASS。
+- 不重新 publish 0.1.35；它是坏 artifact。0.1.36 validated tarball + Registry/adoption 已 PASS。
 - 不重新 release/update/reload Browser Extension 0.1.50。
-- 不把机器重启前的登录/process 状态冒充当前 realtime authority。
-- 不因为 remote query 失败就推导 Tunnel 已删除。
-- 不创建/删除 Tunnel，不改 port，直到 read-only reality 明确。
+- 不重新扫描 Dev Tunnel remote reality，除非出现矛盾 evidence。
+- 不把旧 Provider observation 当 live READY。
+- 不扫描整个 LAN、不引入 Bonjour/mDNS/iPhone identity；Model Provider 只认 URL + inventory。
 - 不直接第二次 `platform start`；必须先冻结新的 acceptance。
 - 不人工发 `TASK_OBSERVER_RECOVER` / `task.wake` / Execution retry。
 - 不再次 task.resume / ACK / reopen。
@@ -124,9 +136,10 @@ PUSH = FORBIDDEN
 
 ## REQUIRED_CONTEXT
 
-1. `03-自动化知识库/包能力/dev-tunnel.md`
-2. `03-自动化知识库/基础动作/Round-PID-Log与恢复.md`
-3. `03-自动化知识库/基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md`
+1. `03-自动化知识库/包能力/model-provider-runtime.md`
+2. `03-自动化知识库/包能力/dev-tunnel.md`
+3. `03-自动化知识库/基础动作/Round-PID-Log与恢复.md`
+4. `03-自动化知识库/基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md`
 
 ## ON_DEMAND_CONTEXT
 
@@ -136,4 +149,4 @@ PUSH = FORBIDDEN
 
 ## STOP_POINT
 
-`J1_J2_J3_PASS / J4_PAUSED / BROWSER_0_1_50_PASS / OLD_PRODUCTION_START_CONSUMED_FAILED_DEV_TUNNEL / DEV_TUNNEL_0_1_34_DIAGNOSTIC_ADOPTION_PASS / AUTH_EXPIRED_ROOT_CAUSE_PROVEN / AUTH_RECOVERY_PATH_PROVEN / START_AUTO_REAUTH_0_1_35_RELEASED / PRODUCT_WORKSPACE_0_1_35_ADOPTION_PENDING / POST_REBOOT_LOGIN_TUNNEL_PORT_REALITY_PENDING / NEW_PRODUCTION_START_NOT_ADMITTED / SAME_TASK_WORKER_EXECUTION_FROZEN / PUSH_FORBIDDEN`。
+`J1_J2_J3_PASS / J4_PAUSED / BROWSER_0_1_50_PASS / DEV_TUNNEL_0_1_36_ADOPTED / DEV_TUNNEL_REMOTE_REALITY_PASS / SAME_SCENE_PRESTART_BASELINE_REVALIDATED / MODEL_PROVIDER_API_ACTION_REQUIRED_PROVIDER_UNREACHABLE / NEW_PRODUCTION_START_NOT_ADMITTED / SAME_TASK_WORKER_EXECUTION_FROZEN / PUSH_FORBIDDEN`。
