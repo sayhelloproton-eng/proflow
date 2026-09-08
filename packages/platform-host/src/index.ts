@@ -1068,9 +1068,23 @@ async function constructGraph(
 					"executeCapability",
 				)
 			) {
+				const nodeContext = object(taskResult, "node context result");
+				const nodeContextData = object(nodeContext.data, "node context data");
+				const taskContext = object(nodeContextData.task, "node context task");
+				const executionNodeContext = object(
+					nodeContextData.node,
+					"node context node",
+				);
 				return {
-					...object(taskResult, "node context"),
+					...nodeContext,
 					executionCapabilityIds: [...executionCapabilityIds],
+					executionRequestContext: {
+						contract: "execution",
+						contractVersion: "1.0.0",
+						taskId: string(taskContext.taskId, "task.taskId"),
+						nodeId: string(executionNodeContext.nodeId, "node.nodeId"),
+						runNo: positiveInteger(executionNodeContext.runNo, "node.runNo"),
+					},
 				};
 			}
 			return taskResult;

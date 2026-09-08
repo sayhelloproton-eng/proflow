@@ -596,6 +596,13 @@ test("B1-HOST-EXEC-01 GPT-shaped file.read is exact-node scoped before one durab
 	assert.deepEqual(projected.body.executionCapabilityIds, [
 		...executionCapabilityIds,
 	]);
+	assert.deepEqual(projected.body.executionRequestContext, {
+		contract: "execution",
+		contractVersion: "1.0.0",
+		taskId: seeded.taskId,
+		nodeId: seeded.currentNodeId,
+		runNo: seeded.runNo,
+	});
 	const base = {
 		contract: "execution",
 		contractVersion: "1.0.0",
