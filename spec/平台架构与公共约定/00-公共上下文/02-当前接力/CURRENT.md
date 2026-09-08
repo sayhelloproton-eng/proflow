@@ -56,6 +56,38 @@ Root cause = SAME Dev Worker uses an old Custom GPT Conversation snapshot whose 
 0.1.21 keeps exact-node fencing unchanged and extends getNodeContext projection with executionRequestContext={contract,contractVersion,taskId,nodeId,runNo}; old Worker can copy Owner facts without guessing and Host still rejects missing/stale/wrong-role scope.
 ```
 
+## OFFLINE_VERIFICATION_20260908
+
+```text
+Registry exact @tomflow/proflow-platform-host@0.1.21 = PASS
+Registry dist-tag latest = 0.1.21
+release-sync platform-host = PASS
+Registry isolated install/import = PASS
+Registry dist/src/index.js SHA = LOCAL GATED DIST MATCH
+Registry deployment/adapter.js SHA = LOCAL GATED DIST MATCH
+Registry deployment/descriptor.js SHA = LOCAL GATED DIST MATCH
+Registry proflow.module.json SHA = LOCAL GATED DIST MATCH
+Registry package.json semantic identity = name/version/exports/bin MATCH
+Registry package.json dependency rewrite = EXPECTED workspace:^ -> published semver ranges
+Registry manifest workspace: leak = NONE
+Registry downloaded tarball SHA1 = npm dist.shasum MATCH
+
+Product installed platform-host = 0.1.20
+Product runtime listeners = 41705/47080/51443 LISTENING
+Task = WAITING v13 / currentNode=dev
+Dev = WAITING v8 / runNo=1 / SAME Worker
+Test = PENDING / runNo=1
+event:14 blocker = PENDING / EXECUTION_FILE_READ_INVALID_REQUEST
+Execution DB = .proflow/runtime/modules/execution-runtime/execution.sqlite
+Execution count = 6
+Task Execution count = 6
+file.read durable Execution count = 0
+No background drift observed while Provider unavailable
+
+Offline conclusion = ALL NON-MODEL VERIFICATION COMPLETE
+Remaining real-scene dependency = Provider READY for stop -> adopt 0.1.21 -> restart -> ACK/resume -> file.read -> Dev/Test
+```
+
 ## FIXED_REAL3_TRUTH
 
 ```text
