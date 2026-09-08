@@ -15,7 +15,7 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL3_PRESTART_BLOCKED_BY_EXTERNAL_MODEL_PROVIDER
+CURRENT_EXECUTION_MODE = REAL3_PRODUCTION_START_ACCEPTANCE_FROZEN
 ```
 
 ## CURRENT_AUTHORITY
@@ -46,11 +46,15 @@ start-owner = ABSENT
 47080 / 51443 listeners = ABSENT
 Browser verification = 0.1.50 / eehdadpmjffomabiedcjijiakconalab / extension:b8a13837-6f82-4467-8ab2-e18821478edf / PAIRING_HEARTBEAT
 
-model-provider-api = ACTION_REQUIRED / PROVIDER_UNREACHABLE
-configured Provider = http://192.168.0.108:8080/v1
-model-runtime = READY / runtimeStatus=FAILED / PROVIDER_UNAVAILABLE
+model-provider-api = READY / live probe PASS
+configured Provider = http://192.168.0.101:8080/v1
+provider inventory = 4 models / existing FAST + THINK models present
+model-runtime = READY / runtimeStatus=STOPPED
+23 Module setupStatus = 23/23 READY
 platform start implementation = VERIFIED fail-closed when any Module setupStatus != READY
-new production-start acceptance = NOT_FROZEN / NOT_ADMITTED
+new production-start acceptance = FROZEN / REAL3_PRODUCTION_START_20260908T093352Z
+acceptance scope = exactly one platform start
+acceptance baseline = Task/Node/Role identity SAME / fixed Execution SAME / Execution count 5 / Observer 0 / Browser log 5041 / Execution log 4295 / start-owner ABSENT / 47080+51443 ABSENT / Browser 0.1.50 PAIRING_HEARTBEAT
 ```
 
 功能提交：`1ceb0103bad2 fix(dev-tunnel): reauthorize expired login on start`。
@@ -76,31 +80,30 @@ new Task / Worker / Execution = FORBIDDEN
 ## CURRENT_PROBLEM_CLASS
 
 ```text
-current_class = EXTERNAL_ENVIRONMENT / MODEL_PROVIDER_ENDPOINT_UNREACHABLE
+current_class = REAL3_PRODUCTION_START_ADMITTED
 product regression = NOT_PROVEN
 Dev Tunnel blocker = CLOSED / REMOTE_REALITY_GATE_PASS
-model-provider-api = ACTION_REQUIRED / PROVIDER_UNREACHABLE
-bound Base URL = http://192.168.0.108:8080/v1
-192.168.0.108 LAN reality = ARP incomplete / ICMP no response
-historical candidate 192.168.0.104:8080 = connection timeout
-current ARP candidates .105/.106 = no matching 8080 provider
-full-subnet/device discovery = FORBIDDEN by Model Provider Runbook
-platform start = NOT_ADMITTED because formal start preflight requires every setupStatus=READY
+model-provider-api = READY / live probe PASS
+bound Base URL = http://192.168.0.101:8080/v1
+provider IP drift = user-authorized direct runtime-state correction from .108 to .101 / setup intentionally skipped
+model-runtime = READY / STOPPED
+23 Module setupStatus = 23/23 READY
+platform start = ADMITTED exactly once under REAL3_PRODUCTION_START_20260908T093352Z
 ```
 
-该 blocker 属于外部 Provider 现场，不自动升级为 ProFlow bug。旧 Provider observation 只用于恢复配置，不能覆盖 live probe 失败。
+前一 Provider blocker 已关闭：用户明确提供新 IP 并授权跳过 setup，运行态三份 Provider 事实已在真实 `/v1/models` HTTP 200 + FAST/THINK inventory 证明后同步到 `.101`；这次直接状态修正属于一次性显式授权，不改变正常产品路径仍以 Platform owner 为准。
 
 ## NEXT_ACTION
 
 ```text
-1. 只使用已有、非设备发现的 authority 恢复真实 OpenAI-compatible Provider Base URL
-2. 若机器无法从已有事实确定当前 URL，等待用户恢复手机模型服务/提供当前 Base URL
-3. 通过 canonical Platform setup 输入恢复 Provider；禁止直接编辑 .proflow 配置冒充产品路径
-4. 重新结构化读取 23 Module status
-5. model-provider-api 必须 READY；全部 Module setupStatus 必须 READY
-6. 再次冻结 SAME-SCENE identity/log/start-owner 最终 pre-start bundle
-7. 写入并提交新的 production-start acceptance
-8. 仅随后消费 exactly-one platform start
+1. 提交 REAL3_PRODUCTION_START_20260908T093352Z acceptance
+2. 提交后只读确认 Git clean；Product SAME-SCENE baseline 不允许漂移
+3. 消费 exactly-one `platform start --workspace /Users/agent/Desktop/proton-workspace`
+4. 若 start 调用 timeout / UNKNOWN：先恢复 start-owner、process、listeners、Module status 与日志 authority，禁止盲目重发
+5. 收集 post-start evidence bundle：start outcome / start-owner / listeners / Browser+Execution log delta / Task+Execution+Observer
+6. 证明 0.1.50 bridge → Observer recovery → 同一 fixed Execution redecision
+7. 继续 Dev → Test → Task SUCCEEDED，只有真实 Journey 终态才能裁决 J4/REAL_3 PASS
+8. 每个稳定 checkpoint 自动更新 CURRENT；不等待用户提醒沉淀
 ```
 
 Dev Tunnel 不再重查；除非出现新的矛盾 evidence，不重跑 0.1.36 release/adoption/remote reality。
@@ -109,12 +112,13 @@ Dev Tunnel 不再重查；除非出现新的矛盾 evidence，不重跑 0.1.36 r
 
 ```text
 MODEL_PROVIDER_READ_ONLY_REALITY = ADMITTED
-MODEL_PROVIDER_CANONICAL_SETUP_AFTER_VALID_BASE_URL = ADMITTED
+MODEL_PROVIDER_DIRECT_RUNTIME_STATE_EDIT = CONSUMED_BY_EXPLICIT_USER_AUTHORITY / COMPLETE
+MODEL_PROVIDER_CANONICAL_SETUP = NOT_REQUIRED_FOR_THIS_IP_DRIFT_RECOVERY
 FULL_SUBNET_OR_DEVICE_DISCOVERY = FORBIDDEN
-DIRECT_PROVIDER_CONFIG_EDIT = FORBIDDEN
 REMOTE_TUNNEL_CREATE_DELETE = FORBIDDEN
 REMOTE_PORT_MUTATION = FORBIDDEN
-PLATFORM_START = NOT_ADMITTED / NEW ACCEPTANCE NOT_FROZEN
+PLATFORM_START = ADMITTED_ONCE / REAL3_PRODUCTION_START_20260908T093352Z
+PLATFORM_START_RETRY_IF_TIMEOUT_UNKNOWN = FORBIDDEN_UNTIL_AUTHORITY_RECOVERY
 PLATFORM_STOP = NOT_ADMITTED
 BROWSER_EXTENSION_MUTATION = FORBIDDEN
 TASK_EXECUTION_MANUAL_MUTATION = FORBIDDEN
@@ -129,7 +133,7 @@ PUSH = FORBIDDEN
 - 不重新扫描 Dev Tunnel remote reality，除非出现矛盾 evidence。
 - 不把旧 Provider observation 当 live READY。
 - 不扫描整个 LAN、不引入 Bonjour/mDNS/iPhone identity；Model Provider 只认 URL + inventory。
-- 不直接第二次 `platform start`；必须先冻结新的 acceptance。
+- 只允许消费 `REAL3_PRODUCTION_START_20260908T093352Z` 这一笔 start；一旦调用即视为 consumed，timeout/UNKNOWN 先恢复 authority，禁止盲目重发。
 - 不人工发 `TASK_OBSERVER_RECOVER` / `task.wake` / Execution retry。
 - 不再次 task.resume / ACK / reopen。
 - 不 push。
@@ -149,4 +153,4 @@ PUSH = FORBIDDEN
 
 ## STOP_POINT
 
-`J1_J2_J3_PASS / J4_PAUSED / BROWSER_0_1_50_PASS / DEV_TUNNEL_0_1_36_ADOPTED / DEV_TUNNEL_REMOTE_REALITY_PASS / SAME_SCENE_PRESTART_BASELINE_REVALIDATED / MODEL_PROVIDER_API_ACTION_REQUIRED_PROVIDER_UNREACHABLE / NEW_PRODUCTION_START_NOT_ADMITTED / SAME_TASK_WORKER_EXECUTION_FROZEN / PUSH_FORBIDDEN`。
+`J1_J2_J3_PASS / J4_PAUSED / BROWSER_0_1_50_PASS / DEV_TUNNEL_0_1_36_ADOPTED / DEV_TUNNEL_REMOTE_REALITY_PASS / MODEL_PROVIDER_192_168_0_101_READY / 23_OF_23_SETUP_READY / SAME_SCENE_PRESTART_BASELINE_FROZEN / REAL3_PRODUCTION_START_20260908T093352Z_ADMITTED_ONCE / SAME_TASK_WORKER_EXECUTION_FROZEN / PUSH_FORBIDDEN`。
