@@ -166,18 +166,12 @@ PUSH = FORBIDDEN
 
 ## STOP_POINT
 
-`J1_J2_J3_PASS / J4_PAUSED / PRODUCTION_START_PASS_CONSUMED / BROWSER_0_1_50_RECOVERY_PASS / SAME_FIXED_EXECUTION_REDECISION_PASS_ATTEMPT2 / CURRENT_BLOCKER_COMPOSER_NOT_FOUND / EXECUTION_COUNT_5 / SAME_TASK_WORKER_EXECUTION_FROZEN / PUSH_FORBIDDEN`。
+`J1_J2_J3_PASS / J4_PAUSED / PLATFORM_HOST_0_1_20_ADOPTED / RUNTIME_STOPPED_FOR_ADOPTION / SAME_SCENE_WAITING / RESTART_ACCEPTANCE_ADMITTED / EXECUTION_COUNT_5 / PUSH_FORBIDDEN`。
 
 ## REAL3_RESTART_ACCEPTANCE_20260908T111318Z
 
-- PLATFORM_HOST_INSTALLED: .
-- PRESTART_RUNTIME: ; .
-- PROVIDER:  reachable.
-- SAME_SCENE: Task=; Dev=; Test=; Execution total=; fixed wake=.
-- ADMISSION: exactly one 平台未启动：配置尚未完成
-
-◆ 浏览器扩展
-原因：Chrome 扩展尚未加载或缺少可验证的运行证据
-
-PLATFORM_READY=NO
-处理方式：platform setup --workspace "/Users/agent/Desktop/proton-workspace/repos/proflow" for 0.1.20 adoption; no Task/Worker/Execution creation and no manual wake/retry.
+- PLATFORM_HOST_INSTALLED: `0.1.20`.
+- PRESTART_RUNTIME: `start-owner=ABSENT`; `47080/51443/41705=ABSENT`.
+- PROVIDER: `http://192.168.0.101:8080/v1/models` reachable before restart.
+- SAME_SCENE: Task=`WAITING v11`; Dev=`WAITING v6/runNo1`; Test=`PENDING v1/runNo1`; Execution total=`5`; fixed wake=`SUCCEEDED/APPLIED/attempt3`.
+- ADMISSION: exactly one `platform start` for 0.1.20 adoption; no Task/Worker/Execution creation and no manual wake/retry.
