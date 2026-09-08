@@ -16,6 +16,7 @@ import type { SystemObserverView } from "@tomflow/proflow-execution-browser-exte
 import {
 	type ExecuteCapabilityRequest,
 	executionCapabilityIds,
+	executionCapabilityInputJsonSchemas,
 } from "@tomflow/proflow-execution-contracts";
 import { applyMigrations } from "@tomflow/proflow-task-migration-runner";
 import {
@@ -1078,6 +1079,7 @@ async function constructGraph(
 				return {
 					...nodeContext,
 					executionCapabilityIds: [...executionCapabilityIds],
+					executionCapabilityInputSchemas: executionCapabilityInputJsonSchemas,
 					executionRequestContext: {
 						contract: "execution",
 						contractVersion: "1.0.0",

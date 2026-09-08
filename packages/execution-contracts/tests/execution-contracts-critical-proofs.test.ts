@@ -71,6 +71,23 @@ test("CP-EXE-CON-01 public API types and runtime schemas stay aligned", () => {
 	);
 });
 
+test("CP-EXE-CON-01A capability input JSON Schema projection stays aligned with canonical Zod inputs", () => {
+	assert.equal(
+		Object.keys(contracts.executionCapabilityInputJsonSchemas).length,
+		contracts.executionCapabilityIds.length,
+	);
+	assert.deepEqual(contracts.executionCapabilityInputJsonSchemas["file.read"], {
+		$schema: "https://json-schema.org/draft/2020-12/schema",
+		type: "object",
+		properties: {
+			path: { type: "string", minLength: 1 },
+			encoding: { type: "string", const: "utf8" },
+		},
+		required: ["path"],
+		additionalProperties: false,
+	});
+});
+
 test("CP-EXE-CON-02 illegal ExecutionStatus and SideEffectState combinations reject", () => {
 	const parse = Reflect.get(contracts, "parseExecutionRecord");
 	assert.equal(typeof parse, "function");

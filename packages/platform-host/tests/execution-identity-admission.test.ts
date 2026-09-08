@@ -596,6 +596,20 @@ test("B1-HOST-EXEC-01 GPT-shaped file.read is exact-node scoped before one durab
 	assert.deepEqual(projected.body.executionCapabilityIds, [
 		...executionCapabilityIds,
 	]);
+	const inputSchemas = projected.body.executionCapabilityInputSchemas as Record<
+		string,
+		Record<string, unknown>
+	>;
+	assert.deepEqual(inputSchemas["file.read"], {
+		$schema: "https://json-schema.org/draft/2020-12/schema",
+		type: "object",
+		properties: {
+			path: { type: "string", minLength: 1 },
+			encoding: { type: "string", const: "utf8" },
+		},
+		required: ["path"],
+		additionalProperties: false,
+	});
 	assert.deepEqual(projected.body.executionRequestContext, {
 		contract: "execution",
 		contractVersion: "1.0.0",

@@ -330,6 +330,19 @@ const capabilityInputSchemas = {
 		.strict(),
 } satisfies Record<ExecutionCapabilityId, z.ZodType>;
 
+// Public read-only projection of the canonical per-capability input contracts.
+// Custom GPT conversations may retain an older generic executeCapability Action
+// schema, so callers must be able to discover the exact typed `input` shape from
+// the current Execution owner contract without duplicating or guessing fields.
+export const executionCapabilityInputJsonSchemas = Object.freeze(
+	Object.fromEntries(
+		executionCapabilityIds.map((capability) => [
+			capability,
+			z.toJSONSchema(capabilityInputSchemas[capability]),
+		]),
+	),
+);
+
 const executionRequestBaseSchema = z
 	.object({
 		contract: z.literal("execution"),
