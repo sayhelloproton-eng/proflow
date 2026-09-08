@@ -201,3 +201,14 @@ PUSH = FORBIDDEN
 - PROVIDER: `http://192.168.0.101:8080/v1/models` was reachable before that restart.
 - SAME_SCENE_AT_ACCEPTANCE: Task=`WAITING v11`; Dev=`WAITING v6/runNo1`; Test=`PENDING v1/runNo1`; Execution total=`5`; fixed wake=`SUCCEEDED/APPLIED/attempt3`.
 - OUTCOME: the one admitted `platform start` for 0.1.20 adoption completed; current authority is the 0.1.21 checkpoint above.
+
+## REAL3_PLATFORM_HOST_0_1_21_ADOPTION_FREEZE_20260908T2100
+
+- Provider live probe: HTTP 200, 4 models, existing FAST/THINK inventory present.
+- Formal platform status: 23/23 setup READY, PLATFORM_READY=YES.
+- Product platform-host=0.1.20; Registry exact/latest platform-host=0.1.21.
+- SAME scene: Task WAITING v13; Dev WAITING v8/runNo1/SAME worker; Test PENDING; event:14 blocker PENDING.
+- Execution total=6; Task executions=6; durable file.read count=0.
+- Runtime before adoption: 41705/47080/51443 LISTENING.
+- Adoption authority: exactly one formal platform stop, then targeted platform-host update to 0.1.21; no Task/Worker/Execution mutation.
+- Restart authority is NOT yet admitted here; it will be frozen only after installed=0.1.21 and stopped-runtime readback.
