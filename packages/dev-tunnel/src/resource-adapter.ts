@@ -125,10 +125,12 @@ function defaultCommandRunner(
 						});
 						return;
 					}
+					const diagnostic =
+						error instanceof Error ? error.message : String(stderr ?? "");
 					resolve({
-						exitCode: typeof err.code === "number" ? err.code : null,
+						exitCode: typeof err.code === "number" ? err.code : 1,
 						stdout: String(stdout ?? ""),
-						stderr: String(stderr ?? ""),
+						stderr: `${String(stderr ?? "")}${stderr ? "\n" : ""}${diagnostic}`,
 					});
 					return;
 				}
@@ -645,8 +647,14 @@ export function createDevTunnelRuntime(input: {
 		loginStatus: () => observeLogin(),
 		publicBaseUrl: () => publicBaseUrl,
 		async start() {
-			const login = input.loginVerified ? "LOGGED_IN" : await observeLogin();
-			if (login !== "LOGGED_IN") return observation("UNKNOWN", login);
+			// Start owns a second-line auth recovery: an explicitly expired/missing
+			// login is re-authorized before hosting, while UNKNOWN/timeout still fail closed.
+			const login = input.loginVerified
+				? "LOGGED_IN"
+				: await createDevTunnelAutomation({
+						command,
+						runCommand: run,
+					}).ensureLogin();
 			if (tunnelId === undefined) {
 				throw new TypeError(
 					"tunnelId is required to host the configured persistent tunnel",

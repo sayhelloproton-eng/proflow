@@ -38,6 +38,26 @@ JSON timeout/null     → **先消费 primary 已返回的 stdout/stderr evidenc
 
 认证只允许一次真实登录事务；账号本人授权、2FA、CAPTCHA 等不可替代动作交给用户。登录完成后必须由产品流程再次确认 `LOGGED_IN`。
 
+### Start 自恢复认证
+
+`start` 必须把认证恢复作为自己的前置逻辑，而不是要求用户先手工补一轮 setup：
+
+```text
+LOGGED_IN
+→ 直接继续 host/start
+
+AUTH_EXPIRED / NOT_LOGGED_IN
+→ 自动执行 user login --github --use-browser-auth
+→ 再确认 LOGGED_IN
+→ 继续同一次 start
+
+QUERY_TIMEOUT / CLI_ERROR / UNKNOWN
+→ STOP / fail-closed
+→ 不猜测性打开授权、不启动 host
+```
+
+这是一道 start 内部的第二层防线：高成本 Real-3/生产验收仍应在消费 start 前做只读 remote preflight；即使 preflight 后 token 又过期，真正的 Dev Tunnel start 也必须先完成既有 Browser Auth，再进入 host。setup 与 start 共用同一个 `ensureLogin()` owner，禁止维护两套授权实现。
+
 需要观察/操作 GitHub Browser Auth 时，先加载 `基础动作/Tool-Runtime-gptweb-mcp.md` + `基础动作/Browser-UI自动化.md`，**复用当前真实 Chrome 的 Playwright 控制链**。Playwright `connect.html` 不是 GitHub Auth；若它意外出现，先恢复工具 runtime，不重新启动 `platform setup`，也不把工具连接页当 Tunnel blocker。
 
 

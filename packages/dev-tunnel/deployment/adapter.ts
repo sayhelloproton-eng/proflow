@@ -513,6 +513,13 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 		dependencies?.verifyPublicBaseUrl ?? verifyProvisionedPublicBaseUrl;
 	return {
 		...baseBehaviorAdapter,
+		install: async (context: ModuleCommandContext) => {
+			await (
+				dependencies?.resolveCli ??
+				(async () => (await resolveDevTunnelCli()).command)
+			)(context.workspaceRoot);
+			return baseBehaviorAdapter.install(context);
+		},
 		status: async (context: ModuleCommandContext) =>
 			observeStatus(context, createRuntime),
 		start: async (context: ModuleCommandContext) => {

@@ -142,6 +142,67 @@ test("start cannot SUCCEED without a configured tunnelId", async () => {
 	await assert.rejects(() => runtime.start(), /tunnelId/);
 });
 
+test("start reauthorizes an expired login before hosting", async () => {
+	const calls: Array<{ args: string[]; interactive?: boolean }> = [];
+	let authorized = false;
+	const runtime = createDevTunnelRuntime({
+		command: "definitely-nonexistent-devtunnel-binary",
+		tunnelId: "tunnel-123",
+		runCommand: async (_command, args, options) => {
+			calls.push({
+				args: [...args],
+				...(options?.interactive === undefined
+					? {}
+					: { interactive: options.interactive }),
+			});
+			if (args.join(" ") === "user show --json")
+				return {
+					exitCode: 0,
+					stdout: JSON.stringify({
+						status: authorized ? "Logged in" : "Login token expired",
+					}),
+					stderr: "",
+				};
+			if (args.join(" ") === "user login --github --use-browser-auth") {
+				authorized = true;
+				return { exitCode: 0, stdout: "", stderr: "" };
+			}
+			throw new Error(`unexpected command: ${args.join(" ")}`);
+		},
+	});
+
+	await assert.rejects(() => runtime.start(), /failed to start/);
+	assert.equal(authorized, true);
+	assert.deepEqual(
+		calls.map((call) => call.args),
+		[
+			["user", "show", "--json"],
+			["user", "login", "--github", "--use-browser-auth"],
+			["user", "show", "--json"],
+		],
+	);
+	assert.equal(calls[1]?.interactive, true);
+});
+
+test("start never guesses browser auth when login authority is unknown", async () => {
+	const calls: string[][] = [];
+	const runtime = createDevTunnelRuntime({
+		tunnelId: "tunnel-123",
+		runCommand: async (_command, args) => {
+			calls.push([...args]);
+			return { exitCode: null, stdout: "", stderr: "command timed out" };
+		},
+	});
+
+	await assert.rejects(() => runtime.start(), /login status is QUERY_TIMEOUT/);
+	assert.equal(
+		calls.some(
+			(args) => args.join(" ") === "user login --github --use-browser-auth",
+		),
+		false,
+	);
+});
+
 test("status reports UNKNOWN (not STOPPED) when no child is owned", async () => {
 	const runtime = createDevTunnelRuntime({
 		runCommand: loggedInRunner,

@@ -82,6 +82,31 @@ test("CP-DEV-TUNNEL-01 runtime login probe preserves actionable failure classifi
 	}
 });
 
+test("CP-DEV-TUNNEL-01 missing managed CLI is CLI_ERROR, never QUERY_TIMEOUT", async () => {
+	const runtime = createDevTunnelRuntime({
+		command: "/definitely/missing/proflow-managed-devtunnel",
+		tunnelId: "fixture-tunnel",
+	});
+	assert.equal(await runtime.loginStatus(), "CLI_ERROR");
+});
+
+test("Module.install materializes the managed Dev Tunnel CLI after package replacement", async (context) => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-dev-tunnel-install-cli-"),
+	);
+	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const calls: string[] = [];
+	const adapter = createDevTunnelBehaviorAdapter({
+		resolveCli: async (root) => {
+			calls.push(root);
+			return "/fixture/managed/devtunnel";
+		},
+	});
+	const installed = await adapter.install({ workspaceRoot });
+	assert.equal(installed.result.status, "SUCCEEDED");
+	assert.deepEqual(calls, [workspaceRoot]);
+});
+
 test("CP-DEV-TUNNEL-01 valid login is reused without opening browser auth", async () => {
 	const calls: string[][] = [];
 	const timeouts: Array<number | undefined> = [];
