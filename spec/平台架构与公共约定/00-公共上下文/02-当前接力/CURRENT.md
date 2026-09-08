@@ -167,3 +167,17 @@ PUSH = FORBIDDEN
 ## STOP_POINT
 
 `J1_J2_J3_PASS / J4_PAUSED / PRODUCTION_START_PASS_CONSUMED / BROWSER_0_1_50_RECOVERY_PASS / SAME_FIXED_EXECUTION_REDECISION_PASS_ATTEMPT2 / CURRENT_BLOCKER_COMPOSER_NOT_FOUND / EXECUTION_COUNT_5 / SAME_TASK_WORKER_EXECUTION_FROZEN / PUSH_FORBIDDEN`。
+
+## REAL3_RESTART_ACCEPTANCE_20260908T111318Z
+
+- PLATFORM_HOST_INSTALLED: .
+- PRESTART_RUNTIME: ; .
+- PROVIDER:  reachable.
+- SAME_SCENE: Task=; Dev=; Test=; Execution total=; fixed wake=.
+- ADMISSION: exactly one 平台未启动：配置尚未完成
+
+◆ 浏览器扩展
+原因：Chrome 扩展尚未加载或缺少可验证的运行证据
+
+PLATFORM_READY=NO
+处理方式：platform setup --workspace "/Users/agent/Desktop/proton-workspace/repos/proflow" for 0.1.20 adoption; no Task/Worker/Execution creation and no manual wake/retry.
