@@ -15,7 +15,7 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL3_BROWSER_CARRIER_COMPOSER_HARDENING
+CURRENT_EXECUTION_MODE = REAL3_PLATFORM_HOST_0_1_21_WAITING_FOR_MODEL_RESTART
 ```
 
 ## CURRENT_AUTHORITY
@@ -24,131 +24,115 @@ CURRENT_EXECUTION_MODE = REAL3_BROWSER_CARRIER_COMPOSER_HARDENING
 
 ```text
 Browser Extension = 0.1.50 / actual Chrome adoption PASS
-Browser module = READY / runtimeStatus=NOT_APPLICABLE
-old production one-start acceptance = CONSUMED / FAILED at dev-tunnel / NEVER RETRY
-production bridge / Observer recovery / same-Execution redecision = PASS
+Browser recovery + trailing rearm + SAME fixed wake redecision = PASS
+COMPOSER_NOT_FOUND = TRANSIENT / AUTO-RECOVERED / NOT_CURRENT_BLOCKER
+fixed historical wake = SUCCEEDED / APPLIED / attemptCount=3
 
-Dev Tunnel start auto-reauth source gate = PASS / 46/46 + typecheck + Biome + diff-check
-Dev Tunnel 0.1.35 = BAD REGISTRY ARTIFACT / workspace:^ leaked by source-directory publish
-Dev Tunnel 0.1.36 = validated pack artifact + Registry exact/latest PASS
-Dev Tunnel 0.1.36 Product Workspace adoption = PASS
-managed Dev Tunnel CLI = 1.0.2030 / package-owned / checksum PASS / LOGGED_IN
-original Tunnel = proflow-aeb1e6d087caaf089de01d41.jpe1 / EXISTS
-exact Gateway port = 41705 / http / EXISTS
-Dev Tunnel local setup = READY / process MISSING after reboot
-DEV_TUNNEL_REMOTE_REALITY_GATE = PASS
+Dev Tunnel 0.1.36 = Registry/adoption/remote reality PASS
+managed Dev Tunnel CLI = 1.0.2030 / package-owned / LOGGED_IN
+Tunnel = proflow-aeb1e6d087caaf089de01d41.jpe1 / 41705 http / current listener PRESENT
 
-SAME-SCENE pre-start baseline = REVALIDATED
-Browser log baseline = 5041
-Execution log baseline = 4295
-Execution count = 5 / observer signal count = 0
-start-owner = ABSENT
-47080 / 51443 listeners = ABSENT
-Browser verification = 0.1.50 / eehdadpmjffomabiedcjijiakconalab / extension:b8a13837-6f82-4467-8ab2-e18821478edf / PAIRING_HEARTBEAT
+Provider configured URL = http://192.168.0.101:8080/v1
+Provider was previously READY and inventory-verified after DHCP drift .108 -> .101
+2026-09-08 current external reality = USER IS USING PHONE FOR GAME / PROVIDER UNAVAILABLE
+formal platform status = Browser PASS + Tunnel PASS + Model FAIL / PLATFORM_READY=NO
+MODEL_UNAVAILABLE is external environment, not a newly proven Product regression
 
-model-provider-api = READY / live probe PASS
-configured Provider = http://192.168.0.101:8080/v1
-provider inventory = 4 models / existing FAST + THINK models present
-model-runtime = READY / runtimeStatus=STOPPED
-23 Module setupStatus = 23/23 READY
-platform start implementation = VERIFIED fail-closed when any Module setupStatus != READY
-production-start acceptance = REAL3_PRODUCTION_START_20260908T093352Z / CONSUMED ONCE / PASS
-platform start = exit 0 / success 5 / skipped 18 / failed 0
-post-start listeners = 41705 + 47080 + 51443 LISTENING
-Browser reboot wake gap = extension registration intact but MV3 session initially OFFLINE until extension context wake
-Browser session revalidation = PASS / instance extension:3df1cf12-b17b-4cc0-aac4-b804b6a0d965 / 0.1.50 / READY
-Observer recovery 0.1.50 = PASS / BRIDGE_EPOCH_ACCEPTED + REARM_CALLBACK_ENTERED + REUSED_IN_FLIGHT
-fixed Execution redecision = PASS / SAME executionRef + SAME idempotencyKey + SAME inputFingerprint / attemptCount 1 -> 2
-fixed Execution second attempt = FAILED / NOT_APPLIED / EXECUTION_FAILED / COMPOSER_NOT_FOUND
-Execution count = 5 / observer signal count = 0 / no new Execution
+Platform Host 0.1.20 Product adoption = PASS / current running runtime version
+Platform Host 0.1.21 source fix = PASS
+0.1.21 functional commit = 2090e1e5ddf8 fix(platform-host): expose exact execution request context
+0.1.21 version commit = d7ebf9445b5e chore(release): version platform-host to 0.1.21
+0.1.21 targeted B1 regression = PASS
+0.1.21 full platform-host gate = 58/58 PASS + typecheck + Biome + diff-check
+0.1.21 publishability = PASS / workspace:^ leak NONE
+0.1.21 Registry exact = PASS
+0.1.21 Registry artifact = VERIFIED contains executionRequestContext + executionCapabilityIds
+Product Workspace installed platform-host = 0.1.20 / NOT_YET_ADOPTED_0_1_21
+current platform listeners = 41705 + 47080 + 51443 LISTENING
+PLATFORM_STOP_FOR_0_1_21 = NOT_ADMITTED while Provider unavailable
+
+Root cause = SAME Dev Worker uses an old Custom GPT Conversation snapshot whose executeCapability schema permits taskId/nodeId/runNo omission; current exact-node Platform Host admission requires all three and fails before durable file.read Execution creation.
+0.1.20 exposed exact capability IDs and proved old Worker can select file.read, but did not expose a canonical Execution request envelope.
+0.1.21 keeps exact-node fencing unchanged and extends getNodeContext projection with executionRequestContext={contract,contractVersion,taskId,nodeId,runNo}; old Worker can copy Owner facts without guessing and Host still rejects missing/stale/wrong-role scope.
 ```
-
-功能提交：`1ceb0103bad2 fix(dev-tunnel): reauthorize expired login on start`。
-0.1.36 版本提交：`635a2f13f01b chore(release): version dev-tunnel to 0.1.36`。
 
 ## FIXED_REAL3_TRUTH
 
 ```text
-Task = task-a6f859c00b1accd027d53d48 / ACTIVE / version=10 / currentNodeId=dev
-Dev = IN_PROGRESS / runNo=1 / worker=6a9b4632-ca8c-83e9-a4bc-9de9e229e515
-Test = PENDING / runNo=1 / worker=6a9b8ae0-f694-83e8-b4a2-0d20cbc5c04a
+Task = task-a6f859c00b1accd027d53d48 / WAITING / version=13 / currentNodeId=dev
+Dev = WAITING / version=8 / runNo=1 / SAME worker=6a9b4632-ca8c-83e9-a4bc-9de9e229e515
+Test = PENDING / version=1 / runNo=1
 
-TASK_RESUMED = task-event:10 / already completed
-ACK / resume / reopen again = FORBIDDEN
+latest Task event = event:14 / NODE_WAITING
+latest pending blocker = message-fe3473cc-6822-42f9-b3cf-7e300c8a780c
+reason = EXECUTION_FILE_READ_INVALID_REQUEST
+message truth = Worker now sees frozen capability IDs and selects exact file.read, but old Conversation lacks a complete canonical Execution request context and Host returns INVALID_REQUEST before durable file.read creation.
 
-fixed Execution = execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0
-status = FAILED / NOT_APPLIED / attemptCount=2
-latest error = EXECUTION_FAILED / COMPOSER_NOT_FOUND
-latest redecision startedAt = 2026-09-08T09:44:49.811Z / finishedAt = 2026-09-08T09:45:13.857Z
-historical attempt 1 error = PRECONDITION_FAILED / WAKE_TRIGGER_TYPE_INVALID
-Execution count = 5
-new Task / Worker / Execution = FORBIDDEN
+previous blocker message-874c9508-9961-4ee3-aeea-b7caca48966a = ACKNOWLEDGED
+TASK_RESUMED event:13 = COMPLETED
+new observer-generated wake execution = execution:139a78ae-f3d3-43a6-965b-2989c62e3143 / SUCCEEDED / APPLIED / attemptCount=1
+historical fixed wake = execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0 / SUCCEEDED / APPLIED / attemptCount=3
+Execution count = 6
+no file.read Execution has yet been durably created for event:14
+SAME Task / SAME Dev Worker / runNo=1 remains authoritative
 ```
 
 ## CURRENT_PROBLEM_CLASS
 
 ```text
-current_class = BROWSER_CARRIER_SUBMIT_COMPOSER_NOT_FOUND
-product regression = UNDER_INVESTIGATION / real production evidence exists
-Dev Tunnel blocker = CLOSED / REMOTE_REALITY_GATE_PASS
-Model Provider blocker = CLOSED / 192.168.0.101 READY
-production start = CONSUMED / PASS
-Browser live session = READY after narrow owner revalidation
-bridge -> Observer recovery -> same fixed Execution redecision = PASS
-carrier LIST_TABS / OPEN / OBSERVE = PASS
-carrier SUBMIT = FAILED / COMPOSER_NOT_FOUND
-carrier VERIFY = PASS
-task.wake = FAILED / TASK_WAKE_NOT_CONFIRMED:FAILED:NOT_APPLIED
-current first divergence = ChatGPT carrier composer discovery during SUBMIT
+current_class = LEGACY_CUSTOM_GPT_ACTION_SCHEMA_VS_EXACT_EXECUTION_CONTEXT
+product regression = ROOT_CAUSE_PROVEN / FIX_0_1_21_RELEASED / REAL_SCENE_NOT_YET_VERIFIED
+Browser blocker = CLOSED
+Dev Tunnel blocker = CLOSED
+Provider current blocker = EXTERNAL_ENVIRONMENT / PHONE_MODEL_TEMPORARILY_UNAVAILABLE
+platform current runtime = RUNNING on platform-host 0.1.20
+platform 0.1.21 adoption = WAITING_FOR_PROVIDER_READY
+current first divergence after 0.1.20 = old Worker executeCapability request is rejected before durable file.read Execution creation
 ```
-
-前一 Provider blocker 已关闭：用户明确提供新 IP 并授权跳过 setup，运行态三份 Provider 事实已在真实 `/v1/models` HTTP 200 + FAST/THINK inventory 证明后同步到 `.101`；这次直接状态修正属于一次性显式授权，不改变正常产品路径仍以 Platform owner 为准。
 
 ## NEXT_ACTION
 
 ```text
-1. CodeGraph 锁定 content-script composer discovery / SUBMIT owner 与 blast radius
-2. Playwright Chrome 读取真实 Dev conversation 当前 DOM / editor surface，不用旧 selector 猜
-3. 若确认 ChatGPT DOM 漂移：最小兼容修复 + targeted content/browser carrier tests
-4. 统一 extension full gate / typecheck / governance / diff-check
-5. 若需发布 Browser 新版本：validated artifact -> Registry -> Product Workspace adoption -> current Chrome adoption
-6. 禁止手工 retry fixed Execution；只通过正常 Browser session / Observer recovery 触发 SAME Execution redecision
-7. Dev 成功后继续 Test -> Task SUCCEEDED -> J4 PASS -> REAL_3 PASS
-8. 每个稳定 checkpoint 自动更新 CURRENT；不等待用户提醒沉淀
+1. While phone model is unavailable: DO NOT stop the currently running platform; keep 0.1.20 runtime/listeners intact.
+2. When user restores phone model service, perform ONE live Provider/status probe; require model-provider-api setupStatus READY and 23/23 setupStatus READY.
+3. Freeze one adoption/restart bundle: Product platform-host=0.1.20, Task WAITING v13, Dev WAITING v8/runNo1, Test PENDING, Execution count=6, event:14 blocker still pending, listeners/owner facts.
+4. One transaction: platform stop -> targeted platform-host update to 0.1.21 -> exact installed-version readback -> new restart acceptance -> exactly one platform start.
+5. Verify platform-host runtime 0.1.21 and getNodeContext exposes executionCapabilityIds + canonical executionRequestContext.
+6. Through formal Task owner chain: acknowledge event:14 blocker -> resume SAME Task/SAME Dev Worker; no manual worker.wake and no Execution retry.
+7. Observer must generate normal wake; require a durable file.read Execution and verified repos/proflow/package.json name/version result.
+8. Continue SAME journey Dev SUCCEEDED -> Test independent verification -> Task SUCCEEDED -> J4 PASS -> REAL_3 PASS.
+9. After real-scene PASS, update owning Runbook + CURRENT with root cause, contract compatibility pattern, and high-throughput transaction rules; commit, no push.
 ```
-
-Dev Tunnel 不再重查；除非出现新的矛盾 evidence，不重跑 0.1.36 release/adoption/remote reality。
 
 ## CURRENT_MUTATION_AUTHORITY
 
 ```text
 MODEL_PROVIDER_READ_ONLY_REALITY = ADMITTED
-MODEL_PROVIDER_DIRECT_RUNTIME_STATE_EDIT = CONSUMED_BY_EXPLICIT_USER_AUTHORITY / COMPLETE
-MODEL_PROVIDER_CANONICAL_SETUP = NOT_REQUIRED_FOR_THIS_IP_DRIFT_RECOVERY
+MODEL_PROVIDER_DIRECT_RUNTIME_STATE_EDIT = PREVIOUSLY_CONSUMED_FOR_EXPLICIT_IP_DRIFT / NO_NEW_EDIT
 FULL_SUBNET_OR_DEVICE_DISCOVERY = FORBIDDEN
 REMOTE_TUNNEL_CREATE_DELETE = FORBIDDEN
 REMOTE_PORT_MUTATION = FORBIDDEN
-PLATFORM_START = CONSUMED / REAL3_PRODUCTION_START_20260908T093352Z / PASS
-PLATFORM_START_RETRY = FORBIDDEN
-BROWSER_SESSION_EVIDENCE_REVALIDATION = COMPLETE / READY
-BROWSER_CARRIER_SOURCE_REPAIR_IF_ROOT_PROVEN = ADMITTED
-PLATFORM_STOP = NOT_ADMITTED
+PLATFORM_CURRENT_RUNTIME = KEEP_RUNNING_WHILE_PROVIDER_UNAVAILABLE
+PLATFORM_STOP_FOR_0_1_21 = NOT_ADMITTED_UNTIL_PROVIDER_READY
+PLATFORM_HOST_0_1_21_TARGETED_UPDATE = ADMITTED_ONLY_AFTER_FORMAL_STOP_AND_PROVIDER_READY_PRECHECK
+PLATFORM_RESTART_FOR_0_1_21 = NOT_YET_FROZEN / NOT_YET_ADMITTED
 BROWSER_EXTENSION_MUTATION = FORBIDDEN
-TASK_EXECUTION_MANUAL_MUTATION = FORBIDDEN
+TASK_EVENT14_ACK_RESUME = ADMITTED_ONLY_AFTER_0_1_21_RUNTIME_VERIFIED
+TASK_EXECUTION_MANUAL_WAKE_OR_RETRY = FORBIDDEN
+NEW_TASK_WORKER = FORBIDDEN
 PUSH = FORBIDDEN
 ```
 
 ## DO_NOT_REPEAT
 
-- 不重新研究 Dev Tunnel 登录/Tunnel/41705；0.1.36 managed CLI + remote reality 已 PASS。
-- 不重新 publish 0.1.35；它是坏 artifact。0.1.36 validated tarball + Registry/adoption 已 PASS。
-- 不重新 release/update/reload Browser Extension 0.1.50。
-- 不重新扫描 Dev Tunnel remote reality，除非出现矛盾 evidence。
-- 不把旧 Provider observation 当 live READY。
-- 不扫描整个 LAN、不引入 Bonjour/mDNS/iPhone identity；Model Provider 只认 URL + inventory。
-- 只允许消费 `REAL3_PRODUCTION_START_20260908T093352Z` 这一笔 start；一旦调用即视为 consumed，timeout/UNKNOWN 先恢复 authority，禁止盲目重发。
-- 不人工发 `TASK_OBSERVER_RECOVER` / `task.wake` / Execution retry。
-- 不再次 task.resume / ACK / reopen。
+- 不重新研究 Browser `COMPOSER_NOT_FOUND`；它已由 0.1.50 trailing recovery 自动恢复，不是当前 blocker。
+- 不重新研究 Dev Tunnel 登录/Tunnel/41705；0.1.36 remote reality 已 PASS。
+- 不重新扫描 LAN / Bonjour / mDNS；手机模型当前不可用是用户明确的外部现场。
+- 不重复 publish platform-host 0.1.21；Registry exact 与 Registry artifact 已 PASS。
+- 不在模型不可用时 stop 当前平台，否则正式 start 会因 Provider preflight fail-closed 而无法恢复。
+- 不放宽 exact-node Execution admission，不由 Host 猜 taskId/nodeId/runNo；0.1.21 只公开 canonical request context。
+- 不人工发 task.wake，不手工创建/retry file.read Execution；恢复必须从 Task owner ACK + resume 进入 Observer 正常链。
+- 不新建 Task / Dev Worker / Conversation 来逃避 legacy snapshot 问题。
 - 不 push。
 
 ## REQUIRED_CONTEXT
@@ -166,12 +150,22 @@ PUSH = FORBIDDEN
 
 ## STOP_POINT
 
-`J1_J2_J3_PASS / J4_PAUSED / PLATFORM_HOST_0_1_20_ADOPTED / RUNTIME_STOPPED_FOR_ADOPTION / SAME_SCENE_WAITING / RESTART_ACCEPTANCE_ADMITTED / EXECUTION_COUNT_5 / PUSH_FORBIDDEN`。
+`J1_J2_J3_PASS / J4_PAUSED / PLATFORM_RUNNING_ON_HOST_0_1_20 / HOST_0_1_21_RELEASED_AND_REGISTRY_VERIFIED / PHONE_MODEL_EXTERNAL_UNAVAILABLE / DO_NOT_STOP / TASK_WAITING_V13_EVENT14 / EXECUTION_COUNT_6 / PUSH_FORBIDDEN`。
 
-## REAL3_RESTART_ACCEPTANCE_20260908T111318Z
+## REAL3_PLATFORM_HOST_0_1_21_CHECKPOINT_20260908
 
+- Root cause: old Custom GPT Conversation Action schema permits omission of `taskId/nodeId/runNo`, while current exact-node Host admission requires them before Execution creation.
+- Safe fix: `getNodeContext` projects `executionRequestContext={contract,contractVersion,taskId,nodeId,runNo}`; exact-node admission remains fail-closed.
+- Source/Gate: `2090e1e5ddf8`; B1 targeted PASS; platform-host 58/58 PASS; typecheck/Biome/diff-check PASS.
+- Release: `d7ebf9445b5e`; `@tomflow/proflow-platform-host@0.1.21`; publishability PASS; Registry exact/artifact PASS; no `workspace:` leak.
+- Product: still `0.1.20`, runtime/listeners preserved because phone model is intentionally unavailable while user is gaming.
+- Restart acceptance: NOT_FROZEN / NOT_ADMITTED until Provider returns READY.
+
+## REAL3_RESTART_ACCEPTANCE_20260908T111318Z｜HISTORICAL_CONSUMED
+
+- RESULT: `CONSUMED / PASS`; this acceptance must never be reused.
 - PLATFORM_HOST_INSTALLED: `0.1.20`.
 - PRESTART_RUNTIME: `start-owner=ABSENT`; `47080/51443/41705=ABSENT`.
-- PROVIDER: `http://192.168.0.101:8080/v1/models` reachable before restart.
-- SAME_SCENE: Task=`WAITING v11`; Dev=`WAITING v6/runNo1`; Test=`PENDING v1/runNo1`; Execution total=`5`; fixed wake=`SUCCEEDED/APPLIED/attempt3`.
-- ADMISSION: exactly one `platform start` for 0.1.20 adoption; no Task/Worker/Execution creation and no manual wake/retry.
+- PROVIDER: `http://192.168.0.101:8080/v1/models` was reachable before that restart.
+- SAME_SCENE_AT_ACCEPTANCE: Task=`WAITING v11`; Dev=`WAITING v6/runNo1`; Test=`PENDING v1/runNo1`; Execution total=`5`; fixed wake=`SUCCEEDED/APPLIED/attempt3`.
+- OUTCOME: the one admitted `platform start` for 0.1.20 adoption completed; current authority is the 0.1.21 checkpoint above.
