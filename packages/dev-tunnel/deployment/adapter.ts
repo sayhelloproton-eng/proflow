@@ -42,7 +42,7 @@ function loginFailureMessage(login: DevTunnelLoginStatus): string {
 	}
 }
 
-function runtimeFailureIssue(login: DevTunnelLoginStatus) {
+function loginSetupIssue(login: DevTunnelLoginStatus) {
 	switch (login) {
 		case "AUTH_EXPIRED":
 			return {
@@ -62,7 +62,7 @@ function runtimeFailureIssue(login: DevTunnelLoginStatus) {
 			};
 		case "QUERY_TIMEOUT":
 			return {
-				scope: "RUNTIME" as const,
+				scope: "SETUP" as const,
 				code: "TUNNEL_LOGIN_QUERY_TIMEOUT",
 				message: "Microsoft Dev Tunnel login status query timed out",
 				relatedModuleRefs: [],
@@ -70,21 +70,25 @@ function runtimeFailureIssue(login: DevTunnelLoginStatus) {
 			};
 		case "CLI_ERROR":
 			return {
-				scope: "RUNTIME" as const,
+				scope: "SETUP" as const,
 				code: "TUNNEL_LOGIN_CHECK_FAILED",
 				message: "Microsoft Dev Tunnel login status check failed",
 				relatedModuleRefs: [],
 				nextCommand: "platform status",
 			};
 		default:
-			return {
-				scope: "RUNTIME" as const,
-				code: "TUNNEL_RUNTIME_FAILED",
-				message: "Tunnel 运行状态检查失败",
-				relatedModuleRefs: [],
-				nextCommand: "platform status",
-			};
+			return undefined;
 	}
+}
+
+function runtimeFailureIssue() {
+	return {
+		scope: "RUNTIME" as const,
+		code: "TUNNEL_RUNTIME_FAILED",
+		message: "Tunnel 运行状态检查失败",
+		relatedModuleRefs: [],
+		nextCommand: "platform status",
+	};
 }
 
 type SetupPhase = "PENDING_CREATED" | "PORT_READY" | "HOST_READY" | "READY";
@@ -251,32 +255,29 @@ async function observeStatus(
 			: authBlocked
 				? ("BLOCKED" as const)
 				: ("READY" as const);
+	const setupIssue = configured ? loginSetupIssue(login) : undefined;
+	const issues = [
+		...(!configured
+			? [
+					{
+						scope: "SETUP" as const,
+						code: "TUNNEL_SETUP_INCOMPLETE",
+						message: `远程连接配置已保存，当前阶段 ${state.phase}；重新运行 Platform setup 将从此处恢复`,
+						relatedModuleRefs: [],
+						nextCommand: "platform setup",
+					},
+				]
+			: []),
+		...(setupIssue ? [setupIssue] : []),
+		...(runtimeStatus === "FAILED" ? [runtimeFailureIssue()] : []),
+	];
 	return {
 		result: {
 			...base,
 			data: {
 				setupStatus,
 				runtimeStatus,
-				...(!configured || runtimeStatus === "FAILED"
-					? {
-							issues: [
-								...(!configured
-									? [
-											{
-												scope: "SETUP" as const,
-												code: "TUNNEL_SETUP_INCOMPLETE",
-												message: `远程连接配置已保存，当前阶段 ${state.phase}；重新运行 Platform setup 将从此处恢复`,
-												relatedModuleRefs: [],
-												nextCommand: "platform setup",
-											},
-										]
-									: []),
-								...(runtimeStatus === "FAILED"
-									? [runtimeFailureIssue(login)]
-									: []),
-							],
-						}
-					: {}),
+				...(issues.length > 0 ? { issues } : {}),
 			},
 		},
 		observedEffects: [],

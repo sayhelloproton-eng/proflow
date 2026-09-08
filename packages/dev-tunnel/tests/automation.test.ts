@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import {
+	moduleStatusObservationSchema,
 	readModuleSharedFacts,
 	writeModuleSharedFacts,
 } from "@tomflow/proflow-module-contract";
@@ -1003,11 +1004,16 @@ test("dev-tunnel status blocks production start preflight with explicit auth dia
 		const data = status.result.data as {
 			setupStatus: string;
 			runtimeStatus: string;
-			issues?: Array<{ code: string; message: string }>;
+			issues?: Array<{ scope: string; code: string; message: string }>;
 		};
+		assert.doesNotThrow(() => moduleStatusObservationSchema.parse(data));
 		assert.equal(data.setupStatus, fixture.setupStatus);
 		assert.equal(data.runtimeStatus, "FAILED");
 		assert.equal(data.issues?.[0]?.code, fixture.code);
+		assert.equal(
+			data.issues?.some((issue) => issue.scope === "RUNTIME"),
+			true,
+		);
 	}
 
 	const expiredStart = createDevTunnelBehaviorAdapter({
