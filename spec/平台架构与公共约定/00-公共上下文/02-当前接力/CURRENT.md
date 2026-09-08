@@ -15,7 +15,7 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL3_PRODUCTION_START_ACCEPTANCE_FROZEN
+CURRENT_EXECUTION_MODE = REAL3_BROWSER_CARRIER_COMPOSER_HARDENING
 ```
 
 ## CURRENT_AUTHORITY
@@ -26,7 +26,7 @@ CURRENT_EXECUTION_MODE = REAL3_PRODUCTION_START_ACCEPTANCE_FROZEN
 Browser Extension = 0.1.50 / actual Chrome adoption PASS
 Browser module = READY / runtimeStatus=NOT_APPLICABLE
 old production one-start acceptance = CONSUMED / FAILED at dev-tunnel / NEVER RETRY
-production bridge / Observer recovery / same-Execution redecision = NOT_REACHED
+production bridge / Observer recovery / same-Execution redecision = PASS
 
 Dev Tunnel start auto-reauth source gate = PASS / 46/46 + typecheck + Biome + diff-check
 Dev Tunnel 0.1.35 = BAD REGISTRY ARTIFACT / workspace:^ leaked by source-directory publish
@@ -52,9 +52,15 @@ provider inventory = 4 models / existing FAST + THINK models present
 model-runtime = READY / runtimeStatus=STOPPED
 23 Module setupStatus = 23/23 READY
 platform start implementation = VERIFIED fail-closed when any Module setupStatus != READY
-new production-start acceptance = FROZEN / REAL3_PRODUCTION_START_20260908T093352Z
-acceptance scope = exactly one platform start
-acceptance baseline = Task/Node/Role identity SAME / fixed Execution SAME / Execution count 5 / Observer 0 / Browser log 5041 / Execution log 4295 / start-owner ABSENT / 47080+51443 ABSENT / Browser 0.1.50 PAIRING_HEARTBEAT
+production-start acceptance = REAL3_PRODUCTION_START_20260908T093352Z / CONSUMED ONCE / PASS
+platform start = exit 0 / success 5 / skipped 18 / failed 0
+post-start listeners = 41705 + 47080 + 51443 LISTENING
+Browser reboot wake gap = extension registration intact but MV3 session initially OFFLINE until extension context wake
+Browser session revalidation = PASS / instance extension:3df1cf12-b17b-4cc0-aac4-b804b6a0d965 / 0.1.50 / READY
+Observer recovery 0.1.50 = PASS / BRIDGE_EPOCH_ACCEPTED + REARM_CALLBACK_ENTERED + REUSED_IN_FLIGHT
+fixed Execution redecision = PASS / SAME executionRef + SAME idempotencyKey + SAME inputFingerprint / attemptCount 1 -> 2
+fixed Execution second attempt = FAILED / NOT_APPLIED / EXECUTION_FAILED / COMPOSER_NOT_FOUND
+Execution count = 5 / observer signal count = 0 / no new Execution
 ```
 
 功能提交：`1ceb0103bad2 fix(dev-tunnel): reauthorize expired login on start`。
@@ -71,8 +77,10 @@ TASK_RESUMED = task-event:10 / already completed
 ACK / resume / reopen again = FORBIDDEN
 
 fixed Execution = execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0
-status = FAILED / NOT_APPLIED / attemptCount=1
-error = PRECONDITION_FAILED / WAKE_TRIGGER_TYPE_INVALID
+status = FAILED / NOT_APPLIED / attemptCount=2
+latest error = EXECUTION_FAILED / COMPOSER_NOT_FOUND
+latest redecision startedAt = 2026-09-08T09:44:49.811Z / finishedAt = 2026-09-08T09:45:13.857Z
+historical attempt 1 error = PRECONDITION_FAILED / WAKE_TRIGGER_TYPE_INVALID
 Execution count = 5
 new Task / Worker / Execution = FORBIDDEN
 ```
@@ -80,15 +88,18 @@ new Task / Worker / Execution = FORBIDDEN
 ## CURRENT_PROBLEM_CLASS
 
 ```text
-current_class = REAL3_PRODUCTION_START_ADMITTED
-product regression = NOT_PROVEN
+current_class = BROWSER_CARRIER_SUBMIT_COMPOSER_NOT_FOUND
+product regression = UNDER_INVESTIGATION / real production evidence exists
 Dev Tunnel blocker = CLOSED / REMOTE_REALITY_GATE_PASS
-model-provider-api = READY / live probe PASS
-bound Base URL = http://192.168.0.101:8080/v1
-provider IP drift = user-authorized direct runtime-state correction from .108 to .101 / setup intentionally skipped
-model-runtime = READY / STOPPED
-23 Module setupStatus = 23/23 READY
-platform start = ADMITTED exactly once under REAL3_PRODUCTION_START_20260908T093352Z
+Model Provider blocker = CLOSED / 192.168.0.101 READY
+production start = CONSUMED / PASS
+Browser live session = READY after narrow owner revalidation
+bridge -> Observer recovery -> same fixed Execution redecision = PASS
+carrier LIST_TABS / OPEN / OBSERVE = PASS
+carrier SUBMIT = FAILED / COMPOSER_NOT_FOUND
+carrier VERIFY = PASS
+task.wake = FAILED / TASK_WAKE_NOT_CONFIRMED:FAILED:NOT_APPLIED
+current first divergence = ChatGPT carrier composer discovery during SUBMIT
 ```
 
 前一 Provider blocker 已关闭：用户明确提供新 IP 并授权跳过 setup，运行态三份 Provider 事实已在真实 `/v1/models` HTTP 200 + FAST/THINK inventory 证明后同步到 `.101`；这次直接状态修正属于一次性显式授权，不改变正常产品路径仍以 Platform owner 为准。
@@ -96,13 +107,13 @@ platform start = ADMITTED exactly once under REAL3_PRODUCTION_START_20260908T093
 ## NEXT_ACTION
 
 ```text
-1. 提交 REAL3_PRODUCTION_START_20260908T093352Z acceptance
-2. 提交后只读确认 Git clean；Product SAME-SCENE baseline 不允许漂移
-3. 消费 exactly-one `platform start --workspace /Users/agent/Desktop/proton-workspace`
-4. 若 start 调用 timeout / UNKNOWN：先恢复 start-owner、process、listeners、Module status 与日志 authority，禁止盲目重发
-5. 收集 post-start evidence bundle：start outcome / start-owner / listeners / Browser+Execution log delta / Task+Execution+Observer
-6. 证明 0.1.50 bridge → Observer recovery → 同一 fixed Execution redecision
-7. 继续 Dev → Test → Task SUCCEEDED，只有真实 Journey 终态才能裁决 J4/REAL_3 PASS
+1. CodeGraph 锁定 content-script composer discovery / SUBMIT owner 与 blast radius
+2. Playwright Chrome 读取真实 Dev conversation 当前 DOM / editor surface，不用旧 selector 猜
+3. 若确认 ChatGPT DOM 漂移：最小兼容修复 + targeted content/browser carrier tests
+4. 统一 extension full gate / typecheck / governance / diff-check
+5. 若需发布 Browser 新版本：validated artifact -> Registry -> Product Workspace adoption -> current Chrome adoption
+6. 禁止手工 retry fixed Execution；只通过正常 Browser session / Observer recovery 触发 SAME Execution redecision
+7. Dev 成功后继续 Test -> Task SUCCEEDED -> J4 PASS -> REAL_3 PASS
 8. 每个稳定 checkpoint 自动更新 CURRENT；不等待用户提醒沉淀
 ```
 
@@ -117,8 +128,10 @@ MODEL_PROVIDER_CANONICAL_SETUP = NOT_REQUIRED_FOR_THIS_IP_DRIFT_RECOVERY
 FULL_SUBNET_OR_DEVICE_DISCOVERY = FORBIDDEN
 REMOTE_TUNNEL_CREATE_DELETE = FORBIDDEN
 REMOTE_PORT_MUTATION = FORBIDDEN
-PLATFORM_START = ADMITTED_ONCE / REAL3_PRODUCTION_START_20260908T093352Z
-PLATFORM_START_RETRY_IF_TIMEOUT_UNKNOWN = FORBIDDEN_UNTIL_AUTHORITY_RECOVERY
+PLATFORM_START = CONSUMED / REAL3_PRODUCTION_START_20260908T093352Z / PASS
+PLATFORM_START_RETRY = FORBIDDEN
+BROWSER_SESSION_EVIDENCE_REVALIDATION = COMPLETE / READY
+BROWSER_CARRIER_SOURCE_REPAIR_IF_ROOT_PROVEN = ADMITTED
 PLATFORM_STOP = NOT_ADMITTED
 BROWSER_EXTENSION_MUTATION = FORBIDDEN
 TASK_EXECUTION_MANUAL_MUTATION = FORBIDDEN
@@ -153,4 +166,4 @@ PUSH = FORBIDDEN
 
 ## STOP_POINT
 
-`J1_J2_J3_PASS / J4_PAUSED / BROWSER_0_1_50_PASS / DEV_TUNNEL_0_1_36_ADOPTED / DEV_TUNNEL_REMOTE_REALITY_PASS / MODEL_PROVIDER_192_168_0_101_READY / 23_OF_23_SETUP_READY / SAME_SCENE_PRESTART_BASELINE_FROZEN / REAL3_PRODUCTION_START_20260908T093352Z_ADMITTED_ONCE / SAME_TASK_WORKER_EXECUTION_FROZEN / PUSH_FORBIDDEN`。
+`J1_J2_J3_PASS / J4_PAUSED / PRODUCTION_START_PASS_CONSUMED / BROWSER_0_1_50_RECOVERY_PASS / SAME_FIXED_EXECUTION_REDECISION_PASS_ATTEMPT2 / CURRENT_BLOCKER_COMPOSER_NOT_FOUND / EXECUTION_COUNT_5 / SAME_TASK_WORKER_EXECUTION_FROZEN / PUSH_FORBIDDEN`。
