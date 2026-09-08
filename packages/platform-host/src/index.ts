@@ -13,7 +13,10 @@ import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 import { createAgentRuntime } from "@tomflow/proflow-agent-runtime";
 import type { SystemObserverView } from "@tomflow/proflow-execution-browser-extension";
-import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
+import {
+	type ExecuteCapabilityRequest,
+	executionCapabilityIds,
+} from "@tomflow/proflow-execution-contracts";
 import { applyMigrations } from "@tomflow/proflow-task-migration-runner";
 import {
 	createTaskServices,
@@ -1059,6 +1062,17 @@ async function constructGraph(
 			);
 			if (operationId === "getTaskDocument")
 				return fileBridgeOutputForTaskResult(taskResult);
+			if (
+				operationId === "getNodeContext" &&
+				roleOperations[role.agentPackageRef as RolePackageRef]?.has(
+					"executeCapability",
+				)
+			) {
+				return {
+					...object(taskResult, "node context"),
+					executionCapabilityIds: [...executionCapabilityIds],
+				};
+			}
 			return taskResult;
 		}
 		if (operationId === "executeCapability") {

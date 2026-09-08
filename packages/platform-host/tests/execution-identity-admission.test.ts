@@ -5,7 +5,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { createAgentGatewayProcess } from "@tomflow/proflow-agent-gateway/process";
-import { parseExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
+import {
+	executionCapabilityIds,
+	parseExecuteCapabilityRequest,
+} from "@tomflow/proflow-execution-contracts";
 import { applyMigrations } from "@tomflow/proflow-task-migration-runner";
 import { createTaskServices } from "@tomflow/proflow-task-orchestration";
 import {
@@ -559,23 +562,40 @@ test("B1-HOST-EXEC-01 GPT-shaped file.read is exact-node scoped before one durab
 	});
 	context.after(() => gateway.stop());
 	const gatewayAddress = await gateway.start();
-	const call = async (credential: string, body: Record<string, unknown>) => {
-		const response = await fetch(
-			`http://${gatewayAddress.host}:${gatewayAddress.port}/actions/executeCapability`,
-			{
-				method: "POST",
-				headers: {
-					authorization: `Bearer ${credential}`,
-					"content-type": "application/json",
-				},
-				body: JSON.stringify(body),
-			},
+	const call = async (
+		credential: string,
+		body: Record<string, unknown>,
+		operationId = "executeCapability",
+	) => {
+		const url = new URL(
+			`http://${gatewayAddress.host}:${gatewayAddress.port}/actions/${operationId}`,
 		);
+		const isQuery = operationId === "getNodeContext";
+		if (isQuery)
+			for (const [key, value] of Object.entries(body))
+				url.searchParams.set(key, String(value));
+		const response = await fetch(url, {
+			method: isQuery ? "GET" : "POST",
+			headers: {
+				authorization: `Bearer ${credential}`,
+				...(isQuery ? {} : { "content-type": "application/json" }),
+			},
+			...(isQuery ? {} : { body: JSON.stringify(body) }),
+		});
 		return {
 			response,
 			body: (await response.json()) as Record<string, unknown>,
 		};
 	};
+	const projected = await call(
+		"dev-gateway-credential-long-enough",
+		{ taskId: seeded.taskId, nodeId: seeded.currentNodeId },
+		"getNodeContext",
+	);
+	assert.equal(projected.response.status, 200);
+	assert.deepEqual(projected.body.executionCapabilityIds, [
+		...executionCapabilityIds,
+	]);
 	const base = {
 		contract: "execution",
 		contractVersion: "1.0.0",
