@@ -7,7 +7,13 @@ import { z } from "zod";
 
 export type DevTunnelState = "STOPPED" | "RUNNING" | "UNKNOWN";
 
-export type DevTunnelLoginStatus = "LOGGED_IN" | "NOT_LOGGED_IN" | "UNKNOWN";
+export type DevTunnelLoginStatus =
+	| "LOGGED_IN"
+	| "AUTH_EXPIRED"
+	| "NOT_LOGGED_IN"
+	| "QUERY_TIMEOUT"
+	| "CLI_ERROR"
+	| "UNKNOWN";
 
 export interface DevTunnelObservation {
 	state: DevTunnelState;
@@ -208,8 +214,9 @@ export function parseDevTunnelLoginStatus(
 	const parsed = loginStatusSchema.safeParse(input);
 	if (!parsed.success) return "UNKNOWN";
 	const status = parsed.data.status.trim().toLowerCase();
+	if (/expired/.test(status)) return "AUTH_EXPIRED";
 	if (
-		/(expired|not logged|login required|sign[ -]?in required|not authenticated)/.test(
+		/(not logged|login required|sign[ -]?in required|not authenticated)/.test(
 			status,
 		)
 	)
@@ -219,11 +226,15 @@ export function parseDevTunnelLoginStatus(
 }
 
 function parseLoginDiagnosticText(text: string): DevTunnelLoginStatus {
-	return /(?:cached access token[^\n]*expired at|login token expired|not logged in|login required|sign[ -]?in required|not authenticated)/i.test(
-		text,
+	if (/(?:cached access token[^\n]*expired at|login token expired)/i.test(text))
+		return "AUTH_EXPIRED";
+	if (
+		/(?:not logged in|login required|sign[ -]?in required|not authenticated)/i.test(
+			text,
+		)
 	)
-		? "NOT_LOGGED_IN"
-		: "UNKNOWN";
+		return "NOT_LOGGED_IN";
+	return "UNKNOWN";
 }
 
 export function discoverPublicBaseUrl(input: unknown, port: number): string {
@@ -255,6 +266,28 @@ export function discoverPublicBaseUrl(input: unknown, port: number): string {
 
 function commandText(result: CommandResult): string {
 	return `${result.stdout}\n${result.stderr}`;
+}
+
+function classifyLoginCommandResult(
+	result: CommandResult,
+): DevTunnelLoginStatus {
+	if (result.stdout.trim().length > 0) {
+		try {
+			const parsed = parseDevTunnelLoginStatus(
+				parseJson(result.stdout, "devtunnel user show --json"),
+			);
+			if (parsed !== "UNKNOWN") return parsed;
+		} catch {}
+	}
+	const diagnostic = parseLoginDiagnosticText(commandText(result));
+	if (diagnostic !== "UNKNOWN") return diagnostic;
+	if (
+		result.exitCode === null ||
+		/command timed out/i.test(commandText(result))
+	)
+		return "QUERY_TIMEOUT";
+	if (result.exitCode !== 0) return "CLI_ERROR";
+	return "UNKNOWN";
 }
 
 function assertCommandSucceeded(result: CommandResult, label: string): void {
@@ -298,41 +331,27 @@ export function createDevTunnelAutomation(input?: {
 				timeoutMs,
 			});
 		} catch {
-			return "UNKNOWN";
+			return "CLI_ERROR";
 		}
-		if (result.exitCode !== null) {
-			try {
-				return parseDevTunnelLoginStatus(
-					parseJson(result.stdout, "devtunnel user show --json"),
-				);
-			} catch {
-				return "UNKNOWN";
-			}
-		}
-		try {
-			const timedOutJsonStatus = parseDevTunnelLoginStatus(
-				parseJson(result.stdout, "devtunnel user show --json"),
-			);
-			if (timedOutJsonStatus !== "UNKNOWN") return timedOutJsonStatus;
-		} catch {}
-		const timedOutTextStatus = parseLoginDiagnosticText(commandText(result));
-		if (timedOutTextStatus !== "UNKNOWN") return timedOutTextStatus;
+		const primary = classifyLoginCommandResult(result);
+		if (primary !== "QUERY_TIMEOUT") return primary;
 		let diagnostic: CommandResult;
 		try {
 			diagnostic = await run(command, ["-v", "user", "show", "--json"], {
 				timeoutMs: LOGIN_DIAGNOSTIC_TIMEOUT_MS,
 			});
 		} catch {
-			return "UNKNOWN";
+			return primary;
 		}
-		return parseLoginDiagnosticText(commandText(diagnostic));
+		const detailed = classifyLoginCommandResult(diagnostic);
+		return detailed === "UNKNOWN" ? primary : detailed;
 	};
 	return {
 		async ensureLogin() {
 			const before = await loginStatus();
 			if (before === "LOGGED_IN") return before;
-			if (before === "UNKNOWN")
-				throw new Error("Dev Tunnel login status is UNKNOWN");
+			if (before !== "AUTH_EXPIRED" && before !== "NOT_LOGGED_IN")
+				throw new Error(`Dev Tunnel login status is ${before}`);
 			const login = await run(
 				command,
 				["user", "login", "--github", "--use-browser-auth"],
@@ -342,7 +361,7 @@ export function createDevTunnelAutomation(input?: {
 			const after = await loginStatus(POST_LOGIN_CONFIRM_TIMEOUT_MS);
 			if (after !== "LOGGED_IN")
 				throw new Error(
-					"Dev Tunnel login was not confirmed after authentication",
+					`Dev Tunnel login was not confirmed after authentication (${after})`,
 				);
 			return after;
 		},
@@ -592,16 +611,9 @@ export function createDevTunnelRuntime(input: {
 		try {
 			result = await run(command, LOGIN_ARGS, { timeoutMs: LOGIN_TIMEOUT_MS });
 		} catch {
-			return "UNKNOWN";
+			return "CLI_ERROR";
 		}
-		if (result.exitCode === null) return "UNKNOWN";
-		try {
-			return parseDevTunnelLoginStatus(
-				parseJson(result.stdout, "devtunnel user show --json"),
-			);
-		} catch {
-			return "UNKNOWN";
-		}
+		return classifyLoginCommandResult(result);
 	};
 
 	const observation = (

@@ -95,7 +95,7 @@ test("HOST_READY status reports resumable setup without fabricating a login prob
 	assert.match(data.issues?.[0]?.message ?? "", /HOST_READY/);
 });
 
-test("runtime status never shells out to inspect login", async () => {
+test("runtime process status remains local-only while deployment status owns login diagnosis", async () => {
 	let commandCalls = 0;
 	const runtime = createDevTunnelRuntime({
 		tunnelId: "tunnel-123",

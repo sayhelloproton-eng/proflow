@@ -230,6 +230,10 @@ D. COMMIT BATCH
 E. ONE DIFF AUDIT
 ```
 
+### Formatter 属于 Batch Mutation，不属于返工
+
+如果仓库存在 canonical formatter，格式化必须在 `COMMIT BATCH` 内完成，再进入 L1/L2；不得先以未格式化源码进入 targeted verification，随后因为 formatter 单独制造一次 repair round。格式化不改变 Engineering Decision，但它属于可读性与机械完整性的 commit step。
+
 ### Preflight Atomicity
 
 任何 anchor / expected count / authority 不匹配：
@@ -388,6 +392,17 @@ PROVE
 - 已接近合理完成窗口且需要回收 final authority。
 
 MCP session 丢失不等于真实本地 process 丢失；先通过 persisted PID/log/exit 恢复 authority，禁止盲 rerun Formal Gate。
+
+对预计几十秒以上、且运行期间无需交互的 Formal Gate，优先使用：
+
+```text
+command output → persisted log
+terminal exit/result → stdout once
+GPT 在预计完成窗口回收 terminal authority
+需要细节时再按 persisted log 一次读取
+```
+
+这样让中间 `still running` 状态不穿过 MCP 往返链。
 
 ## 10. 横向吞吐与纵向编排必须分开
 
@@ -639,6 +654,33 @@ VALIDATION_BATCH_2
 ```
 
 Batch 1/2 的真实结果必须回写本文件；若发现反例，优先修改本规则，不再衍生第二套吞吐理论。
+
+### Validation Batch 1｜ProFlow Dev Tunnel 诊断语义缺陷
+
+```text
+VALIDATION_ID = PROFLOW-THROUGHPUT-V1-B1
+PROJECT / STAGE = ProFlow / Dev Tunnel diagnostic hardening
+ENGINEERING_DECISIONS = 1
+CONTEXT_CALLS = 4 / 3 Structure+Contract + 1 minimum-sufficient source/test batch
+MUTATION_CALLS = 2 / initial decision batch + one bounded repair
+TARGETED_RUNS = 2
+FORMAL_GATE_RUNS = 1
+PREFLIGHT_ABORTS = 0
+POST_MUTATION_REPAIRS = 1
+SCOPE_EXPANSIONS = 0
+POLL_COUNT = 4 / early validation path; exposed residual waste
+FORMAL_GATE_LOW_VALUE_POLL = 0 / persisted-log + terminal-marker harness
+QUALITY_GATE = PASS / 42_OF_42 + typecheck + Biome + git diff --check
+```
+
+结果：Decision-level blast radius 一次锁定在 `dev-tunnel` 本包，没有扩散到 Platform/Task/Execution；第一次产品行为 tests 已 42/42 PASS，失败仅为一个 `exactOptionalPropertyTypes` 构造问题与 formatter，按 `CODE_TYPING + FORMAT` 分类后只修可达范围，没有重做 Context 或 Debug。修复后只跑新增行为 tests + typecheck/Biome/diff，再执行唯一 package Formal Gate。
+
+反例与规则修正：
+
+1. canonical formatter 应进入第一次 Batch Commit，而不是 targeted verify 后再产生 repair；本文件已新增 Formatter 规则。
+2. 长任务普通 stdout 会诱发 Chat 提前 read；Formal Gate 改为“输出落持久日志 + terminal marker 一次回收”，本轮正式 Gate 中间低价值 poll 从早期路径的 4 次降为 0。
+3. `EVENT_ORIENTED_OBSERVATION` 仍保持 `PARTIAL`，需在 Real-3 混合 Runtime/Browser/Owner 现场继续验证。
+
 
 ## 16. 新任务执行口令
 

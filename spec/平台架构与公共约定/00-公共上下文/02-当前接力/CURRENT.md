@@ -136,13 +136,28 @@ Browser = 只有真实登录事务需要 GitHub Browser Auth 时才进入 Playwr
 
 不要读取 Browser Extension 源码或重跑 Chrome adoption；当前最大不确定性不在 Browser Plane。
 
+## DEV_TUNNEL_DIAGNOSTIC_FIX
+
+```text
+SOURCE_FIX = PASS / LOCAL
+LOGIN_CLASSIFICATION = AUTH_EXPIRED / NOT_LOGGED_IN / QUERY_TIMEOUT / CLI_ERROR / UNKNOWN
+STATUS_PREFLIGHT = AUTH_ACTION_REQUIRED / QUERY_OR_CLI_BLOCKED / LOGGED_IN_READY
+START_ERROR_CONTRACT = START_FAILED + CLASSIFIED_MESSAGE
+PACKAGE_GATE = PASS / 42_OF_42 + TYPECHECK + BIOME + DIFF_CHECK
+REGISTRY_ADOPTION = NOT_RUN
+PRODUCT_WORKSPACE_ADOPTION = NOT_RUN
+REAL_EXPIRED_TOKEN_STATUS_REPLAY = NOT_RUN
+```
+
+当前 token-expired 现场应保留到新包真实采用后，用真实 `platform status` 做 same-scene replay；在此之前不要先登录，否则会销毁最有价值的诊断复验证据。
+
 ## NEXT_ACTION
 
-1. **先冻结 Dev Tunnel auth recovery mutation boundary**：恢复登录只能走 canonical Dev Tunnel / Platform 用户路径，不直接写 `.proflow`、token 或 remote state；若出现账号授权/2FA/CAPTCHA，交给用户。
-2. 登录恢复后立即做只读 remote reality：`show persisted tunnelId`，再核验 exact `41705` port。`EXISTS` 才复用；只有确定性 `MISSING` 才允许进入既有稳定 identity 恢复路径；timeout/UNKNOWN 不得创建第二条 Tunnel。
-3. **处理 `DEV_TUNNEL_DIAGNOSTIC_REASON_COLLAPSE`**：最小 owning-package 修复 + targeted regression；把高成本 production start 前的 `login + tunnel + exact port` remote preflight 固化到 Dev Tunnel Runbook/执行门禁。是否需要 release/update 由实际改动位置与当前 Product Workspace authority 决定，不提前假设。
-4. 只有 `login/tunnel/41705 port` remote preflight PASS、诊断缺陷机械 gate PASS、SAME-SCENE 无漂移后，网页总控才可重新冻结一次新的 production runtime start acceptance。
-5. 下一次 production start 成功后，目标仍是 `0.1.50 bridge -> Observer recovery -> SAME execution:e9... durable redecision`；成功立即 STOP，再进入最后 `Dev -> Test -> Task SUCCEEDED` gate。
+1. Dev Tunnel 诊断缺陷源码与 package gate 已 PASS；**保留当前 expired-token 现场**。
+2. 按 `Package-Update-Loop` 只发布/采用 `@tomflow/proflow-dev-tunnel` 新版本；不得顺带改其它 package。
+3. Product Workspace 采用后，在不登录、不 start 的前提下只运行真实 `platform status`：必须直接得到 `TUNNEL_AUTH_EXPIRED` + `setupStatus=ACTION_REQUIRED`；若仍泛化为 `TUNNEL_RUNTIME_FAILED`，STOP，说明发布/采用或诊断链仍有问题。
+4. Batch 1 same-scene status PASS 后，再执行一次 canonical Dev Tunnel 登录恢复，并只读确认原 tunnel + exact 41705 port 是否仍存在；认证恢复前不得推导 remote resource MISSING。
+5. Login/Tunnel/Port reality 全明确后，才冻结 Validation Batch 2 / Real-3 新 production-start acceptance。旧 one-start acceptance 已消费，禁止直接 retry。
 
 ## CURRENT_MUTATION_AUTHORITY
 

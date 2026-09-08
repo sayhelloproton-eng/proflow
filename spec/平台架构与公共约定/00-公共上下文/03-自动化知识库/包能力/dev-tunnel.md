@@ -66,11 +66,31 @@ devtunnel port list <persisted tunnelId> --json
 
 这条 Gate 的目标是防止“本地 READY + 远端认证/资源已失效”浪费一次真实 start；它不把内部 `devtunnel` 命令变成普通用户日常步骤，后台诊断仍由 owning package/总控机械执行。
 
-## 当前诊断语义缺口
+## Login 诊断语义与 Start 前 fail-closed
 
-截至 2026-09-08，当前实现存在已证明的诊断缺口：`start()` 会执行 login check，但 `status()` 不验证 remote login reality；`observeLogin()` 又可能把 CLI 已明确给出的 `Login token expired` 等原因压成 `UNKNOWN`，上层因此只能看到笼统的 `TUNNEL_RUNTIME_FAILED / Tunnel 运行状态检查失败`。
+2026-09-08 已完成 owning package 源码修复与 package mechanical gate：login probe 现在保留 `LOGGED_IN / AUTH_EXPIRED / NOT_LOGGED_IN / QUERY_TIMEOUT / CLI_ERROR / UNKNOWN` 分类；非零 exit + `Login token expired` 不再被压成 `UNKNOWN`。
 
-在产品修复落地前，遇到该组合时以 managed CLI 的只读 login evidence 作为下一层诊断 authority，不把泛化错误继续向后猜。产品修复应保留并传播可执行分类，例如 `AUTH_EXPIRED / NOT_LOGGED_IN / QUERY_TIMEOUT / CLI_ERROR`，并用 regression 证明原始原因不会再次丢失。
+配置已 READY 但 host 不在时，Deployment `status` 才额外读取 login authority：
+
+```text
+AUTH_EXPIRED / NOT_LOGGED_IN
+→ setupStatus=ACTION_REQUIRED
+→ TUNNEL_AUTH_EXPIRED / TUNNEL_LOGIN_REQUIRED
+→ platform setup --module dev-tunnel
+
+QUERY_TIMEOUT / CLI_ERROR
+→ setupStatus=BLOCKED
+→ TUNNEL_LOGIN_QUERY_TIMEOUT / TUNNEL_LOGIN_CHECK_FAILED
+→ fail-closed，不消费 production start
+
+LOGGED_IN + host absent
+→ setupStatus=READY
+→ 允许正式 start 恢复 runtime
+```
+
+`DevTunnelRuntime.status()` 仍保持 local-process-only，不把远端 CLI 查询塞进底层 process status；remote login diagnosis 由 Deployment status 在“configured + runtime not running”这个需要决策的边界负责。直接 module start 若绕过 preflight，仍以标准 `START_FAILED` 合同返回，但 message 保留 `AUTH_EXPIRED / NOT_LOGGED_IN / QUERY_TIMEOUT / CLI_ERROR` 分类。
+
+机械 Gate：dev-tunnel `42/42 tests PASS + typecheck PASS + Biome PASS + git diff --check PASS`。**当前只证明仓库源码候选；Registry / Product Workspace / 真实 expired-token same-scene adoption 仍待后续 release/update 验证。**
 
 ## Tunnel ownership / Fresh recovery
 

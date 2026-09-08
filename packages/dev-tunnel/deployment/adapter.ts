@@ -12,6 +12,7 @@ import {
 	createDevTunnelAutomation,
 	createDevTunnelRuntime,
 	type DevTunnelAutomation,
+	type DevTunnelLoginStatus,
 	type DevTunnelRuntime,
 	verifyProvisionedPublicBaseUrl,
 } from "../src/resource-adapter.ts";
@@ -25,6 +26,67 @@ const base = {
 	moduleVersion: descriptor.moduleVersion,
 } as const;
 const processEffect = "Manage the dev-tunnel public ingress process";
+
+function loginFailureMessage(login: DevTunnelLoginStatus): string {
+	switch (login) {
+		case "AUTH_EXPIRED":
+			return "AUTH_EXPIRED: Microsoft Dev Tunnel login token expired";
+		case "NOT_LOGGED_IN":
+			return "NOT_LOGGED_IN: Microsoft Dev Tunnel login is required";
+		case "QUERY_TIMEOUT":
+			return "QUERY_TIMEOUT: Microsoft Dev Tunnel login status query timed out";
+		case "CLI_ERROR":
+			return "CLI_ERROR: Microsoft Dev Tunnel login status check failed";
+		default:
+			return "UNKNOWN: Microsoft Dev Tunnel login status is unknown";
+	}
+}
+
+function runtimeFailureIssue(login: DevTunnelLoginStatus) {
+	switch (login) {
+		case "AUTH_EXPIRED":
+			return {
+				scope: "SETUP" as const,
+				code: "TUNNEL_AUTH_EXPIRED",
+				message: "Microsoft Dev Tunnel login token expired",
+				relatedModuleRefs: [],
+				nextCommand: "platform setup --module dev-tunnel",
+			};
+		case "NOT_LOGGED_IN":
+			return {
+				scope: "SETUP" as const,
+				code: "TUNNEL_LOGIN_REQUIRED",
+				message: "Microsoft Dev Tunnel login is required",
+				relatedModuleRefs: [],
+				nextCommand: "platform setup --module dev-tunnel",
+			};
+		case "QUERY_TIMEOUT":
+			return {
+				scope: "RUNTIME" as const,
+				code: "TUNNEL_LOGIN_QUERY_TIMEOUT",
+				message: "Microsoft Dev Tunnel login status query timed out",
+				relatedModuleRefs: [],
+				nextCommand: "platform status",
+			};
+		case "CLI_ERROR":
+			return {
+				scope: "RUNTIME" as const,
+				code: "TUNNEL_LOGIN_CHECK_FAILED",
+				message: "Microsoft Dev Tunnel login status check failed",
+				relatedModuleRefs: [],
+				nextCommand: "platform status",
+			};
+		default:
+			return {
+				scope: "RUNTIME" as const,
+				code: "TUNNEL_RUNTIME_FAILED",
+				message: "Tunnel 运行状态检查失败",
+				relatedModuleRefs: [],
+				nextCommand: "platform status",
+			};
+	}
+}
+
 type SetupPhase = "PENDING_CREATED" | "PORT_READY" | "HOST_READY" | "READY";
 type SetupState = {
 	contract: "proflow.dev-tunnel-setup.v2";
@@ -122,6 +184,105 @@ function runtime(context: ModuleCommandContext, state?: SetupState) {
 		processStateFile: processFile(context),
 	});
 }
+type RuntimeFactory = (input: {
+	command?: string;
+	tunnelId?: string;
+	publicBaseUrl?: string;
+	processStateFile?: string;
+	loginVerified?: boolean;
+}) => DevTunnelRuntime;
+
+async function observeStatus(
+	context: ModuleCommandContext,
+	createRuntime: RuntimeFactory,
+) {
+	const state = await readState(context);
+	if (!state) {
+		return {
+			result: {
+				...base,
+				data: {
+					setupStatus: "ACTION_REQUIRED" as const,
+					runtimeStatus: "STOPPED" as const,
+					issues: [
+						{
+							scope: "SETUP" as const,
+							code: "TUNNEL_SETUP_REQUIRED",
+							message: "尚未完成持久 Tunnel 自动配置",
+							relatedModuleRefs: [],
+							nextCommand: "platform setup",
+						},
+					],
+				},
+			},
+			observedEffects: [],
+		};
+	}
+	const configured =
+		state.phase === "READY" && typeof state.publicBaseUrl === "string";
+	const rt = createRuntime({
+		command: devTunnelCliPath(),
+		tunnelId: state.tunnelId,
+		...(state.publicBaseUrl === undefined
+			? {}
+			: { publicBaseUrl: state.publicBaseUrl }),
+		processStateFile: processFile(context),
+	});
+	const observed = await rt.status();
+	const login =
+		configured && observed.state !== "RUNNING"
+			? await rt.loginStatus()
+			: observed.login;
+	const runtimeStatus =
+		observed.state === "RUNNING"
+			? ("RUNNING" as const)
+			: observed.state === "STOPPED"
+				? ("STOPPED" as const)
+				: configured
+					? ("FAILED" as const)
+					: ("STOPPED" as const);
+	const authActionRequired =
+		login === "AUTH_EXPIRED" || login === "NOT_LOGGED_IN";
+	const authBlocked = login === "QUERY_TIMEOUT" || login === "CLI_ERROR";
+	const setupStatus = !configured
+		? ("ACTION_REQUIRED" as const)
+		: authActionRequired
+			? ("ACTION_REQUIRED" as const)
+			: authBlocked
+				? ("BLOCKED" as const)
+				: ("READY" as const);
+	return {
+		result: {
+			...base,
+			data: {
+				setupStatus,
+				runtimeStatus,
+				...(!configured || runtimeStatus === "FAILED"
+					? {
+							issues: [
+								...(!configured
+									? [
+											{
+												scope: "SETUP" as const,
+												code: "TUNNEL_SETUP_INCOMPLETE",
+												message: `远程连接配置已保存，当前阶段 ${state.phase}；重新运行 Platform setup 将从此处恢复`,
+												relatedModuleRefs: [],
+												nextCommand: "platform setup",
+											},
+										]
+									: []),
+								...(runtimeStatus === "FAILED"
+									? [runtimeFailureIssue(login)]
+									: []),
+							],
+						}
+					: {}),
+			},
+		},
+		observedEffects: [],
+	};
+}
+
 const baseBehaviorAdapter = {
 	install: async (context: ModuleCommandContext) => {
 		await mkdir(stateDir(context), { recursive: true, mode: 0o700 });
@@ -172,82 +333,8 @@ const baseBehaviorAdapter = {
 			};
 		}
 	},
-	status: async (context: ModuleCommandContext) => {
-		const state = await readState(context);
-		if (!state) {
-			return {
-				result: {
-					...base,
-					data: {
-						setupStatus: "ACTION_REQUIRED" as const,
-						runtimeStatus: "STOPPED" as const,
-						issues: [
-							{
-								scope: "SETUP" as const,
-								code: "TUNNEL_SETUP_REQUIRED",
-								message: "尚未完成持久 Tunnel 自动配置",
-								relatedModuleRefs: [],
-								nextCommand: "platform setup",
-							},
-						],
-					},
-				},
-				observedEffects: [],
-			};
-		}
-		const rt = runtime(context, state);
-		const observed = await rt.status();
-		const configured =
-			state.phase === "READY" && typeof state.publicBaseUrl === "string";
-		const runtimeStatus =
-			observed.state === "RUNNING"
-				? ("RUNNING" as const)
-				: observed.state === "STOPPED"
-					? ("STOPPED" as const)
-					: configured
-						? ("FAILED" as const)
-						: ("STOPPED" as const);
-		return {
-			result: {
-				...base,
-				data: {
-					setupStatus: configured
-						? ("READY" as const)
-						: ("ACTION_REQUIRED" as const),
-					runtimeStatus,
-					...(!configured || runtimeStatus === "FAILED"
-						? {
-								issues: [
-									...(!configured
-										? [
-												{
-													scope: "SETUP" as const,
-													code: "TUNNEL_SETUP_INCOMPLETE",
-													message: `远程连接配置已保存，当前阶段 ${state.phase}；重新运行 Platform setup 将从此处恢复`,
-													relatedModuleRefs: [],
-													nextCommand: "platform setup",
-												},
-											]
-										: []),
-									...(runtimeStatus === "FAILED"
-										? [
-												{
-													scope: "RUNTIME" as const,
-													code: "TUNNEL_RUNTIME_FAILED",
-													message: "Tunnel 运行状态检查失败",
-													relatedModuleRefs: [],
-													nextCommand: "platform status",
-												},
-											]
-										: []),
-								],
-							}
-						: {}),
-				},
-			},
-			observedEffects: [],
-		};
-	},
+	status: async (context: ModuleCommandContext) =>
+		observeStatus(context, createDevTunnelRuntime),
 	docs: async (_context: ModuleCommandContext) => ({
 		result: {
 			...base,
@@ -374,14 +461,6 @@ const baseBehaviorAdapter = {
 	},
 } as const;
 
-type RuntimeFactory = (input: {
-	command?: string;
-	tunnelId?: string;
-	publicBaseUrl?: string;
-	processStateFile?: string;
-	loginVerified?: boolean;
-}) => DevTunnelRuntime;
-
 function gatewayPort(facts: Record<string, unknown> | undefined): number {
 	const raw = facts?.localBaseUrl;
 	if (typeof raw !== "string")
@@ -433,6 +512,8 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 		dependencies?.verifyPublicBaseUrl ?? verifyProvisionedPublicBaseUrl;
 	return {
 		...baseBehaviorAdapter,
+		status: async (context: ModuleCommandContext) =>
+			observeStatus(context, createRuntime),
 		start: async (context: ModuleCommandContext) => {
 			const state = await readState(context);
 			if (state?.phase !== "READY" || !state.publicBaseUrl)
@@ -449,7 +530,7 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 				});
 				const observed = await rt.start();
 				if (observed.login !== "LOGGED_IN")
-					throw new Error("Microsoft Dev Tunnel login is not ready");
+					throw new Error(loginFailureMessage(observed.login));
 				if (observed.state !== "RUNNING")
 					throw new Error("dev-tunnel did not reach RUNNING");
 				try {
@@ -470,7 +551,10 @@ export function createDevTunnelBehaviorAdapter(dependencies?: {
 						status: "FAILED" as const,
 						error: {
 							code: "START_FAILED" as const,
-							message: error instanceof Error ? error.message : "failed to start dev-tunnel",
+							message:
+								error instanceof Error
+									? error.message
+									: "failed to start dev-tunnel",
 							retryable: true,
 						},
 					},

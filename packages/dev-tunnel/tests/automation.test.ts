@@ -14,6 +14,7 @@ import {
 } from "../deployment/adapter.ts";
 import {
 	createDevTunnelAutomation,
+	createDevTunnelRuntime,
 	discoverPublicBaseUrl,
 	parseDevTunnelLoginStatus,
 } from "../src/resource-adapter.ts";
@@ -31,7 +32,7 @@ test("CP-DEV-TUNNEL-01 login JSON is authoritative and logged-out statuses are n
 	);
 	assert.equal(
 		parseDevTunnelLoginStatus({ status: "Login token expired" }),
-		"NOT_LOGGED_IN",
+		"AUTH_EXPIRED",
 	);
 	assert.equal(
 		parseDevTunnelLoginStatus({ status: "Not logged in" }),
@@ -60,6 +61,24 @@ test("CP-DEV-TUNNEL-01 login JSON is authoritative and logged-out statuses are n
 		["user", "login", "--github", "--use-browser-auth"],
 		["user", "show", "--json"],
 	]);
+});
+
+test("CP-DEV-TUNNEL-01 runtime login probe preserves actionable failure classification", async () => {
+	for (const fixture of [
+		{ value: result("", 3, "Login token expired."), expected: "AUTH_EXPIRED" },
+		{
+			value: result(JSON.stringify({ status: "Login required" })),
+			expected: "NOT_LOGGED_IN",
+		},
+		{ value: result("", null, "command timed out"), expected: "QUERY_TIMEOUT" },
+		{ value: result("", 3, "service unavailable"), expected: "CLI_ERROR" },
+	] as const) {
+		const runtime = createDevTunnelRuntime({
+			tunnelId: "fixture-tunnel",
+			runCommand: async () => fixture.value,
+		});
+		assert.equal(await runtime.loginStatus(), fixture.expected);
+	}
 });
 
 test("CP-DEV-TUNNEL-01 valid login is reused without opening browser auth", async () => {
@@ -111,7 +130,11 @@ test("CP-DEV-TUNNEL-01 timed-out primary login probe consumes conclusive JSON be
 			calls.push(args);
 			timeouts.push(options?.timeoutMs);
 			if (calls.length === 1)
-				return result(JSON.stringify({ status: "Login token expired" }), null, "command timed out");
+				return result(
+					JSON.stringify({ status: "Login token expired" }),
+					null,
+					"command timed out",
+				);
 			if (calls.length === 2) return result("");
 			return result(JSON.stringify({ status: "Logged in as test" }));
 		},
@@ -911,29 +934,157 @@ test("CP-DEV-TUNNEL-01 failed browser login performs no Tunnel mutation", async 
 	assert.equal(createCount, 0);
 });
 
+test("dev-tunnel status blocks production start preflight with explicit auth diagnosis", async (t) => {
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-tunnel-auth-status-"),
+	);
+	t.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const dir = join(
+		workspaceRoot,
+		".proflow/runtime/external-resources/dev-tunnel",
+	);
+	await mkdir(dir, { recursive: true });
+	await writeFile(
+		join(dir, "setup.json"),
+		JSON.stringify({
+			contract: "proflow.dev-tunnel-setup.v2",
+			tunnelId: "tunnel-auth",
+			phase: "READY",
+			gatewayPort: 41705,
+			publicBaseUrl: "https://auth.example.test/",
+		}),
+	);
+	for (const fixture of [
+		{
+			login: "AUTH_EXPIRED" as const,
+			setupStatus: "ACTION_REQUIRED",
+			code: "TUNNEL_AUTH_EXPIRED",
+		},
+		{
+			login: "NOT_LOGGED_IN" as const,
+			setupStatus: "ACTION_REQUIRED",
+			code: "TUNNEL_LOGIN_REQUIRED",
+		},
+		{
+			login: "QUERY_TIMEOUT" as const,
+			setupStatus: "BLOCKED",
+			code: "TUNNEL_LOGIN_QUERY_TIMEOUT",
+		},
+		{
+			login: "CLI_ERROR" as const,
+			setupStatus: "BLOCKED",
+			code: "TUNNEL_LOGIN_CHECK_FAILED",
+		},
+	] as const) {
+		const adapter = createDevTunnelBehaviorAdapter({
+			createRuntime: () => ({
+				command: "fixture",
+				async status() {
+					return { state: "UNKNOWN" as const, login: "UNKNOWN" as const };
+				},
+				async loginStatus() {
+					return fixture.login;
+				},
+				publicBaseUrl() {
+					return "https://auth.example.test/";
+				},
+				async start() {
+					return { state: "UNKNOWN" as const, login: fixture.login };
+				},
+				async stop() {
+					return { state: "STOPPED" as const, login: fixture.login };
+				},
+				async restart() {
+					return this.start();
+				},
+			}),
+		});
+		const status = await adapter.status({ workspaceRoot });
+		const data = status.result.data as {
+			setupStatus: string;
+			runtimeStatus: string;
+			issues?: Array<{ code: string; message: string }>;
+		};
+		assert.equal(data.setupStatus, fixture.setupStatus);
+		assert.equal(data.runtimeStatus, "FAILED");
+		assert.equal(data.issues?.[0]?.code, fixture.code);
+	}
+
+	const expiredStart = createDevTunnelBehaviorAdapter({
+		resolveCli: async () => "/managed/devtunnel",
+		createRuntime: () => ({
+			command: "fixture",
+			async status() {
+				return { state: "UNKNOWN" as const, login: "UNKNOWN" as const };
+			},
+			async loginStatus() {
+				return "AUTH_EXPIRED" as const;
+			},
+			publicBaseUrl() {
+				return "https://auth.example.test/";
+			},
+			async start() {
+				return { state: "UNKNOWN" as const, login: "AUTH_EXPIRED" as const };
+			},
+			async stop() {
+				return { state: "STOPPED" as const, login: "AUTH_EXPIRED" as const };
+			},
+			async restart() {
+				return this.start();
+			},
+		}),
+		verifyPublicBaseUrl: async () => {},
+	});
+	const started = await expiredStart.start({ workspaceRoot });
+	assert.equal(started.result.status, "FAILED");
+	assert.equal(started.result.error?.code, "START_FAILED");
+	assert.match(started.result.error?.message ?? "", /^AUTH_EXPIRED:/);
+});
 
 test("dev-tunnel start waits for public ingress readiness and cleans failed host", async (t) => {
-	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-tunnel-start-ready-"));
+	const workspaceRoot = await mkdtemp(
+		join(tmpdir(), "proflow-tunnel-start-ready-"),
+	);
 	t.after(() => rm(workspaceRoot, { recursive: true, force: true }));
-	const dir = join(workspaceRoot, ".proflow/runtime/external-resources/dev-tunnel");
+	const dir = join(
+		workspaceRoot,
+		".proflow/runtime/external-resources/dev-tunnel",
+	);
 	await mkdir(dir, { recursive: true });
-	await writeFile(join(dir, "setup.json"), JSON.stringify({
-		contract: "proflow.dev-tunnel-setup.v2",
-		tunnelId: "tunnel-ready",
-		phase: "READY",
-		gatewayPort: 41705,
-		publicBaseUrl: "https://ready.example.test/",
-	}));
+	await writeFile(
+		join(dir, "setup.json"),
+		JSON.stringify({
+			contract: "proflow.dev-tunnel-setup.v2",
+			tunnelId: "tunnel-ready",
+			phase: "READY",
+			gatewayPort: 41705,
+			publicBaseUrl: "https://ready.example.test/",
+		}),
+	);
 	let starts = 0;
 	let stops = 0;
 	const runtime = {
 		command: "fixture",
-		async status() { return { state: "STOPPED" as const, login: "LOGGED_IN" as const }; },
-		async loginStatus() { return "LOGGED_IN" as const; },
-		publicBaseUrl() { return "https://ready.example.test/"; },
-		async start() { starts += 1; return { state: "RUNNING" as const, login: "LOGGED_IN" as const }; },
-		async stop() { stops += 1; return { state: "STOPPED" as const, login: "LOGGED_IN" as const }; },
-		async restart() { return this.start(); },
+		async status() {
+			return { state: "STOPPED" as const, login: "LOGGED_IN" as const };
+		},
+		async loginStatus() {
+			return "LOGGED_IN" as const;
+		},
+		publicBaseUrl() {
+			return "https://ready.example.test/";
+		},
+		async start() {
+			starts += 1;
+			return { state: "RUNNING" as const, login: "LOGGED_IN" as const };
+		},
+		async stop() {
+			stops += 1;
+			return { state: "STOPPED" as const, login: "LOGGED_IN" as const };
+		},
+		async restart() {
+			return this.start();
+		},
 	};
 	let verifications = 0;
 	const runtimeCommands: string[] = [];
@@ -948,9 +1099,15 @@ test("dev-tunnel start waits for public ingress readiness and cleans failed host
 			runtimeCommands.push(input.command ?? "");
 			return runtime;
 		},
-		verifyPublicBaseUrl: async (url) => { verifications += 1; assert.equal(url, "https://ready.example.test/"); },
+		verifyPublicBaseUrl: async (url) => {
+			verifications += 1;
+			assert.equal(url, "https://ready.example.test/");
+		},
 	});
-	assert.equal((await ready.start({ workspaceRoot })).result.status, "SUCCEEDED");
+	assert.equal(
+		(await ready.start({ workspaceRoot })).result.status,
+		"SUCCEEDED",
+	);
 	assert.equal(starts, 1);
 	assert.equal(resolves, 1);
 	assert.deepEqual(runtimeCommands, ["/managed/devtunnel"]);
@@ -959,7 +1116,9 @@ test("dev-tunnel start waits for public ingress readiness and cleans failed host
 	const failing = createDevTunnelBehaviorAdapter({
 		resolveCli: async () => "/managed/devtunnel",
 		createRuntime: () => runtime,
-		verifyPublicBaseUrl: async () => { throw new Error("public ingress not ready"); },
+		verifyPublicBaseUrl: async () => {
+			throw new Error("public ingress not ready");
+		},
 	});
 	const failed = await failing.start({ workspaceRoot });
 	assert.equal(failed.result.status, "FAILED");
