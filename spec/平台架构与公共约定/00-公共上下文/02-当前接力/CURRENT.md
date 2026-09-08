@@ -212,3 +212,13 @@ PUSH = FORBIDDEN
 - Runtime before adoption: 41705/47080/51443 LISTENING.
 - Adoption authority: exactly one formal platform stop, then targeted platform-host update to 0.1.21; no Task/Worker/Execution mutation.
 - Restart authority is NOT yet admitted here; it will be frozen only after installed=0.1.21 and stopped-runtime readback.
+
+## REAL3_PLATFORM_HOST_0_1_21_RESTART_ACCEPTANCE_20260908T2130
+
+- Provider live probe HTTP 200; FAST/THINK inventory present.
+- Structured Platform owner status: all 23 Modules setupStatus=READY.
+- dev-tunnel runtimeStatus=FAILED is expected while stopped; setupStatus remains READY and does not block start preflight.
+- Installed platform-host=0.1.21 / setupStatus=READY / runtimeStatus=STOPPED.
+- Runtime prestart: 41705/47080/51443 ABSENT.
+- SAME scene remains Task WAITING v13; Dev WAITING v8/runNo1/SAME worker; Test PENDING; event:14 blocker PENDING; Execution total=6; file.read count=0.
+- Admission: exactly one platform start for 0.1.21 adoption. Timeout/UNKNOWN requires authority recovery; no blind resend.
