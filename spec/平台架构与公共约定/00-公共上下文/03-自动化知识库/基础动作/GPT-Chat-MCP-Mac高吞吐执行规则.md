@@ -682,6 +682,20 @@ QUALITY_GATE = PASS / 42_OF_42 + typecheck + Biome + git diff --check
 3. `EVENT_ORIENTED_OBSERVATION` 仍保持 `PARTIAL`，需在 Real-3 混合 Runtime/Browser/Owner 现场继续验证。
 
 
+## 15.1 Mainline-first Validation｜先完成主线，再评估吞吐策略
+
+吞吐规则是运行时自优化机制，但不能成为新的主线。真实 Stage 执行期间：
+
+```text
+自动采集 tool_round_trips / poll / repair / harness defect / authority recovery
+→ 发现会阻塞当前主线的执行缺陷：最小修复
+→ 发现只是“还能更快”的优化点：记录，不中断主线
+→ 当前 Mainline Gate 完成
+→ 再统一做 before/after、反例、规则修订
+```
+
+模型应主动完成这套感知和沉淀，不等待用户要求“总结吞吐效果”。只有真实 Stage 结束后的证据才能把候选优化升级为本文件正式规则。上下文自动写回的 owner 在 `01-长期规则/02-公共上下文治理规则.md`。
+
 ## 16. 新任务执行口令
 
 GPT Chat 接到本机工程任务后，默认自检：
