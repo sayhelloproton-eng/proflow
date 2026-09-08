@@ -1,6 +1,6 @@
 # CURRENT｜Phase 3 当前接力
 
-> 更新时间：2026-09-08。这里是下一 Chat 的唯一滚动执行入口。
+> 更新时间：2026-09-08 23:25 +08。这里是下一 Chat 的唯一滚动执行入口；历史 acceptance 与旧假设不拥有当前 authority。
 
 ## CURRENT_STAGE
 
@@ -15,157 +15,177 @@ J3 = PASS
 J4 = PAUSED_FOR_INTEGRATION_HARDENING
 REAL_3 = NOT_PASS
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = REAL3_PLATFORM_HOST_0_1_21_WAITING_FOR_MODEL_RESTART
+CURRENT_EXECUTION_MODE = REAL3_TYPED_EXECUTION_INPUT_CONTRACT_RELEASED_WAITING_ARTIFACT_CLASSIFICATION
 ```
 
 ## CURRENT_AUTHORITY
 
-当前 Git / Registry / Product Workspace / Browser / runtime reality 必须在执行前机械回读；本文只记录最近已证明 checkpoint，不替代实时 authority。
-
 ```text
-Browser Extension = 0.1.50 / actual Chrome adoption PASS
-Browser recovery + trailing rearm + SAME fixed wake redecision = PASS
-COMPOSER_NOT_FOUND = TRANSIENT / AUTO-RECOVERED / NOT_CURRENT_BLOCKER
-fixed historical wake = SUCCEEDED / APPLIED / attemptCount=3
+repo = /Users/agent/Desktop/proton-workspace/repos/proflow
+branch = main
+HEAD = 7bcc1ab37fc49b4a01ed7a08a8728e63f1eadfd3
+working tree = CLEAN at handoff freeze
+Product Workspace = /Users/agent/Desktop/proton-workspace
 
-Dev Tunnel 0.1.36 = Registry/adoption/remote reality PASS
-managed Dev Tunnel CLI = 1.0.2030 / package-owned / LOGGED_IN
-Tunnel = proflow-aeb1e6d087caaf089de01d41.jpe1 / 41705 http / current listener PRESENT
-
-Provider configured URL = http://192.168.0.101:8080/v1
-Provider was previously READY and inventory-verified after DHCP drift .108 -> .101
-2026-09-08 current external reality = USER IS USING PHONE FOR GAME / PROVIDER UNAVAILABLE
-formal platform status = Browser PASS + Tunnel PASS + Model FAIL / PLATFORM_READY=NO
-MODEL_UNAVAILABLE is external environment, not a newly proven Product regression
-
-Platform Host 0.1.20 Product adoption = PASS / current running runtime version
-Platform Host 0.1.21 source fix = PASS
-0.1.21 functional commit = 2090e1e5ddf8 fix(platform-host): expose exact execution request context
-0.1.21 version commit = d7ebf9445b5e chore(release): version platform-host to 0.1.21
-0.1.21 targeted B1 regression = PASS
-0.1.21 full platform-host gate = 58/58 PASS + typecheck + Biome + diff-check
-0.1.21 publishability = PASS / workspace:^ leak NONE
-0.1.21 Registry exact = PASS
-0.1.21 Registry artifact = VERIFIED contains executionRequestContext + executionCapabilityIds
-Product Workspace installed platform-host = 0.1.20 / NOT_YET_ADOPTED_0_1_21
-current platform listeners = 41705 + 47080 + 51443 LISTENING
-PLATFORM_STOP_FOR_0_1_21 = NOT_ADMITTED while Provider unavailable
-
-Root cause = SAME Dev Worker uses an old Custom GPT Conversation snapshot whose executeCapability schema permits taskId/nodeId/runNo omission; current exact-node Platform Host admission requires all three and fails before durable file.read Execution creation.
-0.1.20 exposed exact capability IDs and proved old Worker can select file.read, but did not expose a canonical Execution request envelope.
-0.1.21 keeps exact-node fencing unchanged and extends getNodeContext projection with executionRequestContext={contract,contractVersion,taskId,nodeId,runNo}; old Worker can copy Owner facts without guessing and Host still rejects missing/stale/wrong-role scope.
+Provider = http://192.168.0.101:8080/v1
+Provider live probe = HTTP 200
+runtime listeners = 41705 / 47080 / 51443 LISTENING
+platform runtime = RUNNING
 ```
-
-## OFFLINE_VERIFICATION_20260908
+## RELEASE_AND_PRODUCT_REALITY
 
 ```text
-Registry exact @tomflow/proflow-platform-host@0.1.21 = PASS
-Registry dist-tag latest = 0.1.21
-release-sync platform-host = PASS
-Registry isolated install/import = PASS
-Registry dist/src/index.js SHA = LOCAL GATED DIST MATCH
-Registry deployment/adapter.js SHA = LOCAL GATED DIST MATCH
-Registry deployment/descriptor.js SHA = LOCAL GATED DIST MATCH
-Registry proflow.module.json SHA = LOCAL GATED DIST MATCH
-Registry package.json semantic identity = name/version/exports/bin MATCH
-Registry package.json dependency rewrite = EXPECTED workspace:^ -> published semver ranges
-Registry manifest workspace: leak = NONE
-Registry downloaded tarball SHA1 = npm dist.shasum MATCH
+correct functional commit = 94cec4fe05d3 fix(execution): expose typed capability input contracts
+version commit = 7bcc1ab37fc4 chore(release): version execution contracts and platform host
 
-Product installed platform-host = 0.1.20
-Product runtime listeners = 41705/47080/51443 LISTENING
-Task = WAITING v13 / currentNode=dev
-Dev = WAITING v8 / runNo=1 / SAME Worker
-Test = PENDING / runNo=1
-event:14 blocker = PENDING / EXECUTION_FILE_READ_INVALID_REQUEST
-Execution DB = .proflow/runtime/modules/execution-runtime/execution.sqlite
-Execution count = 6
-Task Execution count = 6
-file.read durable Execution count = 0
-No background drift observed while Provider unavailable
+Registry:
+  @tomflow/proflow-execution-contracts@0.1.11 = PRESENT
+  @tomflow/proflow-platform-host@0.1.22 = PRESENT
 
-Offline conclusion = ALL NON-MODEL VERIFICATION COMPLETE
-Remaining real-scene dependency = Provider READY for stop -> adopt 0.1.21 -> restart -> ACK/resume -> file.read -> Dev/Test
+Product installed:
+  @tomflow/proflow-execution-contracts = 0.1.10
+  @tomflow/proflow-platform-host = 0.1.21
+  installed platform-host depends on execution-contracts ^0.1.10
+
+Therefore: correct pair 0.1.11 / 0.1.22 is RELEASED but NOT_ADOPTED.
 ```
 
 ## FIXED_REAL3_TRUTH
 
 ```text
-Task = task-a6f859c00b1accd027d53d48 / WAITING / version=13 / currentNodeId=dev
-Dev = WAITING / version=8 / runNo=1 / SAME worker=6a9b4632-ca8c-83e9-a4bc-9de9e229e515
+Task = task-a6f859c00b1accd027d53d48 / WAITING / version=15 / currentNodeId=dev
+Dev = WAITING / version=10 / runNo=1 / SAME worker=6a9b4632-ca8c-83e9-a4bc-9de9e229e515
 Test = PENDING / version=1 / runNo=1
-
-latest Task event = event:14 / NODE_WAITING
-latest pending blocker = message-fe3473cc-6822-42f9-b3cf-7e300c8a780c
+latest Task event = event:17 / NODE_WAITING
+latest pending blocker = message-bd7135c3-d472-4a23-8b9c-dc010c0c7789
 reason = EXECUTION_FILE_READ_INVALID_REQUEST
-message truth = Worker now sees frozen capability IDs and selects exact file.read, but old Conversation lacks a complete canonical Execution request context and Host returns INVALID_REQUEST before durable file.read creation.
-
-previous blocker message-874c9508-9961-4ee3-aeea-b7caca48966a = ACKNOWLEDGED
-TASK_RESUMED event:13 = COMPLETED
-new observer-generated wake execution = execution:139a78ae-f3d3-43a6-965b-2989c62e3143 / SUCCEEDED / APPLIED / attemptCount=1
-historical fixed wake = execution:e9b9c020-bfe2-4d85-8a17-e3c4a0b7a2c0 / SUCCEEDED / APPLIED / attemptCount=3
-Execution count = 6
-no file.read Execution has yet been durably created for event:14
+Task-related Execution count = 7
+durable file.read Execution count = 0
 SAME Task / SAME Dev Worker / runNo=1 remains authoritative
+```
+## ROOT_CAUSE_AND_CORRECT_FIX
+
+```text
+REAL request body was captured from the SAME Dev ChatGPT Conversation network response.
+It contained contract/contractVersion/idempotencyKey/correlationId/taskId/nodeId/runNo/capability=file.read.
+It DID NOT contain input.
+
+Therefore the previous 0.1.21 hypothesis "missing taskId/nodeId/runNo" is disproven.
+True failure: old agent-controller-dev 0.1.16 Conversation snapshot exposes generic executeCapability input and does not teach the Worker that file.read requires input.path. Worker deliberately did not invent undisclosed parameters, so input was omitted; Host/Execution rejected INVALID_REQUEST before durable Execution creation.
+
+Correct fix:
+  execution-contracts exports executionCapabilityInputJsonSchemas generated directly from canonical Zod capabilityInputSchemas via z.toJSONSchema().
+  platform-host getNodeContext projects executionCapabilityInputSchemas together with executionCapabilityIds + executionRequestContext.
+  file.read projection requires path:string; encoding=utf8 is optional; additionalProperties=false.
+  exact-node Execution admission remains fail-closed and unchanged.
+```
+
+## CODE_GATE
+
+```text
+execution-contracts tests = 9/9 PASS
+execution-contracts typecheck = PASS
+B1-HOST-EXEC-01 targeted = PASS
+platform-host full tests = 58/58 PASS
+platform-host typecheck against current source execution-contracts = PASS
+Biome = PASS
+git diff --check = PASS
+canonical targeted build execution-contracts + platform-host = PASS
+release-sync = PASS
+schema projection = 37 capabilities / ~14 KB serialized
+```
+## CURRENT_ARTIFACT_GATE
+
+```text
+Registry exact 0.1.11 / 0.1.22 = PRESENT.
+Product has not adopted them.
+
+Latest handoff-time command:
+  node scripts/publishability.mjs execution-contracts platform-host
+Result = FAIL after ~147s at final binary smoke:
+  Error: published binary smoke failed: proflow-platform-host
+
+Known evidence:
+  tarball packing reached completion;
+  isolated npm install reached completion;
+  failure occurred when smoke runner invoked installed proflow-platform-host --help.
+  source CLI and local built dist/src/cli.js both explicitly support --help with exit 0.
+
+Classification = UNKNOWN.
+Next Chat MUST reproduce the packed installed binary with captured exit/stdout/stderr and decide REAL_ARTIFACT_BUG vs PUBLISHABILITY_HARNESS_FALSE_NEGATIVE before Product adoption.
+Do not call publishability PASS and do not republish blindly.
 ```
 
 ## CURRENT_PROBLEM_CLASS
 
 ```text
-current_class = LEGACY_CUSTOM_GPT_ACTION_SCHEMA_VS_EXACT_EXECUTION_CONTEXT
-product regression = ROOT_CAUSE_PROVEN / FIX_0_1_21_RELEASED / REAL_SCENE_NOT_YET_VERIFIED
+current_class = LEGACY_CUSTOM_GPT_TYPED_EXECUTION_INPUT_DISCOVERY
+root cause = PROVEN_FROM_REAL_WIRE_PAYLOAD
+correct source fix = COMMITTED_AND_RELEASED
+Product adoption = NOT_DONE
+artifact smoke = FAIL / CLASSIFICATION_PENDING
 Browser blocker = CLOSED
 Dev Tunnel blocker = CLOSED
-Provider current blocker = EXTERNAL_ENVIRONMENT / PHONE_MODEL_TEMPORARILY_UNAVAILABLE
-platform current runtime = RUNNING on platform-host 0.1.20
-platform 0.1.21 adoption = WAITING_FOR_PROVIDER_READY
-current first divergence after 0.1.20 = old Worker executeCapability request is rejected before durable file.read Execution creation
+Provider blocker = CLOSED / LIVE_HTTP_200
+REAL_3 = NOT_PASS
 ```
-
 ## NEXT_ACTION
 
 ```text
-1. While phone model is unavailable: DO NOT stop the currently running platform; keep 0.1.20 runtime/listeners intact.
-2. When user restores phone model service, perform ONE live Provider/status probe; require model-provider-api setupStatus READY and 23/23 setupStatus READY.
-3. Freeze one adoption/restart bundle: Product platform-host=0.1.20, Task WAITING v13, Dev WAITING v8/runNo1, Test PENDING, Execution count=6, event:14 blocker still pending, listeners/owner facts.
-4. One transaction: platform stop -> targeted platform-host update to 0.1.21 -> exact installed-version readback -> new restart acceptance -> exactly one platform start.
-5. Verify platform-host runtime 0.1.21 and getNodeContext exposes executionCapabilityIds + canonical executionRequestContext.
-6. Through formal Task owner chain: acknowledge event:14 blocker -> resume SAME Task/SAME Dev Worker; no manual worker.wake and no Execution retry.
-7. Observer must generate normal wake; require a durable file.read Execution and verified repos/proflow/package.json name/version result.
-8. Continue SAME journey Dev SUCCEEDED -> Test independent verification -> Task SUCCEEDED -> J4 PASS -> REAL_3 PASS.
-9. After real-scene PASS, update owning Runbook + CURRENT with root cause, contract compatibility pattern, and high-throughput transaction rules; commit, no push.
+1. Read this CURRENT and mechanically re-read Git/Product/Registry/Task authority; do not trust older event14/0.1.20 handoffs.
+2. First classify the 0.1.11+0.1.22 publishability failure by reproducing the packed installed proflow-platform-host --help with captured status/stdout/stderr.
+3. If artifact is healthy, freeze SAME-SCENE before mutation: Task WAITING v15, Dev WAITING v10/runNo1/SAME worker, Test PENDING, event17 blocker pending, Task Execution count=7, durable file.read=0, Product installed 0.1.10/0.1.21, provider READY, listeners present.
+4. Formal platform stop; targeted adopt BOTH execution-contracts 0.1.11 and platform-host 0.1.22; exact installed-version readback.
+5. Require Provider + all Module setupStatus READY; freeze a new restart acceptance; consume exactly one platform start with durable job/result authority.
+6. Verify running getNodeContext exposes executionCapabilityInputSchemas["file.read"].required=["path"].
+7. Through formal Task owner only: ACK event17 pending blocker -> resume SAME Task; no manual wake/retry/new Execution.
+8. Observer must wake SAME Dev. Acceptance requires the REAL Action request to carry capability=file.read and input={path:"repos/proflow/package.json"}.
+9. Require a durable file.read Execution with verified package name/version, then Dev SUCCEEDED -> Test independent verification -> Task SUCCEEDED.
+10. Only after that: J4 PASS -> REAL_3 PASS; update owning Runbook + CURRENT + final history, commit, no push.
 ```
 
-## CURRENT_MUTATION_AUTHORITY
+## MUTATION_AUTHORITY
 
 ```text
-MODEL_PROVIDER_READ_ONLY_REALITY = ADMITTED
-MODEL_PROVIDER_DIRECT_RUNTIME_STATE_EDIT = PREVIOUSLY_CONSUMED_FOR_EXPLICIT_IP_DRIFT / NO_NEW_EDIT
-FULL_SUBNET_OR_DEVICE_DISCOVERY = FORBIDDEN
-REMOTE_TUNNEL_CREATE_DELETE = FORBIDDEN
-REMOTE_PORT_MUTATION = FORBIDDEN
-PLATFORM_CURRENT_RUNTIME = KEEP_RUNNING_WHILE_PROVIDER_UNAVAILABLE
-PLATFORM_STOP_FOR_0_1_21 = NOT_ADMITTED_UNTIL_PROVIDER_READY
-PLATFORM_HOST_0_1_21_TARGETED_UPDATE = ADMITTED_ONLY_AFTER_FORMAL_STOP_AND_PROVIDER_READY_PRECHECK
-PLATFORM_RESTART_FOR_0_1_21 = NOT_YET_FROZEN / NOT_YET_ADMITTED
+PUBLISH_OR_REPUBLISH = FORBIDDEN until artifact authority proves need; target versions already exist in Registry.
+PLATFORM_STOP_UPDATE_RESTART = NOT_ADMITTED until artifact smoke classified and fresh SAME-SCENE freeze written.
+TASK_EVENT17_ACK_RESUME = NOT_ADMITTED until 0.1.11/0.1.22 runtime adoption verified.
+MANUAL_WORKER_WAKE = FORBIDDEN
+MANUAL_FILE_READ_EXECUTION_CREATE_OR_RETRY = FORBIDDEN
+NEW_TASK_WORKER_CONVERSATION = FORBIDDEN
+DIRECT_SQLITE_MUTATION = FORBIDDEN
 BROWSER_EXTENSION_MUTATION = FORBIDDEN
-TASK_EVENT14_ACK_RESUME = ADMITTED_ONLY_AFTER_0_1_21_RUNTIME_VERIFIED
-TASK_EXECUTION_MANUAL_WAKE_OR_RETRY = FORBIDDEN
-NEW_TASK_WORKER = FORBIDDEN
+REMOTE_TUNNEL_CREATE_DELETE_PORT_MUTATION = FORBIDDEN
 PUSH = FORBIDDEN
 ```
-
 ## DO_NOT_REPEAT
 
-- 不重新研究 Browser `COMPOSER_NOT_FOUND`；它已由 0.1.50 trailing recovery 自动恢复，不是当前 blocker。
+- 不再把 `INVALID_REQUEST` 直接解释成缺 `taskId/nodeId/runNo`；真实 wire 已证明这些字段存在，缺的是整个 `input`。
+- 不重做 platform-host 0.1.20/0.1.21 的旧假设修复；它们只分别证明 capability discovery / request context projection，不是最终根因。
+- 不重新研究 Browser `COMPOSER_NOT_FOUND`；0.1.50 trailing recovery 已真实通过。
 - 不重新研究 Dev Tunnel 登录/Tunnel/41705；0.1.36 remote reality 已 PASS。
-- 不重新扫描 LAN / Bonjour / mDNS；手机模型当前不可用是用户明确的外部现场。
-- 不重复 publish platform-host 0.1.21；Registry exact 与 Registry artifact 已 PASS。
-- 不在模型不可用时 stop 当前平台，否则正式 start 会因 Provider preflight fail-closed 而无法恢复。
-- 不放宽 exact-node Execution admission，不由 Host 猜 taskId/nodeId/runNo；0.1.21 只公开 canonical request context。
-- 不人工发 task.wake，不手工创建/retry file.read Execution；恢复必须从 Task owner ACK + resume 进入 Observer 正常链。
-- 不新建 Task / Dev Worker / Conversation 来逃避 legacy snapshot 问题。
+- 不重新扫描 LAN / Bonjour / mDNS；Provider 当前 `.101` 已 HTTP 200。
+- 不手工构造 `file.read` 来绕过 old Worker；必须证明真实 SAME Worker Action payload 自己携带 typed input。
+- 不因为 MCP/CLI 超时盲目重发 non-idempotent start/stop/update/publish；先恢复 PID/result/Registry/owner authority。
+- 不猜 SQLite 表/列/日志路径；从 owner/runbook/schema 取 canonical path。
 - 不 push。
+
+## THROUGHPUT_RULE_FOR_NEXT_CHAT
+
+```text
+This Chat's main execution defect: high-probability hypotheses were released before true request-body evidence was captured.
+Correct pattern for this class:
+  INVALID_REQUEST + no durable Execution
+  -> capture real external Action payload first
+  -> diff against canonical contract
+  -> patch only the proven field gap
+  -> targeted gate
+  -> artifact gate
+  -> one adoption transaction
+  -> real-scene replay
+Do not widen back to Browser/Tunnel/Model once the boundary is frozen.
+Use batch reality snapshots and durable job/result wrappers; minimize fragmented polling.
+```
 
 ## REQUIRED_CONTEXT
 
@@ -173,52 +193,9 @@ PUSH = FORBIDDEN
 2. `03-自动化知识库/包能力/dev-tunnel.md`
 3. `03-自动化知识库/基础动作/Round-PID-Log与恢复.md`
 4. `03-自动化知识库/基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md`
-
-## ON_DEMAND_CONTEXT
-
-- Browser Auth 真正进入交互：`03-自动化知识库/基础动作/Browser-UI自动化.md`
-- MCP runtime 异常：`03-自动化知识库/基础动作/Tool-Runtime-gptweb-mcp.md`
-- 追溯旧 one-start / 0.1.50 原始 evidence：`90-历史记录/Real3/`
+5. `90-历史记录/Real3/28-Real3-typed-execution-input-contract-当前Chat交接-20260908.md`
+6. `90-历史记录/Real3/29-下一个Chat提示词-Real3-typed-execution-input-contract-20260908.md`
 
 ## STOP_POINT
 
-`J1_J2_J3_PASS / J4_PAUSED / PLATFORM_RUNNING_ON_HOST_0_1_20 / HOST_0_1_21_RELEASED_AND_REGISTRY_VERIFIED / PHONE_MODEL_EXTERNAL_UNAVAILABLE / DO_NOT_STOP / TASK_WAITING_V13_EVENT14 / EXECUTION_COUNT_6 / PUSH_FORBIDDEN`。
-
-## REAL3_PLATFORM_HOST_0_1_21_CHECKPOINT_20260908
-
-- Root cause: old Custom GPT Conversation Action schema permits omission of `taskId/nodeId/runNo`, while current exact-node Host admission requires them before Execution creation.
-- Safe fix: `getNodeContext` projects `executionRequestContext={contract,contractVersion,taskId,nodeId,runNo}`; exact-node admission remains fail-closed.
-- Source/Gate: `2090e1e5ddf8`; B1 targeted PASS; platform-host 58/58 PASS; typecheck/Biome/diff-check PASS.
-- Release: `d7ebf9445b5e`; `@tomflow/proflow-platform-host@0.1.21`; publishability PASS; Registry exact/artifact PASS; no `workspace:` leak.
-- Product: still `0.1.20`, runtime/listeners preserved because phone model is intentionally unavailable while user is gaming.
-- Restart acceptance: NOT_FROZEN / NOT_ADMITTED until Provider returns READY.
-
-## REAL3_RESTART_ACCEPTANCE_20260908T111318Z｜HISTORICAL_CONSUMED
-
-- RESULT: `CONSUMED / PASS`; this acceptance must never be reused.
-- PLATFORM_HOST_INSTALLED: `0.1.20`.
-- PRESTART_RUNTIME: `start-owner=ABSENT`; `47080/51443/41705=ABSENT`.
-- PROVIDER: `http://192.168.0.101:8080/v1/models` was reachable before that restart.
-- SAME_SCENE_AT_ACCEPTANCE: Task=`WAITING v11`; Dev=`WAITING v6/runNo1`; Test=`PENDING v1/runNo1`; Execution total=`5`; fixed wake=`SUCCEEDED/APPLIED/attempt3`.
-- OUTCOME: the one admitted `platform start` for 0.1.20 adoption completed; current authority is the 0.1.21 checkpoint above.
-
-## REAL3_PLATFORM_HOST_0_1_21_ADOPTION_FREEZE_20260908T2100
-
-- Provider live probe: HTTP 200, 4 models, existing FAST/THINK inventory present.
-- Formal platform status: 23/23 setup READY, PLATFORM_READY=YES.
-- Product platform-host=0.1.20; Registry exact/latest platform-host=0.1.21.
-- SAME scene: Task WAITING v13; Dev WAITING v8/runNo1/SAME worker; Test PENDING; event:14 blocker PENDING.
-- Execution total=6; Task executions=6; durable file.read count=0.
-- Runtime before adoption: 41705/47080/51443 LISTENING.
-- Adoption authority: exactly one formal platform stop, then targeted platform-host update to 0.1.21; no Task/Worker/Execution mutation.
-- Restart authority is NOT yet admitted here; it will be frozen only after installed=0.1.21 and stopped-runtime readback.
-
-## REAL3_PLATFORM_HOST_0_1_21_RESTART_ACCEPTANCE_20260908T2130
-
-- Provider live probe HTTP 200; FAST/THINK inventory present.
-- Structured Platform owner status: all 23 Modules setupStatus=READY.
-- dev-tunnel runtimeStatus=FAILED is expected while stopped; setupStatus remains READY and does not block start preflight.
-- Installed platform-host=0.1.21 / setupStatus=READY / runtimeStatus=STOPPED.
-- Runtime prestart: 41705/47080/51443 ABSENT.
-- SAME scene remains Task WAITING v13; Dev WAITING v8/runNo1/SAME worker; Test PENDING; event:14 blocker PENDING; Execution total=6; file.read count=0.
-- Admission: exactly one platform start for 0.1.21 adoption. Timeout/UNKNOWN requires authority recovery; no blind resend.
+`J1_J2_J3_PASS / J4_PAUSED / PLATFORM_RUNNING_PRODUCT_HOST_0.1.21_WITH_EXECUTION_CONTRACTS_0.1.10 / CORRECT_RELEASE_PAIR_0.1.11+0.1.22_PRESENT / ARTIFACT_BINARY_SMOKE_FAIL_CLASSIFICATION_PENDING / TASK_WAITING_V15 / DEV_WAITING_V10_RUN1 / EVENT17_PENDING / EXECUTION_COUNT_7 / FILE_READ_0 / PROVIDER_HTTP_200 / PUSH_FORBIDDEN`。
