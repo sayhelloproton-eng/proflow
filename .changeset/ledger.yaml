@@ -723,6 +723,10 @@
   dir: packages/execution-local
   intents:
     - deployment-closeout-repack
+"@tomflow/proflow-execution-local@0.1.16":
+  dir: packages/execution-local
+  intents:
+    - real3-execution-local-export
 "@tomflow/proflow-execution-local@0.1.2":
   dir: packages/execution-local
   intents:
