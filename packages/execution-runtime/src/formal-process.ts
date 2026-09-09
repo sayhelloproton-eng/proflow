@@ -89,10 +89,14 @@ export function createFormalExecutionRuntimeLifecycle(input: {
 	resolveDependencies?: () => Promise<{
 		identity?: ExecutionRuntimeProcessConfig["identity"];
 		modelDecision?: ExecutionRuntimeProcessConfig["modelDecision"];
-		platformHost?: { endpoint: string; tokenFile: string };
+		platformHost?: ExecutionRuntimeProcessConfig["platformHost"];
 	}>;
 }) {
 	const required = assertFormalConfig(input.config);
+	if (!input.resolveDependencies && !input.config.platformHost)
+		throw new Error(
+			"formal execution-runtime requires platformHost or resolveDependencies",
+		);
 	let current:
 		| {
 				service: Awaited<ReturnType<typeof createExecutionRuntimeProcess>>;
@@ -107,7 +111,7 @@ export function createFormalExecutionRuntimeLifecycle(input: {
 			(async () => ({
 				identity: input.config.identity,
 				modelDecision: input.config.modelDecision,
-				platformHost: undefined,
+				platformHost: input.config.platformHost,
 			}));
 		let identityReady = false;
 		let modelReady = false;

@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, isAbsolute, resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import {
 	artifactMaterializationResponseSchema,
 	EXECUTION_CONTRACT_VERSION,
@@ -27,6 +28,7 @@ export type ExecutionRuntimeProcessConfig = {
 	browserExecutorConfigPath?: string;
 	transportCredentialFile?: string;
 	identity?: { endpoint: string; tokenFile: string };
+	platformHost?: { endpoint: string; tokenFile: string };
 	modelDecision?: {
 		endpoint: string;
 		timeoutMs?: number;
@@ -58,6 +60,30 @@ function string(value: unknown, name: string): string {
 	if (typeof value !== "string" || value.length === 0)
 		throw new TypeError(`${name} must be a non-empty string`);
 	return value;
+}
+
+function parseLoopbackOwner(
+	value: unknown,
+	name: "identity" | "platformHost",
+): { endpoint: string; tokenFile: string } {
+	const input = object(value, name);
+	const endpoint = new URL(string(input.endpoint, `${name}.endpoint`));
+	if (
+		endpoint.protocol !== "http:" ||
+		!new Set(["127.0.0.1", "localhost", "::1", "[::1]"]).has(
+			endpoint.hostname,
+		) ||
+		endpoint.pathname !== "/" ||
+		endpoint.username ||
+		endpoint.password ||
+		endpoint.search ||
+		endpoint.hash
+	)
+		throw new TypeError(`${name}.endpoint must be loopback HTTP root`);
+	const tokenFile = string(input.tokenFile, `${name}.tokenFile`);
+	if (!isAbsolute(tokenFile))
+		throw new TypeError(`${name}.tokenFile must be absolute`);
+	return { endpoint: endpoint.origin, tokenFile };
 }
 
 export function parseExecutionRuntimeProcessConfig(
@@ -124,25 +150,14 @@ export function parseExecutionRuntimeProcessConfig(
 			...(credentialFile === undefined ? {} : { credentialFile }),
 		};
 	}
-	let identity: ExecutionRuntimeProcessConfig["identity"];
-	if (input.identity !== undefined) {
-		const value = object(input.identity, "identity");
-		const endpoint = new URL(string(value.endpoint, "identity.endpoint"));
-		if (
-			endpoint.protocol !== "http:" ||
-			!new Set(["127.0.0.1", "localhost", "::1", "[::1]"]).has(
-				endpoint.hostname,
-			) ||
-			endpoint.pathname !== "/" ||
-			endpoint.search ||
-			endpoint.hash
-		)
-			throw new TypeError("identity.endpoint must be loopback HTTP root");
-		const tokenFile = string(value.tokenFile, "identity.tokenFile");
-		if (!isAbsolute(tokenFile))
-			throw new TypeError("identity.tokenFile must be absolute");
-		identity = { endpoint: endpoint.origin, tokenFile };
-	}
+	const identity =
+		input.identity === undefined
+			? undefined
+			: parseLoopbackOwner(input.identity, "identity");
+	const platformHost =
+		input.platformHost === undefined
+			? undefined
+			: parseLoopbackOwner(input.platformHost, "platformHost");
 	if (
 		!Array.isArray(exactNetworkTargets) ||
 		exactNetworkTargets.some((item) => typeof item !== "string")
@@ -158,6 +173,7 @@ export function parseExecutionRuntimeProcessConfig(
 		...(browserExecutorConfigPath ? { browserExecutorConfigPath } : {}),
 		...(transportCredentialFile ? { transportCredentialFile } : {}),
 		...(identity ? { identity } : {}),
+		...(platformHost ? { platformHost } : {}),
 		...(modelDecision ? { modelDecision } : {}),
 	};
 }
@@ -169,6 +185,64 @@ export async function loadExecutionRuntimeProcessConfig(path: string) {
 }
 
 type Runtime = Awaited<ReturnType<typeof createExecutionRuntime>>;
+type ObserverSignalRow = {
+	record_json: string;
+	created_at: string;
+	signal_ref: string;
+};
+
+function createObserverSignalPager(databasePath: string) {
+	const database = new DatabaseSync(databasePath, { readOnly: true });
+	let cursor: { createdAt: string; signalRef: string } | undefined;
+	let upperBound: { createdAt: string; signalRef: string } | undefined;
+	const page = (
+		limit: number,
+		after?: { createdAt: string; signalRef: string },
+	): ObserverSignalRow[] => {
+		if (!upperBound) return [];
+		return database.prepare(
+			`SELECT record_json, created_at, signal_ref FROM execution_observer_signals
+			 WHERE acknowledged_at IS NULL
+			 AND (created_at, signal_ref) <= (?, ?)
+			 ${after ? "AND (created_at, signal_ref) > (?, ?)" : ""}
+			 ORDER BY created_at, signal_ref LIMIT ?`,
+		).all(
+			upperBound.createdAt, upperBound.signalRef,
+			...(after ? [after.createdAt, after.signalRef] : []), limit,
+		) as ObserverSignalRow[];
+	};
+	const beginCycle = () => {
+		cursor = undefined;
+		const last = database.prepare(
+			"SELECT created_at, signal_ref FROM execution_observer_signals WHERE acknowledged_at IS NULL ORDER BY created_at DESC, signal_ref DESC LIMIT 1",
+		).get();
+		upperBound = last ? {
+			createdAt: String(last.created_at), signalRef: String(last.signal_ref),
+		} : undefined;
+	};
+	return Object.freeze({
+		list(limit = 50): unknown[] {
+			const normalized = Number.isFinite(limit) ? Math.trunc(limit) : 50;
+			const bounded = Math.max(1, Math.min(100, normalized));
+			if (!upperBound) beginCycle();
+			let rows = page(bounded, cursor);
+			if (rows.length === 0) {
+				beginCycle();
+				rows = page(bounded);
+			}
+			const last = rows.at(-1);
+			if (last)
+				cursor = {
+					createdAt: String(last.created_at),
+					signalRef: String(last.signal_ref),
+				};
+			return rows.map((row) => JSON.parse(String(row.record_json)) as unknown);
+		},
+		close() {
+			database.close();
+		},
+	});
+}
 
 export async function createExecutionRuntimeProcess(input: {
 	config: ExecutionRuntimeProcessConfig;
@@ -199,6 +273,7 @@ export async function createExecutionRuntimeProcess(input: {
 	let accepting = false;
 	let server: Server | undefined;
 	let runtime: Runtime | undefined;
+	let observerSignals: ReturnType<typeof createObserverSignalPager> | undefined;
 	const active = new Set<Promise<void>>();
 	const log = (event: string, fields: Record<string, unknown> = {}) =>
 		input.log?.({
@@ -287,6 +362,7 @@ export async function createExecutionRuntimeProcess(input: {
 				...(input.modelDecision ? { modelDecision: input.modelDecision } : {}),
 				...(input.approval ? { approval: input.approval } : {}),
 			});
+			observerSignals = createObserverSignalPager(input.config.databasePath);
 			server = createServer((request, response) => {
 				const work = (async () => {
 					const url = new URL(request.url ?? "/", "http://execution.local");
@@ -584,10 +660,12 @@ export async function createExecutionRuntimeProcess(input: {
 							url.pathname === "/observer-signals/list"
 						) {
 							const value = object(body ?? {}, "observer signal list input");
+							const limit = typeof value.limit === "number" ? value.limit : 50;
 							return respond(response, 200, {
-								signals: runtime.listExecutionObserverSignals(
-									typeof value.limit === "number" ? value.limit : 50,
-								),
+								signals:
+									value.consumer === "task-reconciliation"
+										? observerSignals?.list(limit) ?? []
+										: runtime.listExecutionObserverSignals(limit),
 							});
 						}
 						if (
@@ -667,6 +745,8 @@ export async function createExecutionRuntimeProcess(input: {
 		} catch (error) {
 			state = "STOPPED";
 			accepting = false;
+			observerSignals?.close();
+			observerSignals = undefined;
 			runtime?.close();
 			runtime = undefined;
 			throw error;
@@ -683,6 +763,8 @@ export async function createExecutionRuntimeProcess(input: {
 				running.close((error) => (error ? reject(error) : resolveStop())),
 			);
 		await Promise.allSettled([...active]);
+		observerSignals?.close();
+		observerSignals = undefined;
 		runtime?.close();
 		runtime = undefined;
 		state = "STOPPED";

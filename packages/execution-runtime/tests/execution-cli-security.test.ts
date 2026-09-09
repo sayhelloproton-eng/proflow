@@ -25,6 +25,12 @@ test("RF-EXE-RT-11 formal execution CLI rejects group/world-readable transport c
 	const identity = join(root, "identity.token");
 	const transport = join(root, "execution.token");
 	const model = join(root, "model.token");
+	const taskApplication = join(root, "task-application.token");
+	await writeFile(
+		taskApplication,
+		"task-application-fixture-abcdefghijklmnopqrstuvwxyz\n",
+		{ mode: 0o600 },
+	);
 	await writeFile(
 		identity,
 		"identity-credential-value-abcdefghijklmnopqrstuvwxyz\n",
@@ -54,6 +60,10 @@ test("RF-EXE-RT-11 formal execution CLI rejects group/world-readable transport c
 			browserExecutorConfigPath: join(root, "browser.json"),
 			transportCredentialFile: transport,
 			identity: { endpoint: "http://127.0.0.1:9", tokenFile: identity },
+			platformHost: {
+				endpoint: "http://127.0.0.1:9",
+				tokenFile: taskApplication,
+			},
 			modelDecision: { endpoint: "http://127.0.0.1:9", credentialFile: model },
 		}),
 	);

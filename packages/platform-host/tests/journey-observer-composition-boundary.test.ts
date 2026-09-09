@@ -26,9 +26,18 @@ test("CP-HOST-06 platform-host owns bounded Task Reconciliation while Task Owner
 	const { host, coordinator } = await sources();
 	assert.match(host, /createReconciliationCoordinator/);
 	assert.match(host, /taskDriverPorts\.getTaskDriveProjection/);
-	assert.match(coordinator, /pageSize = options\.pageSize \?\? 100/);
-	assert.match(coordinator, /concurrency = options\.concurrency \?\? 4/);
-	assert.match(coordinator, /intervalMs = options\.intervalMs \?\? 10_000/);
+	assert.match(
+		coordinator,
+		/pageSize = positiveBound\(options\.pageSize, 100, 1_000\)/,
+	);
+	assert.match(
+		coordinator,
+		/concurrency = positiveBound\(options\.concurrency, 4, 64\)/,
+	);
+	assert.match(
+		coordinator,
+		/intervalMs = positiveBound\(options\.intervalMs, 10_000, 60_000\)/,
+	);
 	assert.doesNotMatch(host, /createTaskObserver|extension:task-observer/);
 });
 

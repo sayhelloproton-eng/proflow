@@ -526,6 +526,34 @@ export class SqliteTaskStore implements TaskStore {
 	read<T>(work: (repositories: TaskRepositories) => T): T {
 		return work(this.#repositories());
 	}
+	listReconciliationTaskIds(input: {
+		statuses: readonly Task["status"][];
+		afterTaskId?: string;
+		limit: number;
+	}): { taskIds: string[]; nextAfterTaskId?: string } {
+		const statuses = [...new Set(input.statuses.filter((value) => value.length > 0))];
+		if (statuses.length === 0) return { taskIds: [] };
+		if (!Number.isFinite(input.limit))
+			throw new RangeError("reconciliation page limit must be finite");
+		const limit = Math.max(1, Math.min(1_000, Math.trunc(input.limit)));
+		const placeholders = statuses.map(() => "?").join(",");
+		const rows = this.#database
+			.prepare(
+				`SELECT task_id FROM tasks WHERE status IN (${placeholders})${input.afterTaskId ? " AND task_id > ?" : ""} ORDER BY task_id LIMIT ?`,
+			)
+			.all(
+				...statuses,
+				...(input.afterTaskId ? [input.afterTaskId] : []),
+				limit,
+			) as Array<{ task_id: string }>;
+		const taskIds = rows.map((row) => String(row.task_id));
+		return {
+			taskIds,
+			...(taskIds.length === limit
+				? { nextAfterTaskId: taskIds[taskIds.length - 1] }
+				: {}),
+		};
+	}
 	close(): void {
 		this.#database.close();
 	}

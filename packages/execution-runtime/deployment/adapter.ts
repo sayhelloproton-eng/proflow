@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import {
@@ -84,11 +84,9 @@ async function running(context: ModuleCommandContext) {
 	const own = await readOwnFacts(context);
 	if (!own) return false;
 	try {
-		const token = (await readFile(own.transportCredentialFile, "utf8")).trim();
 		return (
-			await fetch(`${own.endpoint}/ready`, {
-				headers: { authorization: `Bearer ${token}` },
-				signal: AbortSignal.timeout(500),
+			await fetch(`${own.endpoint}/health`, {
+				signal: AbortSignal.timeout(2_000),
 			})
 		).ok;
 	} catch {

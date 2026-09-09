@@ -5,7 +5,10 @@ import {
 } from "./task-observer.ts";
 
 export type ReconciliationCoordinatorOptions = {
-	listTaskIds(): Promise<string[]>;
+	listTaskPage(input: {
+		afterTaskId?: string;
+		limit: number;
+	}): Promise<{ taskIds: string[]; nextAfterTaskId?: string }>;
 	listExecutionSignals(): Promise<unknown[]>;
 	acknowledgeExecutionSignal(signalRef: string): Promise<void>;
 	ensureWorkers(taskId: string): Promise<void>;
@@ -23,53 +26,122 @@ export type ReconciliationCoordinatorOptions = {
 	intervalMs?: number;
 	pageSize?: number;
 	concurrency?: number;
+	maxPendingTasks?: number;
+	maxPendingSignals?: number;
 	now?: () => number;
 };
 
 type FailureState = { attempt: number; nextAt: number };
 
+function positiveBound(
+	value: number | undefined,
+	fallback: number,
+	max: number,
+) {
+	if (value === undefined) return fallback;
+	if (!Number.isInteger(value) || value < 1 || value > max)
+		throw new RangeError(`reconciliation bound must be between 1 and ${max}`);
+	return value;
+}
+
 export function createReconciliationCoordinator(
 	options: ReconciliationCoordinatorOptions,
 ) {
-	const intervalMs = options.intervalMs ?? 10_000;
-	const pageSize = options.pageSize ?? 100;
-	const concurrency = options.concurrency ?? 4;
+	const intervalMs = positiveBound(options.intervalMs, 10_000, 60_000);
+	const pageSize = positiveBound(options.pageSize, 100, 1_000);
+	const concurrency = positiveBound(options.concurrency, 4, 64);
+	const maxPendingTasks = positiveBound(options.maxPendingTasks, 1_024, 10_000);
+	const maxPendingSignals = positiveBound(
+		options.maxPendingSignals,
+		4_096,
+		50_000,
+	);
 	const now = options.now ?? Date.now;
-	let cursor = 0;
+	let taskCursor: string | undefined;
 	let stopped = false;
+	let started = false;
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let sweepInFlight: Promise<void> | null = null;
+	let activeReconciliations = 0;
+	let pendingSignalCount = 0;
+	const slotWaiters: Array<(acquired: boolean) => void> = [];
+	const admittedTasks = new Set<string>();
 	const taskInFlight = new Map<string, Promise<void>>();
-	const pendingSignals = new Map<string, TaskResumeSignal>();
+	const pendingSignals = new Map<string, Map<string, TaskResumeSignal>>();
 	const failures = new Map<string, FailureState>();
-	const appliedIntents = new Map<string, string>();
+	const appliedIntents = new Map<string, Set<string>>();
 	const retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+	const acquireSlot = async (): Promise<boolean> => {
+		if (stopped) return false;
+		if (activeReconciliations < concurrency) {
+			activeReconciliations += 1;
+			return true;
+		}
+		return new Promise<boolean>((resolve) => slotWaiters.push(resolve));
+	};
+	const releaseSlot = () => {
+		const next = stopped ? undefined : slotWaiters.shift();
+		if (next) next(true);
+		else activeReconciliations = Math.max(0, activeReconciliations - 1);
+	};
 	const intentKey = (decision: {
 		taskId: string;
 		nodeId: string;
 		runNo: number;
+		workerRef: string;
 		trigger: string;
 		underlyingRef?: string;
 	}) =>
-		`${decision.taskId}:${decision.nodeId}:${decision.runNo}:${decision.trigger}:${decision.underlyingRef ?? "none"}`;
-
+		JSON.stringify([
+			decision.taskId,
+			decision.nodeId,
+			decision.runNo,
+			decision.workerRef,
+			decision.trigger,
+			decision.underlyingRef ?? null,
+		]);
+	const signalKey = (signal: TaskResumeSignal) =>
+		JSON.stringify([
+			signal.trigger,
+			signal.ref,
+			signal.targetWorkerRef,
+			signal.nodeId,
+			signal.runNo,
+		]);
+	const hasApplied = (taskId: string, key: string) =>
+		appliedIntents.get(taskId)?.has(key) === true;
+	const rememberApplied = (taskId: string, key: string) => {
+		const keys = appliedIntents.get(taskId) ?? new Set<string>();
+		keys.add(key);
+		// This is only a bounded cache. Execution owns durable effect deduplication.
+		if (keys.size > 128) {
+			const oldest = keys.values().next().value;
+			if (oldest !== undefined) keys.delete(oldest);
+		}
+		appliedIntents.set(taskId, keys);
+	};
+	const consumePendingSignal = (taskId: string, signal?: TaskResumeSignal) => {
+		if (!signal) return;
+		const signals = pendingSignals.get(taskId);
+		if (signals?.delete(signalKey(signal))) pendingSignalCount -= 1;
+		if (signals?.size === 0) pendingSignals.delete(taskId);
+	};
+	const clearPendingSignals = (taskId: string) => {
+		pendingSignalCount -= pendingSignals.get(taskId)?.size ?? 0;
+		pendingSignals.delete(taskId);
+	};
 	const markFailure = (taskId: string) => {
-		const previous = failures.get(taskId)?.attempt ?? 0;
-		const attempt = Math.min(previous + 1, 8);
+		const attempt = Math.min((failures.get(taskId)?.attempt ?? 0) + 1, 8);
 		const delay = Math.min(30_000, 500 * 2 ** Math.max(0, attempt - 1));
 		failures.set(taskId, { attempt, nextAt: now() + delay });
 	};
-	const clearFailure = (taskId: string) => failures.delete(taskId);
 	const canAttempt = (taskId: string) =>
 		(failures.get(taskId)?.nextAt ?? 0) <= now();
 	const schedulePendingRetry = (taskId: string) => {
-		if (stopped || !pendingSignals.has(taskId) || retryTimers.has(taskId)) return;
-		const delay = Math.max(0, (failures.get(taskId)?.nextAt ?? now()) - now());
-		if (delay <= 0) {
-			void reconcile(taskId);
+		if (stopped || !pendingSignals.has(taskId) || retryTimers.has(taskId))
 			return;
-		}
+		const delay = Math.max(1, (failures.get(taskId)?.nextAt ?? now()) - now());
 		const retry = setTimeout(() => {
 			retryTimers.delete(taskId);
 			if (!stopped) void reconcile(taskId);
@@ -77,38 +149,57 @@ export function createReconciliationCoordinator(
 		retry.unref?.();
 		retryTimers.set(taskId, retry);
 	};
+	const retainable = (reason: string) =>
+		reason === "BINDING_NOT_READY" ||
+		reason === "RESUME_TARGET_NOT_CURRENT_WORKER";
 
 	const reconcileOnce = async (taskId: string): Promise<void> => {
-		if (!canAttempt(taskId)) return;
+		if (stopped || !canAttempt(taskId)) return;
 		try {
 			let projection = await options.getProjection(taskId);
+			if (stopped) return;
 			if (projection.terminal) {
+				clearPendingSignals(taskId);
 				appliedIntents.delete(taskId);
-				clearFailure(taskId);
+				failures.delete(taskId);
 				return;
 			}
 			await options.ensureWorkers(taskId);
+			if (stopped) return;
 			projection = await options.getProjection(taskId);
-			const signal = pendingSignals.get(taskId);
-			pendingSignals.delete(taskId);
+			if (stopped) return;
+			const signals = pendingSignals.get(taskId);
+			const signal = signals?.values().next().value;
 			const decision = decideTaskProgression(projection, signal);
-			if (decision.kind !== "WAKE") {
-				if (decision.kind === "STOP_DRIVING") appliedIntents.delete(taskId);
-				clearFailure(taskId);
+			if (decision.kind === "STOP_DRIVING") {
+				clearPendingSignals(taskId);
+				appliedIntents.delete(taskId);
+				failures.delete(taskId);
+				return;
+			}
+			if (decision.kind === "NOOP") {
+				if (signal && retainable(decision.reason)) {
+					// Retain blocked intent, rotating it so another signal can progress.
+					const key = signalKey(signal);
+					signals?.delete(key);
+					signals?.set(key, signal);
+					markFailure(taskId);
+				} else {
+					consumePendingSignal(taskId, signal);
+					failures.delete(taskId);
+				}
 				return;
 			}
 			const key = intentKey(decision);
-			if (appliedIntents.get(taskId) === key) {
-				clearFailure(taskId);
-				return;
+			if (!hasApplied(taskId, key)) {
+				await options.requestWake(decision);
+				if (stopped) return;
+				rememberApplied(taskId, key);
 			}
-
-			await options.requestWake(decision);
-			appliedIntents.set(taskId, key);
-			clearFailure(taskId);
+			consumePendingSignal(taskId, signal);
+			failures.delete(taskId);
 		} catch {
-			markFailure(taskId);
-			throw new Error("TASK_RECONCILIATION_FAILED");
+			if (!stopped) markFailure(taskId);
 		}
 	};
 
@@ -116,7 +207,20 @@ export function createReconciliationCoordinator(
 		taskId: string,
 		signal?: TaskResumeSignal,
 	): Promise<void> => {
-		if (signal) pendingSignals.set(taskId, signal);
+		if (stopped) return Promise.resolve();
+		const signals = pendingSignals.get(taskId);
+		const key = signal ? signalKey(signal) : undefined;
+		if (!admittedTasks.has(taskId) && admittedTasks.size >= maxPendingTasks)
+			throw new Error("TASK_RECONCILIATION_CAPACITY_EXCEEDED");
+		if (key && !signals?.has(key) && pendingSignalCount >= maxPendingSignals)
+			throw new Error("TASK_RECONCILIATION_SIGNAL_CAPACITY_EXCEEDED");
+		admittedTasks.add(taskId);
+		if (signal && key && !signals?.has(key)) {
+			const queue = signals ?? new Map<string, TaskResumeSignal>();
+			queue.set(key, signal);
+			pendingSignals.set(taskId, queue);
+			pendingSignalCount += 1;
+		}
 		const retry = retryTimers.get(taskId);
 		if (retry) {
 			clearTimeout(retry);
@@ -124,23 +228,33 @@ export function createReconciliationCoordinator(
 		}
 		const current = taskInFlight.get(taskId);
 		if (current) return current;
-		const run = reconcileOnce(taskId)
-			.catch(() => undefined)
-			.finally(() => {
-				taskInFlight.delete(taskId);
-				if (pendingSignals.has(taskId) && !stopped) schedulePendingRetry(taskId);
-			});
+		const run = (async () => {
+			if (!(await acquireSlot())) return;
+			try {
+				await reconcileOnce(taskId);
+			} finally {
+				releaseSlot();
+			}
+		})().finally(() => {
+			taskInFlight.delete(taskId);
+			if (!stopped && pendingSignals.has(taskId)) schedulePendingRetry(taskId);
+			else admittedTasks.delete(taskId);
+		});
 		taskInFlight.set(taskId, run);
 		return run;
 	};
 
 	const processExecutionSignal = async (raw: unknown) => {
-		if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return;
+		if (
+			stopped ||
+			typeof raw !== "object" ||
+			raw === null ||
+			Array.isArray(raw)
+		)
+			return;
 		const signal = raw as Record<string, unknown>;
 		if (typeof signal.signalRef !== "string") return;
 		if (signal.kind === "UNKNOWN_REALITY") {
-			// UNKNOWN remains durable on the Execution record. Consuming this one-shot
-			// notification never replays the effect and prevents queue starvation.
 			await options.acknowledgeExecutionSignal(signal.signalRef);
 			return;
 		}
@@ -151,7 +265,11 @@ export function createReconciliationCoordinator(
 			typeof signal.workerRef !== "string"
 		)
 			return;
-		if (typeof signal.nodeId !== "string" || !Number.isInteger(signal.runNo)) {
+		if (
+			typeof signal.nodeId !== "string" ||
+			!Number.isInteger(signal.runNo) ||
+			Number(signal.runNo) <= 0
+		) {
 			await options.acknowledgeExecutionSignal(signal.signalRef);
 			return;
 		}
@@ -163,26 +281,26 @@ export function createReconciliationCoordinator(
 			runNo: Number(signal.runNo),
 		};
 		await reconcile(signal.taskId, resumeSignal);
+		if (stopped) return;
 		const projection = await options.getProjection(signal.taskId);
+		if (stopped) return;
 		const decision = decideTaskProgression(projection, resumeSignal);
-		if (decision.kind === "STOP_DRIVING") {
-			await options.acknowledgeExecutionSignal(signal.signalRef);
-			return;
-		}
-		if (decision.kind === "WAKE") {
-			if (appliedIntents.get(signal.taskId) === intentKey(decision))
-				await options.acknowledgeExecutionSignal(signal.signalRef);
-			return;
-		}
 		if (
-			decision.reason !== "BINDING_NOT_READY" &&
-			decision.reason !== "RESUME_TARGET_NOT_CURRENT_WORKER"
+			decision.kind === "STOP_DRIVING" ||
+			(decision.kind === "WAKE" &&
+				hasApplied(signal.taskId, intentKey(decision))) ||
+			(decision.kind === "NOOP" && !retainable(decision.reason))
 		)
 			await options.acknowledgeExecutionSignal(signal.signalRef);
 	};
 	const processExecutionSignals = async () => {
+		if (stopped) return;
 		const signals = (await options.listExecutionSignals()).slice(0, 100);
-		for (let index = 0; index < signals.length; index += concurrency)
+		for (
+			let index = 0;
+			!stopped && index < signals.length;
+			index += concurrency
+		)
 			await Promise.all(
 				signals
 					.slice(index, index + concurrency)
@@ -191,27 +309,34 @@ export function createReconciliationCoordinator(
 					),
 			);
 	};
-
-	const runPage = async (taskIds: string[]) => {
-		for (let index = 0; index < taskIds.length; index += concurrency) {
-			const batch = taskIds.slice(index, index + concurrency);
-			await Promise.all(batch.map((taskId) => reconcile(taskId)));
-		}
-	};
 	const sweep = (): Promise<void> => {
 		if (stopped) return Promise.resolve();
 		if (sweepInFlight) return sweepInFlight;
 		sweepInFlight = (async () => {
 			await processExecutionSignals().catch(() => undefined);
-			const taskIds = await options.listTaskIds();
-			if (taskIds.length === 0) {
-				cursor = 0;
-				return;
+			if (stopped) return;
+			let page = await options.listTaskPage({
+				...(taskCursor ? { afterTaskId: taskCursor } : {}),
+				limit: pageSize,
+			});
+			if (stopped) return;
+			if (page.taskIds.length === 0 && taskCursor !== undefined) {
+				taskCursor = undefined;
+				page = await options.listTaskPage({ limit: pageSize });
+				if (stopped) return;
 			}
-			if (cursor >= taskIds.length) cursor = 0;
-			const page = taskIds.slice(cursor, cursor + pageSize);
-			cursor = (cursor + page.length) % taskIds.length;
-			await runPage(page);
+			taskCursor = page.nextAfterTaskId;
+			// A page uses the same bounded admission and slots as kicks and retries.
+			for (
+				let index = 0;
+				!stopped && index < page.taskIds.length;
+				index += concurrency
+			)
+				await Promise.all(
+					page.taskIds.slice(index, index + concurrency).map(async (taskId) => {
+						await reconcile(taskId);
+					}),
+				);
 		})()
 			.catch(() => undefined)
 			.finally(() => {
@@ -219,7 +344,6 @@ export function createReconciliationCoordinator(
 			});
 		return sweepInFlight;
 	};
-
 	const schedule = () => {
 		if (stopped) return;
 		timer = setTimeout(() => {
@@ -230,21 +354,27 @@ export function createReconciliationCoordinator(
 	return Object.freeze({
 		start() {
 			if (stopped) throw new Error("RECONCILIATION_COORDINATOR_STOPPED");
+			if (started) return;
+			started = true;
 			void sweep();
 			schedule();
 		},
 		kick(taskId: string, signal?: TaskResumeSignal) {
-			if (stopped) return;
+			// Capacity errors are synchronous: never report acceptance after dropping intent.
 			void reconcile(taskId, signal);
 		},
 		reconcile,
 		sweep,
 		stop() {
+			if (stopped) return;
 			stopped = true;
 			if (timer) clearTimeout(timer);
 			for (const retry of retryTimers.values()) clearTimeout(retry);
 			retryTimers.clear();
+			for (const waiter of slotWaiters.splice(0)) waiter(false);
 			pendingSignals.clear();
+			pendingSignalCount = 0;
+			admittedTasks.clear();
 			failures.clear();
 			appliedIntents.clear();
 		},

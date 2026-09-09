@@ -1644,23 +1644,25 @@ async function constructGraph(
 		return wakeExecution;
 	};
 	reconciliationCoordinator = createReconciliationCoordinator({
-		async listTaskIds() {
-			return unwrap(
-				task.queries.listTasks({
-					statuses: [
-						"PENDING",
-						"READY",
-						"ACTIVE",
-						"WAITING",
-						"FAILED",
-						"PAUSED",
-					],
-				}),
-			).tasks.map((candidate) => candidate.taskId);
+		async listTaskPage(input) {
+			return taskStore.listReconciliationTaskIds({
+				statuses: [
+					"PENDING",
+					"READY",
+					"ACTIVE",
+					"WAITING",
+					"FAILED",
+					"PAUSED",
+				],
+				...input,
+			});
 		},
 		async listExecutionSignals() {
 			const batch = object(
-				await execution.invoke("listExecutionObserverSignals", { limit: 100 }),
+				await execution.invoke("listExecutionObserverSignals", {
+					limit: 100,
+					consumer: "task-reconciliation",
+				}),
 				"execution observer signals",
 			);
 			return Array.isArray(batch.signals) ? batch.signals : [];

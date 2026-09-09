@@ -80,8 +80,8 @@ async function running(context: ModuleCommandContext) {
 	if (!own) return false;
 	try {
 		return (
-			await fetch(`${own.endpoint}/ready`, {
-				signal: AbortSignal.timeout(500),
+			await fetch(`${own.endpoint}/health`, {
+				signal: AbortSignal.timeout(2_000),
 			})
 		).ok;
 	} catch {

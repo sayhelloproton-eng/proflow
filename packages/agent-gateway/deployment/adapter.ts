@@ -74,8 +74,8 @@ async function running(context: ModuleCommandContext) {
 	if (!own) return false;
 	try {
 		return (
-			await fetch(`${own.localBaseUrl}/ready`, {
-				signal: AbortSignal.timeout(500),
+			await fetch(`${own.localBaseUrl}/health`, {
+				signal: AbortSignal.timeout(2_000),
 			})
 		).ok;
 	} catch {
