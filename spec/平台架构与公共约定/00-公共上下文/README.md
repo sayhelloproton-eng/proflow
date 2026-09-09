@@ -1,5 +1,7 @@
 # ProFlow Phase 3｜GPT Chat 公共上下文入口
 
+> 跨项目的 Chat → Local Engineering 执行 mechanics 不在本目录维护；统一继承 `/Users/agent/Desktop/proton-workspace/skills/chat-local-engineering-protocol/SKILL.md`。本目录只负责项目状态、接力、项目长期规则与 Runbook。
+
 > 目的：让新的 GPT Chat 在旧 Chat 上下文耗尽后，能像连续工作一样接手，而不是重新学习项目。
 > 更新时间：2026-09-08。
 

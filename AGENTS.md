@@ -1,5 +1,15 @@
 # AGENTS.md
 
+## Workspace Chat → Local Engineering Protocol｜HARD INHERITANCE
+
+`CHAT_LOCAL_ENGINEERING_PROTOCOL=REQUIRED`
+
+在本仓库执行任何本机工程动作前，必须读取并遵循：
+
+`/Users/agent/Desktop/proton-workspace/skills/chat-local-engineering-protocol/SKILL.md`
+
+该共享 Skill 是 **Chat → Local execution mechanics** 的 workspace-level 单一权威源：Engineering Decision、批量上下文/修改、本机真实 test/build/typecheck/lint/benchmark、低频 progress sampling、Failure First、选择性复验与 Git/WIP 保护均不得被仓库内重复规则降级。仓库规则只补充项目语义、领域/安全/Review 约束；更严格的项目规则继续生效。若共享 Skill 不可读，在 mutation / test / build / Git write 前 STOP。当前 Chat 已读取同版本后无需重复读取。
+
 ## Repository identity
 
 This repository is the new **ProFlow** platform product repository.
