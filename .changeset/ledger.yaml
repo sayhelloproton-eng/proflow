@@ -94,6 +94,10 @@
   dir: packages/agent-gateway
   intents:
     - real3-b1-runtime-adoption
+"@tomflow/proflow-agent-gateway@0.1.17":
+  dir: packages/agent-gateway
+  intents:
+    - real3-final-runtime-closure
 "@tomflow/proflow-agent-gateway@0.1.2":
   dir: packages/agent-gateway
   intents:
@@ -639,6 +643,10 @@
   dir: packages/execution-browser-extension
   intents:
     - observer-recovery-trailing-demand
+"@tomflow/proflow-execution-browser-extension@0.1.51":
+  dir: packages/execution-browser-extension
+  intents:
+    - real3-final-runtime-closure
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
@@ -771,6 +779,10 @@
   dir: packages/execution-runtime
   intents:
     - real3-generation-identity-closure
+"@tomflow/proflow-execution-runtime@0.1.19":
+  dir: packages/execution-runtime
+  intents:
+    - real3-final-runtime-closure
 "@tomflow/proflow-execution-runtime@0.1.2":
   dir: packages/execution-runtime
   intents:
@@ -1288,6 +1300,10 @@
   dir: packages/platform-host
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-platform-host@0.1.23":
+  dir: packages/platform-host
+  intents:
+    - real3-final-runtime-closure
 "@tomflow/proflow-platform-host@0.1.3":
   dir: packages/platform-host
   intents:
@@ -1388,6 +1404,10 @@
   dir: packages/task-store-sqlite
   intents:
     - breezy-grapes-own
+"@tomflow/proflow-task-store-sqlite@0.1.12":
+  dir: packages/task-store-sqlite
+  intents:
+    - real3-final-runtime-closure
 "@tomflow/proflow-task-store-sqlite@0.1.2":
   dir: packages/task-store-sqlite
   intents:
