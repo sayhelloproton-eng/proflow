@@ -67,13 +67,17 @@ test("CP-EXE-BR-03 WAKE targets the existing Conversation with a minimal trigger
 	);
 });
 
-test("CP-EXE-BR-04 Task Observer requests WAKE before the Worker formally startNode; Browser does not mutate Node state", async () => {
+test("CP-EXE-BR-04 backend Reconciliation owns progression; Extension only accepts typed WAKE and never mutates Node state", async () => {
 	const text = await sourceCorpus();
-	assert.match(text, /getTaskDriveProjection/);
-	assert.doesNotMatch(text, /\.startNode\s*\(/);
+	assert.match(text, /worker\.wake/);
+	assert.match(text, /WAKE_GUARD|guardWake/);
 	assert.doesNotMatch(
 		text,
-		/\.completeNode\s*\(|\.waitNode\s*\(|\.reopenNode\s*\(/,
+		/getTaskDriveProjection|createTaskObserver|taskObserver\.drive/,
+	);
+	assert.doesNotMatch(
+		text,
+		/\.startNode\s*\(|\.completeNode\s*\(|\.waitNode\s*\(|\.reopenNode\s*\(/,
 	);
 });
 
@@ -137,15 +141,14 @@ test("CP-EXE-BR-09 uncertain submit/WAKE reconciles DELIVERED/ABSENT/UNKNOWN and
 	);
 });
 
-test("CP-EXE-BR-10 Task Observer is deterministic on normal progression, REASON is diagnostic-only, and terminal stops driving", async () => {
+test("CP-EXE-BR-10 Extension contains no Task progression/model-diagnostic authority", async () => {
 	const text = await sourceCorpus();
-	assert.match(text, /Task Observer|taskObserver/i);
-	assert.match(text, /terminal/i);
-	assert.doesNotMatch(text, /NODE_READY[^\n]{0,200}(?:infer|reason)/i);
 	assert.doesNotMatch(
 		text,
-		/taskObserver[^\n]{0,240}(?:completeNode|reopenNode|approve|authorize)/i,
+		/createTaskObserver|taskObserver|task\.projection|task\.diagnostic|task\.wake/,
 	);
+	assert.doesNotMatch(text, /NODE_READY[^\n]{0,200}(?:infer|reason)/i);
+	assert.match(text, /createSystemObserver/);
 });
 
 test("CP-EXE-BR-11 System Observer covers eight bounded concern families, defers as lowest priority, and never owns mutation", async () => {

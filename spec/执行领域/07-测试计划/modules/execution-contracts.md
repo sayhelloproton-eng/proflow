@@ -75,7 +75,7 @@ Execution Contract 错误会让所有真实 Effect 的状态、证据与不确�
 
 ## 5. Critical Proofs
 
-- [ ] **CP-EXE-CON-01** — executeCapability/getExecution/readExecutionOutput/cancelExecution 的类型与 runtime schema 一致。
+- [ ] **CP-EXE-CON-01** — internal `executeCapability/getExecution/readExecutionOutput/cancelExecution` 的类型与 runtime schema 一致，并明确不属于 GPT-facing Action surface。
 - [ ] **CP-EXE-CON-02** — ExecutionStatus、SideEffectState、Result、Evidence、Error 使用可验证 discriminated union；非法状态组合被拒绝。
 - [ ] **CP-EXE-CON-03** — 外部 boundary `unknown → runtime validation`，公共 contract 零 `any`。
 - [ ] **CP-EXE-CON-04** — consumer/provider compatibility test 可以阻止 breaking contract 漂移。
@@ -86,7 +86,7 @@ Execution Contract 错误会让所有真实 Effect 的状态、证据与不确�
 
 | TODO | Frozen Goal | Frozen Anchor | Normative Rule Refs | Critical Proof | Scenario Family | Test Plan Acceptance |
 |---|---|---|---|---|---|---|
-| `EXE-CON-001` | 冻结 executeCapability/getExecution/readExecutionOutput/cancelExecution 类型与 schema | `EXECUTION-TODO-EXECUTION-CONTRACTS` § `EXE-CON-001` | `EXECUTION-TECH-EXECUTION-CONTRACTS`<br>`EXECUTION-DOC-02-01`<br>`EXECUTION-DOC-02-02` | `CP-EXE-CON-01` | executeCapability/getExecution/readExecutionOutput/cancelExecution 类型与 schema | executeCapability/getExecution/readExecutionOutput/cancelExecution 的类型与 runtime schema 一致。 |
+| `EXE-CON-001` | 冻结 internal executeCapability/getExecution/readExecutionOutput/cancelExecution 类型与 schema，并禁止暴露为 GPT Actions | `EXECUTION-TODO-EXECUTION-CONTRACTS` § `EXE-CON-001` | `EXECUTION-TECH-EXECUTION-CONTRACTS`<br>`EXECUTION-DOC-02-01`<br>`EXECUTION-DOC-02-02` | `CP-EXE-CON-01` | internal Execution service types + GPT surface exclusion | internal execute/get/read/cancel 类型与 runtime schema 一致；shipped Role OpenAPI 不暴露这些 operation。 |
 | `EXE-CON-002` | 冻结 ExecutionStatus/SideEffectState/Result/Evidence/Error discriminated unions | `EXECUTION-TODO-EXECUTION-CONTRACTS` § `EXE-CON-002` | `EXECUTION-TECH-EXECUTION-CONTRACTS`<br>`EXECUTION-DOC-02-01`<br>`EXECUTION-DOC-02-02` | `CP-EXE-CON-02` | ExecutionStatus/SideEffectState/Result/Evidence/Error discriminated unions | ExecutionStatus、SideEffectState、Result、Evidence、Error 使用可验证 discriminated union；非法状态组合被拒绝。 |
 | `EXE-CON-003` | 实现 unknown→runtime validation，公共 contract 零 any | `EXECUTION-TODO-EXECUTION-CONTRACTS` § `EXE-CON-003` | `EXECUTION-TECH-EXECUTION-CONTRACTS`<br>`EXECUTION-DOC-02-01`<br>`EXECUTION-DOC-02-02` | `CP-EXE-CON-03` | unknown→runtime validation，公共 contract 零 any | 外部 boundary `unknown → runtime validation`，公共 contract 零 `any`。 |
 | `EXE-CON-004` | 完成 consumer/provider contract tests 与 compatibility tests | `EXECUTION-TODO-EXECUTION-CONTRACTS` § `EXE-CON-004` | `EXECUTION-TECH-EXECUTION-CONTRACTS`<br>`EXECUTION-DOC-02-01`<br>`EXECUTION-DOC-02-02` | `CP-EXE-CON-04` | consumer/provider contract tests 与 compatibility tests | consumer/provider compatibility test 可以阻止 breaking contract 漂移。 |
@@ -163,3 +163,11 @@ Execution Contract 错误会让所有真实 Effect 的状态、证据与不确�
 - [ ] **CP-EXE-CONTRACTS-08** — `ArtifactRef` and `EvidenceRef` are distinct opaque/ref-safe contract types; result envelopes can expose artifact and evidence refs without equating artifact existence to success.
 - [ ] **CP-EXE-CONTRACTS-09** — Journey identity fields (`taskId/nodeId/runNo/roleRef/workerRef/correlationId`) remain strongly typed and no frame/persistent-tab identity enters stable owner DTOs.
 - [ ] **CP-EXE-CONTRACTS-10** — Browser Carrier create/restore/wake/delivery messages remain typed Execution-side requests/results; no Task/System Observer business mutation API is introduced in Execution contracts.
+
+## 2026-09-09 Contract Separation Gate
+
+- [ ] **CP-EXE-CONTRACTS-11** — Execution contracts 不定义 GPT-facing `repomix/localDev/codeGraph` Tool request；Direct Tool contract 归 Agent/Carrier Tool Action contract。
+- [ ] **CP-EXE-CONTRACTS-12** — shipped Role OpenAPI 中 `executeCapability/getExecution/readExecutionOutput` 为零；内部 Execution service type 的存在不得被 conformance 工具误判为 GPT capability。
+- [ ] **RF-EXE-CONTRACTS-11** — 为复用 internal Execution DTO，把 `taskId/nodeId/runNo/workerRef/executionRef` 泄漏进 Direct Tool request。
+
+**Executable proof**：`packages/execution-contracts/tests/execution-contracts-critical-proofs.test.ts` + `packages/platform-host/tests/direct-tools-route.test.ts` + `packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts` + `packages/agent-test-ops/tests/agent-test-ops-static.test.ts`。

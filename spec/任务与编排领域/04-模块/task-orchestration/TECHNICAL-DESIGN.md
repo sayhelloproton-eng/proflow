@@ -17,28 +17,28 @@ subdomains:
 provides: []
 requires: []
 contractRefs:
-- TASK-ORCHESTRATION-TECH-TASK-ORCHESTRATION
 - TASK-DOC-02-01
 - TASK-DOC-02-02
+- TASK-DOC-03-05
 ---
 
 # `task-orchestration` Technical Design Index
 
 ## Responsibility
 
-负责 Task/TaskGroup/Node/TaskRoleBinding/TaskDocument 的 Domain/Application Services；详细设计分布在领域模型、Public API、流程与 Service/npm 模块设计。
+负责 Task/TaskGroup/Node/TaskRoleBinding/TaskDocument 的 Domain/Application Services；不实现 Browser、Tool、Observer daemon 或模型判断。
 
-## Existing detailed sources
+## Detailed sources
 
 - [00-Service与npm模块设计.md](../00-Service与npm模块设计.md)
 - [01-Public-API-契约.md](../../02-契约/01-Public-API-契约.md)
 - [01-关键流程与状态转换.md](../../03-流程与数据/01-关键流程与状态转换.md)
-- [02-实施顺序与验收门禁.md](../../05-质量与部署/02-实施顺序与验收门禁.md)
+- [05-Task-Observer推进与异常诊断边界.md](../../03-流程与数据/05-Task-Observer推进与异常诊断边界.md)
 
-## Boundary Rule
+## 2026-09-09 Journey alignment
 
-本文件只定义该 Module 的工程落点，不复制 Domain / Bounded Context 的 canonical facts。若实现需要引入当前 normative Contract 未定义的新算法语义、状态、持久化事实或跨域 Contract，必须先完成对应设计与 Contract Change；不得由 TODO/Codex 自行补全。
+Module 继续维护 PENDING→READY、TaskRoleBinding、TaskDocument、`getTaskDriveProjection`、Worker `startNode`、reopen same Worker/runNo+1、terminal stop-driving facts。
 
-## 2026-08-14 Journey Alignment
+Task Observer/Reconciliation **不在本 package 也不在 Browser Extension**；它作为 backend application consumer 读取 `getTaskDriveProjection` 与其他 Owner current facts，做 deterministic next-step + bounded catch-up，然后通过正式 Carrier/Owner port 请求动作。所有业务写入仍回 Task commands。
 
-该Module还必须实现/维护：Extension/application发起`createTask(PENDING)`；`TaskRoleBinding(agentPackageRef, roleRef, workerRef, conversationLocator)`；deterministic readiness；无Task start approval fact；bounded `getTaskDriveProjection`；READY后Task Observer先WAKE、Worker再`startNode`；async Execution/Collaboration/Carrier pending不自动Task WAIT；reopen same Worker/runNo+1；terminal stop-driving。Observer与Browser均不进入Task owner实现。
+Local Tool result 不自动推进 Node；Worker 自己判断完成后显式调用 `completeNode/waitNode/failNode`。

@@ -43,8 +43,19 @@ test("CP-AGT-TEST-07 J1 Test/Ops is bind-only/IDLE and starts the formal Node on
 });
 
 test("CP-AGT-TEST-08 one Worker Turn permits 0..N routine Actions without Browser per-action scheduling", () => {
-	for (const operation of ops)
-		assert.equal(operation["x-openai-isConsequential"], false);
+	assert.equal(
+		ops.find((item) => item.operationId === "localDev")?.[
+			"x-openai-isConsequential"
+		],
+		true,
+	);
+	for (const tool of ["repomix", "codeGraph"])
+		assert.equal(
+			ops.find((item) => item.operationId === tool)?.[
+				"x-openai-isConsequential"
+			],
+			false,
+		);
 	assert.doesNotMatch(
 		JSON.stringify(openapi),
 		/continueWorker|actionFinished|browserContinue|wakeAfterAction/i,
@@ -56,12 +67,17 @@ test("CP-AGT-TEST-09 File Bridge/Code Interpreter may analyze artifacts but PASS
 	assert.equal(profile.capabilities.codeInterpreter, true);
 	assert.equal(profile.requirements.fileBridge, "required");
 	assert.ok(operationIds.includes("putTaskDocument"));
-	assert.ok(operationIds.includes("getExecution"));
+	for (const tool of ["repomix", "localDev", "codeGraph"])
+		assert.ok(operationIds.includes(tool));
+	assert.equal(operationIds.includes("getExecution"), false);
 	assert.match(
 		metadata.proflowAgent.instructions,
 		/test PASS 不等于 Task complete/,
 	);
-	assert.match(metadata.proflowAgent.instructions, /TaskDocument\/Evidence/);
+	assert.match(
+		metadata.proflowAgent.instructions,
+		/不确定时保留证据并升级，不伪造 PASS/,
+	);
 });
 
 test("CP-AGT-TEST-10 fail→reopen keeps the same Worker/Conversation and runNo advances through Task ownership", () => {

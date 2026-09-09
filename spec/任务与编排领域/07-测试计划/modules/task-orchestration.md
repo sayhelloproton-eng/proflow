@@ -184,8 +184,23 @@ Task 是长期工作事实与状态推进 Owner；错误 transition、binding、
 
 - [ ] **CP-TASK-ORCH-09** — `createTask` 初始 PENDING；Product GPT不拥有pre-Task create；Requirement可在PENDING以 Task-scoped `nodeId:null` 写入；固定 Product/Controller-Dev/Test-Ops 三个 TaskRoleBinding 均具备 workerRef+conversationLocator，且 TaskGroup ACTIVE/前序 SUCCEEDED/serial-busy 等 prerequisite 全部满足后，唯一 canonical readiness 逻辑才形成 READY；`startTaskGroup/startTask` 不得绕过。
 - [ ] **CP-TASK-ORCH-10** — simple Task start confirmation不持久化`authorizeTask/authorizedByRef/authorizedAt/APPROVAL_PENDING`；human channel只调用`startTask`。
-- [ ] **CP-TASK-ORCH-11** — `getTaskDriveProjection`提供bounded Task facts给Task Observer，Observer无法通过该API写Task；READY wake后由Worker正式`startNode`。
+- [ ] **CP-TASK-ORCH-11** — `getTaskDriveProjection`提供bounded Task facts给 backend Task Observer/Reconciliation，Observer无法通过该API写Task；bounded catch-up 可在 Extension 事件全部丢失时重新发现 READY，最终由 Worker 正式 `startNode`。
 - [ ] **CP-TASK-ORCH-12** — Execution/Collaboration/Carrier async pending默认不改变Task WAITING；只有正式workflow blocker可`waitNode`。
 - [ ] **CP-TASK-ORCH-13** — reopen 保留 same TaskRoleBinding/Worker/Conversation，但清空 Node run-level workerRef；runNo+1，下一次 startNode 从稳定 binding 重新解析同一 workerRef；terminal后Task Observer stop-driving。
 
 新增 proof 不修改历史Evidence；开发后以新的test/evidence记录证明。
+
+## 2026-09-09 Reconciliation / Tool Independence Gate
+
+- [ ] **CP-TASK-ORCH-14** — Dev `completeNode` 形成 Test READY 后，即使没有 Extension page event/reconnect，backend bounded catch-up 也最终形成 Test Carrier request；Task owner 不新增 scheduler state。
+- [ ] **CP-TASK-ORCH-15** — 普通 Repomix/Local Dev/CodeGraph result 不自动 transition Task/Node；只有 Worker 显式 owner Action（如 completeNode/failNode/waitNode）改变 workflow truth。
+- [ ] **CP-TASK-ORCH-16** — `putTaskDocument/getTaskDocument` 与 Direct Tool provider readiness 解耦；三 Tool 全 DOWN 时官方 TaskDocument owner path 仍可工作。
+- [ ] **CP-TASK-ORCH-17** — terminal Task 的 backend reconciliation 产生 stop-driving；Extension/local tool result 均不能 ghost-wake terminal Worker。
+
+**Executable proof**：`packages/platform-host/tests/task-reconciliation.test.ts` + `packages/task-orchestration/tests/journey-observer-contract.test.ts` + `packages/task-orchestration/tests/task-owned-integration.test.ts` + `packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts`。
+
+## 独立审计补充：分页与 dispatch guard
+
+细化 CP-TASK-ORCH-11/14..17：真实 Task Store 的 listTasks cursor/limit keyset 必须 bounded；超过两页、删除/terminal/新增任务期间迭代，下一轮仍能发现全部 eligible task。不能用全量查询再 slice 证明 bounded。
+
+getTaskDriveProjection 与 pre-effect public guard 以最新 task/node version、runNo、binding、terminal 为准；stale decision 不授权 WAKE。Task Store 不存 Browser queue、Tool handle 或 Observer scheduler。重复 wake 的 durable effect proof 归 Execution/Extension，不把 query unit 升级成真实提交证明。

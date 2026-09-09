@@ -77,7 +77,7 @@ Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 
 
 ## 4. Real / Fake Boundary
 
-**Real requirement**：核心状态/幂等可真实本地持久化；E5 与 browser/local executor 最终真实联调。
+**Real requirement**：核心 durable Execution 状态/幂等可真实本地持久化；E5 与 Browser executor 及确实需要 durable Execution 的 internal local mechanics 联调。GPT-facing Repomix/Local Dev/CodeGraph 明确不进入本 Runtime。
 
 **允许的隔离方式**：Policy/Model/Executor 可用于故障注入 fake，但不能用 Mock 证明真实 Effect 已经 applied。
 
@@ -88,7 +88,7 @@ Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 
 - [ ] **CP-EXE-RT-03** — 真实副作用 Intent 在 effect 前 durable；effect_started 后 lost response 先 reality reconciliation，禁止 blind retry。
 - [ ] **CP-EXE-RT-04** — UNKNOWN 仅在 reality 无法确定时产生，并可被后续 verifier 收敛到 APPLIED/NOT_APPLIED。
 - [ ] **CP-EXE-RT-05** — 大 output/evidence 落盘并通过摘要+ref 返回，Evidence 可下钻且 secret redacted。
-- [ ] **CP-EXE-RT-06** — execution-local 与 browser executor 由一个 backend service 统一路由，不产生第二 Execution truth。
+- [ ] **CP-EXE-RT-06** — Browser/Carrier/Approval/UNKNOWN/materialization 等 durable operation 继续由单一 Execution Runtime 持有 truth；GPT-facing Repomix/Local Dev/CodeGraph 即使复用同一 `execution-local` 物理 package，也不得进入该 lifecycle。
 - [ ] **CP-EXE-RT-07** — queue/concurrency/timeouts/cancel/restart 有 typed semantics；disconnect/lost response/duplicate/unknown side effect fault injection 不产生 duplicate Effect。
 - [ ] **CP-EXE-RT-08** — Effect Approval 是 Execution-owned durable fact：Policy 判定需要 Human 时由 Execution Owner 自动形成单一 durable PENDING draft；request/ALLOW/DENY/revoke/expiry/version/consume 全部持久化，并绑定 execution/caller/capability/input fingerprint/scope；stale、expired、denied、revoked、consumed Approval 均不得授权 Effect。
 
@@ -115,7 +115,7 @@ Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 
 - [ ] **RF-EXE-RT-03** — effect_started 后 lost response/disconnect 发生 blind retry
 - [ ] **RF-EXE-RT-04** — UNKNOWN 在 reality 可判定时产生或无法由 verifier 收敛
 - [ ] **RF-EXE-RT-05** — 大 output/evidence 丢失、不可下钻或泄漏 secret
-- [ ] **RF-EXE-RT-06** — local/browser executor 形成第二 Execution truth
+- [ ] **RF-EXE-RT-06** — Direct Tool 被重新包装进 Execution lifecycle，或 Browser durable effect 形成第二 Execution truth
 - [ ] **RF-EXE-RT-07** — queue/timeout/cancel/restart/duplicate fault 导致 duplicate Effect
 - [ ] **RF-EXE-RT-08** — Approval 仅靠可注入 validate mock、APPROVAL_REQUIRED 没有 durable draft source、重复 decision 生成多个 pending draft、Approval 状态未持久化、版本/expiry/scope/fingerprint 不匹配仍可执行、已消费 Approval 被重复复用
 
@@ -133,7 +133,7 @@ Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 
 - **EV-EXE-RT-05** — UNKNOWN/reality reconciliation record
 - **EV-EXE-RT-06** — queue/timeout/cancel/restart structured result
 - **EV-EXE-RT-07** — fault injection 前后真实 Effect count / duplicate absence
-- **EV-EXE-RT-08** — backend routing/public-client trace：local/browser executor 共用单一 Execution truth
+- **EV-EXE-RT-08** — routing trace：Browser/durable internal mechanics进入 Execution；GPT-facing Direct Tools zero Execution Runtime calls
 
 ## 8.1 Critical Proof → Risk → Layer → Evidence Binding
 
@@ -186,7 +186,7 @@ Runtime 是真实 Effect 控制面；persist-before-effect、Approval、UNKNOWN 
 
 ## 11. 2026-08-14 Journey / Artifact Critical Proof Addendum
 
-- [ ] **CP-EXE-RT-22** — Browser/Carrier writes and local writes converge to the same durable Execution truth; Observer/Extension cannot create a second effect/state runtime.
+- [ ] **CP-EXE-RT-22** — Browser/Carrier writes remain on the single durable Execution truth；GPT-facing Local Tool reads/mutations do not create Execution Records and instead use Extension Local Tool Effect Gate + provider-native result/reality recovery。
 - [ ] **CP-EXE-RT-09** — Gateway-normalized File Bridge inbound refs are bounded-materialized with scope/timeout/hash/MIME/size facts before becoming reusable artifacts; locator timeout/expiry is transport failure, not proof that an owner Action did or did not mutate business truth.
 - [ ] **CP-EXE-RT-10** — Context Pack/Patch are artifact subtypes, not new Store/Service/Domain; patch application remains a separate policy-controlled Execution effect with Result/Evidence.
 - [ ] **CP-EXE-RT-12** — File Bridge materialization成功后必须先写入 Execution-owned durable Artifact registry（caller/task/node/role/worker scope + hash/MIME/bytes/provenance），restart 后仍可读取；transient locator 或 materializer return object 不能直接冒充 durable Artifact truth。
@@ -222,7 +222,7 @@ Failure gates include Browser-owned durable truth, blind replay after uncertain 
 
 ### CP-EXE-RT-18 / RF-EXE-RT-18 — Frozen read DTO + trusted caller transport context
 
-- `ExecutionService.getExecution(executionRef)` and `ReadExecutionOutputRequest` must retain the Frozen Public Contract; `callerRef` must not be added to GPT/Public read DTOs.
+- `ExecutionService.getExecution(executionRef)` and `ReadExecutionOutputRequest` may retain the frozen internal Public Contract for trusted platform consumers；它们不是 GPT-facing DTO，且不得重新加入 Role OpenAPI。
 - Gateway-authenticated caller identity is injected only as trusted internal transport/admission context and is revalidated against the durable Execution caller plus current Task/Role/Worker binding before returning data.
 - The formal `proflow-execution-runtime` binary requires both Identity configuration and an Execution transport credential; an unauthenticated production binary must fail closed instead of trusting a caller-context header.
 - `artifactRef` identifies output bytes; it must never be relabeled as `evidenceRef`.
@@ -232,8 +232,8 @@ Failure gates include Browser-owned durable truth, blind replay after uncertain 
 ### CP-EXE-RT-19 / RF-EXE-RT-19 — Durable recovery/UNKNOWN Observer signals
 
 - Runtime restart/reconciliation that requires the bound Worker to resume must emit a durable `RECOVERY_RESUME` signal from the Execution Owner; unresolved reality emits durable `UNKNOWN_REALITY`.
-- Ordinary synchronous terminal `executeCapability()` completion must not emit a new Browser Worker Turn.
-- Signals use deterministic identity, survive process restart, and remain pending until the Extension-side Task Observer has an actionable or terminal decision; transient `BINDING_NOT_READY`, target mismatch, or diagnostic unavailability must not acknowledge/drop the signal.
+- Ordinary internal synchronous terminal `executeCapability()` completion must not emit a new Browser Worker Turn；Direct Tool completion 更不得制造 Task/Browser continuation。
+- Signals use deterministic identity, survive process restart, and remain pending until backend Task Observer/Reconciliation has an actionable or terminal decision；Extension 只接收最终 typed Carrier request。transient `BINDING_NOT_READY`、target mismatch 或 diagnostic unavailability 不得提前 acknowledge/drop signal。
 - Acknowledged deterministic signals must not reappear on a later Runtime restart.
 
 **RF-EXE-RT-19:** in-memory-only recovery notification, blind duplicate wake, or acknowledgement before Observer can consume the fact is a release blocker.
@@ -273,3 +273,15 @@ The formal `proflow-execution-runtime` binary now marks `modelDecision=UNAVAILAB
 - Runtime-generated `executionRef` and the actual Execution input fingerprint are propagated into the Model caller trace/facts; physical provider/model identifiers remain Model-owned and never enter Execution configuration.
 - `CONTEXT_TOO_LARGE` is handled by one explicit caller-owned compact retry; repeated overflow fails closed. Protocol/transport mismatch degrades consumer readiness.
 - Executable proof: `packages/execution-runtime/tests/model-decision-client.test.ts`, `execution-runtime-critical-proofs.test.ts`, and `execution-runtime-service.test.ts`.
+
+## 2026-09-09 Direct Tool Exclusion Gate
+
+- [ ] **CP-EXE-RT-23** — 一次 GPT-facing `repomix/localDev/codeGraph` 调用产生 `Execution Record = 0`、Execution identity lookup = 0、Execution polling = 0。
+- [ ] **CP-EXE-RT-24** — Execution Runtime DOWN 不得把已 READY 的 Direct Tool Provider 判为 unavailable；反向亦然，Direct Tool Provider DOWN 不改变 Browser durable Execution truth。
+- [ ] **CP-EXE-RT-25** — `execution-local` package 可被 Execution Runtime 内部机制与 Extension Local Tool bridge 两条调用方复用，但二者 contract/entrypoint 必须物理可区分，禁止通过 capability dispatch table 偷渡 Direct Tool。
+- [ ] **CP-EXE-RT-26** — Execution Runtime 自身可因 Model Decision/Browser dependency 报 `NOT_READY`；该状态只约束需要该 Runtime 的 operation，不得成为 Gateway/Host Direct Tool 的全局 readiness 前置门。
+- [ ] **CP-EXE-RT-27** — Execution Runtime 只消费 `execution-browser-extension` 发布的 Browser lane endpoint/credential/readiness，不创建/关闭 bridge runtime；执行 Runtime stop/restart 后，Extension bridge 与 Local Tool lane 继续存活。
+
+**Executable proof**：`packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts` + `packages/execution-runtime/tests/execution-runtime-service.test.ts` + `packages/execution-browser-extension/tests/runtime-composition.test.ts` + `packages/platform-host/tests/direct-tools-route.test.ts`。
+
+本节只更新 Test Plan；existing executable tests/`08-测试用例与验证` 在源码落地后再重绑。

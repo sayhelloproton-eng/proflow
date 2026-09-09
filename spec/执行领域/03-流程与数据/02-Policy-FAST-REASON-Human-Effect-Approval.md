@@ -149,24 +149,25 @@ x-openai-isConsequential:false
 
 ---
 
-## 8. `executeCapability` 等 GPT Action 的 consequential 语义
+## 8. GPT Actions 与内部 Execution Approval 的 consequential 语义
 
-如果 GPT-facing Action 只是“向 Execution durable plane 提交一个 typed intent/request”，真正 Effect 仍由 Execution Policy 决定，那么 Action 本身应是 routine platform control/intent：
-
-```text
-x-openai-isConsequential:false
-```
-
-这**绝不**意味着真实 capability 获得 ALLOW。Execution 仍执行：
+GPT 不再暴露 `executeCapability/getExecution/readExecutionOutput`。每个真正 GPT-facing Action 根据**自身实际 effect**显式声明 `x-openai-isConsequential`：
 
 ```text
-identity/scope
-→ Policy
-→ approval validity
-→ real Effect
+Task/Peer query、Repomix、CodeGraph、Local Dev read/list/search
+→ 通常 false
+
+Local Dev mutate/run/process 中产生真实 mutation 的 operation
+→ 按真实副作用声明
 ```
 
-因此 OpenAI confirmation 不再重复平台自己的 Effect Approval。
+OpenAI Carrier confirmation、Browser Extension Local Tool Effect Gate、Execution internal Approval 是不同层。Local Tool 不因为进入 Extension 就自动变成 Execution Approval，也不能因为 `consequential:false` 绕过 Role×Tool×Operation、workspace/path/command safety。
+
+只有 Browser/Carrier/materialization 等仍进入 durable Execution 的内部 Effect 才继续执行：
+
+```text
+identity/scope → Policy → Approval validity → durable Effect
+```
 
 ---
 

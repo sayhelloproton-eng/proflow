@@ -126,7 +126,10 @@ test("CP-EXE-BR-16 deployment pairing persists only heartbeat-proven Extension r
 		const executor = JSON.parse(
 			await readFile(join(stateRoot, "browser-executor.json"), "utf8"),
 		);
-		assert.equal(executor.bridge.extensionId, extensionId);
+		assert.deepEqual(Object.keys(executor).sort(), ["endpoint", "tokenFile"]);
+		assert.match(executor.endpoint, /^http:\/\/127\.0\.0\.1:\d+$/);
+		assert.equal(typeof executor.tokenFile, "string");
+		assert.equal("bridge" in executor, false);
 	} finally {
 		await rm(workspaceRoot, { recursive: true, force: true });
 	}

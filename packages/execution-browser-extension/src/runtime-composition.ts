@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import {
 	type BrowserRealityBridgeOptions,
+	createBrowserRealityBridgeClient,
 	createBrowserRealityBridgeServer,
 } from "./bridge.ts";
 import {
@@ -11,7 +12,7 @@ import {
 	createExecutionBrowserExtension,
 } from "./index.ts";
 
-type LocalApplicationConfig = {
+export type LocalApplicationConfig = {
 	endpoint: string;
 	token: string;
 };
@@ -20,22 +21,6 @@ function packageRoot(): string {
 	const candidate = dirname(dirname(fileURLToPath(import.meta.url)));
 	return basename(candidate) === "dist" ? dirname(candidate) : candidate;
 }
-
-export type BrowserExecutorCompositionOptions = {
-	platformHost: LocalApplicationConfig;
-	bridge: BrowserRealityBridgeOptions;
-	vision?: BrowserVisionPort;
-};
-
-export type BrowserExecutorCompositionFileConfig = {
-	platformHost: { endpoint: string; tokenFile: string };
-	bridge: {
-		extensionId: string;
-		tokenFile: string;
-		host?: string;
-		port?: number;
-	};
-};
 
 function record(value: unknown, name: string): Record<string, unknown> {
 	if (typeof value !== "object" || value === null || Array.isArray(value))
@@ -57,40 +42,6 @@ async function readSecret(path: string, name: string): Promise<string> {
 	if (value.length < 32)
 		throw new TypeError(`${name} must contain at least 32 characters`);
 	return value;
-}
-
-export async function loadBrowserExecutorCompositionConfig(
-	path: string,
-): Promise<BrowserExecutorCompositionOptions> {
-	const absolute = resolve(path);
-	const root = dirname(absolute);
-	const raw = record(
-		JSON.parse(await readFile(absolute, "utf8")),
-		"browser executor composition config",
-	);
-	const platformHost = record(raw.platformHost, "platformHost");
-	const bridge = record(raw.bridge, "bridge");
-	return {
-		platformHost: {
-			endpoint: nonEmpty(platformHost.endpoint, "platformHost.endpoint"),
-			token: await readSecret(
-				resolve(
-					root,
-					nonEmpty(platformHost.tokenFile, "platformHost.tokenFile"),
-				),
-				"platformHost token",
-			),
-		},
-		bridge: {
-			extensionId: nonEmpty(bridge.extensionId, "bridge.extensionId"),
-			token: await readSecret(
-				resolve(root, nonEmpty(bridge.tokenFile, "bridge.tokenFile")),
-				"bridge token",
-			),
-			...(bridge.host === "127.0.0.1" ? { host: bridge.host } : {}),
-			...(bridge.port !== undefined ? { port: Number(bridge.port) } : {}),
-		},
-	};
 }
 
 function applicationConfig(
@@ -127,6 +78,7 @@ async function invokeOwnerApplication(
 			"content-type": "application/json",
 		},
 		body: JSON.stringify({ operation, input }),
+		signal: AbortSignal.timeout(5_000),
 	});
 	const text = await response.text();
 	const body = text.length ? (JSON.parse(text) as unknown) : undefined;
@@ -141,96 +93,133 @@ async function invokeOwnerApplication(
 	return body;
 }
 
-async function invokeApplication(
-	config: LocalApplicationConfig,
-	operation: string,
-	input: Record<string, unknown>,
-): Promise<unknown> {
-	return invokeOwnerApplication(config, "observer", operation, input);
-}
-
-/**
- * Node-side Browser Executor composition. This deliberately does NOT create an
- * Execution Runtime process. The single formal execution-runtime binary owns
- * Execution truth and must inject `browserExecutor` from this composition.
- */
-export async function createBrowserExecutorComposition(
-	options: BrowserExecutorCompositionOptions,
+function composeExecutor(
+	browser: Parameters<typeof createExecutionBrowserExtension>[0]["browser"],
+	platformHost: () => Promise<LocalApplicationConfig>,
+	vision?: BrowserVisionPort,
 ) {
-	const platformHost = applicationConfig(options.platformHost);
-	const root = packageRoot();
-	const taskHtml = (await readFile(resolve(root, "extension/tasks.html"), "utf8")).replace(
-		"../dist/extension/tasks.js",
-		"/tasks/app.js",
-	);
-	const taskScript = await readFile(resolve(root, "dist/extension/tasks.js"), "utf8");
-	const bridge = await createBrowserRealityBridgeServer({
-		...options.bridge,
-		taskWeb: {
-			html: taskHtml,
-			script: taskScript,
-			invokeTask: (operation, input) =>
-				invokeOwnerApplication(platformHost, "task", operation, input),
-			invokeApproval: (operation, input) =>
-				invokeOwnerApplication(platformHost, "approval", operation, input),
+	return createExecutionBrowserExtension({
+		browser,
+		...(vision ? { vision } : {}),
+		task: {
+			async getWorkerBinding(taskId, roleRef) {
+				return (await invokeOwnerApplication(
+					await platformHost(),
+					"observer",
+					"browser.binding",
+					{ taskId, roleRef },
+				)) as {
+					workerRef: string;
+					conversationLocator: string | null;
+				} | null;
+			},
+			async bindWorker(binding) {
+				await invokeOwnerApplication(
+					await platformHost(),
+					"observer",
+					"browser.bindWorker",
+					binding,
+				);
+			},
+		},
+		agent: {
+			async getPendingMessage(messageRef) {
+				return (await invokeOwnerApplication(
+					await platformHost(),
+					"observer",
+					"collaboration.getPending",
+					{ messageRef },
+				)) as Awaited<
+					ReturnType<
+						Parameters<
+							typeof createExecutionBrowserExtension
+						>[0]["agent"]["getPendingMessage"]
+					>
+				>;
+			},
+			async reportPhysicalDelivery(messageRef, evidenceRef, executionRef) {
+				await invokeOwnerApplication(
+					await platformHost(),
+					"observer",
+					"collaboration.reportDelivery",
+					{
+						messageRef,
+						outcome: "DELIVERED",
+						evidenceRef,
+						executionRef,
+					},
+				);
+			},
 		},
 	});
-	try {
-		const browserExecutor = createExecutionBrowserExtension({
-			browser: bridge.browser,
-			...(options.vision ? { vision: options.vision } : {}),
-			task: {
-				async getWorkerBinding(taskId, roleRef) {
-					return (await invokeApplication(platformHost, "browser.binding", {
-						taskId,
-						roleRef,
-					})) as {
-						workerRef: string;
-						conversationLocator: string | null;
-					} | null;
-				},
-				async bindWorker(binding) {
-					await invokeApplication(platformHost, "browser.bindWorker", binding);
-				},
-			},
-			agent: {
-				async getPendingMessage(messageRef) {
-					return (await invokeApplication(
-						platformHost,
-						"collaboration.getPending",
-						{
-							messageRef,
-						},
-					)) as Awaited<
-						ReturnType<
-							Parameters<
-								typeof createExecutionBrowserExtension
-							>[0]["agent"]["getPendingMessage"]
-						>
-					>;
-				},
-				async reportPhysicalDelivery(messageRef, evidenceRef, executionRef) {
-					await invokeApplication(
-						platformHost,
-						"collaboration.reportDelivery",
-						{
-							messageRef,
-							outcome: "DELIVERED",
-							evidenceRef,
-							executionRef,
-						},
-					);
-				},
-			},
-		});
-		return Object.freeze({
-			browserExecutor,
-			bridgeEndpoint: bridge.endpoint,
-			bridgeStatus: bridge.status,
-			close: bridge.close,
-		});
-	} catch (error) {
-		await bridge.close();
-		throw error;
-	}
+}
+
+/** The Extension deployment owns this listener; owner applications resolve per request. */
+export async function createBrowserBridgeLifecycle(options: {
+	bridge: BrowserRealityBridgeOptions;
+	platformHost: (
+		surface: "task" | "approval",
+	) => Promise<LocalApplicationConfig>;
+}) {
+	const root = packageRoot();
+	const [html, script] = await Promise.all([
+		readFile(resolve(root, "extension/tasks.html"), "utf8"),
+		readFile(resolve(root, "dist/extension/tasks.js"), "utf8"),
+	]);
+	return createBrowserRealityBridgeServer({
+		...options.bridge,
+		resolveApplicationConfig: async () => ({
+			task: applicationConfig(await options.platformHost("task")),
+			approval: applicationConfig(await options.platformHost("approval")),
+		}),
+		taskWeb: {
+			html: html.replace("../dist/extension/tasks.js", "/tasks/app.js"),
+			script,
+			invokeTask: async (operation, input) =>
+				invokeOwnerApplication(
+					applicationConfig(await options.platformHost("task")),
+					"task",
+					operation,
+					input,
+				),
+			invokeApproval: async (operation, input) =>
+				invokeOwnerApplication(
+					applicationConfig(await options.platformHost("approval")),
+					"approval",
+					operation,
+					input,
+				),
+		},
+	});
+}
+
+/** Execution Runtime is a non-owning Browser-lane client; close never closes the listener. */
+export async function createBrowserExecutorClientComposition(options: {
+	configPath: string;
+	platformHost: () => Promise<LocalApplicationConfig>;
+	vision?: BrowserVisionPort;
+}) {
+	const raw = record(
+		JSON.parse(await readFile(options.configPath, "utf8")),
+		"browser client config",
+	);
+	const endpoint = nonEmpty(raw.endpoint, "endpoint");
+	const client = createBrowserRealityBridgeClient({
+		endpoint,
+		token: await readSecret(
+			nonEmpty(raw.tokenFile, "tokenFile"),
+			"browser executor credential",
+		),
+	});
+	return Object.freeze({
+		browserExecutor: composeExecutor(
+			client.browser,
+			async () => applicationConfig(await options.platformHost()),
+			options.vision,
+		),
+		bridgeEndpoint: endpoint,
+		bridgeStatus: client.status,
+		refreshStatus: client.refreshStatus,
+		close: client.close,
+	});
 }

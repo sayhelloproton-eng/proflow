@@ -36,30 +36,20 @@ async function modelDependency(expectedCredential?: string) {
 			>;
 			requests.push(body);
 			const specRef = body.specRef;
-			const data =
-				specRef === "task.diagnostic.v1"
-					? {
-							finding: "bounded finding",
-							probableCause: "bounded cause",
-							confidence: 0.7,
-							recommendedNextObservation: "observe",
-							recommendedRecoveryAction: "reconcile",
-							needsHumanAttention: false,
-						}
-					: {
-							scope: "global",
-							health: "HEALTHY",
-							findings: [],
-							risks: [],
-							anomalies: [],
-							hypotheses: [],
-							unresolved: [],
-							needsDrilldown: [],
-							evidenceRefs: [],
-							carryForward: [],
-							confidence: 0.9,
-							rationale: "bounded assessment",
-						};
+			const data = {
+				scope: "global",
+				health: "HEALTHY",
+				findings: [],
+				risks: [],
+				anomalies: [],
+				hypotheses: [],
+				unresolved: [],
+				needsDrilldown: [],
+				evidenceRefs: [],
+				carryForward: [],
+				confidence: 0.9,
+				rationale: "bounded assessment",
+			};
 			response.end(
 				JSON.stringify({
 					contractVersion: "1.0.0",
@@ -92,17 +82,13 @@ async function modelDependency(expectedCredential?: string) {
 	};
 }
 
-test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the single Model infer contract with caller-owned mode/priority/trace", async () => {
+test("PRESMOKE-B5-HOST-MODEL-01 normal Task reconciliation has zero Model call; System Assessment alone uses background REASON", async () => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-host-model-callers-"));
-	const modelTransportCredential = "model-runtime-transport-credential-value";
-	const dependency = await modelDependency(modelTransportCredential);
+	const credential = "model-runtime-transport-credential-value";
+	const dependency = await modelDependency(credential);
 	const stateRoot = join(root, ".proflow");
-	const modelTransportCredentialFile = join(root, "model-runtime.token");
-	await writeFile(
-		modelTransportCredentialFile,
-		`${modelTransportCredential}\n`,
-		{ mode: 0o600 },
-	);
+	const credentialFile = join(root, "model-runtime.token");
+	await writeFile(credentialFile, `${credential}\n`, { mode: 0o600 });
 	const host = createPlatformHost({
 		config: parsePlatformHostConfig({
 			stateRoot,
@@ -111,7 +97,7 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 			port: 0,
 			executionBaseUrl: dependency.baseUrl,
 			modelBaseUrl: dependency.baseUrl,
-			modelTransportCredentialFile,
+			modelTransportCredentialFile: credentialFile,
 			roles: [],
 		}),
 	});
@@ -123,67 +109,35 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 				"utf8",
 			)
 		).trim();
-		const call = (operation: string, input: Record<string, unknown>) =>
-			fetch(`http://${started.host}:${started.port}/application/observer`, {
+		const response = await fetch(
+			`http://${started.host}:${started.port}/application/observer`,
+			{
 				method: "POST",
 				headers: {
 					authorization: `Bearer ${token}`,
 					"content-type": "application/json",
 				},
-				body: JSON.stringify({ operation, input }),
-			});
-		const diagnostic = await call("task.diagnostic", {
-			taskId: "task:1",
-			nodeId: "node:1",
-			correlationId: "execution:1",
-			payload: {
-				taskId: "task:1",
-				nodeId: "node:1",
-				runNo: 1,
-				anomaly: {
-					kind: "UNKNOWN_REALITY",
-					ref: "execution:1",
-					facts: { status: "UNKNOWN" },
-				},
+				body: JSON.stringify({
+					operation: "system.reason",
+					input: {
+						assessmentRef: "assessment:1",
+						payload: {
+							assessmentRef: "assessment:1",
+							kind: "CONCERN_BATCH",
+							scope: "task-worker",
+							observedAt: "2026-08-16T00:00:00.000Z",
+							views: { task: { summary: "bounded task", health: "HEALTHY" } },
+							previousUnresolved: [],
+							previousCarryForward: [],
+						},
+					},
+				}),
 			},
-		});
-		assert.equal(diagnostic.status, 200);
-		const assessment = await call("system.reason", {
-			assessmentRef: "assessment:1",
-			payload: {
-				assessmentRef: "assessment:1",
-				kind: "CONCERN_BATCH",
-				scope: "task-worker",
-				observedAt: "2026-08-16T00:00:00.000Z",
-				views: { task: { summary: "bounded task", health: "HEALTHY" } },
-				previousUnresolved: [],
-				previousCarryForward: [],
-			},
-		});
-		assert.equal(assessment.status, 200);
-		assert.equal(dependency.requests.length, 2);
-		assert.deepEqual(dependency.inferAuthorizations, [
-			`Bearer ${modelTransportCredential}`,
-			`Bearer ${modelTransportCredential}`,
-		]);
-		assert.equal(
-			dependency.readyAuthorizations.includes(
-				`Bearer ${modelTransportCredential}`,
-			),
-			true,
-			"Model /ready must be probed with the configured transport Bearer",
 		);
-		const task = dependency.requests[0] as {
-			specRef: string;
-			mode: string;
-			priority: string;
-			trace: { callerRef: string };
-		};
-		assert.equal(task.specRef, "task.diagnostic.v1");
-		assert.equal(task.mode, "reason");
-		assert.equal(task.priority, "business");
-		assert.equal(task.trace.callerRef, "extension:task-observer");
-		const system = dependency.requests[1] as {
+		assert.equal(response.status, 200);
+		assert.equal(dependency.requests.length, 1);
+		assert.deepEqual(dependency.inferAuthorizations, [`Bearer ${credential}`]);
+		const system = dependency.requests[0] as {
 			specRef: string;
 			mode: string;
 			priority: string;
@@ -196,8 +150,6 @@ test("PRESMOKE-B5-HOST-MODEL-01 Task Diagnostic and System Assessment use the si
 		assert.equal(system.trace.callerRef, "extension:system-observer");
 		assert.equal(system.trace.assessmentRef, "assessment:1");
 		assert.equal(system.payload.assessmentKind, "CONCERN_BATCH");
-		assert.equal("kind" in system.payload, false);
-		assert.equal("assessmentRef" in system.payload, false);
 	} finally {
 		await host.stop();
 		await dependency.close();

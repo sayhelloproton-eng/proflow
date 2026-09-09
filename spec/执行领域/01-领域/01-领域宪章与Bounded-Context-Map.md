@@ -13,33 +13,36 @@ subdomain: null
 subdomains: []
 provides: []
 requires: []
-contractRefs: []
+contractRefs:
+- AGENT-DOC-02-05
 ---
 
 # 执行领域｜领域宪章与 Bounded Context Map
 
 ## 1. Purpose
 
-把 Intent 转换为受控真实 Effect，并生成 Result + Evidence；负责不确定副作用恢复。
+Execution 只负责**确实需要 durable effect semantics 的内部执行**：在真实 Browser/Carrier、副作用审批、UNKNOWN/recovery、physical delivery 与仍有内部 caller 的 materialization 场景中，把已获准的 intent 转换为可恢复 Effect，并形成 Result / Artifact / Evidence。
+
+GPT-facing 本地工程工具不再属于 Execution Capability 主链。Repomix / Local Dev / CodeGraph 通过 `Action → Gateway → ProFlow API → Browser Extension → 独立 Local Tool lane → execution-local → macOS` 执行。
 
 ## 2. Owns
 
-- Execution Record
-- Execution status
-- sideEffectState
-- Effect policy enforcement
-- Effect Approval semantics
-- Result / Artifact / Evidence
-- Browser Execution
-- Local Execution
-- UNKNOWN_SIDE_EFFECT
+- durable Execution Record / status / sideEffectState（仅内部 durable effect 场景）
+- Effect policy / Approval / precondition / UNKNOWN recovery
+- Browser/Carrier real effect 与 physical collaboration delivery 的 Result / Evidence
+- 仍有内部 caller 的 external-file/materialization Artifact truth
+- Browser Effect reconciliation / no-blind-replay
+
+`execution-local` 属于 Execution 领域的本机实现扩展包，但其中 `local-dev / repomix / codegraph` 的 GPT-facing Tool 调用**不经过 execution-runtime lifecycle**。
 
 ## 3. Does Not Own
 
-- Task workflow
+- Task workflow / Task progression truth
 - Role/Worker ownership
 - Model business judgment ownership
 - Deployment lifecycle
+- GPT-facing Tool product model、Role×Tool×Operation authorization
+- Local Tool command queue/readiness/audit 的第二业务真源
 
 ## 4. 主 Bounded Context
 
@@ -47,53 +50,39 @@ contractRefs: []
 execution
 ```
 
-当前设计以统一 Effect Plane 和一套 Execution Record/Policy/Evidence 语义为中心，没有冻结多个独立模型边界；Browser/Local 是执行载体与 Module，而不是自动拆成 BC。
+当前不因 package/service/folder 自动增加 Bounded Context。Browser durable execution 与 Local Tool implementation 可以同属本领域工程包，但调用语义不同：前者可进入 Execution durable lifecycle，后者按 Tool contract 直接返回结果。
 
-当前文档体系特别禁止：
+## 5. Module map
+
+| Module | Package | Runtime | 当前职责 |
+|---|---|---|---|
+| execution-contracts | `@tomflow/proflow-execution-contracts` | library | 内部 durable Execution / Browser contract、Result/Evidence/Approval/UNKNOWN 类型 |
+| execution-runtime | `@tomflow/proflow-execution-runtime` | backend service | durable Browser/Carrier/Approval/UNKNOWN/materialization control plane |
+| execution-local | `@tomflow/proflow-execution-local` | local library/runtime implementation | `local-dev / repomix / codegraph` 本机实现；必要内部 primitive 可被 Execution 复用 |
+| execution-browser-extension | `@tomflow/proflow-execution-browser-extension` | Chrome Extension | Browser Carrier + Deployment line + 独立 Local Tool Effect Gate/lane |
+
+## 6. Public / Internal Boundary
+
+`executeCapability/getExecution/readExecutionOutput/cancelExecution` 若仍由实现保留，只是**平台内部 Execution service contract**，不再是 Custom GPT Actions，也不进入五概念模型心智。
+
+Custom GPT 的本地工程工具固定为：
 
 ```text
-package == Bounded Context
-service == Bounded Context
-folder == Bounded Context
+Repomix   → pack / grep / read
+Local Dev → read / list / search / mutate / run / process
+CodeGraph → explore
 ```
 
-## 5. 现有能力/问题分组
+正式 Tool contract 见 `AGENT-DOC-02-05`。
 
-- Execution Runtime
-- Local Execution
-- Browser Execution
-- Policy/Approval
-- Evidence/Recovery
+## 7. Cross-domain requirements
 
-这些分组用于阅读和 Module 映射，不代表已经新增多个业务模型边界。
+Execution 只通过 Public Contract 获取必要事实：Task/Worker scope、Agent delivery target、Model bounded diagnostic（确有需要时）、Deployment config。Local Tool 请求本身 Task-agnostic，不要求 Task/Node/Worker/Execution identity。
 
-## 6. Bounded Context → Module
+## 8. Hard invariants
 
-| `execution-contracts` | `@tomflow/proflow-execution-contracts` | library | — | — |
-| `execution-runtime` | `@tomflow/proflow-execution-runtime` | service | execution-runtime | execution-runtime-process |
-| `execution-local` | `@tomflow/proflow-execution-local` | library | — | — |
-| `execution-browser-extension` | `@tomflow/proflow-execution-browser-extension` | browser-extension | — | chrome-extension |
-
-## 7. Public Boundary
-
-Provides：
-- executeCapability
-- getExecution
-- readExecutionOutput
-- cancelExecution
-
-Requires：
-- Task opaque refs/context when needed
-- Agent Role/Worker facts
-- Model infer for bounded cognition
-- Deployment module/config
-
-跨域依赖必须经过 Public Contract；禁止读取其他领域 DB、Repository、内部 Adapter 或 deep import。
-
-## 8. 详细模型与边界正文
-
-本文件只冻结 DDD 导航边界，不重写原高密度技术正文。详细定义继续由本领域 `01-领域/02-*`、`01-领域/03-*` 和 `02-契约/*` 承载。
-
-## 9. 2026-08-14 Journey alignment
-
-Execution 是唯一 real-effect plane。`Artifact` 是本 Context 的受控 materialized output/input identity，与 `Evidence` 分离；Context Pack/Patch 只是 Artifact subtype。Browser Extension 虽承载 Task/System Observer application logic 与 Carrier Controller，但不能因此拥有第二套 Execution truth。Task start confirmation 不产生 Execution approval；只有具体危险 Effect 的 Approval 属于 Execution。
+- Host/API 不得绕过 Browser Extension 直连本机 Tool。
+- Local Tool 不得重新包装为 `executeCapability → executionRef → polling/readOutput`。
+- Browser `/v1/commands/*` 与 Local Tool `/v1/local-tools/commands/*` 使用独立 lane；Local Tool 慢/挂不得阻塞 WAKE/submit/heartbeat。
+- Task Observer deterministic progression / lost-trigger reconciliation 位于 backend application；Extension 不承担业务 progression scheduler。
+- Browser/Approval/UNKNOWN 等 durable internal Effect 继续保留 persist-before-effect 与 reality-first recovery。

@@ -13,8 +13,14 @@ const testPlanIndexUrl = new URL(
 	"spec/平台架构与公共约定/06-测试计划/TEST-PLAN-INDEX.json",
 	repoUrl,
 );
-const resourceAdapterUrl = new URL("../src/resource-adapter.ts", import.meta.url);
-const deploymentAdapterUrl = new URL("../deployment/adapter.ts", import.meta.url);
+const resourceAdapterUrl = new URL(
+	"../src/resource-adapter.ts",
+	import.meta.url,
+);
+const deploymentAdapterUrl = new URL(
+	"../deployment/adapter.ts",
+	import.meta.url,
+);
 const devTunnelPlanUrl = new URL(
 	"spec/部署领域/07-测试计划/modules/dev-tunnel.md",
 	repoUrl,
@@ -58,7 +64,6 @@ test("SPEC-ALIGN dev-tunnel remains an honest Deployment-owned external-resource
 	assert.equal(plan.path, "部署领域/07-测试计划/modules/dev-tunnel.md");
 });
 
-
 test("CP-DEV-TUNNEL-09 CP-DEV-TUNNEL-10 final cold-start ownership stays aligned across plan and production", async () => {
 	const [plan, resourceSource, deploymentSource] = await Promise.all([
 		readFile(devTunnelPlanUrl, "utf8"),
@@ -71,7 +76,10 @@ test("CP-DEV-TUNNEL-09 CP-DEV-TUNNEL-10 final cold-start ownership stays aligned
 		"export async function verifyProvisionedPublicBaseUrl",
 	);
 	const end = resourceSource.indexOf("interface DevTunnelProcessRecord", start);
-	assert.ok(start >= 0 && end > start, "provisioned public URL verifier must exist");
+	assert.ok(
+		start >= 0 && end > start,
+		"provisioned public URL verifier must exist",
+	);
 	const readiness = resourceSource.slice(start, end);
 	assert.match(readiness, /probeTlsProtocol/);
 	assert.match(readiness, /TLS 1\.2 or newer/);

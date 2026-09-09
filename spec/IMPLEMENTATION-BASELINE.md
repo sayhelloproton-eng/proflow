@@ -89,7 +89,9 @@ Owner current fact > deterministic policy/invariant > model assessment > Convers
 normal Task progression = deterministic
 Task diagnostic REASON = exception-only, no workflow authority
 System Observer = lowest-priority derived assessment, no business ownership
-real Effect = Execution
+internal durable Effect = Execution
+GPT local engineering Tools = Extension Effect Gate → execution-local Direct Tool adapters
+Task Observer / bounded reconciliation = backend application composed by platform-host
 Browser Carrier = page create/restore/wake/observe, not business orchestrator
 workerRef/conversationLocator = stable; tab/window/content identity = transient
 ```

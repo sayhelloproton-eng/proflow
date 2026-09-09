@@ -20,6 +20,10 @@ export const descriptor = {
 	],
 	requires: [
 		{
+			contractRef: "execution-browser-executor",
+			versionRange: ">=1.0.0 <2.0.0",
+		},
+		{
 			contractRef: "execution-local",
 			versionRange: ">=1.0.0 <2.0.0",
 		},

@@ -68,7 +68,10 @@ test("CP-AGT-RUNTIME-11 role carrier validation parses local OpenAPI and proves 
 		{ status: "PASS", issues: [] },
 	);
 	let transientActionAttempts = 0;
-	const transientActionFetch: typeof globalThis.fetch = async (request, init) => {
+	const transientActionFetch: typeof globalThis.fetch = async (
+		request,
+		init,
+	) => {
 		if (
 			String(request).includes("/actions/getTask") &&
 			transientActionAttempts++ === 0

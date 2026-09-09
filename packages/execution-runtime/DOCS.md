@@ -2,7 +2,7 @@
 
 ## 模块定位与作用
 
-接收标准 Execution Intent，选择 Local 或 Browser Executor，管理执行、恢复和 Evidence，并向其他领域提供唯一真实副作用入口。
+接收内部 durable Execution Intent，选择受控 Local/Browser Executor，管理执行、恢复和 Evidence；GPT-facing Repomix / Local Dev / CodeGraph Direct Tools 不进入该 lifecycle。
 
 ## 主要能力
 
@@ -17,8 +17,8 @@
 
 ## 依赖的 Module、Contract 和外部资源
 
-- 依赖 `execution-local`，兼容版本 `>=1.0.0 <2.0.0`。
-- Browser Effect 还需要 execution-browser-extension 发布的 Executor shared fact。
+- 依赖 `execution-browser-executor` 与 `execution-local`，兼容版本均为 `>=1.0.0 <2.0.0`。
+- `execution-browser-executor` 由 execution-browser-extension 发布；Execution Runtime 只消费该 Browser lane client/readiness，不拥有或关闭 Extension bridge listener。
 
 ## 运行形态与生命周期
 

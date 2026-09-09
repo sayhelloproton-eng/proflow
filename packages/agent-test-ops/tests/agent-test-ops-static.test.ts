@@ -38,19 +38,47 @@ test("CP-AGT-TEST-01 instructions and Action allowlist preserve test/ops least p
 		metadata.proflowAgent.instructions,
 		/test PASS 不等于 Task complete/,
 	);
-	assert.ok(operations.includes("executeCapability"));
-	assert.equal(operations.includes("reopenNode"), false);
-	assert.equal(operations.includes("startNode"), true);
+	assert.deepEqual(
+		new Set(operations),
+		new Set([
+			"getTask",
+			"getNodeContext",
+			"startNode",
+			"completeNode",
+			"waitNode",
+			"failNode",
+			"getTaskDocument",
+			"putTaskDocument",
+			"askPeer",
+			"replyPeer",
+			"repomix",
+			"localDev",
+			"codeGraph",
+		]),
+	);
+	for (const removed of [
+		"executeCapability",
+		"getExecution",
+		"readExecutionOutput",
+		"reopenNode",
+	])
+		assert.equal(operations.includes(removed), false, removed);
 	assert.doesNotMatch(openapi, /executeAnything|updateStatus|git\.push/);
 	assert.doesNotMatch(openapi, /unevaluatedProperties|allOf:/);
 });
-test("CP-AGT-TEST-02 test result and evidence remain owner contract facts", () => {
+
+test("CP-AGT-TEST-02 test result/evidence stay Owner facts while engineering reality uses Direct Tools", () => {
 	assert.ok(operations.includes("putTaskDocument"));
-	assert.ok(operations.includes("getExecution"));
-	assert.match(metadata.proflowAgent.instructions, /TaskDocument\/Evidence/);
+	for (const tool of ["repomix", "localDev", "codeGraph"])
+		assert.ok(operations.includes(tool));
+	assert.equal(operations.includes("getExecution"), false);
+	assert.match(
+		metadata.proflowAgent.instructions,
+		/test PASS 不等于 Task complete/,
+	);
 });
 
-test("B1-AGT-TEST-01 Action schemas require exact Node generation and expose typed file.read without caller Worker/root", () => {
+test("B1-AGT-TEST-01 Action schemas keep Node owner generation and strict Test/Ops Direct Tool inputs", () => {
 	const schemas = parsed.components.schemas;
 	const document = schemas.PutTaskDocumentInput;
 	assert.ok(document);
@@ -58,38 +86,28 @@ test("B1-AGT-TEST-01 Action schemas require exact Node generation and expose typ
 	assert.deepEqual((document.properties as Record<string, unknown>).nodeId, {
 		type: ["string", "null"],
 	});
-	const execute = schemas.ExecuteCapabilityInput;
-	assert.ok(execute);
-	for (const field of ["taskId", "nodeId", "runNo"])
-		assert.ok((execute.required as string[]).includes(field));
-	assert.equal("workerRef" in (execute.properties as object), false);
-	assert.equal("projectRoot" in (execute.properties as object), false);
-	const fileRead = (execute.anyOf as Array<Record<string, unknown>>)[0];
-	assert.ok(fileRead);
-	assert.deepEqual(
-		(fileRead.properties as Record<string, unknown>).capability,
-		{ type: "string", const: "file.read" },
-	);
-	assert.deepEqual((fileRead.properties as Record<string, unknown>).input, {
-		$ref: "#/components/schemas/FileReadInput",
-	});
+	assert.ok(schemas.LocalDevActionInput);
+	assert.deepEqual(schemas.LocalDevActionInput.oneOf, [
+		{ $ref: "#/components/schemas/LocalDevReadAction" },
+		{ $ref: "#/components/schemas/LocalDevListAction" },
+		{ $ref: "#/components/schemas/LocalDevSearchAction" },
+		{ $ref: "#/components/schemas/LocalDevRunAction" },
+		{ $ref: "#/components/schemas/LocalDevProcessAction" },
+	]);
+	assert.ok(schemas.RepomixActionInput);
+	assert.ok(schemas.CodeGraphActionInput);
+	assert.equal(schemas.ExecuteCapabilityInput, undefined);
+	assert.equal(schemas.FileReadInput, undefined);
 	assert.match(
 		metadata.proflowAgent.instructions,
-		/waitNode 只用于真实业务阻塞/,
-	);
-	assert.match(
-		metadata.proflowAgent.instructions,
-		/尚未形成可信 run 失败结论时保持 Node IN_PROGRESS/,
-	);
-	assert.match(
-		metadata.proflowAgent.instructions,
-		/UNKNOWN side effect 禁止盲重放/,
+		/Tool 返回 UNKNOWN.*禁止盲重放/,
 	);
 });
-test("CP-AGT-TEST-03 doctor verify recovery keep Deployment and Execution ownership", () => {
+
+test("CP-AGT-TEST-03 Tool and Carrier failures stay infrastructure facts instead of business blockers", () => {
 	assert.match(
 		metadata.proflowAgent.instructions,
-		/Deployment 或 Execution ownership/,
+		/不得把 Tool\/Carrier\/transport 问题伪装成业务 blocker/,
 	);
 	assert.doesNotMatch(
 		openapi,
@@ -120,7 +138,7 @@ test("CP-AGT-TEST-04 provisioning waits for Browser/Gateway prerequisites before
 	assert.deepEqual(setup.data, {
 		waitingFor: ["agent-gateway", "execution-browser-extension"],
 	});
-	assert.match(metadata.proflowAgent.instructions, /REOPEN 必须复用原 worker/);
+	assert.match(metadata.proflowAgent.instructions, /REOPEN 复用原 worker/);
 });
 
 test("CP-REAL2-PROV-01 Test/Ops package owns complete Custom GPT provisioning material", async () => {

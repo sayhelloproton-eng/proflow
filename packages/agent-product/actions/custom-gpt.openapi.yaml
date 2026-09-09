@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ProFlow Product Actions
-  version: 1.1.0
+  version: 2.0.0
   description: Role-minimal Product access for an already-created Task; New Task and Role discovery are Extension/platform management responsibilities.
 servers:
   - url: https://GATEWAY_PUBLIC_HOST
@@ -59,6 +59,27 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/ReplyPeerInput'}
       responses: {'200': {description: Collaboration reply}}
+  /actions/repomix:
+    post:
+      operationId: repomix
+      summary: Read repository context through Repomix.
+      x-openai-isConsequential: false
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RepomixActionInput'}}}}
+      responses: {'200': {description: Repomix result}}
+  /actions/localDev:
+    post:
+      operationId: localDev
+      summary: Use Local Dev for current-disk files, commands and processes.
+      x-openai-isConsequential: false
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ProductLocalDevActionInput'}}}}
+      responses: {'200': {description: Local Dev result}}
+  /actions/codeGraph:
+    post:
+      operationId: codeGraph
+      summary: Explore repository structure, callers, dependencies, ownership and impact.
+      x-openai-isConsequential: false
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CodeGraphActionInput'}}}}
+      responses: {'200': {description: CodeGraph result}}
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer}
@@ -110,3 +131,165 @@ components:
         fromWorkerRef: {type: string, description: Caller's real Task-bound c-id.}
         content: {type: string}
         idempotencyKey: {type: string}
+    ProductLocalDevActionInput:
+      oneOf:
+        - {$ref: '#/components/schemas/LocalDevReadAction'}
+        - {$ref: '#/components/schemas/LocalDevListAction'}
+        - {$ref: '#/components/schemas/LocalDevSearchAction'}
+        - {$ref: '#/components/schemas/ProductLocalDevProcessAction'}
+    RepomixActionInput:
+      oneOf:
+        - {$ref: '#/components/schemas/RepomixPackAction'}
+        - {$ref: '#/components/schemas/RepomixGrepAction'}
+        - {$ref: '#/components/schemas/RepomixReadAction'}
+    RepomixPackAction:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, const: pack}
+        input:
+          type: object
+          additionalProperties: false
+          properties:
+            directory: {type: string}
+            includePatterns: {type: array, maxItems: 100, items: {type: string}}
+            ignorePatterns: {type: array, maxItems: 100, items: {type: string}}
+            compress: {type: boolean}
+    RepomixGrepAction:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, const: grep}
+        input:
+          type: object
+          additionalProperties: false
+          required: [outputId, pattern]
+          properties:
+            outputId: {type: string}
+            pattern: {type: string}
+            contextLines: {type: integer, minimum: 0, maximum: 50}
+            maxMatches: {type: integer, minimum: 1, maximum: 2000}
+    RepomixReadAction:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, const: read}
+        input:
+          type: object
+          additionalProperties: false
+          required: [outputId]
+          properties:
+            outputId: {type: string}
+            startLine: {type: integer, minimum: 1}
+            endLine: {type: integer, minimum: 1}
+    CodeGraphActionInput:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, const: explore}
+        input:
+          type: object
+          additionalProperties: false
+          required: [query]
+          properties:
+            query: {type: string}
+            projectPath: {type: string}
+            maxFiles: {type: integer, minimum: 1, maximum: 50}
+    LocalDevReadAction:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, const: read}
+        input:
+          type: object
+          additionalProperties: false
+          properties:
+            path: {type: string}
+            paths: {type: array, minItems: 1, maxItems: 64, items: {type: string}}
+            maxBytes: {type: integer, minimum: 1, maximum: 500000}
+          anyOf:
+            - required: [path]
+            - required: [paths]
+    LocalDevListAction:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, const: list}
+        input:
+          type: object
+          additionalProperties: false
+          properties:
+            path: {type: string}
+            maxEntries: {type: integer, minimum: 1, maximum: 5000}
+    LocalDevSearchAction:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, const: search}
+        input:
+          type: object
+          additionalProperties: false
+          required: [query]
+          properties:
+            query: {type: string}
+            mode: {type: string, enum: [literal, regex, filename]}
+            path: {type: string}
+            paths: {type: array, maxItems: 64, items: {type: string}}
+            maxResults: {type: integer, minimum: 1, maximum: 2000}
+    LocalDevCommandInput:
+      type: object
+      additionalProperties: false
+      required: [command]
+      properties:
+        command: {type: string}
+        args: {type: array, maxItems: 256, items: {type: string}}
+        cwd: {type: string}
+        env: {type: object, additionalProperties: {type: string}}
+        timeoutMs: {type: integer, minimum: 1, maximum: 40000}
+        maxOutputBytes: {type: integer, minimum: 1, maximum: 250000}
+    LocalDevRunAction:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, const: run}
+        input: {$ref: '#/components/schemas/LocalDevCommandInput'}
+    ProductLocalDevProcessAction:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, const: process}
+        input:
+          oneOf:
+            - {$ref: '#/components/schemas/LocalDevProcessListInput'}
+            - {$ref: '#/components/schemas/LocalDevProcessPortsInput'}
+            - {$ref: '#/components/schemas/LocalDevProcessStatusInput'}
+            - {$ref: '#/components/schemas/LocalDevProcessReadInput'}
+    LocalDevProcessListInput:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties: {action: {type: string, const: list}, maxOutputBytes: {type: integer, minimum: 1, maximum: 250000}}
+    LocalDevProcessPortsInput:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties: {action: {type: string, const: ports}, port: {type: integer, minimum: 1, maximum: 65535}, maxOutputBytes: {type: integer, minimum: 1, maximum: 250000}}
+    LocalDevProcessStatusInput:
+      type: object
+      additionalProperties: false
+      required: [action, processRef]
+      properties: {action: {type: string, const: status}, processRef: {type: string}}
+    LocalDevProcessReadInput:
+      type: object
+      additionalProperties: false
+      required: [action, processRef]
+      properties: {action: {type: string, const: read}, processRef: {type: string}, stream: {type: string, enum: [stdout, stderr]}, offset: {type: integer, minimum: 0}, limit: {type: integer, minimum: 1, maximum: 250000}}

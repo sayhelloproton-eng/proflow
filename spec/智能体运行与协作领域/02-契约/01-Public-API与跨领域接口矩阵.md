@@ -171,30 +171,25 @@ Task Observer 不复制 eligibility/state-machine。
 
 ---
 
-## 4. Requires｜Execution Domain
+## 4. Requires｜Direct Tools 与 Execution
 
-Agent 只通过 Execution canonical Public Contract 请求真实 Effect：
+### 4.1 Direct Tool Actions
 
-```text
-executeCapability(...)
-getExecution(...)
-readExecutionOutput(...)
-cancelExecution(...)
-```
-
-真实：
+GPT-facing 本地工程能力固定为三类：
 
 ```text
-File/Git/Shell/Process/Network/Browser submit
-Artifact materialization
-Result/Evidence
-Effect Approval
-UNKNOWN/recovery
+repomix(operation, input)
+localDev(operation, input)
+codeGraph(operation, input)
 ```
 
-全部归 Execution。
+它们统一走 `Gateway → ProFlow API → Browser Extension → execution-local Tool implementation → macOS`。Browser Extension 是本机资源统一物理执行入口，platform-host 不得绕过它直连工具；该链不进入旧 `executeCapability/getExecution/readExecutionOutput` lifecycle。Tool request 不得包含 `taskId/nodeId/runNo/workerRef/roleRef/executionRef` 等系统身份；Gateway credential 只得到 authenticated Role，Workspace 与 Extension/本机 bridge 目标由部署事实绑定。工具原生 `outputId/processId/searchId` 可以作为同工具后续调用句柄。
 
-### 4.1 GPT 文件进入平台
+### 4.2 Execution internal dependency
+
+Agent/Gateway 不再向 GPT 暴露 `executeCapability/getExecution/readExecutionOutput`。Execution 只作为平台内部 Browser/Carrier、physical collaboration delivery、Approval/UNKNOWN recovery、external-file materialization 等 durable effect 机制存在；这些内部 contract 不是 Worker 工具心智。
+
+### 4.3 GPT 文件进入平台
 
 ```text
 openaiFileIdRefs
@@ -203,7 +198,7 @@ openaiFileIdRefs
 → artifactRef / canonical TaskDocument input
 ```
 
-### 4.2 平台文件回 GPT
+### 4.4 平台文件回 GPT
 
 ```text
 TaskDocument / Execution Artifact
@@ -288,13 +283,14 @@ createTask
 
 一次 WAKE 启动一个 Worker Turn；同一 Turn 内 Custom GPT 可以调用 `0..N` 个 Actions。Browser 不在每个 Action 之间机械 WAKE，也不通过自然语言回复判断 Task 下一步。
 
-Native GPT capability 优先级：
+Native GPT capability / Tool 优先级：
 
 ```text
 知识/公开 research → Conversation/Web Search
-多文件/数据/代码分析 → File Bridge + Code Interpreter
-正式 ProFlow facts → Actions
-真实机器/外部 Effect → Execution
+临时数据/文件分析 → File Bridge + Code Interpreter
+正式 Task/Node/Document facts → Task Actions
+本地仓库/文件/命令/结构关系 → Repomix / Local Dev / CodeGraph
+Browser/Carrier durable effect → Execution internal path
 跨 Worker → Collaboration
 ```
 
@@ -302,41 +298,42 @@ Native GPT capability 优先级：
 
 ## 9. API identity / actorRef
 
+Task/Peer Actions：
+
 ```text
 Bearer credential → authenticatedRoleRef
-request workerRef → Task binding validation
+request workerRef（仅业务合同确实需要时）→ Task binding validation
 actorRef → Gateway 按 authenticated role + validated worker 规范化
 ```
 
-模型不得自由伪造 `roleRef/actorRef`；Browser 不参与 Role credential 验证。
+Direct Tool Actions：
+
+```text
+Bearer credential → authenticatedRoleRef
+request body → operation + business input only
+workspace/provider/credential → server-bound config
+```
+
+Direct Tool request 不允许 `taskId/nodeId/runNo/workerRef/roleRef/actorRef/executionRef` 充当工具身份字段。模型不得自由伪造 `roleRef/actorRef`；Browser 不参与 Role credential 验证。
 
 ---
 
 ## 10. OpenAI transport boundary
 
-GPT-facing contract 不依赖 arbitrary custom headers。以下字段通过 typed body/path/query：
-
-```text
-taskId
-nodeId
-workerRef
-idempotencyKey
-correlationId
-expectedTaskVersion
-expectedNodeVersion
-```
+GPT-facing contract 不依赖 arbitrary custom headers。Task/Peer Actions 若业务合同需要 Task/Node/version/idempotency 等字段，继续通过 typed body/path/query 表达；**Direct Tool Actions 不携带这些业务身份字段**，只传 `operation + input`。
 
 `openaiFileIdRefs/openaiFileResponse/x-openai-isConsequential` 只属于 Carrier transport，不进入 Owner business identity。
 
-Routine query/control/intent Action 应显式 `x-openai-isConsequential:false`；真实高风险 Effect 是否需要 Approval仍由 Execution Policy决定。
+每个 Action 显式 `x-openai-isConsequential`。Task query/Peer query 等按真实语义设置；Direct Tool read 通常为 `false`，Local Dev mutation/command 按真实副作用设置，不能再以“只是提交 Execution intent”为理由统一标 `false`。
 
 ---
 
 ## 11. Ownership summary
 
-- Agent：Role Registry/Worker identity validation/Collaboration。
+- Agent：Role Registry/Worker identity validation/Collaboration/Custom GPT Action surface。
 - Task：TaskRoleBinding/workflow/TaskDocument。
-- Execution：real Effect/Artifact/Result/Evidence/Browser physical delivery/Approval。
+- Tools：Repomix / Local Dev / CodeGraph 的产品 Tool contract；API/host 只做 auth/admission/typed command/correlation，Browser Extension Local Tool lane 是统一本机 Effect Gate，`execution-local` 承载真实实现。
+- Execution：Browser/Carrier durable Effect/Artifact/Result/Evidence/physical delivery/Approval/UNKNOWN recovery。
 - Gateway：auth/protocol adaptation/routing；不持久化第二份 business state。
-- Task Observer：deterministic next-step detection；不是 Owner。
-- System Observer：cross-system derived assessment；不是 Owner。
+- Task Observer/Reconciliation：backend deterministic next-step detection + bounded catch-up；不是 Owner。
+- System Observer：cross-system derived assessment；不是 Owner，且不阻塞 progression。

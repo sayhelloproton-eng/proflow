@@ -91,7 +91,11 @@ export async function waitForChromeExtensionEnabled(
 	const probe = options.probe ?? (() => probeChromeExtensionState(input));
 	const deadline = Date.now() + timeoutMs;
 	let observed = await probe();
-	while (observed !== "ENABLED" && observed !== "DISABLED" && Date.now() < deadline) {
+	while (
+		observed !== "ENABLED" &&
+		observed !== "DISABLED" &&
+		Date.now() < deadline
+	) {
 		await new Promise((resolve) => setTimeout(resolve, intervalMs));
 		observed = await probe();
 	}

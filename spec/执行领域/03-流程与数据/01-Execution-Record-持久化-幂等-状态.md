@@ -14,6 +14,8 @@ contractRefs: []
 
 # 07 · Execution Record、持久化、幂等与状态
 
+本文仅约束进入内部 durable Execution 的调用；Direct Local Dev/Repomix/CodeGraph（含 mutation/long process）适用 `AGENT-DOC-02-05`，不因下文的 side-effect/async 字样回流 Execution Record。
+
 ## 1. [FROZEN] Durable Execution 一笔一个主 Record
 
 v1 不建立 `ExecutionAttempt` 实体。

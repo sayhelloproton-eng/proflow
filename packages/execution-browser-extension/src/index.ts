@@ -46,18 +46,6 @@ export {
 	type SystemObserverSnapshotPort,
 	type SystemObserverView,
 } from "./system-observer.ts";
-export {
-	createTaskObserver,
-	type TaskDriveProjection,
-	type TaskObserverAnomalySignal,
-	type TaskObserverCarrierPort,
-	type TaskObserverDecision,
-	type TaskObserverDiagnosticAssessment,
-	type TaskObserverDiagnosticFailure,
-	type TaskObserverDiagnosticPort,
-	type TaskObserverOwnerPort,
-	type TaskObserverResumeSignal,
-} from "./task-observer.ts";
 export type {
 	BrowserVisionDeferral,
 	BrowserVisionDeferralReason,
@@ -102,6 +90,12 @@ export interface BrowserRealityPort {
 	listTabs(): Promise<BrowserPageObservation[]>;
 	open(url: string): Promise<BrowserPageObservation>;
 	observe(tabId: number): Promise<BrowserPageObservation>;
+	guardWake?(input: {
+		taskId: string;
+		roleRef: string;
+		workerRef: string;
+		conversationLocator: string;
+	}): Promise<boolean>;
 	submit(
 		tabId: number,
 		text: string,
@@ -578,6 +572,23 @@ export function createExecutionBrowserExtension(
 					request.input.roleRef,
 					request.input.workerRef,
 				);
+				if (!options.browser.guardWake)
+					throw new ExecutionBrowserError(
+						"EXECUTOR_UNAVAILABLE",
+						"WAKE_GUARD_REQUIRED",
+					);
+				if (
+					!(await options.browser.guardWake({
+						taskId,
+						roleRef: request.input.roleRef,
+						workerRef: request.input.workerRef,
+						conversationLocator: observed.url,
+					}))
+				)
+					throw new ExecutionBrowserError(
+						"PRECONDITION_FAILED",
+						"CARRIER_CONTINUATION_HUMAN_DENIED",
+					);
 				if (observed.pageState === "BUSY" || observed.pageState === "BLOCKED")
 					throw new ExecutionBrowserError(
 						"PRECONDITION_FAILED",

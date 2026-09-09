@@ -132,7 +132,6 @@ const errorTarget = element<HTMLElement>("#error");
 const resultTarget = element<HTMLElement>("#result");
 const startButton = element<HTMLButtonElement>("#start-task");
 const resumeButton = element<HTMLButtonElement>("#resume-task");
-const ensureWorkersButton = element<HTMLButtonElement>("#ensure-workers");
 const pendingMessagesTarget = element<HTMLElement>("#pending-messages");
 const newTaskForm = element<HTMLFormElement>("#new-task-form");
 const approvalsTarget = element<HTMLElement>("#approvals");
@@ -354,8 +353,6 @@ async function loadTask(taskId: string) {
 	resumeButton.hidden = !["WAITING", "PAUSED"].includes(selected.status);
 	resumeButton.disabled =
 		selected.status === "WAITING" && selected.pendingMessages.length > 0;
-	ensureWorkersButton.disabled =
-		selected.status === "SUCCEEDED" || selected.status === "TERMINATED";
 	pendingMessagesTarget.replaceChildren();
 	for (const message of selected.pendingMessages) {
 		const row = document.createElement("div");
@@ -569,21 +566,6 @@ resumeButton.addEventListener("click", () => {
 			resumeButton.disabled =
 				selected?.status === "WAITING" &&
 				(selected.pendingMessages?.length ?? 0) > 0;
-		}
-	});
-});
-
-ensureWorkersButton.addEventListener("click", () => {
-	void run(async () => {
-		if (!selected) return;
-		setBusy(ensureWorkersButton, true);
-		try {
-			await taskApplication("task.ensureWorkers", { taskId: selected.taskId });
-			await loadTask(selected.taskId);
-			await refreshTasks();
-		} finally {
-			ensureWorkersButton.disabled =
-				selected?.status === "SUCCEEDED" || selected?.status === "TERMINATED";
 		}
 	});
 });

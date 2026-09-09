@@ -5,10 +5,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { createAgentGatewayProcess } from "@tomflow/proflow-agent-gateway/process";
-import {
-	executionCapabilityIds,
-	parseExecuteCapabilityRequest,
-} from "@tomflow/proflow-execution-contracts";
 import { applyMigrations } from "@tomflow/proflow-task-migration-runner";
 import { createTaskServices } from "@tomflow/proflow-task-orchestration";
 import {
@@ -307,7 +303,7 @@ function wakeRequest(input: {
 }) {
 	const trigger = input.trigger ?? "NODE_READY";
 	return {
-		callerRef: "extension:task-observer",
+		callerRef: "platform-host:task-reconciliation",
 		roleRef: input.roleRef,
 		taskId: input.taskId,
 		nodeId: input.nodeId,
@@ -492,171 +488,6 @@ test("B1-HOST-APP-01 Human application acknowledges the blocker before same-run 
 	assert.equal(node.status, "IN_PROGRESS");
 	assert.equal(node.runNo, 1);
 	assert.equal(node.workerRef, workers.dev);
-});
-
-test("B1-HOST-EXEC-01 GPT-shaped file.read is exact-node scoped before one durable Execution parse", async (context) => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-b1-action-chain-"));
-	context.after(() => rm(root, { recursive: true, force: true }));
-	const stateRoot = join(root, ".proflow");
-	const workspaceRoot = join(root, "project");
-	const seeded = await seedTask(stateRoot, workspaceRoot, "IN_PROGRESS");
-	let durableParses = 0;
-	const execution = createServer(async (request, response) => {
-		response.setHeader("content-type", "application/json");
-		if (request.url === "/ready") return response.end('{"status":"READY"}');
-		if (request.url !== "/executions" || request.method !== "POST") {
-			response.statusCode = 404;
-			return response.end('{"error":"NOT_FOUND"}');
-		}
-		const chunks: Buffer[] = [];
-		for await (const chunk of request) chunks.push(Buffer.from(chunk));
-		try {
-			const parsed = parseExecuteCapabilityRequest(
-				JSON.parse(Buffer.concat(chunks).toString("utf8")),
-			);
-			durableParses += 1;
-			assert.equal(parsed.workerRef, workers.dev);
-			assert.equal(parsed.projectRoot, undefined);
-			response.end(
-				JSON.stringify({
-					executionRef: `execution:b1:${durableParses}`,
-					status: "SUCCEEDED",
-					sideEffectState: "APPLIED",
-				}),
-			);
-		} catch {
-			response.statusCode = 400;
-			response.end('{"error":"INVALID_REQUEST"}');
-		}
-	});
-	await new Promise<void>((resolve) =>
-		execution.listen(0, "127.0.0.1", resolve),
-	);
-	context.after(
-		() => new Promise<void>((resolve) => execution.close(() => resolve())),
-	);
-	const executionAddress = execution.address();
-	if (!executionAddress || typeof executionAddress === "string")
-		assert.fail("missing execution");
-	const dependencyBaseUrl = `http://127.0.0.1:${executionAddress.port}`;
-	const host = identityHost(stateRoot, workspaceRoot, dependencyBaseUrl);
-	context.after(() => host.stop());
-	const hostAddress = await host.start();
-	const credentialFile = join(root, "gateway-roles.json");
-	await writeFile(
-		credentialFile,
-		JSON.stringify({
-			[roles.dev]: "dev-gateway-credential-long-enough",
-			[roles.test]: "test-gateway-credential-long-enough",
-		}),
-		{ mode: 0o600 },
-	);
-	const gateway = await createAgentGatewayProcess({
-		config: {
-			host: "127.0.0.1",
-			port: 0,
-			publicBaseUrl: "https://gateway.example.test",
-			downstreamBaseUrl: `http://${hostAddress.host}:${hostAddress.port}`,
-			credentialFile,
-		},
-	});
-	context.after(() => gateway.stop());
-	const gatewayAddress = await gateway.start();
-	const call = async (
-		credential: string,
-		body: Record<string, unknown>,
-		operationId = "executeCapability",
-	) => {
-		const url = new URL(
-			`http://${gatewayAddress.host}:${gatewayAddress.port}/actions/${operationId}`,
-		);
-		const isQuery = operationId === "getNodeContext";
-		if (isQuery)
-			for (const [key, value] of Object.entries(body))
-				url.searchParams.set(key, String(value));
-		const response = await fetch(url, {
-			method: isQuery ? "GET" : "POST",
-			headers: {
-				authorization: `Bearer ${credential}`,
-				...(isQuery ? {} : { "content-type": "application/json" }),
-			},
-			...(isQuery ? {} : { body: JSON.stringify(body) }),
-		});
-		return {
-			response,
-			body: (await response.json()) as Record<string, unknown>,
-		};
-	};
-	const projected = await call(
-		"dev-gateway-credential-long-enough",
-		{ taskId: seeded.taskId, nodeId: seeded.currentNodeId },
-		"getNodeContext",
-	);
-	assert.equal(projected.response.status, 200);
-	assert.deepEqual(projected.body.executionCapabilityIds, [
-		...executionCapabilityIds,
-	]);
-	const inputSchemas = projected.body.executionCapabilityInputSchemas as Record<
-		string,
-		Record<string, unknown>
-	>;
-	assert.deepEqual(inputSchemas["file.read"], {
-		$schema: "https://json-schema.org/draft/2020-12/schema",
-		type: "object",
-		properties: {
-			path: { type: "string", minLength: 1 },
-			encoding: { type: "string", const: "utf8" },
-		},
-		required: ["path"],
-		additionalProperties: false,
-	});
-	assert.deepEqual(projected.body.executionRequestContext, {
-		contract: "execution",
-		contractVersion: "1.0.0",
-		taskId: seeded.taskId,
-		nodeId: seeded.currentNodeId,
-		runNo: seeded.runNo,
-	});
-	const base = {
-		contract: "execution",
-		contractVersion: "1.0.0",
-		idempotencyKey: "b1:file-read",
-		taskId: seeded.taskId,
-		nodeId: seeded.currentNodeId,
-		runNo: seeded.runNo,
-		capability: "file.read",
-		input: { path: "repos/proflow/package.json" },
-	};
-	for (const missing of ["taskId", "nodeId", "runNo"] as const) {
-		const body = { ...base };
-		delete body[missing];
-		const result = await call("dev-gateway-credential-long-enough", body);
-		assert.equal(result.response.status, 400);
-		assert.deepEqual(result.body, { error: "INVALID_REQUEST" });
-	}
-	assert.equal(durableParses, 0);
-	const stale = await call("dev-gateway-credential-long-enough", {
-		...base,
-		runNo: 99,
-	});
-	assert.equal(stale.response.status, 403);
-	assert.equal(stale.body.error, "EXECUTION_GENERATION_MISMATCH");
-	const wrongRole = await call("test-gateway-credential-long-enough", base);
-	assert.equal(wrongRole.response.status, 403);
-	assert.equal(wrongRole.body.error, "EXECUTION_ROLE_SCOPE_MISMATCH");
-	assert.equal(durableParses, 0);
-	const invalidInput = await call("dev-gateway-credential-long-enough", {
-		...base,
-		idempotencyKey: "b1:file-read:invalid",
-		input: { path: "package.json", encoding: "utf16" },
-	});
-	assert.equal(invalidInput.response.status, 400);
-	assert.deepEqual(invalidInput.body, { error: "INVALID_REQUEST" });
-	assert.equal(durableParses, 0);
-	const valid = await call("dev-gateway-credential-long-enough", base);
-	assert.equal(valid.response.status, 200);
-	assert.equal(valid.body.status, "SUCCEEDED");
-	assert.equal(durableParses, 1);
 });
 
 function nodeExecutionRequest(input: {

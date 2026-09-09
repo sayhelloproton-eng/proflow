@@ -69,27 +69,7 @@ async function readOwnFacts(context: ModuleCommandContext) {
 			}
 		: undefined;
 }
-async function baseDependencies(context: ModuleCommandContext) {
-	const host = await readModuleSharedFacts(context, "platform-host");
-	const model = await readModuleSharedFacts(context, "model-runtime");
-	const identityEndpoint = factString(host, "endpoint");
-	const identityTokenFile = factString(host, "identityTokenFile");
-	const modelEndpoint = factString(model, "endpoint");
-	const modelCredentialFile = factString(model, "transportCredentialFile");
-	return identityEndpoint &&
-		identityTokenFile &&
-		modelEndpoint &&
-		modelCredentialFile
-		? {
-				identityEndpoint,
-				identityTokenFile,
-				modelEndpoint,
-				modelCredentialFile,
-			}
-		: undefined;
-}
-async function dependencies(context: ModuleCommandContext) {
-	const base = await baseDependencies(context);
+async function startupDependencies(context: ModuleCommandContext) {
 	const browser = await readModuleSharedFacts(
 		context,
 		"execution-browser-extension",
@@ -98,12 +78,7 @@ async function dependencies(context: ModuleCommandContext) {
 		browser,
 		"browserExecutorConfigPath",
 	);
-	return base && browserExecutorConfigPath
-		? {
-				...base,
-				browserExecutorConfigPath,
-			}
-		: undefined;
+	return browserExecutorConfigPath ? { browserExecutorConfigPath } : undefined;
 }
 async function running(context: ModuleCommandContext) {
 	const own = await readOwnFacts(context);
@@ -122,11 +97,17 @@ async function running(context: ModuleCommandContext) {
 }
 async function compose(context: ModuleCommandContext): Promise<Service> {
 	const own = await ownFacts(context);
-	const deps = await dependencies(context);
-	if (!deps)
-		throw new Error(
-			"required Platform Host, Model Runtime, or Browser Executor shared facts are unavailable",
-		);
+	const browser = await readModuleSharedFacts(
+		context,
+		"execution-browser-extension",
+	);
+	const browserExecutorConfigPath = factString(
+		browser,
+		"browserExecutorConfigPath",
+	);
+	if (!browserExecutorConfigPath)
+		throw new Error("Browser Executor shared facts are unavailable");
+
 	const [
 		{ createFormalExecutionRuntimeLifecycle },
 		{ parseExecutionRuntimeProcessConfig },
@@ -136,22 +117,32 @@ async function compose(context: ModuleCommandContext): Promise<Service> {
 	]);
 	const url = new URL(own.endpoint);
 	return createFormalExecutionRuntimeLifecycle({
+		resolveDependencies: async () => {
+			const host = await readModuleSharedFacts(context, "platform-host");
+			const model = await readModuleSharedFacts(context, "model-runtime");
+			const endpoint = factString(host, "endpoint"),
+				tokenFile = factString(host, "identityTokenFile"),
+				taskToken = factString(host, "taskApplicationTokenFile");
+			const modelEndpoint = factString(model, "endpoint"),
+				credentialFile = factString(model, "transportCredentialFile");
+			return {
+				...(endpoint && tokenFile ? { identity: { endpoint, tokenFile } } : {}),
+				...(endpoint && taskToken
+					? { platformHost: { endpoint, tokenFile: taskToken } }
+					: {}),
+				...(modelEndpoint && credentialFile
+					? { modelDecision: { endpoint: modelEndpoint, credentialFile } }
+					: {}),
+			};
+		},
 		config: parseExecutionRuntimeProcessConfig({
 			host: url.hostname,
 			port: Number(url.port),
 			databasePath: own.databasePath,
 			projectRoot: own.projectRoot,
 			artifactRoot: own.artifactRoot,
-			browserExecutorConfigPath: deps.browserExecutorConfigPath,
+			browserExecutorConfigPath,
 			transportCredentialFile: own.transportCredentialFile,
-			identity: {
-				endpoint: deps.identityEndpoint,
-				tokenFile: deps.identityTokenFile,
-			},
-			modelDecision: {
-				endpoint: deps.modelEndpoint,
-				credentialFile: deps.modelCredentialFile,
-			},
 			exactNetworkTargets: [],
 		}),
 	});
@@ -184,7 +175,7 @@ export const behaviorAdapter = {
 		};
 	},
 	status: async (context: ModuleCommandContext) => {
-		const missingRuntimeDependencies = await dependencies(context);
+		const startup = await startupDependencies(context);
 		return {
 			result: {
 				...base,
@@ -193,19 +184,15 @@ export const behaviorAdapter = {
 					runtimeStatus: (await running(context))
 						? ("RUNNING" as const)
 						: ("STOPPED" as const),
-					...(!missingRuntimeDependencies
+					...(!startup
 						? {
 								issues: [
 									{
 										scope: "RUNTIME" as const,
 										code: "UPSTREAM_NOT_READY",
 										message:
-											"等待 platform-host、model-runtime 与 execution-browser-extension 发布运行所需信息",
-										relatedModuleRefs: [
-											"platform-host",
-											"model-runtime",
-											"execution-browser-extension",
-										],
+											"等待 execution-browser-extension 发布 Browser Executor client 配置",
+										relatedModuleRefs: ["execution-browser-extension"],
 										nextCommand: "platform setup",
 									},
 								],

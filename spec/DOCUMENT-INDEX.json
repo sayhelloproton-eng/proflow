@@ -3499,5 +3499,25 @@
     "provides": [],
     "requires": [],
     "contractRefs": []
+  },
+  {
+    "path": "智能体运行与协作领域/02-契约/05-Tool-Action与Browser-Extension执行契约.md",
+    "docId": "AGENT-DOC-02-05",
+    "title": "智能体运行与协作领域｜Tool Action 与 Browser Extension 执行契约",
+    "docType": "contract",
+    "authority": "normative",
+    "lifecycle": "active",
+    "domain": "agent-runtime-collaboration",
+    "subdomain": null,
+    "subdomains": [],
+    "boundedContext": null,
+    "moduleRef": null,
+    "canonicalFor": [],
+    "provides": [],
+    "requires": [],
+    "contractRefs": [
+      "PLATFORM-DOC-01-01",
+      "PLATFORM-HOST-COMPOSITION-ROOT"
+    ]
   }
 ]

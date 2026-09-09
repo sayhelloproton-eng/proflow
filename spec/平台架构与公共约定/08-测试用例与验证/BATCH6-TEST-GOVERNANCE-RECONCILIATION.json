@@ -7,11 +7,11 @@
   },
   "currentMechanicalInventory": {
     "testPlans": 39,
-    "formalCaseIdentities": 355,
-    "criticalProofs": 225,
-    "requiredFailureBoundaries": 130,
-    "executableTestFiles": 161,
-    "executableTestCalls": 776,
+    "formalCaseIdentities": 401,
+    "criticalProofs": 268,
+    "requiredFailureBoundaries": 133,
+    "executableTestFiles": 163,
+    "executableTestCalls": 762,
     "crossDomainTraceCases": 44
   },
   "proofSemantics": {
@@ -316,6 +316,204 @@
         "packages/agent-runtime/src/index.ts"
       ],
       "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-DEV-14",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-CONTROLLER-DEV",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
+        "packages/execution-local/tests/direct-tools.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-runtime",
+        "execution-local",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-local/src/direct-tools.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-DEV-15",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-CONTROLLER-DEV",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+        "packages/execution-local/tests/direct-tools.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "execution-local",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-local/src/direct-tools.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-DEV-16",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-CONTROLLER-DEV",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+        "packages/execution-local/tests/direct-tools.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "execution-local",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-local/src/direct-tools.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-DEV-17",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-CONTROLLER-DEV",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+        "packages/execution-local/tests/direct-tools.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "execution-local",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-local/src/direct-tools.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-DEV-18",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-CONTROLLER-DEV",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-controller-dev.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+        "packages/execution-local/tests/direct-tools.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "execution-local",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-local/src/direct-tools.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
         "PROCESS_OR_TRANSPORT_BEHAVIOR",
         "REAL_EXTERNAL_DECLARATION",
         "STATIC_OR_SOURCE_ALIGNMENT"
@@ -669,6 +867,270 @@
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-GW-15",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-GATEWAY",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-gateway.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-process.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-gateway",
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-gateway/src/process.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-GW-16",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-GATEWAY",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-gateway.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-process.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-gateway",
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-gateway/src/process.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-GW-17",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-GATEWAY",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-gateway.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-process.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-gateway",
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-gateway/src/process.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-GW-18",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-GATEWAY",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-gateway.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-process.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-gateway",
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-gateway/src/process.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-GW-19",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-GATEWAY",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-gateway.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-process.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-gateway",
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-gateway/src/process.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-GW-20",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-GATEWAY",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-gateway.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts",
+        "packages/agent-gateway/tests/agent-gateway-process.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-gateway",
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-gateway/src/process.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
@@ -1523,6 +1985,149 @@
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
+      "caseId": "CP-AGT-TEST-14",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-TEST-OPS",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-test-ops.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-runtime",
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-runtime/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-TEST-15",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-TEST-OPS",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-test-ops.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-TEST-16",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-TEST-OPS",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-test-ops.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-AGT-TEST-17",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-AGENT-TEST-OPS",
+          "path": "spec/智能体运行与协作领域/07-测试计划/modules/agent-test-ops.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-test-ops",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
       "caseId": "CP-DEP-CLI-FINAL-01",
       "caseType": "CRITICAL_PROOF",
       "sourcePlans": [
@@ -2179,9 +2784,7 @@
         "dev-tunnel"
       ],
       "implementationRefs": [
-        "packages/dev-tunnel/deployment/adapter.ts",
-        "packages/dev-tunnel/deployment/descriptor.ts",
-        "packages/dev-tunnel/src/resource-adapter.ts"
+        "packages/dev-tunnel/deployment/descriptor.ts"
       ],
       "proofStrengths": [
         "STATIC_OR_SOURCE_ALIGNMENT"
@@ -2206,9 +2809,7 @@
         "dev-tunnel"
       ],
       "implementationRefs": [
-        "packages/dev-tunnel/deployment/adapter.ts",
-        "packages/dev-tunnel/deployment/descriptor.ts",
-        "packages/dev-tunnel/src/resource-adapter.ts"
+        "packages/dev-tunnel/deployment/descriptor.ts"
       ],
       "proofStrengths": [
         "STATIC_OR_SOURCE_ALIGNMENT"
@@ -2312,22 +2913,18 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
-        "packages/platform-host/tests/task-application-entry.test.ts"
+        "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts"
       ],
       "ownerPackages": [
-        "execution-browser-extension",
-        "platform-host"
+        "execution-browser-extension"
       ],
       "implementationRefs": [
-        "packages/execution-browser-extension/src/index.ts",
-        "packages/platform-host/src/index.ts"
+        "packages/execution-browser-extension/src/index.ts"
       ],
       "proofStrengths": [
-        "PROCESS_OR_TRANSPORT_BEHAVIOR",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
-      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -2441,7 +3038,6 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/execution-browser-extension/tests/background-observer-application.test.ts",
         "packages/execution-browser-extension/tests/carrier-observer-journey-alignment.test.ts",
         "packages/execution-browser-extension/tests/submitted-message.test.ts"
       ],
@@ -2451,9 +3047,7 @@
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
         "packages/execution-browser-extension/extension/content.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-browser-extension/src/index.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
         "packages/execution-browser-extension/src/submitted-message.ts"
       ],
       "proofStrengths": [
@@ -2553,9 +3147,7 @@
         "packages/execution-browser-extension/tests/collaboration-carrier-application.test.ts",
         "packages/execution-browser-extension/tests/runtime-composition.test.ts",
         "packages/execution-browser-extension/tests/system-observer-runtime.test.ts",
-        "packages/execution-browser-extension/tests/task-observer-runtime.test.ts",
-        "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
-        "packages/model-runtime/tests/observer-task-diagnostic-alignment.test.ts"
+        "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension",
@@ -2563,17 +3155,13 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-browser-extension/src/collaboration-carrier.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-browser-extension/src/runtime-composition.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
-        "packages/execution-browser-extension/src/task-observer.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/model-runtime/src/index.ts",
-        "packages/model-runtime/src/process.ts",
-        "packages/model-runtime/src/specs/system-health-assessment.ts",
-        "packages/model-runtime/src/specs/task-diagnostic.ts"
+        "packages/model-runtime/src/specs/system-health-assessment.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3114,7 +3702,8 @@
         "packages/execution-browser-extension/src/bridge.ts",
         "packages/execution-browser-extension/src/carrier-attention.ts",
         "packages/execution-browser-extension/src/carrier-continuation-control.ts",
-        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts",
+        "packages/execution-browser-extension/src/index.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -3134,7 +3723,9 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts"
+        "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+        "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts",
+        "packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts"
       ],
       "ownerPackages": [
         "execution-browser-extension"
@@ -3143,7 +3734,11 @@
         "packages/execution-browser-extension/extension/background.ts",
         "packages/execution-browser-extension/src/carrier-attention.ts",
         "packages/execution-browser-extension/src/carrier-continuation-control.ts",
-        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+        "packages/execution-browser-extension/src/carrier-identity.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/install-workflow.ts",
+        "packages/execution-contracts/src/index.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
@@ -3171,13 +3766,154 @@
         "packages/execution-browser-extension/extension/background.ts",
         "packages/execution-browser-extension/src/carrier-attention.ts",
         "packages/execution-browser-extension/src/carrier-continuation-control.ts",
-        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts",
+        "packages/execution-browser-extension/src/index.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
       ],
       "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-36",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/carrier-human-deny-lifecycle.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/carrier-attention.ts",
+        "packages/execution-browser-extension/src/carrier-continuation-control.ts",
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts",
+        "packages/execution-browser-extension/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-37",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
+    },
+    {
+      "caseId": "CP-EXE-BR-38",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
+    },
+    {
+      "caseId": "CP-EXE-BR-39",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/background-observer-application.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-BR-40",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
+    },
+    {
+      "caseId": "CP-EXE-BR-41",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
+    },
+    {
+      "caseId": "CP-EXE-BR-42",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
     },
     {
       "caseId": "CP-EXE-CON-01",
@@ -3352,6 +4088,92 @@
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
       "productionWiringClassification": "STATIC_OR_TRACE_ONLY",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-CONTRACTS-11",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-CONTRACTS",
+          "path": "spec/执行领域/07-测试计划/modules/execution-contracts.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-contracts/tests/execution-contracts-critical-proofs.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-test-ops",
+        "execution-contracts",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-contracts/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-CONTRACTS-12",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-CONTRACTS",
+          "path": "spec/执行领域/07-测试计划/modules/execution-contracts.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-contracts/tests/execution-contracts-critical-proofs.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-test-ops",
+        "execution-contracts",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-contracts/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -3622,6 +4444,8 @@
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
         "packages/execution-local/tests/artifact-context-pack-patch-alignment.test.ts",
+        "packages/execution-local/tests/direct-tools.test.ts",
+        "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
         "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts"
       ],
       "ownerPackages": [
@@ -3629,13 +4453,124 @@
         "execution-runtime"
       ],
       "implementationRefs": [
+        "packages/execution-contracts/src/index.ts",
+        "packages/execution-local/src/direct-tools.ts",
         "packages/execution-local/src/index.ts",
         "packages/execution-runtime/src/executors/local-adapter.ts",
         "packages/execution-runtime/src/index.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
         "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-LOCAL-13",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-LOCAL",
+          "path": "spec/执行领域/07-测试计划/modules/execution-local.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-local/tests/direct-tools.test.ts",
+        "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
+        "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-local",
+        "execution-runtime"
+      ],
+      "implementationRefs": [
+        "packages/execution-contracts/src/index.ts",
+        "packages/execution-local/src/direct-tools.ts",
+        "packages/execution-local/src/index.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
+        "packages/execution-runtime/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-LOCAL-14",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-LOCAL",
+          "path": "spec/执行领域/07-测试计划/modules/execution-local.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-local/tests/direct-tools.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-local"
+      ],
+      "implementationRefs": [
+        "packages/execution-local/src/direct-tools.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-LOCAL-15",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-LOCAL",
+          "path": "spec/执行领域/07-测试计划/modules/execution-local.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-local/tests/direct-tools.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-local"
+      ],
+      "implementationRefs": [
+        "packages/execution-local/src/direct-tools.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-LOCAL-16",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-LOCAL",
+          "path": "spec/执行领域/07-测试计划/modules/execution-local.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-local/tests/direct-tools.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-local"
+      ],
+      "implementationRefs": [
+        "packages/execution-local/src/direct-tools.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
       ],
       "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
@@ -4043,8 +4978,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -4138,8 +5072,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -4181,8 +5114,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -4278,6 +5210,193 @@
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
+      "caseId": "CP-EXE-RT-23",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-RUNTIME",
+          "path": "spec/执行领域/07-测试计划/modules/execution-runtime.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/runtime-composition.test.ts",
+        "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+        "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/execution-runtime/tests/model-decision-client.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "execution-runtime",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/deployment-conformance/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/runtime-composition.ts",
+        "packages/execution-contracts/src/index.ts",
+        "packages/execution-runtime/deployment/descriptor.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
+        "packages/execution-runtime/src/index.ts",
+        "packages/execution-runtime/src/model-decision-client.ts",
+        "packages/execution-runtime/src/service.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-RT-24",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-RUNTIME",
+          "path": "spec/执行领域/07-测试计划/modules/execution-runtime.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/runtime-composition.test.ts",
+        "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+        "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "execution-runtime",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/deployment-conformance/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/runtime-composition.ts",
+        "packages/execution-contracts/src/index.ts",
+        "packages/execution-runtime/deployment/descriptor.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
+        "packages/execution-runtime/src/index.ts",
+        "packages/execution-runtime/src/service.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-RT-25",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-RUNTIME",
+          "path": "spec/执行领域/07-测试计划/modules/execution-runtime.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/runtime-composition.test.ts",
+        "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+        "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "execution-runtime",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/deployment-conformance/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/runtime-composition.ts",
+        "packages/execution-contracts/src/index.ts",
+        "packages/execution-runtime/deployment/descriptor.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
+        "packages/execution-runtime/src/index.ts",
+        "packages/execution-runtime/src/service.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-RT-26",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-RUNTIME",
+          "path": "spec/执行领域/07-测试计划/modules/execution-runtime.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/runtime-composition.test.ts",
+        "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+        "packages/execution-runtime/tests/execution-runtime-service.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "execution-runtime",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/deployment-conformance/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-browser-extension/src/runtime-composition.ts",
+        "packages/execution-contracts/src/index.ts",
+        "packages/execution-runtime/deployment/descriptor.ts",
+        "packages/execution-runtime/src/executors/local-adapter.ts",
+        "packages/execution-runtime/src/index.ts",
+        "packages/execution-runtime/src/service.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-EXE-RT-27",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-RUNTIME",
+          "path": "spec/执行领域/07-测试计划/modules/execution-runtime.md"
+        }
+      ],
+      "proofClass": "DIRECT_EXECUTABLE_ID",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/runtime-composition.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension"
+      ],
+      "implementationRefs": [
+        "packages/execution-browser-extension/src/runtime-composition.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
       "caseId": "CP-HOST-01",
       "caseType": "CRITICAL_PROOF",
       "sourcePlans": [
@@ -4294,7 +5413,8 @@
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/platform-host/src/index.ts"
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
@@ -4319,7 +5439,8 @@
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/platform-host/src/index.ts"
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
@@ -4345,7 +5466,8 @@
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/platform-host/src/index.ts"
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4365,17 +5487,16 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
         "packages/platform-host/tests/platform-host-critical-proofs.test.ts"
       ],
       "ownerPackages": [
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/platform-host/src/index.ts"
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
-        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4392,17 +5513,16 @@
       ],
       "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
         "packages/platform-host/tests/platform-host-critical-proofs.test.ts"
       ],
       "ownerPackages": [
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/platform-host/src/index.ts"
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
-        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -4564,14 +5684,20 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-        "packages/platform-host/tests/task-application-entry.test.ts"
+        "packages/platform-host/tests/direct-tools-route.test.ts",
+        "packages/platform-host/tests/model-business-callers.test.ts",
+        "packages/platform-host/tests/task-application-entry.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts"
       ],
       "ownerPackages": [
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/platform-host/src/index.ts"
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -4589,22 +5715,16 @@
           "path": "spec/平台架构与公共约定/06-测试计划/modules/platform-host.md"
         }
       ],
-      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "proofClass": "DIRECT_EXECUTABLE_ID",
       "executableRefs": [
-        "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
-        "packages/platform-host/tests/model-business-callers.test.ts",
         "packages/platform-host/tests/platform-host-critical-proofs.test.ts"
       ],
       "ownerPackages": [
-        "execution-runtime",
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/deployment-conformance/src/index.ts",
-        "packages/execution-contracts/src/index.ts",
-        "packages/execution-runtime/src/executors/local-adapter.ts",
-        "packages/execution-runtime/src/index.ts",
-        "packages/platform-host/src/index.ts"
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
@@ -4623,20 +5743,18 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
         "packages/platform-host/tests/model-business-callers.test.ts",
         "packages/platform-host/tests/platform-host-critical-proofs.test.ts"
       ],
       "ownerPackages": [
-        "execution-runtime",
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/deployment-conformance/src/index.ts",
-        "packages/execution-contracts/src/index.ts",
-        "packages/execution-runtime/src/executors/local-adapter.ts",
-        "packages/execution-runtime/src/index.ts",
-        "packages/platform-host/src/index.ts"
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
@@ -4655,20 +5773,18 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
         "packages/platform-host/tests/model-business-callers.test.ts",
         "packages/platform-host/tests/platform-host-critical-proofs.test.ts"
       ],
       "ownerPackages": [
-        "execution-runtime",
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/deployment-conformance/src/index.ts",
-        "packages/execution-contracts/src/index.ts",
-        "packages/execution-runtime/src/executors/local-adapter.ts",
-        "packages/execution-runtime/src/index.ts",
-        "packages/platform-host/src/index.ts"
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
@@ -4696,6 +5812,210 @@
         "packages/platform-host/src/index.ts"
       ],
       "proofStrengths": [
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-HOST-16",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-HOST",
+          "path": "spec/平台架构与公共约定/06-测试计划/modules/platform-host.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-HOST-17",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-HOST",
+          "path": "spec/平台架构与公共约定/06-测试计划/modules/platform-host.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-HOST-18",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-HOST",
+          "path": "spec/平台架构与公共约定/06-测试计划/modules/platform-host.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-HOST-19",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-HOST",
+          "path": "spec/平台架构与公共约定/06-测试计划/modules/platform-host.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-HOST-20",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-HOST",
+          "path": "spec/平台架构与公共约定/06-测试计划/modules/platform-host.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-HOST-21",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-PLATFORM-HOST",
+          "path": "spec/平台架构与公共约定/06-测试计划/modules/platform-host.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/execution-browser-extension/tests/background-observer-application.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts"
+      ],
+      "ownerPackages": [
+        "execution-browser-extension",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/extension/background.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
       ],
       "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
@@ -6296,6 +7616,162 @@
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
+      "caseId": "CP-TASK-ORCH-14",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-TASK-ORCHESTRATION",
+          "path": "spec/任务与编排领域/07-测试计划/modules/task-orchestration.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts",
+        "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+        "packages/task-orchestration/tests/task-owned-integration.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "platform-host",
+        "task-orchestration"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts",
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/contracts.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-orchestration/src/model.ts",
+        "packages/task-orchestration/src/services.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-TASK-ORCH-15",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-TASK-ORCHESTRATION",
+          "path": "spec/任务与编排领域/07-测试计划/modules/task-orchestration.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts",
+        "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+        "packages/task-orchestration/tests/task-owned-integration.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "platform-host",
+        "task-orchestration"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts",
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/contracts.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-orchestration/src/model.ts",
+        "packages/task-orchestration/src/services.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-TASK-ORCH-16",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-TASK-ORCHESTRATION",
+          "path": "spec/任务与编排领域/07-测试计划/modules/task-orchestration.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts",
+        "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+        "packages/task-orchestration/tests/task-owned-integration.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "platform-host",
+        "task-orchestration"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts",
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/contracts.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-orchestration/src/model.ts",
+        "packages/task-orchestration/src/services.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "CP-TASK-ORCH-17",
+      "caseType": "CRITICAL_PROOF",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-TASK-ORCHESTRATION",
+          "path": "spec/任务与编排领域/07-测试计划/modules/task-orchestration.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts",
+        "packages/task-orchestration/tests/journey-observer-contract.test.ts",
+        "packages/task-orchestration/tests/task-owned-integration.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "platform-host",
+        "task-orchestration"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts",
+        "packages/task-migration-runner/src/index.ts",
+        "packages/task-orchestration/src/contracts.ts",
+        "packages/task-orchestration/src/index.ts",
+        "packages/task-orchestration/src/model.ts",
+        "packages/task-orchestration/src/services.ts",
+        "packages/task-store-sqlite/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
       "caseId": "CP-TASK-STORE-01",
       "caseType": "CRITICAL_PROOF",
       "sourcePlans": [
@@ -6848,7 +8324,8 @@
       ],
       "implementationRefs": [
         "packages/agent-gateway/src/process.ts",
-        "packages/platform-host/src/index.ts"
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
@@ -7316,6 +8793,8 @@
         "packages/agent-runtime/tests/role-package-cli-subprocess.test.ts",
         "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
         "packages/agent-test-ops/tests/current-spec-alignment.test.ts",
+        "packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
         "packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts"
       ],
       "ownerPackages": [
@@ -7324,10 +8803,12 @@
         "platform-host"
       ],
       "implementationRefs": [
+        "packages/agent-gateway/src/index.ts",
         "packages/agent-runtime/src/index.ts",
         "packages/agent-test-ops/deployment/adapter.ts",
         "packages/agent-test-ops/src/cli.ts",
         "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/platform-host/src/index.ts",
         "packages/platform-host/src/role-operations.ts",
         "packages/task-migration-runner/src/index.ts",
@@ -7500,9 +8981,7 @@
         "packages/execution-browser-extension/tests/collaboration-carrier-application.test.ts",
         "packages/execution-browser-extension/tests/runtime-composition.test.ts",
         "packages/execution-browser-extension/tests/system-observer-runtime.test.ts",
-        "packages/execution-browser-extension/tests/task-observer-runtime.test.ts",
         "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
-        "packages/model-runtime/tests/observer-task-diagnostic-alignment.test.ts",
         "packages/platform-host/tests/task-application-entry.test.ts"
       ],
       "ownerPackages": [
@@ -7512,17 +8991,13 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
         "packages/execution-browser-extension/src/collaboration-carrier.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-browser-extension/src/runtime-composition.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
-        "packages/execution-browser-extension/src/task-observer.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/model-runtime/src/index.ts",
-        "packages/model-runtime/src/process.ts",
         "packages/model-runtime/src/specs/system-health-assessment.ts",
-        "packages/model-runtime/src/specs/task-diagnostic.ts",
         "packages/platform-host/src/index.ts"
       ],
       "proofStrengths": [
@@ -7949,13 +9424,48 @@
         "packages/execution-browser-extension/extension/background.ts",
         "packages/execution-browser-extension/src/carrier-attention.ts",
         "packages/execution-browser-extension/src/carrier-continuation-control.ts",
-        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts"
+        "packages/execution-browser-extension/src/carrier-permission-lifecycle.ts",
+        "packages/execution-browser-extension/src/index.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
       ],
       "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-EXE-BR-29",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
+    },
+    {
+      "caseId": "RF-EXE-BR-30",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-BROWSER-EXTENSION",
+          "path": "spec/执行领域/07-测试计划/modules/execution-browser-extension.md"
+        }
+      ],
+      "proofClass": "REAL_EXTERNAL_DECLARED",
+      "executableRefs": [],
+      "ownerPackages": [],
+      "implementationRefs": [],
+      "proofStrengths": [],
+      "productionWiringClassification": "REAL_EXTERNAL_PENDING",
+      "resultStatus": "REAL_EXTERNAL_PENDING"
     },
     {
       "caseId": "RF-EXE-CON-01",
@@ -8055,6 +9565,49 @@
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT"
       ],
       "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
+    },
+    {
+      "caseId": "RF-EXE-CONTRACTS-11",
+      "caseType": "REQUIRED_FAILURE_BOUNDARY",
+      "sourcePlans": [
+        {
+          "docId": "TP-MODULE-EXECUTION-CONTRACTS",
+          "path": "spec/执行领域/07-测试计划/modules/execution-contracts.md"
+        }
+      ],
+      "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
+      "executableRefs": [
+        "packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts",
+        "packages/agent-test-ops/tests/agent-test-ops-static.test.ts",
+        "packages/execution-contracts/tests/execution-contracts-critical-proofs.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts"
+      ],
+      "ownerPackages": [
+        "agent-controller-dev",
+        "agent-test-ops",
+        "execution-contracts",
+        "platform-host"
+      ],
+      "implementationRefs": [
+        "packages/agent-controller-dev/deployment/adapter.ts",
+        "packages/agent-controller-dev/src/cli.ts",
+        "packages/agent-controller-dev/src/index.ts",
+        "packages/agent-gateway/src/index.ts",
+        "packages/agent-test-ops/deployment/adapter.ts",
+        "packages/agent-test-ops/src/cli.ts",
+        "packages/agent-test-ops/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/execution-contracts/src/index.ts",
+        "packages/platform-host/src/index.ts"
+      ],
+      "proofStrengths": [
+        "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
+        "REAL_EXTERNAL_DECLARATION",
+        "STATIC_OR_SOURCE_ALIGNMENT"
+      ],
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -8225,6 +9778,8 @@
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
         "packages/execution-local/tests/artifact-context-pack-patch-alignment.test.ts",
+        "packages/execution-local/tests/direct-tools.test.ts",
+        "packages/execution-local/tests/execution-local-critical-proofs.test.ts",
         "packages/execution-runtime/tests/execution-artifact-pipeline.test.ts"
       ],
       "ownerPackages": [
@@ -8232,15 +9787,18 @@
         "execution-runtime"
       ],
       "implementationRefs": [
+        "packages/execution-contracts/src/index.ts",
+        "packages/execution-local/src/direct-tools.ts",
         "packages/execution-local/src/index.ts",
         "packages/execution-runtime/src/executors/local-adapter.ts",
         "packages/execution-runtime/src/index.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+        "PROCESS_OR_TRANSPORT_BEHAVIOR",
         "STATIC_OR_SOURCE_ALIGNMENT"
       ],
-      "productionWiringClassification": "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
+      "productionWiringClassification": "PROCESS_OR_TRANSPORT_BEHAVIOR",
       "resultStatus": "SOURCE_MAPPED_PENDING_LOCAL_VERIFICATION"
     },
     {
@@ -8464,8 +10022,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -8506,8 +10063,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -8601,8 +10157,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -8644,8 +10199,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -8688,8 +10242,7 @@
       "implementationRefs": [
         "packages/deployment-conformance/src/index.ts",
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-contracts/src/index.ts",
         "packages/execution-runtime/deployment/descriptor.ts",
         "packages/execution-runtime/src/approval-owner.ts",
@@ -8806,14 +10359,20 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/platform-host/tests/journey-observer-composition-boundary.test.ts",
-        "packages/platform-host/tests/task-application-entry.test.ts"
+        "packages/platform-host/tests/direct-tools-route.test.ts",
+        "packages/platform-host/tests/model-business-callers.test.ts",
+        "packages/platform-host/tests/task-application-entry.test.ts",
+        "packages/platform-host/tests/task-reconciliation.test.ts"
       ],
       "ownerPackages": [
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/platform-host/src/index.ts"
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/reconciliation-coordinator.ts",
+        "packages/platform-host/src/task-observer.ts"
       ],
       "proofStrengths": [
         "IN_PROCESS_BEHAVIOR_OR_CONTRACT",
@@ -8833,20 +10392,18 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
         "packages/platform-host/tests/model-business-callers.test.ts",
         "packages/platform-host/tests/platform-host-critical-proofs.test.ts"
       ],
       "ownerPackages": [
-        "execution-runtime",
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/deployment-conformance/src/index.ts",
-        "packages/execution-contracts/src/index.ts",
-        "packages/execution-runtime/src/executors/local-adapter.ts",
-        "packages/execution-runtime/src/index.ts",
-        "packages/platform-host/src/index.ts"
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
@@ -8865,20 +10422,18 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
         "packages/platform-host/tests/model-business-callers.test.ts",
         "packages/platform-host/tests/platform-host-critical-proofs.test.ts"
       ],
       "ownerPackages": [
-        "execution-runtime",
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/deployment-conformance/src/index.ts",
-        "packages/execution-contracts/src/index.ts",
-        "packages/execution-runtime/src/executors/local-adapter.ts",
-        "packages/execution-runtime/src/index.ts",
-        "packages/platform-host/src/index.ts"
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
@@ -8897,20 +10452,18 @@
       ],
       "proofClass": "PLAN_BOUND_EXECUTABLE_ASSET",
       "executableRefs": [
-        "packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts",
+        "packages/platform-host/tests/direct-tools-route.test.ts",
         "packages/platform-host/tests/model-business-callers.test.ts",
         "packages/platform-host/tests/platform-host-critical-proofs.test.ts"
       ],
       "ownerPackages": [
-        "execution-runtime",
         "platform-host"
       ],
       "implementationRefs": [
-        "packages/deployment-conformance/src/index.ts",
-        "packages/execution-contracts/src/index.ts",
-        "packages/execution-runtime/src/executors/local-adapter.ts",
-        "packages/execution-runtime/src/index.ts",
-        "packages/platform-host/src/index.ts"
+        "packages/agent-gateway/src/index.ts",
+        "packages/execution-browser-extension/src/index.ts",
+        "packages/platform-host/src/index.ts",
+        "packages/platform-host/src/role-operations.ts"
       ],
       "proofStrengths": [
         "PROCESS_OR_TRANSPORT_BEHAVIOR"
@@ -9324,7 +10877,6 @@
       "executableRefs": [
         "packages/execution-browser-extension/tests/background-observer-application.test.ts",
         "packages/execution-browser-extension/tests/system-observer-runtime.test.ts",
-        "packages/execution-browser-extension/tests/task-observer-runtime.test.ts",
         "packages/model-runtime/tests/execution-command-risk-alignment.test.ts",
         "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
         "packages/model-runtime/tests/observer-task-diagnostic-alignment.test.ts"
@@ -9335,10 +10887,8 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
-        "packages/execution-browser-extension/src/task-observer.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/process.ts",
         "packages/model-runtime/src/specs/execution-command-risk.ts",
@@ -9366,7 +10916,6 @@
       "executableRefs": [
         "packages/execution-browser-extension/tests/background-observer-application.test.ts",
         "packages/execution-browser-extension/tests/system-observer-runtime.test.ts",
-        "packages/execution-browser-extension/tests/task-observer-runtime.test.ts",
         "packages/model-runtime/tests/execution-command-risk-alignment.test.ts",
         "packages/model-runtime/tests/observer-system-assessment-alignment.test.ts",
         "packages/model-runtime/tests/observer-task-diagnostic-alignment.test.ts"
@@ -9377,10 +10926,8 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
-        "packages/execution-browser-extension/src/task-observer.ts",
         "packages/model-runtime/src/index.ts",
         "packages/model-runtime/src/process.ts",
         "packages/model-runtime/src/specs/execution-command-risk.ts",
@@ -9462,7 +11009,6 @@
       "executableRefs": [
         "packages/execution-browser-extension/tests/background-observer-application.test.ts",
         "packages/execution-browser-extension/tests/system-observer-runtime.test.ts",
-        "packages/execution-browser-extension/tests/task-observer-runtime.test.ts",
         "packages/model-provider-api/tests/provider-probe.test.ts",
         "packages/model-runtime/tests/execution-command-risk-alignment.test.ts",
         "packages/model-runtime/tests/model-deployment-automation.test.ts",
@@ -9476,10 +11022,8 @@
       ],
       "implementationRefs": [
         "packages/execution-browser-extension/extension/background.ts",
-        "packages/execution-browser-extension/extension/tasks.ts",
-        "packages/execution-browser-extension/src/observer-recovery-rearm.ts",
+        "packages/execution-browser-extension/src/index.ts",
         "packages/execution-browser-extension/src/system-observer.ts",
-        "packages/execution-browser-extension/src/task-observer.ts",
         "packages/model-provider-api/src/resource-adapter.ts",
         "packages/model-runtime/deployment/adapter.ts",
         "packages/model-runtime/deployment/role-mapper.ts",

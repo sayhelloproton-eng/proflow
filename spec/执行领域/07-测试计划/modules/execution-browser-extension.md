@@ -25,7 +25,7 @@ implementationWave: Wave 5
 
 ## 1. Risk
 
-该Module同时承载真实ChatGPT页面Effect与Extension application逻辑，最大风险是把transient browser reality升级为业务truth、重复submit，或把Task/System Observer做成新Scheduler/Owner。
+该Module同时承载真实 ChatGPT Browser Effect、System Observer 页面能力与独立 Local Tool Effect Gate。最大风险是把 transient browser reality 升级为业务 truth、重复 submit，或让 Local Tool lane 污染 Browser heartbeat/WAKE/permission hot path。Task progression 已由 backend Observer/Reconciliation 负责。
 
 ## 2. Required Layers
 
@@ -42,13 +42,13 @@ implementationWave: Wave 5
 - [ ] **CP-EXE-BR-01** — `agentPackageRef/roleRef/workerRef/conversationLocator`稳定；tab/content transient；无frame/persistent-tab business identity。
 - [ ] **CP-EXE-BR-02** — Extension New Task：Task(PENDING)后CREATE/observe/bind三Worker，Product可先工作，partial failure只补missing Worker。
 - [ ] **CP-EXE-BR-03** — RESTORE/WAKE正确Conversation；`conversationLocator` 必须来自 TaskRoleBinding durable owner fact，禁止用 `roleRef + workerRef` 重构 URL；minimal wake；WAKE success仅physical delivery。
-- [ ] **CP-EXE-BR-04** — Node READY→Task Observer wake→Worker formal `startNode`；Observer不写Task；production composition 由 Task mutation event 触发并在 process startup 做一次 bounded nonterminal recovery scan，不引入 platform-host timer/universal scheduler；同一 task/node/run/trigger 使用稳定 Execution idempotency identity。
+- [ ] **CP-EXE-BR-04** — Node READY→backend Task Observer/Reconciliation→Extension Carrier WAKE→Worker formal `startNode`；Extension 不做 progression detection/catch-up，只执行 typed Carrier dispatch，并保留同一 task/node/run/trigger 的 Browser Effect idempotency/reality guard。
 - [ ] **CP-EXE-BR-05** — one Worker Turn支持0..N Actions；Browser无per-action “continue”或natural-language business parsing。
 - [ ] **CP-EXE-BR-06** — routine ChatGPT Action Permission 由 Browser Carrier 在真实页面上识别并按 authoritative Role/target/operation/context 做分类；可信 mechanical gate 可自动 `Always Allow` 且必须验证 Turn 继续，unknown/untrusted 保持 BLOCKED/进入 Carrier Attention；Execution Approval 独立且不得复用。
 - [ ] **CP-EXE-BR-07** — DOM-first page operation，异常结构才screenshot→Vision；Vision不直接成为Task/Execution success。
 - [ ] **CP-EXE-BR-08** — Collaboration physical delivery durable/idempotent；`messageRef` 由 Agent pending owner surface 发现，ask/reply 事件触发 + process-start bounded recovery，不引入 platform-host timer/business queue；每个 message 使用稳定 Execution idempotency identity，只有 `SUCCEEDED + APPLIED + delivered=true` 才写 Agent logical DELIVERED；message/reply owner仍Agent。
 - [ ] **CP-EXE-BR-09** — submit/WAKE effect uncertainty按DELIVERED/ABSENT/UNKNOWN reality reconciliation，无blind replay。
-- [ ] **CP-EXE-BR-10** — Task Observer deterministic；first-run READY 与 reopened run 分别输出 `NODE_READY` / `REOPEN` typed trigger，并复用同一 durable TaskRoleBinding；异常REASON only diagnostic/no authority；terminal stop-driving。
+- [ ] **CP-EXE-BR-10** — Extension 对 backend 发来的 `NODE_READY/REOPEN/RECOVERY_RESUME` typed Carrier request 只做 target/binding/permission/reality guard 与 physical dispatch；不在 service worker 自行计算 Task next-step；terminal/stale request fail-closed。
 - [ ] **CP-EXE-BR-11** — System Observer 8 bounded views + batching/carry-forward/drill-down/global synthesis，lowest priority/no owner mutation。
 - [ ] **CP-EXE-BR-12** — ordinary file transport不经Browser DOM；File Bridge/Execution materialization主链可用，image→Vision fallback保留。
 
@@ -113,10 +113,10 @@ STOP：必须靠frame/persistent tab/business store/Browser natural-language Tas
 |---|---|---|
 | `CP-EXE-BR-02` New Task + 3 Worker | `packages/platform-host/tests/task-application-entry.test.ts` (`R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fills only missing Workers`), `packages/execution-browser-extension/tests/side-panel-application.test.ts` | 真实 Chrome CREATE 仍属 Manual E2E；自动 proof 只证明 application orchestration/Owner boundary。 |
 | `CP-EXE-BR-03` durable restore/wake | `packages/execution-browser-extension/tests/execution-browser-extension-critical-proofs.test.ts` | `conversationLocator` 为 Task Owner 真源；stale tab URL 不覆盖。 |
-| `CP-EXE-BR-04` Task Observer lifecycle | `packages/execution-browser-extension/tests/task-observer-runtime.test.ts`, `packages/execution-browser-extension/tests/background-observer-application.test.ts`, `packages/platform-host/tests/task-application-entry.test.ts` (`CP-EXE-BR-04 Observer application rejects an unconfirmed wake Execution`) | Extension Background 拥有 lifecycle；Host 仅 transport/composition；WAKE Execution 非 `SUCCEEDED + APPLIED` 时 transport fail-closed。 |
+| `CP-EXE-BR-04` Carrier delivery boundary | Extension Carrier tests + backend reconciliation tests（代码变更后按真实实现重绑 exact executable asset） | backend Task Observer/Reconciliation 拥有 deterministic progression/catch-up；Extension 只消费 typed Carrier request 并做 restore/permission/submit/receipt/reality guard。 |
 | `CP-EXE-BR-08` Collaboration Carrier | `packages/execution-browser-extension/tests/collaboration-carrier-application.test.ts`, `packages/execution-browser-extension/tests/background-observer-application.test.ts` | pending discovery 来自 Agent Owner；UNKNOWN durable hold；FAILED bounded retry。 |
 | `CP-EXE-BR-09` no blind replay | `packages/execution-browser-extension/tests/collaboration-carrier-application.test.ts`, `packages/execution-browser-extension/tests/task-observer-runtime.test.ts`, `packages/execution-browser-extension/tests/background-observer-application.test.ts` (`CP-EXE-BR-09 bounded recovery retries rejected wake delivery without bypassing Execution idempotency`) | deterministic wake intent + Execution idempotency；bounded recovery 复用稳定 identity，UNKNOWN 不自动重投。 |
-| `CP-EXE-BR-10` Task Observer deterministic/diagnostic | `packages/execution-browser-extension/tests/task-observer-runtime.test.ts`, `packages/model-runtime/tests/observer-task-diagnostic-alignment.test.ts` | 正常路径零模型；异常只 diagnostic/no effect authority。 |
+| `CP-EXE-BR-10` typed Carrier request / diagnostic isolation | Extension Carrier tests + backend Task Observer/Reconciliation tests + model diagnostic tests（代码变更后重绑 exact asset） | progression decision 不在 Extension；异常 REASON 只 diagnostic/no authority，System Observer/diagnostic 不占 progression lock。 |
 | `CP-EXE-BR-11` System Observer | `packages/execution-browser-extension/tests/system-observer-runtime.test.ts`, `packages/execution-browser-extension/tests/background-observer-application.test.ts`, `packages/model-runtime/tests/observer-system-assessment-alignment.test.ts` | 8-view batching/carry-forward/drill-down/global synthesis；service-worker restart 持久化 previous state。 |
 | `CP-EXE-BR-13` Browser adapter composition | `packages/execution-browser-extension/tests/runtime-composition.test.ts` | Browser adapter 完成；Platform Host / Bridge credential 仅从 secret file 读取，POSIX 下 group/world-readable secret fail-closed；**唯一 Execution Runtime binary 注入/readiness = Batch 4 / P1-15 carry-forward**。 |
 
@@ -128,17 +128,17 @@ STOP：必须靠frame/persistent tab/business store/Browser natural-language Tas
 Batch 3 不通过越权补实现来强行关闭以下跨批依赖：
 
 1. **Execution Approval controls**：Side Panel 已保留可见但 disabled 的 Approval 区域；Allow/Deny 只有在 Batch 4 / `P1-14` 建立 authoritative Approval Owner fact/store/lifecycle 后才能启用。Browser/UI 本批不得自建 approval state。
-2. **Async Execution completion / UNKNOWN source → Task Observer**：Task Observer 已具备 typed `EXECUTION_RESULT_READY / RECOVERY_RESUME` 与 anomaly diagnostic contract，但正式 async Execution completion/recovery event source 属 Batch 4 `execution-runtime` composition/recovery；本批不得用同步 `executeCapability` completion 人工制造新 Worker Turn。
+2. **Async Execution completion / UNKNOWN source → backend Reconciliation**：Execution Runtime 可以发布 durable `RECOVERY_RESUME / UNKNOWN_REALITY` 等 current facts/signals；backend Task Observer/Reconciliation 消费这些事实并决定是否形成 typed Carrier request。Extension 不消费 Execution signal 来自行计算 Task next-step；同步 internal `executeCapability` completion 也不得人工制造新 Worker Turn。
 3. **Browser Executor → 唯一 execution-runtime binary**：Browser adapter 已完成，唯一 runtime 注入与 dependency-aware readiness 仍是 Batch 4 / `P1-15`。
 
 因此 Batch 3 的最终报告必须区分“Browser/Observer 侧能力已实现”和“依赖 Batch 4 Execution Owner lifecycle 的最终 production signal/approval/runtime wiring”，不得把后者写成已关闭。
 
 ### 2026-08-16 Batch 4 recovery-signal closure
 
-- The Batch 3 carry-forward for Execution recovery/UNKNOWN sourcing is now wired as an Execution-owned durable signal stream consumed by Extension Background during bounded startup/page-idle recovery. `RECOVERY_RESUME` drives the same durable TaskRoleBinding/Worker; `UNKNOWN_REALITY` enters advisory Task Diagnostic.
+- Execution recovery/UNKNOWN 仍由 Execution Owner 产生 durable signal/current fact，但消费与 next-step decision 归 backend Task Observer/Reconciliation；Extension Background 只接收最终 typed Carrier request。`RECOVERY_RESUME` 继续指向同一 durable TaskRoleBinding/Worker；`UNKNOWN_REALITY` 只进入 advisory diagnostic。
 - Human Approval ALLOW/DENY/revoke is also a real Turn boundary: the durable Approval result resumes the bound Worker with `RECOVERY_RESUME` keyed by `approvalRef`. UI state itself is never the source of truth.
 - Ordinary synchronous Action completion still does **not** create `EXECUTION_RESULT_READY`; no duplicate Worker Turn is manufactured.
-- Signals are acknowledged only after Task Observer can action or terminally dispose of them; transient binding/target/diagnostic unavailability leaves the signal pending.
+- Signals 只有在 backend Task Observer/Reconciliation 已形成 actionable/terminal decision 后才可 acknowledge；transient binding/target/diagnostic unavailability 必须保持 pending，Extension 不拥有该 acknowledgement 决策。
 
 ## Batch 4 Pre-Smoke Executable Proof Binding
 
@@ -146,7 +146,7 @@ Batch 3 不通过越权补实现来强行关闭以下跨批依赖：
 
 | Carry-forward | Executable asset | Required behavior |
 |---|---|---|
-| Execution recovery/UNKNOWN signal source | `tests/background-observer-application.test.ts`<br>`../execution-runtime/tests/execution-runtime-critical-proofs.test.ts` | durable Runtime signal → Extension bounded recovery → Task Observer; transient unconsumable signal remains unacked |
+| Execution recovery/UNKNOWN signal source | backend reconciliation tests + `../execution-runtime/tests/execution-runtime-critical-proofs.test.ts`（代码变更后重绑 exact asset） | durable Runtime signal/current fact → backend Reconciliation → typed Carrier request；Extension 不做 progression decision，transient unconsumable signal remains unacked |
 | Human Approval Turn boundary | `tests/background-observer-application.test.ts` | owner-backed ALLOW/DENY/REVOKE response resumes the same durable Worker via `RECOVERY_RESUME`; UI stores no Approval truth |
 | single formal runtime Browser injection | `../execution-runtime/tests/execution-runtime-service.test.ts` | shipped execution-runtime requires Browser composition; Browser package does not create a second Execution runtime |
 
@@ -233,3 +233,30 @@ Batch 3 不通过越权补实现来强行关闭以下跨批依赖：
 - [ ] **RF-EXE-BR-28** — restart 的 BLOCKED re-observe 先执行 routine auto strategy、或任何 Observer 入口直接 dispatch 而绕过 active human denial。
 
 **Executable proof**：`tests/carrier-human-deny-lifecycle.test.ts`（restart + same BLOCKED、trusted context 不覆盖 Deny、全部 Observer dispatch 最后 guard、消费后未来 occurrence 可正常 AUTO_ALLOW）。真实 Chrome/Deny 行为仍保留在人工 E2E gate。
+
+## 2026-09-09 Real-3｜Local Tool 独立 Lane Gate
+
+- [ ] **CP-EXE-BR-36** — Local Tool 只使用 `/v1/local-tools/commands/* + runLocalToolBridgeLoop()`；现有 `/v1/commands/* + runBridgeLoop()` Browser lane 行为保持不变。
+- [ ] **CP-EXE-BR-37** — 两条 lane 不共享 queue、pending map、serial loop、timeout/backoff、dispatcher、readiness、locks、tab/content/page session 或 Observer state。
+- [ ] **CP-EXE-BR-38** — `Local Dev.run/process` 长命令、provider hang、timeout 或大输出不会阻塞 Browser heartbeat、permission handling、WAKE、submit、Collaboration delivery。
+- [ ] **CP-EXE-BR-39** — Local Tool lane 只接受 Host 已 admission 的 typed Tool command；不读取 Task/Node/Worker/Execution identity，不 import Task Observer/System Observer/Collaboration/DOM adapter。
+- [ ] **CP-EXE-BR-40** — Local Tool mutation timeout/uncertain result 返回 typed UNKNOWN/uncertain outcome，Extension 不 blind replay；后续由同 Tool 的 reality operation重新观察。
+- [ ] **CP-EXE-BR-41** — Browser Reality/Local Tool bridge runtime 由 `execution-browser-extension` 模块独立启动/停止并发布 endpoint/credential/readiness；停止 `execution-runtime` 后 Extension session 与 Local Tool lane 仍保持可用，Execution Runtime 仅作为 Browser lane client。
+- [ ] **CP-EXE-BR-42** — Module dependency graph 与运行时方向一致：Browser Extension descriptor 不 `requires execution`，提供 `execution-browser-executor + local-tool-bridge`；Execution Runtime 依赖前者，platform-host 依赖后者；dependency graph 无 cycle/hidden reverse dependency。
+- [ ] **RF-EXE-BR-29** — 把 Local Tool case 塞进 `runBridgeLoop()/executeCommand()` 或共享 Browser pending/lock，导致 Browser hot path 被工具吞吐拖慢。
+- [ ] **RF-EXE-BR-30** — bridge lifecycle 仍绑在 `execution-runtime` formal process，导致 Execution Runtime stop/restart 顺带让 Direct Local Tools DOWN。
+
+本 Addendum 暂不修改现有 executable tests/`08-测试用例与验证`；代码完成后再按真实目录与测试名重绑。
+
+## 独立审计补充：双 Lane 与 lifecycle 的真实验证
+
+细化现有 Local Tool / isolation proofs；exact testcase/evidence binding 在实现后更新。
+
+1. 同时运行真实 Local Dev 长 process、Repomix pack / CodeGraph indexing 与 Browser heartbeat/WAKE/submit；另用同步 CPU block 和永不返回的 Provider child 注入故障，证明 control plane 仍调度。异步 sleep fake 不能证明事件循环隔离。
+2. 记录 Browser heartbeat 最大间隔及 command-consumer freshness，全程不跨配置失活阈值；每次 WAKE 以真实 user-message fingerprint 确认，不能只用 HTTP 200。记录 idle baseline 与负载下 p50/p95、超时数和总调用数，禁止在未测时声称吞吐提升倍数。
+3. 停 execution-runtime 后 Bridge listener/generation、Extension Local Tool consumer、真实 read 持续工作；restart execution 不创建第二 listener、不旋转另一 lane credential、不清空另一 lane pending map。
+4. Host enqueue token 调 execute、Browser token 调 Local Tool execute、重放旧 generation、换参、过期排队 command 均拒绝；断开 Extension 后 Host 不能使真实文件发生 mutation。
+5. Browser lane 超时/backoff 不使 local consumer DOWN；Local Tool child timeout/crash 不改变 Browser readiness。Extension 整体卸载同时失去两 lane 作为预期共同故障，不能标为 lane isolation defect。
+6. bridge stop 与 start 交错、失败构造后 cleanup、old generation late result 都不能关闭新 listener 或完成新请求；已 dispatch uncertain mutation 保持 UNKNOWN，禁止 restart 自动重放。
+
+长期 process 必须先返回 processRef；断开 result 后以文件/hash/process/port reality 观察，不能把 process 消失判成全部副作用未发生。

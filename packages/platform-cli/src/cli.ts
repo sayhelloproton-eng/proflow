@@ -747,7 +747,10 @@ async function handleUpdate(
 			"PACKAGE_NOT_FOUND",
 			`工作区尚未安装 ${packageName}。platform update 只更新已安装的 ProFlow 包。`,
 		);
-	const previousVersion = await observeWorkspaceInstalledVersion(root, packageName);
+	const previousVersion = await observeWorkspaceInstalledVersion(
+		root,
+		packageName,
+	);
 	reportProgress(runtime.onProgress, {
 		command: "update",
 		phase: "registry",
@@ -796,7 +799,10 @@ async function handleUpdate(
 		});
 		packageManager = mutation.packageManager;
 	}
-	const installedVersion = await observeWorkspaceInstalledVersion(root, packageName);
+	const installedVersion = await observeWorkspaceInstalledVersion(
+		root,
+		packageName,
+	);
 	if (installedVersion !== candidate.moduleVersion)
 		throw new PlatformError(
 			"COMMAND_FAILED",
@@ -1032,8 +1038,7 @@ function helpOutcome(): CliOutcome {
 			"platform <install|update|uninstall|status|setup|docs|start|stop> [--workspace <path>]",
 		commands: [...COMMANDS],
 		install: "platform install [--workspace <path>]",
-		update:
-			"platform update --package <packageName> [--workspace <path>]",
+		update: "platform update --package <packageName> [--workspace <path>]",
 		setup: "platform setup [--workspace <path>] [--module <moduleRef>]",
 		docs: "platform docs [--workspace <path>] [--module <moduleRef>]",
 	});

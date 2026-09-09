@@ -99,7 +99,8 @@ Custom GPT
 Gateway
   ├── Agent Runtime Public API
   ├── Task Domain Public API
-  └── Execution Domain Public API
+  ├── ProFlow Local Tool API → Browser Extension Local Tool lane
+  └── internal Execution API（仅 Browser/Carrier/materialization 所需）
 ```
 
 严格禁止：
@@ -166,15 +167,11 @@ executeAnything
 使用：
 
 ```text
-completeNode
-waitNode
-reopenNode
-askPeer
-replyPeer
-readFile
-getGitDiff
-getTestResults
-...
+completeNode / waitNode / reopenNode
+askPeer / replyPeer
+repomix(operation,input)
+localDev(operation,input)
+codeGraph(operation,input)
 ```
 
 ---
@@ -209,20 +206,23 @@ Controller/Dev 与 Test/Ops：
 ```text
 getTask / getNodeContext
 startNode / completeNode / waitNode / reopenNode（按角色权限）
-Execution request/result
-Artifact/File Bridge
-askPeer/replyPeer
+repomix / localDev / codeGraph（按角色 operation allowlist）
+TaskDocument / File Bridge
+askPeer / replyPeer
 ```
 
 精确矩阵见`AGENT-DOC-02-03`。
 
-# 9. Local Resource / real Effect 归 Execution
+# 9. Local Tools 与 Browser Extension Effect Gate
 
-GPT不应把所有底层fs/git/process/network/browser primitive当高频顶层Actions。业务Action表达intent，真实Effect由Execution capability/policy执行。
+GPT-facing 本机工程能力只有 Repomix / Local Dev / CodeGraph。Gateway 不直接执行 fs/git/process/shell，也不 import 三个工具实现；它只认证 Role、校验静态 Action schema、路由到 ProFlow API。
 
-底层typed primitives可保留在Execution内部/Public capability surface作为确定性能力，但Gateway不形成“Tool Router AI”。
+```text
+Gateway → ProFlow API → Browser Extension /v1/local-tools/commands/*
+→ execution-local → macOS
+```
 
-公开互联网research优先Custom GPT Web Search；Execution Network保留local/private/credentialed/exact deterministic engineering requests。
+公开互联网 research 继续优先 Web Search。Local Dev `run/process` 承担真实本机命令/进程；所有 GPT-originated macOS Tool 调用必须经过 Extension Effect Gate。
 
 # 10. Worker Turn / Native Capability
 
@@ -252,9 +252,9 @@ approval policy
 authorization
 ```
 
-Agent 可以请求动作，Execution 决定动作能否真实执行。
+Agent 可以请求动作；内部 durable Effect 由 Execution 判断，Direct Tool 由 Role policy、Extension Gate 与 provider safety 判断。
 
-OpenAI `x-openai-isConsequential` 只控制 Carrier UI confirmation，不取代 Execution Approval。Routine platform control/intent Action 通过静态 Schema 显式标记 consequential=false；真实副作用仍由 Execution owner 判定。
+OpenAI `x-openai-isConsequential` 只控制 Carrier UI confirmation，不取代 Execution Approval。只读 HTTP Action 可显式 false；混合 Local Dev Action 必须 true，后台授权不能代替该声明。内部 durable effect 仍由 Execution owner 判定。
 
 ---
 
@@ -291,7 +291,7 @@ real HTTP 429/5xx
 structured raw response
 ```
 
-长时间 Execution 采用“快速接受/返回 ref → 后续查询/Worker continuation”，不让一个 Action HTTP request 阻塞到真实任务完全结束。
+Local Tool Action 必须在 45s Carrier ceiling 内返回 bounded result 或工具原生 handle（如 processRef/outputId）；不得恢复成 ProFlow `executionRef → getExecution/readExecutionOutput` polling。真正内部 durable Browser Effect 的 continuation 仍按 Owner contract 处理。
 
 ## 12.3 `x-openai-isConsequential`
 
@@ -303,7 +303,7 @@ structured raw response
 x-openai-isConsequential: false
 ```
 
-真正 Local/Browser Effect 仍经过 Execution Policy / Approval。若未来存在 Action endpoint 自身直接完成高风险外部 Effect，才把该 operation 设为 `true`。
+固定混合读写 Local Dev HTTP Action 整体 consequential=true（包括 read）；不得按 body 子操作动态切换；Browser/Carrier internal Effect 继续由 Execution Policy/Approval 管理。`consequential:false` 不授予本机写权限。
 
 `Always Allow` 是routine nonconsequential Action的目标主链；真实 Preview/E2E仍必须证明实际行为。Unexpected permission prompt保留为Carrier recovery，而不是恢复成每次Browser permission click主流程。
 
@@ -428,5 +428,5 @@ Gateway/OpenAI adapter 对外冻结以下 typed error codes；底层 Execution e
 
 - Gateway 是 Custom GPT Actions 公网 Anti-Corruption Layer，不拥有下游业务状态，不直接触达 Local/Browser Effect。
 - Dev Tunnel 改由 Deployment External Resource Module 管理；Gateway 只 Requires 一个满足 public ingress capability 的 moduleRef/逻辑能力。
-- 本地/浏览器真实能力统一通过 Execution Public Contract；Gateway 不 import execution-local/browser internal implementation。
+- GPT 本地 Tools 统一通过 ProFlow API → Browser Extension Local Tool lane；Browser durable Effect 才使用 Execution internal contract。Gateway 不 import execution-local/browser internal implementation。
 - GPT-facing transport 的 OpenAI hard limits 与 File Bridge 官方协议进入 Agent Carrier conformance；Always Allow、Multi-Action Worker Turn、Conversation-native file usage 与 Context Pack→Code Interpreter→Patch 已是 v1 REUSE/PRIMARY PATH，真实目标环境 proof 留到 FINAL MANUAL E2E。只有具体载体格式优化（例如 ZIP Context Pack）可继续保持 `PENDING_SPIKE`。

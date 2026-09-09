@@ -30,7 +30,7 @@ test("historical universal Task Driver is removed; Observer and Carrier responsi
 		text,
 		/systemObserver[^\n]{0,200}(?:executeCapability|completeNode|reopenNode|approve)/i,
 	);
-	assert.match(text, /TaskObserver|taskObserver|TASK_OBSERVER/);
+	assert.doesNotMatch(text, /TaskObserver|taskObserver|TASK_OBSERVER/);
 	assert.match(text, /SystemObserver|systemObserver|SYSTEM_OBSERVER/);
 	assert.match(
 		text,

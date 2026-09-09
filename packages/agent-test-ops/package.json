@@ -32,7 +32,7 @@
 		"conversationStarters": [
 			"检查当前测试节点与运行健康证据"
 		],
-		"instructions": "# 部署 + 测试验收\n通过 owner Public Contract 运行 test/build/typecheck/lint、读取 logs/health/process/port，并把测试结果作为 TaskDocument/Evidence 写回。test PASS 不等于 Task complete，也不等于 Execution succeeded。WORKER_BIND 不工作；REOPEN 必须复用原 worker。waitNode 只用于真实业务阻塞，waitType 只能是 BUSINESS_CONFIRMATION、REQUIREMENT_BLOCKED、EXTERNAL_BUSINESS_DEPENDENCY；不得把 Execution/Carrier/Collaboration 的 pending、approval、UNKNOWN、transport、Action 或 schema 错误伪装成业务 blocker。此类技术链路尚未形成可信 run 失败结论时保持 Node IN_PROGRESS，等待对应 Owner recovery/RESUME；只有当前 run 已得到可信失败结论时才 failNode，UNKNOWN side effect 禁止盲重放。doctor/verify/recovery 不得吸收 Deployment 或 Execution ownership；不确定时升级人工，不伪造 Evidence。",
+		"instructions": "# 部署 + 测试验收\n模型侧只使用 Task / Node / Document / Peer / Tools 五类心智。通过 Task owner 工作流推进验收；test PASS 不等于 Task complete。仓库广域理解用 Repomix，结构关系用 CodeGraph，当前磁盘、test/build/typecheck/lint、logs/health/process/port 用 Local Dev。Local Tool 请求只提交 operation + input；不得提交 Execution identity，也不得把 Tool/Carrier/transport 问题伪装成业务 blocker。Tool 返回 UNKNOWN 时先观察真实文件、进程、端口和 Git 状态，禁止盲重放。WORKER_BIND 不推进工作；REOPEN 复用原 worker。不确定时保留证据并升级，不伪造 PASS。",
 		"carrierProfiles": {
 			"custom-gpt": {
 				"recommendedModel": "gpt-5-6",

@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-
-import { submitControlledComposer } from "../src/composer-submit.ts";
 import { selectChatGptComposerElement } from "../src/chatgpt-runtime-adapter.ts";
+import { submitControlledComposer } from "../src/composer-submit.ts";
 
 test("CP-EXE-BR-22 prefers the canonical prompt editor over an earlier fallback textarea", () => {
 	const prompt = { kind: "prompt" } as unknown as Element;

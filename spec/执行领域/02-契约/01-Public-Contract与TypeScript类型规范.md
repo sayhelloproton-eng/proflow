@@ -29,27 +29,20 @@ contractRefs: []
 
 禁止用 `any` 作为公共逃生口。
 
-## 2. Public API
+## 2. Internal Execution Service Contract
+
+`ExecutionService` 可以继续保留 `executeCapability/getExecution/readExecutionOutput/cancelExecution`，但该接口自 2026-09-09 起只属于**平台内部 durable Execution contract**，不是 Custom GPT Action surface。
 
 ```ts
 export interface ExecutionService {
-  executeCapability(
-    request: ExecuteCapabilityRequest,
-  ): Promise<ExecuteCapabilityResponse>;
-
-  getExecution(
-    executionRef: ExecutionRef,
-  ): Promise<GetExecutionResponse>;
-
-  readExecutionOutput(
-    request: ReadExecutionOutputRequest,
-  ): Promise<ReadExecutionOutputResponse>;
-
-  cancelExecution(
-    request: CancelExecutionRequest,
-  ): Promise<CancelExecutionResponse>;
+  executeCapability(request: ExecuteCapabilityRequest): Promise<ExecuteCapabilityResponse>;
+  getExecution(executionRef: ExecutionRef): Promise<GetExecutionResponse>;
+  readExecutionOutput(request: ReadExecutionOutputRequest): Promise<ReadExecutionOutputResponse>;
+  cancelExecution(request: CancelExecutionRequest): Promise<CancelExecutionResponse>;
 }
 ```
+
+GPT-facing 本地工程 Tool contract 由 `AGENT-DOC-02-05` 定义，固定为 Repomix / Local Dev / CodeGraph；不得把 Tool request 包装成上述 Execution Service DTO。
 
 ## 3. Branded/Opaque Refs
 
@@ -71,31 +64,11 @@ export type EvidenceRef = Brand<string, 'EvidenceRef'>;
 
 这样可以降低把 `workerRef` 当 `roleRef` 传错的概率，但不改变外部 JSON 仍是 string 的事实。
 
-## 4. Capability ID
+## 4. Internal Capability ID
+
+Execution capability union 只描述仍进入 durable Execution lifecycle 的内部能力。旧 `LocalCapabilityId` 不再定义 GPT 本地工具面；Local Dev / Repomix / CodeGraph 使用独立 Tool operation contract。
 
 ```ts
-export type LocalCapabilityId =
-  | 'file.read'
-  | 'file.write'
-  | 'file.searchText'
-  | 'git.status'
-  | 'git.diff'
-  | 'git.commit'
-  | 'git.push'
-  | 'project.info'
-  | 'project.installDependency'
-  | 'quality.test'
-  | 'quality.build'
-  | 'quality.lint'
-  | 'quality.typecheck'
-  | 'code.findSymbol'
-  | 'code.findReferences'
-  | 'process.start'
-  | 'process.stop'
-  | 'process.status'
-  | 'network.request'
-  | 'shell.run';
-
 export type BrowserCapabilityId =
   | 'browser.observe'
   | 'browser.screenshot'
@@ -111,12 +84,10 @@ export type BrowserCapabilityId =
   | 'worker.wake'
   | 'collaboration.deliver';
 
-export type ExecutionCapabilityId =
-  | LocalCapabilityId
-  | BrowserCapabilityId;
+export type ExecutionCapabilityId = BrowserCapabilityId | InternalDurableCapabilityId;
 ```
 
-具体名字实现时可微调，但必须保持 typed union，不允许 dynamic arbitrary capability。
+`InternalDurableCapabilityId` 只允许仍有真实内部 caller 的 materialization/recovery 等能力；实现迁移时按 caller 证据收缩。Local Tool operation 不得塞回该 union。
 
 ## 5. Discriminated Union Request
 
@@ -137,22 +108,17 @@ interface ExecuteBase {
 
 export type ExecuteCapabilityRequest =
   | (ExecuteBase & {
-      capability: 'file.read';
-      input: ReadFileInput;
-    })
-  | (ExecuteBase & {
-      capability: 'file.write';
-      input: WriteFileInput;
-    })
-  | (ExecuteBase & {
-      capability: 'quality.test';
-      input: RunTestsInput;
-    })
-  | (ExecuteBase & {
       capability: 'worker.wake';
       input: WakeWorkerInput;
     })
-  | ...;
+  | (ExecuteBase & {
+      capability: BrowserCapabilityId;
+      input: BrowserCapabilityInput;
+    })
+  | (ExecuteBase & {
+      capability: InternalDurableCapabilityId;
+      input: InternalDurableCapabilityInput;
+    });
 ```
 
 禁止：
@@ -259,11 +225,11 @@ external config
 
 ```ts
 const raw: unknown = inbound;
-const parsed = SomeSchema.parse(raw); // Zod/Valibot/自研 validator 均可，具体库后定
+const parsed = SomeSchema.parse(raw); // 按 IMPLEMENTATION-BASELINE 使用 Zod 4.1.12
 // 从这里开始 parsed 才进入 typed domain
 ```
 
-v1 不必现在冻结具体 validation library，但不允许跳过 runtime validation。
+v1 validation library 已由 IMPLEMENTATION-BASELINE 冻结为 Zod 4.1.12；不得跳过 runtime validation。
 
 ## 9. Unknown vs any
 
@@ -277,9 +243,11 @@ function parse(x: unknown): TypedValue {
 }
 ```
 
-## 10. Browser Message Contract
+## 10. Browser / Local Tool Message Contract
 
-推荐把 runtime↔extension、background↔content 的消息也做 discriminated union，例如：
+Browser durable lane 与 Local Tool lane 都必须使用 discriminated union，但**不能共用同一个业务 message union/queue**。Browser runtime↔extension、background↔content 继续保持 typed contract；Local Tool 另由 `AGENT-DOC-02-05` 冻结 `/v1/local-tools/commands/*` request/result contract。
+
+Browser lane 示例：
 
 ```ts
 type BrowserRuntimeMessage =

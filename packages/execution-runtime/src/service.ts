@@ -213,15 +213,10 @@ export async function createExecutionRuntimeProcess(input: {
 				? "UNAVAILABLE"
 				: "READY"
 			: "UNAVAILABLE";
-		const browserRequirementSatisfied =
-			input.config.browserExecutorConfigPath === undefined ||
-			browserExecutor === "READY";
 		const identity =
 			input.identity && input.identityReadiness?.() !== false
 				? "READY"
 				: "UNAVAILABLE";
-		const identityRequirementSatisfied =
-			input.config.identity === undefined || identity === "READY";
 		const transportAuth = input.transportCredential ? "READY" : "UNAVAILABLE";
 		const transportRequirementSatisfied =
 			input.config.transportCredentialFile === undefined ||
@@ -230,7 +225,12 @@ export async function createExecutionRuntimeProcess(input: {
 			input.modelDecision && input.modelDecisionReadiness?.() !== false
 				? "READY"
 				: "UNAVAILABLE";
-		const modelRequirementSatisfied =
+		const browserRequirementSatisfied =
+			input.browserExecutor === undefined || browserExecutor === "READY";
+		const identityRequirementSatisfied =
+			(input.identity === undefined && input.config.identity === undefined) ||
+			identity === "READY";
+		const modelDecisionRequirementSatisfied =
 			input.requireModelDecision !== true || modelDecision === "READY";
 		return {
 			process: state,
@@ -239,10 +239,10 @@ export async function createExecutionRuntimeProcess(input: {
 				state === "RUNNING" &&
 				accepting &&
 				runtime &&
+				transportRequirementSatisfied &&
 				browserRequirementSatisfied &&
 				identityRequirementSatisfied &&
-				transportRequirementSatisfied &&
-				modelRequirementSatisfied
+				modelDecisionRequirementSatisfied
 					? "READY"
 					: "NOT_READY",
 			accepting,
@@ -294,11 +294,11 @@ export async function createExecutionRuntimeProcess(input: {
 						return respond(response, 200, { status: "UP" });
 					if (request.method === "GET" && url.pathname === "/ready") {
 						let current = status();
-						if (current.readiness !== "READY" && input.refreshDependencies) {
+						if (input.refreshDependencies) {
 							try {
 								await input.refreshDependencies();
 							} catch {
-								// Keep readiness fail-closed when the bounded dependency re-probe fails.
+								// Owner readiness is reported separately from process readiness.
 							}
 							current = status();
 						}

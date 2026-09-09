@@ -9,6 +9,7 @@
 	"exports": {
 		".": "./dist/src/index.js",
 		"./bridge": "./dist/src/bridge.js",
+		"./local-tool-bridge": "./dist/src/local-tool-bridge.js",
 		"./deployment/adapter": "./dist/deployment/adapter.js",
 		"./deployment/descriptor": "./dist/deployment/descriptor.js",
 		"./runtime-composition": "./dist/src/runtime-composition.js",
@@ -32,6 +33,7 @@
 	},
 	"dependencies": {
 		"@tomflow/proflow-execution-contracts": "workspace:^",
+		"@tomflow/proflow-execution-local": "workspace:^",
 		"@tomflow/proflow-module-contract": "workspace:^"
 	},
 	"devDependencies": {

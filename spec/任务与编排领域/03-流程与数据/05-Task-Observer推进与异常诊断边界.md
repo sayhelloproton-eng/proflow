@@ -18,7 +18,7 @@ contractRefs:
 
 # 任务与编排领域｜Task Observer 推进投影与异常诊断边界
 
-> Task Observer 的物理实现位于 Extension application/background 侧；本文只冻结 Task Domain 为 Observer 提供什么正式事实，以及 Observer 不得把什么推回 Task。
+> Task Observer 的 deterministic decision 与 lost-trigger reconciliation 运行在 backend application；本文冻结 Task Domain 为 Observer/Reconciliation 提供什么正式事实，以及该 application 不得把什么推回 Task。Extension 只提供 Carrier/page reality 与 kick，不承担业务 progression scheduler。
 
 ## 1. Task Observer 不是 Task Owner
 
@@ -53,15 +53,15 @@ Task 不把 Execution/Collaboration/Carrier 的状态复制进自身 Store；Obs
 典型条件：
 
 ```text
-Node READY                 → request WAKE correct Worker
-Execution Result READY      → request RESUME same Worker
-Peer Reply READY            → request RESUME same Worker
-Reopen target READY         → request WAKE same Worker/runNo+1
-wake/recovery unfinished    → request bounded carrier reconciliation
-Task terminal               → STOP driving
+Node READY                      → request WAKE correct Worker
+Peer Reply READY                 → request RESUME same Worker
+Browser/Carrier durable result   → request RESUME same Worker（仅确实跨 Turn 的内部场景）
+Reopen target READY              → request WAKE same Worker/runNo+1
+wake/recovery unfinished         → request bounded carrier reconciliation
+Task terminal                    → STOP driving
 ```
 
-具体 typed command 名称可由 Extension/Execution contract 冻结；Task Domain 不拥有 Browser command vocabulary。
+Repomix / Local Dev / CodeGraph 的普通 Direct Tool result 在当前 Worker Turn 直接返回，**不是 Observer progression trigger**。具体 Carrier typed command 由 owning internal contract 冻结；Task Domain 不拥有 Browser command vocabulary。
 
 ## 4. READY 与 startNode
 
@@ -112,3 +112,15 @@ UNKNOWN 无法确定 effect/delivery reality
 ```
 
 Task Domain 不增加 Observer Store、Scheduler、AI Planner 或全局 Event Bus。
+
+## 8. Bounded loop 的可执行语义
+
+Host 每轮从 Task Owner 分页读取有界 nonterminal candidates（初始默认每页 100，非产品不变量）；逐 task 单飞，单次 projection/Owner 调用 bounded timeout，可配置 bounded concurrency（初始默认 4 个 Task 并行，非产品不变量），下一页保留 cursor。完整 sweep 后重置 cursor；周期默认 5s、失败 backoff 上限 30s。一个 stalled Task 不阻塞 cursor 前移或其它 Task。全部 event 丢失仍不断进行完整 sweep；“bounded”同时约束 query、in-flight 和公平性，而不只是 setInterval。
+
+一个 Host workspace lifecycle 只拥有一个 coordinator；从 Extension 移除旧 progression timer，防止双 writer。Task eligibility 每次从 Owner 重读，dispatch 前校验 task/node version、runNo、binding、terminal；排队期间事实变更会废弃旧 decision。Carrier 在实际 effect 前再次通过 Owner public guard 验证当前 generation 与 denial；不能只依赖初次 projection。
+
+WAKE 的内部稳定 dedupe key 使用 taskId/nodeId/runNo/workerRef/trigger/underlying signal ref；不得使用 tick 时间、随机 UUID 或每次 scan 的 taskVersion 生成新 intent。重复 event、catch-up、重启均复用已有 Browser durable Execution 的 effect/reality，UNKNOWN 先观察不重发。单飞仅防并发，不能代替跨轮/重启去重。Task terminal 后不再创建或开始新的 WAKE；terminal 提交前已跨 EFFECT_STARTED 的在途 Browser effect只能按原 durable truth 收敛，不能宣称可撤销已经提交的消息。
+
+诊断先在无 progression lock 下取得 bounded snapshot，再送 Model；慢诊断不能占 per-task single-flight，也不占 deterministic worker pool。结果只记录 assessment，不 dispatch。stop 后 generation 失效，晚到回调不再推进。
+
+分页契约见 `TASK-DOC-02-01`，具体 coordinator 在 platform-host，Task package 只实现 Query/guard。

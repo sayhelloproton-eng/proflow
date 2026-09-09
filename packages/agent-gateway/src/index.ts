@@ -22,6 +22,7 @@ export type GatewayOwnerPorts = {
 		input: unknown,
 		context?: {
 			signal: AbortSignal;
+			deadlineAt: string;
 			fileMaterializationInputs?: readonly ExternalFileMaterializationInput[];
 		},
 	): Promise<unknown>;
@@ -411,9 +412,12 @@ export async function createAgentGateway(options: GatewayOptions) {
 				)
 					throw new AgentGatewayError("OPENAI_FILE_INPUT_CONFLICT");
 			}
-			const actionSignal = AbortSignal.timeout(
-				options.actionTimeoutMs ?? 45_000,
+			const actionTimeoutMs = Math.min(
+				40_000,
+				options.actionTimeoutMs ?? 40_000,
 			);
+			const deadlineAt = new Date(now() + actionTimeoutMs).toISOString();
+			const actionSignal = AbortSignal.timeout(actionTimeoutMs);
 			const operation =
 				action.uncertain && options.owners.lookupResult
 					? options.owners.lookupResult(
@@ -427,6 +431,7 @@ export async function createAgentGateway(options: GatewayOptions) {
 							canonicalBody,
 							{
 								signal: actionSignal,
+								deadlineAt,
 								...(fileMaterializationInputs === undefined
 									? {}
 									: { fileMaterializationInputs }),

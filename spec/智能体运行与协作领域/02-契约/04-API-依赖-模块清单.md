@@ -118,17 +118,19 @@ participant/status/version validation
 
 Agent绝不读Task SQLite。
 
-## Requires｜Execution
+## Requires｜Tools / Execution
+
+GPT-facing Tools：
 
 ```text
-Browser CREATE / RESTORE / WAKE / physical delivery
-Local typed capabilities
-File fetch/materialization
-Artifact/Result/Evidence
-UNKNOWN/reality reconciliation
+Repomix   → pack / grep / read
+Local Dev → read / list / search / mutate / run / process
+CodeGraph → explore
 ```
 
-Agent不直接执行shell/git/browser effect。
+正式物理链：`Gateway → ProFlow API → Browser Extension Local Tool lane → execution-local → macOS`。Agent/Gateway 不直连 shell/git/fs/tool library。
+
+Execution internal 只继续提供 Browser CREATE/RESTORE/WAKE/physical delivery、Approval/UNKNOWN/recovery 与仍需 durable materialization 的内部机制。
 
 ## Requires｜Model
 
@@ -156,7 +158,8 @@ Agent/Carrier 私有 config、Action Auth、native capability readiness 由 owni
 Custom GPT
 → HTTPS 443 public ingress
 → agent-gateway
-→ Agent/Task/Execution public contracts
+→ Agent/Task owner APIs 或 ProFlow Local Tool API
+→ Browser Extension Effect Gate（本机 Tool）
 ```
 
 约束：45s ceiling、request/response `<100k chars`、真实429/5xx、无arbitrary custom headers、File Bridge、显式`x-openai-isConsequential`。
@@ -186,7 +189,7 @@ Browser Extension属于Execution。Agent只依赖稳定logical capabilities/resu
 
 ```text
 Custom GPT → Gateway = one Role one random Bearer/API key
-Browser Extension → Execution Runtime = local-platform-token
+Browser Extension → local Browser/Tool bridge = local-platform-token（或等价派生 credential）
 ```
 
 ## Collaboration durable boundary
@@ -205,3 +208,9 @@ ChatGPT Action permission → Always Allow / carrier recovery
 ```
 
 Routine Action `consequential:false`不能绕过Execution effect policy。
+
+## 审计补充：消除 Agent 的间接启动环
+
+目标 descriptor 还必须删除 `agent-runtime.requires: execution`；保留 `task-orchestration`。真实 Agent adapter 只创建 Role store，start/stop 为 library no-op；逻辑 Collaboration 接收 delivery evidence，不要求 Execution 服务参与初始化。ExecutionRef 作为消息投递证据字段不构成启动依赖。
+
+否则新增 Execution → Extension 后会形成 `execution-runtime → execution-browser-extension → agent-runtime → execution-runtime` 环，也会让 Host/Task/Peer 间接依赖 Execution。Delivery 的请求期 durable Execution 依赖仍保留在 Carrier/composition，不删除消息 Evidence 语义。全量演算必须包含 Agent descriptor，不能只验证三个修改模块的子图。

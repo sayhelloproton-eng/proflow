@@ -14,6 +14,10 @@ export const descriptor = {
 	},
 	provides: [
 		{
+			contractRef: "local-tool-bridge",
+			version: "1.0.0",
+		},
+		{
 			contractRef: "execution-browser-executor",
 			version: "1.0.0",
 		},
@@ -24,7 +28,7 @@ export const descriptor = {
 	],
 	requires: [
 		{
-			contractRef: "execution",
+			contractRef: "execution-local",
 			versionRange: ">=1.0.0 <2.0.0",
 		},
 		{
@@ -50,6 +54,11 @@ export const descriptor = {
 	],
 	configSlots: [],
 	effects: [
+		{
+			kind: "process",
+			description: "Manage the Browser and Local Tool bridge listeners",
+			retention: "remove",
+		},
 		{
 			kind: "external-resource",
 			description: "Materialize the unpacked MV3 extension package",

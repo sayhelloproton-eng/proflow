@@ -36,7 +36,7 @@ Task Domain Public API
 
 - Task Domain 只拥有 Task/TaskGroup/Node/TaskRoleBinding/TaskDocument/TaskEvent 等 Task 事实。
 - Extension 是 v1 New Task 与 human-start-confirmation UI；它通过 platform-host/Public Contract 调 Task，不直接读写 Task Store。
-- Task Observer 位于 Extension application/background，读取 Task drive projection 与其他 Owner 的 current facts，只发 typed wake/resume request，不写 Task。
+- Task Observer/Reconciliation 位于 backend application，读取 Task drive projection 与其他 Owner current facts，做 deterministic next-step + bounded catch-up；Extension/page event 只作 kick。Observer 只发 typed wake/resume request，不写 Task。
 - Browser Carrier 负责 Conversation CREATE/RESTORE/WAKE/physical delivery，不是 Task Owner。
 - Gateway 可把 Task operation 暴露给 GPT，但不能改变 Task Contract。
 
@@ -436,7 +436,7 @@ Task 到此停止；Browser restore/wake 由 Task Observer + Carrier 完成。
 
 ## 7.1 getTaskDriveProjection
 
-用途：为 Extension Task Observer 提供**足以确定下一步、但不复制 Task Store** 的 bounded projection。
+用途：为 backend Task Observer/Reconciliation 提供**足以确定下一步、但不复制 Task Store**的 bounded projection。
 
 概念请求：
 
@@ -759,3 +759,9 @@ Task-owned Execution wait state mirror
 10. Reopen 复用原 TaskRoleBinding/Worker/Conversation，runNo+1。
 11. 所有 Public Command 遵守 runtime validation、Owner-domain idempotency、必要 expectedVersion 与统一 error envelope。
 12. Gateway/Browser/Execution/Observer 不得直接写 Task SQLite；所有 workflow transition 必须回到 Task Public Command。
+
+## 审计补充：bounded catch-up 的 Owner Query
+
+现有 listTasks 一次返回全量，不足以证明 bounded scan。为其现有 query 增加可选 `afterTaskId`（稳定 opaque Task ID keyset）和 `limit`（1..100；进入分页模式而未给 limit 时为 100），分页模式返回 `tasks + nextCursor`；不新增 Scheduler entity。未提供两个分页参数时保留既有非分页返回形状；该兼容行为仅限既有 UI/management，reconciliation 必须显式分页。按稳定 taskId 顺序筛选 nonterminal candidates，达到页尾开启下一轮；新增或状态变化的 Task 最晚下一轮发现，不能永远重取第一页。索引/SQL 在 Task Store owner 内实现 LIMIT/keyset，不是 Host 全量加载后 slice。
+
+getTaskDriveProjection 保持 readonly，提供当前 task/node version、runNo、binding、terminal 与可消费 resume signal；Task 不复制 Carrier/Execution 状态。该扩展是当前冻结的契约变更，源码 schema/DTO/store/tests 留待 TDD 同批落地。

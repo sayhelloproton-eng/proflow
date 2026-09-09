@@ -90,7 +90,7 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 - [ ] **CP-AGT-GW-06** — `openaiFileResponse` inline→URL relay、10 files/10MB、no image/video；relay token opaque/GET-only/artifact-scoped/TTL=5min，headers 不泄漏本地路径/secret。
 - [ ] **CP-AGT-GW-07** — Gateway 不维护手写 `describeOpenApi`/诊断 schema 第二真源；每个 shipped Role OpenAPI operation 的 `x-openai-isConsequential` 由对应 Role Package canonical schema 与其 executable conformance proof 负责，Carrier confirmation 与 Execution Approval 独立。
 - [ ] **CP-AGT-GW-08** — Gateway 无业务 persistence；expired locator/timeout 只重试无 business mutation transport，已有 Action 先按 owner idempotency/result 查询。
-- [ ] **CP-AGT-GW-09** — process readiness 分别验证 ingress/credential/required downstream/relay capability；任一 blocking dependency 缺失不得 READY，restart 不重放业务 mutation。
+- [ ] **CP-AGT-GW-09** — process/global health 可分别报告 ingress/credential/downstream/relay 状态，但 Action admission 使用 operation-scoped readiness；无关 Model/Execution dependency 缺失不得阻塞已 READY 的 Direct Tool operation，restart 不重放业务 mutation。
 
 ## 6. Frozen TODO Coverage
 
@@ -193,7 +193,7 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 
 - [ ] **CP-AGT-GW-10** — Product static GPT-facing OpenAPI不含`createTask/listRegisteredRoles/getRegisteredRole` New Task主链。
 - [ ] **CP-AGT-GW-11** — 同一Worker Turn连续Actions时Gateway保持stateless/thin，不建Turn Store，不产生Browser“continue”协议。
-- [ ] **CP-AGT-GW-12** — routine request-intent `x-openai-isConsequential:false`/Always Allow与Execution危险Effect Approval独立；Gateway不能因nonconsequential标记自动授权Effect。
+- [ ] **CP-AGT-GW-12** — Task/Peer routine request-intent 与 Direct Tool operation 分开声明 `x-openai-isConsequential`；Local Dev mutation/run/process 必须按实际副作用标记，禁止因为“后端还有 policy”一律设 false。Carrier permission 仍不替代内部 Execution Approval。
 - [ ] **CP-AGT-GW-13** — File Bridge inbound由Execution materialize，outbound relay引用canonical Artifact/Document；Gateway无durable File/Artifact business store。
 - [ ] **CP-AGT-GW-14** — Gateway→platform-host local transport 使用独立 Bearer credential；loopback-only ≠ authenticated transport，`authenticatedRoleRef` body 自报值不能在缺少正确 transport credential 时进入 Owner routing。
 
@@ -202,3 +202,26 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 - [ ] **RF-AGT-GW-14** — Gateway→platform-host 仅依赖 loopback 或 body `authenticatedRoleRef`，导致本机进程可绕过 Gateway ingress 身份认证直接冒充 Role。
 - **Executable proof**：`packages/agent-gateway/tests/agent-gateway-process.test.ts` + `packages/platform-host/tests/platform-host-critical-proofs.test.ts`。
 - **Proof class**：`Process Lifecycle` + `Security / Boundary` behavior proof；正式 Deployment/binary 对 credential 的 mandatory provisioning/fail-closed 由 Batch 6 deployment closure 共同证明。
+
+## 2026-09-09 Real-3｜Direct Tool Action Gate
+
+- [ ] **CP-AGT-GW-15** — Dev/Test shipped OpenAPI 暴露 `repomix/localDev/codeGraph`，且 `executeCapability/getExecution/readExecutionOutput` 为零；Product 仅按角色策略获得允许的 read-only Tool operations。
+- [ ] **CP-AGT-GW-16** — Direct Tool request body 只含 `operation + input`；Task/Node/Worker/Role/Execution identity 字段均由 schema 拒绝，Bearer 只解析 authenticated Role。
+- [ ] **CP-AGT-GW-17** — Gateway 将 Direct Tool route 交给 ProFlow API/Host admission，再由 Browser Extension Local Tool lane执行；Gateway/Host均无本机 fs/git/process/shell/CLI implementation。
+- [ ] **CP-AGT-GW-18** — Direct Tool Action 在 45s/<100k 下返回 bounded result/provider-native handle；不得返回 ProFlow `executionRef` 或要求 `getExecution/readExecutionOutput` polling。
+- [ ] **CP-AGT-GW-19** — Direct Tool readiness只依赖目标 Tool provider/Extension local-tool bridge；无关 Model/Execution outage不导致 Gateway 拒绝该 operation。
+- [ ] **CP-AGT-GW-20** — Local Dev mutation/command 的 `x-openai-isConsequential` 按真实 operation side effect定义；不能因为“内部会再判断”而全部标 false。
+
+**Executable proof**：`packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts` + `packages/agent-gateway/tests/agent-gateway-process.test.ts` + `packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts` + `packages/platform-host/tests/direct-tools-route.test.ts` + `packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts` + `packages/agent-test-ops/tests/agent-test-ops-static.test.ts`。
+
+本 Addendum 在源码改变前只冻结行为；现有 executable tests/`08-测试用例与验证` 保持不动。
+
+## 独立审计补充：shipped Action 与 end-to-end deadline
+
+细化 Tool surface / admission / readiness proofs：三个 Role 的实际 shipped OpenAPI、Gateway dispatch、Host ACL 和 Provisioning material hash 要一致；旧 executeCapability/getExecution/readExecutionOutput 为零。不能以源码新版 schema 代替已部署 Custom GPT adoption。
+
+固定混合 localDev HTTP Operation Object 为 consequential=true，不在 oneOf 分支伪造该扩展字段；Product 如只读版本 false，真实 mutation/run 请求仍拒绝。Dev/Test read 的确认是预期产品代价；不得以自动点击实现 Always Allow。真实 Preview 验证 oneOf 接受、正确字段绑定和连续多 Action；schema parse unit 不能替代 Preview。
+
+Gateway deadline 贯穿全部 hop（总预算≤40s），排队过期拒绝、dispatch 后断连 UNKNOWN；禁止逐层 reset timeout 和 HTTP 自动重投 mutation。process.start 必须在预算内给出原生 handle。Provider 内容超限返回 bounded result/handle，不创建 Execution ref。
+
+readiness 故障注入分别禁用 Model/Execution/单 Provider；不得用 /ready aggregate 拒绝仍可执行的 Task/Peer/其它 Tool。

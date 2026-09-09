@@ -69,11 +69,8 @@ test("B1-RECOVERY-BOUNDARY hung startup snapshot is bounded and treated as unkno
 });
 
 test("B1-RECOVERY-BOUNDARY rejected startup snapshot is bounded without fabricated state", async () => {
-	const result = await boundedRecoveryObservation(
-		async () => {
-			throw new Error("no receiver");
-		},
-		20,
-	);
+	const result = await boundedRecoveryObservation(async () => {
+		throw new Error("no receiver");
+	}, 20);
 	assert.equal(result, null);
 });

@@ -44,35 +44,28 @@ Action A → Browser send “继续” → Action B
 DOM 判断 GPT 是否“需要继续”
 ```
 
-只有真正异步边界（长 Execution、Peer reply、Execution Approval、Carrier recovery）使当前 Turn 自然结束后，Task Observer 才在新事实 ready 时再次 WAKE 同一 Worker。
+只有真正异步边界（Browser/Carrier durable Effect、Peer reply、Execution Approval、Carrier recovery）使当前 Turn 自然结束后，backend Task Observer/Reconciliation 才在新事实 ready 时再次 WAKE 同一 Worker。
 
 ## 3. Native capability first
 
 ```text
 公开知识/资料 → Web Search
-文件/数据/代码临时分析 → Code Interpreter
-Conversation 文件 ↔ ProFlow → File Bridge
-正式平台事实 → Actions
-真实 Effect → Execution
+临时文件/数据分析 → Code Interpreter
+正式 Task/Node/Document facts → Task Actions
+广域仓库上下文 → Repomix
+代码结构/调用/依赖/impact → CodeGraph
+当前磁盘真值、修改、命令、进程/端口 → Local Dev
+Browser/Carrier durable Effect → Execution internal path
 跨 Worker → Collaboration
 ```
 
 不建立 Tool Router AI；Agent Instructions 直接教会 Worker 使用以上简单规则。
 
-## 4. File/Artifact 主路径
+## 4. File / repo 主路径
 
-大量动态 Task Context 不由 Browser 注入。推荐：
+大量动态 Task Context 不由 Browser 注入。TaskDocument 继续走 File Bridge；真实仓库调查优先 Repomix/CodeGraph，真实修改与验证走 Local Dev。Code Interpreter 只处理 Conversation 沙箱材料，不能证明 macOS repo 已修改。
 
-```text
-Execution bounded Context Pack
-→ File Bridge
-→ GPT + Code Interpreter
-→ patch/report/findings
-→ File Bridge
-→ Execution materialize/validate/apply/test
-```
-
-Context Pack / Patch 是 Execution Artifact subtype，不是 Agent-owned文件实体。
+Local Tool 的长进程使用 `Local Dev.process` 原生 process handle，不创建 ProFlow `executionRef` 轮询。
 
 ## 5. Fresh reality
 

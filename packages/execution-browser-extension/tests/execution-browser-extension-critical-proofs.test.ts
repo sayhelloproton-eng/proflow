@@ -25,6 +25,22 @@ class BrowserHarness implements BrowserRealityPort {
 	nextTab = 1;
 	submittedTexts: string[] = [];
 	confirmSubmittedMessages = true;
+	wakeAllowed = true;
+	wakeGuardCalls: Array<{
+		taskId: string;
+		roleRef: string;
+		workerRef: string;
+		conversationLocator: string;
+	}> = [];
+	async guardWake(input: {
+		taskId: string;
+		roleRef: string;
+		workerRef: string;
+		conversationLocator: string;
+	}) {
+		this.wakeGuardCalls.push(input);
+		return this.wakeAllowed;
+	}
 	async listTabs() {
 		return [...this.tabs.values()];
 	}
@@ -507,6 +523,49 @@ test("REG-EXE-BR-03 WAKE sends only bounded identity trigger and never claims No
 		JSON.stringify(result),
 		/taskDocuments|nodeCompleted|effectSucceeded/,
 	);
+});
+
+test("CP-EXE-BR-34 WAKE_GUARD denial fails before durable effect start and Browser submit", async () => {
+	const { extension, browser, bindings } = await fixture();
+	bindings.set("task:1:g-dev", {
+		workerRef: "c-dev",
+		conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+	});
+	browser.wakeAllowed = false;
+	let effectStarted = 0;
+	await assert.rejects(
+		() =>
+			extension.execute({
+				request: request("worker.wake", {
+					roleRef: "g-dev",
+					workerRef: "c-dev",
+					taskId: "task:1",
+					nodeId: "node:1",
+					runNo: 1,
+					trigger: "NODE_READY",
+					fingerprint: "wake:denied",
+				}),
+				admission: {
+					policy: "ALLOW",
+					decisionPath: "deterministic",
+					approval: "NOT_REQUIRED",
+				},
+				onEffectStarted() {
+					effectStarted += 1;
+				},
+			}),
+		/CARRIER_CONTINUATION_HUMAN_DENIED/,
+	);
+	assert.equal(effectStarted, 0);
+	assert.equal(browser.submitCount, 0);
+	assert.deepEqual(browser.wakeGuardCalls, [
+		{
+			taskId: "task:1",
+			roleRef: "g-dev",
+			workerRef: "c-dev",
+			conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
+		},
+	]);
 });
 
 test("REG-EXE-BR-03B TASK_RESUMED remains a typed bounded worker.wake trigger", async () => {

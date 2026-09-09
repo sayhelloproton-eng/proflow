@@ -35,7 +35,6 @@
 		"@tomflow/proflow-agent-runtime": "workspace:^",
 		"@tomflow/proflow-deployment-conformance": "workspace:^",
 		"@tomflow/proflow-execution-browser-extension": "workspace:^",
-		"@tomflow/proflow-execution-local": "workspace:^",
 		"@tomflow/proflow-execution-runtime": "workspace:^",
 		"@tomflow/proflow-platform-host": "workspace:^",
 		"@tomflow/proflow-task-migration-runner": "workspace:^",

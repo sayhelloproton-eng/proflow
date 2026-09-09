@@ -45,7 +45,7 @@ v1 未进一步冻结独立 Subdomain；2 packages / 1 runtime service / 6 inter
 
 ## Downstream
 
-Execution、Agent，以及 Extension application 中明确的 Task Diagnostic / System Observer 调用方通过 Model Public Contract 消费认知结果；Model 不反向读取业务事实。正常 Task progression 不调用模型，System assessment 是最低优先级 derived reasoning。
+Execution、Agent，以及 backend application 中的 Task Diagnostic 与 Extension application 中的 System Observer 调用方通过 Model Public Contract 消费认知结果；Model 不反向读取业务事实。正常 Task progression 不调用模型，System assessment 是最低优先级 derived reasoning。
 
 下游只能通过本 Context/Domain Public Contract 使用能力，不得 deep import 内部 Module。
 

@@ -21,6 +21,42 @@ async function dependencyServer() {
 			response.end(JSON.stringify({ status: ready ? "READY" : "NOT_READY" }));
 			return;
 		}
+		if (request.url === "/infer") {
+			entered?.();
+			await new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			response.end(
+				JSON.stringify({
+					contractVersion: "1.0.0",
+					inferenceRef: "inference:drain",
+					specRef: "system.health-assessment.v1",
+					status: "SUCCEEDED",
+					requestedMode: "reason",
+					actualMode: "reason",
+					data: {
+						scope: "global",
+						health: "HEALTHY",
+						findings: [],
+						risks: [],
+						anomalies: [],
+						hypotheses: [],
+						unresolved: [],
+						needsDrilldown: [],
+						evidenceRefs: [],
+						confidence: 1,
+						carryForward: [],
+						rationale: "drain proof",
+					},
+					metrics: {
+						queueLatencyMs: 0,
+						inferenceLatencyMs: 1,
+						totalLatencyMs: 1,
+					},
+				}),
+			);
+			return;
+		}
 		if (
 			request.url === "/executions" ||
 			request.url?.startsWith("/executions/")
@@ -148,13 +184,31 @@ test("CP-HOST-03 local transport is loopback-only, restartable, and shutdown dra
 		const baseUrl = `http://${first.host}:${first.port}`;
 		assert.equal((await fetch(`${baseUrl}/ready`)).status, 200);
 
-		const inFlight = fetch(`${baseUrl}/actions/getExecution`, {
+		const observerToken = (
+			await readFile(
+				join(root, ".proflow", "browser", "secrets", "task-application.token"),
+				"utf8",
+			)
+		).trim();
+		const inFlight = fetch(`${baseUrl}/application/observer`, {
 			method: "POST",
-			headers: { "content-type": "application/json" },
+			headers: {
+				authorization: `Bearer ${observerToken}`,
+				"content-type": "application/json",
+			},
 			body: JSON.stringify({
-				authenticatedRoleRef: "g-controller",
+				operation: "system.reason",
 				input: {
-					executionRef: "execution:host-proof",
+					assessmentRef: "assessment:drain",
+					payload: {
+						assessmentRef: "assessment:drain",
+						kind: "CONCERN_BATCH",
+						scope: "system",
+						observedAt: new Date().toISOString(),
+						views: {},
+						previousUnresolved: [],
+						previousCarryForward: [],
+					},
 				},
 			}),
 		});
@@ -491,23 +545,20 @@ test("PRESMOKE-B4-IDENTITY-01 execution-runtime identity admission uses a dedica
 	}
 });
 
-test("PRESMOKE-B4-HOST-READ execution reads re-admit durable Task/Role/Worker scope", async () => {
-	const source = await readFile(
-		new URL("../src/index.ts", import.meta.url),
-		"utf8",
-	);
-	assert.match(source, /const admitExecutionRead = async/);
-	assert.match(source, /EXECUTION_CALLER_MISMATCH/);
-	assert.match(source, /EXECUTION_ROLE_SCOPE_MISMATCH/);
-	assert.match(source, /EXECUTION_WORKER_SCOPE_REQUIRED/);
-	assert.match(
-		source,
-		/await admitTaskParticipant\([\s\S]*?record\.taskId[\s\S]*?record\.workerRef/,
-	);
-	assert.match(
-		source,
-		/operationId === "readExecutionOutput"[\s\S]*?execution\.invoke\("getExecution"[\s\S]*?admitExecutionRead/,
-	);
+test("CP-HOST-12 GPT-facing Execution lifecycle is absent while internal Execution transport remains private", async () => {
+	const [source, roleSource] = await Promise.all([
+		readFile(new URL("../src/index.ts", import.meta.url), "utf8"),
+		readFile(new URL("../src/role-operations.ts", import.meta.url), "utf8"),
+	]);
+	for (const removed of [
+		"executeCapability",
+		"getExecution",
+		"readExecutionOutput",
+	])
+		assert.doesNotMatch(roleSource, new RegExp(`\\b${removed}\\b`));
+	assert.match(source, /\/internal\/execution\/authorize/);
+	assert.match(source, /operationId === "materializeExternalFiles"/);
+	assert.match(roleSource, /directToolActionIds/);
 });
 
 test("PRESMOKE-B4-HOST-FILE-01 Carrier File Bridge materialization carries stable Execution idempotency and canonical role/worker scope", async () => {
@@ -623,7 +674,7 @@ async function securedExecutionServer(credential: string) {
 	};
 }
 
-test("PRESMOKE-B6-HOST-EXEC-01 Host→Execution transport credential is wired from config and business routes carry the Bearer", async () => {
+test("PRESMOKE-B6-HOST-EXEC-01 Host→Execution internal readiness uses its credential while GPT getExecution stays removed", async () => {
 	const executionCredential = "execution-runtime-transport-credential-value";
 	const execution = await securedExecutionServer(executionCredential);
 	const model = await dependencyServer();
@@ -675,21 +726,14 @@ test("PRESMOKE-B6-HOST-EXEC-01 Host→Execution transport credential is wired fr
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({
 					authenticatedRoleRef: "g-controller",
-					input: {
-						executionRef: "execution:secured",
-					},
+					input: { executionRef: "execution:secured" },
 				}),
 			},
 		);
-		assert.equal(action.status, 200);
-		const body = (await action.json()) as {
-			executionRef?: string;
-			status?: string;
-		};
-		assert.equal(body.status, "SUCCEEDED");
+		assert.equal(action.status, 403);
 		assert.ok(
 			execution.authorizations.includes(`Bearer ${executionCredential}`),
-			"business route must carry the Execution transport Bearer",
+			"internal Execution /ready must carry the configured transport Bearer",
 		);
 	} finally {
 		await correct.stop();

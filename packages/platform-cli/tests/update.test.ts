@@ -74,8 +74,13 @@ test("CP-DEP-CLI-UPDATE-01 platform update changes exactly one installed ProFlow
 				packageRunner: {
 					async run(command, args) {
 						packageCalls.push([command, ...args]);
-						assert.ok(args.includes(`${target.packageName}@${target.toVersion}`));
-						assert.equal(args.some((arg) => arg.includes(sibling.packageName)), false);
+						assert.ok(
+							args.includes(`${target.packageName}@${target.toVersion}`),
+						);
+						assert.equal(
+							args.some((arg) => arg.includes(sibling.packageName)),
+							false,
+						);
 						const current = await manifest(root);
 						await writeFile(
 							join(root, "package.json"),
@@ -87,10 +92,13 @@ test("CP-DEP-CLI-UPDATE-01 platform update changes exactly one installed ProFlow
 								},
 							}),
 						);
-						await rm(join(root, "node_modules", ...target.packageName.split("/")), {
-							recursive: true,
-							force: true,
-						});
+						await rm(
+							join(root, "node_modules", ...target.packageName.split("/")),
+							{
+								recursive: true,
+								force: true,
+							},
+						);
 						await writeInstalledModule(root, {
 							moduleRef: target.moduleRef,
 							packageName: target.packageName,
@@ -107,10 +115,7 @@ test("CP-DEP-CLI-UPDATE-01 platform update changes exactly one installed ProFlow
 		const next = await manifest(root);
 		assert.equal(next.dependencies[target.packageName], target.toVersion);
 		assert.equal(next.dependencies[sibling.packageName], sibling.version);
-		assert.equal(
-			JSON.stringify(result.data).includes('"changed":true'),
-			true,
-		);
+		assert.equal(JSON.stringify(result.data).includes('"changed":true'), true);
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
@@ -119,7 +124,9 @@ test("CP-DEP-CLI-UPDATE-01 platform update changes exactly one installed ProFlow
 test("CP-DEP-CLI-UPDATE-02 platform update requires one installed package target", async () => {
 	const root = await tempWorkspace();
 	try {
-		const missing = await runCli(["update", "--workspace", root], { cwd: root });
+		const missing = await runCli(["update", "--workspace", root], {
+			cwd: root,
+		});
 		assert.equal(missing.status, "FAILED");
 		assert.equal(missing.error?.code, "INVALID_REQUEST");
 		const absent = await runCli(

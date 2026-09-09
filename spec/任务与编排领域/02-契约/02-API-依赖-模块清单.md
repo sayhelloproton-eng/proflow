@@ -169,4 +169,4 @@ WAITING 停整个 Task
 
 ## Observer consumer
 
-Extension Task Observer 是 Task Query consumer，而不是 Task owner。它读取 drive projection，并通过 Carrier/Owner typed commands触发下一步；不得读取 Task SQLite 或在本地复制 eligibility/state-machine。
+backend Task Observer/Reconciliation 是 Task Query consumer，而不是 Task owner。它读取 drive projection，通过 Carrier/Owner typed commands触发下一步，并用 bounded catch-up补偿丢事件；Extension只提供kick/page reality。Observer不得读取 Task SQLite 或复制 eligibility/state-machine。

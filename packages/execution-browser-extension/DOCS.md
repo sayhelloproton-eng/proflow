@@ -6,7 +6,7 @@ Execution 领域拥有的 Chrome MV3 Extension，负责 Task UI、审批提醒�
 
 ## 主要能力
 
-- 运行期提供独立 ProFlow Tasks 扩展页面、Task Observer、System Observer 和 Browser Effect；任务 UI 不再以内嵌 Side Panel 形式占用当前网页。
+- 运行期提供独立 ProFlow Tasks 扩展页面、System Observer、Collaboration/Browser physical recovery、Browser Effect 和独立 Local Tool Effect Gate；backend Task Reconciliation 由 platform-host 拥有，Extension 不再调度 Task progression。
 - 运行期创建、恢复和唤醒 Custom GPT Conversation，稳定观察 workerRef/c-id。
 - 部署期通过独立 `/gpts/editor` / `/gpts/editor/*` Provisioning Surface 物化 Custom GPT；该分支不进入 Task/Worker 状态机。
 - 正常创建路径在单一 GPT Editor 会话中完成字段、Action Schema、API Key/Bearer、Knowledge ZIP、模型与 Capabilities 配置，再创建 Private GPT；不在 Create 后重新打开同一 GPT 做 Auth。
@@ -16,14 +16,15 @@ Execution 领域拥有的 Chrome MV3 Extension，负责 Task UI、审批提醒�
 
 ## 提供的 API 与 Public Contract
 
-- 提供 `execution-browser-executor` Contract，版本 `1.0.0`，仅用于运行期 Browser Execution。
+- 提供 `local-tool-bridge` Contract，版本 `1.0.0`，作为 GPT-facing Local Tool 的独立 Extension Effect Gate/transport lane。
+- 提供 `execution-browser-executor` Contract，版本 `1.0.0`，仅用于内部 durable Browser Execution。
 - 提供 `custom-gpt-web-provisioning` Contract，版本 `1.0.0`，仅用于部署期 Custom GPT Web Provisioning。
 - 两条能力只共享 Extension/loopback transport 等底层设施，不共享业务状态机。
 - 通过本地 Bridge 接收 typed Browser operation 并返回 Evidence。
 
 ## 依赖的 Module、Contract 和外部资源
 
-- 依赖 `execution`、`task-orchestration` 和 `agent-runtime`，兼容版本均为 `>=1.0.0 <2.0.0`。
+- 依赖 `execution-local`、`task-orchestration` 和 `agent-runtime`，兼容版本均为 `>=1.0.0 <2.0.0`。
 - 依赖 Chrome、用户加载 MV3 扩展和真实 ChatGPT 页面。
 
 ## 运行形态与生命周期

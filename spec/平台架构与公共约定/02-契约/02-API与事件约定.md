@@ -55,7 +55,7 @@ startTask
 startNode
 completeNode
 reopenNode
-executeCapability
+localDev / repomix / codeGraph（本地 Tool Action）
 askPeer
 replyPeer
 ```
@@ -143,15 +143,15 @@ WorkerTurn Entity / Store / Runtime
 Browser 解析 GPT 自然语言决定下一 Task Command
 ```
 
-真正异步边界结束当前 Turn 后，由新 owner fact + Task Observer 再 WAKE 同一 Worker。
+真正异步边界结束当前 Turn 后，由新 owner fact + backend Task Observer/Reconciliation 再请求 Carrier WAKE 同一 Worker。页面事件只加速，不是唯一触发源。
 
 ---
 
 # 8. Task Observer / System Observer 的 API 边界
 
-## Task Observer
+## Task Observer / Reconciliation
 
-读取 Task drive projection 与 Execution/Collaboration/Carrier public facts，做 deterministic next-step detection；只发 typed request，不写 Owner state。正常 READY/RESULT/REPLY 不调用模型。
+运行在 backend application，读取 Task drive projection 与 Execution/Collaboration/Carrier public facts，做 deterministic next-step detection + bounded lost-trigger catch-up；只发 typed request，不写 Owner state。正常 READY/RESULT/REPLY 不调用模型。Extension 事件/reconnect 只提供低延迟 kick。
 
 单 Task conflicting facts / UNKNOWN / repeated recovery / unexplained stall 可请求 Model `task-diagnostic`，但模型只返回 finding/recommendation。
 

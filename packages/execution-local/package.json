@@ -7,6 +7,7 @@
 	},
 	"exports": {
 		".": "./dist/src/index.js",
+		"./direct-tools": "./dist/src/direct-tools.js",
 		"./deployment/adapter": "./dist/deployment/adapter.js",
 		"./deployment/descriptor": "./dist/deployment/descriptor.js"
 	},
@@ -23,8 +24,10 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@colbymchenry/codegraph": "1.6.0",
 		"@tomflow/proflow-execution-contracts": "workspace:^",
-		"@tomflow/proflow-module-contract": "workspace:^"
+		"@tomflow/proflow-module-contract": "workspace:^",
+		"repomix": "1.18.0"
 	},
 	"description": "In-process real local executor for typed ProFlow Execution capabilities.",
 	"keywords": [

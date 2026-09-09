@@ -66,16 +66,28 @@ function operationIds(yaml) {
 }
 function parseHostRoleOperations(source) {
 	const result = {};
+	const directToolBlock =
+		source.match(
+			/export const directToolActionIds\s*=\s*\[([\s\S]*?)\]\s*as const/,
+		)?.[1] ?? "";
+	const directToolIds = [
+		...directToolBlock.matchAll(/"([A-Za-z][A-Za-z0-9]+)"/g),
+	].map((match) => match[1]);
 	const block =
 		source.match(
 			/export const roleOperations:[\s\S]*?=\s*\{([\s\S]*?)\n\};/,
 		)?.[1] ?? "";
 	const re =
 		/"(@tomflow\/proflow-agent-[^"]+)"\s*:\s*new Set\(\[([\s\S]*?)\]\)/g;
-	for (const match of block.matchAll(re))
-		result[match[1]] = uniq(
-			[...match[2].matchAll(/"([A-Za-z][A-Za-z0-9]+)"/g)].map((m) => m[1]),
+	for (const match of block.matchAll(re)) {
+		const literalIds = [...match[2].matchAll(/"([A-Za-z][A-Za-z0-9]+)"/g)].map(
+			(item) => item[1],
 		);
+		result[match[1]] = uniq([
+			...literalIds,
+			...(match[2].includes("...directToolActionIds") ? directToolIds : []),
+		]);
+	}
 	return result;
 }
 function diff(left, right) {

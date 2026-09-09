@@ -184,17 +184,15 @@ advanceTask
 executeAnything
 ```
 
-优先围绕业务目的：
+优先围绕五概念与固定 Tool surface：
 
 ```text
-getTask / getNodeContext
-startNode / completeNode / waitNode / reopenNode
-askPeer / replyPeer
-requestExecution / getExecution / readExecutionOutput
-TaskDocument / Artifact File Bridge
+Task / Node / Document → getTask/getNodeContext/startNode/completeNode/.../TaskDocument
+Peer                 → askPeer / replyPeer
+Tools                → repomix / localDev / codeGraph
 ```
 
-底层 `readFile/writeFile/git/process/network/browser` primitive 可保留在 Execution capability registry，但不要求全部平铺为 GPT 高频 Actions。
+GPT-facing 不再出现 `requestExecution/executeCapability/getExecution/readExecutionOutput`。Local Dev 只暴露 `read/list/search/mutate/run/process` 六个 operation family；Repomix `pack/grep/read`；CodeGraph `explore`。
 
 模型负责选择意图，但服务端负责最终合法性。
 
@@ -448,14 +446,17 @@ Product GPT 主路径不再暴露 `createTask/listRegisteredRoles/getRegisteredR
 
 ```text
 public research → Web Search
-多文件/数据分析 → File Bridge + Code Interpreter
-正式平台事实 → Actions
-真实 effect → Execution
+临时文件/数据分析 → File Bridge + Code Interpreter
+正式 Task/Node/Document/Peer → Actions
+repo context → Repomix
+code structure → CodeGraph
+macOS file/command/process reality → Local Dev
+Browser/Carrier durable effect → Execution internal path
 ```
 
 ### Action permission
 
-Routine query/control/intent operation 明确 `x-openai-isConsequential:false`，以用户首次 `Always Allow` 后退出 happy path 为目标；unexpected permission prompt 保留为 Carrier recovery。Execution Approval完全独立。
+每个 GPT-facing operation 按自身真实副作用显式声明 `x-openai-isConsequential`：Task/Peer query、Repomix/CodeGraph、Local Dev read/list/search 通常为 false；Local Dev mutate/run/process 按真实操作判断。Carrier permission 与 Execution internal Approval 完全独立。
 
 ### Knowledge
 

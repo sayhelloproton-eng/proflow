@@ -34,4 +34,4 @@ contractRefs:
 
 ## 2026-08-14 Worker Turn / Test Result Alignment
 
-Test/Ops 是固定三Role之一。New Task时只bind/IDLE；business Node READY后由Carrier WAKE，Worker正式`startNode`。测试/运维分析可以复用Conversation、File Bridge、Code Interpreter与Web Search，但正式测试结果/Evidence、doctor/verify和真实Effect仍通过Owner/Execution合同。Browser不从GPT自然语言判PASS；需要返工时使用Task正式reopen，同一workerRef/Conversation、runNo+1。
+Test/Ops 是固定三Role之一。New Task时只bind/IDLE；business Node READY后由Carrier WAKE，Worker正式`startNode`。测试/运维分析可以复用Conversation、File Bridge、Code Interpreter与Web Search，但正式测试结果通过 Task Owner，工程工具通过 Extension-gated Local Dev/Repomix/CodeGraph；内部 durable Effect/Evidence 仍通过 Execution 合同。Browser不从GPT自然语言判PASS；需要返工时使用Task正式reopen，同一workerRef/Conversation、runNo+1。

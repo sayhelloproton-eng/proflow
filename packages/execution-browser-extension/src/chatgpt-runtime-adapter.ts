@@ -121,7 +121,9 @@ export function performChatGptPermissionAction(
 	return permission.facts;
 }
 
-export function selectChatGptComposerElement(document: Document): Element | null {
+export function selectChatGptComposerElement(
+	document: Document,
+): Element | null {
 	return (
 		document.querySelector("#prompt-textarea") ??
 		document.querySelector("textarea") ??

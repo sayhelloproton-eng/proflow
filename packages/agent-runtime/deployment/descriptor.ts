@@ -23,10 +23,6 @@ export const descriptor = {
 			contractRef: "task-orchestration",
 			versionRange: ">=1.0.0 <2.0.0",
 		},
-		{
-			contractRef: "execution",
-			versionRange: ">=1.0.0 <2.0.0",
-		},
 	],
 	requirements: [
 		{

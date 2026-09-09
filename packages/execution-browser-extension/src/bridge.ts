@@ -5,7 +5,10 @@ import {
 	type ServerResponse,
 } from "node:http";
 
-import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
+import {
+	type ExecuteCapabilityRequest,
+	parseExecuteCapabilityRequest,
+} from "@tomflow/proflow-execution-contracts";
 import {
 	type CarrierAttentionView,
 	parseCarrierAttentionViews,
@@ -37,24 +40,19 @@ type BridgeCommand =
 			attentionRef: string;
 			action: "allowOnce" | "deny";
 	  }
-	| { commandId: string; type: "TASK_OBSERVER_RECOVER" }
 	| {
 			commandId: string;
-			type: "TASK_OBSERVER_RESUME";
+			type: "WAKE_GUARD";
 			taskId: string;
+			roleRef: string;
+			workerRef: string;
+			conversationLocator: string;
 	  };
 type BridgeCommandInput = BridgeCommand extends infer Command
 	? Command extends { commandId: string }
 		? Omit<Command, "commandId">
 		: never
 	: never;
-
-const taskWebObserverRecoveryOperations = new Set([
-	"task.create",
-	"task.start",
-	"task.ensureWorkers",
-	"node.reopen",
-]);
 
 type PendingCommand = {
 	command: BridgeCommand;
@@ -78,6 +76,11 @@ export interface BrowserRealityBridgeTaskWebOptions {
 }
 
 export interface BrowserRealityBridgeOptions {
+	executorToken?: string;
+	resolveApplicationConfig?: () => Promise<{
+		task: { endpoint: string; token: string };
+		approval: { endpoint: string; token: string };
+	}>;
 	token: string;
 	extensionId: string;
 	host?: "127.0.0.1";
@@ -249,6 +252,14 @@ export async function createBrowserRealityBridgeServer(
 		throw new TypeError(
 			"extensionId must be a canonical Chromium extension id",
 		);
+	if (
+		options.executorToken !== undefined &&
+		(options.executorToken.length < 32 ||
+			options.executorToken === options.token)
+	)
+		throw new TypeError(
+			"executor credential must be separate and at least 32 characters",
+		);
 	const now = options.now ?? (() => new Date());
 	const idFactory = options.idFactory ?? randomUUID;
 	const freshnessMs = options.heartbeatFreshnessMs ?? 10_000;
@@ -329,9 +340,54 @@ export async function createBrowserRealityBridgeServer(
 			);
 	};
 
+	const status = () => {
+		return {
+			online: online(),
+			sessionOnline: sessionOnline(),
+			commandConsumerReady: commandConsumerReady(),
+			extensionInstanceId: session?.extensionInstanceId ?? null,
+			queuedCommands: queue.length,
+			pendingCommands: pending.size,
+			lastCommandPollAt,
+			lastCommandDeliveredAt,
+			lastCommandResultAt,
+		};
+	};
+
 	const server = createServer(async (request, response) => {
 		try {
 			const url = new URL(request.url ?? "/", "http://127.0.0.1");
+			if (url.pathname.startsWith("/v1/executor/")) {
+				if (
+					!options.executorToken ||
+					!safeEqual(
+						request.headers.authorization ?? "",
+						`Bearer ${options.executorToken}`,
+					)
+				)
+					throw new BrowserRealityBridgeError(
+						"BRIDGE_AUTH_INVALID",
+						"executor authentication failed",
+					);
+				if (
+					request.method === "GET" &&
+					url.pathname === "/v1/executor/status"
+				) {
+					send(response, 200, status());
+					return;
+				}
+				if (
+					request.method === "POST" &&
+					url.pathname === "/v1/executor/commands"
+				) {
+					const command = parseExecutorCommand(await readJson(request));
+					send(response, 200, { value: await requestCommand(command) });
+					return;
+				}
+				send(response, 404, { error: "NOT_FOUND" });
+				return;
+			}
+
 			if (
 				options.taskWeb &&
 				request.method === "GET" &&
@@ -463,27 +519,6 @@ export async function createBrowserRealityBridgeServer(
 					const value = taskRequest
 						? await options.taskWeb.invokeTask(body.operation, body.input)
 						: await options.taskWeb.invokeApproval(body.operation, body.input);
-					if (
-						taskRequest &&
-						body.operation === "task.resume" &&
-						commandConsumerReady()
-					) {
-						void requestCommand({
-							type: "TASK_OBSERVER_RESUME",
-							taskId: stringField(body.input, "taskId"),
-						}).catch(() => undefined);
-					} else if (
-						taskRequest &&
-						taskWebObserverRecoveryOperations.has(body.operation) &&
-						commandConsumerReady()
-					) {
-						// The Task mutation is already durable and must not be coupled to
-						// transient Browser delivery. Notify the Extension asynchronously so
-						// its existing Task Observer can derive the next NODE_READY/REOPEN wake.
-						void requestCommand({ type: "TASK_OBSERVER_RECOVER" }).catch(
-							() => undefined,
-						);
-					}
 					send(response, 200, { ok: true, value });
 					return;
 				}
@@ -507,6 +542,15 @@ export async function createBrowserRealityBridgeServer(
 				return;
 			}
 			authenticate(request);
+			if (
+				request.method === "GET" &&
+				url.pathname === "/v1/applications/config" &&
+				options.resolveApplicationConfig
+			) {
+				requireExtensionOrigin(request);
+				send(response, 200, await options.resolveApplicationConfig());
+				return;
+			}
 			if (
 				options.taskWeb &&
 				request.method === "POST" &&
@@ -715,7 +759,40 @@ export async function createBrowserRealityBridgeServer(
 		});
 	};
 
-	const browser: BrowserRealityPort = {
+	const browser = createBrowserPort(requestCommand);
+
+	return Object.freeze({
+		endpoint,
+		browser,
+		status,
+
+		async close() {
+			closed = true;
+			carrierAttentions = [];
+			for (const item of pending.values()) {
+				clearTimeout(item.timer);
+				item.reject(
+					new BrowserRealityBridgeError(
+						"BRIDGE_OFFLINE",
+						"bridge server closed",
+					),
+				);
+			}
+			pending.clear();
+			taskBootstrap.clear();
+			taskSessions.clear();
+			queue.length = 0;
+			await new Promise<void>((resolve, reject) =>
+				server.close((error) => (error ? reject(error) : resolve())),
+			);
+		},
+	});
+}
+
+function createBrowserPort(
+	requestCommand: (command: BridgeCommandInput) => Promise<unknown>,
+): BrowserRealityPort {
+	return {
 		async listTabs() {
 			const value = await requestCommand({ type: "LIST_TABS" });
 			if (!Array.isArray(value))
@@ -730,6 +807,15 @@ export async function createBrowserRealityBridgeServer(
 		},
 		async observe(tabId: number) {
 			return parseObservation(await requestCommand({ type: "OBSERVE", tabId }));
+		},
+		async guardWake(input) {
+			const value = await requestCommand({ type: "WAKE_GUARD", ...input });
+			if (!isRecord(value) || typeof value.allowed !== "boolean")
+				throw new BrowserRealityBridgeError(
+					"BRIDGE_INPUT_INVALID",
+					"WAKE_GUARD result is invalid",
+				);
+			return value.allowed;
 		},
 		async submit(tabId: number, text: string, fingerprint: string) {
 			return parseObservation(
@@ -770,42 +856,139 @@ export async function createBrowserRealityBridgeServer(
 			);
 		},
 	};
+}
 
-	return Object.freeze({
-		endpoint,
-		browser,
-		status() {
+function parseExecutorCommand(value: unknown): BridgeCommandInput {
+	if (!isRecord(value))
+		throw new BrowserRealityBridgeError(
+			"BRIDGE_INPUT_INVALID",
+			"executor command must be an object",
+		);
+	switch (value.type) {
+		case "LIST_TABS":
+			return { type: "LIST_TABS" };
+		case "OPEN":
+			return { type: "OPEN", url: stringField(value, "url") };
+		case "OBSERVE":
+		case "SCREENSHOT":
+			return { type: value.type, tabId: numberField(value, "tabId") };
+		case "SUBMIT":
 			return {
-				online: online(),
-				sessionOnline: sessionOnline(),
-				commandConsumerReady: commandConsumerReady(),
-				extensionInstanceId: session?.extensionInstanceId ?? null,
-				queuedCommands: queue.length,
-				pendingCommands: pending.size,
-				lastCommandPollAt,
-				lastCommandDeliveredAt,
-				lastCommandResultAt,
+				type: "SUBMIT",
+				tabId: numberField(value, "tabId"),
+				text: stringField(value, "text"),
+				fingerprint: stringField(value, "fingerprint"),
 			};
+		case "VERIFY":
+			return {
+				type: "VERIFY",
+				tabId: numberField(value, "tabId"),
+				fingerprint: stringField(value, "fingerprint"),
+			};
+		case "WAKE_GUARD":
+			return {
+				type: "WAKE_GUARD",
+				taskId: stringField(value, "taskId"),
+				roleRef: stringField(value, "roleRef"),
+				workerRef: stringField(value, "workerRef"),
+				conversationLocator: stringField(value, "conversationLocator"),
+			};
+		case "PERFORM":
+			return {
+				type: "PERFORM",
+				tabId: numberField(value, "tabId"),
+				request: parseExecuteCapabilityRequest(value.request),
+			};
+		default:
+			throw new BrowserRealityBridgeError(
+				"BRIDGE_INPUT_INVALID",
+				"unsupported executor command",
+			);
+	}
+}
+
+export function createBrowserRealityBridgeClient(options: {
+	endpoint: string;
+	token: string;
+}) {
+	const endpoint = new URL(options.endpoint);
+	if (
+		endpoint.protocol !== "http:" ||
+		endpoint.hostname !== "127.0.0.1" ||
+		endpoint.pathname !== "/" ||
+		endpoint.search ||
+		endpoint.hash ||
+		endpoint.username ||
+		endpoint.password ||
+		options.token.length < 32
+	)
+		throw new TypeError(
+			"bridge client requires loopback HTTP root and executor credential",
+		);
+	const abort = new AbortController();
+	const offline = () => ({
+		online: false,
+		extensionInstanceId: null as string | null,
+		queuedCommands: 0,
+		pendingCommands: 0,
+	});
+	let snapshot = offline();
+	async function call(
+		path: string,
+		command?: BridgeCommandInput,
+	): Promise<unknown> {
+		const response = await fetch(new URL(path, endpoint), {
+			method: command ? "POST" : "GET",
+			headers: {
+				authorization: `Bearer ${options.token}`,
+				"content-type": "application/json",
+			},
+			...(command ? { body: JSON.stringify(command) } : {}),
+			signal: AbortSignal.any([
+				abort.signal,
+				AbortSignal.timeout(command ? 125_000 : 2_000),
+			]),
+		});
+		const body: unknown = await response.json();
+		if (!response.ok)
+			throw new BrowserRealityBridgeError(
+				"BRIDGE_COMMAND_FAILED",
+				isRecord(body) && typeof body.error === "string"
+					? body.error
+					: "bridge transport failed",
+			);
+		return body;
+	}
+	return Object.freeze({
+		browser: createBrowserPort(async (command) => {
+			const body = await call("/v1/executor/commands", command);
+			if (!isRecord(body))
+				throw new TypeError("bridge response must be an object");
+			return body.value;
+		}),
+		status: () => snapshot,
+		async refreshStatus() {
+			try {
+				const body = await call("/v1/executor/status");
+				if (!isRecord(body) || typeof body.online !== "boolean")
+					throw new TypeError("bridge status is invalid");
+				snapshot = {
+					online: body.online,
+					extensionInstanceId:
+						body.extensionInstanceId === null
+							? null
+							: stringField(body, "extensionInstanceId"),
+					queuedCommands: numberField(body, "queuedCommands"),
+					pendingCommands: numberField(body, "pendingCommands"),
+				};
+			} catch {
+				snapshot = offline();
+			}
+			return snapshot;
 		},
 		async close() {
-			closed = true;
-			carrierAttentions = [];
-			for (const item of pending.values()) {
-				clearTimeout(item.timer);
-				item.reject(
-					new BrowserRealityBridgeError(
-						"BRIDGE_OFFLINE",
-						"bridge server closed",
-					),
-				);
-			}
-			pending.clear();
-			taskBootstrap.clear();
-			taskSessions.clear();
-			queue.length = 0;
-			await new Promise<void>((resolve, reject) =>
-				server.close((error) => (error ? reject(error) : resolve())),
-			);
+			abort.abort();
+			snapshot = offline();
 		},
 	});
 }

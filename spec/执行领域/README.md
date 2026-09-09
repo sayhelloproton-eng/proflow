@@ -49,4 +49,4 @@ contractRefs: []
 
 ## v1 Carrier / Observer 对齐
 
-Execution Browser Extension同时承载薄Browser Carrier与Extension application blocks（Task UI、Approval/Alert UI、Task Observer、System Observer、Carrier Controller），但这些application blocks不成为Execution业务facts。真实Effect仍统一由Execution durable semantics控制；Worker Turn/native GPT/file transport不在Browser另建runtime。
+Execution Browser Extension承载薄 Browser Carrier、Task/Approval/Alert UI、System Observer 页面侧能力，以及与 Browser hot path 隔离的 Local Tool Effect Gate；这些 application blocks 都不成为 Execution 业务 facts。Task progression 的 deterministic Observer/Reconciliation 位于 backend application，不由 Extension service worker 持有。Browser/Carrier/Approval/UNKNOWN/materialization 等需要 durable recovery 的内部 Effect 继续由 Execution 控制；GPT-facing Local Dev/Repomix/CodeGraph 经过独立 Local Tool lane，不进入 Execution lifecycle。

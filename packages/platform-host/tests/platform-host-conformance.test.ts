@@ -37,7 +37,7 @@ test("uninstall is idempotent when no Platform Host service is bound", async () 
 	assert.deepEqual(result.observedEffects, []);
 });
 
-test("Module.install owns Platform Host state/secrets while producer dependencies remain explicit", async () => {
+test("Module.install owns Platform Host state/secrets while status reports only Host lifecycle truth", async () => {
 	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-host-module-"));
 	const context = { workspaceRoot };
 	try {
@@ -55,15 +55,6 @@ test("Module.install owns Platform Host state/secrets while producer dependencie
 		assert.deepEqual(observed.result.data, {
 			setupStatus: "READY",
 			runtimeStatus: "STOPPED",
-			issues: [
-				{
-					scope: "RUNTIME",
-					code: "UPSTREAM_NOT_READY",
-					message: "等待 Execution 与 Model Runtime 发布运行所需服务信息",
-					relatedModuleRefs: ["execution-runtime", "model-runtime"],
-					nextCommand: "platform setup",
-				},
-			],
 		});
 		const setup = await behaviorAdapter.setup(context);
 		assert.equal(setup.result.status, "SUCCEEDED");

@@ -175,21 +175,24 @@ API Key / Bearer
 
 # 8. 用户控制、`x-openai-isConsequential` 与 Always Allow
 
-OpenAI Action 的 UI confirmation 与 ProFlow Execution Approval 是两层完全独立的事实。v1 正式目标不是让 Browser 在每个 routine Action 前机械点击 permission，而是：
+OpenAI Action 的 UI confirmation 与 ProFlow 内部 Browser/Carrier Approval 是两层不同事实。`x-openai-isConsequential` 必须按 **GPT-facing operation 自身是否直接产生真实副作用** 设置，不能再因为“后面还有 Execution”统一把 mutation 描述成纯 intent。
 
 ```text
-routine query/control/intent operation
-→ static OpenAPI x-openai-isConsequential:false
-→ user 首次可选择 Always Allow
-→ 后续 happy path 不再把 permission prompt 当业务调度点
+Task/Peer query、只读 Repomix/CodeGraph
+→ x-openai-isConsequential:false
+
+固定混合读写 POST /actions/localDev
+→ 整个 HTTP operation 为 true，包括其 read 子操作
+Product 严格只读裁剪版本才可 false，且 backend 同步拒绝 mutation/run
 ```
 
 规则：
 
-- `x-openai-isConsequential:false` 只表示 **GPT-facing Action 本身是 routine query/control/intent**；如果它提交一个真实 Effect request，真正 Effect 是否允许仍由 Execution Policy/Approval 决定；
+- `x-openai-isConsequential:false` 只说明当前 Action 对 OpenAI Carrier 的 consequence 语义，不赋予额外本地权限；
+- 本地 Tool 最终授权仍由 Gateway Role auth、`Role × Tool × Operation` policy、server-bound Workspace、Browser Extension Effect Gate 与 `execution-local` runtime validation 共同决定；
+- Browser/Carrier 内部危险 Effect 若需要 durable Approval，继续由 Execution 内部机制负责；
 - unexpected permission prompt 继续作为 Browser Carrier recovery / human-interaction 情况处理；
-- 不把 OpenAI permission 结果写入 Task/Execution Approval truth；
-- 不通过设置 consequential=false 绕过 scope/DENY/REQUIRE_APPROVAL/version/idempotency。
+- 不把 OpenAI permission 结果写入 Task/Execution Approval truth。
 
 ---
 
@@ -305,7 +308,7 @@ export type OpenAIFileIdRefsRuntime = OpenAIActionFileInputRef[];
 - `download_link` 约 5 分钟有效，只能作为瞬时下载 locator；
 - 不得把 `download_link` 持久化为 TaskDocument / Evidence 的长期地址；
 - OpenAI `id` 只能作为 transport provenance / externalRef，不能成为 TaskDocument、Execution Artifact 或 Worker 的业务主键；
-- 文件 bytes 的真实下载、大小/MIME/hash 校验与材料化属于 Execution mechanics；Gateway 不成为业务文件 Owner。
+- 文件 bytes 若要进入 TaskDocument/内部 Artifact，真实下载、大小/MIME/hash 校验与材料化继续走受控内部 materialization；这与 Repomix / Local Dev / CodeGraph Direct Tool Actions 无关，Gateway 不成为业务文件 Owner。
 
 #### A2. `openaiFileResponse`：Action → Conversation 文件输出
 
@@ -382,7 +385,7 @@ X-Node-Version
 X-Worker-Ref
 ```
 
-这些平台字段放入 typed body/path/query；Gateway 再转换为内部 canonical request。Authentication header 仍由 OpenAI Action auth 配置负责。
+Task/Peer Actions 若确有业务版本/幂等字段，继续放入 typed body/path/query；**Direct Tool Actions 不携带这些平台身份字段**，只传 `operation + input`。Authentication header 仍由 OpenAI Action auth 配置负责。
 
 #### A5. `x-openai-isConsequential` 必须显式设置
 
@@ -400,15 +403,17 @@ x-openai-isConsequential: false
 
 禁止依赖 OpenAI 对 GET / 非 GET 的默认推断。
 
-平台内部 query/control/intent Action 若自身不直接完成不可逆真实 Effect，默认设计为 `false`；真正 Effect 是否允许执行继续由 Execution Policy / Approval 决定。
+每个 HTTP operation 按其允许的最高真实 effect 静态声明。不能按 body.operation 动态切换；Local Dev 混合读写 endpoint 为 true，因而 read 也需确认。精确规则及代价见 `AGENT-DOC-02-03` §9。
 
 ```text
 OpenAI Carrier confirmation
 !=
-Execution Effect Approval
+Browser Extension / Local Tool authorization
+!=
+Execution internal Browser/Carrier Approval（仅相关 durable internal Effect）
 ```
 
-不得把二者合并，也不得为了同一个真实 Effect设计两套重复审批。
+三层不得混用，也不得为了同一个真实副作用重复制造审批状态机。
 
 #### A6. Agent Package / Role capability truth
 
@@ -431,13 +436,13 @@ Custom GPT 创建/编辑仍是 Web-only Carrier 流程，但正常部署 happy p
 
 ### B. PENDING_SPIKE｜官方能力存在，但本平台使用方式仍需真实 E2E
 
-下面只验证“在我们的 Role / Worker / Task Observer + Carrier 主链中是否稳定”，不是验证 OpenAI 文档是否存在：
+下面只验证“在我们的 Role / Worker / backend Task Reconciliation + Carrier 主链中是否稳定”，不是验证 OpenAI 文档是否存在：
 
 ```text
-1. x-openai-isConsequential:false 后选择 Always Allow，后续 routine Actions 是否稳定无确认；
+1. x-openai-isConsequential:false 后选择 Always Allow，后续 routine read/query Actions 是否稳定无确认；
 2. 一次 Worker Turn 内连续 Action A → result → Action B 是否稳定，无需 Browser 中途再次 WAKE；
 3. openaiFileResponse 返回 Task documents 后，Conversation-native file search 是否稳定满足动态 Task Context；
-4. Code Interpreter 读取 bounded Context Pack → 生成 patch/artifact → openaiFileIdRefs 回传是否稳定。
+4. Repomix / Local Dev / CodeGraph 新 schema 在真实 GPT 上 materialize 后，Direct Tool 调用是否直接返回 Provider result。
 ```
 
 通过后可把 Browser 的 routine permission click、大型上下文注入、逐 Action WAKE、无界逐文件 Action 往返进一步从 happy path 裁掉。
@@ -446,8 +451,8 @@ Custom GPT 创建/编辑仍是 Web-only Carrier 流程，但正常部署 happy p
 
 ```text
 不得假设 GPT Action request 自动提供稳定 Conversation c-id
-不得用 ChatGPT Scheduled Tasks 替代 ProFlow Task Observer + Worker Carrier 驱动
-不得用 Code Interpreter 替代真实本机/Browser Execution
+不得用 ChatGPT Scheduled Tasks 替代 ProFlow backend Task Reconciliation + Worker Carrier 驱动
+不得用 Code Interpreter 替代 Repomix / Local Dev / CodeGraph 的真实本地工程操作，也不得替代 Browser Carrier
 不得因 File Bridge 删除 Browser/Vision
 不得把 Custom GPT native Actions/Function Calling 等同于 Model Runtime native tool_calls
 不得新增 File Domain / Artifact Domain / OpenAI Files DB
@@ -458,12 +463,13 @@ Custom GPT 创建/编辑仍是 Web-only Carrier 流程，但正常部署 happy p
 ### D. v1 Carrier/Data Movement 原则
 
 ```text
-小型结构化控制数据     → GPT Action JSON
-文档 / 文件 / 大型上下文 → GPT Actions File Bridge
+小型结构化 Task/Peer 控制数据 → GPT Action JSON
+文档 / 文件 / 大型上下文       → GPT Actions File Bridge
+仓库/文件/命令/结构关系         → Repomix / Local Dev / CodeGraph Direct Tool Actions
 Conversation identity/lifecycle → Execution Browser
-页面真实状态 / screenshot → Execution Browser + Vision
-真实本机 / 浏览器 Effect → Execution
-业务事实               → owning Domain
+页面真实状态 / screenshot       → Execution Browser + Vision
+Browser/Carrier durable Effect  → Execution internal path
+业务事实                       → owning Domain
 ```
 
 这条规则的目标是复用 ChatGPT 已有能力并减少自研 transport，而不是新增一层平台架构。

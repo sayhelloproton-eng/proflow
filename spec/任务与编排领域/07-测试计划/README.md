@@ -42,4 +42,4 @@ Domain Test Plan 不重新定义状态/API/DDL/Package；Module Test Plan 也不
 
 ## Journey Addendum
 
-当前Test Plan同时受`PLATFORM-DOC-01-04`与`TASK-DOC-03-05`约束：Extension-first New Task、deterministic readiness、Task Observer read-only progression、same-worker reopen、async-owner wait separation、terminal no-ghost-wake均属于正式验证面。
+当前Test Plan同时受`PLATFORM-DOC-01-04`与`TASK-DOC-03-05`约束：Extension-first New Task、deterministic readiness、backend Task Observer/Reconciliation + bounded catch-up、same-worker reopen、async-owner wait separation、terminal no-ghost-wake均属于正式验证面。

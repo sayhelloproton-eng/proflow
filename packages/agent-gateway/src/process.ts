@@ -20,6 +20,18 @@ const safeDownstreamErrorCodes = new Set([
 	"EXECUTION_GENERATION_MISMATCH",
 	"EXECUTION_ROLE_SCOPE_MISMATCH",
 	"EXECUTION_WORKER_SCOPE_MISMATCH",
+	"ROLE_TOOL_OPERATION_DENIED",
+	"DIRECT_TOOL_INPUT_INVALID",
+	"DIRECT_TOOL_DEADLINE_REQUIRED",
+	"LOCAL_TOOL_BRIDGE_UNAVAILABLE",
+	"LOCAL_TOOL_AUTH_INVALID",
+	"LOCAL_TOOL_INPUT_INVALID",
+	"LOCAL_TOOL_OFFLINE",
+	"LOCAL_TOOL_COMMAND_TIMEOUT",
+	"LOCAL_TOOL_RESULT_UNKNOWN",
+	"LOCAL_TOOL_PROVIDER_UNAVAILABLE",
+	"LOCAL_TOOL_SCOPE_DENIED",
+	"LOCAL_TOOL_COMMAND_FAILED",
 ]);
 
 async function boundedDownstreamErrorCode(
@@ -252,6 +264,7 @@ export async function createAgentGatewayProcess(input: {
 					{
 						authenticatedRoleRef,
 						input: value,
+						deadlineAt: context?.deadlineAt,
 						...(context?.fileMaterializationInputs === undefined
 							? {}
 							: {

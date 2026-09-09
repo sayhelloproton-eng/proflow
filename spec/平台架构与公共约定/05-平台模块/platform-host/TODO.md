@@ -17,7 +17,7 @@ contractRefs:
 
 # `platform-host` TODO
 
-> 目标：完成 Application Composition Root，不扩张为第六领域、Observer runtime 或业务 Scheduler。
+> 目标：完成 Application Composition Root，组合 bounded deterministic reconciliation，不扩张为第六领域或通用业务 Scheduler。
 
 ## PH-001｜Composition Graph
 
@@ -33,9 +33,9 @@ contractRefs:
 
 ## PH-003｜Observer Consumer Support
 
-- [ ] Extension Task Observer 可读取 Task drive projection。
+- [ ] backend Task Observer/Reconciliation 可读取 Task drive projection 并做 bounded catch-up；Extension 只提供 Carrier/page kick。
 - [ ] Extension System Observer 可读取 bounded public health/fact views，并调用 Model public `infer`。
-- [ ] host 不实现 Observer progression、batching/carry-forward/system assessment store。
+- [ ] host 实现 bounded deterministic Task progression detection；不拥有 Task workflow truth 或 System assessment batching/carry-forward/store。
 - [ ] host 不直接 WAKE Browser 或 complete/reopen/approve。
 
 ## PH-004｜Lifecycle / Health

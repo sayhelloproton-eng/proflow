@@ -38,7 +38,6 @@ test("REAL3 Task UI is an independent extension page opened from the extension a
 	for (const control of [
 		"New Task + 3 Workers",
 		"Confirm / Start",
-		"Recover missing Workers",
 		"Reopen",
 		"Resume",
 	])
@@ -51,7 +50,6 @@ test("REAL3 Task UI is an independent extension page opened from the extension a
 		"task.list",
 		"task.get",
 		"task.start",
-		"task.ensureWorkers",
 		"node.reopen",
 		"message.acknowledge",
 		"task.resume",
@@ -79,9 +77,15 @@ test("REAL3 Task UI is an independent extension page opened from the extension a
 	assert.doesNotMatch(source, /\["SUCCEEDED", "FAILED", "WAITING"\]/);
 	assert.match(source, /pendingMessages/);
 	assert.match(source, /TASK_BLOCKER_UNRESOLVED|Resolve blocker/);
-	assert.match(background, /command\.type === "TASK_OBSERVER_RESUME"/);
-	assert.match(background, /projection\.resumeSignalRef/);
-	assert.match(background, /return taskObserver\.drive\(taskId\)/);
+	assert.doesNotMatch(
+		`${html}\n${source}`,
+		/ensure-workers|Recover missing Workers|task\.ensureWorkers/,
+	);
+	assert.doesNotMatch(
+		background,
+		/TASK_OBSERVER_|taskObserver\.drive|resumeTaskWorker/,
+	);
+	assert.match(background, /task\.reconcileAll/);
 });
 
 test("REAL3 independent Task page does not seed the formal REQUIREMENT document", async () => {

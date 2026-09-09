@@ -126,7 +126,7 @@ test("CP-EXE-BR-33 denial established during classification still wins before au
 	assert.equal(clicks, 0);
 });
 
-test("CP-EXE-BR-34 active denial is the final guard before every Observer WAKE or RESUME", async () => {
+test("CP-EXE-BR-34 active denial is the final physical guard before backend-requested worker.wake", async () => {
 	const control = createCarrierContinuationControl();
 	control.beginDenied(denial);
 	assert.equal(
@@ -147,38 +147,20 @@ test("CP-EXE-BR-34 active denial is the final guard before every Observer WAKE o
 		}),
 		false,
 	);
-	let dispatches = 0;
-	for (const source of ["PAGE_IDLE", "SCHEDULED_RETRY", "RECOVERY_RESUME"]) {
-		assert.throws(() => {
-			if (
-				control.hasMatchingDispatchDenial({
-					taskId: permission.taskId,
-					roleRef: permission.roleRef,
-					workerRef: permission.workerRef,
-					conversationLocator: permission.url,
-				})
-			)
-				throw new Error(`CARRIER_CONTINUATION_HUMAN_DENIED:${source}`);
-			dispatches += 1;
-		}, /CARRIER_CONTINUATION_HUMAN_DENIED/);
-	}
-	assert.equal(dispatches, 0);
-	const source = await readFile(
-		new URL("../extension/background.ts", import.meta.url),
-		"utf8",
+	const [background, executor] = await Promise.all([
+		readFile(new URL("../extension/background.ts", import.meta.url), "utf8"),
+		readFile(new URL("../src/index.ts", import.meta.url), "utf8"),
+	]);
+	assert.match(background, /command\.type === "WAKE_GUARD"/);
+	assert.match(
+		background,
+		/carrierContinuationControl\.hasMatchingDispatchDenial/,
 	);
-	const carrierStart = source.indexOf("async requestWake(input)");
-	const denialGuard = source.indexOf(
-		"carrierContinuationControl.hasMatchingDispatchDenial",
-		carrierStart,
+	assert.match(
+		executor,
+		/request\.capability === "worker\.wake"[\s\S]{0,1800}options\.browser\.guardWake[\s\S]{0,800}effectStarted\(raw\)[\s\S]{0,1200}options\.browser\.submit/,
 	);
-	const physicalDispatch = source.indexOf(
-		'invokeObserverApplication("task.wake", input)',
-		carrierStart,
-	);
-	assert.ok(carrierStart >= 0);
-	assert.ok(denialGuard > carrierStart);
-	assert.ok(physicalDispatch > denialGuard);
+	assert.match(executor, /CARRIER_CONTINUATION_HUMAN_DENIED/);
 });
 
 test("CP-EXE-BR-35 consumed denial does not blacklist a future permission occurrence", async () => {

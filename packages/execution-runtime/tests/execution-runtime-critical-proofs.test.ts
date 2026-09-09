@@ -15,10 +15,10 @@ import {
 import { createLocalExecutorPort } from "../src/executors/local-adapter.ts";
 import {
 	createExecutionRuntime,
-	executionInputFingerprint,
 	type ExecutionExecutorPort,
 	ExecutionRuntimeError,
 	type ExecutorResult,
+	executionInputFingerprint,
 } from "../src/index.ts";
 
 const exec = promisify(execFile);
@@ -175,7 +175,10 @@ test("RF-EXE-RT-GENERATION-01 runNo participates in durable Execution idempotenc
 	const first = await runtime.executeCapability(run1);
 	const replay = await runtime.executeCapability(run1);
 	const crossRun = await runtime.executeCapability(run2SameKey).then(
-		(record) => ({ kind: "record" as const, executionRef: record.executionRef }),
+		(record) => ({
+			kind: "record" as const,
+			executionRef: record.executionRef,
+		}),
 		(error: unknown) => ({
 			kind: "error" as const,
 			code: error instanceof ExecutionRuntimeError ? error.code : "UNKNOWN",
@@ -188,7 +191,8 @@ test("RF-EXE-RT-GENERATION-01 runNo participates in durable Execution idempotenc
 	assert.deepEqual(
 		{
 			fingerprintEqual:
-				executionInputFingerprint(run1) === executionInputFingerprint(run2SameKey),
+				executionInputFingerprint(run1) ===
+				executionInputFingerprint(run2SameKey),
 			replaySameExecution: replay.executionRef === first.executionRef,
 			crossRun,
 			distinctRunExecution: run2.executionRef !== first.executionRef,

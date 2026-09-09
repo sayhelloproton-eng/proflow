@@ -18,7 +18,7 @@ contractRefs:
 
 # 智能体运行与协作领域｜Task Observer、Worker 与 Browser Carrier 驱动协议
 
-> 本文冻结 Agent 侧 Worker/Collaboration 与 Execution-owned Browser Carrier 的跨领域驱动方式。Extension Background 逻辑分为 Task Observer、System Observer、Carrier Controller；不再用一个“万能 Task Driver”同时承担 progression、系统评估和页面操作。
+> 本文冻结 Agent 侧 Worker/Collaboration、backend Task Observer/Reconciliation 与 Execution-owned Browser Carrier 的跨领域驱动方式。Task progression 已移出 MV3 Extension；Extension 保留 Browser Carrier/System Observer UI/页面 reality 以及与 Browser lane 隔离的 Local Tool Effect Gate。
 
 ---
 
@@ -60,17 +60,18 @@ physical collaboration delivery
 Effect reconciliation/recovery/evidence
 ```
 
-## Task Observer
+## Task Observer / Reconciliation
 
-位于 Extension application/background，只做：
+位于 backend application，只做：
 
 ```text
 read owner facts
 → deterministic next-step detection
+→ bounded lost-trigger catch-up
 → request typed carrier/owner operation
 ```
 
-不拥有 Task/Agent/Execution facts。
+不拥有 Task/Agent/Execution facts。Extension page event/reconnect 只作低延迟 kick。
 
 ---
 
@@ -182,7 +183,7 @@ Browser **不在每个 Action 之间 WAKE**，不自动发送“继续”，不�
 以下可能结束当前 Worker Turn：
 
 ```text
-long Execution
+Browser/Carrier durable Effect
 Execution WAITING_APPROVAL
 askPeer waiting reply
 Carrier/human action
@@ -194,7 +195,7 @@ Owner result ready 后：
 Execution Result READY
 Peer Reply READY
 Reopen READY
-→ Task Observer detects relevant condition
+→ backend Task Observer/Reconciliation detects relevant condition
 → RESTORE/WAKE same Worker
 → new Worker Turn
 ```
@@ -278,6 +279,18 @@ Worker Action
 
 ---
 
-# 13. Local auth
+# 13. Local Tools
+
+Worker 本地工程能力固定为 Repomix / Local Dev / CodeGraph：
+
+```text
+Action → Gateway → ProFlow API
+→ Browser Extension dedicated Local Tool lane
+→ local-tool bridge → execution-local → macOS
+```
+
+Local Tool lane 与 Browser Carrier lane 不共用 queue/loop/timeout/backoff/dispatcher/state。Tool success/failure 不自动 complete Node。
+
+# 14. Local auth
 
 Browser Extension → local Runtime 使用 local platform auth；**不使用 GPT Role Bearer credential**。Role credential只用于 GPT Action → Gateway。

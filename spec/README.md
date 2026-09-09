@@ -88,7 +88,7 @@ agent-gateway  ───────────────┐
                               │
                     ┌─────────┴─────────┐
                     ▼                   ▼
-             execution-runtime     model-runtime
+             execution-runtime     model-runtime（按 operation 依赖）
                     │
                     ▼
         execution-browser-extension
@@ -137,3 +137,5 @@ Failure / Recovery 怎么处理？
 - [`MODEL-DOC-03-08`](模型与推理领域/03-流程与数据/08-Task-Diagnostic与System-Assessment推理规范.md)：Task Diagnostic / System Observer REASON。
 
 这些文档不新增第六领域；它们用于消除 Task/Agent/Execution/Model/Deployment 与 Extension/Gateway/platform-host 之间的重复编排语义。
+
+当前 Direct Tool 并行路径为 `agent-gateway → platform-host → Browser Extension Local Tool lane → local bridge → execution-local → macOS`；上图 Execution 路径仅表示内部 durable operation。Bridge lifecycle 归 execution-browser-extension，Task Observer/Reconciliation 由 platform-host 组合。

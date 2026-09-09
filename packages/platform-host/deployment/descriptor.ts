@@ -20,19 +20,15 @@ export const descriptor = {
 	],
 	requires: [
 		{
+			contractRef: "local-tool-bridge",
+			versionRange: ">=1.0.0 <2.0.0",
+		},
+		{
 			contractRef: "task-orchestration",
 			versionRange: ">=1.0.0 <2.0.0",
 		},
 		{
 			contractRef: "agent-runtime",
-			versionRange: ">=1.0.0 <2.0.0",
-		},
-		{
-			contractRef: "execution",
-			versionRange: ">=1.0.0 <2.0.0",
-		},
-		{
-			contractRef: "model-inference",
 			versionRange: ">=1.0.0 <2.0.0",
 		},
 	],

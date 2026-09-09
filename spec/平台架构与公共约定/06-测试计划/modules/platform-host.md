@@ -40,7 +40,7 @@ implementationWave: Wave 6
 ```text
 业务状态
 统一 Scheduler
-Task/System Observer logic
+Task workflow ownership / System assessment truth
 Browser operation
 cross-domain mutable cache
 ```
@@ -60,22 +60,23 @@ Persistence/Real External E2E不属于host自身；真实外部链由相应Owner
 
 ## 4. Critical Proofs
 
-- [ ] **CP-HOST-01** — 只装配独立 Task/Agent packages与Execution/Model public clients。
-- [ ] **CP-HOST-02** — Domain package不反向依赖host；host无业务Repository/state mirror。
-- [ ] **CP-HOST-03** — local transport/startup/shutdown/drain可重复且保留typed owner request字段。
-- [ ] **CP-HOST-04** — health只聚合host-owned process/transport/dependency，不发明Domain READY。
-- [ ] **CP-HOST-05** — restart重建graph并re-read owner reality，不replay mutation。
-- [ ] **CP-HOST-06** — Extension Task/System Observer可通过正式public clients获得所需projection/infer能力；host不实现Observer loop/assessment truth。
-- [ ] **CP-HOST-07** — 无universal scheduler/event bus、Browser DOM/frame/tab registry、direct complete/reopen/approve路径。
+- [ ] **CP-HOST-01** — 装配独立 Task/Agent packages、内部 Execution/Model clients、Direct Tool admission/router 与 backend Task Observer/Reconciliation；不复制 Owner state。
+- [ ] **CP-HOST-02** — Domain package不反向依赖host；host无业务Repository/state mirror，且 GPT Tool route 无 fs/git/process/shell/Repomix/CodeGraph executor 调用；自身配置、日志与 Owner persistence 不算 bypass。
+- [ ] **CP-HOST-03** — local transport/startup/shutdown/drain可重复；Task/Peer request保持 owner typed fields，Direct Tool request只允许 `operation + input`。
+- [ ] **CP-HOST-04** — readiness 按 operation/provider 隔离：Repomix/Local Dev/CodeGraph 可在无关 Model/Execution DOWN 时继续服务；host 不发明 Domain READY。
+- [ ] **CP-HOST-05** — restart重建graph并re-read owner reality；Task Reconciliation bounded catch-up 可重新发现 READY/RESUME，不 replay mutation。
+- [ ] **CP-HOST-06** — backend Task Observer/Reconciliation deterministic progression + bounded catch-up 不依赖 Extension service-worker 存活；System Observer reasoning 与 progression single-flight/lock隔离。
+- [ ] **CP-HOST-07** — Direct Tool admission 固定 `authenticated Role × Tool × Operation × server-bound workspace/provider config`，随后只向 Extension Local Tool lane 投递；无 Host direct local execution、无 universal scheduler/event bus、无 Browser DOM/frame/tab registry。
 
 ## 5. Failure Families
 
 - host吸收Task/Agent/Execution business persistence；
 - dependency unavailable被改写为业务状态；
 - restart从host cache恢复owner facts；
-- Task Observer逻辑偷偷进入host timer；
-- System Observer assessment被host当truth；
-- host直接WAKE Browser或调用dangerous effect。
+- Task Reconciliation 退化为依赖 Extension event 的单点触发，或 bounded catch-up 缺失；
+- System Observer assessment被host当truth或占用 progression lock；
+- host绕过 Extension 直接执行 fs/git/process/shell/Repomix/CodeGraph；
+- unrelated Model/Execution outage 把 Direct Tool readiness 一并拉红。
 
 ## 6. Evidence
 
@@ -118,25 +119,24 @@ STOP：必须新增host-owned state/scheduler/Observer authority/Browser runtime
 
 ### Batch 3 host boundary proof mapping
 
-- `CP-HOST-06/07` → `packages/platform-host/tests/journey-observer-composition-boundary.test.ts`：Host 只暴露 authenticated Task/System Observer owner/model transport，且无 Observer/Carrier timer、business scheduler、assessment truth。
-- `CP-HOST-11` → `packages/platform-host/tests/task-application-entry.test.ts`：真实 application HTTP 路径证明 `Task.create(PENDING) → 3×worker.create → TaskRoleBinding → READY → startTask`，并证明中途 Worker 创建失败后 `task.ensureWorkers` 只补缺失 binding、不重建已成功 Worker。
+- `CP-HOST-06` → `packages/platform-host/tests/task-reconciliation.test.ts` + `packages/platform-host/tests/model-business-callers.test.ts`：证明 deterministic progression、bounded catch-up、durable recovery signal 与 Model/System Observer 隔离。
+- `CP-HOST-07` → `packages/platform-host/tests/direct-tools-route.test.ts`：证明 authenticated Role × Tool × Operation、server-bound Workspace、Extension Local Tool lane 与 identity injection fail-closed。
+- `CP-HOST-11` → `packages/platform-host/tests/task-application-entry.test.ts`：真实 application HTTP 路径证明 `Task.create(PENDING) → 3×worker.create → TaskRoleBinding → READY → startTask`；缺失 Worker/Conversation 的恢复由 backend Reconciliation 内部 Worker recovery 负责，不再暴露人工 Worker-recovery operation。bounded rediscovery / recovery 的 executable proof 归 `packages/platform-host/tests/task-reconciliation.test.ts`。
 - Collaboration Browser physical lifecycle 的 Owner/Carrier proof 归 `execution-browser-extension`；Host 只做 `collaboration.*` transport/composition，不以此 Test Plan 宣称 physical Browser E2E。
 - Browser Executor 注入唯一 `execution-runtime` binary/readiness 属 **Batch 4 / P1-15**，Host/Browser 本批不得建立 alternate Execution Runtime。
 
 
-### CP-HOST-12 / RF-HOST-12 — Execution read scope admission
+### CP-HOST-12 / RF-HOST-12 — GPT-facing Execution surface removed
 
-- GPT-facing `getExecution/readExecutionOutput` 必须由 platform-host 注入 `authenticatedRoleRef`，请求体不得自报 caller identity。
-- Execution Runtime 首先校验 durable `ExecutionRecord.callerRef`；Task-scoped record 还必须重新核对 `roleRef` 与 Task Owner 当前 `TaskRoleBinding.workerRef`。
-- `readExecutionOutput` 必须先通过同一 Execution read admission，再读取 Artifact bytes；知道 `executionRef` 不得绕过 Task/Role/Worker scope。
-- Artifact output identity 使用 `artifactRef`；不得把 output ArtifactRef 塞进 `evidenceRef`。
+- Product/Dev/Test shipped OpenAPI 与 Host Role ACL 中 `executeCapability/getExecution/readExecutionOutput` 必须为零。
+- 若平台内部仍调用 Execution read/lookup contract，只能来自受信任 internal client，不得经 GPT Action 暴露或接受 GPT 自报 execution identity。
+- Direct Tool response 不返回 `executionRef`，也不要求 Execution polling；只能返回 bounded result 或 provider-native handle。
 
+### CP-HOST-13 / RF-HOST-13 — Direct Tool request/admission identity
 
-### CP-HOST-13 / RF-HOST-13 — Uncertain Execution lookup without replay
-
-- Gateway timeout/reconciliation 对 `executeCapability` 不要求事先知道 server-generated `executionRef`；platform-host 可使用 authenticated role + canonical Task worker + `capability/idempotencyKey/critical input` 调 Execution Owner 的 intent lookup。
-- lookup 必须验证 durable input fingerprint；同 idempotency key 不同关键输入必须 `IDEMPOTENCY_CONFLICT`。
-- lookup 只读 existing Execution record，不调用 executor，不创建第二 physical intent；返回前仍复用 `admitExecutionRead` 的 caller + Task/Role/Worker scope admission。
+- `repomix/localDev/codeGraph` GPT-facing body 只允许 `operation + input`，禁止 `taskId/nodeId/runNo/workerRef/roleRef/actorRef/executionRef`。
+- authenticated Role 来自 Gateway transport；workspace/provider endpoint/credential/timeout/enabled 均由 server-bound config 决定。
+- wrong Role、forbidden operation、disabled/unready provider 必须在投递 Extension 前 typed reject；absence of Task/Node/Worker correlation 不得阻塞普通 Tool call。
 
 ### CP-HOST-14 / RF-HOST-14 — Carrier File Bridge → durable Execution materialization
 
@@ -152,15 +152,43 @@ STOP：必须新增host-owned state/scheduler/Observer authority/Browser runtime
 
 | Proof | Executable asset | Required behavior |
 |---|---|---|
-| `CP-HOST-12` | `packages/platform-host/tests/platform-host-critical-proofs.test.ts` | authenticated role → Execution caller ownership → current TaskRoleBinding role/worker read admission |
-| `CP-HOST-13` | `packages/execution-runtime/tests/execution-runtime-critical-proofs.test.ts` + Host lookup path | uncertain timeout uses Owner intent lookup; same intent does not replay executor; lookup result still passes read admission |
+| `CP-HOST-12` | `packages/platform-host/tests/platform-host-critical-proofs.test.ts` + Role package static tests | shipped GPT surface excludes `executeCapability/getExecution/readExecutionOutput`; `/actions/getExecution` is rejected while trusted internal Execution transport remains available |
+| `CP-HOST-13` | `packages/platform-host/tests/direct-tools-route.test.ts` | GPT Direct Tool body is only `operation + input`; Role/Workspace/deadline/command identity are server-bound and nested platform identity injection is rejected |
 | `CP-HOST-14` | `packages/platform-host/tests/platform-host-critical-proofs.test.ts` | Carrier File Bridge supplies stable materialization idempotency + authenticated role/canonical worker scope before durable Execution materialization |
 | Approval application | `packages/platform-host/tests/platform-host-critical-proofs.test.ts` | dedicated loopback credential, fixed human actor/decision semantics, Host owns no Approval business state |
 
-Host remains transport/composition only: it must not become Approval owner, Artifact store, Observer scheduler, or a second Execution runtime.
+Host remains transport/composition only: it must not become Approval owner, Artifact store, a universal scheduler, or a second Execution runtime; bounded deterministic reconciliation is required.
 
 ## Pre-Smoke Batch 5 — Model business caller reconciliation
 
-- `CP-HOST-15` — shipped Observer application transport calls the single Model `infer(...)` contract: Task Diagnostic uses `task.diagnostic.v1 / reason / business / extension:task-observer`, while System Assessment uses `system.health-assessment.v1 / reason / background / extension:system-observer`.
-- Executable proof: `packages/platform-host/tests/model-business-callers.test.ts` starts a real platform-host with a bounded fake Model HTTP dependency and observes the forwarded inference requests.
-- Host remains transport/composition only; Task Diagnostic is advisory and System Assessment is read-only. Neither path grants Effect, Approval, Task mutation, or retry authority.
+- `CP-HOST-15` — deterministic Task Reconciliation 不调用 Model；只有独立 System Assessment 通过 shipped Observer application transport 调用 `system.health-assessment.v1 / reason / background / extension:system-observer`。
+- Executable proof: `packages/platform-host/tests/model-business-callers.test.ts` starts a real platform-host with a bounded fake Model HTTP dependency, proves normal Task reconciliation has zero Model call, and observes the System Assessment inference request.
+- Host remains transport/composition only；System Assessment 为 read-only diagnostic lane，不授予 Effect、Approval、Task mutation 或 retry authority，也不得占用 Task progression single-flight/lock。
+
+## 2026-09-09 Real-3 Direct Tool / Reconciliation Refactor Gate
+
+- [ ] **CP-HOST-16** — `localDev(read package.json)` 从 GPT Action 到 Host admission 只做一次 Tool routing，不查询 Task Owner、不创建 Execution、不做 Execution identity callback。
+- [ ] **CP-HOST-17** — Host 将 Tool command 投递到 Extension `/v1/local-tools/commands/*`；任何 Host→`execution-local` / fs / git / process / shell / Repomix CLI / CodeGraph CLI 直连都是 release blocker。
+- [ ] **CP-HOST-18** — Repomix、Local Dev、CodeGraph 三个 provider readiness 独立；无关 Model Runtime 或 Execution Runtime DOWN 不阻塞已 READY Tool Provider。
+- [ ] **CP-HOST-19** — backend Task Observer/Reconciliation 使用 durable Owner facts + bounded catch-up；Extension event/page reconnect 只加速，全部丢失仍可最终发现 Dev complete→Test READY。
+- [ ] **CP-HOST-20** — System Observer/model unavailable 或慢调用不会持有 Task progression single-flight/lock；诊断 lane 与 deterministic progression lane 故障隔离。
+- [ ] **CP-HOST-21** — Browser Reality Bridge 的现有 command queue/pending map 不得被 Local Tool 复用；Host/bridge 侧必须存在独立 Local Tool queue/pending/consumer/readiness。
+
+本 Addendum 已进入实现后 executable binding：`CP-HOST-16/17` 由 `packages/platform-host/tests/direct-tools-route.test.ts`，`CP-HOST-19/20` 由 `packages/platform-host/tests/task-reconciliation.test.ts` + `model-business-callers.test.ts`，`CP-HOST-21` 由 `packages/execution-browser-extension/tests/background-observer-application.test.ts` 与 Local Tool bridge/critical proofs 共同证明。`CP-HOST-18` 的完整 provider outage 隔离仍需最终真实部署 Gate 证明，不以单元测试冒充 Real-3 PASS。
+
+## 独立审计补充：真实反例驱动验收
+
+以下为现有 CP-HOST-16..21 的 acceptance 细化，不绑定或改写 executable assets。
+
+| 不变量 | 真实 fixture / 故障注入 | 必须观察 | 不能作为最终证据 |
+|---|---|---|---|
+| 一次 read | 临时真实 workspace 的 package.json，经已认证 Gateway → Host → 真实 Extension → bridge → provider | 1 Action 返回精确文件/hash；Task Query、Execution admission/record/ref/polling 均为 0；记录每 hop 时长 | stub file reader、只查源码字符串 |
+| Host 无 bypass | Host credential 直接调用 execute/poll/report，及篡改 Role/Workspace/参数/过期 generation | 全拒绝，磁盘无 effect；正常 Extension claim 后一次执行成功 | 仅断言没有 node:fs import |
+| operation readiness | 分别停止真实 Model、Execution、CodeGraph provider；先启动 Bridge 再启动 Host；所有 page kicks 禁用 | Task/Peer 继续；Local Dev/Repomix 继续；Model DOWN 时 deterministic WAKE 仍实际提交；缺失依赖只拒绝对应 operation | fake ready=true、只改返回 boolean |
+| catch-up 公平性 | 创建超过两页 nonterminal tasks，首个 Task projection 超时；末页 Dev complete→Test READY；丢弃全部 events | cursor 到达末页并发现 Test READY；以测试配置 pageSize=100/concurrency=4 验证边界，数字可配置、slow Task 不阻塞其它 Task | listTasks 全量返回后 slice |
+| 无重复/ghost wake | 同 task 重复 event+tick+重启；投递前 terminal/reopen/binding 变更；UNKNOWN delivery | 同一 stable intent 无重复 effect；stale 未开始命令不提交；已在途 effect 如实记录 | 单次单飞、固定 snapshot、承诺撤销已提交消息 |
+| 诊断隔离 | 同 Task diagnostic 永不 resolve，同时新 READY Task / 同 Task fresh owner event | progression 不等诊断、不持其 lock；stop 后晚到 callback 不 dispatch | 只测不同 Task 或快 fake model |
+
+冷启动图测试既调用现有 buildDependencyGraph，也启动实际 module lifecycle 验证 Host facts 缺失时 bridge 可监听、Model/Execution absent 时 Host 可认证 Task 请求。不能把声明 DAG PASS 当 runtime bootstrap PASS。
+
+目标图验收必须显式包含 `agent-runtime.requires`：先保留旧 execution 边重现 DEPENDENCY_CYCLE，再删除该非启动依赖后验证全模块 DAG；并验证 Execution absent 时 Role store/Task/Peer 可工作，physical delivery 仍按 operation unavailable，不伪造 delivery success。

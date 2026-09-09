@@ -1,8 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
+import { createDirectToolExecutor } from "@tomflow/proflow-execution-local/direct-tools";
 import {
 	deterministicLoopbackPort,
 	ensureModuleSecretFile,
@@ -23,9 +24,18 @@ import {
 	openBrowserExtensionManager,
 	runInteractiveBrowserExtensionSetup,
 } from "../src/install-workflow.ts";
+import { createLocalToolBridgeServer } from "../src/local-tool-bridge.ts";
 import { createBrowserExtensionPairingServer } from "../src/pairing.ts";
+import { createBrowserBridgeLifecycle } from "../src/runtime-composition.ts";
 import { descriptor } from "./descriptor.ts";
 
+type BridgeRuntime = {
+	browser: Awaited<ReturnType<typeof createBrowserBridgeLifecycle>>;
+	localTools: Awaited<ReturnType<typeof createLocalToolBridgeServer>>;
+	directTools: Awaited<ReturnType<typeof createDirectToolExecutor>>;
+	generation: string;
+};
+const bridges = new Map<string, BridgeRuntime>();
 const base = {
 	contract: "deployment.result.v1",
 	ok: true,
@@ -294,6 +304,21 @@ async function ownFacts(context: ModuleCommandContext) {
 		descriptor.moduleRef,
 		"bridge",
 	);
+	const executorTokenFile = await ensureModuleSecretFile(
+		context,
+		descriptor.moduleRef,
+		"browser-executor",
+	);
+	const localToolHostTokenFile = await ensureModuleSecretFile(
+		context,
+		descriptor.moduleRef,
+		"local-tool-host",
+	);
+	const localToolExtensionTokenFile = await ensureModuleSecretFile(
+		context,
+		descriptor.moduleRef,
+		"local-tool-extension",
+	);
 	const bridgePort = deterministicLoopbackPort(
 		context,
 		descriptor.moduleRef,
@@ -304,6 +329,11 @@ async function ownFacts(context: ModuleCommandContext) {
 		descriptor.moduleRef,
 		"provisioning",
 	);
+	const localToolBridgePort = deterministicLoopbackPort(
+		context,
+		descriptor.moduleRef,
+		"local-tools",
+	);
 	const provisioningBridgePort = deterministicLoopbackPort(
 		context,
 		descriptor.moduleRef,
@@ -312,17 +342,29 @@ async function ownFacts(context: ModuleCommandContext) {
 	const facts: Record<string, unknown> = {
 		loadDir,
 		bridgeTokenFile,
+		executorTokenFile,
+		localToolHostTokenFile,
+		localToolExtensionTokenFile,
 		bridgeEndpoint: `http://127.0.0.1:${bridgePort}`,
+		localToolBridgeEndpoint: `http://127.0.0.1:${localToolBridgePort}`,
 		provisioningBridgeTokenFile,
 		provisioningBridgeEndpoint: `http://127.0.0.1:${provisioningBridgePort}`,
 		verificationEvidenceFile: verificationFile(context),
 	};
 	const setup = await readSetup(context);
 	if (setup) facts.extensionId = setup.extensionId;
-	try {
-		await readFile(executorConfigFile(context), "utf8");
-		facts.browserExecutorConfigPath = executorConfigFile(context);
-	} catch {}
+	await writeFile(
+		executorConfigFile(context),
+		`${JSON.stringify({ endpoint: facts.bridgeEndpoint, tokenFile: executorTokenFile }, null, 2)}\n`,
+		{ mode: 0o600 },
+	);
+	facts.browserExecutorConfigPath = executorConfigFile(context);
+	const existing = await readModuleSharedFacts(context, descriptor.moduleRef);
+	const runningBridge = bridges.get(resolve(context.workspaceRoot));
+	if (runningBridge) facts.bridgeGeneration = runningBridge.generation;
+	else if (typeof existing?.bridgeGeneration === "string")
+		facts.bridgeGeneration = existing.bridgeGeneration;
+
 	await writeModuleSharedFacts(context, descriptor.moduleRef, facts);
 	return facts;
 }
@@ -331,12 +373,13 @@ async function materializeRuntimeConfig(context: ModuleCommandContext) {
 	const endpoint = factString(host, "endpoint"),
 		taskTokenFile = factString(host, "taskApplicationTokenFile"),
 		approvalTokenFile = factString(host, "approvalApplicationTokenFile");
-	if (!endpoint || !taskTokenFile || !approvalTokenFile)
-		throw new Error("platform-host application shared facts are unavailable");
+
 	const facts = await ownFacts(context);
 	const loadDir = String(facts.loadDir);
 	const bridgeTokenFile = String(facts.bridgeTokenFile);
 	const bridgeEndpoint = String(facts.bridgeEndpoint);
+	const localToolBridgeEndpoint = String(facts.localToolBridgeEndpoint);
+	const localToolExtensionTokenFile = String(facts.localToolExtensionTokenFile);
 	const provisioningBridgeTokenFile = String(facts.provisioningBridgeTokenFile);
 	const provisioningBridgeEndpoint = String(facts.provisioningBridgeEndpoint);
 	await writeFile(
@@ -351,14 +394,22 @@ async function materializeRuntimeConfig(context: ModuleCommandContext) {
 					endpoint: provisioningBridgeEndpoint,
 					token: await credential(provisioningBridgeTokenFile),
 				},
-				proflowTaskApplication: {
-					endpoint,
-					token: await credential(taskTokenFile),
+				proflowLocalToolBridge: {
+					endpoint: localToolBridgeEndpoint,
+					token: await credential(localToolExtensionTokenFile),
 				},
-				proflowApprovalApplication: {
-					endpoint,
-					token: await credential(approvalTokenFile),
-				},
+				...(endpoint && taskTokenFile && approvalTokenFile
+					? {
+							proflowTaskApplication: {
+								endpoint,
+								token: await credential(taskTokenFile),
+							},
+							proflowApprovalApplication: {
+								endpoint,
+								token: await credential(approvalTokenFile),
+							},
+						}
+					: {}),
 			},
 			null,
 			2,
@@ -370,6 +421,8 @@ async function materializeRuntimeConfig(context: ModuleCommandContext) {
 		loadDir,
 		bridgeTokenFile,
 		bridgeEndpoint,
+		localToolBridgeEndpoint,
+		localToolExtensionTokenFile,
 		provisioningBridgeTokenFile,
 		provisioningBridgeEndpoint,
 		endpoint,
@@ -383,11 +436,7 @@ async function materializeExecutorConfig(
 	prepared?: Awaited<ReturnType<typeof materializeRuntimeConfig>>,
 ) {
 	const resolved = prepared ?? (await materializeRuntimeConfig(context));
-	await writeFile(
-		executorConfigFile(context),
-		`${JSON.stringify({ platformHost: { endpoint: resolved.endpoint, tokenFile: resolved.taskTokenFile }, bridge: { extensionId: setup.extensionId, tokenFile: resolved.bridgeTokenFile, host: "127.0.0.1", port: Number(new URL(resolved.bridgeEndpoint).port) } }, null, 2)}\n`,
-		{ mode: 0o600 },
-	);
+
 	await writeModuleSharedFacts(context, descriptor.moduleRef, {
 		...resolved.facts,
 		extensionId: setup.extensionId,
@@ -845,17 +894,136 @@ export const behaviorAdapter = {
 		},
 		observedEffects: [],
 	}),
+
 	start: async (context: ModuleCommandContext) => {
-		const loadDir = browserExtensionLoadDir(context.workspaceRoot);
+		const key = resolve(context.workspaceRoot);
+		if (bridges.has(key)) return { result: base, observedEffects: [] };
+		const setup = await readSetup(context);
+		if (
+			!setup ||
+			!(await readEvidence(
+				context,
+				browserExtensionLoadDir(context.workspaceRoot),
+			))
+		)
+			return {
+				result: failed("START_FAILED", "browser extension setup is not READY"),
+				observedEffects: [],
+			};
+		try {
+			const facts = await ownFacts(context);
+			const generation = randomUUID();
+			const browser = await createBrowserBridgeLifecycle({
+				bridge: {
+					extensionId: setup.extensionId,
+					token: await credential(String(facts.bridgeTokenFile)),
+					executorToken: await credential(String(facts.executorTokenFile)),
+					port: Number(new URL(String(facts.bridgeEndpoint)).port),
+				},
+				platformHost: async (surface) => {
+					const host = await readModuleSharedFacts(context, "platform-host");
+					const endpoint = factString(host, "endpoint");
+					const tokenFile = factString(
+						host,
+						surface === "task"
+							? "taskApplicationTokenFile"
+							: "approvalApplicationTokenFile",
+					);
+					if (!endpoint || !tokenFile)
+						throw new Error("PLATFORM_HOST_APPLICATION_UNAVAILABLE");
+					return { endpoint, token: await credential(tokenFile) };
+				},
+			});
+			const directTools = await createDirectToolExecutor({
+				workspaceRoot: resolve(context.workspaceRoot),
+				generation,
+				stateRoot: join(stateDir(context), "direct-tools"),
+			});
+			let localTools: Awaited<ReturnType<typeof createLocalToolBridgeServer>>;
+			try {
+				localTools = await createLocalToolBridgeServer({
+					hostToken: await credential(String(facts.localToolHostTokenFile)),
+					extensionToken: await credential(
+						String(facts.localToolExtensionTokenFile),
+					),
+					extensionId: setup.extensionId,
+					generation,
+					workspaceRoot: resolve(context.workspaceRoot),
+					port: Number(new URL(String(facts.localToolBridgeEndpoint)).port),
+					prepare: (command) =>
+						directTools.prepare({
+							authenticatedRoleRef: command.authenticatedRoleRef,
+							tool: command.tool,
+							operation: command.operation,
+							input: command.input,
+							deadlineAt: command.deadlineAt,
+						}),
+					execute: (command) =>
+						directTools.execute({
+							authenticatedRoleRef: command.authenticatedRoleRef,
+							tool: command.tool,
+							operation: command.operation,
+							input: command.input,
+							deadlineAt: command.deadlineAt,
+						}),
+				});
+			} catch (error) {
+				await Promise.allSettled([browser.close(), directTools.close()]);
+				throw error;
+			}
+			try {
+				await writeModuleSharedFacts(context, descriptor.moduleRef, {
+					...facts,
+					bridgeGeneration: generation,
+					browserBridgeEndpoint: browser.endpoint,
+					localToolBridgeEndpoint: localTools.endpoint,
+				});
+			} catch (error) {
+				await Promise.allSettled([
+					browser.close(),
+					localTools.close(),
+					directTools.close(),
+				]);
+				throw error;
+			}
+			bridges.set(key, { browser, localTools, directTools, generation });
+			return {
+				result: {
+					...base,
+					data: {
+						browserEndpoint: browser.endpoint,
+						localToolEndpoint: localTools.endpoint,
+						generation,
+					},
+				},
+				observedEffects: ["Manage the Browser and Local Tool bridge listeners"],
+			};
+		} catch (error) {
+			return {
+				result: failed(
+					"START_FAILED",
+					error instanceof Error ? error.message : "bridge start failed",
+				),
+				observedEffects: [],
+			};
+		}
+	},
+	stop: async (context: ModuleCommandContext) => {
+		const key = resolve(context.workspaceRoot);
+		const bridge = bridges.get(key);
+		if (bridge) {
+			bridges.delete(key);
+			await Promise.allSettled([
+				bridge.browser.close(),
+				bridge.localTools.close(),
+				bridge.directTools.close(),
+			]);
+		}
 		return {
-			result: (await readEvidence(context, loadDir))
-				? base
-				: failed("START_FAILED", "browser extension setup is not READY"),
-			observedEffects: [],
+			result: base,
+			observedEffects: bridge
+				? ["Manage the Browser and Local Tool bridge listeners"]
+				: [],
 		};
 	},
-	stop: async (_context: ModuleCommandContext) => ({
-		result: base,
-		observedEffects: [],
-	}),
 } as const;

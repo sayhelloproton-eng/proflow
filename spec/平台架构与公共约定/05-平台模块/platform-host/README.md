@@ -48,12 +48,12 @@ Extension 独立承载：
 ```text
 Task UI
 Approval / Alert UI
-Task Observer
+Local Tool Effect Gate
 System Observer
 Background Carrier Controller
 ```
 
-platform-host 只通过正式 public transports/clients 向这些 application consumers 提供 owner facts/capabilities；不把 Observer 逻辑搬进 host。
+platform-host 通过 public ports 提供 Owner facts，并组合 backend deterministic Task Observer / bounded reconciliation；不拥有 Observer business truth。Extension 只做 Carrier/page kick，不承担 progression scheduler。
 
 ## Documents
 

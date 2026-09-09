@@ -103,6 +103,41 @@ async function taskOperation(
 	return { status: response.status, body };
 }
 
+async function observerOperation(
+	baseUrl: string,
+	token: string,
+	operation: string,
+	input: Record<string, unknown>,
+) {
+	const response = await fetch(`${baseUrl}/application/observer`, {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${token}`,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({ operation, input }),
+	});
+	assert.equal(response.status, 200);
+	return response.json();
+}
+
+async function waitForTask(
+	baseUrl: string,
+	token: string,
+	taskId: string,
+	predicate: (task: TaskShape) => boolean,
+): Promise<TaskShape> {
+	const deadline = Date.now() + 3_000;
+	while (Date.now() < deadline) {
+		const current = (await taskOperation(baseUrl, token, "task.get", {
+			taskId,
+		})) as { body: TaskShape };
+		if (predicate(current.body)) return current.body;
+		await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+	}
+	throw new Error("TASK_RECONCILIATION_TIMEOUT");
+}
+
 function createTaskInput(taskId: string, idempotencyKey: string) {
 	return {
 		taskId,
@@ -158,80 +193,7 @@ test("PRESMOKE-B3-APP-02 New Task application owns no Task truth and provisions 
 	assert.doesNotMatch(source, /TaskApplicationRepository|ApplicationTaskStore/);
 });
 
-test("CP-EXE-BR-04 Observer application rejects an unconfirmed wake Execution", async () => {
-	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-wake-"));
-	const stateRoot = join(root, ".proflow");
-	const dependency = createServer((request, response) => {
-		response.setHeader("content-type", "application/json");
-		if (request.url === "/ready") {
-			response.end(JSON.stringify({ status: "READY" }));
-			return;
-		}
-		if (request.url === "/executions" && request.method === "POST") {
-			response.end(
-				JSON.stringify({
-					executionRef: "execution:wake:not-applied",
-					status: "FAILED",
-					sideEffectState: "NOT_APPLIED",
-				}),
-			);
-			return;
-		}
-		response.end(JSON.stringify({ status: "READY" }));
-	});
-	await new Promise<void>((resolve) =>
-		dependency.listen(0, "127.0.0.1", resolve),
-	);
-	const address = dependency.address();
-	if (!address || typeof address === "string")
-		assert.fail("missing dependency port");
-	const host = createPlatformHost({
-		config: config(
-			stateRoot,
-			join(root, "project"),
-			`http://127.0.0.1:${address.port}`,
-		),
-	});
-	try {
-		const started = await host.start();
-		const token = (
-			await readFile(
-				join(stateRoot, "browser", "secrets", "task-application.token"),
-				"utf8",
-			)
-		).trim();
-		const response = await fetch(
-			`http://${started.host}:${started.port}/application/observer`,
-			{
-				method: "POST",
-				headers: {
-					authorization: `Bearer ${token}`,
-					"content-type": "application/json",
-				},
-				body: JSON.stringify({
-					operation: "task.wake",
-					input: {
-						taskId: "task:1",
-						nodeId: "node:1",
-						runNo: 1,
-						roleRef: "g-controller",
-						workerRef: "c-controller",
-						trigger: "NODE_READY",
-					},
-				}),
-			},
-		);
-		assert.equal(response.status, 400);
-		assert.deepEqual(await response.json(), {
-			error: "TASK_WAKE_NOT_CONFIRMED:FAILED:NOT_APPLIED",
-		});
-	} finally {
-		await host.stop();
-		await new Promise<void>((resolve) => dependency.close(() => resolve()));
-	}
-});
-
-test("R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fills only missing Workers", async () => {
+test("R2-P1-18-APP-03 Product binds durably while backend reconciliation fills only missing Workers", async () => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-platform-host-new-task-"));
 	const stateRoot = join(root, ".proflow");
 	let applicationBaseUrl = "";
@@ -378,27 +340,24 @@ test("R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fi
 				sideEffectState: "NOT_APPLIED",
 			}),
 		);
-		await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-
-		const recovered = (await taskOperation(
+		await new Promise((resolveWait) => setTimeout(resolveWait, 650));
+		await observerOperation(
 			applicationBaseUrl,
 			applicationToken,
-			"task.ensureWorkers",
-			{ taskId: "task:j1-product-first" },
-		)) as { status: number; body: TaskShape };
-		assert.equal(recovered.status, 200);
-		assert.equal(recovered.body.status, "READY");
-		assert.equal(
-			recovered.body.roleBindings.every(
-				(binding) => binding.workerRef !== null,
-			),
-			true,
+			"task.reconcileAll",
+			{},
 		);
-		// Product binding is preserved, never rebuilt.
+		const recovered = await waitForTask(
+			applicationBaseUrl,
+			applicationToken,
+			"task:j1-product-first",
+			(task) =>
+				task.status === "READY" &&
+				task.roleBindings.every((binding) => binding.workerRef !== null),
+		);
 		assert.equal(
-			recovered.body.roleBindings.find(
-				(binding) => binding.roleRef === "g-product",
-			)?.workerRef,
+			recovered.roleBindings.find((binding) => binding.roleRef === "g-product")
+				?.workerRef,
 			"c-product",
 		);
 		const startedTask = (await taskOperation(
@@ -406,8 +365,8 @@ test("R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fi
 			applicationToken,
 			"task.start",
 			{
-				taskId: recovered.body.taskId,
-				expectedTaskVersion: recovered.body.version,
+				taskId: recovered.taskId,
+				expectedTaskVersion: recovered.version,
 				idempotencyKey: "j1-start-after-worker-recovery",
 			},
 		)) as { status: number; body: TaskShape };
@@ -419,170 +378,6 @@ test("R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fi
 				.length,
 			1,
 		);
-	} finally {
-		await host.stop();
-		await new Promise<void>((resolve) => dependency.close(() => resolve()));
-	}
-});
-
-test("PRESMOKE-B3-APP-04 partial Worker provisioning failure persists successful binding and ensureWorkers only fills missing Workers", async () => {
-	const root = await mkdtemp(
-		join(tmpdir(), "proflow-platform-host-worker-recovery-"),
-	);
-	const stateRoot = join(root, ".proflow");
-	let applicationBaseUrl = "";
-	let applicationToken = "";
-	const attempts = new Map<string, number>();
-	const dependency = createServer(async (request, response) => {
-		response.setHeader("content-type", "application/json");
-		if (request.url === "/ready") {
-			response.end(JSON.stringify({ status: "READY" }));
-			return;
-		}
-		if (request.url === "/executions" && request.method === "POST") {
-			const chunks: Buffer[] = [];
-			for await (const chunk of request) chunks.push(Buffer.from(chunk));
-			const executionRequest = JSON.parse(
-				Buffer.concat(chunks).toString("utf8"),
-			) as Record<string, unknown>;
-			assert.equal(executionRequest.capability, "worker.create");
-			const taskId = String(executionRequest.taskId);
-			const roleRef = String(executionRequest.roleRef);
-			const attempt = (attempts.get(roleRef) ?? 0) + 1;
-			attempts.set(roleRef, attempt);
-			if (roleRef === "g-controller" && attempt === 1) {
-				response.end(
-					JSON.stringify({
-						executionRef: "execution:g-controller:first-failure",
-						status: "FAILED",
-						sideEffectState: "NOT_APPLIED",
-					}),
-				);
-				return;
-			}
-			const workerRef = `c-${roleRef.slice(2)}`;
-			const bind = await fetch(`${applicationBaseUrl}/application/observer`, {
-				method: "POST",
-				headers: {
-					authorization: `Bearer ${applicationToken}`,
-					"content-type": "application/json",
-				},
-				body: JSON.stringify({
-					operation: "browser.bindWorker",
-					input: {
-						taskId,
-						roleRef,
-						workerRef,
-						conversationLocator: `https://chatgpt.com/g/${roleRef}/c/${workerRef}`,
-					},
-				}),
-			});
-			assert.equal(bind.status, 200);
-			response.end(
-				JSON.stringify({
-					executionRef: `execution:${roleRef}:${attempt}`,
-					status: "SUCCEEDED",
-					sideEffectState: "APPLIED",
-				}),
-			);
-			return;
-		}
-		response.end(JSON.stringify({ status: "READY" }));
-	});
-	await new Promise<void>((resolve) =>
-		dependency.listen(0, "127.0.0.1", resolve),
-	);
-	const address = dependency.address();
-	if (!address || typeof address === "string")
-		assert.fail("missing dependency port");
-	const dependencyBase = `http://127.0.0.1:${address.port}`;
-	const host = createPlatformHost({
-		config: config(stateRoot, join(root, "project"), dependencyBase),
-	});
-	try {
-		const started = await host.start();
-		applicationBaseUrl = `http://${started.host}:${started.port}`;
-		applicationToken = (
-			await readFile(
-				join(stateRoot, "browser", "secrets", "task-application.token"),
-				"utf8",
-			)
-		).trim();
-		const createResponse = await fetch(
-			`${applicationBaseUrl}/application/task`,
-			{
-				method: "POST",
-				headers: {
-					authorization: `Bearer ${applicationToken}`,
-					"content-type": "application/json",
-				},
-				body: JSON.stringify({
-					operation: "task.create",
-					input: createTaskInput("task:j1-recovery", "j1-recovery-create"),
-				}),
-			},
-		);
-		assert.equal(createResponse.status, 200);
-		await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-
-		const pendingResponse = await fetch(
-			`${applicationBaseUrl}/application/task`,
-			{
-				method: "POST",
-				headers: {
-					authorization: `Bearer ${applicationToken}`,
-					"content-type": "application/json",
-				},
-				body: JSON.stringify({
-					operation: "task.get",
-					input: { taskId: "task:j1-recovery" },
-				}),
-			},
-		);
-		assert.equal(pendingResponse.status, 200);
-		const pending = (await pendingResponse.json()) as {
-			status: string;
-			roleBindings: Array<{ roleRef: string; workerRef: string | null }>;
-		};
-		assert.equal(pending.status, "PENDING");
-		assert.equal(
-			pending.roleBindings.find((binding) => binding.roleRef === "g-product")
-				?.workerRef,
-			"c-product",
-		);
-		assert.equal(
-			pending.roleBindings.find((binding) => binding.roleRef === "g-controller")
-				?.workerRef,
-			null,
-		);
-
-		const recoveryResponse = await fetch(
-			`${applicationBaseUrl}/application/task`,
-			{
-				method: "POST",
-				headers: {
-					authorization: `Bearer ${applicationToken}`,
-					"content-type": "application/json",
-				},
-				body: JSON.stringify({
-					operation: "task.ensureWorkers",
-					input: { taskId: "task:j1-recovery" },
-				}),
-			},
-		);
-		assert.equal(recoveryResponse.status, 200);
-		const recovered = (await recoveryResponse.json()) as {
-			status: string;
-			roleBindings: Array<{ workerRef: string | null }>;
-		};
-		assert.equal(recovered.status, "READY");
-		assert.equal(
-			recovered.roleBindings.every((binding) => binding.workerRef !== null),
-			true,
-		);
-		assert.equal(attempts.get("g-product"), 1);
-		assert.equal(attempts.get("g-controller"), 2);
-		assert.equal(attempts.get("g-test"), 1);
 	} finally {
 		await host.stop();
 		await new Promise<void>((resolve) => dependency.close(() => resolve()));

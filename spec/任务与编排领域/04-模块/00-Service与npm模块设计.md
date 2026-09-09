@@ -289,6 +289,6 @@ Task Migration Runner 拥有跨领域 migration SQL
 - 同进程调用使用公开 TypeScript interface；只有真实跨进程边界才增加 transport client。
 
 
-## Task Observer integration
+## Task Observer / Reconciliation integration
 
-`@tomflow/proflow-task-orchestration` 不实现 Scheduler/Observer daemon。它只提供 Task drive projection 与正式 commands。Task Observer 位于 Extension application/background，通过 Public Query 读取 `currentNode/runNo/requiredAgentPackageRef/roleBindings/versions/terminal`，再与 Execution/Collaboration current facts组合；所有写入仍回到 owner commands。
+`@tomflow/proflow-task-orchestration` 不实现 Scheduler/Observer daemon。它只提供 Task drive projection 与正式 commands。Task Observer/Reconciliation 位于 backend application，通过 Public Query 读取 `currentNode/runNo/requiredAgentPackageRef/roleBindings/versions/terminal`，再与 Execution/Collaboration current facts组合；bounded catch-up 负责丢事件后的最终发现，Extension/page event 只作低延迟 kick。所有写入仍回到 owner commands。

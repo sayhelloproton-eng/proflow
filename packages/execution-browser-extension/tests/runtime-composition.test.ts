@@ -4,41 +4,33 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { loadBrowserExecutorCompositionConfig } from "../src/runtime-composition.ts";
+import { createBrowserExecutorClientComposition } from "../src/runtime-composition.ts";
 
 const sourceUrl = new URL("../src/runtime-composition.ts", import.meta.url);
 
-test("PRESMOKE-B3-BRIDGE-TOPOLOGY-01 Browser adapter composes Reality Bridge + Browser Executor without creating a second Execution Runtime", async () => {
+test("PRESMOKE-B3-BRIDGE-TOPOLOGY-01 Extension owns the Browser listener while Execution Runtime receives a non-owning client", async () => {
 	const source = await readFile(sourceUrl, "utf8");
+	assert.match(source, /export async function createBrowserBridgeLifecycle/);
 	assert.match(source, /createBrowserRealityBridgeServer/);
-	assert.match(source, /createExecutionBrowserExtension/);
-	assert.match(source, /browserExecutor/);
-	assert.match(source, /browser\.binding/);
-	assert.match(source, /browser\.bindWorker/);
-	assert.match(source, /platformHost endpoint must be loopback HTTP root/);
+	assert.match(
+		source,
+		/export async function createBrowserExecutorClientComposition/,
+	);
+	assert.match(source, /createBrowserRealityBridgeClient/);
+	assert.match(source, /non-owning Browser-lane client/);
 	assert.doesNotMatch(
 		source,
 		/createExecutionRuntimeProcess|createExecutionRuntime\(/,
 	);
-	assert.match(
-		source,
-		/single formal execution-runtime binary owns[\s\S]*?Execution truth/,
-	);
 });
 
-test("PRESMOKE-B3-BRIDGE-TOPOLOGY-02 Browser adapter credentials are loaded only from owner-private secret files", async (t) => {
+test("PRESMOKE-B3-BRIDGE-TOPOLOGY-02 Browser client credential is loaded only from an owner-private secret file", async (t) => {
 	if (process.platform === "win32") return t.skip("POSIX mode proof");
 	const root = await mkdtemp(
 		join(tmpdir(), "proflow-browser-composition-security-"),
 	);
-	const platformToken = join(root, "platform-host.token");
 	const bridgeToken = join(root, "bridge.token");
 	const configPath = join(root, "browser.json");
-	await writeFile(
-		platformToken,
-		"platform-host-token-abcdefghijklmnopqrstuvwxyz012345\n",
-		{ mode: 0o600 },
-	);
 	await writeFile(
 		bridgeToken,
 		"browser-bridge-token-abcdefghijklmnopqrstuvwxyz012345\n",
@@ -47,42 +39,34 @@ test("PRESMOKE-B3-BRIDGE-TOPOLOGY-02 Browser adapter credentials are loaded only
 	await writeFile(
 		configPath,
 		JSON.stringify({
-			platformHost: {
-				endpoint: "http://127.0.0.1:8787",
-				tokenFile: "platform-host.token",
-			},
-			bridge: {
-				extensionId: "abcdefghijklmnopabcdefghijklmnop",
-				tokenFile: "bridge.token",
-			},
+			endpoint: "http://127.0.0.1:65530",
+			tokenFile: bridgeToken,
 		}),
 	);
-
-	const config = await loadBrowserExecutorCompositionConfig(configPath);
-	assert.match(config.platformHost.token, /^platform-host-token-/);
-	assert.match(config.bridge.token, /^browser-bridge-token-/);
-
+	const platformHost = async () => ({
+		endpoint: "http://127.0.0.1:8787",
+		token: "platform-host-token-abcdefghijklmnopqrstuvwxyz012345",
+	});
+	const composition = await createBrowserExecutorClientComposition({
+		configPath,
+		platformHost,
+	});
+	await composition.close();
 	await chmod(bridgeToken, 0o644);
 	await assert.rejects(
-		loadBrowserExecutorCompositionConfig(configPath),
-		/bridge token permissions must be owner-only/,
+		createBrowserExecutorClientComposition({ configPath, platformHost }),
+		/browser executor credential permissions must be owner-only/,
 	);
 });
 
-test("PRESMOKE-B3-BRIDGE-TOPOLOGY-03 Browser adapter reports only confirmed DELIVERED and leaves the single Execution Runtime injection to Batch 4", async () => {
+test("CP-EXE-RT-27 Browser client close cannot own or close the Extension listener lifecycle", async () => {
 	const source = await readFile(sourceUrl, "utf8");
-	assert.match(source, /outcome: "DELIVERED"/);
-	assert.match(
-		source,
-		/single formal execution-runtime binary owns[\s\S]*?Execution truth/,
-	);
-	assert.doesNotMatch(
-		source,
-		/createExecutionRuntimeProcess|proflow-execution-browser-runtime/,
-	);
+	assert.match(source, /close: client\.close/);
+	assert.match(source, /The Extension deployment owns this listener/);
+	assert.doesNotMatch(source, /close:\s*bridge\.close/);
 });
 
-test("PRESMOKE-B3-BRIDGE-TOPOLOGY-04 Browser adapter accepts an optional Vision port and forwards it into the Browser executor", async () => {
+test("PRESMOKE-B3-BRIDGE-TOPOLOGY-04 Browser client accepts an optional Vision port and forwards it into the Browser executor", async () => {
 	const source = await readFile(sourceUrl, "utf8");
 	assert.match(source, /vision\?: BrowserVisionPort/);
 	assert.match(source, /options\.vision/);

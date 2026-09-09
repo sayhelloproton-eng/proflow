@@ -39,6 +39,9 @@ test("CP-EXE-BR-03/09 content and background wire structural sent-message verifi
 	assert.match(content, /data-message-author-role="user"/);
 	assert.doesNotMatch(content, /document\.body\.innerText\.includes/);
 	assert.match(background, /waitForSubmittedMessage/);
-	assert.match(background, /return waitForSubmittedMessage\(tabId, fingerprint\)/);
+	assert.match(
+		background,
+		/return waitForSubmittedMessage\(tabId, fingerprint\)/,
+	);
 	assert.match(background, /MESSAGE_SUBMIT_REALITY_UNCONFIRMED/);
 });

@@ -27,12 +27,8 @@ test("FJ-07 installed deterministic config is READY while runtime producers rema
 				scope: "RUNTIME",
 				code: "UPSTREAM_NOT_READY",
 				message:
-					"等待 platform-host、model-runtime 与 execution-browser-extension 发布运行所需信息",
-				relatedModuleRefs: [
-					"platform-host",
-					"model-runtime",
-					"execution-browser-extension",
-				],
+					"等待 execution-browser-extension 发布 Browser Executor client 配置",
+				relatedModuleRefs: ["execution-browser-extension"],
 				nextCommand: "platform setup",
 			},
 		],

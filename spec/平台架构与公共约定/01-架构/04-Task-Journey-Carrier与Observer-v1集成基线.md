@@ -27,12 +27,13 @@ contractRefs: []
 ```text
 Task truth                 → Task Domain
 Role/Worker/Collaboration  → Agent Domain
-real Effect/Result/Evidence→ Execution Domain
+Browser/Carrier durable Effect/Result/Evidence → Execution Domain
+GPT local Tools (Repomix / Local Dev / CodeGraph) → Browser Extension local-effect gate → execution-local tool implementation → macOS
 FAST/REASON/Vision         → Model Domain
 Module governance / install-status-setup-start-stop → Deployment Domain
 page create/restore/wake   → Execution-owned Browser Carrier
-Task next-step detection   → Task Observer（Extension application logic）
-system assessment          → System Observer + Model REASON
+Task next-step detection + lost-trigger reconciliation → backend Task Observer / Reconciliation application
+system assessment          → System Observer + Model REASON（不占 progression 临界区）
 ```
 
 ## 2. 固定三角色
@@ -55,9 +56,9 @@ Test / Ops
 J0 Role Ready
 → J1 Extension New Task + 三 Worker 一次建立 + Product requirement
 → J2 User Confirm → Task Start → first Node READY
-→ J3 Task Observer → RESTORE/WAKE correct Worker
-→ J4 Worker Turn → GPT Native / Actions / Execution / Collaboration
-→ J5 Result → Next / Wait / Reopen / Recovery
+→ J3 backend Task Observer / Reconciliation → RESTORE/WAKE correct Worker
+→ J4 Worker Turn → Task/Document/Peer Actions + Repomix / Local Dev / CodeGraph + GPT Native
+→ J5 Tool/Peer/Browser result → Agent judgment → complete / wait / fail / reopen
 → J6 Terminal → stop driving / retain history
 ```
 
@@ -77,7 +78,7 @@ Product GPT 不再承担主链 `createTask` / `listRegisteredRoles`；这两个�
 
 ### J3
 
-Node READY 后 Task Observer 读取正式 facts，要求 Carrier 恢复正确 Conversation 并提交 minimal wake：
+Node READY 后，backend Task Observer / Reconciliation 读取正式 durable facts，要求 Carrier 恢复正确 Conversation 并提交 minimal wake。事件/页面变化只负责加速；即使丢失 hint，也必须由 bounded catch-up 最终重新发现 READY：
 
 ```text
 taskId
@@ -91,11 +92,11 @@ WAKE 成功只表示物理消息进入正确 Conversation，不表示 Node/Execu
 
 ### J4
 
-一个 WAKE/input 形成一个语义上的 Worker Turn。Worker Turn 不是实体/Store/Runtime；它只表示 GPT 可以在同一 Conversation 中连续 reasoning → 0..N Actions → results → next Actions。平台不得在每个 Action 中间 Browser WAKE 或自动发送“继续”。
+一个 WAKE/input 形成一个语义上的 Worker Turn。Worker Turn 不是实体/Store/Runtime；它只表示 GPT 可以在同一 Conversation 中连续 reasoning → 0..N Actions → results → next Actions。Worker 只需要理解 `Task / Node / Document / Peer / Tools`：正式任务事实走 Task Actions，协作走 Peer Actions，本地工程现场使用 Repomix / Local Dev / CodeGraph。三类本地 Tool Action 都走 `Action → Gateway → ProFlow API → Browser Extension → Tool → macOS`；request 不携带 Task/Node/Worker/Execution identity，也不进入旧 `executeCapability/getExecution/readExecutionOutput` lifecycle。平台不得在每个 Action 中间 Browser WAKE 或自动发送“继续”。
 
 ### J5
 
-Execution pending、Peer pending、Execution Approval pending 默认分别留在各 Owner；只有真正 workflow 被业务阻塞时才进入 Task WAITING。Reopen 是业务返工：same taskId/nodeId/workerRef/Conversation，`runNo + 1`；Recovery 是技术恢复，不改变 Task business truth。
+Tool result 直接回到当前 Worker；Peer reply、Browser/Carrier durable effect result 等真正跨 Turn 事实由对应 Owner/Carrier 产生后再触发 continuation。Agent 根据业务完成度显式调用 `completeNode / waitNode / failNode / reopenNode`，Tool success 不自动推进 Task。只有真正 workflow 被业务阻塞时才进入 Task WAITING。Reopen 是业务返工：same taskId/nodeId/workerRef/Conversation，`runNo + 1`；Recovery 是技术恢复，不改变 Task business truth。
 
 ### J6
 
@@ -154,23 +155,24 @@ Real-3 真实浏览器基线进一步冻结：Deployment、Workflow、Agent Coll
 ## 6. Native GPT capability reuse
 
 ```text
-需要公开知识             → Web Search
-多文件/数据/代码临时分析 → Code Interpreter
-Conversation↔平台文件    → File Bridge
-正式 ProFlow facts       → GPT Actions → Owner Domain
-真实机器/外部 Effect      → Execution
-跨 Worker                → Collaboration
+需要公开知识                 → Web Search
+临时数据/文件分析             → Code Interpreter / Conversation files
+Conversation↔平台正式文件      → File Bridge
+正式 ProFlow Task/Document facts → Task Actions → Owner Domain
+本地仓库/文件/命令/结构关系     → Repomix / Local Dev / CodeGraph direct Tool Actions
+Browser/Carrier durable Effect → Execution
+跨 Worker                    → Collaboration
 ```
 
-File Bridge 是 transport，不是 File/Artifact/Document Store。Context Pack、Patch 都是 Execution Artifact subtype；真实 bytes materialize/hash/MIME/size/scope 由 Execution 负责。Screenshot/Vision 路径保持独立，因为 Action file response 不能作为平台→GPT image/video 主链。
+三类本地 Tools 不是 MCP Provider，也不建立动态 Tool Runtime。它们统一经 Browser Extension Effect Gate 调用 `execution-local` 中对应工具实现；工具自己的 `outputId/processId/searchId` 可以作为原生结果句柄，但不是 ProFlow Execution identity。File Bridge 是 transport，不是 File/Artifact/Document Store；TaskDocument 继续归 Task。只有 Browser/Carrier 或内部 materialization 真正需要 durable recovery 时才进入 Execution Artifact/Evidence 语义。
 
 ## 7. Observer 双线
 
-### Task Observer
+### Task Observer / Reconciliation
 
-确定性 progression detector：读取 Task/Execution/Collaboration/Carrier 的当前公开 facts，发现 Node READY、Execution Result READY、Peer Reply READY、Reopen READY、需要恢复的未完成 wake 等明确条件后发 typed request。默认不调用模型，也不直接修改任何 Owner business state。
+确定性 progression detector + backend bounded reconciliation：读取 Task、Collaboration、Browser/Carrier durable facts，发现 Node READY、Peer Reply READY、Reopen READY、需要恢复的未完成 wake 等明确条件后发 typed Carrier request。普通 Direct Tool result 只返回当前 Worker，不进入 Observer 调度事实。事件/页面变化只加速，backend catch-up 负责丢 hint 后最终重查；默认不调用模型，也不直接修改任何 Owner business state。
 
-只有单 Task 出现多源冲突、UNKNOWN、长期 stalled 无单一 blocker、重复 recovery 失败时，允许调用 REASON 做 Task Diagnostic Assessment；模型只能输出 finding/recommendation，不得 complete/reopen/approve/重放 Effect。
+只有单 Task 出现多源冲突、Browser/Delivery UNKNOWN、长期 stalled 无单一 blocker、重复 recovery 失败时，允许调用 REASON 做 Task Diagnostic Assessment；模型只能输出 finding/recommendation，不得 complete/reopen/approve/重放未知副作用。
 
 ### System Observer
 

@@ -37,7 +37,7 @@ implementationWave: Wave 4
 
 ## 2. 风险定位
 
-测试+运维角色负责验证与异常处理；如果能越权推进业务或伪造 evidence，会破坏最后质量门。
+测试+运维角色负责验证与异常处理；最大风险是 Direct Tool allowlist/变更能力越权、Tool result 被直接当成 Task/测试结论 truth，或测试角色绕过 Extension Local Tool lane 操作本机。
 
 ## 3. 必须覆盖的测试层
 
@@ -183,3 +183,12 @@ implementationWave: Wave 4
 - [ ] **RF-AGT-TEST-12** — DRIFT setup 仍 fail closed，但 ACTION_REQUIRED 必须明确指向 operator 完成远端同步后的正式 adopt 命令；roleRef/carrierUrl mismatch 零 mutation。
 
 **Executable proof**：`packages/agent-runtime/tests/role-package-cli-subprocess.test.ts` + `packages/agent-test-ops/tests/agent-test-ops-static.test.ts`。
+
+## 2026-09-09 Real-3｜Test/Ops Direct Tool Gate
+
+- [ ] **CP-AGT-TEST-14** — shipped OpenAPI/Instructions 的本地 Tools 只为 Repomix / Local Dev / CodeGraph，旧 `executeCapability/getExecution/readExecutionOutput` 为零。
+- [ ] **CP-AGT-TEST-15** — Test/Ops independently uses Tool actions after its Node becomes READY；不复用 Dev 的 Tool result/Execution identity 作为测试事实。
+- [ ] **CP-AGT-TEST-16** — Tool result/evidence 只是测试输入；`completeNode/failNode/waitNode` 仍需测试 Worker 显式调用 Task Owner Action，不能由 Tool/Extension 自动推进。
+- [ ] **CP-AGT-TEST-17** — Test/Ops 的 Local Dev mutation/run/process 权限必须按角色最小化，并始终经 Extension Local Tool lane；越权 operation typed deny。
+
+**Executable proof**：`packages/agent-test-ops/tests/agent-test-ops-static.test.ts` + `packages/agent-test-ops/tests/journey-native-capability-alignment.test.ts` + `packages/platform-host/tests/direct-tools-route.test.ts`。

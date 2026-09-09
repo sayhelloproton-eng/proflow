@@ -1,9 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
 
-import {
-	createBrowserExecutorComposition,
-	loadBrowserExecutorCompositionConfig,
-} from "@tomflow/proflow-execution-browser-extension/runtime-composition";
+import { createBrowserExecutorClientComposition } from "@tomflow/proflow-execution-browser-extension/runtime-composition";
 import { createExecutionBrowserVisionClient } from "./browser-vision-client.ts";
 import { createExecutionModelDecisionClient } from "./model-decision-client.ts";
 import {
@@ -41,7 +38,6 @@ async function createIdentityClient(config: {
 		}
 		return ready;
 	};
-	await probe();
 	return {
 		port: {
 			async authorize(request: unknown) {
@@ -71,8 +67,6 @@ async function createIdentityClient(config: {
 }
 
 function assertFormalConfig(config: ExecutionRuntimeProcessConfig) {
-	if (!config.identity)
-		throw new Error("formal execution-runtime requires identity configuration");
 	if (!config.transportCredentialFile)
 		throw new Error(
 			"formal execution-runtime requires transportCredentialFile",
@@ -81,28 +75,22 @@ function assertFormalConfig(config: ExecutionRuntimeProcessConfig) {
 		throw new Error(
 			"formal execution-runtime requires browserExecutorConfigPath",
 		);
-	if (!config.modelDecision)
-		throw new Error(
-			"formal execution-runtime requires modelDecision configuration",
-		);
-	if (!config.modelDecision.credentialFile)
-		throw new Error(
-			"formal execution-runtime requires modelDecision.credentialFile",
-		);
+
 	return {
 		identity: config.identity,
 		transportCredentialFile: config.transportCredentialFile,
 		browserExecutorConfigPath: config.browserExecutorConfigPath,
-		modelDecision: {
-			...config.modelDecision,
-			credentialFile: config.modelDecision.credentialFile,
-		},
 	};
 }
 
 export function createFormalExecutionRuntimeLifecycle(input: {
 	config: ExecutionRuntimeProcessConfig;
 	log?: (entry: Record<string, unknown>) => void;
+	resolveDependencies?: () => Promise<{
+		identity?: ExecutionRuntimeProcessConfig["identity"];
+		modelDecision?: ExecutionRuntimeProcessConfig["modelDecision"];
+		platformHost?: { endpoint: string; tokenFile: string };
+	}>;
 }) {
 	const required = assertFormalConfig(input.config);
 	let current:
@@ -114,27 +102,73 @@ export function createFormalExecutionRuntimeLifecycle(input: {
 		| undefined;
 
 	const build = async () => {
-		const identityClient = await createIdentityClient(required.identity);
+		const dependencies =
+			input.resolveDependencies ??
+			(async () => ({
+				identity: input.config.identity,
+				modelDecision: input.config.modelDecision,
+				platformHost: undefined,
+			}));
+		let identityReady = false;
+		let modelReady = false;
+		const resolveIdentity = async () => {
+			const config = (await dependencies()).identity;
+			if (!config) throw new Error("EXECUTION_IDENTITY_UNAVAILABLE");
+			return createIdentityClient(config);
+		};
+		const modelConfig = async () => {
+			const config = (await dependencies()).modelDecision;
+			if (!config?.credentialFile)
+				throw new Error("MODEL_DECISION_UNAVAILABLE");
+			return {
+				...config,
+				credential: await readSecret(config.credentialFile, "model credential"),
+			};
+		};
 		const transportCredential = await readSecret(
 			required.transportCredentialFile,
 			"execution transport credential",
 		);
-		const modelDecisionCredential = await readSecret(
-			required.modelDecision.credentialFile,
-			"model decision transport credential",
-		);
-		const modelDecisionClient = createExecutionModelDecisionClient({
-			endpoint: required.modelDecision.endpoint,
-			...(required.modelDecision.timeoutMs === undefined
-				? {}
-				: { timeoutMs: required.modelDecision.timeoutMs }),
-			credential: modelDecisionCredential,
+		const browserComposition = await createBrowserExecutorClientComposition({
+			configPath: required.browserExecutorConfigPath,
+			platformHost: async () => {
+				const config = (await dependencies()).platformHost;
+				if (!config) throw new Error("PLATFORM_HOST_APPLICATION_UNAVAILABLE");
+				return {
+					endpoint: config.endpoint,
+					token: await readSecret(
+						config.tokenFile,
+						"task application credential",
+					),
+				};
+			},
+			vision: {
+				inspect: async (request) =>
+					createExecutionBrowserVisionClient(await modelConfig()).port.inspect(
+						request,
+					),
+			},
 		});
 		let dependencyRefresh: Promise<void> | undefined;
 		const refreshDependencies = () => {
 			dependencyRefresh ??= Promise.allSettled([
-				identityClient.probe(),
-				modelDecisionClient.probe(),
+				resolveIdentity()
+					.then((client) => client.probe())
+					.then((ready) => {
+						identityReady = ready;
+					})
+					.catch(() => {
+						identityReady = false;
+					}),
+				modelConfig()
+					.then((config) => createExecutionModelDecisionClient(config).probe())
+					.then((ready) => {
+						modelReady = ready;
+					})
+					.catch(() => {
+						modelReady = false;
+					}),
+				browserComposition.refreshStatus(),
 			])
 				.then(() => undefined)
 				.finally(() => {
@@ -142,29 +176,37 @@ export function createFormalExecutionRuntimeLifecycle(input: {
 				});
 			return dependencyRefresh;
 		};
-		await refreshDependencies();
-		const browserVisionClient = createExecutionBrowserVisionClient({
-			endpoint: required.modelDecision.endpoint,
-			...(required.modelDecision.timeoutMs === undefined
-				? {}
-				: { timeoutMs: required.modelDecision.timeoutMs }),
-			credential: modelDecisionCredential,
-		});
-		const browserComposition = await createBrowserExecutorComposition({
-			...(await loadBrowserExecutorCompositionConfig(
-				required.browserExecutorConfigPath,
-			)),
-			vision: browserVisionClient.port,
-		});
+
 		try {
 			const service = await createExecutionRuntimeProcess({
 				config: input.config,
-				identity: identityClient.port,
-				identityReadiness: identityClient.readiness,
+				identity: {
+					authorize: async (request) => {
+						try {
+							const client = await resolveIdentity();
+							const allowed = await client.port.authorize(request);
+							identityReady = client.readiness();
+							return allowed;
+						} catch {
+							identityReady = false;
+							return false;
+						}
+					},
+				},
+				identityReadiness: () => identityReady,
 				transportCredential,
 				requireModelDecision: true,
-				modelDecision: modelDecisionClient.port,
-				modelDecisionReadiness: modelDecisionClient.readiness,
+				modelDecision: {
+					decide: async (request, context) => {
+						const client = createExecutionModelDecisionClient(
+							await modelConfig(),
+						);
+						await client.probe();
+						modelReady = client.readiness();
+						return client.port.decide(request, context);
+					},
+				},
+				modelDecisionReadiness: () => modelReady,
 				refreshDependencies,
 				browserExecutor: browserComposition.browserExecutor,
 				browserReadiness: () => browserComposition.bridgeStatus().online,

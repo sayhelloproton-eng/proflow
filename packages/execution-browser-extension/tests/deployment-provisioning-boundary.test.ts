@@ -38,6 +38,7 @@ test("CP-EXE-BR-15 provisioning surface has no Task/Worker runtime business voca
 
 test("CP-EXE-BR-15 descriptor exposes deployment provisioning as a separate capability", () => {
 	assert.deepEqual(descriptor.provides, [
+		{ contractRef: "local-tool-bridge", version: "1.0.0" },
 		{ contractRef: "execution-browser-executor", version: "1.0.0" },
 		{ contractRef: "custom-gpt-web-provisioning", version: "1.0.0" },
 	]);

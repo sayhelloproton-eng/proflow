@@ -256,11 +256,14 @@ test("B1-TASK-02 WAITING resume requires acknowledged blocker and preserves the 
 		services.queries.getTaskDriveProjection({ taskId }),
 	);
 	assert.match(resumeProjection.resumeSignalRef ?? "", /^task-event:\d+$/);
-	const resumeEvent = ok(services.queries.listTaskEvents({ taskId })).events.find(
-		(event) => event.eventType === "TASK_RESUMED",
-	);
+	const resumeEvent = ok(
+		services.queries.listTaskEvents({ taskId }),
+	).events.find((event) => event.eventType === "TASK_RESUMED");
 	assert.ok(resumeEvent?.eventId);
-	assert.equal(resumeProjection.resumeSignalRef, `task-event:${resumeEvent.eventId}`);
+	assert.equal(
+		resumeProjection.resumeSignalRef,
+		`task-event:${resumeEvent.eventId}`,
+	);
 	assert.equal(resumeEvent.taskVersion, resumed.version);
 });
 

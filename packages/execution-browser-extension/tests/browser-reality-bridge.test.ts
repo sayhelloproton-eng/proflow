@@ -346,24 +346,14 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 			}),
 		});
 		assert.equal(start.status, 200);
-		const recovery = await callWithoutOrigin(
+		const afterStart = await callWithoutOrigin(
 			bridge.endpoint,
 			"/v1/commands/next?extensionInstanceId=extension%3Aone",
 		);
-		assert.equal(recovery.status, 200);
-		const recoveryCommand = (await recovery.json()) as Record<string, unknown>;
-		assert.equal(recoveryCommand.type, "TASK_OBSERVER_RECOVER");
-		await call(
-			bridge.endpoint,
-			"/v1/commands/result?extensionInstanceId=extension%3Aone",
-			{
-				method: "POST",
-				body: JSON.stringify({
-					commandId: recoveryCommand.commandId,
-					ok: true,
-					value: { scheduled: true },
-				}),
-			},
+		assert.equal(
+			afterStart.status,
+			204,
+			"Task mutations must not enqueue Extension progression commands",
 		);
 		assert.deepEqual(calls, [
 			{ surface: "task", operation: "task.list" },
@@ -388,26 +378,14 @@ test("REAL3 loopback Tasks web surface is extension-minted and proxies owner app
 			}),
 		});
 		assert.equal(resume.status, 200);
-		const resumePoll = await callWithoutOrigin(
+		const afterResume = await callWithoutOrigin(
 			bridge.endpoint,
 			"/v1/commands/next?extensionInstanceId=extension%3Aone",
 		);
-		assert.equal(resumePoll.status, 200);
-		const resumeCommand = (await resumePoll.json()) as Record<string, unknown>;
-		assert.equal(resumeCommand.type, "TASK_OBSERVER_RESUME");
-		assert.equal(resumeCommand.taskId, "task:one");
-		assert.equal("ref" in resumeCommand, false);
-		await call(
-			bridge.endpoint,
-			"/v1/commands/result?extensionInstanceId=extension%3Aone",
-			{
-				method: "POST",
-				body: JSON.stringify({
-					commandId: resumeCommand.commandId,
-					ok: true,
-					value: { resumed: true },
-				}),
-			},
+		assert.equal(
+			afterResume.status,
+			204,
+			"resume is a Host reconciliation kick, not an Extension command",
 		);
 		assert.deepEqual(calls.at(-1), {
 			surface: "task",

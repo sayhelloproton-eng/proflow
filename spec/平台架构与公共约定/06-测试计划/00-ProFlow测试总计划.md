@@ -104,7 +104,7 @@ J0 3 generic Roles READY
 
 ## 7. Recovery / Idempotency 必测
 
-所有真实 Effect：
+所有需要处理副作用不确定性的真实操作（包括 durable Execution Effect 与 Direct Local Tool mutation）：
 
 ```text
 confirmed absent → retry
@@ -113,7 +113,7 @@ uncertain → observe reality
 still unknown → UNKNOWN, no blind replay
 ```
 
-Worker CREATE partial success、WAKE submit disconnect、Collaboration physical delivery、Execution lost result、Chrome restart 都必须按该原则证明。
+Worker CREATE partial success、WAKE submit disconnect、Collaboration physical delivery、Execution lost result、Direct Local Tool mutation lost response、Chrome restart 都必须按该原则证明。Direct Tool 采用 provider/reality re-observation，不因此创建 Execution Record 或 polling lifecycle。
 
 Reopen 与 Recovery 分开：Reopen same node/worker/conversation + runNo+1；技术 recovery 不改 Task business truth。
 

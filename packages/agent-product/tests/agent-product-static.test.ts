@@ -76,6 +76,9 @@ test("CP-AGT-PROD-02 Product GPT-facing OpenAPI is static and excludes New Task 
 			"getTaskDocument",
 			"askPeer",
 			"replyPeer",
+			"repomix",
+			"localDev",
+			"codeGraph",
 		]),
 	);
 	for (const path of Object.values(parsed.paths))

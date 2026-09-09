@@ -146,12 +146,15 @@ test("PRESMOKE-B5-EXE-MODEL-01 production client uses auto/business, bounded fac
 test("REAL3 model decision timeout is only an outer abnormal watchdog, not a Model Runtime stage budget", async () => {
 	const fake = await server(async () => {
 		await new Promise((resolve) => setTimeout(resolve, 20));
-		return success({
-			decision: "ALLOW",
-			reasonCode: "OK",
-			confidence: 0.9,
-			rationale: "completed through the normal Promise path",
-		}, "fast");
+		return success(
+			{
+				decision: "ALLOW",
+				reasonCode: "OK",
+				confidence: 0.9,
+				rationale: "completed through the normal Promise path",
+			},
+			"fast",
+		);
 	});
 	try {
 		const client = createExecutionModelDecisionClient({

@@ -14,10 +14,11 @@ import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { createAgentRuntime } from "@tomflow/proflow-agent-runtime";
 import type { SystemObserverView } from "@tomflow/proflow-execution-browser-extension";
 import {
-	type ExecuteCapabilityRequest,
-	executionCapabilityIds,
-	executionCapabilityInputJsonSchemas,
-} from "@tomflow/proflow-execution-contracts";
+	createLocalToolBridgeHostClient,
+	LocalToolBridgeError,
+	type LocalToolName,
+} from "@tomflow/proflow-execution-browser-extension/local-tool-bridge";
+import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
 import { applyMigrations } from "@tomflow/proflow-task-migration-runner";
 import {
 	createTaskServices,
@@ -31,8 +32,12 @@ import {
 	classifyBrowserPermission,
 	type RoleCarrierValidation,
 } from "./browser-permission-policy.ts";
+import { createReconciliationCoordinator } from "./reconciliation-coordinator.ts";
 import {
+	type DirectToolActionId,
+	directToolActionIds,
 	type RolePackageRef,
+	roleAllowsDirectToolOperation,
 	roleOperations,
 	rolePackageRefs,
 } from "./role-operations.ts";
@@ -97,17 +102,6 @@ const browserStructuredLogSchema = z
 	})
 	.strict();
 
-const taskDiagnosticReasonResultSchema = z
-	.object({
-		finding: z.string().min(1).max(1_000),
-		probableCause: z.string().min(1).max(1_000),
-		confidence: z.number().min(0).max(1),
-		recommendedNextObservation: z.string().min(1).max(1_000),
-		recommendedRecoveryAction: z.string().min(1).max(1_000),
-		needsHumanAttention: z.boolean(),
-	})
-	.strict();
-
 // GPT transport/application boundary descriptor for an allowed TaskDocument.
 // The Task Owner keeps returning a plain TaskDocument; only after admission
 // succeeds does the Host convert the allowed document into this bounded file
@@ -148,6 +142,40 @@ function fileBridgeOutputForTaskResult(result: unknown): unknown {
 	return output;
 }
 
+const directToolPlatformIdentityFields = new Set([
+	"actorRef",
+	"authenticatedRoleRef",
+	"callerRef",
+	"roleRef",
+	"taskId",
+	"nodeId",
+	"runNo",
+	"workerRef",
+	"executionRef",
+	"workspaceRoot",
+	"deadlineAt",
+	"commandId",
+	"commandDigest",
+	"generation",
+	"extensionId",
+	"extensionInstanceId",
+]);
+
+function assertNoDirectToolPlatformIdentity(value: unknown): void {
+	if (Array.isArray(value)) {
+		for (const item of value) assertNoDirectToolPlatformIdentity(item);
+		return;
+	}
+	if (typeof value !== "object" || value === null) return;
+	for (const [key, item] of Object.entries(value)) {
+		if (directToolPlatformIdentityFields.has(key))
+			throw Object.assign(new Error("DIRECT_TOOL_IDENTITY_FIELD_DENIED"), {
+				httpStatus: 400,
+			});
+		assertNoDirectToolPlatformIdentity(item);
+	}
+}
+
 const loopbackUrl = z
 	.url()
 	.transform((value) => new URL(value))
@@ -162,9 +190,9 @@ const configSchema = z
 		workspaceRoot: z.string().min(1),
 		host: z.string().min(1).default("127.0.0.1"),
 		port: z.number().int().min(0).max(65_535).default(0),
-		executionBaseUrl: loopbackUrl,
+		executionBaseUrl: loopbackUrl.optional(),
 		executionTransportCredentialFile: z.string().min(1).optional(),
-		modelBaseUrl: loopbackUrl,
+		modelBaseUrl: loopbackUrl.optional(),
 		modelTransportCredentialFile: z.string().min(1).optional(),
 		gatewayTransportCredentialFile: z.string().min(1).optional(),
 		roles: z
@@ -302,14 +330,33 @@ async function responseJson(response: Response): Promise<unknown> {
 	return value;
 }
 
+export type OwnerConnectionResolver = (
+	owner: "execution" | "model",
+) => Promise<{ baseUrl: string; credential: string } | undefined>;
+export type LocalToolConnectionResolver = () => Promise<
+	{ endpoint: string; credential: string } | undefined
+>;
+
 function createOwnerHttpClient(
 	owner: "execution" | "model",
-	baseUrl: string,
+	baseUrl: string | undefined,
 	credential?: string,
+	resolveConnection?: OwnerConnectionResolver,
 ): OwnerHttpClient {
+	const connection = async () => {
+		const resolved = resolveConnection
+			? await resolveConnection(owner)
+			: baseUrl
+				? { baseUrl, credential }
+				: undefined;
+		if (!resolved)
+			throw new Error(`${owner.toUpperCase()}_SERVICE_UNAVAILABLE`);
+		return { ...resolved, baseUrl: loopbackUrl.parse(resolved.baseUrl) };
+	};
 	return Object.freeze({
 		async readiness() {
 			try {
+				const { baseUrl, credential } = await connection();
 				const response = await fetch(`${baseUrl}/ready`, {
 					headers: credential ? { authorization: `Bearer ${credential}` } : {},
 					signal: AbortSignal.timeout(2_000),
@@ -332,6 +379,7 @@ function createOwnerHttpClient(
 			}
 		},
 		async invoke(operationId, input) {
+			const { baseUrl, credential } = await connection();
 			let path: string;
 			let method = "POST";
 			let callerContext: string | undefined;
@@ -634,6 +682,8 @@ async function constructGraph(
 	config: PlatformHostConfig,
 	executionCredential?: string,
 	modelCredential?: string,
+	resolveConnection?: OwnerConnectionResolver,
+	resolveLocalToolConnection?: LocalToolConnectionResolver,
 ) {
 	const databasePath = join(config.stateRoot, "state", "task.sqlite");
 	const migration = applyMigrations({
@@ -710,12 +760,17 @@ async function constructGraph(
 		"execution",
 		config.executionBaseUrl,
 		executionCredential,
+		resolveConnection,
 	);
 	const model = createOwnerHttpClient(
 		"model",
 		config.modelBaseUrl,
 		modelCredential,
+		resolveConnection,
 	);
+	let reconciliationCoordinator:
+		| ReturnType<typeof createReconciliationCoordinator>
+		| undefined;
 	const boundedSystemView = async (view: SystemObserverView) => {
 		if (view === "task") {
 			const tasks = unwrap(task.queries.listTasks({})).tasks;
@@ -913,77 +968,11 @@ async function constructGraph(
 			});
 		return binding.workerRef;
 	};
-	const admitExecutionRead = async (
-		authenticatedRoleRef: string,
-		rawRecord: unknown,
-	): Promise<unknown> => {
-		const record = object(rawRecord, "execution read record");
-		if (record.callerRef !== authenticatedRoleRef)
-			throw Object.assign(new Error("EXECUTION_CALLER_MISMATCH"), {
-				httpStatus: 403,
-			});
-		if (typeof record.taskId === "string") {
-			if (record.roleRef !== authenticatedRoleRef)
-				throw Object.assign(new Error("EXECUTION_ROLE_SCOPE_MISMATCH"), {
-					httpStatus: 403,
-				});
-			if (typeof record.workerRef !== "string")
-				throw Object.assign(new Error("EXECUTION_WORKER_SCOPE_REQUIRED"), {
-					httpStatus: 403,
-				});
-			await admitTaskParticipant(
-				record.taskId,
-				authenticatedRoleRef,
-				record.workerRef,
-			);
-		}
-		return rawRecord;
-	};
-	const admissionError = (code: string, httpStatus = 403): never => {
-		throw Object.assign(new Error(code), { httpStatus });
-	};
-	const admitExactNodeExecution = async (
-		input: Record<string, unknown>,
-		authenticatedRoleRef: string,
-	) => {
-		const taskId = string(input.taskId, "taskId");
-		const nodeId = string(input.nodeId, "nodeId");
-		const runNo = positiveInteger(input.runNo, "runNo");
-		const workerRef = await admitTaskParticipant(taskId, authenticatedRoleRef);
-		await agent.validateWorker({ authenticatedRoleRef, taskId, workerRef });
-		const taskFact = taskFacts(taskId);
-		const nodeContext = unwrap(task.queries.getNodeContext({ taskId, nodeId }));
-		if (taskFact.status !== "ACTIVE")
-			admissionError("EXECUTION_TASK_NOT_ACTIVE");
-		if (taskFact.currentNodeId !== nodeId)
-			admissionError("EXECUTION_NODE_NOT_CURRENT");
-		if (nodeContext.node.status !== "IN_PROGRESS")
-			admissionError("EXECUTION_NODE_NOT_RUNNING");
-		if (nodeContext.node.runNo !== runNo)
-			admissionError("EXECUTION_GENERATION_MISMATCH");
-		const nodeBinding = taskFact.roleBindings.find(
-			(binding) =>
-				binding.agentPackageRef === nodeContext.node.requiredAgentPackageRef,
-		);
-		if (!nodeBinding)
-			throw Object.assign(new Error("TASK_ROLE_BINDING_REQUIRED"), {
-				httpStatus: 403,
-			});
-		if (nodeBinding.roleRef !== authenticatedRoleRef)
-			admissionError("EXECUTION_ROLE_SCOPE_MISMATCH");
-		if (
-			nodeBinding.workerRef !== workerRef ||
-			nodeContext.node.workerRef !== workerRef
-		)
-			admissionError("EXECUTION_WORKER_SCOPE_MISMATCH");
-		return { taskId, nodeId, runNo, workerRef };
-	};
-
 	const route = async (
 		operationId: string,
 		authenticatedRoleRef: string,
 		rawInput: unknown,
-		context?: { fileMaterializationInputs?: unknown },
+		context?: { fileMaterializationInputs?: unknown; deadlineAt?: string },
 	) => {
 		const role = agent.getRegisteredRole(authenticatedRoleRef);
 		if (
@@ -997,6 +986,73 @@ async function constructGraph(
 			return agent.askPeer({ ...input, authenticatedRoleRef });
 		if (operationId === "replyPeer")
 			return agent.replyPeer({ ...input, authenticatedRoleRef });
+		if (directToolActionIds.includes(operationId as DirectToolActionId)) {
+			const tool = operationId as LocalToolName;
+			const keys = Object.keys(input).sort();
+			if (keys.length !== 2 || keys[0] !== "input" || keys[1] !== "operation")
+				throw Object.assign(new Error("DIRECT_TOOL_INPUT_INVALID"), {
+					httpStatus: 400,
+				});
+			const toolOperation = string(input.operation, "operation");
+			const toolInput = object(input.input, "input");
+			assertNoDirectToolPlatformIdentity(toolInput);
+			if (
+				!roleAllowsDirectToolOperation(
+					role.agentPackageRef as RolePackageRef,
+					operationId as DirectToolActionId,
+					toolOperation,
+					toolInput,
+				)
+			)
+				throw Object.assign(new Error("ROLE_TOOL_OPERATION_DENIED"), {
+					httpStatus: 403,
+				});
+			const deadlineAt = context?.deadlineAt;
+			if (
+				typeof deadlineAt !== "string" ||
+				Number.isNaN(Date.parse(deadlineAt))
+			)
+				throw Object.assign(new Error("DIRECT_TOOL_DEADLINE_REQUIRED"), {
+					httpStatus: 400,
+				});
+			const connection = await resolveLocalToolConnection?.();
+			if (!connection)
+				throw Object.assign(new Error("LOCAL_TOOL_BRIDGE_UNAVAILABLE"), {
+					httpStatus: 503,
+				});
+			try {
+				return await createLocalToolBridgeHostClient({
+					endpoint: connection.endpoint,
+					token: connection.credential,
+				}).request({
+					authenticatedRoleRef,
+					workspaceRoot: config.workspaceRoot,
+					tool,
+					operation: toolOperation,
+					input: toolInput,
+					deadlineAt,
+				});
+			} catch (error) {
+				const code =
+					error instanceof LocalToolBridgeError
+						? error.code
+						: "LOCAL_TOOL_BRIDGE_UNAVAILABLE";
+				const httpStatus =
+					code === "LOCAL_TOOL_COMMAND_TIMEOUT"
+						? 504
+						: code === "LOCAL_TOOL_RESULT_UNKNOWN"
+							? 409
+							: code === "LOCAL_TOOL_SCOPE_DENIED"
+								? 403
+								: code === "LOCAL_TOOL_OFFLINE" ||
+										code === "LOCAL_TOOL_PROVIDER_UNAVAILABLE"
+									? 503
+									: code === "LOCAL_TOOL_COMMAND_FAILED"
+										? 500
+										: 400;
+				throw Object.assign(new Error(code), { httpStatus });
+			}
+		}
 		const taskOperation = taskOperations.get(operationId);
 		if (taskOperation) {
 			let actorRef = authenticatedRoleRef;
@@ -1061,78 +1117,14 @@ async function constructGraph(
 					? canonicalTaskInput
 					: { ...canonicalTaskInput, actorRef },
 			);
+			if (
+				taskMutationOperations.has(operationId) &&
+				typeof input.taskId === "string"
+			)
+				reconciliationCoordinator?.kick(input.taskId);
 			if (operationId === "getTaskDocument")
 				return fileBridgeOutputForTaskResult(taskResult);
-			if (
-				operationId === "getNodeContext" &&
-				roleOperations[role.agentPackageRef as RolePackageRef]?.has(
-					"executeCapability",
-				)
-			) {
-				const nodeContext = object(taskResult, "node context result");
-				const nodeContextData = object(nodeContext.data, "node context data");
-				const taskContext = object(nodeContextData.task, "node context task");
-				const executionNodeContext = object(
-					nodeContextData.node,
-					"node context node",
-				);
-				return {
-					...nodeContext,
-					executionCapabilityIds: [...executionCapabilityIds],
-					executionCapabilityInputSchemas: executionCapabilityInputJsonSchemas,
-					executionRequestContext: {
-						contract: "execution",
-						contractVersion: "1.0.0",
-						taskId: string(taskContext.taskId, "task.taskId"),
-						nodeId: string(executionNodeContext.nodeId, "node.nodeId"),
-						runNo: positiveInteger(executionNodeContext.runNo, "node.runNo"),
-					},
-				};
-			}
 			return taskResult;
-		}
-		if (operationId === "executeCapability") {
-			const scope = await admitExactNodeExecution(input, authenticatedRoleRef);
-			const {
-				workerRef: _suppliedWorkerRef,
-				projectRoot: _suppliedProjectRoot,
-				roleRef: _suppliedRoleRef,
-				callerRef: _suppliedCallerRef,
-				...ownerInput
-			} = input;
-			const result = await execution.invoke(operationId, {
-				...ownerInput,
-				callerRef: authenticatedRoleRef,
-				roleRef: authenticatedRoleRef,
-				taskId: scope.taskId,
-				nodeId: scope.nodeId,
-				runNo: scope.runNo,
-				workerRef: scope.workerRef,
-			});
-			// A normal Action may complete synchronously inside the current Worker Turn.
-			// Do not manufacture a Browser RESUME for every terminal Execution record.
-			// Only a future explicit async-completion signal may emit EXECUTION_RESULT_READY.
-			return result;
-		}
-		if (operationId === "getExecution") {
-			const record = await execution.invoke(operationId, {
-				...input,
-				callerRef: authenticatedRoleRef,
-			});
-			return admitExecutionRead(authenticatedRoleRef, record);
-		}
-		if (operationId === "readExecutionOutput") {
-			const record = await execution.invoke("getExecution", {
-				contract: "execution",
-				contractVersion: "1.0.0",
-				executionRef: string(input.executionRef, "executionRef"),
-				callerRef: authenticatedRoleRef,
-			});
-			await admitExecutionRead(authenticatedRoleRef, record);
-			return execution.invoke(operationId, {
-				...input,
-				callerRef: authenticatedRoleRef,
-			});
 		}
 		throw new Error("OPERATION_NOT_ROUTED");
 	};
@@ -1176,6 +1168,7 @@ async function constructGraph(
 						idempotencyKey: `browser-bind:${binding.taskId}:${binding.roleRef}:${binding.workerRef}`,
 					}),
 				);
+				reconciliationCoordinator?.kick(binding.taskId);
 			},
 		}),
 		agent: Object.freeze({
@@ -1233,7 +1226,7 @@ async function constructGraph(
 					request.capability === "collaboration.deliver";
 				const internalBrowserCaller =
 					request.callerRef === "platform-host:carrier-controller" ||
-					request.callerRef === "extension:task-observer" ||
+					request.callerRef === "platform-host:task-reconciliation" ||
 					request.callerRef === "extension:collaboration-carrier";
 				if (!internalBrowserCaller) agent.getRegisteredRole(request.callerRef);
 				if (
@@ -1573,7 +1566,7 @@ async function constructGraph(
 		// Dispatch all three fixed Workers concurrently. When `waitFor` names a
 		// subset of roleRefs (the J1 Product path), only those results gate the
 		// return; the remaining Worker creation is a durable, idempotent Execution
-		// effect whose completion the ensureWorkers recovery reconciles from the
+		// effect whose completion backend reconciliation recovers from the
 		// durable Task binding facts — never a bare in-memory promise.
 		const waitFor = new Set(options?.waitFor ?? []);
 		const shouldWait = (agentPackageRef: string) =>
@@ -1592,7 +1585,7 @@ async function constructGraph(
 		for (const entry of deferred) {
 			entry.promise.catch(() => {
 				// Deferred Worker creation failure is recoverable: the durable
-				// binding stays unset, so a later ensureWorkers pass re-provisions
+				// binding stays unset, so a later backend reconciliation pass re-provisions
 				// only the missing role.
 			});
 		}
@@ -1605,6 +1598,84 @@ async function constructGraph(
 		if (failure) throw failure.reason;
 		return unwrap(task.queries.getTask({ taskId }));
 	};
+	const requestTaskWake = async (input: {
+		taskId: string;
+		nodeId: string;
+		runNo: number;
+		roleRef: string;
+		workerRef: string;
+		trigger: string;
+		conversationLocator: string;
+		underlyingRef?: string;
+	}) => {
+		const underlyingRef = input.underlyingRef ?? "none";
+		const wakeExecution = object(
+			await execution.invoke("executeCapability", {
+				contract: "execution",
+				contractVersion: "1.0.0",
+				idempotencyKey: `task-reconciliation-wake:${input.taskId}:${input.nodeId}:${input.runNo}:${input.trigger}:${underlyingRef}`,
+				callerRef: "platform-host:task-reconciliation",
+				correlationId: `task-reconciliation:${input.taskId}:${input.nodeId}:${input.runNo}`,
+				taskId: input.taskId,
+				nodeId: input.nodeId,
+				runNo: input.runNo,
+				roleRef: input.roleRef,
+				workerRef: input.workerRef,
+				capability: "worker.wake",
+				input: {
+					roleRef: input.roleRef,
+					workerRef: input.workerRef,
+					taskId: input.taskId,
+					nodeId: input.nodeId,
+					runNo: input.runNo,
+					trigger: input.trigger,
+					fingerprint: `wake:${input.taskId}:${input.nodeId}:${input.runNo}:${input.trigger}:${underlyingRef}`,
+				},
+			}),
+			"task reconciliation wake execution",
+		);
+		if (
+			wakeExecution.status !== "SUCCEEDED" ||
+			wakeExecution.sideEffectState !== "APPLIED"
+		)
+			throw new Error(
+				`TASK_WAKE_NOT_CONFIRMED:${String(wakeExecution.status)}:${String(wakeExecution.sideEffectState)}`,
+			);
+		return wakeExecution;
+	};
+	reconciliationCoordinator = createReconciliationCoordinator({
+		async listTaskIds() {
+			return unwrap(
+				task.queries.listTasks({
+					statuses: [
+						"PENDING",
+						"READY",
+						"ACTIVE",
+						"WAITING",
+						"FAILED",
+						"PAUSED",
+					],
+				}),
+			).tasks.map((candidate) => candidate.taskId);
+		},
+		async listExecutionSignals() {
+			const batch = object(
+				await execution.invoke("listExecutionObserverSignals", { limit: 100 }),
+				"execution observer signals",
+			);
+			return Array.isArray(batch.signals) ? batch.signals : [];
+		},
+		async acknowledgeExecutionSignal(signalRef) {
+			await execution.invoke("acknowledgeExecutionObserverSignal", {
+				signalRef,
+			});
+		},
+		async ensureWorkers(taskId) {
+			await ensureTaskWorkers(taskId);
+		},
+		getProjection: (taskId) => taskDriverPorts.getTaskDriveProjection(taskId),
+		requestWake: requestTaskWake,
+	});
 	const taskApplication = Object.freeze({
 		async invoke(operation: string, rawInput: unknown) {
 			const value = object(rawInput, "task application input");
@@ -1637,12 +1708,12 @@ async function constructGraph(
 				// J1: return once the Product Worker is durably bound; Dev/Test
 				// continue as recoverable durable effects without blocking Product
 				// requirement discussion.
-				return ensureTaskWorkers(created.taskId, {
+				const provisioned = await ensureTaskWorkers(created.taskId, {
 					waitFor: [roleForPackage("@tomflow/proflow-agent-product").roleRef],
 				});
+				reconciliationCoordinator?.kick(created.taskId);
+				return provisioned;
 			}
-			if (operation === "task.ensureWorkers")
-				return ensureTaskWorkers(string(value.taskId, "taskId"));
 			if (operation === "task.list")
 				return unwrap(
 					task.queries.listTasks({
@@ -1655,15 +1726,19 @@ async function constructGraph(
 				return unwrap(
 					task.queries.getTask({ taskId: string(value.taskId, "taskId") }),
 				);
-			if (operation === "task.start")
-				return unwrap(
+			if (operation === "task.start") {
+				const taskId = string(value.taskId, "taskId");
+				const result = unwrap(
 					task.commands.startTask({
-						taskId: string(value.taskId, "taskId"),
+						taskId,
 						expectedTaskVersion: Number(value.expectedTaskVersion),
 						actorRef: "extension:human",
 						idempotencyKey: string(value.idempotencyKey, "idempotencyKey"),
 					}),
 				);
+				reconciliationCoordinator?.kick(taskId);
+				return result;
+			}
 			if (operation === "message.acknowledge")
 				return unwrap(
 					task.commands.acknowledgeMessage({
@@ -1675,10 +1750,11 @@ async function constructGraph(
 						idempotencyKey: string(value.idempotencyKey, "idempotencyKey"),
 					}),
 				);
-			if (operation === "task.resume")
-				return unwrap(
+			if (operation === "task.resume") {
+				const taskId = string(value.taskId, "taskId");
+				const result = unwrap(
 					task.commands.resumeTask({
-						taskId: string(value.taskId, "taskId"),
+						taskId,
 						expectedTaskVersion: positiveInteger(
 							value.expectedTaskVersion,
 							"expectedTaskVersion",
@@ -1687,10 +1763,14 @@ async function constructGraph(
 						idempotencyKey: string(value.idempotencyKey, "idempotencyKey"),
 					}),
 				);
-			if (operation === "node.reopen")
-				return unwrap(
+				reconciliationCoordinator?.kick(taskId);
+				return result;
+			}
+			if (operation === "node.reopen") {
+				const taskId = string(value.taskId, "taskId");
+				const result = unwrap(
 					task.commands.reopenNode({
-						taskId: string(value.taskId, "taskId"),
+						taskId,
 						nodeId: string(value.nodeId, "nodeId"),
 						reason: string(value.reason, "reason"),
 						expectedTaskVersion: Number(value.expectedTaskVersion),
@@ -1698,9 +1778,47 @@ async function constructGraph(
 						idempotencyKey: string(value.idempotencyKey, "idempotencyKey"),
 					}),
 				);
+				reconciliationCoordinator?.kick(taskId);
+				return result;
+			}
 			throw new Error("UNSUPPORTED_TASK_APPLICATION_OPERATION");
 		},
 	});
+	async function approvalExecutionContext(approvalRef: string) {
+		const approval = object(
+			await execution.invoke("getExecutionApproval", { approvalRef }),
+			"approval fact",
+		);
+		const executionFact = object(
+			await execution.invoke("getExecution", {
+				executionRef: string(approval.executionRef, "executionRef"),
+				callerRef: string(approval.callerRef, "callerRef"),
+			}),
+			"execution fact",
+		);
+		const runNo = Number(executionFact.runNo);
+		if (!Number.isInteger(runNo) || runNo <= 0)
+			throw new Error("EXECUTION_RUN_GENERATION_REQUIRED");
+		return {
+			executionRef: string(executionFact.executionRef, "executionRef"),
+			taskId: string(executionFact.taskId, "taskId"),
+			nodeId: string(executionFact.nodeId, "nodeId"),
+			runNo,
+			roleRef: string(executionFact.roleRef, "roleRef"),
+			workerRef: string(executionFact.workerRef, "workerRef"),
+		};
+	}
+	const reconcileApproval = async (approvalRef: string) => {
+		const context = await approvalExecutionContext(approvalRef);
+		reconciliationCoordinator?.kick(context.taskId, {
+			trigger: "RECOVERY_RESUME",
+			ref: approvalRef,
+			targetWorkerRef: context.workerRef,
+			nodeId: context.nodeId,
+			runNo: context.runNo,
+		});
+		return context;
+	};
 	const approvalApplication = Object.freeze({
 		async invoke(operation: string, rawInput: unknown) {
 			const value = object(rawInput, "approval application input");
@@ -1715,60 +1833,42 @@ async function constructGraph(
 					...value,
 					actorRef: "extension:human",
 				});
-			if (operation === "approval.allow" || operation === "approval.deny")
-				return execution.invoke("decideExecutionApproval", {
+			if (operation === "approval.allow" || operation === "approval.deny") {
+				const approvalRef = string(value.approvalRef, "approvalRef");
+				const result = await execution.invoke("decideExecutionApproval", {
 					contract: "execution.approval",
 					contractVersion: "1.0.0",
-					approvalRef: string(value.approvalRef, "approvalRef"),
+					approvalRef,
 					actorRef: "extension:human",
 					expectedVersion: Number(value.expectedVersion),
 					decision: operation === "approval.allow" ? "ALLOW" : "DENY",
 					...(typeof value.reason === "string" ? { reason: value.reason } : {}),
 				});
-			if (operation === "approval.revoke")
-				return execution.invoke("revokeExecutionApproval", {
+				await reconcileApproval(approvalRef);
+				return result;
+			}
+			if (operation === "approval.revoke") {
+				const approvalRef = string(value.approvalRef, "approvalRef");
+				const result = await execution.invoke("revokeExecutionApproval", {
 					contract: "execution.approval",
 					contractVersion: "1.0.0",
-					approvalRef: string(value.approvalRef, "approvalRef"),
+					approvalRef,
 					actorRef: "extension:human",
 					expectedVersion: Number(value.expectedVersion),
 					reason: string(value.reason, "reason"),
 				});
+				await reconcileApproval(approvalRef);
+				return result;
+			}
 			throw new Error("UNSUPPORTED_APPROVAL_APPLICATION_OPERATION");
 		},
 	});
 	const observerApplication = Object.freeze({
 		async invoke(operation: string, rawInput: unknown) {
 			const value = object(rawInput, "observer application input");
-			if (operation === "task.projection")
-				return taskDriverPorts.getTaskDriveProjection(
-					string(value.taskId, "taskId"),
-				);
-			if (operation === "approval.executionContext") {
-				const approval = object(
-					await execution.invoke("getExecutionApproval", {
-						approvalRef: string(value.approvalRef, "approvalRef"),
-					}),
-					"approval fact",
-				);
-				const executionFact = object(
-					await execution.invoke("getExecution", {
-						executionRef: string(approval.executionRef, "executionRef"),
-						callerRef: string(approval.callerRef, "callerRef"),
-					}),
-					"execution fact",
-				);
-				const runNo = Number(executionFact.runNo);
-				if (!Number.isInteger(runNo) || runNo <= 0)
-					throw new Error("EXECUTION_RUN_GENERATION_REQUIRED");
-				return {
-					executionRef: string(executionFact.executionRef, "executionRef"),
-					taskId: string(executionFact.taskId, "taskId"),
-					nodeId: string(executionFact.nodeId, "nodeId"),
-					runNo,
-					roleRef: string(executionFact.roleRef, "roleRef"),
-					workerRef: string(executionFact.workerRef, "workerRef"),
-				};
+			if (operation === "task.reconcileAll") {
+				void reconciliationCoordinator?.sweep();
+				return { scheduled: true };
 			}
 			if (operation === "browser.permission.classify") {
 				const roleRef = string(value.roleRef, "roleRef");
@@ -1878,92 +1978,7 @@ async function constructGraph(
 				});
 				return { reported: true };
 			}
-			if (operation === "execution.listSignals")
-				return execution.invoke("listExecutionObserverSignals", {
-					limit: Number(value.limit ?? 50),
-				});
-			if (operation === "execution.ackSignal")
-				return execution.invoke("acknowledgeExecutionObserverSignal", {
-					signalRef: string(value.signalRef, "signalRef"),
-				});
-			if (operation === "task.wake") {
-				const taskId = string(value.taskId, "taskId");
-				const nodeId = string(value.nodeId, "nodeId");
-				const runNo = Number(value.runNo);
-				const roleRef = string(value.roleRef, "roleRef");
-				const workerRef = string(value.workerRef, "workerRef");
-				const trigger = string(value.trigger, "trigger");
-				const underlyingRef =
-					typeof value.underlyingRef === "string"
-						? value.underlyingRef
-						: "none";
-				const wakeExecution = object(
-					await execution.invoke("executeCapability", {
-						contract: "execution",
-						contractVersion: "1.0.0",
-						idempotencyKey: `task-observer-wake:${taskId}:${nodeId}:${runNo}:${trigger}:${underlyingRef}`,
-						callerRef: "extension:task-observer",
-						correlationId: `task-observer:${taskId}:${nodeId}:${runNo}`,
-						taskId,
-						nodeId,
-						runNo,
-						roleRef,
-						workerRef,
-						capability: "worker.wake",
-						input: {
-							roleRef,
-							workerRef,
-							taskId,
-							nodeId,
-							runNo,
-							trigger,
-							fingerprint: `wake:${taskId}:${nodeId}:${runNo}:${trigger}:${underlyingRef}`,
-						},
-					}),
-					"task wake execution",
-				);
-				if (
-					wakeExecution.status !== "SUCCEEDED" ||
-					wakeExecution.sideEffectState !== "APPLIED"
-				)
-					throw new Error(
-						`TASK_WAKE_NOT_CONFIRMED:${String(wakeExecution.status)}:${String(wakeExecution.sideEffectState)}`,
-					);
-				return wakeExecution;
-			}
-			if (operation === "task.diagnostic") {
-				const response = object(
-					await model.invoke("infer", {
-						contractVersion: "1.0.0",
-						specRef: "task.diagnostic.v1",
-						mode: "reason",
-						priority: "business",
-						trace: {
-							callerRef: "extension:task-observer",
-							correlationId: string(value.correlationId, "correlationId"),
-							taskId: string(value.taskId, "taskId"),
-							nodeId: string(value.nodeId, "nodeId"),
-						},
-						payload: value.payload,
-					}),
-					"task diagnostic inference",
-				);
-				if (response.status !== "SUCCEEDED") {
-					const error =
-						typeof response.error === "object" && response.error !== null
-							? (response.error as Record<string, unknown>)
-							: {};
-					const code =
-						error.code === "CONTEXT_TOO_LARGE"
-							? "CONTEXT_TOO_LARGE"
-							: error.code === "MODEL_UNAVAILABLE" ||
-									error.code === "CAPABILITY_UNSUPPORTED"
-								? "REASON_UNAVAILABLE"
-								: "REASON_FAILED";
-					return { ok: false, errorCode: code };
-				}
-				return taskDiagnosticReasonResultSchema.parse(response.data);
-			}
+
 			if (operation === "system.view")
 				return boundedSystemView(
 					string(value.view, "view") as SystemObserverView,
@@ -2032,6 +2047,7 @@ async function constructGraph(
 			throw new Error("UNSUPPORTED_OBSERVER_APPLICATION_OPERATION");
 		},
 	});
+	reconciliationCoordinator.start();
 	return Object.freeze({
 		route,
 		browserOwnerPorts,
@@ -2044,42 +2060,13 @@ async function constructGraph(
 		observerApplication,
 
 		async lookup(
-			operationId: string,
-			authenticatedRoleRef: string,
-			input: unknown,
+			_operationId: string,
+			_authenticatedRoleRef: string,
+			_input: unknown,
 		) {
-			const value = object(input, "lookup input");
-			if (operationId === "executeCapability") {
-				if (value.executionRef) {
-					const record = await execution.invoke("getExecution", {
-						...value,
-						callerRef: authenticatedRoleRef,
-					});
-					return admitExecutionRead(authenticatedRoleRef, record);
-				}
-				const scope = await admitExactNodeExecution(
-					value,
-					authenticatedRoleRef,
-				);
-				const {
-					workerRef: _suppliedWorkerRef,
-					projectRoot: _suppliedProjectRoot,
-					roleRef: _suppliedRoleRef,
-					callerRef: _suppliedCallerRef,
-					...ownerInput
-				} = value;
-				const record = await execution.invoke("lookupExecutionIntent", {
-					...ownerInput,
-					callerRef: authenticatedRoleRef,
-					roleRef: authenticatedRoleRef,
-					taskId: scope.taskId,
-					nodeId: scope.nodeId,
-					runNo: scope.runNo,
-					workerRef: scope.workerRef,
-				});
-				return admitExecutionRead(authenticatedRoleRef, record);
-			}
-			return route(operationId, authenticatedRoleRef, value);
+			throw Object.assign(new Error("ACTION_RESULT_LOOKUP_UNSUPPORTED"), {
+				httpStatus: 409,
+			});
 		},
 		async readiness() {
 			const diagnostics = taskStore.diagnostics();
@@ -2108,6 +2095,7 @@ async function constructGraph(
 			};
 		},
 		close() {
+			reconciliationCoordinator?.stop();
 			agent.close();
 			taskStore.close();
 		},
@@ -2232,6 +2220,8 @@ export function createPlatformHost(input: {
 	config: PlatformHostConfig;
 	log?: (entry: Record<string, unknown>) => void;
 	executionCredential?: string;
+	resolveOwnerConnection?: OwnerConnectionResolver;
+	resolveLocalToolConnection?: LocalToolConnectionResolver;
 }) {
 	if (input.executionCredential && input.executionCredential.length < 32)
 		throw new TypeError(
@@ -2276,7 +2266,9 @@ export function createPlatformHost(input: {
 			transport: server ? "UP" : "DOWN",
 			readiness:
 				accepting &&
-				Object.values(dependencies).every((item) => item.status === "READY")
+				[dependencies.task, dependencies.agent].every(
+					(item) => item.status === "READY",
+				)
 					? "READY"
 					: "NOT_READY",
 			accepting,
@@ -2398,8 +2390,9 @@ export function createPlatformHost(input: {
 				input.config,
 				executionTransportCredential,
 				modelTransportCredential,
+				input.resolveOwnerConnection,
+				input.resolveLocalToolConnection,
 			);
-			await graph.readiness();
 			server = createServer((request, response) => {
 				const work = (async () => {
 					const url = new URL(request.url ?? "/", "http://platform-host.local");
@@ -2740,12 +2733,19 @@ export function createPlatformHost(input: {
 									operationId,
 									authenticatedRoleRef,
 									body.input,
-									body.fileMaterializationInputs === undefined
-										? undefined
-										: {
-												fileMaterializationInputs:
-													body.fileMaterializationInputs,
-											},
+
+									{
+										...(body.fileMaterializationInputs === undefined
+											? {}
+											: {
+													fileMaterializationInputs:
+														body.fileMaterializationInputs,
+												}),
+
+										...(typeof body.deadlineAt === "string"
+											? { deadlineAt: body.deadlineAt }
+											: {}),
+									},
 								);
 						respond(response, 200, result);
 					} catch (error) {

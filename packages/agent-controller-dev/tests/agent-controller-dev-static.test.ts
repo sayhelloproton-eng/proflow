@@ -34,7 +34,10 @@ test("CP-AGT-DEV-01 instructions and Action allowlist are role-minimal", () => {
 			assert.equal(typeof operation["x-openai-isConsequential"], "boolean");
 			if (method === "post") assert.ok(operation.requestBody);
 		}
-	assert.match(metadata.proflowAgent.instructions, /typed Execution/);
+	assert.match(
+		metadata.proflowAgent.instructions,
+		/Task \/ Node \/ Document \/ Peer \/ Tools/,
+	);
 	assert.deepEqual(
 		new Set(operations),
 		new Set([
@@ -49,24 +52,32 @@ test("CP-AGT-DEV-01 instructions and Action allowlist are role-minimal", () => {
 			"putTaskDocument",
 			"askPeer",
 			"replyPeer",
-			"executeCapability",
-			"getExecution",
-			"readExecutionOutput",
+			"repomix",
+			"localDev",
+			"codeGraph",
 		]),
 	);
+	for (const removed of [
+		"executeCapability",
+		"getExecution",
+		"readExecutionOutput",
+	])
+		assert.equal(operations.includes(removed), false, removed);
 	assert.doesNotMatch(
 		openapi,
 		/executeAnything|updateStatus|browser\.click|role register/i,
 	);
 	assert.doesNotMatch(openapi, /unevaluatedProperties|allOf:/);
 });
-test("CP-AGT-DEV-02 Task and Execution access is owner Public Contract shaped", () => {
+
+test("CP-AGT-DEV-02 Task/Node/Document/Peer and Direct Tools stay owner-shaped", () => {
 	assert.ok(operations.includes("getNodeContext"));
-	assert.ok(operations.includes("executeCapability"));
-	assert.doesNotMatch(openapi, /sqlite|repository|deep import|task-store/);
+	for (const tool of ["repomix", "localDev", "codeGraph"])
+		assert.ok(operations.includes(tool));
+	assert.doesNotMatch(openapi, /sqlite|deep import|task-store/);
 });
 
-test("B1-AGT-DEV-01 Action schemas match Task owner versions and exact node-scoped file.read", () => {
+test("B1-AGT-DEV-01 Action schemas match Task owner versions and strict Direct Tool inputs", () => {
 	const schemas = parsed.components.schemas;
 	const reopen = schemas.ReopenNodeInput;
 	assert.ok(reopen);
@@ -84,47 +95,33 @@ test("B1-AGT-DEV-01 Action schemas match Task owner versions and exact node-scop
 	assert.deepEqual((document.properties as Record<string, unknown>).nodeId, {
 		type: ["string", "null"],
 	});
-	const execute = schemas.ExecuteCapabilityInput;
-	assert.ok(execute);
-	for (const field of ["taskId", "nodeId", "runNo"])
-		assert.ok((execute.required as string[]).includes(field));
-	assert.equal("workerRef" in (execute.properties as object), false);
-	assert.equal("projectRoot" in (execute.properties as object), false);
-	const fileRead = (execute.anyOf as Array<Record<string, unknown>>)[0];
-	assert.ok(fileRead);
-	assert.deepEqual(
-		(fileRead.properties as Record<string, unknown>).capability,
-		{ type: "string", const: "file.read" },
-	);
-	assert.deepEqual((fileRead.properties as Record<string, unknown>).input, {
-		$ref: "#/components/schemas/FileReadInput",
-	});
-	assert.deepEqual(schemas.FileReadInput, {
-		type: "object",
-		additionalProperties: false,
-		required: ["path"],
-		properties: {
-			path: { type: "string" },
-			encoding: { type: "string", const: "utf8" },
-		},
-	});
+	assert.ok(schemas.LocalDevActionInput);
+	assert.deepEqual(schemas.LocalDevActionInput.oneOf, [
+		{ $ref: "#/components/schemas/LocalDevReadAction" },
+		{ $ref: "#/components/schemas/LocalDevListAction" },
+		{ $ref: "#/components/schemas/LocalDevSearchAction" },
+		{ $ref: "#/components/schemas/LocalDevMutateAction" },
+		{ $ref: "#/components/schemas/LocalDevRunAction" },
+		{ $ref: "#/components/schemas/LocalDevProcessAction" },
+	]);
+	assert.ok(schemas.RepomixActionInput);
+	assert.ok(schemas.CodeGraphActionInput);
+	assert.equal(schemas.ExecuteCapabilityInput, undefined);
+	assert.equal(schemas.FileReadInput, undefined);
 	assert.match(
 		metadata.proflowAgent.instructions,
-		/waitNode 只用于真实业务阻塞/,
+		/waitNode 只用于.*真实业务阻塞/,
 	);
 	assert.match(
 		metadata.proflowAgent.instructions,
-		/尚未形成可信 run 失败结论时保持 Node IN_PROGRESS/,
-	);
-	assert.match(
-		metadata.proflowAgent.instructions,
-		/UNKNOWN side effect 禁止盲重放/,
+		/Tool 返回 UNKNOWN.*禁止盲重放/,
 	);
 });
+
 test("CP-AGT-DEV-03 sandbox artifact is explicitly not real apply", () => {
 	assert.match(
 		metadata.proflowAgent.instructions,
-		/sandbox artifact，不等于真实 repo apply/,
+		/Code Interpreter 只代表沙箱，不等于真实 repo apply/,
 	);
 });
 test("CP-AGT-DEV-04 provisioning waits for Browser/Gateway prerequisites before any Role action", async () => {
@@ -153,7 +150,7 @@ test("CP-AGT-DEV-04 provisioning waits for Browser/Gateway prerequisites before 
 	});
 	assert.match(
 		metadata.proflowAgent.instructions,
-		/REOPEN 使用原 Task-bound worker/,
+		/REOPEN 复用原 Task-bound worker/,
 	);
 });
 

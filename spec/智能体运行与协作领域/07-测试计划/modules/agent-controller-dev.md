@@ -37,7 +37,7 @@ implementationWave: Wave 4
 
 ## 2. 风险定位
 
-总控/研发 Worker 拥有最广工程能力；Action allowlist 或 real-apply 边界错误会绕过 Execution。
+总控/研发 Worker 拥有最广工程能力；最大风险是 Direct Tool allowlist 过宽、Local Dev mutation 绕过 Extension Effect Gate、把 provider-native Tool 又包装回 Execution lifecycle，或把 Tool result误当 Task/Document truth。
 
 ## 3. 必须覆盖的测试层
 
@@ -78,8 +78,8 @@ implementationWave: Wave 4
 ## 5. Critical Proofs
 
 - [ ] **CP-AGT-DEV-01** — 总控=项目管理+研发 Instructions、能力范围、Action allowlist 与静态角色包一致。
-- [ ] **CP-AGT-DEV-02** — Task Node/Document/Execution 协作只走 owner Public Contract；不直接写 Task/Execution state。
-- [ ] **CP-AGT-DEV-03** — Code Interpreter/Context Pack 仅作受限优化，不把沙箱 artifact 视为已 real apply 到真实 repo。
+- [ ] **CP-AGT-DEV-02** — Task/Node/Document/Peer 只走 owner Public Contract；本地工程现场只走 Repomix/Local Dev/CodeGraph Direct Tool，不直接写 Task/Execution state。
+- [ ] **CP-AGT-DEV-03** — Code Interpreter 仅是 Conversation 沙箱；真实 repo 读取/结构分析/修改分别使用 Repomix/CodeGraph/Local Dev，只有 Tool result + reality re-observation 能证明本机真实变化。
 - [ ] **CP-AGT-DEV-04** — 研发 Worker provisioning 成功后 Task binding 才写；reopen/same Task 复用同一 workerRef，不 duplicate Conversation。
 
 ## 6. Frozen TODO Coverage
@@ -89,8 +89,8 @@ implementationWave: Wave 4
 | TODO | Frozen Goal | Frozen Anchor | Normative Rule Refs | Critical Proof | Scenario Family | Test Plan Acceptance |
 |---|---|---|---|---|---|---|
 | `AGT-DEV-001` | 冻结总控=项目管理+研发 Instructions、能力范围和 Action allowlist | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-CONTROLLER-DEV` § `AGT-DEV-001` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV`<br>`AGENT-DOC-02-03` | `CP-AGT-DEV-01` | 总控=项目管理+研发 Instructions、能力范围和 Action allowlist | 总控=项目管理+研发 Instructions、能力范围、Action allowlist 与静态角色包一致。 |
-| `AGT-DEV-002` | 验证 Task Node/Document/Execution 协作路径 | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-CONTROLLER-DEV` § `AGT-DEV-002` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV`<br>`AGENT-DOC-02-03` | `CP-AGT-DEV-02` | Task Node/Document/Execution 协作路径 | Task Node/Document/Execution 协作只走 owner Public Contract；不直接写 Task/Execution state。 |
-| `AGT-DEV-003` | 验证 Code Interpreter/Context Pack 仅作为受限优化，不直接 real apply | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-CONTROLLER-DEV` § `AGT-DEV-003` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV`<br>`AGENT-DOC-02-03` | `CP-AGT-DEV-03` | Code Interpreter/Context Pack 仅作为受限优化，不直接 real apply | Code Interpreter/Context Pack 仅作受限优化，不把沙箱 artifact 视为已 real apply 到真实 repo。 |
+| `AGT-DEV-002` | 验证 Task/Node/Document/Peer owner 路径与 Direct Tool 工程路径 | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-CONTROLLER-DEV` § `AGT-DEV-002` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV`<br>`AGENT-DOC-02-03`<br>`AGENT-DOC-02-05` | `CP-AGT-DEV-02` | Owner facts + Direct Tools | Task/Node/Document/Peer 只走 owner Contract；本地工程现场只走 Repomix/Local Dev/CodeGraph，不直接写 Task/Execution state。 |
+| `AGT-DEV-003` | 验证 Code Interpreter 沙箱与真实本机 Tool reality 分离 | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-CONTROLLER-DEV` § `AGT-DEV-003` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV`<br>`AGENT-DOC-02-03`<br>`AGENT-DOC-02-05` | `CP-AGT-DEV-03` | sandbox vs real workspace | Code Interpreter artifact 不等于真实 repo；真实读取/结构/修改分别由 Repomix/CodeGraph/Local Dev 及 reality observation 证明。 |
 | `AGT-DEV-004` | 完成研发 Worker provisioning/reopen/same-worker E2E | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-CONTROLLER-DEV` § `AGT-DEV-004` | `AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV`<br>`AGENT-DOC-02-03` | `CP-AGT-DEV-04` | 研发 Worker provisioning/reopen/same-worker E2E | 研发 Worker provisioning 成功后 Task binding 才写；reopen/same Task 复用同一 workerRef，不 duplicate Conversation。 |
 
 ## 7. Required Failure / Boundary Families
@@ -98,8 +98,8 @@ implementationWave: Wave 4
 只覆盖 Frozen SDD / §5 Critical Proof 已经存在的失败与边界；不从通用 checklist 新增产品需求。
 
 - [ ] **RF-AGT-DEV-01** — 总控=项目管理+研发 Instructions/allowlist/能力范围漂移
-- [ ] **RF-AGT-DEV-02** — Task Node/Document/Execution 协作绕过 owner Public Contract 或直接写状态
-- [ ] **RF-AGT-DEV-03** — Code Interpreter/Context Pack artifact 被误当真实 repo 已 apply
+- [ ] **RF-AGT-DEV-02** — Task/Node/Document/Peer 绕过 owner Contract，或本机工程动作绕过 Direct Tool/Extension Effect Gate
+- [ ] **RF-AGT-DEV-03** — Code Interpreter artifact 被误当真实 repo 已 apply，或 Repomix/CodeGraph/Local Dev Tool result 被误当 Task/Document truth
 - [ ] **RF-AGT-DEV-04** — Worker provisioning 未成功就写 Task binding，或 reopen/same Task duplicate Conversation
 
 
@@ -183,3 +183,13 @@ implementationWave: Wave 4
 - [ ] **RF-AGT-DEV-13** — DRIFT setup 仍 fail closed，但 ACTION_REQUIRED 必须明确指向 operator 完成远端同步后的正式 adopt 命令；roleRef/carrierUrl mismatch 零 mutation。
 
 **Executable proof**：`packages/agent-runtime/tests/role-package-cli-subprocess.test.ts` + `packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts`。
+
+## 2026-09-09 Real-3｜Controller/Dev Direct Tool Gate
+
+- [ ] **CP-AGT-DEV-14** — shipped OpenAPI/Instructions 只教 Worker 五概念；本地工程 Tools 精确为 Repomix / Local Dev / CodeGraph，旧 `executeCapability/getExecution/readExecutionOutput` 为零。
+- [ ] **CP-AGT-DEV-15** — 真实 `localDev(read package.json)` 单 Action 返回直接结果，不要求 Task/Execution identity，也不产生额外 Browser continuation。
+- [ ] **CP-AGT-DEV-16** — Repomix 用于广域 pack/grep/read，CodeGraph 用于结构关系 explore，Local Dev 用于精确 read/list/search/mutate/run/process；三者职责不重复扩张。
+- [ ] **CP-AGT-DEV-17** — Local Dev mutation/run/process 只能经 Extension Local Tool lane；Host/Gateway/Worker 不得拥有本机 shell/fs/git implementation。
+- [ ] **CP-AGT-DEV-18** — Tool result 不自动 complete/fail/wait Node；Worker 根据结果判断后显式调用 Task Owner Action。
+
+**Executable proof**：`packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts` + `packages/agent-controller-dev/tests/journey-native-capability-alignment.test.ts` + `packages/platform-host/tests/direct-tools-route.test.ts` + `packages/execution-local/tests/direct-tools.test.ts`。

@@ -6,6 +6,15 @@
 		"rootDir": ".",
 		"rewriteRelativeImportExtensions": true,
 		"paths": {
+			"@tomflow/proflow-execution-browser-extension/runtime-composition": [
+				"./packages/execution-browser-extension/src/runtime-composition.ts"
+			],
+			"@tomflow/proflow-execution-browser-extension/local-tool-bridge": [
+				"./packages/execution-browser-extension/src/local-tool-bridge.ts"
+			],
+			"@tomflow/proflow-execution-local/direct-tools": [
+				"./packages/execution-local/src/direct-tools.ts"
+			],
 			"@tomflow/proflow-agent-controller-dev": [
 				"./packages/agent-controller-dev/src/index.ts"
 			],

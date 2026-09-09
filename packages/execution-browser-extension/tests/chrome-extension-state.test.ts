@@ -66,7 +66,6 @@ test("Chrome profile probe ignores a matching ID loaded from a different path", 
 	);
 });
 
-
 test("Chrome registration stabilization retries transient missing state until enabled", async () => {
 	const observed = ["MISSING", "UNKNOWN", "ENABLED"] as const;
 	let index = 0;

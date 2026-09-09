@@ -509,7 +509,10 @@ test("additive inventory drift reuses an existing valid role mapping without pro
 	const stale = await adapter.status({ workspaceRoot });
 	assert.equal(stale.result.data.setupStatus, "BLOCKED");
 	assert.equal(stale.result.data.issues?.[0]?.code, "MODEL_MAPPING_STALE");
-	assert.equal((await adapter.setup({ workspaceRoot })).result.status, "SUCCEEDED");
+	assert.equal(
+		(await adapter.setup({ workspaceRoot })).result.status,
+		"SUCCEEDED",
+	);
 	assert.equal(mappingCalls, 1);
 	assert.equal(
 		(await adapter.status({ workspaceRoot })).result.data.setupStatus,

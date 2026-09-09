@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
 import {
@@ -75,31 +75,6 @@ async function readOwnFacts(context: ModuleCommandContext) {
 	const endpoint = factString(facts, "endpoint");
 	return endpoint ? { endpoint } : undefined;
 }
-async function dependencies(context: ModuleCommandContext) {
-	const execution = await readModuleSharedFacts(context, "execution-runtime");
-	const model = await readModuleSharedFacts(context, "model-runtime");
-	const executionBaseUrl = factString(execution, "endpoint");
-	const executionTransportCredentialFile = factString(
-		execution,
-		"transportCredentialFile",
-	);
-	const modelBaseUrl = factString(model, "endpoint");
-	const modelTransportCredentialFile = factString(
-		model,
-		"transportCredentialFile",
-	);
-	return executionBaseUrl &&
-		executionTransportCredentialFile &&
-		modelBaseUrl &&
-		modelTransportCredentialFile
-		? {
-				executionBaseUrl,
-				executionTransportCredentialFile,
-				modelBaseUrl,
-				modelTransportCredentialFile,
-			}
-		: undefined;
-}
 async function running(context: ModuleCommandContext) {
 	const own = await readOwnFacts(context);
 	if (!own) return false;
@@ -115,23 +90,48 @@ async function running(context: ModuleCommandContext) {
 }
 async function compose(context: ModuleCommandContext): Promise<Service> {
 	const own = await ownFacts(context);
-	const deps = await dependencies(context);
-	if (!deps)
-		throw new Error("required Execution/Model shared facts are unavailable");
+
 	const { createPlatformHost, parsePlatformHostConfig } = await import(
 		"../src/index.ts"
 	);
 	const url = new URL(own.endpoint);
 	const host = createPlatformHost({
+		resolveLocalToolConnection: async () => {
+			const facts = await readModuleSharedFacts(
+				context,
+				"execution-browser-extension",
+			);
+			const endpoint = factString(facts, "localToolBridgeEndpoint");
+			const tokenFile = factString(facts, "localToolHostTokenFile");
+			if (!endpoint || !tokenFile) return undefined;
+			const info = await stat(tokenFile);
+			if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
+				throw new Error("local tool credential permissions must be owner-only");
+			const credential = (await readFile(tokenFile, "utf8")).trim();
+			if (credential.length < 32)
+				throw new Error("invalid local tool credential");
+			return { endpoint, credential };
+		},
+		resolveOwnerConnection: async (owner) => {
+			const facts = await readModuleSharedFacts(
+				context,
+				owner === "execution" ? "execution-runtime" : "model-runtime",
+			);
+			const baseUrl = factString(facts, "endpoint"),
+				tokenFile = factString(facts, "transportCredentialFile");
+			if (!baseUrl || !tokenFile) return undefined;
+			const info = await stat(tokenFile);
+			if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
+				throw new Error("owner credential permissions must be owner-only");
+			const credential = (await readFile(tokenFile, "utf8")).trim();
+			if (credential.length < 32) throw new Error("invalid owner credential");
+			return { baseUrl, credential };
+		},
 		config: parsePlatformHostConfig({
 			stateRoot: own.stateRoot,
 			workspaceRoot: key(context),
 			host: url.hostname,
 			port: Number(url.port),
-			executionBaseUrl: deps.executionBaseUrl,
-			executionTransportCredentialFile: deps.executionTransportCredentialFile,
-			modelBaseUrl: deps.modelBaseUrl,
-			modelTransportCredentialFile: deps.modelTransportCredentialFile,
 			gatewayTransportCredentialFile: own.gatewayTransportCredentialFile,
 			roles: [],
 		}),
@@ -164,7 +164,6 @@ export const behaviorAdapter = {
 		};
 	},
 	status: async (context: ModuleCommandContext) => {
-		const runtimeDependencies = await dependencies(context);
 		return {
 			result: {
 				...base,
@@ -173,20 +172,6 @@ export const behaviorAdapter = {
 					runtimeStatus: (await running(context))
 						? ("RUNNING" as const)
 						: ("STOPPED" as const),
-					...(runtimeDependencies
-						? {}
-						: {
-								issues: [
-									{
-										scope: "RUNTIME" as const,
-										code: "UPSTREAM_NOT_READY",
-										message:
-											"等待 Execution 与 Model Runtime 发布运行所需服务信息",
-										relatedModuleRefs: ["execution-runtime", "model-runtime"],
-										nextCommand: "platform setup",
-									},
-								],
-							}),
 				},
 			},
 			observedEffects: [],

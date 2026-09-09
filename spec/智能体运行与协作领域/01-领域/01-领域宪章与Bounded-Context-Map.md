@@ -34,8 +34,8 @@ contractRefs: []
 ## 3. Does Not Own
 
 - Task workflow/TaskRoleBinding
-- Browser Extension real effect
-- Local file/git/shell effect
+- Browser Extension / Carrier durable effect
+- Repomix / Local Dev / CodeGraph Provider implementation 与 Provider-native result truth
 - Model inference ownership
 - Deployment Module / External Resource governance and setup lifecycle
 
@@ -81,7 +81,8 @@ Provides：
 
 Requires：
 - Task Public binding/context
-- Execution Browser/Local real effects
+- Execution Browser/Carrier durable effects
+- Browser Extension local-effect command path + `execution-local` implementations for Repomix / Local Dev / CodeGraph Actions
 - Model infer when cognitive compute is needed
 - Deployment External Resource/Module governance
 

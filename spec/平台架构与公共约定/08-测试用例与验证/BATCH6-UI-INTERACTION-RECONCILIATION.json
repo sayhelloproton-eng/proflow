@@ -30,11 +30,6 @@
         "classification": "SHIPPED_UI_CONTROL"
       },
       {
-        "id": "ensure-workers",
-        "label": "Recover missing Workers",
-        "classification": "SHIPPED_UI_CONTROL"
-      },
-      {
         "id": "refresh-approvals",
         "label": "Refresh approvals",
         "classification": "SHIPPED_UI_CONTROL"
@@ -79,7 +74,6 @@
       "message.acknowledge",
       "node.reopen",
       "task.create",
-      "task.ensureWorkers",
       "task.get",
       "task.list",
       "task.resume",

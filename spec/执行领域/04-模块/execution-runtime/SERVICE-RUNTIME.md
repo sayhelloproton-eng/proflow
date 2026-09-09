@@ -15,23 +15,28 @@ contractRefs:
 - EXECUTION-EXECUTION-RUNTIME-TECH-DESIGN
 - EXECUTION-DOC-02-01
 - EXECUTION-DOC-02-02
-- EXECUTION-DOC-03-01
-- EXECUTION-DOC-03-03
 ---
 
 # `execution-runtime` Service Runtime
 
 ## Process
-唯一 backend Execution Service，持有 execution orchestration/policy/record/evidence lifecycle；local/browser 是 executor，不是独立业务服务。
+唯一 backend durable Execution Service；不承载 GPT Local Tools。
 
 ## Startup
-加载 config/store → 恢复 durable running/unknown records 的可观察状态 → 注册 executors → 启动 public API → health/ready。
+加载 config/store → 恢复 durable running/unknown records → 读取 `execution-browser-extension` 发布的 Browser lane endpoint/credential/readiness → 注册仍需 durable semantics 的 executor clients → 启动 internal API → health/ready。Execution Runtime 不创建/关闭 Browser Reality Bridge。
 
 ## Runtime
-`executeCapability` 进入 scope/policy/idempotency → 必要 FAST/REASON/Human → persist effect intent → executor → typed Result + Artifact refs + Evidence refs。File Bridge ingress、Context Pack/Patch 等 materialization 仍收敛为 Execution Artifact；Effect 不确定进入 UNKNOWN，禁止 blind retry。
+内部 `executeCapability`（若保留）只处理 Browser/Carrier/Approval/UNKNOWN/materialization 等 durable operation；GPT-facing Repomix/Local Dev/CodeGraph 不进入该接口。
 
 ## Concurrency
-遵守 v1 bounded queue/serialization；Browser writes 全局串行；同一 idempotency identity 不并发执行不同 fingerprint。
+Browser writes 与 durable effect 遵守既有 serial/idempotency/recovery 规则。Local Tool lane 有自己的 queue/timeout/readiness，不与 Runtime Browser lane共享。
 
-## Shutdown/Restart
-停止接收新 effect → 对可安全 drain 的工作等待 → 对已 started 但未确认的 effect 保留 durable reality-check 状态。restart 后查询现实，不把 restart 自动等同失败或成功。
+## Shutdown / Restart
+停止新 durable effect → drain safe work → 已 started 未确认的 effect 保留 recovery state。restart 后 reality-first reconcile，不盲重放。停止/重启 Execution Runtime 不得停止 `execution-browser-extension` bridge runtime，也不得中断 Local Tool lane。
+
+## Readiness
+Execution Runtime readiness 只决定依赖它的 durable internal operation；不能被 Gateway/Host 当成 Task/Peer/Local Tools 的全局前置。
+
+## 审计补充：按 operation 迟绑定
+
+formal startup 不再要求 Model ready 或 Host identity ready 才发布自身 transport。需要身份/approval/model policy 的具体 operation 在 effect 前 fail-closed；deterministic Browser WAKE 不因无 Model 拒绝。browser executor 必须使用 Extension-owned bridge client，不再调用会创建 listener 的 composition factory。

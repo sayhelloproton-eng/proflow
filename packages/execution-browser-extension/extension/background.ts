@@ -30,13 +30,6 @@ import {
 	type SystemObserverReasonResult,
 	type SystemObserverView,
 } from "../src/system-observer.js";
-import {
-	createTaskObserver,
-	type TaskDriveProjection,
-	type TaskObserverDecision,
-	type TaskObserverDiagnosticAssessment,
-	type TaskObserverDiagnosticFailure,
-} from "../src/task-observer.js";
 
 type PageState = "IDLE" | "BUSY" | "BLOCKED" | "UNKNOWN";
 type ActivityKind =
@@ -82,8 +75,7 @@ type BridgeCommand = {
 		| "SCREENSHOT"
 		| "PERFORM"
 		| "CARRIER_ATTENTION_ACTION"
-		| "TASK_OBSERVER_RECOVER"
-		| "TASK_OBSERVER_RESUME";
+		| "WAKE_GUARD";
 	tabId?: number;
 	url?: string;
 	text?: string;
@@ -92,6 +84,9 @@ type BridgeCommand = {
 	attentionRef?: string;
 	action?: "allowOnce" | "deny";
 	taskId?: string;
+	roleRef?: string;
+	workerRef?: string;
+	conversationLocator?: string;
 };
 type ContentSnapshotRequest = { type: "PROFLOW_PAGE_SNAPSHOT_REQUEST" };
 type ContentCommand = {
@@ -159,6 +154,17 @@ type ChromeRuntime = {
 	};
 	action: {
 		onClicked: { addListener(listener: () => void): void };
+	};
+	notifications: {
+		create(
+			notificationId: string,
+			options: {
+				type: "basic";
+				iconUrl: string;
+				title: string;
+				message: string;
+			},
+		): Promise<string>;
 	};
 	tabs: {
 		query(query: {
@@ -281,6 +287,7 @@ function parseConfig(value: unknown): BridgeConfig | null {
 
 type ManagedRuntimeConfig = {
 	proflowRuntimeBridge?: unknown;
+	proflowLocalToolBridge?: unknown;
 	proflowProvisioningBridge?: unknown;
 	proflowTaskApplication?: unknown;
 	proflowApprovalApplication?: unknown;
@@ -300,17 +307,19 @@ async function bootstrapManagedRuntimeConfig(): Promise<void> {
 	if (!isRecord(raw)) return;
 	const managed = raw as ManagedRuntimeConfig;
 	const bridge = parseConfig(managed.proflowRuntimeBridge);
+	const localTools = parseConfig(managed.proflowLocalToolBridge);
 	const provisioning = parseConfig(managed.proflowProvisioningBridge);
 	const task = parseConfig(managed.proflowTaskApplication);
 	const approval = parseConfig(managed.proflowApprovalApplication);
-	if (!bridge || !task || !approval) {
+	if (!bridge) {
 		throw new Error("MANAGED_RUNTIME_CONFIG_INVALID");
 	}
 	await chrome.storage.local.set({
 		proflowRuntimeBridge: bridge,
+		...(localTools ? { proflowLocalToolBridge: localTools } : {}),
 		...(provisioning ? { proflowProvisioningBridge: provisioning } : {}),
-		proflowTaskApplication: task,
-		proflowApprovalApplication: approval,
+		...(task ? { proflowTaskApplication: task } : {}),
+		...(approval ? { proflowApprovalApplication: approval } : {}),
 	});
 }
 
@@ -319,19 +328,47 @@ async function bridgeConfig(): Promise<BridgeConfig | null> {
 	return parseConfig(stored.proflowRuntimeBridge);
 }
 
+async function localToolBridgeConfig(): Promise<BridgeConfig | null> {
+	const stored = await chrome.storage.local.get("proflowLocalToolBridge");
+	return parseConfig(stored.proflowLocalToolBridge);
+}
+
 async function provisioningBridgeConfig(): Promise<BridgeConfig | null> {
 	const stored = await chrome.storage.local.get("proflowProvisioningBridge");
 	return parseConfig(stored.proflowProvisioningBridge);
 }
 
+async function resolveOwnerApplication(
+	surface: "task" | "approval",
+): Promise<BridgeConfig | null> {
+	const config = await bridgeConfig();
+	if (!config) return null;
+	try {
+		const response = await bridgeFetch(config, "/v1/applications/config", {
+			signal: AbortSignal.timeout(2_000),
+		});
+		if (!response.ok) return null;
+		const body: unknown = await response.json();
+		return isRecord(body) ? parseConfig(body[surface]) : null;
+	} catch {
+		return null;
+	}
+}
+
 async function taskApplicationConfig(): Promise<BridgeConfig | null> {
 	const stored = await chrome.storage.local.get("proflowTaskApplication");
-	return parseConfig(stored.proflowTaskApplication);
+	return (
+		parseConfig(stored.proflowTaskApplication) ??
+		(await resolveOwnerApplication("task"))
+	);
 }
 
 async function approvalApplicationConfig(): Promise<BridgeConfig | null> {
 	const stored = await chrome.storage.local.get("proflowApprovalApplication");
-	return parseConfig(stored.proflowApprovalApplication);
+	return (
+		parseConfig(stored.proflowApprovalApplication) ??
+		(await resolveOwnerApplication("approval"))
+	);
 }
 
 async function invokeApprovalApplication(
@@ -538,71 +575,6 @@ async function invokeObserverApplication(
 	}
 }
 
-const taskObserver = createTaskObserver({
-	owner: {
-		async getTaskDriveProjection(taskId) {
-			return (await invokeObserverApplication("task.projection", {
-				taskId,
-			})) as TaskDriveProjection;
-		},
-	},
-	diagnostic: {
-		async assess(input) {
-			return (await invokeObserverApplication("task.diagnostic", {
-				taskId: input.taskId,
-				nodeId: input.nodeId,
-				correlationId: input.anomaly.ref,
-				payload: input,
-			})) as TaskObserverDiagnosticAssessment | TaskObserverDiagnosticFailure;
-		},
-	},
-	carrier: {
-		async requestWake(input) {
-			if (carrierContinuationControl.hasMatchingDispatchDenial(input))
-				throw new Error("CARRIER_CONTINUATION_HUMAN_DENIED");
-			return invokeObserverApplication("task.wake", input);
-		},
-	},
-});
-
-async function resumeTaskWorker(taskId: string) {
-	const projection = (await invokeObserverApplication("task.projection", {
-		taskId,
-	})) as TaskDriveProjection;
-	if (
-		projection.taskId !== taskId ||
-		projection.taskStatus !== "ACTIVE" ||
-		projection.currentNode?.status !== "IN_PROGRESS" ||
-		!projection.resumeSignalRef
-	)
-		throw new Error("TASK_RESUMED_OWNER_FACTS_INVALID");
-	return taskObserver.drive(taskId);
-}
-
-async function resumeAfterApprovalDecision(approvalRef: string) {
-	const context = await invokeObserverApplication("approval.executionContext", {
-		approvalRef,
-	});
-	if (
-		!isRecord(context) ||
-		typeof context.executionRef !== "string" ||
-		typeof context.taskId !== "string" ||
-		typeof context.nodeId !== "string" ||
-		!Number.isInteger(context.runNo) ||
-		Number(context.runNo) <= 0 ||
-		typeof context.roleRef !== "string" ||
-		typeof context.workerRef !== "string"
-	)
-		throw new Error("APPROVAL_EXECUTION_GENERATION_REQUIRED");
-	return taskObserver.drive(context.taskId, {
-		trigger: "RECOVERY_RESUME",
-		ref: approvalRef,
-		targetWorkerRef: context.workerRef,
-		nodeId: context.nodeId,
-		runNo: Number(context.runNo),
-	});
-}
-
 const collaborationCarrier = createCollaborationCarrierApplication({
 	task: {
 		async getWorkerBinding(taskId, roleRef) {
@@ -751,14 +723,7 @@ async function persistSystemObserverState(
 
 let observerRecoveryInFlight: Promise<void> | null = null;
 let observerRecoveryTrailingRequested = false;
-let observerRecoveryRetryCount = 0;
 let observerRecoveryAttemptNo = 0;
-let nextRecoverySuppressions: readonly CarrierContinuationDenial[] = [];
-function suppressNextObserverRecovery(
-	denials: readonly CarrierContinuationDenial[],
-): void {
-	nextRecoverySuppressions = denials;
-}
 function runObserverRecovery() {
 	const recoveryTriggerRef = `bridge-session:${bridgeSessionEpoch}`;
 	if (observerRecoveryInFlight) {
@@ -777,10 +742,7 @@ function runObserverRecovery() {
 		recoveryAttemptNo,
 		recoveryTriggerRef,
 	);
-	const suppressedContinuations = nextRecoverySuppressions;
-	nextRecoverySuppressions = [];
 	observerRecoveryInFlight = (async () => {
-		let recoveryNeedsRetry = false;
 		emitObserverRecoveryDiagnostic(
 			"COLLABORATION_RECOVERY_BEGIN",
 			recoveryAttemptNo,
@@ -792,125 +754,10 @@ function runObserverRecovery() {
 			recoveryAttemptNo,
 			recoveryTriggerRef,
 		);
-		const signalBatch = await invokeObserverApplication(
-			"execution.listSignals",
-			{ limit: 50 },
-		).catch(() => null);
-		if (isRecord(signalBatch) && Array.isArray(signalBatch.signals)) {
-			for (const candidate of signalBatch.signals) {
-				if (
-					!isRecord(candidate) ||
-					typeof candidate.signalRef !== "string" ||
-					typeof candidate.executionRef !== "string" ||
-					typeof candidate.taskId !== "string" ||
-					typeof candidate.workerRef !== "string"
-				)
-					continue;
-				try {
-					if (
-						suppressedContinuations.some(
-							(denial) =>
-								denial.taskId === candidate.taskId &&
-								denial.workerRef === candidate.workerRef,
-						)
-					)
-						continue;
-					let decision: TaskObserverDecision | null;
-					if (candidate.kind === "RECOVERY_RESUME") {
-						if (
-							typeof candidate.nodeId !== "string" ||
-							typeof candidate.runNo !== "number"
-						) {
-							// Missing generation is a permanent malformed resume intent, not a
-							// transient binding condition. Dispose it without ever waking a Worker
-							// so an old signal cannot occupy the bounded pending queue forever.
-							await invokeObserverApplication("execution.ackSignal", {
-								signalRef: candidate.signalRef,
-							});
-							continue;
-						}
-						decision = await taskObserver.drive(candidate.taskId, {
-							trigger: "RECOVERY_RESUME",
-							ref: candidate.executionRef,
-							targetWorkerRef: candidate.workerRef,
-							nodeId: candidate.nodeId,
-							runNo: candidate.runNo,
-						});
-					} else if (candidate.kind === "UNKNOWN_REALITY")
-						decision = await taskObserver.drive(candidate.taskId, undefined, {
-							kind: "UNKNOWN_REALITY",
-							ref: candidate.executionRef,
-							facts: {
-								executionRef: candidate.executionRef,
-								summary: `Execution ${candidate.executionRef} recovery remains UNKNOWN`,
-							},
-						});
-					else decision = null;
-					if (!decision) continue;
-					if (
-						decision.kind === "NOOP" &&
-						(decision.reason === "BINDING_NOT_READY" ||
-							decision.reason === "RESUME_TARGET_NOT_CURRENT_WORKER" ||
-							decision.reason === "DIAGNOSTIC_UNAVAILABLE" ||
-							decision.reason.startsWith("DIAGNOSTIC_DEFERRED:"))
-					)
-						continue;
-					await invokeObserverApplication("execution.ackSignal", {
-						signalRef: candidate.signalRef,
-					});
-				} catch {
-					// Leave the durable signal unacknowledged for the next bounded recovery pass.
-					recoveryNeedsRetry = true;
-				}
-			}
-		}
-		const listed = await invokeTaskApplication("task.list", {}).catch(
-			() => null,
+		// Browser events only accelerate the backend owner; they never decide progression.
+		void invokeObserverApplication("task.reconcileAll", {}).catch(
+			() => undefined,
 		);
-		if (listed === null) recoveryNeedsRetry = true;
-		if (isRecord(listed) && Array.isArray(listed.tasks)) {
-			for (const candidate of listed.tasks.slice(0, 100)) {
-				if (!isRecord(candidate) || typeof candidate.taskId !== "string")
-					continue;
-				if (
-					candidate.status === "SUCCEEDED" ||
-					candidate.status === "TERMINATED"
-				)
-					continue;
-				// J1 Worker teaming recovery is driven from durable Task binding facts.
-				// This bounded startup/event recovery pass re-runs the idempotent
-				// ensureWorkers application before Task progression, so Dev/Test
-				// completion never depends on an in-memory Promise surviving a Host
-				// or Extension restart. Successful bindings are preserved and only
-				// missing roles are re-provisioned by the Host/Execution path.
-				await invokeTaskApplication("task.ensureWorkers", {
-					taskId: candidate.taskId,
-				}).catch(() => {
-					recoveryNeedsRetry = true;
-				});
-				if (
-					suppressedContinuations.some(
-						(denial) => denial.taskId === candidate.taskId,
-					)
-				)
-					continue;
-				await taskObserver.drive(candidate.taskId).catch(() => {
-					recoveryNeedsRetry = true;
-				});
-			}
-		}
-		// A bounded retry continues the same stable Execution identities. Execution
-		// remains the no-blind-replay authority for APPLIED/NOT_APPLIED/UNKNOWN.
-		if (recoveryNeedsRetry && observerRecoveryRetryCount < 6) {
-			observerRecoveryRetryCount += 1;
-			const retryScheduledFromAttemptNo = recoveryAttemptNo;
-			setTimeout(() => {
-				if (observerRecoveryAttemptNo !== retryScheduledFromAttemptNo) return;
-				void runObserverRecovery();
-			}, 2_000);
-		} else if (!recoveryNeedsRetry) {
-			observerRecoveryRetryCount = 0;
-		}
 		const previousSystemState = await loadSystemObserverState().catch(
 			() => null,
 		);
@@ -920,9 +767,8 @@ function runObserverRecovery() {
 				previousCarryForward: previousSystemState?.carryForward ?? [],
 			})
 			.catch(() => null);
-		if (systemAssessment) {
+		if (systemAssessment)
 			await persistSystemObserverState(systemAssessment).catch(() => undefined);
-		}
 	})().finally(() => {
 		observerRecoveryInFlight = null;
 		if (!observerRecoveryTrailingRequested) return;
@@ -1456,12 +1302,18 @@ function text(value: unknown, name: string): string {
 }
 
 async function executeCommand(command: BridgeCommand): Promise<unknown> {
-	if (command.type === "TASK_OBSERVER_RECOVER") {
-		void runObserverRecovery();
-		return { scheduled: true };
+	if (command.type === "WAKE_GUARD") {
+		const denied = carrierContinuationControl.hasMatchingDispatchDenial({
+			taskId: text(command.taskId, "TASK_ID"),
+			roleRef: text(command.roleRef, "ROLE_REF"),
+			workerRef: text(command.workerRef, "WORKER_REF"),
+			conversationLocator: text(
+				command.conversationLocator,
+				"CONVERSATION_LOCATOR",
+			),
+		});
+		return { allowed: !denied };
 	}
-	if (command.type === "TASK_OBSERVER_RESUME")
-		return resumeTaskWorker(text(command.taskId, "TASK_ID"));
 	if (command.type === "CARRIER_ATTENTION_ACTION") {
 		if (command.action !== "allowOnce" && command.action !== "deny")
 			throw new Error("ATTENTION_ACTION_INVALID");
@@ -1694,6 +1546,104 @@ async function bridgeFetch(
 			...(init.headers ?? {}),
 		},
 	});
+}
+
+let localToolBridgeLoopStarted = false;
+async function showLocalToolNotices(command: Record<string, unknown>) {
+	const notices = command.notices;
+	if (!Array.isArray(notices)) return;
+	const message = notices
+		.filter(
+			(item): item is string => typeof item === "string" && item.length > 0,
+		)
+		.slice(0, 5)
+		.join("\n");
+	if (!message) return;
+	await chrome.notifications.create(
+		`proflow-local-tool:${crypto.randomUUID()}`,
+		{
+			type: "basic",
+			iconUrl:
+				"data:image/svg+xml;charset=utf-8," +
+				encodeURIComponent(
+					'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#111827"/><path d="M16 34h32M32 18v32" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>',
+				),
+			title: "ProFlow Workspace notice",
+			message,
+		},
+	);
+}
+
+async function runLocalToolBridgeLoop() {
+	if (localToolBridgeLoopStarted) return;
+	localToolBridgeLoopStarted = true;
+	while (true) {
+		const config = await localToolBridgeConfig().catch(() => null);
+		if (!config) {
+			await sleep(1_000);
+			continue;
+		}
+		const query = `?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`;
+		try {
+			const hello = await bridgeFetch(config, "/v1/local-tools/session/hello", {
+				method: "POST",
+				body: JSON.stringify({
+					extensionId: chrome.runtime.id,
+					extensionInstanceId,
+					moduleVersion: extensionModuleVersion,
+				}),
+			});
+			if (!hello.ok) throw new Error("LOCAL_TOOL_BRIDGE_HELLO_REJECTED");
+			let lastHeartbeatAt = Date.now();
+			while (true) {
+				if (Date.now() - lastHeartbeatAt >= 5_000) {
+					const heartbeat = await bridgeFetch(
+						config,
+						`/v1/local-tools/session/heartbeat${query}`,
+						{ method: "POST", body: "{}" },
+					);
+					if (!heartbeat.ok)
+						throw new Error("LOCAL_TOOL_BRIDGE_HEARTBEAT_REJECTED");
+					lastHeartbeatAt = Date.now();
+				}
+				const response = await bridgeFetch(
+					config,
+					`/v1/local-tools/commands/next${query}`,
+				);
+				if (response.status === 204) {
+					await sleep(250);
+					continue;
+				}
+				if (!response.ok) throw new Error("LOCAL_TOOL_BRIDGE_POLL_REJECTED");
+				const command = (await response.json()) as unknown;
+				if (!isRecord(command)) throw new Error("LOCAL_TOOL_COMMAND_INVALID");
+				const commandId = command.commandId;
+				const generation = command.generation;
+				const commandDigest = command.commandDigest;
+				if (
+					typeof commandId !== "string" ||
+					typeof generation !== "string" ||
+					typeof commandDigest !== "string"
+				)
+					throw new Error("LOCAL_TOOL_COMMAND_INVALID");
+				await showLocalToolNotices(command).catch(() => undefined);
+				// The Extension is the physical Effect Gate. Notices are informational only:
+				// execution continues immediately without approval or acknowledgement.
+				const accepted = await bridgeFetch(
+					config,
+					`/v1/local-tools/commands/execute${query}`,
+					{
+						method: "POST",
+						body: JSON.stringify({ commandId, generation, commandDigest }),
+					},
+				);
+				if (accepted.status !== 202)
+					throw new Error("LOCAL_TOOL_BRIDGE_EXECUTE_REJECTED");
+			}
+		} catch {
+			await sleep(1_000);
+		}
+	}
 }
 
 let bridgeLoopStarted = false;
@@ -2028,16 +1978,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 		}
 		void invokeApprovalApplication(message.operation, message.input).then(
 			(value) => {
-				if (
-					(message.operation === "approval.allow" ||
-						message.operation === "approval.deny" ||
-						message.operation === "approval.revoke") &&
-					isRecord(value) &&
-					typeof value.approvalRef === "string"
-				)
-					void resumeAfterApprovalDecision(value.approvalRef).catch(
-						() => undefined,
-					);
 				sendResponse({ ok: true, value });
 			},
 			(error: unknown) =>
@@ -2057,10 +1997,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 			return;
 		}
 		void invokeTaskApplication(message.operation, message.input).then(
-			async (value) => {
-				if (message.operation === "task.resume")
-					await resumeTaskWorker(text(message.input?.taskId, "TASK_ID"));
-				else void runObserverRecovery();
+			(value) => {
 				sendResponse({ ok: true, value });
 			},
 			(error: unknown) =>
@@ -2125,9 +2062,9 @@ async function startBackgroundRuntime(): Promise<void> {
 	await bootstrapManagedRuntimeConfig();
 	await persistSnapshot();
 	void runBridgeLoop();
+	void runLocalToolBridgeLoop();
 	void runProvisioningBridgeLoop();
-	const suppressedContinuations = await rebuildCarrierAttentionsFromTabs();
-	suppressNextObserverRecovery(suppressedContinuations);
+	await rebuildCarrierAttentionsFromTabs();
 	observerRecoveryRearm.startupReady();
 }
 
@@ -2139,8 +2076,8 @@ chrome.runtime.onInstalled.addListener(() => {
 		await bootstrapManagedRuntimeConfig();
 		await persistSnapshot();
 		void runBridgeLoop();
-		const suppressedContinuations = await rebuildCarrierAttentionsFromTabs();
-		suppressNextObserverRecovery(suppressedContinuations);
+		void runLocalToolBridgeLoop();
+		await rebuildCarrierAttentionsFromTabs();
 		observerRecoveryRearm.startupReady();
 	});
 });
@@ -2150,8 +2087,8 @@ chrome.runtime.onStartup.addListener(() => {
 		await bootstrapManagedRuntimeConfig();
 		await persistSnapshot();
 		void runBridgeLoop();
-		const suppressedContinuations = await rebuildCarrierAttentionsFromTabs();
-		suppressNextObserverRecovery(suppressedContinuations);
+		void runLocalToolBridgeLoop();
+		await rebuildCarrierAttentionsFromTabs();
 		observerRecoveryRearm.startupReady();
 	});
 });

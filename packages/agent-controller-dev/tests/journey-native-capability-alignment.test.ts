@@ -40,48 +40,63 @@ test("CP-AGT-DEV-07 J1 bind is IDLE and formal Node work starts only after NODE_
 });
 
 test("CP-AGT-DEV-08 one Worker Turn uses 0..N routine Actions and has no Browser per-action scheduler protocol", () => {
-	for (const operation of ops)
-		assert.equal(operation["x-openai-isConsequential"], false);
+	assert.equal(
+		ops.find((item) => item.operationId === "localDev")?.[
+			"x-openai-isConsequential"
+		],
+		true,
+	);
+	for (const tool of ["repomix", "codeGraph"])
+		assert.equal(
+			ops.find((item) => item.operationId === tool)?.[
+				"x-openai-isConsequential"
+			],
+			false,
+		);
 	assert.doesNotMatch(
 		JSON.stringify(openapi),
 		/continueWorker|actionFinished|browserContinue|wakeAfterAction/i,
 	);
 });
 
-test("CP-AGT-DEV-09 File Bridge + Code Interpreter produce candidate artifacts while Execution proves real apply/test effects", () => {
+test("CP-AGT-DEV-09 File Bridge + Code Interpreter produce candidates while Direct Tools prove real repo effects", () => {
 	const profile = metadata.proflowAgent.carrierProfiles["custom-gpt"];
 	assert.equal(profile.capabilities.codeInterpreter, true);
 	assert.equal(profile.requirements.fileBridge, "required");
-	assert.ok(operationIds.includes("executeCapability"));
-	assert.ok(operationIds.includes("getExecution"));
+	for (const tool of ["repomix", "localDev", "codeGraph"])
+		assert.ok(operationIds.includes(tool));
+	assert.equal(operationIds.includes("executeCapability"), false);
 	assert.match(
 		metadata.proflowAgent.instructions,
-		/sandbox artifact.*不等于真实 repo apply/,
+		/Code Interpreter.*沙箱.*不等于真实 repo apply/,
 	);
 });
 
-test("CP-AGT-DEV-10 reopen and async result resume reuse the Task-bound Worker/Conversation instead of creating another Worker", () => {
+test("CP-AGT-DEV-10 reopen and tool-native handles reuse the Task-bound Worker/Conversation", () => {
 	assert.match(
 		metadata.proflowAgent.instructions,
 		/REOPEN.*原 Task-bound worker/,
 	);
-	assert.ok(operationIds.includes("getExecution"));
+	assert.ok(operationIds.includes("localDev"));
+	assert.equal(operationIds.includes("getExecution"), false);
 	assert.doesNotMatch(
 		JSON.stringify(openapi),
 		/worker\.create|createConversation|newWorker|duplicateWorker/i,
 	);
 });
 
-test("CP-AGT-DEV-11 public research uses native Web Search while local/private/credentialed engineering requests remain Execution-owned", () => {
+test("CP-AGT-DEV-11 public research uses native Web Search while local/private engineering uses Direct Tools", () => {
 	const profile = metadata.proflowAgent.carrierProfiles["custom-gpt"];
 	assert.equal(profile.capabilities.webSearch, true);
-	assert.ok(operationIds.includes("executeCapability"));
+	for (const tool of ["repomix", "localDev", "codeGraph"])
+		assert.ok(operationIds.includes(tool));
+	assert.equal(operationIds.includes("executeCapability"), false);
 	assert.match(
 		metadata.proflowAgent.instructions,
 		/Web Search|公开互联网|public research/i,
 	);
 	assert.match(
 		metadata.proflowAgent.instructions,
-		/local|private|credential|本地|私有|凭据/i,
+		/本地|当前磁盘|Local Dev|Repomix|CodeGraph/i,
 	);
 });

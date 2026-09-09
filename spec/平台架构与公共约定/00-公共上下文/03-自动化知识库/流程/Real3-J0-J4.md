@@ -60,14 +60,14 @@ Real-3 的 Browser 执行只保留流程级约束：业务工作集固定为 `Pr
 ```text
 task.list / task.get        = 读取 Task Owner facts
 task.create                 = New Task
-task.ensureWorkers          = 只补缺失 Worker/Conversation binding
 task.start                  = 用户确认后的正式 Start
 node.reopen                 = 显式 reopen，不隐式重跑
+backend Reconciliation      = 自动补缺失 Worker/Conversation binding + bounded catch-up
 ```
 
 ### J1｜New Task / Worker / Requirement
 
-`task.create` 创建 Task Owner 的 `PENDING` Task + 固定 Product/Dev/Test role bindings；binding 初始 `workerRef=null / conversationLocator=null`。Platform Host 随后并发执行三个 durable `worker.create`：Product Worker 完成后即可返回进入需求沟通，Dev/Test 在后台继续；失败后 `task.ensureWorkers` 只补缺失 binding，不重建已有 Worker。
+`task.create` 创建 Task Owner 的 `PENDING` Task + 固定 Product/Dev/Test role bindings；binding 初始 `workerRef=null / conversationLocator=null`。Platform Host 随后并发执行三个 durable `worker.create`：Product Worker 完成后即可返回进入需求沟通，Dev/Test 在后台继续；若创建或绑定中途失败，backend Reconciliation 会从 Task Owner durable facts 重新发现缺失 binding，并只补缺失 Worker/Conversation，不重建已经成功的 Worker。
 
 `worker.create` 的真实 Browser 合同：打开 Role URL → 提交 `WORKER_BIND <bootstrapFingerprint>` → `browser.hasMessage` 确认真实 user message → 从真实 `/g/<roleRef>/c/<workerRef>` URL 取得 Worker identity → 写回 Task Owner 的 `workerRef + conversationLocator`。API success、Tab 打开或旧 evidence 都不能替代这四步。
 
@@ -101,21 +101,19 @@ before: Task READY
 
 ### J3｜Observer / Restore / WAKE
 
-Browser Extension Task Observer 通过 `/application/observer` 读取 `task.projection`；projection 的 current Node 与 `roleRef/workerRef/conversationLocator` 是 canonical Owner facts。`BINDING_NOT_READY` 时禁止临时猜 Conversation。
+backend Task Observer/Reconciliation 读取 `task.projection` 与其它 Owner current facts；projection 的 current Node 与 `roleRef/workerRef/conversationLocator` 是 canonical Owner facts。`BINDING_NOT_READY` 时禁止临时猜 Conversation。页面 event、Extension reconnect/startup 只提供低延迟 kick，不能成为唯一 progression source。
 
-READY Node 产生 `WAKE`：首次 run 用 `NODE_READY`，reopen run 用 `REOPEN`。Observer carrier 调 `task.wake`；Execution Browser 先 `worker.restore`/`ensureRestored` 到持久 conversationLocator，要求 URL 中 roleRef/workerRef 与 Task binding 完全一致，再提交 `proflow.agent.browser-trigger.v1` trigger。
-
-WAKE 后必须用真实 `browser.hasMessage(fingerprint)` 确认 user message；否则 `WAKE_REALITY_UNCONFIRMED / UNKNOWN_SIDE_EFFECT`，不得重发。`WAKE delivered != Node success`。
+READY Node 产生 typed Carrier request：首次 run 用 `NODE_READY`，reopen run 用 `REOPEN`。Browser Extension 只负责 restore/permission/submit/receipt/page reality：先恢复到持久 `conversationLocator`，要求 URL 中 roleRef/workerRef 与 Task binding 完全一致，再提交 `proflow.agent.browser-trigger.v1` trigger。WAKE 后必须用真实 `browser.hasMessage(fingerprint)` 确认 user message；否则 `WAKE_REALITY_UNCONFIRMED / UNKNOWN_SIDE_EFFECT`，不得重发。`WAKE delivered != Node success`。
 
 ### J4｜Worker Turn / Action / Result
 
 Worker 收到真实 WAKE 后应在**同一个 Worker Turn**自主读取 Task/Node/Requirement/context，并可连续调用多个正式 Actions；禁止 Browser 在每个 Action 后发送“continue”来人工驱动 Agent Loop。
 
-Task/Collaboration facts 以 Platform Host/Task Owner 为准；真实机器或外部副作用以 Execution Owner 为准。J4 PASS 需要看到 Worker 真实 Action/Owner API/Execution 结果与 Task/Node 后续 Owner facts 一致；Conversation 文本、WAKE success 或单个 Action HTTP 2xx 都不足以判完成。
+Worker 只需要理解 `Task / Node / Document / Peer / Tools`。Task/Node/Document/Peer 事实走 Owner Public Contract；本机工程现场使用 Repomix / Local Dev / CodeGraph，物理链统一为 `Action → Gateway → ProFlow API → Browser Extension 独立 Local Tool lane → execution-local → macOS`。Direct Tool 不进入 `executeCapability/getExecution/readExecutionOutput` lifecycle，Tool result 也不会自动推进 Node；Worker 必须显式调用 Task command。
 
 ### 恢复路径
 
-Extension startup/event recovery 会遍历非终态 Task：先执行幂等 `task.ensureWorkers` 补缺失 binding，再 `taskObserver.drive(taskId)`；durable Execution/Task binding 是恢复 authority，不依赖旧内存 Promise。Execution side effect 为 UNKNOWN 时遵守 no-blind-replay，先读 durable execution/evidence，再决定恢复。
+backend Reconciliation 对非终态 Task 做 bounded catch-up，并从 durable Owner facts 重新发现 READY/REOPEN/RECOVERY_RESUME；Extension startup/event/reconnect 只加速。Browser/Carrier 内部 durable Effect 若为 UNKNOWN 继续遵守 no-blind-replay，先观察 durable Execution/页面 reality；Direct Local Tool mutation 若结果不确定，则通过 file/Git/process/port reality 再观察，不创建 Execution polling。
 
 ## 失败路由
 
@@ -130,3 +128,11 @@ Extension startup/event recovery 会遍历非终态 Task：先执行幂等 `task
 ## Browser 执行知识归属
 
 Real-3 只拥有 Journey 与 checkpoint；Tasks loopback page、原 Tab 纳管、controlled group、Playwright attach/跨扩展限制、Extension action/session 等已经稳定的 Browser 机械知识统一维护在 `基础动作/Browser-UI自动化.md`、`基础动作/Tool-Runtime-gptweb-mcp.md` 与 `包能力/execution-browser-extension.md`。流程文件不再复制这些 SOP。
+
+## 2026-09-09 独立审计后的验证分界
+
+执行前读取当前 `AGENT-DOC-02-05` §9–11 与 Extension Technical Design §23–24：Host enqueue credential 不可执行 Tool；Bridge 独立 lifecycle + Provider child 隔离；backend catch-up 必须测试分页/丢事件/重复事件/terminal race。
+
+F9 已由 trusted local command 权限裁决关闭，当前进入分 Wave 源码实现；shipped Actions 与部署采用状态仍以真实证据为准。固定混合 Local Dev Action consequential=true，read 也会提示确认；不能把这类预期确认当作 permission blocker 自动消除。获准的 test/build/install 继承 OS 用户权限；明确可识别的 Workspace 越界先提示用户、无需批准，不把 argv/cwd 当 sandbox，也不要求 OS sandbox 才开工。
+
+记录 DESIGN_AUDIT、SOURCE_IMPLEMENTATION、PROVIDER_REALITY、REAL_3 四种结果。test-governance 在 testcase 重绑前可报告 stale/unmapped，保持原报告并在正式实现后更新；禁止现在生成 08 evidence 来造 PASS。

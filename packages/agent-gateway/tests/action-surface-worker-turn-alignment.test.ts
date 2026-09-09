@@ -24,10 +24,13 @@ test("CP-AGT-GW-10 Product GPT-facing Action surface excludes New Task dynamic-d
 	const ids = operationIds(await productOpenApi());
 	assert.deepEqual(ids, [
 		"askPeer",
+		"codeGraph",
 		"getTask",
 		"getTaskDocument",
+		"localDev",
 		"putTaskDocument",
 		"replyPeer",
+		"repomix",
 	]);
 	for (const forbidden of [
 		"createTask",

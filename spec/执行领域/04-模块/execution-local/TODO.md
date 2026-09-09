@@ -72,7 +72,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 typed fs/git/code/package/dependency/build-test capabilities
+goal: 实现 Local Dev read/list/search/mutate/run/process 六类 Direct Tool adapter，与内部 Execution adapter 分离并只复用纯 primitives
 scope:
   allow:
   - packages/execution-local/**
@@ -105,7 +105,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 process one-shot/managed-process 与 stdout/stderr artifact capture
+goal: 实现 Local Dev process list/ports/status/start/read/input/stop、tool-native handle 与 bounded stdout/stderr；不复用 Execution lifecycle
 scope:
   allow:
   - packages/execution-local/**
@@ -138,7 +138,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 deterministic network：localhost/LAN/exact URL/authenticated HTTP/probe
+goal: 接入 Repomix pack/grep/read 的真实 npm/library 或受控 CLI，保留独立 native handle 与 workspace safety
 scope:
   allow:
   - packages/execution-local/**
@@ -171,7 +171,7 @@ qualityRefs:
 - EXECUTION-DOC-05-02
 dependencyState: NOT_FROZEN
 dependsOn: []
-goal: 实现 shell escape hatch 的 FAST/policy/approval guard
+goal: 接入 CodeGraph explore 真实 npm/library 或受控 CLI，不使用 MCP transport，不把 Model/Execution readiness 变成 Direct Tool 前置
 scope:
   allow:
   - packages/execution-local/**

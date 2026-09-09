@@ -17,7 +17,8 @@ ProFlow 的本地 Composition Root（组合根），把 Task、Agent、Execution
 
 ## 依赖的 Module、Contract 和外部资源
 
-- 依赖 `task-orchestration`、`agent-runtime`、`execution` 和 `model-inference`，兼容版本均为 `>=1.0.0 <2.0.0`。
+- 启动依赖只包含 `local-tool-bridge`、`task-orchestration` 和 `agent-runtime`，兼容版本均为 `>=1.0.0 <2.0.0`。
+- Execution 与 Model 是 operation-scoped late-bound dependency；它们不可用时只影响对应 operation，不构成 platform-host 全局启动前置。
 
 ## 运行形态与生命周期
 
@@ -25,7 +26,7 @@ ProFlow 的本地 Composition Root（组合根），把 Task、Agent、Execution
 
 ## 使用方式
 
-所有依赖 Module READY 后通过 Platform 生命周期启动；下游从 shared facts 获取端点和凭据路径。
+满足启动依赖后通过 Platform 生命周期启动；Execution/Model/Provider 等 operation-scoped 依赖在请求时解析，下游从 shared facts 获取端点和凭据路径。
 
 ## 职责边界与限制
 
