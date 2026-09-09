@@ -9,6 +9,7 @@ import { createBrowserOpenObservationGate } from "../src/carrier-identity.ts";
 import {
 	type BrowserPageObservation,
 	type BrowserRealityPort,
+	type BrowserWakeGuardInput,
 	type BrowserVisionPort,
 	createExecutionBrowserExtension,
 	isVisionObservationVerified,
@@ -26,6 +27,8 @@ class BrowserHarness implements BrowserRealityPort {
 	submittedTexts: string[] = [];
 	confirmSubmittedMessages = true;
 	wakeAllowed = true;
+	denyWakeAtSubmit = false;
+	wakeSubmitGuards: BrowserWakeGuardInput[] = [];
 	wakeGuardCalls: Array<{
 		taskId: string;
 		roleRef: string;
@@ -64,7 +67,8 @@ class BrowserHarness implements BrowserRealityPort {
 		if (!tab) throw new Error("TAB_NOT_FOUND");
 		return tab;
 	}
-	async submit(tabId: number, text: string, fingerprint: string) {
+	async submit(tabId: number, text: string, fingerprint: string, wakeGuard?: BrowserWakeGuardInput) {
+		if (wakeGuard) { this.wakeSubmitGuards.push(wakeGuard); if (this.denyWakeAtSubmit) throw new Error("CARRIER_CONTINUATION_HUMAN_DENIED"); }
 		this.activeWrites += 1;
 		this.maxActiveWrites = Math.max(this.maxActiveWrites, this.activeWrites);
 		await new Promise((resolve) => setTimeout(resolve, 5));
@@ -566,6 +570,8 @@ test("CP-EXE-BR-34 WAKE_GUARD denial fails before durable effect start and Brows
 			conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev",
 		},
 	]);
+	const late = await fixture(); late.bindings.set("task:1:g-dev", { workerRef: "c-dev", conversationLocator: "https://chatgpt.com/g/g-dev/c/c-dev" }); late.browser.denyWakeAtSubmit = true; let lateEffectStarted = 0; await assert.rejects(() => late.extension.execute({ request: request("worker.wake", { roleRef: "g-dev", workerRef: "c-dev", taskId: "task:1", nodeId: "node:1", runNo: 1, trigger: "NODE_READY", fingerprint: "wake:late-denied" }), admission: { policy: "ALLOW", decisionPath: "deterministic", approval: "NOT_REQUIRED" }, onEffectStarted() { lateEffectStarted += 1; } }), /CARRIER_CONTINUATION_HUMAN_DENIED/); assert.equal(lateEffectStarted, 1); assert.equal(late.browser.submitCount, 0); assert.equal(late.browser.wakeSubmitGuards.length, 1);
+
 });
 
 test("REG-EXE-BR-03B TASK_RESUMED remains a typed bounded worker.wake trigger", async () => {

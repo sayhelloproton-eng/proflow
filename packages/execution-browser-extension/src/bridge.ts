@@ -13,7 +13,7 @@ import {
 	type CarrierAttentionView,
 	parseCarrierAttentionViews,
 } from "./carrier-attention-view.ts";
-import type { BrowserPageObservation, BrowserRealityPort } from "./index.ts";
+import type { BrowserPageObservation, BrowserRealityPort, BrowserWakeGuardInput } from "./index.ts";
 
 type BridgeCommand =
 	| { commandId: string; type: "LIST_TABS" }
@@ -25,6 +25,7 @@ type BridgeCommand =
 			tabId: number;
 			text: string;
 			fingerprint: string;
+			wakeGuard?: BrowserWakeGuardInput;
 	  }
 	| { commandId: string; type: "VERIFY"; tabId: number; fingerprint: string }
 	| { commandId: string; type: "SCREENSHOT"; tabId: number }
@@ -817,11 +818,7 @@ function createBrowserPort(
 				);
 			return value.allowed;
 		},
-		async submit(tabId: number, text: string, fingerprint: string) {
-			return parseObservation(
-				await requestCommand({ type: "SUBMIT", tabId, text, fingerprint }),
-			);
-		},
+		async submit(tabId: number, text: string, fingerprint: string, wakeGuard?: BrowserWakeGuardInput) { return parseObservation(await requestCommand({ type: "SUBMIT", tabId, text, fingerprint, ...(wakeGuard ? { wakeGuard } : {}) })); },
 		async hasMessage(tabId: number, fingerprint: string) {
 			const value = await requestCommand({
 				type: "VERIFY",
@@ -872,13 +869,7 @@ function parseExecutorCommand(value: unknown): BridgeCommandInput {
 		case "OBSERVE":
 		case "SCREENSHOT":
 			return { type: value.type, tabId: numberField(value, "tabId") };
-		case "SUBMIT":
-			return {
-				type: "SUBMIT",
-				tabId: numberField(value, "tabId"),
-				text: stringField(value, "text"),
-				fingerprint: stringField(value, "fingerprint"),
-			};
+		case "SUBMIT": { const rawWakeGuard = value.wakeGuard; let wakeGuard: BrowserWakeGuardInput | undefined; if (rawWakeGuard !== undefined) { if (!isRecord(rawWakeGuard)) throw new BrowserRealityBridgeError("BRIDGE_INPUT_INVALID", "SUBMIT wakeGuard must be an object"); wakeGuard = { taskId: stringField(rawWakeGuard, "taskId"), roleRef: stringField(rawWakeGuard, "roleRef"), workerRef: stringField(rawWakeGuard, "workerRef"), conversationLocator: stringField(rawWakeGuard, "conversationLocator") }; } return { type: "SUBMIT", tabId: numberField(value, "tabId"), text: stringField(value, "text"), fingerprint: stringField(value, "fingerprint"), ...(wakeGuard ? { wakeGuard } : {}) }; }
 		case "VERIFY":
 			return {
 				type: "VERIFY",

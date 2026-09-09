@@ -82,6 +82,7 @@ test("CP-EXE-BR-34 WAKE_GUARD is a physical Browser denial gate and not a Task s
 		readFile(browserExecutorUrl, "utf8"),
 	]);
 	assert.match(background, /command\.type === "WAKE_GUARD"/);
+	assert.match(background, /command\.type === "SUBMIT"[\s\S]{0,1200}hasMatchingDispatchDenial/);
 	assert.match(
 		background,
 		/carrierContinuationControl\.hasMatchingDispatchDenial/,
@@ -116,6 +117,8 @@ test("CP-EXE-BR-39 Local Tool loop stays independent from Browser recovery and T
 	assert.match(source, /async function runLocalToolBridgeLoop\(\)/);
 	assert.match(source, /\/v1\/local-tools\/commands\/next/);
 	assert.match(source, /\/v1\/local-tools\/commands\/execute/);
+	assert.match(source, /PROFLOW_LOCAL_TOOL_NOTICE_FALLBACK/);
+	assert.match(source, /setBadgeText/);
 	const localStart = source.indexOf("async function runLocalToolBridgeLoop()");
 	const browserStart = source.indexOf(
 		"async function runBridgeLoop()",

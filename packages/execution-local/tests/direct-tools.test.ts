@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -105,12 +105,59 @@ test("CP-EXE-LOCAL-DIRECT-01 / CP-EXE-LOCAL-14 / CP-EXE-LOCAL-15 Local Dev searc
 		}),
 	)) as any;
 	assert.equal(status.running, true);
-	await executor.execute(
+	const stopped = (await executor.execute(
 		request("localDev", "process", {
 			action: "stop",
 			processRef: started.processRef,
 		}),
+	)) as any;
+	assert.equal(stopped.stopped, true);
+	const stoppedStatus = (await executor.execute(
+		request("localDev", "process", {
+			action: "status",
+			processRef: started.processRef,
+		}),
+	)) as any;
+	assert.equal(stoppedStatus.running, false);
+	await assert.rejects(
+		() =>
+			executor.execute(
+				request("localDev", "process", {
+					action: "start",
+					command: join(root, "missing-executable"),
+				}),
+			),
+		(error) =>
+			error instanceof DirectToolError &&
+			error.code === "TOOL_EXECUTION_FAILED",
 	);
+
+	const outside = await mkdtemp(join(tmpdir(), "proflow-direct-tools-secret-"));
+	context.after(() => rm(outside, { recursive: true, force: true }));
+	const secretDir = join(outside, ".proflow", "secrets");
+	await mkdir(secretDir, { recursive: true });
+	await writeFile(join(secretDir, "token"), "SHOULD_STAY_PROTECTED");
+	await symlink(join(secretDir, "token"), join(root, "credential-link"));
+	for (const path of [join(secretDir, "token"), "credential-link"])
+		await assert.rejects(
+			() => executor.execute(request("localDev", "read", { path })),
+			(error) =>
+				error instanceof DirectToolError && error.code === "TOOL_SCOPE_DENIED",
+		);
+	await assert.rejects(
+		() =>
+			executor.execute(
+				request("localDev", "run", {
+					command: process.execPath,
+					args: ["-e", "process.stdout.write('NO')"],
+					cwd: secretDir,
+				}),
+			),
+		(error) =>
+			error instanceof DirectToolError && error.code === "TOOL_SCOPE_DENIED",
+	);
+	await writeFile(join(outside, "visible.txt"), "VISIBLE"); await symlink(outside, join(root, "outside-link")); const notice = await executor.prepare(request("localDev", "read", { path: "outside-link/visible.txt" })); assert.match(notice.notices.join("\n"), /visible\.txt/); assert.match(notice.notices.join("\n"), /role=g-dev/); const argvNotice = await executor.prepare(request("localDev", "run", { command: process.execPath, args: [join(outside, "visible.txt")] })); assert.match(argvNotice.notices.join("\n"), /visible\.txt/); await assert.rejects(() => executor.execute({ ...request("localDev", "mutate", { action: "write", path: "expired.txt", content: "NO" }), deadlineAt: new Date(Date.now() - 1).toISOString() }), (error) => error instanceof DirectToolError && error.code === "TOOL_TIMEOUT");
+
 });
 
 test("CP-EXE-LOCAL-DIRECT-02 / CP-EXE-LOCAL-16 Repomix pack/grep/read returns within the Action budget without Execution polling", async (context) => {
@@ -119,6 +166,18 @@ test("CP-EXE-LOCAL-DIRECT-02 / CP-EXE-LOCAL-16 Repomix pack/grep/read returns wi
 		await executor.close();
 		await rm(root, { recursive: true, force: true });
 	});
+	const directSource = await readFile(
+		new URL("../src/direct-tools.ts", import.meta.url),
+		"utf8",
+	);
+	assert.doesNotMatch(
+		directSource,
+		/from "repomix"|from "@colbymchenry\/codegraph"/,
+	);
+	assert.match(directSource, /createProviderProcess\("repomix"/);
+	assert.match(directSource, /createProviderProcess\("codeGraph"/);
+	assert.match(directSource, /--provider-child/);
+	assert.match(directSource, /fork\(/);
 	await mkdir(join(root, ".proflow", "secrets"), { recursive: true });
 	await writeFile(
 		join(root, ".proflow", "secrets", "token"),

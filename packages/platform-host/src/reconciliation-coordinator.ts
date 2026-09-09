@@ -43,6 +43,7 @@ export function createReconciliationCoordinator(
 	const pendingSignals = new Map<string, TaskResumeSignal>();
 	const failures = new Map<string, FailureState>();
 	const appliedIntents = new Map<string, string>();
+	const retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 	const intentKey = (decision: {
 		taskId: string;
@@ -62,6 +63,20 @@ export function createReconciliationCoordinator(
 	const clearFailure = (taskId: string) => failures.delete(taskId);
 	const canAttempt = (taskId: string) =>
 		(failures.get(taskId)?.nextAt ?? 0) <= now();
+	const schedulePendingRetry = (taskId: string) => {
+		if (stopped || !pendingSignals.has(taskId) || retryTimers.has(taskId)) return;
+		const delay = Math.max(0, (failures.get(taskId)?.nextAt ?? now()) - now());
+		if (delay <= 0) {
+			void reconcile(taskId);
+			return;
+		}
+		const retry = setTimeout(() => {
+			retryTimers.delete(taskId);
+			if (!stopped) void reconcile(taskId);
+		}, delay);
+		retry.unref?.();
+		retryTimers.set(taskId, retry);
+	};
 
 	const reconcileOnce = async (taskId: string): Promise<void> => {
 		if (!canAttempt(taskId)) return;
@@ -102,13 +117,18 @@ export function createReconciliationCoordinator(
 		signal?: TaskResumeSignal,
 	): Promise<void> => {
 		if (signal) pendingSignals.set(taskId, signal);
+		const retry = retryTimers.get(taskId);
+		if (retry) {
+			clearTimeout(retry);
+			retryTimers.delete(taskId);
+		}
 		const current = taskInFlight.get(taskId);
 		if (current) return current;
 		const run = reconcileOnce(taskId)
 			.catch(() => undefined)
 			.finally(() => {
 				taskInFlight.delete(taskId);
-				if (pendingSignals.has(taskId) && !stopped) void reconcile(taskId);
+				if (pendingSignals.has(taskId) && !stopped) schedulePendingRetry(taskId);
 			});
 		taskInFlight.set(taskId, run);
 		return run;
@@ -222,6 +242,8 @@ export function createReconciliationCoordinator(
 		stop() {
 			stopped = true;
 			if (timer) clearTimeout(timer);
+			for (const retry of retryTimers.values()) clearTimeout(retry);
+			retryTimers.clear();
 			pendingSignals.clear();
 			failures.clear();
 			appliedIntents.clear();

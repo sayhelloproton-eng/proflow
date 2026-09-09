@@ -86,20 +86,18 @@ export interface BrowserPageObservation {
 	observedAt: string;
 }
 
+export interface BrowserWakeGuardInput { taskId: string; roleRef: string; workerRef: string; conversationLocator: string; }
+
 export interface BrowserRealityPort {
 	listTabs(): Promise<BrowserPageObservation[]>;
 	open(url: string): Promise<BrowserPageObservation>;
 	observe(tabId: number): Promise<BrowserPageObservation>;
-	guardWake?(input: {
-		taskId: string;
-		roleRef: string;
-		workerRef: string;
-		conversationLocator: string;
-	}): Promise<boolean>;
+	guardWake?(input: BrowserWakeGuardInput): Promise<boolean>;
 	submit(
 		tabId: number,
 		text: string,
 		fingerprint: string,
+		wakeGuard?: BrowserWakeGuardInput,
 	): Promise<BrowserPageObservation>;
 	hasMessage(tabId: number, fingerprint: string): Promise<boolean>;
 	screenshot(tabId: number): Promise<{
@@ -612,6 +610,7 @@ export function createExecutionBrowserExtension(
 					observed.tabId,
 					trigger,
 					request.input.fingerprint,
+					{ taskId, roleRef: request.input.roleRef, workerRef: request.input.workerRef, conversationLocator: observed.url },
 				);
 				if (
 					!(await options.browser.hasMessage(

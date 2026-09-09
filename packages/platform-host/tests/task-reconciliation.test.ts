@@ -120,6 +120,42 @@ test("CP-HOST-RECON-04 bounded sweep rediscovers READY and dedupes the same phys
 	assert.equal(wakes.length, 1);
 	assert.equal(workers, 2);
 	coordinator.stop();
+
+	let clockReads = 0;
+	let wakeAttempts = 0;
+	const backoffCoordinator = createReconciliationCoordinator({
+		async listTaskIds() {
+			return ["task:1"];
+		},
+		async listExecutionSignals() {
+			return [];
+		},
+		async acknowledgeExecutionSignal() {},
+		async ensureWorkers() {},
+		async getProjection() {
+			return projection();
+		},
+		async requestWake() {
+			wakeAttempts += 1;
+			throw new Error("injected wake failure");
+		},
+		now() {
+			clockReads += 1;
+			return clockReads < 20 ? 0 : 1_000;
+		},
+	});
+	await backoffCoordinator.sweep();
+	backoffCoordinator.kick("task:1", {
+		trigger: "RECOVERY_RESUME",
+		ref: "execution:retry",
+		targetWorkerRef: "c-dev",
+		nodeId: "dev",
+		runNo: 1,
+	});
+	await new Promise<void>((resolveImmediate) => setImmediate(resolveImmediate));
+	assert.ok(clockReads < 10, `backoff spun through ${clockReads} clock reads`);
+	assert.equal(wakeAttempts, 1);
+	backoffCoordinator.stop();
 });
 
 test("CP-HOST-RECON-05 durable RECOVERY_RESUME is acknowledged only after its wake is applied", async () => {

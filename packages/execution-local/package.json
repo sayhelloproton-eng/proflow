@@ -29,7 +29,7 @@
 		"@tomflow/proflow-module-contract": "workspace:^",
 		"repomix": "1.18.0"
 	},
-	"description": "In-process real local executor for typed ProFlow Execution capabilities.",
+	"description": "Local Direct Tool executor with provider-isolated child processes.",
 	"keywords": [
 		"proflow",
 		"proflow-module",

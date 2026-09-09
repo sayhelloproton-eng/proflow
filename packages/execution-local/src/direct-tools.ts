@@ -1,4 +1,9 @@
-import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import {
+	type ChildProcess,
+	type ChildProcessWithoutNullStreams,
+	fork,
+	spawn,
+} from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import type { Dirent } from "node:fs";
 import {
@@ -21,21 +26,7 @@ import {
 	resolve,
 	sep,
 } from "node:path";
-import type { CodeGraph as CodeGraphInstance } from "@colbymchenry/codegraph";
-import codeGraphSdkDefault from "@colbymchenry/codegraph";
-import { runDefaultAction } from "repomix";
-
-type CodeGraphClass = {
-	open(
-		projectRoot: string,
-		options?: { sync?: boolean; readOnly?: boolean },
-	): Promise<CodeGraphInstance>;
-};
-const codeGraphSdk = codeGraphSdkDefault as unknown as {
-	CodeGraph: CodeGraphClass;
-	findNearestCodeGraphRoot(path: string): string | null;
-};
-const { CodeGraph, findNearestCodeGraphRoot } = codeGraphSdk;
+import { fileURLToPath } from "node:url";
 
 export const directToolNames = ["localDev", "repomix", "codeGraph"] as const;
 export type DirectToolName = (typeof directToolNames)[number];
@@ -74,6 +65,8 @@ type ManagedProcess = {
 	startedAt: string;
 	exitCode: number | null;
 	exitedAt?: string;
+	exitPromise: Promise<number>;
+	runtimeError?: string;
 };
 
 type RepomixOutput = {
@@ -94,20 +87,368 @@ const REPOMIX_MAX_OUTPUTS = 16;
 const REPOMIX_MAX_PACK_BYTES = 20_000_000;
 const TOOL_TEXT_RESULT_MAX_BYTES = 200_000;
 
-export class DirectToolError extends Error {
-	readonly code:
-		| "TOOL_INPUT_INVALID"
-		| "TOOL_PROVIDER_UNAVAILABLE"
-		| "TOOL_SCOPE_DENIED"
-		| "TOOL_HANDLE_INVALID"
-		| "TOOL_TIMEOUT"
-		| "TOOL_EXECUTION_FAILED";
+export type DirectToolErrorCode =
+	| "TOOL_INPUT_INVALID"
+	| "TOOL_PROVIDER_UNAVAILABLE"
+	| "TOOL_SCOPE_DENIED"
+	| "TOOL_HANDLE_INVALID"
+	| "TOOL_TIMEOUT"
+	| "TOOL_EXECUTION_FAILED";
 
-	constructor(code: DirectToolError["code"], message: string) {
+export class DirectToolError extends Error {
+	readonly code: DirectToolErrorCode;
+
+	constructor(code: DirectToolErrorCode, message: string) {
 		super(message);
 		this.name = "DirectToolError";
 		this.code = code;
 	}
+}
+
+type ProviderName = "repomix" | "codeGraph";
+type ProviderRequestMessage = {
+	kind: "request";
+	id: string;
+	operation: string;
+	payload: Record<string, unknown>;
+};
+type ProviderResponseMessage =
+	| { kind: "response"; id: string; ok: true; value: unknown }
+	| {
+			kind: "response";
+			id: string;
+			ok: false;
+			error: { code: DirectToolErrorCode; message: string };
+	  };
+type ProviderPending = {
+	id: string;
+	resolve: (value: unknown) => void;
+	reject: (error: Error) => void;
+	timer: ReturnType<typeof setTimeout>;
+};
+type CodeGraphHandle = {
+	getStats(): { fileCount: number; nodeCount: number; edgeCount: number };
+	buildContext(query: string, options: Record<string, unknown>): Promise<unknown>;
+	getIndexState(): unknown;
+	getLastIndexedAt(): unknown;
+	isIndexStale(): boolean;
+	close(): void;
+};
+type CodeGraphSdk = {
+	CodeGraph: {
+		open(
+			projectRoot: string,
+			options?: { sync?: boolean; readOnly?: boolean },
+		): Promise<CodeGraphHandle>;
+	};
+	findNearestCodeGraphRoot(path: string): string | null;
+};
+
+const providerErrorCodes = new Set<DirectToolErrorCode>([
+	"TOOL_INPUT_INVALID",
+	"TOOL_PROVIDER_UNAVAILABLE",
+	"TOOL_SCOPE_DENIED",
+	"TOOL_HANDLE_INVALID",
+	"TOOL_TIMEOUT",
+	"TOOL_EXECUTION_FAILED",
+]);
+
+function providerErrorCode(value: unknown): DirectToolErrorCode {
+	return typeof value === "string" &&
+		providerErrorCodes.has(value as DirectToolErrorCode)
+		? (value as DirectToolErrorCode)
+		: "TOOL_PROVIDER_UNAVAILABLE";
+}
+
+function createProviderProcess(provider: ProviderName, workspaceRoot: string) {
+	let child: ChildProcess | undefined;
+	let pending: ProviderPending | undefined;
+	let sequence = 0;
+	let closed = false;
+	let serial = Promise.resolve();
+
+	const rejectPending = (error: Error) => {
+		if (!pending) return;
+		const tracked = pending;
+		pending = undefined;
+		clearTimeout(tracked.timer);
+		tracked.reject(error);
+	};
+	const ensureChild = () => {
+		if (closed)
+			throw new DirectToolError(
+				"TOOL_PROVIDER_UNAVAILABLE",
+				`${provider} provider is closed`,
+			);
+		if (child && child.exitCode === null && child.connected) return child;
+		const worker = fork(
+			fileURLToPath(import.meta.url),
+			["--provider-child", provider],
+			{
+				cwd: workspaceRoot,
+				env: safeEnvironment({}),
+				execArgv: [],
+				stdio: ["ignore", "ignore", "ignore", "ipc"],
+			},
+		);
+		child = worker;
+		worker.on("message", (raw: unknown) => {
+			if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return;
+			const message = raw as Partial<ProviderResponseMessage>;
+			if (
+				message.kind !== "response" ||
+				typeof message.id !== "string" ||
+				pending?.id !== message.id
+			)
+				return;
+			const tracked = pending;
+			pending = undefined;
+			clearTimeout(tracked.timer);
+			if (message.ok === true) tracked.resolve(message.value);
+			else {
+				const error = Reflect.get(message, "error");
+				tracked.reject(
+					new DirectToolError(
+						providerErrorCode(
+							typeof error === "object" && error !== null
+								? Reflect.get(error, "code")
+								: undefined,
+						),
+						typeof error === "object" &&
+							error !== null &&
+							typeof Reflect.get(error, "message") === "string"
+							? String(Reflect.get(error, "message"))
+							: `${provider} provider failed`,
+					),
+				);
+			}
+		});
+		worker.on("error", (error) => {
+			if (child === worker) child = undefined;
+			rejectPending(
+				new DirectToolError(
+					"TOOL_PROVIDER_UNAVAILABLE",
+					`${provider} provider child error: ${error.message}`,
+				),
+			);
+		});
+		worker.on("exit", (code, signal) => {
+			if (child === worker) child = undefined;
+			rejectPending(
+				new DirectToolError(
+					"TOOL_PROVIDER_UNAVAILABLE",
+					`${provider} provider child exited (${code ?? signal ?? "unknown"})`,
+				),
+			);
+		});
+		return worker;
+	};
+
+	const dispatch = (
+		operation: string,
+		payload: Record<string, unknown>,
+		timeoutMs: number,
+	) =>
+		new Promise<unknown>((resolveRequest, rejectRequest) => {
+			let worker: ChildProcess;
+			try {
+				worker = ensureChild();
+			} catch (error) {
+				rejectRequest(error);
+				return;
+			}
+			const id = `provider:${provider}:${++sequence}`;
+			const timer = setTimeout(() => {
+				if (pending?.id !== id) return;
+				pending = undefined;
+				rejectRequest(
+					new DirectToolError(
+						"TOOL_TIMEOUT",
+						`${provider} provider timed out`,
+					),
+				);
+				if (worker.exitCode === null) worker.kill("SIGKILL");
+			}, timeoutMs);
+			pending = { id, resolve: resolveRequest, reject: rejectRequest, timer };
+			const message: ProviderRequestMessage = {
+				kind: "request",
+				id,
+				operation,
+				payload,
+			};
+			worker.send(message, (error) => {
+				if (!error || pending?.id !== id) return;
+				const tracked = pending;
+				pending = undefined;
+				clearTimeout(tracked.timer);
+				rejectRequest(
+					new DirectToolError(
+						"TOOL_PROVIDER_UNAVAILABLE",
+						`${provider} provider IPC failed: ${error.message}`,
+					),
+				);
+			});
+		});
+
+	return Object.freeze({
+		request<T>(
+			operation: string,
+			payload: Record<string, unknown>,
+			timeoutMs: number,
+		): Promise<T> {
+			const run = serial.then(() => dispatch(operation, payload, timeoutMs));
+			serial = run.then(
+				() => undefined,
+				() => undefined,
+			);
+			return run as Promise<T>;
+		},
+		async close() {
+			closed = true;
+			rejectPending(
+				new DirectToolError(
+					"TOOL_PROVIDER_UNAVAILABLE",
+					`${provider} provider is stopping`,
+				),
+			);
+			const worker = child;
+			child = undefined;
+			if (!worker || worker.exitCode !== null) return;
+			worker.kill("SIGTERM");
+			const exited = await Promise.race([
+				new Promise<boolean>((resolveExit) =>
+					worker.once("exit", () => resolveExit(true)),
+				),
+				new Promise<boolean>((resolveWait) =>
+					setTimeout(() => resolveWait(false), 500),
+				),
+			]);
+			if (!exited && worker.exitCode === null) worker.kill("SIGKILL");
+		},
+	});
+}
+
+async function executeProviderChild(
+	provider: ProviderName,
+	operation: string,
+	payload: Record<string, unknown>,
+): Promise<unknown> {
+	if (provider === "repomix") {
+		if (operation !== "pack")
+			throw new DirectToolError(
+				"TOOL_INPUT_INVALID",
+				`unsupported Repomix provider operation: ${operation}`,
+			);
+		const { runDefaultAction } = await import("repomix");
+		const result = await runDefaultAction(
+			[String(payload.relativeDirectory)],
+			String(payload.workspaceRoot),
+			{
+				output: String(payload.outputPath),
+				compress: payload.compress === true,
+				...(typeof payload.include === "string"
+					? { include: payload.include }
+					: {}),
+				ignore: String(payload.ignore),
+				confineToBaseDir: true,
+				skipLocalConfig: true,
+				skipGlobalConfig: true,
+				securityCheck: true,
+				copy: false,
+				stdout: false,
+				quiet: true,
+			},
+		);
+		return {
+			totalFiles: result.packResult.totalFiles,
+			totalCharacters: result.packResult.totalCharacters,
+			totalTokens: result.packResult.totalTokens,
+		};
+	}
+	if (operation !== "explore")
+		throw new DirectToolError(
+			"TOOL_INPUT_INVALID",
+			`unsupported CodeGraph provider operation: ${operation}`,
+		);
+	const imported = await import("@colbymchenry/codegraph");
+	const sdk = (imported.default ?? imported) as unknown as CodeGraphSdk;
+	let projectRoot = sdk.findNearestCodeGraphRoot(String(payload.requestedDirectory));
+	if (!projectRoot)
+		throw new DirectToolError(
+			"TOOL_PROVIDER_UNAVAILABLE",
+			"CodeGraph has no existing index for the selected project",
+		);
+	projectRoot = await resolveProviderDirectory(String(payload.workspaceRoot), projectRoot);
+	let graph: CodeGraphHandle | undefined;
+	try {
+		graph = await sdk.CodeGraph.open(projectRoot, { sync: false, readOnly: true });
+		const maxFiles = Number(payload.maxFiles);
+		const stats = graph.getStats();
+		const context = await graph.buildContext(String(payload.query), {
+			maxNodes: Math.min(200, Math.max(20, maxFiles * 8)),
+			maxCodeBlocks: maxFiles,
+			maxCodeBlockSize: 6_000,
+			includeCode: true,
+			format: "markdown",
+			searchLimit: Math.min(20, Math.max(5, maxFiles)),
+			traversalDepth: 2,
+		});
+		const bounded = boundedText(String(context), TOOL_TEXT_RESULT_MAX_BYTES);
+		return {
+			projectPath: relative(String(payload.workspaceRoot), projectRoot) || ".",
+			context: bounded.text,
+			truncated: bounded.truncated,
+			indexState: graph.getIndexState(),
+			lastIndexedAt: graph.getLastIndexedAt(),
+			indexEngineStale: graph.isIndexStale(),
+			stats: { files: stats.fileCount, nodes: stats.nodeCount, edges: stats.edgeCount },
+		};
+	} finally {
+		graph?.close();
+	}
+}
+
+function runProviderChild(provider: ProviderName) {
+	process.on("message", (raw: unknown) => {
+		if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return;
+		const message = raw as Partial<ProviderRequestMessage>;
+		if (
+			message.kind !== "request" ||
+			typeof message.id !== "string" ||
+			typeof message.operation !== "string" ||
+			typeof message.payload !== "object" ||
+			message.payload === null ||
+			Array.isArray(message.payload)
+		)
+			return;
+		const messageId = message.id;
+		const operation = message.operation;
+		const payload = message.payload as Record<string, unknown>;
+		void executeProviderChild(provider, operation, payload)
+			.then((value) => {
+				process.send?.({
+					kind: "response",
+					id: messageId,
+					ok: true,
+					value,
+				} satisfies ProviderResponseMessage);
+			})
+			.catch((error) => {
+				process.send?.({
+					kind: "response",
+					id: messageId,
+					ok: false,
+					error: {
+						code:
+							error instanceof DirectToolError
+								? error.code
+								: "TOOL_PROVIDER_UNAVAILABLE",
+						message: error instanceof Error ? error.message : String(error),
+					},
+				} satisfies ProviderResponseMessage);
+			});
+	});
+	process.on("disconnect", () => process.exit(0));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -196,14 +537,23 @@ function lexicalPath(workspaceRoot: string, value: string): string {
 	return resolve(workspaceRoot, value);
 }
 
-function outsideNotice(
+async function canonicalNoticeTarget(
 	workspaceRoot: string,
 	path: string,
-): string | undefined {
-	const absolute = lexicalPath(workspaceRoot, path);
-	return within(workspaceRoot, absolute)
-		? undefined
-		: `Workspace notice: Local Dev will operate outside the default Workspace: ${absolute}`;
+): Promise<string> {
+	const lexical = lexicalPath(workspaceRoot, path);
+	try { return await realpath(lexical); } catch {
+		let ancestor = dirname(lexical);
+		while (true) {
+			try { const canonicalAncestor = await realpath(ancestor); return resolve(canonicalAncestor, relative(ancestor, lexical)); }
+			catch { const parent = dirname(ancestor); if (parent === ancestor) return lexical; ancestor = parent; }
+		}
+	}
+}
+
+async function outsideNotice(workspaceRoot: string, path: string): Promise<string | undefined> {
+	const actual = await canonicalNoticeTarget(workspaceRoot, path);
+	return within(workspaceRoot, actual) ? undefined : `Workspace notice: Local Dev will operate outside the default Workspace: ${actual}`;
 }
 
 function unique(values: Array<string | undefined>): string[] {
@@ -214,39 +564,13 @@ function unique(values: Array<string | undefined>): string[] {
 	];
 }
 
-function explicitPaths(request: DirectToolRequest): string[] {
-	if (request.tool !== "localDev") return [];
-	const input = inputObject(request.input);
-	if (request.operation === "read")
-		return stringValue(input.path, "path", true)
-			? [String(input.path)]
-			: stringArray(input.paths, "paths");
-	if (request.operation === "list")
-		return [String(stringValue(input.path, "path", true) ?? ".")];
-	if (request.operation === "search") {
-		const paths = stringArray(input.paths, "paths");
-		const path = stringValue(input.path, "path", true);
-		return path ? [path, ...paths] : paths;
-	}
-	if (request.operation === "mutate") {
-		const action = stringValue(input.action, "action");
-		if (action === "move")
-			return [
-				String(stringValue(input.source, "source")),
-				String(stringValue(input.destination, "destination")),
-			];
-		return [String(stringValue(input.path, "path"))];
-	}
-	if (request.operation === "run") {
-		const cwd = stringValue(input.cwd, "cwd", true);
-		return cwd ? [cwd] : [];
-	}
-	if (request.operation === "process") {
-		if (input.action === "start") {
-			const cwd = stringValue(input.cwd, "cwd", true);
-			return cwd ? [cwd] : [];
-		}
-	}
+function explicitPaths(workspaceRoot: string, request: DirectToolRequest): string[] {
+	if (request.tool !== "localDev") return []; const input = inputObject(request.input);
+	if (request.operation === "read") return stringValue(input.path, "path", true) ? [String(input.path)] : stringArray(input.paths, "paths");
+	if (request.operation === "list") return [String(stringValue(input.path, "path", true) ?? ".")];
+	if (request.operation === "search") { const paths = stringArray(input.paths, "paths"); const path = stringValue(input.path, "path", true); return path ? [path, ...paths] : paths; }
+	if (request.operation === "mutate") { const action = stringValue(input.action, "action"); if (action === "move") return [String(stringValue(input.source, "source")), String(stringValue(input.destination, "destination"))]; return [String(stringValue(input.path, "path"))]; }
+	if (request.operation === "run" || (request.operation === "process" && input.action === "start")) { const cwd = String(stringValue(input.cwd, "cwd", true) ?? "."); const cwdRoot = lexicalPath(workspaceRoot, cwd); const args = stringArray(input.args, "args").filter((arg) => isAbsolute(arg) || arg.startsWith("./") || arg.startsWith("../") || (!arg.startsWith("-") && arg.includes("/"))).map((arg) => isAbsolute(arg) ? arg : resolve(cwdRoot, arg)); return [cwd, ...args]; }
 	return [];
 }
 
@@ -267,19 +591,20 @@ async function existingRealPath(path: string): Promise<string> {
 	}
 }
 
-function protectedPath(workspaceRoot: string, absolute: string): boolean {
-	const rel = relative(workspaceRoot, absolute).split(sep).join("/");
+function protectedPath(absolute: string): boolean {
+	const normalized = resolve(absolute).split(sep).join("/");
 	return (
-		rel === ".proflow/secrets" ||
-		rel.startsWith(".proflow/secrets/") ||
-		/(^|\/)\.proflow\/runtime\/modules\/[^/]+\/secrets(\/|$)/.test(rel)
+		/(^|\/)\.proflow\/secrets(\/|$)/.test(normalized) ||
+		/(^|\/)\.proflow\/runtime\/modules\/[^/]+\/secrets(\/|$)/.test(
+			normalized,
+		)
 	);
 }
 
 async function resolveFilePath(
 	workspaceRoot: string,
 	value: string,
-	options: { allowMissing?: boolean; allowProtected?: boolean } = {},
+	options: { allowMissing?: boolean } = {},
 ): Promise<string> {
 	const lexical = lexicalPath(workspaceRoot, value);
 	const actual = options.allowMissing
@@ -287,7 +612,7 @@ async function resolveFilePath(
 				join(parent, basename(lexical)),
 			)
 		: await existingRealPath(lexical);
-	if (!options.allowProtected && protectedPath(workspaceRoot, actual))
+	if (protectedPath(actual))
 		throw new DirectToolError(
 			"TOOL_SCOPE_DENIED",
 			"direct file operations cannot access ProFlow credential storage",
@@ -505,22 +830,15 @@ export async function createDirectToolExecutor(
 	]);
 	const managed = new Map<string, ManagedProcess>();
 	const repomixOutputs = new Map<string, RepomixOutput>();
+	const repomixProvider = createProviderProcess("repomix", workspaceRoot);
+	const codeGraphProvider = createProviderProcess("codeGraph", workspaceRoot);
 
-	const prepare = async (
-		request: DirectToolRequest,
-	): Promise<DirectToolPreparation> => {
-		if (!directToolNames.includes(request.tool))
-			throw new DirectToolError(
-				"TOOL_INPUT_INVALID",
-				"unsupported direct tool",
-			);
-		return {
-			notices: unique(
-				explicitPaths(request).map((path) =>
-					outsideNotice(workspaceRoot, path),
-				),
-			),
-		};
+	const prepare = async (request: DirectToolRequest): Promise<DirectToolPreparation> => {
+		if (!directToolNames.includes(request.tool)) throw new DirectToolError("TOOL_INPUT_INVALID", "unsupported direct tool");
+		const input = inputObject(request.input);
+		const summary = request.tool === "localDev" && (request.operation === "run" || (request.operation === "process" && input.action === "start")) ? `role=${request.authenticatedRoleRef}; operation=${request.operation}; command=${basename(String(stringValue(input.command, "command")))}` : `role=${request.authenticatedRoleRef}; operation=${request.operation}`;
+		const notices = await Promise.all(explicitPaths(workspaceRoot, request).map((path) => outsideNotice(workspaceRoot, path)));
+		return { notices: unique(notices).map((notice) => `${notice}; ${summary}`) };
 	};
 
 	const requireManaged = (processRef: string, roleRef: string) => {
@@ -660,107 +978,16 @@ export async function createDirectToolExecutor(
 		}
 		if (request.operation === "mutate") {
 			const action = String(stringValue(input.action, "action"));
-			if (action === "move") {
-				const source = await resolveFilePath(
-					workspaceRoot,
-					String(stringValue(input.source, "source")),
-				);
-				const destination = await resolveFilePath(
-					workspaceRoot,
-					String(stringValue(input.destination, "destination")),
-					{ allowMissing: true },
-				);
-				await mkdir(dirname(destination), { recursive: true });
-				await rename(source, destination);
-				return { action, source, destination };
-			}
-			const path = await resolveFilePath(
-				workspaceRoot,
-				String(stringValue(input.path, "path")),
-				{
-					allowMissing:
-						action === "create" || action === "write" || action === "mkdir",
-				},
-			);
-			if (action === "mkdir")
-				await mkdir(path, { recursive: Boolean(input.recursive ?? true) });
-			else if (action === "delete")
-				await rm(path, {
-					recursive: Boolean(input.recursive),
-					force: Boolean(input.force),
-				});
-			else if (action === "create") {
-				await mkdir(dirname(path), {
-					recursive: Boolean(input.createParents ?? true),
-				});
-				await writeFile(path, String(input.content ?? ""), {
-					encoding: "utf8",
-					flag: "wx",
-				});
-			} else if (action === "write") {
-				await mkdir(dirname(path), {
-					recursive: Boolean(input.createParents ?? true),
-				});
-				await writeFile(path, String(input.content ?? ""), "utf8");
-			} else if (action === "edit") {
-				const oldText = String(stringValue(input.oldText, "oldText"));
-				const newText = typeof input.newText === "string" ? input.newText : "";
-				const current = await readFile(path, "utf8");
-				const occurrences = current.split(oldText).length - 1;
-				const expected = integerValue(
-					input.expectedReplacements,
-					"expectedReplacements",
-					1,
-					1,
-					10_000,
-				);
-				if (occurrences !== expected)
-					throw new DirectToolError(
-						"TOOL_EXECUTION_FAILED",
-						`edit expected ${expected} occurrence(s), found ${occurrences}`,
-					);
-				await writeFile(path, current.split(oldText).join(newText), "utf8");
-			} else {
-				throw new DirectToolError(
-					"TOOL_INPUT_INVALID",
-					"unsupported mutate action",
-				);
-			}
-			return { action, path };
+			if (action === "move") { const source = await resolveFilePath(workspaceRoot, String(stringValue(input.source, "source"))); const destination = await resolveFilePath(workspaceRoot, String(stringValue(input.destination, "destination")), { allowMissing: true }); deadlineRemaining(request, now); await mkdir(dirname(destination), { recursive: true }); deadlineRemaining(request, now); await rename(source, destination); return { action, source, destination }; }
+			const path = await resolveFilePath(workspaceRoot, String(stringValue(input.path, "path")), { allowMissing: action === "create" || action === "write" || action === "mkdir" });
+			if (action === "mkdir") { deadlineRemaining(request, now); await mkdir(path, { recursive: Boolean(input.recursive ?? true) }); }
+			else if (action === "delete") { deadlineRemaining(request, now); await rm(path, { recursive: Boolean(input.recursive), force: Boolean(input.force) }); }
+			else if (action === "create") { deadlineRemaining(request, now); await mkdir(dirname(path), { recursive: Boolean(input.createParents ?? true) }); deadlineRemaining(request, now); await writeFile(path, String(input.content ?? ""), { encoding: "utf8", flag: "wx" }); }
+			else if (action === "write") { deadlineRemaining(request, now); await mkdir(dirname(path), { recursive: Boolean(input.createParents ?? true) }); deadlineRemaining(request, now); await writeFile(path, String(input.content ?? ""), "utf8"); }
+			else if (action === "edit") { const oldText = String(stringValue(input.oldText, "oldText")); const newText = typeof input.newText === "string" ? input.newText : ""; const current = await readFile(path, "utf8"); const occurrences = current.split(oldText).length - 1; const expected = integerValue(input.expectedReplacements, "expectedReplacements", 1, 1, 10_000); if (occurrences !== expected) throw new DirectToolError("TOOL_EXECUTION_FAILED", `edit expected ${expected} occurrence(s), found ${occurrences}`); deadlineRemaining(request, now); await writeFile(path, current.split(oldText).join(newText), "utf8"); }
+			else throw new DirectToolError("TOOL_INPUT_INVALID", "unsupported mutate action"); return { action, path };
 		}
-		if (request.operation === "run") {
-			const command = String(stringValue(input.command, "command"));
-			const args = stringArray(input.args, "args");
-			assertSafeCommand(command, args);
-			const cwd = await resolveFilePath(
-				workspaceRoot,
-				String(stringValue(input.cwd, "cwd", true) ?? "."),
-				{ allowProtected: true },
-			);
-			const maxOutputBytes = integerValue(
-				input.maxOutputBytes,
-				"maxOutputBytes",
-				64_000,
-				1,
-				250_000,
-			);
-			const requestedTimeout = integerValue(
-				input.timeoutMs,
-				"timeoutMs",
-				30_000,
-				1,
-				40_000,
-			);
-			const result = await spawnCaptured({
-				command,
-				args,
-				cwd,
-				env: safeEnvironment(envObject(input.env)),
-				timeoutMs: Math.max(1, Math.min(requestedTimeout, remaining - 50)),
-				maxOutputBytes,
-			});
-			return result;
-		}
+		if (request.operation === "run") { const command = String(stringValue(input.command, "command")); const args = stringArray(input.args, "args"); assertSafeCommand(command, args); const cwd = await resolveFilePath(workspaceRoot, String(stringValue(input.cwd, "cwd", true) ?? ".")); const maxOutputBytes = integerValue(input.maxOutputBytes, "maxOutputBytes", 64_000, 1, 250_000); const requestedTimeout = integerValue(input.timeoutMs, "timeoutMs", 30_000, 1, 40_000); const effectRemaining = deadlineRemaining(request, now); if (effectRemaining <= 50) throw new DirectToolError("TOOL_TIMEOUT", "tool request expired before command spawn"); return spawnCaptured({ command, args, cwd, env: safeEnvironment(envObject(input.env)), timeoutMs: Math.max(1, Math.min(requestedTimeout, effectRemaining - 50)), maxOutputBytes }); }
 		if (request.operation === "process") {
 			const action = String(stringValue(input.action, "action"));
 			if (action === "list") {
@@ -808,7 +1035,6 @@ export async function createDirectToolExecutor(
 				const cwd = await resolveFilePath(
 					workspaceRoot,
 					String(stringValue(input.cwd, "cwd", true) ?? "."),
-					{ allowProtected: true },
 				);
 				const processRef = `process:${generation}:${idFactory()}`;
 				const stdoutPath = join(
@@ -823,18 +1049,71 @@ export async function createDirectToolExecutor(
 					writeFile(stdoutPath, "", { mode: 0o600 }),
 					writeFile(stderrPath, "", { mode: 0o600 }),
 				]);
+				deadlineRemaining(request, now);
 				const child = spawn(command, args, {
 					cwd,
 					env: safeEnvironment(envObject(input.env)),
 					stdio: ["pipe", "pipe", "pipe"],
 					shell: false,
 				});
+				let runtimeError: Error | undefined;
+				child.on("error", (error) => {
+					runtimeError = error;
+				});
+				let outputWriteChain = Promise.resolve();
+				const persist = (path: string, chunk: Buffer) => {
+					outputWriteChain = outputWriteChain
+						.then(() => appendFile(path, chunk))
+						.catch((error) => {
+							runtimeError =
+								error instanceof Error ? error : new Error(String(error));
+						});
+				};
+				child.stdout.on("data", (chunk: Buffer) => persist(stdoutPath, chunk));
+				child.stderr.on("data", (chunk: Buffer) => persist(stderrPath, chunk));
+				try {
+					await new Promise<void>((resolveSpawn, rejectSpawn) => {
+						const onError = (error: Error) => {
+							child.off("spawn", onSpawn);
+							rejectSpawn(error);
+						};
+						const onSpawn = () => {
+							child.off("error", onError);
+							resolveSpawn();
+						};
+						child.once("error", onError);
+						child.once("spawn", onSpawn);
+					});
+				} catch (error) {
+					await Promise.allSettled([
+						rm(stdoutPath, { force: true }),
+						rm(stderrPath, { force: true }),
+					]);
+					throw new DirectToolError(
+						"TOOL_EXECUTION_FAILED",
+						error instanceof Error
+							? `managed process failed to spawn: ${error.message}`
+							: "managed process failed to spawn",
+					);
+				}
 				if (!child.pid)
 					throw new DirectToolError(
 						"TOOL_EXECUTION_FAILED",
 						"managed process did not expose a pid",
 					);
-				const record: ManagedProcess = {
+				let record: ManagedProcess;
+				const exitPromise = new Promise<number>((resolveExit) => {
+					child.once("close", (code) => {
+						const finalCode = code ?? 1;
+						void outputWriteChain.finally(() => {
+							record.exitCode = finalCode;
+							record.exitedAt = now().toISOString();
+							if (runtimeError) record.runtimeError = runtimeError.message;
+							resolveExit(finalCode);
+						});
+					});
+				});
+				record = {
 					processRef,
 					roleRef: request.authenticatedRoleRef,
 					generation,
@@ -847,20 +1126,10 @@ export async function createDirectToolExecutor(
 					stderrPath,
 					startedAt: now().toISOString(),
 					exitCode: null,
+					exitPromise,
+					...(runtimeError ? { runtimeError: runtimeError.message } : {}),
 				};
 				managed.set(processRef, record);
-				child.stdout.on(
-					"data",
-					(chunk: Buffer) => void appendFile(stdoutPath, chunk),
-				);
-				child.stderr.on(
-					"data",
-					(chunk: Buffer) => void appendFile(stderrPath, chunk),
-				);
-				child.once("close", (code) => {
-					record.exitCode = code ?? 1;
-					record.exitedAt = now().toISOString();
-				});
 				return { processRef, pid: child.pid, cwd, startedAt: record.startedAt };
 			}
 			const processRef = String(stringValue(input.processRef, "processRef"));
@@ -898,18 +1167,57 @@ export async function createDirectToolExecutor(
 				};
 			}
 			if (action === "input") {
-				if (record.exitCode !== null)
+				deadlineRemaining(request, now);
+				if (record.exitCode !== null || !record.child.stdin.writable)
 					throw new DirectToolError(
 						"TOOL_HANDLE_INVALID",
-						"process already exited",
+						"process stdin is no longer writable",
 					);
 				const data = typeof input.data === "string" ? input.data : "";
-				record.child.stdin.write(data);
+				await new Promise<void>((resolveWrite, rejectWrite) => {
+					record.child.stdin.write(data, (error) => {
+						if (error) rejectWrite(error);
+						else resolveWrite();
+					});
+				}).catch((error) => {
+					throw new DirectToolError(
+						"TOOL_EXECUTION_FAILED",
+						error instanceof Error ? error.message : "process stdin write failed",
+					);
+				});
 				return { processRef, accepted: true };
 			}
 			if (action === "stop") {
+				deadlineRemaining(request, now);
 				if (record.exitCode === null) record.child.kill("SIGTERM");
-				return { processRef, stopped: true };
+				if (record.exitCode === null) {
+					const waitMs = Math.max(1, Math.min(1_000, remaining));
+					const exited = await Promise.race([
+						record.exitPromise.then(() => true),
+						new Promise<boolean>((resolveWait) =>
+							setTimeout(() => resolveWait(false), waitMs),
+						),
+					]);
+					if (!exited && record.exitCode === null) {
+						record.child.kill("SIGKILL");
+						const finalRemaining = deadlineRemaining(request, now);
+						const forced = await Promise.race([
+							record.exitPromise.then(() => true),
+							new Promise<boolean>((resolveWait) =>
+								setTimeout(
+									() => resolveWait(false),
+									Math.max(1, Math.min(1_000, finalRemaining)),
+								),
+							),
+						]);
+						if (!forced)
+							throw new DirectToolError(
+								"TOOL_TIMEOUT",
+								"managed process did not stop before the tool deadline",
+							);
+					}
+				}
+				return { processRef, stopped: true, exitCode: record.exitCode };
 			}
 			throw new DirectToolError(
 				"TOOL_INPUT_INVALID",
@@ -1005,25 +1313,29 @@ export async function createDirectToolExecutor(
 				`${createHash("sha256").update(outputId).digest("hex")}.md`,
 			);
 			const relativeDirectory = relative(workspaceRoot, sourceDirectory) || ".";
-			let result: Awaited<ReturnType<typeof runDefaultAction>>;
+			let result: {
+				totalFiles: number;
+				totalCharacters: number;
+				totalTokens: number;
+			};
 			try {
-				result = await runDefaultAction([relativeDirectory], workspaceRoot, {
-					output: outputPath,
-					compress: input.compress === true,
-					...(includePatterns.length
-						? { include: includePatterns.join(",") }
-						: {}),
-					ignore: ["**/.proflow/**", ...ignorePatterns].join(","),
-					confineToBaseDir: true,
-					skipLocalConfig: true,
-					skipGlobalConfig: true,
-					securityCheck: true,
-					copy: false,
-					stdout: false,
-					quiet: true,
-				});
+				result = await repomixProvider.request(
+					"pack",
+					{
+						workspaceRoot,
+						relativeDirectory,
+						outputPath,
+						compress: input.compress === true,
+						...(includePatterns.length
+							? { include: includePatterns.join(",") }
+							: {}),
+						ignore: ["**/.proflow/**", ...ignorePatterns].join(","),
+					},
+					Math.max(1, deadlineRemaining(request, now) - 50),
+				);
 			} catch (error) {
 				await rm(outputPath, { force: true });
+				if (error instanceof DirectToolError) throw error;
 				throw new DirectToolError(
 					"TOOL_EXECUTION_FAILED",
 					error instanceof Error ? error.message : "Repomix pack failed",
@@ -1052,9 +1364,9 @@ export async function createDirectToolExecutor(
 				sourceDirectory,
 				createdAt: stamp,
 				expiresAt: stamp + REPOMIX_OUTPUT_TTL_MS,
-				totalFiles: result.packResult.totalFiles,
-				totalCharacters: result.packResult.totalCharacters,
-				totalTokens: result.packResult.totalTokens,
+				totalFiles: result.totalFiles,
+				totalCharacters: result.totalCharacters,
+				totalTokens: result.totalTokens,
 			};
 			repomixOutputs.set(outputId, record);
 			return {
@@ -1193,53 +1505,18 @@ export async function createDirectToolExecutor(
 			workspaceRoot,
 			requestedPath,
 		);
-		let projectRoot = findNearestCodeGraphRoot(requestedDirectory);
-		if (!projectRoot)
-			throw new DirectToolError(
-				"TOOL_PROVIDER_UNAVAILABLE",
-				"CodeGraph has no existing index for the selected project",
-			);
-		projectRoot = await resolveProviderDirectory(workspaceRoot, projectRoot);
-		deadlineRemaining(request, now);
-		let graph: Awaited<ReturnType<typeof CodeGraph.open>> | undefined;
 		try {
-			graph = await CodeGraph.open(projectRoot, {
-				sync: false,
-				readOnly: true,
-			});
-			const stats = graph.getStats();
-			const context = await graph.buildContext(query, {
-				maxNodes: Math.min(200, Math.max(20, maxFiles * 8)),
-				maxCodeBlocks: maxFiles,
-				maxCodeBlockSize: 6_000,
-				includeCode: true,
-				format: "markdown",
-				searchLimit: Math.min(20, Math.max(5, maxFiles)),
-				traversalDepth: 2,
-			});
-			deadlineRemaining(request, now);
-			const bounded = boundedText(String(context), TOOL_TEXT_RESULT_MAX_BYTES);
-			return {
-				projectPath: relative(workspaceRoot, projectRoot) || ".",
-				context: bounded.text,
-				truncated: bounded.truncated,
-				indexState: graph.getIndexState(),
-				lastIndexedAt: graph.getLastIndexedAt(),
-				indexEngineStale: graph.isIndexStale(),
-				stats: {
-					files: stats.fileCount,
-					nodes: stats.nodeCount,
-					edges: stats.edgeCount,
-				},
-			};
+			return await codeGraphProvider.request(
+				"explore",
+				{ workspaceRoot, requestedDirectory, query, maxFiles },
+				Math.max(1, deadlineRemaining(request, now) - 50),
+			);
 		} catch (error) {
 			if (error instanceof DirectToolError) throw error;
 			throw new DirectToolError(
 				"TOOL_PROVIDER_UNAVAILABLE",
 				error instanceof Error ? error.message : "CodeGraph explore failed",
 			);
-		} finally {
-			graph?.close();
 		}
 	};
 
@@ -1256,8 +1533,22 @@ export async function createDirectToolExecutor(
 		prepare,
 		execute,
 		async close() {
-			for (const record of managed.values())
-				if (record.exitCode === null) record.child.kill("SIGTERM");
+			await Promise.allSettled([repomixProvider.close(), codeGraphProvider.close()]);
+			await Promise.allSettled(
+				[...managed.values()].map(async (record) => {
+					if (record.exitCode === null) record.child.kill("SIGTERM");
+					if (record.exitCode === null) {
+						const exited = await Promise.race([
+							record.exitPromise.then(() => true),
+							new Promise<boolean>((resolveWait) =>
+								setTimeout(() => resolveWait(false), 500),
+							),
+						]);
+						if (!exited && record.exitCode === null) record.child.kill("SIGKILL");
+					}
+					await record.exitPromise;
+				}),
+			);
 			managed.clear();
 			await Promise.allSettled(
 				[...repomixOutputs.values()].map((record) =>
@@ -1268,3 +1559,13 @@ export async function createDirectToolExecutor(
 		},
 	});
 }
+
+
+const providerChildEntry =
+	process.argv[1] &&
+	resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url)) &&
+	process.argv[2] === "--provider-child"
+		? process.argv[3]
+		: undefined;
+if (providerChildEntry === "repomix" || providerChildEntry === "codeGraph")
+	runProviderChild(providerChildEntry);

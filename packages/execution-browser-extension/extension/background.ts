@@ -87,6 +87,7 @@ type BridgeCommand = {
 	roleRef?: string;
 	workerRef?: string;
 	conversationLocator?: string;
+	wakeGuard?: { taskId: string; roleRef: string; workerRef: string; conversationLocator: string };
 };
 type ContentSnapshotRequest = { type: "PROFLOW_PAGE_SNAPSHOT_REQUEST" };
 type ContentCommand = {
@@ -154,6 +155,8 @@ type ChromeRuntime = {
 	};
 	action: {
 		onClicked: { addListener(listener: () => void): void };
+		setBadgeText(details: { text: string }): Promise<void>;
+		setTitle(details: { title: string }): Promise<void>;
 	};
 	notifications: {
 		create(
@@ -1353,6 +1356,7 @@ async function executeCommand(command: BridgeCommand): Promise<unknown> {
 	if (command.type === "SUBMIT") {
 		const before = observationFor(tabId);
 		const fingerprint = text(command.fingerprint, "FINGERPRINT");
+			if (command.wakeGuard && carrierContinuationControl.hasMatchingDispatchDenial(command.wakeGuard)) throw new Error("CARRIER_CONTINUATION_HUMAN_DENIED");
 		try {
 			await contentCommand(tabId, {
 				operation: "submit",
@@ -1549,30 +1553,7 @@ async function bridgeFetch(
 }
 
 let localToolBridgeLoopStarted = false;
-async function showLocalToolNotices(command: Record<string, unknown>) {
-	const notices = command.notices;
-	if (!Array.isArray(notices)) return;
-	const message = notices
-		.filter(
-			(item): item is string => typeof item === "string" && item.length > 0,
-		)
-		.slice(0, 5)
-		.join("\n");
-	if (!message) return;
-	await chrome.notifications.create(
-		`proflow-local-tool:${crypto.randomUUID()}`,
-		{
-			type: "basic",
-			iconUrl:
-				"data:image/svg+xml;charset=utf-8," +
-				encodeURIComponent(
-					'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#111827"/><path d="M16 34h32M32 18v32" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>',
-				),
-			title: "ProFlow Workspace notice",
-			message,
-		},
-	);
-}
+async function showLocalToolNotices(command: Record<string, unknown>) { const notices = command.notices; if (!Array.isArray(notices)) return; const rendered = notices.filter((item): item is string => typeof item === "string" && item.length > 0); const message = rendered.join("\n").slice(0, 3500); if (!message) return; try { await chrome.notifications.create(`proflow-local-tool:${crypto.randomUUID()}`, { type: "basic", iconUrl: "data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#111827"/><path d="M16 34h32M32 18v32" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>'), title: "ProFlow Workspace notice", message }); } catch (error) { console.warn("PROFLOW_LOCAL_TOOL_NOTICE_FALLBACK", { commandId: command.commandId, notices: rendered, error: error instanceof Error ? error.message : String(error) }); await Promise.allSettled([chrome.action.setBadgeText({ text: "!" }), chrome.action.setTitle({ title: `ProFlow Workspace notice: ${message.slice(0, 400)}` })]); } }
 
 async function runLocalToolBridgeLoop() {
 	if (localToolBridgeLoopStarted) return;

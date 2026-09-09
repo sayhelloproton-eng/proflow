@@ -43,6 +43,8 @@ export interface LocalToolBridgeOptions {
 	port?: number;
 	heartbeatFreshnessMs?: number;
 	commandTimeoutMs?: number;
+	maxConcurrentCommands?: number;
+	maxPendingCommands?: number;
 	now?: () => Date;
 	idFactory?: () => string;
 	prepare?: (
@@ -146,13 +148,7 @@ const bridgeErrorCodes = new Set<LocalToolBridgeError["code"]>([
 	"LOCAL_TOOL_COMMAND_FAILED",
 ]);
 
-function potentialEffect(command: LocalToolCommand): boolean {
-	if (command.tool !== "localDev") return false;
-	if (command.operation === "mutate" || command.operation === "run")
-		return true;
-	if (command.operation !== "process" || !isRecord(command.input)) return false;
-	return ["start", "input", "stop"].includes(String(command.input.action));
-}
+function potentialEffect(command: Pick<LocalToolCommandInput, "tool" | "operation" | "input">): boolean { if (command.tool !== "localDev") return false; if (command.operation === "mutate" || command.operation === "run") return true; if (command.operation !== "process" || !isRecord(command.input)) return false; return ["start", "input", "stop"].includes(String(command.input.action)); }
 
 function normalizeProviderError(
 	command: LocalToolCommand,
@@ -311,9 +307,15 @@ export async function createLocalToolBridgeServer(
 	const idFactory = options.idFactory ?? randomUUID;
 	const freshnessMs = options.heartbeatFreshnessMs ?? 10_000;
 	const commandTimeoutMs = options.commandTimeoutMs ?? 40_000;
+	const maxConcurrentCommands = Math.max(1, Math.min(8, options.maxConcurrentCommands ?? 4));
+	const maxPendingCommands = Math.max(maxConcurrentCommands, Math.min(256, options.maxPendingCommands ?? 128));
 	const expectedOrigin = `chrome-extension://${options.extensionId}`;
 	const queue: LocalToolCommand[] = [];
 	const pending = new Map<string, PendingCommand>();
+	const reservations = new Map<string, "shared" | "exclusive">(); let activeShared = 0; let activeExclusive = false;
+	const canReserve = (command: LocalToolCommand) => potentialEffect(command) ? !activeExclusive && activeShared === 0 : !activeExclusive && activeShared < maxConcurrentCommands;
+	const reserve = (command: LocalToolCommand) => { const kind = potentialEffect(command) ? "exclusive" : "shared"; if (kind === "exclusive") activeExclusive = true; else activeShared += 1; reservations.set(command.commandId, kind); };
+	const releaseReservation = (commandId: string) => { const kind = reservations.get(commandId); if (!kind) return; reservations.delete(commandId); if (kind === "exclusive") activeExclusive = false; else activeShared = Math.max(0, activeShared - 1); };
 	let session:
 		| {
 				extensionInstanceId: string;
@@ -358,88 +360,10 @@ export async function createLocalToolBridgeServer(
 			);
 	};
 
-	const failPending = (commandId: string, error: Error) => {
-		const tracked = pending.get(commandId);
-		if (!tracked) return;
-		pending.delete(commandId);
-		clearTimeout(tracked.timer);
-		tracked.reject(error);
-	};
-	const completePending = (commandId: string, value: unknown) => {
-		const tracked = pending.get(commandId);
-		if (!tracked) return;
-		pending.delete(commandId);
-		clearTimeout(tracked.timer);
-		tracked.resolve(value);
-	};
+	const failPending = (commandId: string, error: Error) => { const tracked = pending.get(commandId); if (!tracked) return; pending.delete(commandId); releaseReservation(commandId); clearTimeout(tracked.timer); tracked.reject(error); };
+	const completePending = (commandId: string, value: unknown) => { const tracked = pending.get(commandId); if (!tracked) return; pending.delete(commandId); releaseReservation(commandId); clearTimeout(tracked.timer); tracked.resolve(value); };
 
-	const enqueue = async (input: LocalToolCommandInput) => {
-		if (!consumerReady())
-			return Promise.reject(
-				new LocalToolBridgeError(
-					"LOCAL_TOOL_OFFLINE",
-					"local tool extension consumer is not ready",
-				),
-			);
-		const remaining = Date.parse(input.deadlineAt) - now().getTime();
-		if (remaining <= 0)
-			return Promise.reject(
-				new LocalToolBridgeError(
-					"LOCAL_TOOL_COMMAND_TIMEOUT",
-					"local tool command expired before enqueue",
-				),
-			);
-		const prepared = options.prepare ? await options.prepare(input) : undefined;
-		const notices = uniqueNotices([
-			...(input.notices ?? []),
-			...(prepared?.notices ?? []),
-		]);
-		const preparedInput: LocalToolCommandInput = {
-			...input,
-			...(notices.length ? { notices } : {}),
-		};
-		const commandId = `local-tool-command:${idFactory()}`;
-		const command: LocalToolCommand = {
-			...preparedInput,
-			commandId,
-			generation: options.generation,
-			commandDigest: commandDigest(preparedInput),
-		};
-		return new Promise<unknown>((resolvePromise, rejectPromise) => {
-			const timer = setTimeout(
-				() => {
-					const tracked = pending.get(commandId);
-					if (!tracked) return;
-					if (tracked.stage === "QUEUED") {
-						const index = queue.findIndex(
-							(item) => item.commandId === commandId,
-						);
-						if (index >= 0) queue.splice(index, 1);
-					}
-					failPending(
-						commandId,
-						new LocalToolBridgeError(
-							tracked.stage === "EXECUTING"
-								? "LOCAL_TOOL_RESULT_UNKNOWN"
-								: "LOCAL_TOOL_COMMAND_TIMEOUT",
-							tracked.stage === "EXECUTING"
-								? "local tool command timed out after effect start"
-								: "local tool command expired before effect start",
-						),
-					);
-				},
-				Math.max(1, Math.min(commandTimeoutMs, remaining)),
-			);
-			pending.set(commandId, {
-				command,
-				stage: "QUEUED",
-				resolve: resolvePromise,
-				reject: rejectPromise,
-				timer,
-			});
-			queue.push(command);
-		});
-	};
+	const enqueue = async (input: LocalToolCommandInput) => { if (!consumerReady()) return Promise.reject(new LocalToolBridgeError("LOCAL_TOOL_OFFLINE", "local tool extension consumer is not ready")); if (pending.size >= maxPendingCommands) return Promise.reject(new LocalToolBridgeError("LOCAL_TOOL_COMMAND_FAILED", "local tool admission capacity is exhausted")); let remaining = Date.parse(input.deadlineAt) - now().getTime(); if (remaining <= 0) return Promise.reject(new LocalToolBridgeError("LOCAL_TOOL_COMMAND_TIMEOUT", "local tool command expired before enqueue")); const prepared = options.prepare ? await options.prepare(input) : undefined; remaining = Date.parse(input.deadlineAt) - now().getTime(); if (remaining <= 0) return Promise.reject(new LocalToolBridgeError("LOCAL_TOOL_COMMAND_TIMEOUT", "local tool command expired during prepare")); const notices = uniqueNotices([...(input.notices ?? []), ...(prepared?.notices ?? [])]); const preparedInput: LocalToolCommandInput = { ...input, ...(notices.length ? { notices } : {}) }; const commandId = `local-tool-command:${idFactory()}`; const command: LocalToolCommand = { ...preparedInput, commandId, generation: options.generation, commandDigest: commandDigest(preparedInput) }; return new Promise<unknown>((resolvePromise, rejectPromise) => { const timer = setTimeout(() => { const tracked = pending.get(commandId); if (!tracked) return; if (tracked.stage === "QUEUED") { const index = queue.findIndex((item) => item.commandId === commandId); if (index >= 0) queue.splice(index, 1); } failPending(commandId, new LocalToolBridgeError(tracked.stage === "EXECUTING" ? "LOCAL_TOOL_RESULT_UNKNOWN" : "LOCAL_TOOL_COMMAND_TIMEOUT", tracked.stage === "EXECUTING" ? "local tool command timed out after effect start" : "local tool command expired before effect start")); }, Math.max(1, Math.min(commandTimeoutMs, remaining))); pending.set(commandId, { command, stage: "QUEUED", resolve: resolvePromise, reject: rejectPromise, timer }); queue.push(command); }); };
 
 	const server = createServer(async (request, response) => {
 		try {
@@ -456,6 +380,7 @@ export async function createLocalToolBridgeServer(
 					generation: options.generation,
 					queuedCommands: queue.length,
 					pendingCommands: pending.size,
+					executingCommands: activeShared + (activeExclusive ? 1 : 0),
 				});
 				return;
 			}
@@ -542,71 +467,8 @@ export async function createLocalToolBridgeServer(
 				send(response, 200, { accepted: true });
 				return;
 			}
-			if (
-				request.method === "GET" &&
-				url.pathname === "/v1/local-tools/commands/next"
-			) {
-				const stamp = now().getTime();
-				if (session) session.lastHeartbeatAt = stamp;
-				lastCommandPollAt = stamp;
-				const command = queue.shift();
-				if (command) {
-					const tracked = pending.get(command.commandId);
-					if (tracked) tracked.stage = "CLAIMED";
-				}
-				send(response, command ? 200 : 204, command);
-				return;
-			}
-			if (
-				request.method === "POST" &&
-				url.pathname === "/v1/local-tools/commands/execute"
-			) {
-				const body = await readJson(request);
-				if (!isRecord(body))
-					throw new LocalToolBridgeError(
-						"LOCAL_TOOL_INPUT_INVALID",
-						"local tool execute request must be an object",
-					);
-				const commandId = nonEmpty(body.commandId, "commandId");
-				const generation = nonEmpty(body.generation, "generation");
-				const digest = nonEmpty(body.commandDigest, "commandDigest");
-				if (generation !== options.generation)
-					throw new LocalToolBridgeError(
-						"LOCAL_TOOL_AUTH_INVALID",
-						"stale local tool bridge generation",
-					);
-				const tracked = pending.get(commandId);
-				if (
-					!tracked ||
-					tracked.stage !== "CLAIMED" ||
-					tracked.command.commandDigest !== digest
-				)
-					throw new LocalToolBridgeError(
-						"LOCAL_TOOL_INPUT_INVALID",
-						"local tool command is stale, unknown, or already executed",
-					);
-				tracked.stage = "EXECUTING";
-				// Crossing this endpoint is the Extension Effect Gate. Return immediately
-				// so the MV3 loop can keep its own heartbeat while Node executes the provider.
-				send(response, 202, { accepted: true });
-				void Promise.resolve()
-					.then(() => {
-						if (!options.execute)
-							throw new LocalToolBridgeError(
-								"LOCAL_TOOL_PROVIDER_UNAVAILABLE",
-								"local tool provider is not wired yet",
-							);
-						return options.execute(tracked.command);
-					})
-					.then((value) => completePending(commandId, value))
-					.catch((error) =>
-						failPending(
-							commandId,
-							normalizeProviderError(tracked.command, error),
-						),
-					);
-				return;
-			}
+			if (request.method === "GET" && url.pathname === "/v1/local-tools/commands/next") { const stamp = now().getTime(); if (session) session.lastHeartbeatAt = stamp; lastCommandPollAt = stamp; const next = queue[0]; const command = next && canReserve(next) ? queue.shift() : undefined; if (command) { reserve(command); const tracked = pending.get(command.commandId); if (tracked) tracked.stage = "CLAIMED"; } send(response, command ? 200 : 204, command); return; }
+			if (request.method === "POST" && url.pathname === "/v1/local-tools/commands/execute") { const body = await readJson(request); if (!isRecord(body)) throw new LocalToolBridgeError("LOCAL_TOOL_INPUT_INVALID", "local tool execute request must be an object"); const commandId = nonEmpty(body.commandId, "commandId"); const generation = nonEmpty(body.generation, "generation"); const digest = nonEmpty(body.commandDigest, "commandDigest"); if (generation !== options.generation) throw new LocalToolBridgeError("LOCAL_TOOL_AUTH_INVALID", "stale local tool bridge generation"); const tracked = pending.get(commandId); if (!tracked || tracked.stage !== "CLAIMED" || tracked.command.commandDigest !== digest) throw new LocalToolBridgeError("LOCAL_TOOL_INPUT_INVALID", "local tool command is stale, unknown, or already executed"); if (Date.parse(tracked.command.deadlineAt) - now().getTime() <= 0) { failPending(commandId, new LocalToolBridgeError("LOCAL_TOOL_COMMAND_TIMEOUT", "local tool command expired at the Effect Gate")); throw new LocalToolBridgeError("LOCAL_TOOL_COMMAND_TIMEOUT", "local tool command expired at the Effect Gate"); } tracked.stage = "EXECUTING"; send(response, 202, { accepted: true }); void Promise.resolve().then(() => { if (!options.execute) throw new LocalToolBridgeError("LOCAL_TOOL_PROVIDER_UNAVAILABLE", "local tool provider is not wired yet"); return options.execute(tracked.command); }).then((value) => completePending(commandId, value)).catch((error) => failPending(commandId, normalizeProviderError(tracked.command, error))); return; }
 			send(response, 404, { error: "NOT_FOUND" });
 		} catch (error) {
 			const bridgeError =
@@ -647,6 +509,7 @@ export async function createLocalToolBridgeServer(
 			generation: options.generation,
 			queuedCommands: queue.length,
 			pendingCommands: pending.size,
+			executingCommands: activeShared + (activeExclusive ? 1 : 0),
 		}),
 		async close() {
 			if (closed) return;
@@ -704,33 +567,7 @@ export function createLocalToolBridgeHostClient(options: {
 			if (!response.ok) throw new Error("LOCAL_TOOL_BRIDGE_STATUS_FAILED");
 			return (await response.json()) as unknown;
 		},
-		async request(input: LocalToolCommandInput) {
-			const remaining = Date.parse(input.deadlineAt) - Date.now();
-			if (remaining <= 0)
-				throw new LocalToolBridgeError(
-					"LOCAL_TOOL_COMMAND_TIMEOUT",
-					"local tool command expired before transport",
-				);
-			const response = await fetch(
-				new URL("/v1/local-tools/commands", endpoint),
-				{
-					method: "POST",
-					headers: {
-						authorization: `Bearer ${options.token}`,
-						"content-type": "application/json",
-					},
-					body: JSON.stringify(input),
-					signal: AbortSignal.timeout(
-						Math.max(1, Math.min(41_000, remaining + 1_000)),
-					),
-				},
-			);
-			const body = (await response.json()) as unknown;
-			if (!response.ok || !isRecord(body) || body.ok !== true) {
-				const code = parsedBridgeError(body) ?? "LOCAL_TOOL_COMMAND_FAILED";
-				throw new LocalToolBridgeError(code, code);
-			}
-			return body.value;
+		async request(input: LocalToolCommandInput) { const remaining = Date.parse(input.deadlineAt) - Date.now(); if (remaining <= 0) throw new LocalToolBridgeError("LOCAL_TOOL_COMMAND_TIMEOUT", "local tool command expired before transport"); let response: Response; try { response = await fetch(new URL("/v1/local-tools/commands", endpoint), { method: "POST", headers: { authorization: `Bearer ${options.token}`, "content-type": "application/json" }, body: JSON.stringify(input), signal: AbortSignal.timeout(Math.max(1, Math.min(41_000, remaining + 1_000))) }); } catch (error) { if (potentialEffect(input)) throw new LocalToolBridgeError("LOCAL_TOOL_RESULT_UNKNOWN", "local tool transport disconnected after dispatch; observe reality before replay"); const timedOut = error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError"); throw new LocalToolBridgeError(timedOut ? "LOCAL_TOOL_COMMAND_TIMEOUT" : "LOCAL_TOOL_OFFLINE", timedOut ? "local tool transport timed out" : "local tool bridge transport is unavailable"); } const body = (await response.json()) as unknown; if (!response.ok || !isRecord(body) || body.ok !== true) { const code = parsedBridgeError(body) ?? "LOCAL_TOOL_COMMAND_FAILED"; throw new LocalToolBridgeError(code, code); } return body.value;
 		},
 	});
 }

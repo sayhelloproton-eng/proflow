@@ -416,7 +416,8 @@ export async function createAgentGateway(options: GatewayOptions) {
 				40_000,
 				options.actionTimeoutMs ?? 40_000,
 			);
-			const deadlineAt = new Date(now() + actionTimeoutMs).toISOString();
+			const propagationReserveMs = Math.min(1_500, Math.max(100, Math.floor(actionTimeoutMs / 10)));
+			const deadlineAt = new Date(now() + Math.max(1, actionTimeoutMs - propagationReserveMs)).toISOString();
 			const actionSignal = AbortSignal.timeout(actionTimeoutMs);
 			const operation =
 				action.uncertain && options.owners.lookupResult
