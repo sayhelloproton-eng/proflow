@@ -198,6 +198,10 @@
   dir: packages/agent-runtime
   intents:
     - social-pugs-doubt
+"@tomflow/proflow-agent-runtime@0.1.15":
+  dir: packages/agent-runtime
+  intents:
+    - agent-runtime-break-runtime-cycle
 "@tomflow/proflow-agent-runtime@0.1.2":
   dir: packages/agent-runtime
   intents:
