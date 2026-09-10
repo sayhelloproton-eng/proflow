@@ -45,6 +45,9 @@ export type RoleMappingDecision =
 
 const REQUIRED_CONTEXT_WINDOW = 16_384;
 const REQUIRED_MAX_OUTPUT_TOKENS = 2_048;
+const PROVIDER_BUSY_RETRY_COUNT = 3;
+const PROVIDER_BUSY_RETRY_DELAY_MS = 5_000;
+
 function eligibleFast(item: ModelDeploymentEvidence): boolean {
 	return (
 		item.text &&
@@ -320,31 +323,44 @@ export function createOpenAIModelDeploymentProbe(input: {
 	const baseUrl = input.baseUrl.replace(/\/+$/, "");
 	const endpoint = `${baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`}/chat/completions`;
 	const invoke = async (body: Record<string, unknown>) => {
-		const controller = new AbortController();
-		const timer = setTimeout(() => controller.abort(), timeoutMs);
 		try {
-			const response = await fetchImplementation(endpoint, {
-				method: "POST",
-				headers: {
-					"content-type": "application/json",
-					...(input.credential
-						? { authorization: `Bearer ${input.credential}` }
-						: {}),
-				},
-				body: JSON.stringify(body),
-				signal: controller.signal,
-			});
-			if (!response.ok)
-				throw new Error(`capability probe returned HTTP ${response.status}`);
-			return completionContent(await response.json());
+			for (let busyAttempt = 0; busyAttempt <= PROVIDER_BUSY_RETRY_COUNT; busyAttempt += 1) {
+				const controller = new AbortController();
+				const timer = setTimeout(() => controller.abort(), timeoutMs);
+				let response: Response;
+				try {
+					response = await fetchImplementation(endpoint, {
+						method: "POST",
+						headers: {
+							"content-type": "application/json",
+							...(input.credential
+								? { authorization: `Bearer ${input.credential}` }
+								: {}),
+						},
+						body: JSON.stringify(body),
+						signal: controller.signal,
+					});
+				} finally {
+					clearTimeout(timer);
+				}
+				if (
+					response.status === 409 &&
+					busyAttempt < PROVIDER_BUSY_RETRY_COUNT
+				) {
+					await sleep(PROVIDER_BUSY_RETRY_DELAY_MS);
+					continue;
+				}
+				if (!response.ok)
+					throw new Error(`capability probe returned HTTP ${response.status}`);
+				return completionContent(await response.json());
+			}
+			throw new Error("provider capability probe exhausted busy retries");
 		} catch (error) {
 			throw new Error(
 				error instanceof Error
 					? error.message
 					: "provider capability probe failed",
 			);
-		} finally {
-			clearTimeout(timer);
 		}
 	};
 	return async (model: {
