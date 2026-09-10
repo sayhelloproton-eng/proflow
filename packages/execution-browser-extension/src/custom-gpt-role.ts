@@ -58,6 +58,7 @@ export type CreateCustomGptRolePorts = {
 		carrierUrl: string;
 		gatewayUrl: string;
 		credential: string;
+		materialObservation: unknown;
 	}): Promise<void>;
 	createProvisioningHost?: (input: {
 		workspaceRoot: string;
@@ -168,6 +169,7 @@ export async function createCustomGptRole(
 				carrierUrl: result.carrierUrl,
 				gatewayUrl: input.gatewayUrl,
 				credential,
+				materialObservation: result.materialObservation,
 			});
 			return result;
 		} finally {

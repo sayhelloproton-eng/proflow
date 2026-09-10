@@ -1,3 +1,4 @@
+import { agentMaterialReleaseErrors } from "./agent-material-release-guard.mjs";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 
@@ -96,7 +97,7 @@ function diff(left, right) {
 }
 
 async function main() {
-	const errors = [];
+	const errors = await agentMaterialReleaseErrors(ROOT);
 	const packagesRoot = resolve(ROOT, "packages");
 	const packageDirs = (await readdir(packagesRoot, { withFileTypes: true }))
 		.filter((e) => e.isDirectory())

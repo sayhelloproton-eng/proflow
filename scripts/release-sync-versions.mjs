@@ -1,3 +1,5 @@
+import { recordReleasedAgentMaterials } from "./agent-material-release-guard.mjs";
+import { repositoryRoot } from "./package-selection.mjs";
 import { access, readdir, readFile, writeFile } from "node:fs/promises";
 import { resolveRequestedPackages } from "./package-selection.mjs";
 
@@ -122,6 +124,9 @@ for (const directory of packageDirectories) {
 }
 
 await Promise.all(writes);
+if (mode === "--write") {
+	await recordReleasedAgentMaterials(repositoryRoot, packageDirectories, { skipUnchanged: true });
+}
 
 if (mode === "--write" && drifts.length > 0) {
 	console.log(

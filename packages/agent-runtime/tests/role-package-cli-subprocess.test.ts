@@ -216,7 +216,8 @@ test("PRESMOKE-B6-ROLE-CLI real subprocesses route the full frozen role/key surf
 				"--gateway-url",
 				gateway.baseUrl,
 			]);
-			assert.equal(validated.status, "PASS");
+			assert.equal(validated.status, "FAIL");
+			assert.match(JSON.stringify(validated), /ROLE_CARRIER_MATERIAL_UNVERIFIED/);
 			await runCli(role.cli, ["role", "delete", ...common]);
 			await runCli(role.cli, ["role", "key", "show", ...common]);
 			await runCli(role.cli, ["role", "key", "rotate", ...common]);

@@ -312,6 +312,8 @@ async function waitForKnowledgeName(name: string): Promise<void> {
 
 async function uploadKnowledge(files: readonly CustomGptKnowledgeFile[]) {
 	for (const descriptor of files) {
+		if (knowledgeReadbackMatches(descriptor.name))
+			throw new Error(`GPT_EDITOR_KNOWLEDGE_CONTENT_UNVERIFIED:${descriptor.name}`);
 		const input = await knowledgeFileInput();
 		const bytes = await fetchKnowledgeRelay(descriptor.url);
 		if (bytes.byteLength !== descriptor.sizeBytes)
@@ -783,7 +785,7 @@ function starterReadbackMatches(values: readonly string[]): boolean {
 	);
 }
 
-function modelReadbackMatches(value: string): boolean {
+function modelReadbackValue(value: string): string | null {
 	try {
 		const selector = findControl([
 			"Recommended model",
@@ -793,18 +795,32 @@ function modelReadbackMatches(value: string): boolean {
 		]);
 		if (selector instanceof HTMLSelectElement) {
 			const option = selector.selectedOptions[0];
-			return Boolean(
-				option &&
-					(option.value === value ||
-						normalize(option.textContent).endsWith(`(${normalize(value)})`)),
-			);
+			if (!option) return null;
+			if (option.value === value) return option.value;
+			const observed = (option.textContent ?? "").trim();
+			if (observed === value) return observed;
+			const trailing = /\(([^()]+)\)\s*$/.exec(observed)?.[1]?.trim();
+			return trailing === value ? trailing : null;
 		}
-		return semanticValues(selector).some((candidate) =>
-			candidate.includes(normalize(value)),
-		);
+		for (const candidate of [
+			selector.getAttribute("data-value"),
+			selector.getAttribute("value"),
+			selector.textContent,
+		]) {
+			if (!candidate) continue;
+			const observed = candidate.trim();
+			if (observed === value) return observed;
+			const trailing = /\(([^()]+)\)\s*$/.exec(observed)?.[1]?.trim();
+			if (trailing === value) return trailing;
+		}
+		return null;
 	} catch {
-		return false;
+		return null;
 	}
+}
+
+function modelReadbackMatches(value: string): boolean {
+	return modelReadbackValue(value) === value;
 }
 
 function capabilityReadbackMatches(
@@ -882,16 +898,59 @@ async function verifyConfiguredMaterial(
 		await waitForReadback(
 			`GPT_EDITOR_KNOWLEDGE_READBACK_MISMATCH:${file.name}`,
 			() => knowledgeReadbackMatches(file.name),
-		);
+			);
 	await waitForReadback(
 		"GPT_EDITOR_DRAFT_ID_NOT_READY",
 		() => currentGptId() !== null,
 	);
-	await waitForReadback(
-		"GPT_EDITOR_CREATE_NOT_READY",
-		() => publishCreateButton() !== null,
-	);
 	assertNoVisibleEditorFailure();
+}
+
+function capabilityReadbackValue(capability: CustomGptCapability): boolean {
+	const control = findControl(capabilityLabels[capability]);
+	if (control instanceof HTMLInputElement && control.type === "checkbox")
+		return control.checked;
+	return control.getAttribute("aria-checked") === "true";
+}
+
+async function verifiedPublishedMaterial(material: CustomGptProvisioningRequest) {
+	await verifyConfiguredMaterial(material);
+	await openExistingActionEditor();
+	const schema = actionSchemaControl();
+	if (!schema) throw new Error("GPT_EDITOR_ACTION_SCHEMA_NOT_FOUND");
+	const actionSchema = controlValue(schema);
+	await returnFromActionEditor();
+	const starters = conversationStarterControls(material.conversationStarters.length);
+	if (starters.length < material.conversationStarters.length)
+		throw new Error("GPT_EDITOR_STARTER_CONTROL_NOT_FOUND");
+	const recommendedModel = modelReadbackValue(material.recommendedModel);
+	if (!recommendedModel) throw new Error("GPT_EDITOR_MODEL_READBACK_MISMATCH");
+	return {
+		displayName: controlValue(findControl(fieldLabels.displayName)),
+		description: controlValue(findControl(fieldLabels.description)),
+		instructions: controlValue(findControl(fieldLabels.instructions)),
+		actionSchema,
+		conversationStarters: material.conversationStarters.map(
+			(_value, index) => controlValue(starters[index] as HTMLElement),
+		),
+		recommendedModel,
+		capabilities: {
+			webSearch: capabilityReadbackValue("webSearch"),
+			imageGeneration: capabilityReadbackValue("imageGeneration"),
+			codeInterpreter: capabilityReadbackValue("codeInterpreter"),
+		},
+	};
+}
+
+async function updateExistingGpt() {
+	assertNoVisibleEditorFailure();
+	const expectedGptId = currentGptId();
+	if (!expectedGptId) throw new Error("GPT_EDITOR_GPT_ID_MISSING");
+	(await waitForAuthSemantic(document, ["Update", "更新"])).click();
+	await waitForReadback("GPT_EDITOR_UPDATE_TIMEOUT", savedConfirmationVisible);
+	const actualGptId = currentGptId();
+	if (actualGptId !== expectedGptId) throw new Error("GPT_EDITOR_UPDATE_TARGET_MISMATCH");
+	return { gptId: actualGptId, carrierUrl: `https://chatgpt.com/g/${actualGptId}` };
 }
 
 async function openPrivateCreateSurface(
@@ -1024,6 +1083,9 @@ const domPort: CustomGptEditorPort = {
 	async createPrivate() {
 		return createPrivateGpt();
 	},
+	async updateExisting() {
+		return updateExistingGpt();
+	},
 };
 
 const editorDriver = createCustomGptEditorDriver(domPort);
@@ -1040,10 +1102,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 			if (message.operation === "PROVISION_CUSTOM_GPT") {
 				const material = parseCustomGptProvisioningRequest(message.request);
 				const result = await editorDriver.provision(material);
+				const published = await verifiedPublishedMaterial(material);
 				sendResponse({
 					ok: true,
 					value: {
 						...result,
+						materialObservation: {
+							contract: "proflow.role-carrier-material-observation.v1",
+							source: "LIVE_CARRIER",
+							roleRef: result.gptId,
+							carrierUrl: result.carrierUrl,
+							observedAt: new Date().toISOString(),
+							material: published,
+						},
 						provisioningInstanceId: provisioningSurface.instanceId,
 						url: location.href,
 					},
@@ -1058,6 +1129,29 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 			if (typeof credential !== "string" || credential.length < 32)
 				throw new Error("ROLE_CREDENTIAL_INVALID");
 			try {
+				if (message.request.material !== undefined) {
+					const material = parseCustomGptProvisioningRequest(message.request.material);
+					const configured = { ...material, bearerCredential: credential };
+					const result = await editorDriver.synchronizeExisting(configured);
+					if (result.gptId !== expectedGptId)
+						throw new Error("GPT_EDITOR_UPDATE_TARGET_MISMATCH");
+					const published = await verifiedPublishedMaterial(configured);
+					sendResponse({
+						ok: true,
+						value: {
+							...result,
+							materialObservation: {
+								contract: "proflow.role-carrier-material-observation.v1",
+								source: "LIVE_CARRIER",
+								roleRef: result.gptId,
+								carrierUrl: result.carrierUrl,
+								observedAt: new Date().toISOString(),
+								material: published,
+							},
+						},
+					});
+					return;
+				}
 				const result = await finalizeBearerAuth(credential);
 				if (result.gptId !== expectedGptId)
 					throw new Error("GPT_EDITOR_AUTH_TARGET_MISMATCH");

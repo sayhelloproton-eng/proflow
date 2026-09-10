@@ -146,7 +146,7 @@ v1 决策仍然是：
 
 > 每个 Agent Package 静态维护一份 Action Schema。
 
-即使使用 URL 导入，也不假设 GPT 会自动持续同步 URL 内容。包升级后的 Web materialization 仍由 owning `Module.setup` / Browser Extension 依据真实 Role 状态处理；机器可以完成的字段配置不得重新退回人工复制粘贴。当前 `DRIFT` 不自动 Edit 既有 GPT，而是 fail closed；需要更新 Carrier 时走显式 recreate，新 GPT 成功后再替换 current binding。
+即使使用 URL 导入，也不假设 GPT 会自动持续同步 URL 内容。包升级后的 Web materialization 仍由 owning `Module.setup` / Browser Extension 依据真实 Role 状态处理；机器可以完成的字段配置不得重新退回人工复制粘贴。当前 `DRIFT` fail closed；必须保留已有 Role/GPT identity，由显式更新已有 GPT 的流程同步 material。更新能力缺失时返回 ACTION_REQUIRED，不得用 recreate/duplicate GPT 绕过。
 
 ---
 
@@ -209,7 +209,7 @@ Agent Package material
 → ChatGPT /gpts/editor / /gpts/editor/*
 → deterministic DOM/Web materialization
 → MISSING 时 private create；READY 时复用；DRIFT fail closed
-→ explicit recreate 时创建新 g-id 并替换 current binding
+→ explicit update existing GPT；更新能力缺失则 ACTION_REQUIRED，保留原 g-id
 → real g-id / carrier reality
 ```
 
@@ -245,6 +245,17 @@ Create 前 API Key/Bearer 已保存并通过 bounded UI readback；重开 secret
 ```
 
 任何 Browser check 无法确定时均不得将 Role 标为 READY；最终仍需要真实 GPT → Gateway 身份探针证明 Carrier 可工作。
+
+### 2026-09-11 Material identity 防漂移
+
+发行身份 `packageName + packageVersion` 与内容完整性 `materialFingerprint` 必须同时一致。相同版本但内容不同是 `ROLE_CARRIER_MATERIAL_DRIFT`；没有可信已发布配置回读、只有 draft/local echo、证据过期或必需字段缺失是 `ROLE_CARRIER_MATERIAL_UNVERIFIED`，不得自动升级 READY。
+
+canonical fingerprint v1 包含 package name/version、display name、description、Instructions（只规范换行和首尾空白）、完整 Action Schema（解析 JSON/YAML 后规范对象键序）、有序 conversation starters、recommended model、capabilities、declared requirements、Knowledge ZIP 的 SHA-256。Schema 包含当前 Gateway origin；不删除路径、参数、operation 或 auth 定义来消除漂移。Context/Memory 只有显式进入部署 material/Knowledge ZIP 时才进入远端 fingerprint，但 authoring 资产变更仍需要 release intent。
+
+Browser owner 必须回读实际已发布 material，不得将输入的 expected material 作为 observation 返回，不得以上传文件名代替 Knowledge 内容 hash，不得以页面上自报 fingerprint 字符串代替实际内容。当前本地 material comparison/证据消费能力与完整 Live reader 是两项不同能力；未接入 reader 时必须保持 ACTION_REQUIRED。Registered Role 的本地登记一致性不是 Carrier READY。
+
+发现 drift 后只允许显式更新/验证原 GPT；TaskRoleBinding、Worker 与 Conversation identity 不随验证失败重建。本轮规则替代此前以 recreate 作为默认漂移恢复的约定。
+
 
 
 ---

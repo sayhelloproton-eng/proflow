@@ -1,3 +1,4 @@
+import { agentMaterialReleaseErrors } from "./agent-material-release-guard.mjs";
 import { execFileSync, spawnSync } from "node:child_process";
 import {
 	mkdirSync,
@@ -29,6 +30,8 @@ const selectedPackages =
 			);
 
 try {
+	const materialErrors = await agentMaterialReleaseErrors(repositoryRoot, { selectedDirs: selectedPackages.map((pkg) => pkg.dirName), requireReleased: true });
+	if (materialErrors.length) throw new Error(materialErrors.join("\n"));
 	mkdirSync(tarballRoot, { recursive: true });
 	mkdirSync(consumerRoot, { recursive: true });
 	const packageDirectories = selectedPackages.map((pkg) => pkg.directory);

@@ -1,3 +1,4 @@
+import { agentMaterialReleaseErrors } from "./agent-material-release-guard.mjs";
 import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { promisify } from "node:util";
 import { listWorkspacePackages, repositoryRoot } from "./package-selection.mjs";
@@ -271,6 +272,9 @@ async function publishMissing(releases) {
 		console.log(`Registry exact PASS: ${item.name}@${item.version}`);
 	}
 }
+
+const materialErrors = await agentMaterialReleaseErrors(repositoryRoot);
+if (materialErrors.length) throw new Error(materialErrors.join("\n"));
 
 let releaseSet = resolveReleaseSet(runReleasePlan());
 let mode = "pending-changeset";

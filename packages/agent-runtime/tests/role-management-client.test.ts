@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -65,7 +65,7 @@ test("CP-AGT-RUNTIME-11 role carrier validation parses local OpenAPI and proves 
 	assert.deepEqual(validateLocalRoleOpenApi(openApi), []);
 	assert.deepEqual(
 		await validateRoleCarrier({ gatewayUrl, credential, openApiText: openApi }),
-		{ status: "PASS", issues: [] },
+		{ status: "FAIL", issues: ["ROLE_CARRIER_MATERIAL_UNVERIFIED"], materialObservation: undefined },
 	);
 	let transientActionAttempts = 0;
 	const transientActionFetch: typeof globalThis.fetch = async (
@@ -84,7 +84,7 @@ test("CP-AGT-RUNTIME-11 role carrier validation parses local OpenAPI and proves 
 			{ gatewayUrl, credential, openApiText: openApi },
 			{ fetch: transientActionFetch, retryDelayMs: 0 },
 		),
-		{ status: "PASS", issues: [] },
+		{ status: "FAIL", issues: ["ROLE_CARRIER_MATERIAL_UNVERIFIED"], materialObservation: undefined },
 	);
 	assert.equal(transientActionAttempts, 2);
 	let rejectedActionAttempts = 0;
@@ -114,7 +114,22 @@ test("CP-AGT-RUNTIME-11 role carrier validation parses local OpenAPI and proves 
 test("CP-AGT-RUNTIME-12 carrier validation evidence is exact and secret-free", async (context) => {
 	const workspaceRoot = await mkdtemp(join(tmpdir(), "proflow-role-carrier-"));
 	context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+	const expectedMaterial = {
+		packageName: "@tomflow/proflow-agent-test-ops", version: "0.1.15", displayName: "Test", description: "Test role", instructions: "Use localDev.", actionSchema: openApi,
+		conversationStarters: ["Test"], recommendedModel: "gpt-5-6", capabilities: { webSearch: true, imageGeneration: true, codeInterpreter: true }, requirements: { actions: "required" as const }, knowledgeBundleSha256: `sha256:${"a".repeat(64)}`,
+	};
+	const publishedMaterial = {
+		displayName: expectedMaterial.displayName,
+		description: expectedMaterial.description,
+		instructions: expectedMaterial.instructions,
+		actionSchema: expectedMaterial.actionSchema,
+		conversationStarters: expectedMaterial.conversationStarters,
+		recommendedModel: expectedMaterial.recommendedModel,
+		capabilities: expectedMaterial.capabilities,
+	};
 	const evidence = {
+		expectedMaterial,
+		materialObservation: { contract: "proflow.role-carrier-material-observation.v1", source: "LIVE_CARRIER", roleRef: "g-test-ops", carrierUrl: "https://chatgpt.com/g/g-test-ops", observedAt: new Date().toISOString(), material: publishedMaterial },
 		workspaceRoot,
 		agentPackageRef: "@tomflow/proflow-agent-test-ops",
 		registeredPackageVersion: "0.1.15",
@@ -123,6 +138,17 @@ test("CP-AGT-RUNTIME-12 carrier validation evidence is exact and secret-free", a
 		gatewayUrl: "https://gateway.example.test/",
 	};
 	assert.equal(await hasCurrentRoleCarrierValidationEvidence(evidence), false);
+	await assert.rejects(recordRoleCarrierValidationEvidence({ ...evidence, materialObservation: undefined }), /ROLE_CARRIER_MATERIAL_UNVERIFIED/);
+	const validation = await validateRoleCarrier({ expectedMaterial, roleRef: evidence.roleRef, carrierUrl: evidence.carrierUrl, gatewayUrl: evidence.gatewayUrl, credential: "fixture-role-key", openApiText: openApi }, {
+		readLiveMaterial: async () => evidence.materialObservation,
+		fetch: async (input) => new Response("{}", { status: String(input).endsWith("/health") ? 200 : 400 }),
+	});
+	assert.equal(validation.status, "PASS");
+	const denied = await validateRoleCarrier({ expectedMaterial, roleRef: evidence.roleRef, carrierUrl: evidence.carrierUrl, gatewayUrl: evidence.gatewayUrl, credential: "fixture-role-key", openApiText: openApi }, {
+		readLiveMaterial: async () => evidence.materialObservation,
+		fetch: async (input) => new Response("{}", { status: String(input).endsWith("/health") ? 200 : 403 }),
+	});
+	assert.ok(denied.issues.includes("GATEWAY_ROLE_OPERATION_DENIED"));
 	await recordRoleCarrierValidationEvidence(evidence);
 	assert.equal(await hasCurrentRoleCarrierValidationEvidence(evidence), true);
 	for (const changed of [
@@ -130,6 +156,7 @@ test("CP-AGT-RUNTIME-12 carrier validation evidence is exact and secret-free", a
 		{ registeredPackageVersion: "0.1.16" },
 		{ carrierUrl: "https://chatgpt.com/g/g-other" },
 		{ gatewayUrl: "https://gateway-other.example.test/" },
+		{ expectedMaterial: { ...expectedMaterial, instructions: "old instructions" } },
 	]) {
 		assert.equal(
 			await hasCurrentRoleCarrierValidationEvidence({
@@ -151,4 +178,9 @@ test("CP-AGT-RUNTIME-12 carrier validation evidence is exact and secret-free", a
 		"utf8",
 	);
 	assert.doesNotMatch(persisted, /credential|secret|bearer/i);
+	const evidencePath = join(workspaceRoot, ".proflow", "state", "agent", "role-carrier-validation", `${encodeURIComponent(evidence.agentPackageRef)}.json`);
+	await writeFile(evidencePath, JSON.stringify({ ...JSON.parse(persisted), observedAt: "2020-01-01T00:00:00.000Z" }));
+	assert.equal(await hasCurrentRoleCarrierValidationEvidence(evidence), false);
+	await writeFile(evidencePath, JSON.stringify({ ...JSON.parse(persisted), contract: "proflow.role-carrier-validation.v1" }));
+	assert.equal(await hasCurrentRoleCarrierValidationEvidence(evidence), false);
 });

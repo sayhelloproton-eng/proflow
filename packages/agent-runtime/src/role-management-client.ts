@@ -5,6 +5,10 @@ import { readModuleSharedFacts } from "@tomflow/proflow-module-contract";
 import { parse } from "yaml";
 import { createAgentRuntime, inspectDurableRoleRegistration } from "./index.ts";
 
+import { compareRoleCarrierMaterial, roleCarrierMaterialFingerprint, type RoleCarrierMaterial } from "./role-carrier-material.ts";
+export { compareRoleCarrierMaterial, readExpectedRoleCarrierMaterial, roleCarrierMaterialFingerprint } from "./role-carrier-material.ts";
+export type { RoleCarrierMaterial, RoleCarrierMaterialIssue } from "./role-carrier-material.ts";
+
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
 function parseLoopbackUrl(value: string) {
@@ -47,6 +51,9 @@ export type RoleCarrierValidationInput = {
 	gatewayUrl: string;
 	credential: string;
 	openApiText: string;
+	expectedMaterial?: RoleCarrierMaterial;
+	roleRef?: string;
+	carrierUrl?: string;
 };
 
 export type RoleCarrierValidationEvidenceInput = {
@@ -56,6 +63,8 @@ export type RoleCarrierValidationEvidenceInput = {
 	roleRef: string;
 	carrierUrl: string;
 	gatewayUrl: string;
+	expectedMaterial?: RoleCarrierMaterial;
+	materialObservation?: unknown;
 };
 
 function roleCarrierValidationEvidencePath(
@@ -72,36 +81,34 @@ function roleCarrierValidationEvidencePath(
 	);
 }
 
-export async function hasCurrentRoleCarrierValidationEvidence(
-	input: RoleCarrierValidationEvidenceInput,
-) {
+export async function inspectRoleCarrierValidationEvidence(input: RoleCarrierValidationEvidenceInput): Promise<{ current: boolean; issue?: "ROLE_CARRIER_MATERIAL_DRIFT" | "ROLE_CARRIER_MATERIAL_UNVERIFIED" }> {
+	const unverified = { current: false, issue: "ROLE_CARRIER_MATERIAL_UNVERIFIED" } as const;
+	if (!input.expectedMaterial) return unverified;
 	try {
-		const raw = JSON.parse(
-			await readFile(
-				roleCarrierValidationEvidencePath(
-					input.workspaceRoot,
-					input.agentPackageRef,
-				),
-				"utf8",
-			),
-		) as Record<string, unknown>;
-		return (
-			raw.contract === "proflow.role-carrier-validation.v1" &&
-			raw.agentPackageRef === input.agentPackageRef &&
-			raw.registeredPackageVersion === input.registeredPackageVersion &&
-			raw.roleRef === input.roleRef &&
-			raw.carrierUrl === input.carrierUrl &&
-			raw.gatewayUrl === input.gatewayUrl &&
-			typeof raw.validatedAt === "string"
-		);
-	} catch {
-		return false;
-	}
+		const value: unknown = JSON.parse(await readFile(roleCarrierValidationEvidencePath(input.workspaceRoot, input.agentPackageRef), "utf8"));
+		if (typeof value !== "object" || value === null || Array.isArray(value)) return unverified;
+		const raw = value as Record<string, unknown>;
+		if (raw.contract !== "proflow.role-carrier-validation.v2" || raw.agentPackageRef !== input.agentPackageRef || raw.registeredPackageVersion !== input.registeredPackageVersion || raw.roleRef !== input.roleRef || raw.carrierUrl !== input.carrierUrl || raw.gatewayUrl !== input.gatewayUrl) return unverified;
+		const expected = roleCarrierMaterialFingerprint(input.expectedMaterial);
+		if (typeof raw.materialFingerprint !== "string" || !/^sha256:[a-f0-9]{64}$/.test(raw.materialFingerprint)) return unverified;
+		if (raw.materialFingerprint !== expected) return { current: false, issue: "ROLE_CARRIER_MATERIAL_DRIFT" };
+		if (typeof raw.observedAt !== "string") return unverified;
+		const age = Date.now() - Date.parse(raw.observedAt);
+		if (!Number.isFinite(age) || age < 0 || age > 60_000) return unverified;
+		return { current: true };
+	} catch { return unverified; }
+}
+
+export async function hasCurrentRoleCarrierValidationEvidence(input: RoleCarrierValidationEvidenceInput) {
+	return (await inspectRoleCarrierValidationEvidence(input)).current;
 }
 
 export async function recordRoleCarrierValidationEvidence(
 	input: RoleCarrierValidationEvidenceInput,
 ) {
+	if (!input.expectedMaterial || input.expectedMaterial.packageName !== input.agentPackageRef || input.expectedMaterial.version !== input.registeredPackageVersion) throw new Error("ROLE_CARRIER_MATERIAL_UNVERIFIED");
+	const comparison = compareRoleCarrierMaterial({ expected: input.expectedMaterial, roleRef: input.roleRef, carrierUrl: input.carrierUrl, observation: input.materialObservation });
+	if (comparison.status !== "MATCH") throw new Error(comparison.issue);
 	const path = roleCarrierValidationEvidencePath(
 		input.workspaceRoot,
 		input.agentPackageRef,
@@ -112,7 +119,9 @@ export async function recordRoleCarrierValidationEvidence(
 		temporary,
 		`${JSON.stringify(
 			{
-				contract: "proflow.role-carrier-validation.v1",
+				contract: "proflow.role-carrier-validation.v2",
+				materialFingerprint: comparison.fingerprint,
+				observedAt: comparison.observedAt,
 				agentPackageRef: input.agentPackageRef,
 				registeredPackageVersion: input.registeredPackageVersion,
 				roleRef: input.roleRef,
@@ -172,9 +181,16 @@ export async function validateRoleCarrier(
 	dependencies?: {
 		fetch?: typeof globalThis.fetch;
 		retryDelayMs?: number;
+		readLiveMaterial?: () => Promise<unknown>;
 	},
 ) {
 	const issues = validateLocalRoleOpenApi(input.openApiText);
+	let materialObservation: unknown;
+	try { materialObservation = await dependencies?.readLiveMaterial?.(); } catch { /* unavailable is not proof of drift or readiness */ }
+	const comparison = input.expectedMaterial && input.roleRef && input.carrierUrl
+		? compareRoleCarrierMaterial({ expected: input.expectedMaterial, roleRef: input.roleRef, carrierUrl: input.carrierUrl, observation: materialObservation })
+		: { status: "FAIL" as const, issue: "ROLE_CARRIER_MATERIAL_UNVERIFIED" as const };
+	if (comparison.status !== "MATCH") issues.push(comparison.issue);
 	const gatewayUrl = parseGatewayUrl(input.gatewayUrl);
 	const fetchImplementation = dependencies?.fetch ?? globalThis.fetch;
 	try {
@@ -198,6 +214,7 @@ export async function validateRoleCarrier(
 				},
 			);
 			if (probe.status === 401) issues.push("GATEWAY_ROLE_KEY_REJECTED");
+			else if (probe.status === 403) issues.push("GATEWAY_ROLE_OPERATION_DENIED");
 			else if (probe.status === 404 || probe.status >= 500)
 				issues.push(`GATEWAY_ACTION_PROBE_HTTP_${probe.status}`);
 			break;
@@ -214,6 +231,7 @@ export async function validateRoleCarrier(
 	return {
 		status: issues.length === 0 ? ("PASS" as const) : ("FAIL" as const),
 		issues,
+		materialObservation,
 	};
 }
 
@@ -245,6 +263,7 @@ export async function createWorkspaceRoleSetupClient(workspaceRoot: string) {
 		}) {
 			return inspectDurableRoleRegistration({ proflowRoot, ...input });
 		},
+		showRoleCredentialByRef: (roleRef: string) => runtime.showCredential(roleRef),
 		async showRoleCredential(input: {
 			agentPackageRef: string;
 			expectedPackageVersion: string;

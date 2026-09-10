@@ -1,0 +1,20 @@
+{
+  "agent-product": {
+    "packageName": "@tomflow/proflow-agent-product",
+    "version": "0.1.16",
+    "fingerprint": "sha256:67baf9c9fd5e1d5451ceff0d691fc6c016dc06d478fadca572b8001365197253",
+    "sourceCommit": "ed0c4efb2dbaca964ef104ab56f9bac935e6cd55"
+  },
+  "agent-controller-dev": {
+    "packageName": "@tomflow/proflow-agent-controller-dev",
+    "version": "0.1.18",
+    "fingerprint": "sha256:32ad7be6202f936486c2586e3f778c7b2cc826b24333f9d1df8e2f15c0a0a2dc",
+    "sourceCommit": "0f76e4607e384f7e47e37892ad69b363bc3728bf"
+  },
+  "agent-test-ops": {
+    "packageName": "@tomflow/proflow-agent-test-ops",
+    "version": "0.1.18",
+    "fingerprint": "sha256:862dd666b92fe711f6a0d16402d75cc2be24c5787877f3abe9a68ef6231f24e4",
+    "sourceCommit": "0f76e4607e384f7e47e37892ad69b363bc3728bf"
+  }
+}

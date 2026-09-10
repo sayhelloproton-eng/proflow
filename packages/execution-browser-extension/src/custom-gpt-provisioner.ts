@@ -35,6 +35,16 @@ export type CustomGptProvisioningResult = {
 		sizeBytes: number;
 		sha256: string;
 	}>;
+	materialObservation: unknown;
+};
+
+export type CustomGptExistingSyncResult = {
+	status: "LIVE_UPDATED";
+	packageName: string;
+	version: string;
+	gptId: string;
+	carrierUrl: string;
+	materialObservation: unknown;
 };
 
 function packageAsset(
@@ -113,7 +123,11 @@ function liveResult(
 	)
 		throw new Error("PROVISIONING_RESULT_INVALID");
 	const expected = `https://chatgpt.com/g/${result.gptId}`;
-	if (result.carrierUrl !== expected)
+	if (
+		result.carrierUrl !== expected ||
+		typeof result.materialObservation !== "object" ||
+		result.materialObservation === null
+	)
 		throw new Error("PROVISIONING_RESULT_INVALID");
 	return {
 		status: "LIVE_CREATED",
@@ -121,6 +135,35 @@ function liveResult(
 		version: material.version,
 		gptId: result.gptId,
 		carrierUrl: result.carrierUrl,
+		materialObservation: result.materialObservation,
+	};
+}
+
+function syncResult(
+	value: unknown,
+	carrierUrl: string,
+	material: CustomGptPackageProvisioningMaterial,
+): CustomGptExistingSyncResult {
+	if (typeof value !== "object" || value === null || Array.isArray(value))
+		throw new Error("PROVISIONING_SYNC_RESULT_INVALID");
+	const result = value as Record<string, unknown>;
+	const gptId = carrierGptId(carrierUrl);
+	if (
+		result.status !== "LIVE_UPDATED" ||
+		result.gptId !== gptId ||
+		result.packageName !== material.packageName ||
+		result.version !== material.version ||
+		typeof result.materialObservation !== "object" ||
+		result.materialObservation === null
+	)
+		throw new Error("PROVISIONING_SYNC_RESULT_INVALID");
+	return {
+		status: "LIVE_UPDATED",
+		packageName: material.packageName,
+		version: material.version,
+		gptId,
+		carrierUrl,
+		materialObservation: result.materialObservation,
 	};
 }
 
@@ -234,6 +277,48 @@ export async function createCustomGptProvisioningHost(
 		}
 	}
 
+	async function synchronizeExistingPackage(input: {
+		packageRoot: string;
+		stagingRoot: string;
+		gatewayUrl: string;
+		material: CustomGptPackageProvisioningMaterial;
+		carrierUrl: string;
+		credential: string;
+	}): Promise<CustomGptExistingSyncResult> {
+		await waitUntilOnline();
+		carrierGptId(input.carrierUrl);
+		if (input.credential.length < 32)
+			throw new Error("PROVISIONING_ROLE_CREDENTIAL_INVALID");
+		const schemaPath = packageAsset(input.packageRoot, input.material.actionSchema, "ACTION_SCHEMA_PATH");
+		const bundlePath = packageAsset(input.packageRoot, input.material.knowledgeBundle, "KNOWLEDGE_BUNDLE_PATH");
+		const schema = hydratedSchema(await readFile(schemaPath, "utf8"), input.gatewayUrl);
+		const bundle = await materializeCustomGptKnowledgeBundle({
+			bundlePath,
+			stagingRoot: input.stagingRoot,
+		});
+		let credential = input.credential;
+		try {
+			const relayFiles = await bridge.provisioning.registerFiles(
+				bundle.files.map((file) => ({ name: file.name, path: file.path, mime: file.mime })),
+			);
+			const material = {
+				...input.material,
+				actionSchema: schema,
+				knowledgeFiles: relayFiles.map(({ name, mime, sizeBytes, sha256, url }) => ({
+					name, mime, sizeBytes, sha256, url,
+				})),
+			};
+			const value = await bridge.provisioning.request({
+				type: "FINALIZE_CUSTOM_GPT_AUTH",
+				request: { carrierUrl: input.carrierUrl, credential, material },
+			});
+			return syncResult(value, input.carrierUrl, input.material);
+		} finally {
+			credential = "";
+			await rm(bundle.stagingDirectory, { recursive: true, force: true });
+		}
+	}
+
 	async function finalizeRoleAuth(input: {
 		carrierUrl: string;
 		credential: string;
@@ -258,6 +343,7 @@ export async function createCustomGptProvisioningHost(
 		endpoint: bridge.endpoint,
 		status: bridge.status,
 		provisionPackage,
+		synchronizeExistingPackage,
 		finalizeRoleAuth,
 		close: bridge.close,
 	});

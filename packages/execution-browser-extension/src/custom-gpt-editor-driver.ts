@@ -42,6 +42,7 @@ export interface CustomGptEditorPort {
 	uploadKnowledge(files: readonly CustomGptKnowledgeFile[]): Promise<void>;
 	verifyReady(material: CustomGptProvisioningRequest): Promise<void>;
 	createPrivate(): Promise<{ gptId: string; carrierUrl: string }>;
+	updateExisting(): Promise<{ gptId: string; carrierUrl: string }>;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -158,6 +159,19 @@ export function createCustomGptEditorDriver(port: CustomGptEditorPort) {
 	};
 	return Object.freeze({
 		configureDraft,
+		async synchronizeExisting(material: CustomGptProvisioningRequest) {
+			await configureDraft(material);
+			await port.uploadKnowledge(material.knowledgeFiles);
+			await port.verifyReady(material);
+			const live = await port.updateExisting();
+			await port.verifyReady(material);
+			return {
+				status: "LIVE_UPDATED" as const,
+				packageName: material.packageName,
+				version: material.version,
+				...live,
+			};
+		},
 		async provision(material: CustomGptProvisioningRequest) {
 			await configureDraft(material);
 			await port.uploadKnowledge(material.knowledgeFiles);

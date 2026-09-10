@@ -76,22 +76,14 @@ test("Module.setup observes durable Role registration reality", async () => {
 		};
 		try {
 			const replay = (await behaviorAdapter.setup(context)).result;
-			assert.equal(replay.status, "SUCCEEDED");
+			assert.equal(replay.status, "ACTION_REQUIRED");
 			assert.equal(fetchCalls, 2);
-			assert.equal(Reflect.get(replay.data ?? {}, "roleRef"), roleRef);
-			const evidence = await readFile(
-				join(
-					workspaceRoot,
-					".proflow",
-					"state",
-					"agent",
-					"role-carrier-validation",
-					`${encodeURIComponent(descriptor.packageName)}.json`,
-				),
-				"utf8",
-			);
-			assert.match(evidence, new RegExp(roleRef));
-			assert.doesNotMatch(evidence, /credential|secret|bearer/i);
+			assert.match(JSON.stringify(replay), /ROLE_CARRIER_MATERIAL_UNVERIFIED/);
+			const after = await readFile(join(agentRoot, "roles.json"), "utf8");
+			assert.equal(JSON.parse(after)[0].roleRef, roleRef);
+			const status = (await behaviorAdapter.status(context)).result;
+			assert.equal(status.data.setupStatus, "ACTION_REQUIRED");
+			assert.match(JSON.stringify(status), /ROLE_CARRIER_MATERIAL_UNVERIFIED/);
 		} finally {
 			globalThis.fetch = originalFetch;
 		}
