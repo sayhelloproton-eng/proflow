@@ -1,14 +1,16 @@
 # AGENTS.md
 
-## Workspace Chat → Local Engineering Protocol｜HARD INHERITANCE
+## ChatGPT Chat → Local Engineering Protocol｜CHATGPT-ONLY
 
-`CHAT_LOCAL_ENGINEERING_PROTOCOL=REQUIRED`
+`CHATGPT_CHAT_LOCAL_ENGINEERING_PROTOCOL=REQUIRED`
 
-在本仓库执行任何本机工程动作前，必须读取并遵循：
+本节**仅适用于 ChatGPT Chat** 通过 CodeGraph、Repomix、Local Dev、Playwright/AX 等工具编排本机工程。ChatGPT Chat 在执行本机 mutation / test / build / Git write 前必须读取并遵循：
 
 `/Users/agent/Desktop/proton-workspace/skills/chat-local-engineering-protocol/SKILL.md`
 
-该共享 Skill 是 **Chat → Local execution mechanics** 的 workspace-level 单一权威源：Engineering Decision、批量上下文/修改、本机真实 test/build/typecheck/lint/benchmark、低频 progress sampling、Failure First、选择性复验与 Git/WIP 保护均不得被仓库内重复规则降级。仓库规则只补充项目语义、领域/安全/Review 约束；更严格的项目规则继续生效。若共享 Skill 不可读，在 mutation / test / build / Git write 前 STOP。当前 Chat 已读取同版本后无需重复读取。
+该共享 Skill 是 ChatGPT Chat ↔ Local execution mechanics 的 workspace-level 单一规则 owner。仓库规则只补充项目语义、领域、安全、Review 与发布约束；更严格的仓库规则对 ChatGPT Chat 继续生效。当前 Chat 已读取同版本后无需重复读取。
+
+**Codex exclusion — HARD:** Codex / GPT-6 Codex / Codex app / Codex CLI / app-server/runtime / Codex-native sessions 必须忽略本节，也不得因为本节被要求读取上述 shared Skill。本节不改变 Codex 的 AGENTS 层级、仓库工作流、skills、CLI/hooks、shell environment 或任何本机 Codex 配置；Codex 继续仅遵循本文件其余原有的非 ChatGPT 项目规则。
 
 ## Repository identity
 
