@@ -45,6 +45,7 @@ function liveResult(packageName = material.packageName) {
 		carrierUrl: `https://chatgpt.com/g/${gptId}`,
 		knowledgeBundleSha256: `sha256:${"a".repeat(64)}`,
 		knowledgeFiles: [],
+		materialObservation: { source: "CUSTOM_GPT_EDITOR_TEST" },
 	};
 }
 

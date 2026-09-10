@@ -68,6 +68,9 @@ test("CP-EXE-BR-19 editor driver applies package-owned draft material without in
 				carrierUrl: "https://chatgpt.com/g/g-product",
 			};
 		},
+		async updateExisting() {
+			throw new Error("UPDATE_EXISTING_MUST_NOT_RUN_ON_PROVISION");
+		},
 	};
 
 	const material = parseCustomGptProvisioningRequest(request);

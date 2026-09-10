@@ -152,6 +152,7 @@ test("CP-EXE-BR-20 Mac provisioner hydrates package assets before sending one pr
 		Buffer.from(await fileResponse.arrayBuffer()),
 		knowledgeArchive,
 	);
+	const materialObservation = { source: "CUSTOM_GPT_EDITOR_TEST" };
 	const report = await extensionFetch(
 		host.endpoint,
 		`/v1/provisioning/commands/result?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`,
@@ -166,6 +167,7 @@ test("CP-EXE-BR-20 Mac provisioner hydrates package assets before sending one pr
 					version: "0.1.0",
 					gptId: "g-product",
 					carrierUrl: "https://chatgpt.com/g/g-product",
+					materialObservation,
 				},
 			}),
 		},
@@ -180,6 +182,7 @@ test("CP-EXE-BR-20 Mac provisioner hydrates package assets before sending one pr
 		carrierUrl: "https://chatgpt.com/g/g-product",
 		knowledgeBundleSha256: result.knowledgeBundleSha256,
 		knowledgeFiles: result.knowledgeFiles,
+		materialObservation,
 	});
 	assert.match(result.knowledgeBundleSha256, /^sha256:[0-9a-f]{64}$/);
 	assert.deepEqual(

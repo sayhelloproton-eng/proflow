@@ -225,7 +225,7 @@ test("Real-2 Controller/Dev Module.setup uses the reusable Custom GPT role API",
 	);
 });
 
-test("REAL3-D1 Controller/Dev exposes explicit fail-closed Role adoption guidance", async () => {
+test("REAL3-D1 Controller/Dev synchronizes an existing drifted GPT before adopting the current Role version", async () => {
 	const [cli, adapter] = await Promise.all([
 		readFile(new URL("../src/cli.ts", import.meta.url), "utf8"),
 		readFile(new URL("../deployment/adapter.ts", import.meta.url), "utf8"),
@@ -234,6 +234,9 @@ test("REAL3-D1 Controller/Dev exposes explicit fail-closed Role adoption guidanc
 	assert.match(cli, /adoptCurrentRoleVersion/);
 	assert.doesNotMatch(cli, /updateRole|replaceRole/);
 	assert.match(adapter, /resolve-custom-gpt-role-drift/);
-	assert.match(adapter, /role adopt/);
-	assert.match(adapter, /does not edit an existing GPT/i);
+	assert.match(adapter, /synchronizeDriftedRole/);
+	assert.match(adapter, /synchronizeExistingPackage/);
+	assert.match(adapter, /validateRoleCarrier/);
+	assert.match(adapter, /adoptCurrentRoleVersion/);
+	assert.doesNotMatch(adapter, /does not edit an existing GPT/i);
 });
