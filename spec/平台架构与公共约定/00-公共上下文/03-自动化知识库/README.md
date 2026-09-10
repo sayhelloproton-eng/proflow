@@ -9,16 +9,17 @@
 
 Browser/UI、CLI/PTTY、MCP/runtime、auth、timeout/UNKNOWN、recovery、Acceptance mode、checkpoint automation、testing harness、telemetry、tool routing 与高吞吐本机工程方法，统一由共享 Skill 拥有。
 
+**Chat 高吞吐本机工程不再保留 ProFlow 项目内兼容入口或规则正文；任何当前引用都必须直接指向 Engineering Skill。**
+
 ## 通用旧路径｜仅兼容指针
 
-以下文件保留路径只为避免 CURRENT/历史链接失效，不再维护方法正文：
+以下非吞吐通用文件暂时保留路径只为避免 CURRENT/历史链接失效，不再维护方法正文：
 
 - `00-自动化模拟人工总原则.md` → Acceptance Skill
 - `基础动作/Browser-UI自动化.md` → Acceptance Skill
 - `基础动作/CLI-PTY交互自动化.md` → Acceptance Skill
 - `基础动作/Round-PID-Log与恢复.md` → Acceptance Skill / Engineering Skill
 - `基础动作/Tool-Runtime-gptweb-mcp.md` → Acceptance Skill / Engineering Skill
-- `基础动作/GPT-Chat-MCP-Mac高吞吐执行规则.md` → Engineering Skill / Acceptance Skill
 
 旧版本详细内容由 Git history / `90-历史记录` 解释，不参与当前动作裁决。
 

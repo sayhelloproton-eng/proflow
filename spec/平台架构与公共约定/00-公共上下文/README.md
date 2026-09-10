@@ -14,7 +14,9 @@ Local Acceptance Automation
 
 这两个 Skill 分别是 ChatGPT Chat 本机工程 mechanics 与本机 Acceptance 自动化 mechanics 的唯一规范真源。ProFlow 公共上下文只拥有产品/项目事实、Frozen Contract、当前 checkpoint、项目特有 identity、业务流程、PASS/FAIL 条件与安全边界；不再维护第二套 Browser / CLI / PTY / MCP / runtime / timeout / UNKNOWN / recovery / testing / logging / tool-routing SOP。
 
-历史或现存项目文档若仍描述上述通用 mechanics，只作迁移/解释证据；与当前共享 Skill 冲突时，以共享 Skill 为准。ProFlow Formal Spec 与当前机械 reality 仍分别回答“应该是什么”和“现在是什么”。
+**Chat 高吞吐本机工程没有 ProFlow 项目内第二 owner、兼容规则文件或历史正文副本；当前执行统一直接读取 Engineering Skill。**
+
+历史项目文档若仍描述上述通用 mechanics，只作项目历史/场景证据；与当前共享 Skill 冲突时，以共享 Skill 为准。ProFlow Formal Spec 与当前机械 reality 仍分别回答“应该是什么”和“现在是什么”。
 
 ## 1. 公共上下文四层结构
 
@@ -25,7 +27,7 @@ Local Acceptance Automation
 90-历史记录      已结束 Round、旧 handoff、事故、审计和原始 evidence；默认不加载
 ```
 
-`03-自动化知识库` 的旧名称保留是为了路径兼容，不代表它继续拥有跨项目自动化协议。通用 Primitive 文件已降级为共享 Skill 的兼容指针。
+`03-自动化知识库` 的旧名称保留是为了路径兼容，不代表它继续拥有跨项目自动化协议。通用 Primitive 文件已降级为共享 Skill 的兼容指针；高吞吐工程旧项目文件已删除，由 Git history 保留演进过程。
 
 ## 2. 真源与冲突顺序
 
@@ -69,7 +71,7 @@ CURRENT                             → 当前 checkpoint / blocker / next actio
 - 单包修复/发布/Workspace adoption 的 ProFlow 产品流程 → `流程/Package-Update-Loop.md`
 - Real-3 J0～J4 产品 Journey/checkpoint → `流程/Real3-J0-J4.md`
 
-旧通用入口 `00-自动化模拟人工总原则.md`、`Browser-UI自动化.md`、`CLI-PTY交互自动化.md`、`Round-PID-Log与恢复.md`、`Tool-Runtime-gptweb-mcp.md`、`GPT-Chat-MCP-Mac高吞吐执行规则.md` 只保留兼容指针，不再拥有方法正文。
+旧通用入口 `00-自动化模拟人工总原则.md`、`Browser-UI自动化.md`、`CLI-PTY交互自动化.md`、`Round-PID-Log与恢复.md`、`Tool-Runtime-gptweb-mcp.md` 只保留兼容指针，不再拥有方法正文。Chat 高吞吐本机工程旧入口不再保留，直接使用 Engineering Skill。
 
 ## 5. 维护规则
 
