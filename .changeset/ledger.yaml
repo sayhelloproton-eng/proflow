@@ -651,6 +651,10 @@
   dir: packages/execution-browser-extension
   intents:
     - real3-final-runtime-closure
+"@tomflow/proflow-execution-browser-extension@0.1.52":
+  dir: packages/execution-browser-extension
+  intents:
+    - execution-browser-gpt-editor-action-surface-recovery
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
