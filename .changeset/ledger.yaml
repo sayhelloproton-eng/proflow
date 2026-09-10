@@ -659,6 +659,10 @@
   dir: packages/execution-browser-extension
   intents:
     - execution-browser-extension-runtime-lifecycle
+"@tomflow/proflow-execution-browser-extension@0.1.54":
+  dir: packages/execution-browser-extension
+  intents:
+    - all-pets-hang
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
