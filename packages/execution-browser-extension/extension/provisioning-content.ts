@@ -403,6 +403,59 @@ function available(element: HTMLElement): boolean {
 	);
 }
 
+function configureSurfaceReady(): boolean {
+	const knowledgeVisible = [...document.querySelectorAll<HTMLElement>("label")].some(
+		(label) =>
+			available(label) && matchesExactSemantic(label, ["Knowledge", "知识"]),
+	);
+	if (!knowledgeVisible) return false;
+	try {
+		const name = findControl(fieldLabels.displayName);
+		return available(name);
+	} catch {
+		return false;
+	}
+}
+
+function actionSchemaControl(): HTMLElement | null {
+	for (const label of document.querySelectorAll<HTMLLabelElement>("label")) {
+		if (!available(label)) continue;
+		if (
+			!matchesBoundedSemantic(label, [
+				"OpenAPI schema",
+				"OpenAPI Schema",
+				"OpenAPI 架构",
+			])
+		)
+			continue;
+		const control = controlFromLabel(label);
+		if (control && available(control)) return control;
+	}
+	for (const control of document.querySelectorAll<HTMLElement>(
+		'textarea[placeholder*="OpenAPI" i], textarea[aria-label*="OpenAPI" i], [role="textbox"][aria-label*="OpenAPI" i]',
+	))
+		if (available(control)) return control;
+	return null;
+}
+
+function visibleEditorFailure(): string | null {
+	const text = normalize(document.body.innerText);
+	for (const marker of [
+		"保存草稿时出错",
+		"error saving draft",
+		"gpt 说明不得超过 8000 个字符",
+		"gpt instructions cannot exceed 8000 characters",
+		"gpt description cannot exceed 8000 characters",
+	])
+		if (text.includes(normalize(marker))) return marker;
+	return null;
+}
+
+function assertNoVisibleEditorFailure(): void {
+	const failure = visibleEditorFailure();
+	if (failure) throw new Error(`GPT_EDITOR_VISIBLE_ERROR:${failure}`);
+}
+
 function privateVisibilityControl(): HTMLElement | null {
 	const selector =
 		'input[type="radio"], label, button, [role="button"], [role="radio"], [role="option"], [role="menuitem"], [role="menuitemradio"]';
@@ -499,16 +552,12 @@ function existingActionEditButton(): HTMLElement | null {
 
 async function openExistingActionEditor(): Promise<void> {
 	const authLabels = ["Authentication", "身份验证", "认证"] as const;
-	if (clickable(authLabels)) return;
+	if (clickable(authLabels) || actionSchemaControl()) return;
 	const edit = existingActionEditButton();
 	if (!edit) throw new Error("GPT_EDITOR_ACTION_EDIT_NOT_FOUND");
 	edit.click();
 	for (let attempt = 0; attempt < 120; attempt += 1) {
-		if (clickable(authLabels)) return;
-		try {
-			findControl(["OpenAPI schema", "Schema", "OpenAPI", "架构"]);
-			return;
-		} catch {}
+		if (clickable(authLabels) || actionSchemaControl()) return;
 		await sleep(100);
 	}
 	throw new Error("GPT_EDITOR_ACTION_EDITOR_NOT_READY");
@@ -535,10 +584,20 @@ async function waitForAuthSettingsButton(): Promise<HTMLElement> {
 }
 
 async function returnFromActionEditor(): Promise<void> {
+	if (configureSurfaceReady()) {
+		assertNoVisibleEditorFailure();
+		return;
+	}
 	let back: HTMLButtonElement | undefined;
 	for (let attempt = 0; attempt < 80; attempt += 1) {
+		if (configureSurfaceReady()) {
+			assertNoVisibleEditorFailure();
+			return;
+		}
 		back = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
 			(button) => {
+				if (!available(button)) return false;
+				if (matchesBoundedSemantic(button, ["Back", "返回"])) return true;
 				if ((button.textContent ?? "").trim().length > 0) return false;
 				const context = normalize(
 					button.parentElement?.parentElement?.textContent ?? "",
@@ -556,11 +615,8 @@ async function returnFromActionEditor(): Promise<void> {
 	}
 	if (!back) throw new Error("GPT_EDITOR_ACTION_BACK_NOT_FOUND");
 	back.click();
-	await waitForReadback("GPT_EDITOR_CONFIGURE_RETURN_TIMEOUT", () =>
-		[...document.querySelectorAll("label")].some((label) =>
-			matchesAny(label, ["Knowledge", "知识"]),
-		),
-	);
+	await waitForReadback("GPT_EDITOR_CONFIGURE_RETURN_TIMEOUT", configureSurfaceReady);
+	assertNoVisibleEditorFailure();
 }
 
 async function configureBearerAuthDraft(credential: string) {
@@ -639,6 +695,7 @@ function savedConfirmationVisible(): boolean {
 
 async function finalizeBearerAuth(credential: string) {
 	await configureBearerAuthDraft(credential);
+	assertNoVisibleEditorFailure();
 	(await waitForAuthSemantic(document, ["Update", "更新"])).click();
 	await waitForReadback(
 		"GPT_EDITOR_AUTH_UPDATE_TIMEOUT",
@@ -789,6 +846,7 @@ function actionReadbackMatches(schema: string): boolean {
 async function verifyConfiguredMaterial(
 	material: CustomGptProvisioningRequest,
 ): Promise<void> {
+	assertNoVisibleEditorFailure();
 	await waitForReadback("GPT_EDITOR_NAME_READBACK_MISMATCH", () =>
 		fieldReadbackMatches("displayName", material.displayName),
 	);
@@ -816,7 +874,7 @@ async function verifyConfiguredMaterial(
 					capability,
 					material.capabilities[capability],
 				),
-		);
+			);
 	await waitForReadback("GPT_EDITOR_ACTION_READBACK_MISMATCH", () =>
 		actionReadbackMatches(material.actionSchema),
 	);
@@ -833,6 +891,7 @@ async function verifyConfiguredMaterial(
 		"GPT_EDITOR_CREATE_NOT_READY",
 		() => publishCreateButton() !== null,
 	);
+	assertNoVisibleEditorFailure();
 }
 
 async function openPrivateCreateSurface(
@@ -863,6 +922,7 @@ async function finalizePrivateCreateSurface(initialCreateButton?: HTMLElement) {
 }
 
 async function createPrivateGpt() {
+	assertNoVisibleEditorFailure();
 	const createButton = publishCreateButton();
 	if (!createButton) throw new Error("GPT_EDITOR_FORM_READY_STATE_LOST");
 	await openPrivateCreateSurface(createButton);
@@ -937,10 +997,8 @@ const domPort: CustomGptEditorPort = {
 		await verifyConfiguredMaterial(material);
 	},
 	async installActionSchema(value) {
-		let schema: HTMLElement | null = null;
-		try {
-			schema = findControl(["OpenAPI schema", "Schema", "OpenAPI", "架构"]);
-		} catch {
+		let schema = actionSchemaControl();
+		if (!schema) {
 			const create = clickable([
 				"Create new action",
 				"New action",
@@ -949,22 +1007,9 @@ const domPort: CustomGptEditorPort = {
 			if (!create) throw new Error("GPT_EDITOR_ACTION_CREATE_NOT_FOUND");
 			create.click();
 			for (let attempt = 0; attempt < 200; attempt += 1) {
-				schema = document.querySelector<HTMLElement>(
-					'textarea[placeholder*="OpenAPI"]',
-				);
+				schema = actionSchemaControl();
 				if (schema) break;
-				try {
-					schema = findControl([
-						"在此处输入你的 OpenAPI 架构",
-						"OpenAPI schema",
-						"Schema",
-						"OpenAPI",
-						"架构",
-					]);
-					break;
-				} catch {
-					await sleep(100);
-				}
+				await sleep(100);
 			}
 		}
 		if (!schema) throw new Error("GPT_EDITOR_ACTION_SCHEMA_NOT_FOUND");
@@ -973,6 +1018,7 @@ const domPort: CustomGptEditorPort = {
 			"GPT_EDITOR_ACTION_SCHEMA_READBACK_MISMATCH",
 			() => controlValue(schema as HTMLElement) === value,
 		);
+		assertNoVisibleEditorFailure();
 		await returnFromActionEditor();
 	},
 	async createPrivate() {
