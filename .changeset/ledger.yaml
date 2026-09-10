@@ -38,6 +38,10 @@
   dir: packages/agent-controller-dev
   intents:
     - social-pugs-doubt
+"@tomflow/proflow-agent-controller-dev@0.1.19":
+  dir: packages/agent-controller-dev
+  intents:
+    - agent-material-drift-closure
 "@tomflow/proflow-agent-controller-dev@0.1.2":
   dir: packages/agent-controller-dev
   intents:
@@ -150,6 +154,10 @@
   dir: packages/agent-product
   intents:
     - small-seals-thank
+"@tomflow/proflow-agent-product@0.1.17":
+  dir: packages/agent-product
+  intents:
+    - agent-material-drift-closure
 "@tomflow/proflow-agent-product@0.1.2":
   dir: packages/agent-product
   intents:
@@ -202,6 +210,10 @@
   dir: packages/agent-runtime
   intents:
     - agent-runtime-break-runtime-cycle
+"@tomflow/proflow-agent-runtime@0.1.16":
+  dir: packages/agent-runtime
+  intents:
+    - agent-material-drift-closure
 "@tomflow/proflow-agent-runtime@0.1.2":
   dir: packages/agent-runtime
   intents:
@@ -266,6 +278,10 @@
   dir: packages/agent-test-ops
   intents:
     - social-pugs-doubt
+"@tomflow/proflow-agent-test-ops@0.1.19":
+  dir: packages/agent-test-ops
+  intents:
+    - agent-material-drift-closure
 "@tomflow/proflow-agent-test-ops@0.1.2":
   dir: packages/agent-test-ops
   intents:
@@ -667,6 +683,10 @@
   dir: packages/execution-browser-extension
   intents:
     - execution-browser-session-reconnect
+"@tomflow/proflow-execution-browser-extension@0.1.56":
+  dir: packages/execution-browser-extension
+  intents:
+    - execution-browser-extension-role-material-sync
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
