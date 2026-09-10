@@ -121,9 +121,10 @@ test("CP-EXE-BR-39 Local Tool loop stays independent from Browser recovery and T
 	assert.match(source, /setBadgeText/);
 	const localStart = source.indexOf("async function runLocalToolBridgeLoop()");
 	const browserStart = source.indexOf(
-		"async function runBridgeLoop()",
+		"async function runBridgeSession(",
 		localStart,
 	);
+	assert.ok(localStart >= 0 && browserStart > localStart);
 	const local = source.slice(localStart, browserStart);
 	assert.doesNotMatch(
 		local,

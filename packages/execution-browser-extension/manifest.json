@@ -4,6 +4,7 @@
 	"version": "0.1.54",
 	"permissions": [
 		"tabs",
+		"alarms",
 		"storage",
 		"notifications"
 	],

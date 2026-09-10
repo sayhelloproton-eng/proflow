@@ -1,3 +1,7 @@
+import {
+	createBrowserReconnectOwner,
+	restoreBrowserSessionIdentity,
+} from "../src/browser-session-reconnect.js";
 import { createCarrierAttentionRegistry } from "../src/carrier-attention.js";
 import {
 	type CarrierContinuationDenial,
@@ -127,6 +131,11 @@ type ChromeTab = {
 	status?: "loading" | "complete";
 };
 type ChromeRuntime = {
+	alarms: {
+		get(name: string): Promise<{ name: string } | undefined>;
+		create(name: string, info: { periodInMinutes: number }): Promise<void>;
+		onAlarm: { addListener(listener: (alarm: { name: string }) => void): void };
+	};
 	runtime: {
 		id: string;
 		getManifest(): { version: string };
@@ -196,7 +205,7 @@ type ChromeRuntime = {
 };
 declare const chrome: ChromeRuntime;
 
-const extensionInstanceId = `extension:${crypto.randomUUID()}`;
+let extensionInstanceId = `extension:${crypto.randomUUID()}`;
 const extensionModuleVersion = chrome.runtime.getManifest().version;
 const sessions = new Map<number, ContentObservation>();
 const browserOpenObservationGate = createBrowserOpenObservationGate();
@@ -301,6 +310,7 @@ async function bootstrapManagedRuntimeConfig(): Promise<void> {
 	try {
 		response = await fetch(chrome.runtime.getURL("runtime-config.json"), {
 			cache: "no-store",
+			signal: AbortSignal.timeout(BROWSER_BRIDGE_FETCH_TIMEOUT_MS),
 		});
 	} catch {
 		return;
@@ -1627,117 +1637,101 @@ async function runLocalToolBridgeLoop() {
 	}
 }
 
-let bridgeLoopStarted = false;
 let bridgeSessionEpoch = 0;
-async function runBridgeLoop() {
-	if (bridgeLoopStarted) return;
-	bridgeLoopStarted = true;
+async function runBridgeSession(online: () => void): Promise<void> {
+	const config = await bridgeConfig();
+	if (!config) throw new Error("BRIDGE_NOT_CONFIGURED");
+	const query = `?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`;
+	const hello = await bridgeFetch(config, "/v1/session/hello", {
+		method: "POST",
+		body: JSON.stringify({
+			extensionId: chrome.runtime.id,
+			extensionInstanceId,
+			moduleVersion: extensionModuleVersion,
+		}),
+	});
+	if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED");
+	bridgeSessionEpoch += 1;
+	emitObserverRecoveryDiagnostic(
+		"BRIDGE_EPOCH_ACCEPTED",
+		bridgeSessionEpoch,
+		`bridge-session:${bridgeSessionEpoch}`,
+	);
+	observerRecoveryRearm.bridgeSessionEstablished(bridgeSessionEpoch);
+	await publishCarrierAttentions();
+	// Hello only establishes a session. The first inner-loop action must be
+	// a real command poll so Runtime readiness cannot be granted by hello alone.
+	let lastHeartbeatAt = Date.now();
+	let lastExtensionKeepaliveAt = Date.now();
 	while (true) {
-		const config = await bridgeConfig().catch(() => null);
-		if (!config) {
-			await sleep(1_000);
+		if (Date.now() - lastExtensionKeepaliveAt >= BROWSER_CARRIER_KEEPALIVE_MS) {
+			await chrome.storage.session
+				.get(BROWSER_CARRIER_KEEPALIVE_KEY)
+				.catch(() => ({}));
+			lastExtensionKeepaliveAt = Date.now();
+		}
+		if (Date.now() - lastHeartbeatAt >= 5_000) {
+			const heartbeat = await bridgeFetch(
+				config,
+				`/v1/session/heartbeat${query}`,
+				{ method: "POST", body: "{}" },
+			);
+			if (!heartbeat.ok) throw new Error("BRIDGE_HEARTBEAT_REJECTED");
+			lastHeartbeatAt = Date.now();
+		}
+		const response = await bridgeFetch(config, `/v1/commands/next${query}`);
+		if (response.status === 204) {
+			online();
+			await sleep(250);
 			continue;
 		}
-		const query = `?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`;
+		if (!response.ok) throw new Error("BRIDGE_POLL_REJECTED");
+		online();
+		const command = (await response.json()) as BridgeCommand;
+		let result: Record<string, unknown>;
 		try {
-			const hello = await bridgeFetch(config, "/v1/session/hello", {
-				method: "POST",
-				body: JSON.stringify({
-					extensionId: chrome.runtime.id,
-					extensionInstanceId,
-					moduleVersion: extensionModuleVersion,
-				}),
-			});
-			if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED");
-			bridgeSessionEpoch += 1;
-			emitObserverRecoveryDiagnostic(
-				"BRIDGE_EPOCH_ACCEPTED",
-				bridgeSessionEpoch,
-				`bridge-session:${bridgeSessionEpoch}`,
-			);
-			observerRecoveryRearm.bridgeSessionEstablished(bridgeSessionEpoch);
-			await publishCarrierAttentions();
-			// Hello only establishes a session. The first inner-loop action must be
-			// a real command poll so Runtime readiness cannot be granted by hello alone.
-			let lastHeartbeatAt = Date.now();
-			let lastExtensionKeepaliveAt = Date.now();
-			while (true) {
-				if (
-					Date.now() - lastExtensionKeepaliveAt >=
-					BROWSER_CARRIER_KEEPALIVE_MS
-				) {
-					await chrome.storage.session
-						.get(BROWSER_CARRIER_KEEPALIVE_KEY)
-						.catch(() => ({}));
-					lastExtensionKeepaliveAt = Date.now();
-				}
-				if (Date.now() - lastHeartbeatAt >= 5_000) {
-					const heartbeat = await bridgeFetch(
-						config,
-						`/v1/session/heartbeat${query}`,
-						{ method: "POST", body: "{}" },
-					);
-					if (!heartbeat.ok) throw new Error("BRIDGE_HEARTBEAT_REJECTED");
-					lastHeartbeatAt = Date.now();
-				}
-				const response = await bridgeFetch(config, `/v1/commands/next${query}`);
-				if (response.status === 204) {
-					await sleep(250);
-					continue;
-				}
-				if (!response.ok) throw new Error("BRIDGE_POLL_REJECTED");
-				const command = (await response.json()) as BridgeCommand;
-				let result: Record<string, unknown>;
-				try {
-					result = {
-						commandId: command.commandId,
-						ok: true,
-						value: await executeCommand(command),
-					};
-				} catch (error) {
-					result = {
-						commandId: command.commandId,
-						ok: false,
-						error:
-							error instanceof Error
-								? error.message
-								: "EXTENSION_COMMAND_FAILED",
-					};
-				}
-				void emitStructuredLog({
-					level: result.ok === true ? "INFO" : "WARN",
-					component: "browser-carrier",
-					operation: command.type,
-					operationRef: command.commandId,
-					status: result.ok === true ? "SUCCEEDED" : "FAILED",
-					...(typeof result.error === "string"
-						? {
-								errorCode: normalizeLogErrorCode(
-									result.error,
-									"EXTENSION_COMMAND_FAILED",
-								),
-							}
-						: {}),
-					...(command.tabId === undefined ? {} : { tabId: command.tabId }),
-					...(isRecord(command.request)
-						? {
-								...(typeof command.request.capability === "string"
-									? { capability: command.request.capability }
-									: {}),
-								...structuredAxes(command.request),
-							}
-						: {}),
-				});
-				const reported = await bridgeFetch(
-					config,
-					`/v1/commands/result${query}`,
-					{ method: "POST", body: JSON.stringify(result) },
-				);
-				if (!reported.ok) throw new Error("BRIDGE_RESULT_REJECTED");
-			}
-		} catch {
-			await sleep(1_000);
+			result = {
+				commandId: command.commandId,
+				ok: true,
+				value: await executeCommand(command),
+			};
+		} catch (error) {
+			result = {
+				commandId: command.commandId,
+				ok: false,
+				error:
+					error instanceof Error ? error.message : "EXTENSION_COMMAND_FAILED",
+			};
 		}
+		void emitStructuredLog({
+			level: result.ok === true ? "INFO" : "WARN",
+			component: "browser-carrier",
+			operation: command.type,
+			operationRef: command.commandId,
+			status: result.ok === true ? "SUCCEEDED" : "FAILED",
+			...(typeof result.error === "string"
+				? {
+						errorCode: normalizeLogErrorCode(
+							result.error,
+							"EXTENSION_COMMAND_FAILED",
+						),
+					}
+				: {}),
+			...(command.tabId === undefined ? {} : { tabId: command.tabId }),
+			...(isRecord(command.request)
+				? {
+						...(typeof command.request.capability === "string"
+							? { capability: command.request.capability }
+							: {}),
+						...structuredAxes(command.request),
+					}
+				: {}),
+		});
+		const reported = await bridgeFetch(config, `/v1/commands/result${query}`, {
+			method: "POST",
+			body: JSON.stringify(result),
+		});
+		if (!reported.ok) throw new Error("BRIDGE_RESULT_REJECTED");
 	}
 }
 
@@ -2038,39 +2032,73 @@ async function openTaskPage(): Promise<void> {
 	await chrome.tabs.create({ url: fallbackUrl, active: true });
 }
 
-async function startBackgroundRuntime(): Promise<void> {
-	await restoreTransientPermissionAttempts();
-	await bootstrapManagedRuntimeConfig();
-	await persistSnapshot();
-	void runBridgeLoop();
-	void runLocalToolBridgeLoop();
-	void runProvisioningBridgeLoop();
-	await rebuildCarrierAttentionsFromTabs();
-	observerRecoveryRearm.startupReady();
+const BROWSER_RECONNECT_ALARM = "proflow-browser-session-reconnect";
+let backgroundInitialization: Promise<void> | null = null;
+
+function initializeBackgroundRuntime(): Promise<void> {
+	if (backgroundInitialization) return backgroundInitialization;
+	backgroundInitialization = (async () => {
+		await restoreTransientPermissionAttempts();
+		await bootstrapManagedRuntimeConfig();
+		extensionInstanceId = await restoreBrowserSessionIdentity(
+			chrome.storage.session,
+			chrome.runtime.id,
+			extensionModuleVersion,
+			() => `extension:${crypto.randomUUID()}`,
+		);
+		await persistSnapshot();
+		void runLocalToolBridgeLoop();
+		void runProvisioningBridgeLoop();
+		// Page reconstruction must not block the connection consumer from starting.
+		void rebuildCarrierAttentionsFromTabs()
+			.then(() => {
+				observerRecoveryRearm.startupReady();
+			})
+			.catch(() => undefined);
+	})().catch((error: unknown) => {
+		backgroundInitialization = null;
+		throw error;
+	});
+	return backgroundInitialization;
+}
+
+const browserReconnect = createBrowserReconnectOwner({
+	now: Date.now,
+	sleep,
+	async runSession(online) {
+		await initializeBackgroundRuntime();
+		await runBridgeSession(online);
+	},
+});
+let backgroundStart: Promise<void> | null = null;
+function startBackgroundRuntime(): Promise<void> {
+	if (backgroundStart) return backgroundStart;
+	backgroundStart = (async () => {
+		// Recreate a missing alarm on every worker activation; do not postpone an
+		// existing alarm when startup/install/onAlarm arrive together.
+		if (!(await chrome.alarms.get(BROWSER_RECONNECT_ALARM))) {
+			await chrome.alarms.create(BROWSER_RECONNECT_ALARM, {
+				periodInMinutes: 1,
+			});
+		}
+		await browserReconnect.start();
+	})().finally(() => {
+		backgroundStart = null;
+	});
+	return backgroundStart;
+}
+function requestBackgroundStart(): void {
+	void startBackgroundRuntime().catch(() => {
+		console.warn("PROFLOW_BROWSER_RECONNECT_START_FAILED");
+	});
 }
 
 chrome.action.onClicked.addListener(() => {
 	void openTaskPage();
 });
-chrome.runtime.onInstalled.addListener(() => {
-	void restoreTransientPermissionAttempts().then(async () => {
-		await bootstrapManagedRuntimeConfig();
-		await persistSnapshot();
-		void runBridgeLoop();
-		void runLocalToolBridgeLoop();
-		await rebuildCarrierAttentionsFromTabs();
-		observerRecoveryRearm.startupReady();
-	});
+chrome.alarms.onAlarm.addListener((alarm) => {
+	if (alarm.name === BROWSER_RECONNECT_ALARM) requestBackgroundStart();
 });
-chrome.runtime.onStartup.addListener(() => {
-	sessions.clear();
-	void restoreTransientPermissionAttempts().then(async () => {
-		await bootstrapManagedRuntimeConfig();
-		await persistSnapshot();
-		void runBridgeLoop();
-		void runLocalToolBridgeLoop();
-		await rebuildCarrierAttentionsFromTabs();
-		observerRecoveryRearm.startupReady();
-	});
-});
-void startBackgroundRuntime();
+chrome.runtime.onInstalled.addListener(requestBackgroundStart);
+chrome.runtime.onStartup.addListener(requestBackgroundStart);
+requestBackgroundStart();
