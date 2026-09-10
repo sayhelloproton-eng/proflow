@@ -864,3 +864,32 @@ test("deployment setup never stops service dependencies that were already runnin
 		false,
 	);
 });
+
+test("managed runtime start dispatch follows observed lifecycle status", async () => {
+	const moduleRef = "managed-bridge";
+	const runtime = moduleFixture({ moduleRef });
+	for (const runtimeStatus of [
+		"STOPPED",
+		"RUNNING",
+		"NOT_APPLICABLE",
+		"FAILED",
+	] as const) {
+		const { catalog, calls } = recordingCatalog(
+			{ [moduleRef]: "READY" },
+			{},
+			{},
+			{},
+			{},
+			{},
+			{ [moduleRef]: runtimeStatus },
+		);
+		const result = await startModulesThin(catalog, [runtime], workspaceRoot);
+		assert.equal(result.completed, true);
+		assert.deepEqual(
+			calls.map((item) => item.call),
+			runtimeStatus === "STOPPED" || runtimeStatus === "FAILED"
+				? [`${moduleRef}:status`, `${moduleRef}:start`]
+				: [`${moduleRef}:status`],
+		);
+	}
+});

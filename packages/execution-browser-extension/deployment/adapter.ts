@@ -516,6 +516,19 @@ export function classifyBrowserLiveSetup(input: {
 		};
 	return { setupReady: true } as const;
 }
+
+export function classifyBrowserRuntimeStatus(input: {
+	baseSetupReady: boolean;
+	bridgeProbe: RunningBridgeProbe;
+	bridgeProbeFailed?: boolean;
+}) {
+	if (!input.baseSetupReady) return "NOT_APPLICABLE" as const;
+	if (input.bridgeProbeFailed) return "FAILED" as const;
+	return input.bridgeProbe.kind === "PRESENT"
+		? ("RUNNING" as const)
+		: ("STOPPED" as const);
+}
+
 function connectionRefused(error: unknown) {
 	if (!(error instanceof TypeError)) return false;
 	const cause = Reflect.get(error, "cause");
@@ -546,7 +559,9 @@ async function probeRunningBridgeSession(
 		const body = (await response.json()) as unknown;
 		if (typeof body !== "object" || body === null || Array.isArray(body))
 			throw new Error("RUNNING_BRIDGE_STATUS_INVALID");
-		if (Reflect.get(body, "online") !== true) return { kind: "PRESENT" };
+		if (Reflect.get(body, "online") === false) return { kind: "PRESENT" };
+		if (Reflect.get(body, "online") !== true)
+			throw new Error("RUNNING_BRIDGE_STATUS_INVALID");
 		const extensionInstanceId = Reflect.get(body, "extensionInstanceId");
 		const moduleVersion = Reflect.get(body, "moduleVersion");
 		if (
@@ -724,6 +739,7 @@ export const behaviorAdapter = {
 				chromeState === "ENABLED",
 		);
 		let bridgeProbe: RunningBridgeProbe = { kind: "ABSENT" };
+		let bridgeProbeFailed = false;
 		if (baseSetupReady && evidence) {
 			const facts = await readModuleSharedFacts(context, descriptor.moduleRef);
 			const bridgeEndpoint = factString(facts, "bridgeEndpoint");
@@ -736,7 +752,9 @@ export const behaviorAdapter = {
 						500,
 					);
 				} catch {
-					bridgeProbe = { kind: "PRESENT" };
+					bridgeProbeFailed = true;
+					// A failed observation is not evidence of an offline Extension.
+					// Preserve setup facts and report the failure on the runtime axis.
 				}
 			}
 		}
@@ -745,6 +763,11 @@ export const behaviorAdapter = {
 			...(evidence ? { evidenceInstanceId: evidence.extensionInstanceId } : {}),
 			expectedModuleVersion: descriptor.moduleVersion,
 			bridgeProbe,
+		});
+		const runtimeStatus = classifyBrowserRuntimeStatus({
+			baseSetupReady,
+			bridgeProbe,
+			bridgeProbeFailed,
 		});
 		const issue = !baseSetupReady
 			? {
@@ -768,6 +791,20 @@ export const behaviorAdapter = {
 						relatedModuleRefs: ["execution-runtime"],
 						nextCommand: "platform setup",
 					};
+		const issues = [
+			...(issue ? [issue] : []),
+			...(bridgeProbeFailed
+				? [
+						{
+							scope: "RUNTIME" as const,
+							code: "BRIDGE_STATUS_FAILED",
+							message: "Browser bridge runtime status could not be verified",
+							relatedModuleRefs: [],
+							nextCommand: "platform status",
+						},
+					]
+				: []),
+		];
 		return {
 			result: {
 				...base,
@@ -775,8 +812,8 @@ export const behaviorAdapter = {
 					setupStatus: live.setupReady
 						? ("READY" as const)
 						: ("ACTION_REQUIRED" as const),
-					runtimeStatus: "NOT_APPLICABLE" as const,
-					...(issue ? { issues: [issue] } : {}),
+					runtimeStatus,
+					...(issues.length > 0 ? { issues } : {}),
 				},
 			},
 			observedEffects: [],
@@ -934,11 +971,17 @@ export const behaviorAdapter = {
 					return { endpoint, token: await credential(tokenFile) };
 				},
 			});
-			const directTools = await createDirectToolExecutor({
-				workspaceRoot: resolve(context.workspaceRoot),
-				generation,
-				stateRoot: join(stateDir(context), "direct-tools"),
-			});
+			let directTools: Awaited<ReturnType<typeof createDirectToolExecutor>>;
+			try {
+				directTools = await createDirectToolExecutor({
+					workspaceRoot: resolve(context.workspaceRoot),
+					generation,
+					stateRoot: join(stateDir(context), "direct-tools"),
+				});
+			} catch (error) {
+				await Promise.allSettled([browser.close()]);
+				throw error;
+			}
 			let localTools: Awaited<ReturnType<typeof createLocalToolBridgeServer>>;
 			try {
 				localTools = await createLocalToolBridgeServer({
