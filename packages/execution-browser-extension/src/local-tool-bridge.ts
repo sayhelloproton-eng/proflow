@@ -357,9 +357,16 @@ export async function createLocalToolBridgeServer(
 		lastCommandPollAt !== undefined &&
 		now().getTime() - lastCommandPollAt <= freshnessMs;
 
-	const requireExtension = (request: IncomingMessage) => {
+	const requireExtension = (
+		request: IncomingMessage,
+		originPolicy: { allowMissingOrigin?: boolean } = {},
+	) => {
 		authenticate(request, options.extensionToken);
-		if (request.headers.origin !== expectedOrigin)
+		const origin = request.headers.origin;
+		if (
+			origin !== expectedOrigin &&
+			!(originPolicy.allowMissingOrigin === true && origin === undefined)
+		)
 			throw new LocalToolBridgeError(
 				"LOCAL_TOOL_AUTH_INVALID",
 				"local tool extension origin is required",
@@ -446,7 +453,10 @@ export async function createLocalToolBridgeServer(
 				response.end();
 				return;
 			}
-			requireExtension(request);
+			const allowMissingOrigin =
+				request.method === "GET" &&
+				url.pathname === "/v1/local-tools/commands/next";
+			requireExtension(request, { allowMissingOrigin });
 			response.setHeader("access-control-allow-origin", expectedOrigin);
 			response.setHeader("vary", "origin");
 

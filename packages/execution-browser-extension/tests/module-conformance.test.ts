@@ -66,3 +66,18 @@ test("PRESMOKE-B6-DESC-01 extension runtime connections are Module-owned/shared 
 		assert.match(adapterSource, new RegExp(storageKey));
 	}
 });
+
+test("options page exposes only a loopback-bound, exact-id self-reload automation seam", async () => {
+	const [optionsSource, optionsHtml] = await Promise.all([
+		readFile(new URL("../extension/options.ts", import.meta.url), "utf8"),
+		readFile(new URL("../extension/options.html", import.meta.url), "utf8"),
+	]);
+	assert.match(optionsSource, /rawAction !== "probe" && rawAction !== "reload"/);
+	assert.match(optionsSource, /params\.get\("extensionId"\) !== chrome\.runtime\.id/);
+	assert.match(optionsSource, /callback\.protocol !== "http:"/);
+	assert.match(optionsSource, /callback\.hostname !== "127\.0\.0\.1"/);
+	assert.match(optionsSource, /callback\.pathname !== `\/proflow-extension\/\$\{nonce\}`/);
+	assert.match(optionsSource, /chrome\.runtime\.getManifest\(\)\.version/);
+	assert.match(optionsSource, /chrome\.runtime\.reload\(\)/);
+	assert.match(optionsHtml, /options\.js\?proflow-automation=v1/);
+});

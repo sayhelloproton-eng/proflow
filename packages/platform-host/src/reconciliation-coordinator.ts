@@ -139,7 +139,11 @@ export function createReconciliationCoordinator(
 	const canAttempt = (taskId: string) =>
 		(failures.get(taskId)?.nextAt ?? 0) <= now();
 	const schedulePendingRetry = (taskId: string) => {
-		if (stopped || !pendingSignals.has(taskId) || retryTimers.has(taskId))
+		if (
+			stopped ||
+			(!pendingSignals.has(taskId) && !failures.has(taskId)) ||
+			retryTimers.has(taskId)
+		)
 			return;
 		const delay = Math.max(1, (failures.get(taskId)?.nextAt ?? now()) - now());
 		const retry = setTimeout(() => {
@@ -237,7 +241,11 @@ export function createReconciliationCoordinator(
 			}
 		})().finally(() => {
 			taskInFlight.delete(taskId);
-			if (!stopped && pendingSignals.has(taskId)) schedulePendingRetry(taskId);
+			if (
+				!stopped &&
+				(pendingSignals.has(taskId) || failures.has(taskId))
+			)
+				schedulePendingRetry(taskId);
 			else admittedTasks.delete(taskId);
 		});
 		taskInFlight.set(taskId, run);

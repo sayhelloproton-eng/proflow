@@ -37,6 +37,51 @@ test("CP-EXE-BR-24 trusted routine permission auto-allows exactly once and verif
 	assert.deepEqual(actions, ["allowAlways"]);
 });
 
+test("CP-EXE-BR-24 trusted routine permission uses generic allow when persistent allow is unavailable", async () => {
+	const actions: string[] = [];
+	const result = await resolveRoutineCarrierPermission({
+		facts: { ...facts, actions: ["deny", "allow"] },
+		autoAlreadyAttempted: false,
+		port: {
+			async classify() {
+				return { decision: "AUTO_ALLOW", reason: "KNOWN_PROFLOW_ACTION" };
+			},
+			revalidate: () => true,
+			async act(action) {
+				actions.push(action);
+			},
+			async released() {
+				return true;
+			},
+		},
+	});
+	assert.deepEqual(result, { status: "RELEASED", action: "allow" });
+	assert.deepEqual(actions, ["allow"]);
+
+	let oneTimeClicks = 0;
+	const explicitOneTime = await resolveRoutineCarrierPermission({
+		facts: { ...facts, actions: ["deny", "allowOnce"] },
+		autoAlreadyAttempted: false,
+		port: {
+			async classify() {
+				return { decision: "AUTO_ALLOW", reason: "KNOWN_PROFLOW_ACTION" };
+			},
+			revalidate: () => true,
+			async act() {
+				oneTimeClicks += 1;
+			},
+			async released() {
+				return true;
+			},
+		},
+	});
+	assert.deepEqual(explicitOneTime, {
+		status: "HUMAN_REQUIRED",
+		reason: "AUTO_ALLOW_ACTION_UNAVAILABLE",
+	});
+	assert.equal(oneTimeClicks, 0);
+});
+
 test("CP-EXE-BR-23 human-required or stale routine permission never clicks", async () => {
 	let clicks = 0;
 	const human = await resolveRoutineCarrierPermission({

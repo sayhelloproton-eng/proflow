@@ -34,6 +34,21 @@ test("GPT editor action schema targeting is restricted to visible OpenAPI contro
 	assert.doesNotMatch(install, /findControl\(/);
 });
 
+test("existing GPT action schema updates edit the existing action before any create fallback", () => {
+	const install = sliceBetween(
+		"async installActionSchema(value)",
+		"async createPrivate()",
+	);
+	assert.match(install, /const edit = existingActionEditButton\(\)/);
+	assert.match(install, /if \(edit\) \{/);
+	assert.match(install, /await openExistingActionEditor\(\)/);
+	assert.ok(
+		install.indexOf("await openExistingActionEditor()") <
+			install.indexOf('const create = clickable(['),
+		"existing Action must be opened before the create-new fallback is considered",
+	);
+});
+
 test("GPT editor return is idempotent when ChatGPT already returned to Configure", () => {
 	const body = sliceBetween(
 		"async function returnFromActionEditor()",

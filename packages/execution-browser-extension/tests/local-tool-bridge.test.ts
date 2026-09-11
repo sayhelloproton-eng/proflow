@@ -22,10 +22,15 @@ test("CP-EXE-BR-39 Local Tool lane bounds concurrency and rechecks the absolute 
 	});
 	context.after(() => bridge.close());
 	const headers = { authorization: `Bearer ${extensionToken}`, origin: `chrome-extension://${extensionId}`, "content-type": "application/json" };
+	const pollHeaders = { authorization: `Bearer ${extensionToken}`, "content-type": "application/json" };
+	const missingOriginHello = await fetch(`${bridge.endpoint}/v1/local-tools/session/hello`, { method: "POST", headers: pollHeaders, body: JSON.stringify({ extensionId, extensionInstanceId: "ext-s2", moduleVersion: "0.1.50" }) });
+	assert.equal(missingOriginHello.status, 401);
 	await fetch(`${bridge.endpoint}/v1/local-tools/session/hello`, { method: "POST", headers, body: JSON.stringify({ extensionId, extensionInstanceId: "ext-s2", moduleVersion: "0.1.50" }) });
 	const query = "?extensionInstanceId=ext-s2";
-	const poll = () => fetch(`${bridge.endpoint}/v1/local-tools/commands/next${query}`, { headers });
+	const poll = () => fetch(`${bridge.endpoint}/v1/local-tools/commands/next${query}`, { headers: pollHeaders });
 	assert.equal((await poll()).status, 204);
+	const wrongOriginPoll = await fetch(`${bridge.endpoint}/v1/local-tools/commands/next${query}`, { headers: { ...pollHeaders, origin: `chrome-extension://${"b".repeat(32)}` } });
+	assert.equal(wrongOriginPoll.status, 401);
 	const claim = async () => {
 		for (let attempt = 0; attempt < 50; attempt += 1) { const response = await poll(); if (response.status === 200) return (await response.json()) as Record<string, unknown>; assert.equal(response.status, 204); await sleep(10); }
 		throw new Error("COMMAND_NOT_CLAIMED");

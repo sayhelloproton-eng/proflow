@@ -9,7 +9,7 @@ export type CarrierPermissionDecision = {
 };
 
 export type CarrierPermissionLifecycleResult =
-	| { status: "RELEASED"; action: "allowAlways" }
+	| { status: "RELEASED"; action: "allowAlways" | "allow" }
 	| { status: "HUMAN_REQUIRED"; reason: string }
 	| { status: "STALE" };
 
@@ -63,7 +63,12 @@ export async function resolveRoutineCarrierPermission(input: {
 		};
 	if (decision.decision !== "AUTO_ALLOW")
 		return { status: "HUMAN_REQUIRED", reason: decision.reason };
-	if (!input.facts.actions.includes("allowAlways"))
+	const automaticAction = input.facts.actions.includes("allowAlways")
+		? "allowAlways"
+		: input.facts.actions.includes("allow")
+			? "allow"
+			: null;
+	if (!automaticAction)
 		return {
 			status: "HUMAN_REQUIRED",
 			reason: "AUTO_ALLOW_ACTION_UNAVAILABLE",
@@ -77,12 +82,12 @@ export async function resolveRoutineCarrierPermission(input: {
 	const beforeAction = denied();
 	if (beforeAction) return beforeAction;
 	try {
-		await input.port.act("allowAlways");
+		await input.port.act(automaticAction);
 	} catch {
 		return { status: "HUMAN_REQUIRED", reason: "AUTO_ALLOW_FAILED" };
 	}
 	return (await input.port.released())
-		? { status: "RELEASED", action: "allowAlways" }
+		? { status: "RELEASED", action: automaticAction }
 		: { status: "HUMAN_REQUIRED", reason: "AUTO_ALLOW_REALITY_UNCONFIRMED" };
 }
 

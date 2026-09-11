@@ -310,16 +310,34 @@ async function waitForKnowledgeName(name: string): Promise<void> {
 	);
 }
 
+function knowledgeRemoveControl(name: string): HTMLElement | null {
+	const labels = [`Remove file: ${name}`, `移除文件：${name}`, `删除文件：${name}`] as const;
+	return (
+		[...document.querySelectorAll<HTMLElement>('button, [role="button"]')].find(
+			(element) => available(element) && matchesExactSemantic(element, labels),
+		) ?? null
+	);
+}
+
+async function removeExistingKnowledge(name: string): Promise<void> {
+	if (!knowledgeReadbackMatches(name)) return;
+	const remove = knowledgeRemoveControl(name);
+	if (!remove) throw new Error(`GPT_EDITOR_KNOWLEDGE_REMOVE_CONTROL_NOT_FOUND:${name}`);
+	remove.click();
+	await waitForReadback(`GPT_EDITOR_KNOWLEDGE_REMOVE_TIMEOUT:${name}`, () =>
+		!knowledgeReadbackMatches(name),
+	);
+}
+
 async function uploadKnowledge(files: readonly CustomGptKnowledgeFile[]) {
 	for (const descriptor of files) {
-		if (knowledgeReadbackMatches(descriptor.name))
-			throw new Error(`GPT_EDITOR_KNOWLEDGE_CONTENT_UNVERIFIED:${descriptor.name}`);
-		const input = await knowledgeFileInput();
 		const bytes = await fetchKnowledgeRelay(descriptor.url);
 		if (bytes.byteLength !== descriptor.sizeBytes)
 			throw new Error("KNOWLEDGE_RELAY_SIZE_MISMATCH");
 		if ((await sha256Bytes(bytes)) !== descriptor.sha256)
 			throw new Error("KNOWLEDGE_RELAY_HASH_MISMATCH");
+		await removeExistingKnowledge(descriptor.name);
+		const input = await knowledgeFileInput();
 		const transfer = new DataTransfer();
 		transfer.items.add(
 			new File([bytes], descriptor.name, { type: descriptor.mime }),
@@ -1057,6 +1075,17 @@ const domPort: CustomGptEditorPort = {
 	},
 	async installActionSchema(value) {
 		let schema = actionSchemaControl();
+		if (!schema) {
+			const edit = existingActionEditButton();
+			if (edit) {
+				await openExistingActionEditor();
+				for (let attempt = 0; attempt < 200; attempt += 1) {
+					schema = actionSchemaControl();
+					if (schema) break;
+					await sleep(100);
+				}
+			}
+		}
 		if (!schema) {
 			const create = clickable([
 				"Create new action",

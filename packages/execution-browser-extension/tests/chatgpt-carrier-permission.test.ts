@@ -13,6 +13,11 @@ const currentCard = {
 	buttonLabels: ["始终允许", "拒绝", "允许一次"],
 };
 
+const genericAllowCard = {
+	text: "“研发 + 项目总控”希望与“0br1cj2q-41705.jpe1.devtunnels.ms”对话\n工具调用：0br1cj2q_41705_jpe1_devtunnels_ms__jit_plugin.localDev\n将共享以下内容：{taskId: task-real3-final-autowake-20260912}",
+	buttonLabels: ["拒绝", "允许"],
+};
+
 test("CP-EXE-BR-22 detects current non-dialog ChatGPT Action permission semantically", () => {
 	const facts = detectActionPermission([currentCard]);
 	assert.ok(facts);
@@ -22,6 +27,17 @@ test("CP-EXE-BR-22 detects current non-dialog ChatGPT Action permission semantic
 	assert.equal(facts.taskId, "task-a6f859c00b1accd027d53d48");
 	assert.deepEqual(facts.actions, ["allowAlways", "deny", "allowOnce"]);
 	assert.match(facts.fingerprint, /^permission:v1:/);
+});
+
+test("CP-EXE-BR-22 detects the current generic Allow/Deny ChatGPT Action permission", () => {
+	const facts = detectActionPermission([genericAllowCard]);
+	assert.ok(facts);
+	assert.equal(facts.kind, "ACTION_PERMISSION");
+	assert.equal(facts.operationId, "localDev");
+	assert.equal(facts.targetHost, "0br1cj2q-41705.jpe1.devtunnels.ms");
+	assert.equal(facts.taskId, "task-real3-final-autowake-20260912");
+	assert.deepEqual(facts.actions, ["deny", "allow"]);
+	assert.equal(permissionActionAllowed(facts, facts.fingerprint, "allow"), true);
 });
 
 test("CP-EXE-BR-24 semantic permission action must be present on the same fingerprint", () => {
@@ -49,7 +65,7 @@ test("CP-EXE-BR-22 unrelated dialog-like content is not treated as Action permis
 });
 
 test("CP-EXE-BR-22 Action permission wins over an otherwise ready composer", () => {
-	const permission = detectActionPermission([currentCard]);
+	const permission = detectActionPermission([genericAllowCard]);
 	assert.ok(permission);
 	assert.deepEqual(
 		classifyChatGptPageSignals({

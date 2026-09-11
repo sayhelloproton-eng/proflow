@@ -166,20 +166,30 @@ test("CP-AGT-RUNTIME-12 carrier validation evidence is exact and secret-free", a
 			false,
 		);
 	}
-	const persisted = await readFile(
-		join(
-			workspaceRoot,
-			".proflow",
-			"state",
-			"agent",
-			"role-carrier-validation",
-			`${encodeURIComponent(evidence.agentPackageRef)}.json`,
-		),
-		"utf8",
+	const evidencePath = join(
+		workspaceRoot,
+		".proflow",
+		"state",
+		"agent",
+		"role-carrier-validation",
+		`${encodeURIComponent(evidence.agentPackageRef)}.json`,
 	);
+	const persisted = await readFile(evidencePath, "utf8");
 	assert.doesNotMatch(persisted, /credential|secret|bearer/i);
-	const evidencePath = join(workspaceRoot, ".proflow", "state", "agent", "role-carrier-validation", `${encodeURIComponent(evidence.agentPackageRef)}.json`);
-	await writeFile(evidencePath, JSON.stringify({ ...JSON.parse(persisted), observedAt: "2020-01-01T00:00:00.000Z" }));
+	for (const ageMs of [2 * 60_000, 6 * 60_000, 7 * 24 * 60 * 60_000]) {
+		await writeFile(
+			evidencePath,
+			JSON.stringify({
+				...JSON.parse(persisted),
+				observedAt: new Date(Date.now() - ageMs).toISOString(),
+			}),
+		);
+		assert.equal(await hasCurrentRoleCarrierValidationEvidence(evidence), true);
+	}
+	await writeFile(
+		evidencePath,
+		JSON.stringify({ ...JSON.parse(persisted), observedAt: "not-a-date" }),
+	);
 	assert.equal(await hasCurrentRoleCarrierValidationEvidence(evidence), false);
 	await writeFile(evidencePath, JSON.stringify({ ...JSON.parse(persisted), contract: "proflow.role-carrier-validation.v1" }));
 	assert.equal(await hasCurrentRoleCarrierValidationEvidence(evidence), false);

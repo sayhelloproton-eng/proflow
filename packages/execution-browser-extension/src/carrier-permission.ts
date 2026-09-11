@@ -1,4 +1,8 @@
-export type PermissionSemanticAction = "allowAlways" | "allowOnce" | "deny";
+export type PermissionSemanticAction =
+	| "allowAlways"
+	| "allow"
+	| "allowOnce"
+	| "deny";
 
 export type ActionPermissionCandidate = {
 	text: string;
@@ -18,6 +22,7 @@ const actionLabels: ReadonlyArray<readonly [RegExp, PermissionSemanticAction]> =
 	[
 		[/^(始终允许|always allow)$/i, "allowAlways"],
 		[/^(允许一次|allow once)$/i, "allowOnce"],
+		[/^(允许|allow)$/i, "allow"],
 		[/^(拒绝|deny)$/i, "deny"],
 	];
 
@@ -73,11 +78,11 @@ export function detectActionPermission(
 		const actions = candidate.buttonLabels
 			.map(permissionSemanticAction)
 			.filter((value): value is PermissionSemanticAction => value !== null);
-		if (
-			!actions.includes("deny") ||
-			(!actions.includes("allowAlways") && !actions.includes("allowOnce"))
-		)
-			continue;
+		const hasAllowAction =
+			actions.includes("allowAlways") ||
+			actions.includes("allow") ||
+			actions.includes("allowOnce");
+		if (!actions.includes("deny") || !hasAllowAction) continue;
 		const text = normalizedText(candidate.text);
 		const operation = operationId(text);
 		if (!operation) continue;

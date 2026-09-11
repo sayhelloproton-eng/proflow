@@ -132,12 +132,54 @@ components:
         content: {type: string}
         idempotencyKey: {type: string}
     ProductLocalDevActionInput:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, enum: [read, list, search, process]}
+        input:
+          type: object
+          additionalProperties: false
+          properties:
+            path: {type: string}
+            paths: {type: array, minItems: 1, maxItems: 64, items: {type: string}}
+            maxBytes: {type: integer, minimum: 1, maximum: 500000}
+            maxEntries: {type: integer, minimum: 1, maximum: 5000}
+            query: {type: string}
+            mode: {type: string, enum: [literal, regex, filename]}
+            maxResults: {type: integer, minimum: 1, maximum: 2000}
+            action: {type: string, enum: [list, ports, status, read]}
+            port: {type: integer, minimum: 1, maximum: 65535}
+            maxOutputBytes: {type: integer, minimum: 1, maximum: 250000}
+            processRef: {type: string}
+            stream: {type: string, enum: [stdout, stderr]}
+            offset: {type: integer, minimum: 0}
+            limit: {type: integer, minimum: 1, maximum: 250000}
       oneOf:
         - {$ref: '#/components/schemas/LocalDevReadAction'}
         - {$ref: '#/components/schemas/LocalDevListAction'}
         - {$ref: '#/components/schemas/LocalDevSearchAction'}
         - {$ref: '#/components/schemas/ProductLocalDevProcessAction'}
     RepomixActionInput:
+      type: object
+      additionalProperties: false
+      required: [operation, input]
+      properties:
+        operation: {type: string, enum: [pack, grep, read]}
+        input:
+          type: object
+          additionalProperties: false
+          properties:
+            directory: {type: string}
+            includePatterns: {type: array, maxItems: 100, items: {type: string}}
+            ignorePatterns: {type: array, maxItems: 100, items: {type: string}}
+            compress: {type: boolean}
+            outputId: {type: string}
+            pattern: {type: string}
+            contextLines: {type: integer, minimum: 0, maximum: 50}
+            maxMatches: {type: integer, minimum: 1, maximum: 2000}
+            startLine: {type: integer, minimum: 1}
+            endLine: {type: integer, minimum: 1}
       oneOf:
         - {$ref: '#/components/schemas/RepomixPackAction'}
         - {$ref: '#/components/schemas/RepomixGrepAction'}

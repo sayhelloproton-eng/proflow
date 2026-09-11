@@ -258,7 +258,7 @@ export function discoverPublicBaseUrl(input: unknown, port: number): string {
 				? [url.href]
 				: [];
 		} catch {
-			return [];
+				return [];
 		}
 	});
 	if (httpsUris.length === 0)
@@ -336,7 +336,7 @@ export function createDevTunnelAutomation(input?: {
 			return "CLI_ERROR";
 		}
 		const primary = classifyLoginCommandResult(result);
-		if (primary !== "QUERY_TIMEOUT") return primary;
+		if (primary !== "QUERY_TIMEOUT" && primary !== "CLI_ERROR") return primary;
 		let diagnostic: CommandResult;
 		try {
 			diagnostic = await run(command, ["-v", "user", "show", "--json"], {

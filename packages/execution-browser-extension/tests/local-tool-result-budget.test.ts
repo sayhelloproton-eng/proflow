@@ -48,10 +48,14 @@ test("Real3 F11 bridge bounds final JSON and preserves UNKNOWN for effect result
 		);
 		assert.equal(hello.status, 200);
 		await hello.json();
+		const pollHeaders = {
+			authorization: `Bearer ${extensionToken}`,
+			"content-type": "application/json",
+		};
 		const poll = () =>
 			fetch(
 				`${bridge.endpoint}/v1/local-tools/commands/next?extensionInstanceId=budget`,
-				{ headers },
+				{ headers: pollHeaders },
 			);
 		assert.equal((await poll()).status, 204);
 		const client = createLocalToolBridgeHostClient({

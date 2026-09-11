@@ -92,9 +92,7 @@ export async function inspectRoleCarrierValidationEvidence(input: RoleCarrierVal
 		const expected = roleCarrierMaterialFingerprint(input.expectedMaterial);
 		if (typeof raw.materialFingerprint !== "string" || !/^sha256:[a-f0-9]{64}$/.test(raw.materialFingerprint)) return unverified;
 		if (raw.materialFingerprint !== expected) return { current: false, issue: "ROLE_CARRIER_MATERIAL_DRIFT" };
-		if (typeof raw.observedAt !== "string") return unverified;
-		const age = Date.now() - Date.parse(raw.observedAt);
-		if (!Number.isFinite(age) || age < 0 || age > 60_000) return unverified;
+		if (typeof raw.observedAt !== "string" || !Number.isFinite(Date.parse(raw.observedAt))) return unverified;
 		return { current: true };
 	} catch { return unverified; }
 }
