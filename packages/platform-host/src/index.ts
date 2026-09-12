@@ -208,10 +208,10 @@ const configSchema = z
 	.superRefine((value, context) => {
 		if (!loopbackHosts.has(value.host))
 			context.addIssue({
-				code: "custom",
-				path: ["host"],
-				message: "platform-host transport must bind to loopback",
-			});
+					code: "custom",
+					path: ["host"],
+					message: "platform-host transport must bind to loopback",
+				});
 		const stateRoot = resolve(value.stateRoot);
 		if (!isAbsolute(value.stateRoot) || basename(stateRoot) !== ".proflow")
 			context.addIssue({
@@ -1267,7 +1267,7 @@ async function constructGraph(
 				),
 				"role carrier validation evidence",
 			);
-			if (value.contract !== "proflow.role-carrier-validation.v1") return null;
+			if (value.contract !== "proflow.role-carrier-validation.v2") return null;
 			return {
 				agentPackageRef: string(value.agentPackageRef, "agentPackageRef"),
 				registeredPackageVersion: string(
