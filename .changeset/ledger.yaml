@@ -735,6 +735,10 @@
   dir: packages/execution-browser-extension
   intents:
     - permission-watchdog-recovery
+"@tomflow/proflow-execution-browser-extension@0.1.61":
+  dir: packages/execution-browser-extension
+  intents:
+    - background-page-recovery-watchdog
 "@tomflow/proflow-execution-browser-extension@0.1.7":
   dir: packages/execution-browser-extension
   intents:
