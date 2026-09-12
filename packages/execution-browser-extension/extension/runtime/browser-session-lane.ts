@@ -90,7 +90,10 @@ export function createBrowserSessionLane(options: {
 				});
 				if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED");
 				epoch += 1;
-				options.onSessionState?.({ state: "ONLINE", browserSessionEpoch: epoch });
+				options.onSessionState?.({
+					state: "ONLINE",
+					browserSessionEpoch: epoch,
+				});
 				options.onSessionEstablished(epoch);
 				await options.publishCarrierAttentions();
 
@@ -135,21 +138,30 @@ export function createBrowserSessionLane(options: {
 							commandId: command.commandId,
 							ok: false,
 							error:
-								error instanceof Error ? error.message : "EXTENSION_COMMAND_FAILED",
+								error instanceof Error
+									? error.message
+									: "EXTENSION_COMMAND_FAILED",
 						};
 					}
-					const reported = await options.fetchBridge(
-						config,
-						`/v1/commands/result${query}`,
-						{ method: "POST", body: JSON.stringify(result) },
-					);
-					options.onCommandSettled?.({
-						command,
-						result,
-						browserSessionEpoch: epoch,
-						reported: reported.ok,
-						durationMs: performance.now() - started,
-					});
+					let reported: Response | undefined;
+					try {
+						reported = await options.fetchBridge(
+							config,
+							`/v1/commands/result${query}`,
+							{ method: "POST", body: JSON.stringify(result) },
+						);
+					} finally {
+						try {
+							options.onCommandSettled?.({
+								command,
+								result,
+								browserSessionEpoch: epoch,
+								reported: reported?.ok ?? false,
+								durationMs: performance.now() - started,
+							});
+						} catch {}
+					}
+
 					if (!reported.ok) throw new Error("BRIDGE_RESULT_REJECTED");
 				}
 			} catch (error) {

@@ -19,15 +19,19 @@ test("Gateway keeps lifecycle logs separate and emits one aggregated Direct Tool
 	const downstream = createServer(async (request, response) => {
 		response.setHeader("content-type", "application/json");
 		if (request.url === "/ready") return response.end('{"status":"READY"}');
-		for await (const _chunk of request) {}
+		for await (const _chunk of request) {
+		}
 		response.end(JSON.stringify({ ok: true }));
 	});
-	await new Promise<void>((resolve) => downstream.listen(0, "127.0.0.1", resolve));
+	await new Promise<void>((resolve) =>
+		downstream.listen(0, "127.0.0.1", resolve),
+	);
 	context.after(
 		() => new Promise<void>((resolve) => downstream.close(() => resolve())),
 	);
 	const address = downstream.address();
-	if (!address || typeof address === "string") assert.fail("missing downstream port");
+	if (!address || typeof address === "string")
+		assert.fail("missing downstream port");
 
 	const lifecycle: Array<Record<string, unknown>> = [];
 	const operations: Array<Record<string, unknown>> = [];
@@ -40,7 +44,10 @@ test("Gateway keeps lifecycle logs separate and emits one aggregated Direct Tool
 			credentialFile,
 		},
 		log: (entry) => lifecycle.push(entry),
-		operationLog: (entry) => operations.push(entry),
+		operationLog: (entry) => {
+			operations.push(entry);
+			throw new Error("SINK_DOWN");
+		},
 	});
 	context.after(() => gateway.stop());
 

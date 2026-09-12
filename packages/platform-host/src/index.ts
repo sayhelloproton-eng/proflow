@@ -1,7 +1,7 @@
+import { browserStructuredLogSchema, createOperationSink, createHostOperationObserver, operationContext, incomingOperationRef } from "./operation-observability.ts";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync } from "node:fs";
 import {
-	appendFile,
 	chmod,
 	mkdir,
 	readFile,
@@ -74,32 +74,6 @@ const systemObserverReasonResultSchema = z
 	})
 	.strict();
 
-const browserStructuredLogSchema = z
-	.object({
-		timestamp: z.string().datetime(),
-		level: z.enum(["DEBUG", "INFO", "WARN", "ERROR"]),
-		component: z.string().min(1).max(100),
-		capability: z.string().min(1).max(160).optional(),
-		operation: z.string().min(1).max(160).optional(),
-		status: z.string().min(1).max(80).optional(),
-		errorCode: z.string().min(1).max(160).optional(),
-		correlationId: z.string().min(1).max(240).optional(),
-		taskId: z.string().min(1).max(240).optional(),
-		nodeId: z.string().min(1).max(240).optional(),
-		runNo: z.number().int().nonnegative().optional(),
-		agentPackageRef: z.string().min(1).max(240).optional(),
-		roleRef: z.string().min(1).max(240).optional(),
-		workerRef: z.string().min(1).max(240).optional(),
-		executionRef: z.string().min(1).max(240).optional(),
-		messageRef: z.string().min(1).max(240).optional(),
-		artifactRef: z.string().min(1).max(240).optional(),
-		evidenceRef: z.string().min(1).max(240).optional(),
-		conversationLocator: z.string().min(1).max(1_000).optional(),
-		operationRef: z.string().min(1).max(240).optional(),
-		attemptNo: z.number().int().nonnegative().optional(),
-		tabId: z.number().int().nonnegative().optional(),
-	})
-	.strict();
 
 interface TaskDocumentFileBridgeOutput {
 	fileArtifacts: Array<{
@@ -664,6 +638,8 @@ async function constructGraph(
 	resolveConnection?: OwnerConnectionResolver,
 	resolveLocalToolConnection?: LocalToolConnectionResolver,
 ) {
+	const sink = createOperationSink(config.stateRoot);
+	const observer = createHostOperationObserver(entry => sink.write("platform-host", entry));
 	const databasePath = join(config.stateRoot, "state", "task.sqlite");
 	const migration = applyMigrations({ databasePath, migrations: taskMigrations });
 	if (!migration.ok)
@@ -725,18 +701,18 @@ async function constructGraph(
 		taskStore.close();
 		throw error;
 	}
-	const execution = createOwnerHttpClient(
+	const execution = observer.port("execution", createOwnerHttpClient(
 		"execution",
 		config.executionBaseUrl,
 		executionCredential,
 		resolveConnection,
-	);
-	const model = createOwnerHttpClient(
+	));
+	const model = observer.port("model", createOwnerHttpClient(
 		"model",
 		config.modelBaseUrl,
 		modelCredential,
 		resolveConnection,
-	);
+	));
 	let reconciliationCoordinator:
 		| ReturnType<typeof createReconciliationCoordinator>
 		| undefined;
@@ -895,7 +871,7 @@ async function constructGraph(
 			throw Object.assign(new Error("TASK_WORKER_BINDING_MISMATCH"), { httpStatus: 403 });
 		return binding.workerRef;
 	};
-	const route = async (
+	const routeImpl = async (
 		operationId: string,
 		authenticatedRoleRef: string,
 		rawInput: unknown,
@@ -933,7 +909,7 @@ async function constructGraph(
 			if (!connection)
 				throw Object.assign(new Error("LOCAL_TOOL_BRIDGE_UNAVAILABLE"), { httpStatus: 503 });
 			try {
-				return await createLocalToolBridgeHostClient({
+				return await observer.run("tool-invocation", toolOperation, () => createLocalToolBridgeHostClient({
 					endpoint: connection.endpoint,
 					token: connection.credential,
 				}).request({
@@ -943,7 +919,7 @@ async function constructGraph(
 					operation: toolOperation,
 					input: toolInput,
 					deadlineAt,
-				});
+				}));
 			} catch (error) {
 				const code =
 					error instanceof LocalToolBridgeError
@@ -1023,6 +999,7 @@ async function constructGraph(
 		}
 		throw new Error("OPERATION_NOT_ROUTED");
 	};
+	const route = (...args: Parameters<typeof routeImpl>) => observer.run("action", args[0], () => routeImpl(...args), args[2]);
 	const browserOwnerPorts: PlatformHostBrowserOwnerPorts = Object.freeze({
 		task: Object.freeze({
 			async getWorkerBinding(taskId: string, roleRef: string) {
@@ -1311,7 +1288,7 @@ async function constructGraph(
 			return null;
 		}
 	};
-	const roleManagement: PlatformHostRoleManagement = Object.freeze({
+	const roleManagement: PlatformHostRoleManagement = observer.port("role", {
 		async invoke(operation, rawInput) {
 			const value = object(rawInput, "role management input");
 			if (operation === "role.register") {
@@ -1476,7 +1453,7 @@ async function constructGraph(
 		getProjection: (taskId) => taskDriverPorts.getTaskDriveProjection(taskId),
 		requestWake: requestTaskWake,
 	});
-	const taskApplication = Object.freeze({
+	const taskApplication = observer.port("task", {
 		async invoke(operation: string, rawInput: unknown) {
 			const value = object(rawInput, "task application input");
 			if (operation === "task.create") {
@@ -1605,7 +1582,7 @@ async function constructGraph(
 		});
 		return context;
 	};
-	const approvalApplication = Object.freeze({
+	const approvalApplication = observer.port("approval", {
 		async invoke(operation: string, rawInput: unknown) {
 			const value = object(rawInput, "approval application input");
 			if (operation === "approval.list")
@@ -1649,7 +1626,7 @@ async function constructGraph(
 			throw new Error("UNSUPPORTED_APPROVAL_APPLICATION_OPERATION");
 		},
 	});
-	const observerApplication = Object.freeze({
+	const observerApplication = observer.port("observer", {
 		async invoke(operation: string, rawInput: unknown) {
 			const value = object(rawInput, "observer application input");
 			if (operation === "task.reconcileAll") {
@@ -1803,8 +1780,9 @@ async function constructGraph(
 	reconciliationCoordinator.start();
 	return Object.freeze({
 		route,
+		operationSink: sink,
 		browserOwnerPorts,
-		authorizeExecution,
+		authorizeExecution: (...args: Parameters<typeof authorizeExecution>) => observer.run("execution-identity", "authorize", () => authorizeExecution(...args)),
 		taskDriverPorts,
 		agentIdentityPorts,
 		roleManagement,
@@ -2107,7 +2085,7 @@ export function createPlatformHost(input: {
 				input.resolveLocalToolConnection,
 			);
 			server = createServer((request, response) => {
-				const work = (async () => {
+				const work = operationContext.run({ operationRef: incomingOperationRef(request.headers["x-proflow-operation-ref"]) }, async () => {
 					const url = new URL(request.url ?? "/", "http://platform-host.local");
 					if (request.method === "GET" && url.pathname === "/health")
 						return respond(response, 200, {
@@ -2216,19 +2194,8 @@ export function createPlatformHost(input: {
 								const entry = browserStructuredLogSchema.parse(
 									JSON.parse(Buffer.concat(chunks).toString("utf8")),
 								);
-								const logPath = join(
-									input.config.stateRoot,
-									"logs",
-									"browser-extension",
-									"events.jsonl",
-								);
-								await mkdir(dirname(logPath), { recursive: true, mode: 0o700 });
-								await appendFile(
-									logPath,
-									`${JSON.stringify({ ...entry, receivedAt: new Date().toISOString() })}\n`,
-									{ mode: 0o600 },
-								);
-								return respond(response, 200, { accepted: true });
+								await graph.operationSink.write("browser-extension", entry);
+								return respond(response, 200, { accepted: true, ...(entry.eventId ? { eventId: entry.eventId } : {}) });
 							} catch (error) {
 								return respond(response, 400, {
 									error: error instanceof Error ? error.message : "INVALID_LOG_ENTRY",
@@ -2387,7 +2354,7 @@ export function createPlatformHost(input: {
 							error: error instanceof Error ? error.message : "INVALID_REQUEST",
 						});
 					}
-				})();
+				});
 				active.add(work);
 				void work.finally(() => active.delete(work));
 			});

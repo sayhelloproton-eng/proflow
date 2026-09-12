@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual, randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -99,13 +99,11 @@ function logErrorCode(error: unknown): string {
 		error instanceof AgentGatewayError
 			? error.code
 			: error &&
-				  typeof error === "object" &&
-				  typeof Reflect.get(error, "message") === "string"
+					typeof error === "object" &&
+					typeof Reflect.get(error, "message") === "string"
 				? String(Reflect.get(error, "message"))
 				: "GATEWAY_FAILURE";
-	return /^[A-Z][A-Z0-9_.:-]{0,159}$/.test(value)
-		? value
-		: "GATEWAY_FAILURE";
+	return /^[A-Z][A-Z0-9_.:-]{0,159}$/.test(value) ? value : "GATEWAY_FAILURE";
 }
 function optionalToolOperation(value: unknown): string | undefined {
 	if (
@@ -220,6 +218,7 @@ export async function createAgentGatewayProcess(input: {
 		path: string,
 		body?: unknown,
 		signal?: AbortSignal,
+		operationRef?: string,
 	) => {
 		const downstreamCredential = input.config.downstreamCredentialFile
 			? await readDownstreamCredential(input.config.downstreamCredentialFile)
@@ -231,6 +230,9 @@ export async function createAgentGatewayProcess(input: {
 				{
 					method: body === undefined ? "GET" : "POST",
 					headers: {
+						...(operationRef
+							? { "x-proflow-operation-ref": operationRef }
+							: {}),
 						...(body === undefined
 							? {}
 							: { "content-type": "application/json" }),
@@ -271,6 +273,7 @@ export async function createAgentGatewayProcess(input: {
 	};
 	const emitOperation = (inputEvent: {
 		mode: "ROUTE" | "LOOKUP";
+		operationRef: string;
 		operationId: string;
 		roleRef: string;
 		value: unknown;
@@ -281,27 +284,53 @@ export async function createAgentGatewayProcess(input: {
 		const toolOperation = directToolOperationIds.has(inputEvent.operationId)
 			? optionalToolOperation(inputEvent.value)
 			: undefined;
-		input.operationLog?.({
-			contract: "proflow.operation-boundary.v1",
-			timestamp: new Date().toISOString(),
-			source: "agent-gateway",
-			component: "agent-gateway-ingress",
-			event:
-				inputEvent.mode === "LOOKUP"
-					? "GATEWAY_ACTION_LOOKUP"
-					: "GATEWAY_ACTION",
-			boundary: directToolOperationIds.has(inputEvent.operationId)
-				? "TOOL_INVOCATION"
-				: "ACTION",
-			status: inputEvent.status,
-			operationId: inputEvent.operationId,
-			roleRef: inputEvent.roleRef,
-			...(toolOperation ? { toolOperation } : {}),
-			...(inputEvent.errorCode ? { errorCode: inputEvent.errorCode } : {}),
-			durationMs: inputEvent.durationMs,
-		});
+		try {
+			void Promise.resolve(
+				input.operationLog?.({
+					contract: "proflow.operation-boundary.v1",
+					eventId: `gateway-event:${randomUUID()}`,
+					operationRef: inputEvent.operationRef,
+					correlationKind: "EXACT",
+					sideEffectState: "UNKNOWN",
+					timestamp: new Date().toISOString(),
+					source: "agent-gateway",
+					component: "agent-gateway-ingress",
+					event:
+						inputEvent.mode === "LOOKUP"
+							? "GATEWAY_ACTION_LOOKUP"
+							: "GATEWAY_ACTION",
+					boundary: directToolOperationIds.has(inputEvent.operationId)
+						? "TOOL_INVOCATION"
+						: "ACTION",
+					status: inputEvent.status,
+					operationId: inputEvent.operationId,
+					roleRef: inputEvent.roleRef,
+					...(toolOperation ? { toolOperation } : {}),
+					...(inputEvent.errorCode ? { errorCode: inputEvent.errorCode } : {}),
+					durationMs: inputEvent.durationMs,
+				}),
+			).catch(() => undefined);
+		} catch {}
 	};
 	const gateway = await createAgentGateway({
+		onIngressFailure(entry) {
+			try {
+				void Promise.resolve(
+					input.operationLog?.({
+						contract: "proflow.operation-boundary.v1",
+						timestamp: new Date().toISOString(),
+						eventId: `gateway-event:${randomUUID()}`,
+						operationRef: `op:${randomUUID()}`,
+						correlationKind: "EXACT",
+						source: "agent-gateway",
+						component: "agent-gateway-ingress",
+						event: "GATEWAY_INGRESS_REJECTED",
+						...entry,
+						errorCode: "GATEWAY_INGRESS_REJECTED",
+					}),
+				).catch(() => undefined);
+			} catch {}
+		},
 		host: input.config.host,
 		port: input.config.port,
 		relayBaseUrl: `${input.config.publicBaseUrl}/relay/`,
@@ -314,6 +343,7 @@ export async function createAgentGatewayProcess(input: {
 			},
 			async route(operationId, authenticatedRoleRef, value, context) {
 				const started = performance.now();
+				const operationRef = `op:${randomUUID()}`;
 				try {
 					const result = await downstream(
 						`/actions/${encodeURIComponent(operationId)}`,
@@ -324,13 +354,16 @@ export async function createAgentGatewayProcess(input: {
 							...(context?.fileMaterializationInputs === undefined
 								? {}
 								: {
-										fileMaterializationInputs: context.fileMaterializationInputs,
+										fileMaterializationInputs:
+											context.fileMaterializationInputs,
 									}),
 						},
 						context?.signal,
+						operationRef,
 					);
 					emitOperation({
 						mode: "ROUTE",
+						operationRef,
 						operationId,
 						roleRef: authenticatedRoleRef,
 						value,
@@ -341,6 +374,7 @@ export async function createAgentGatewayProcess(input: {
 				} catch (error) {
 					emitOperation({
 						mode: "ROUTE",
+						operationRef,
 						operationId,
 						roleRef: authenticatedRoleRef,
 						value,
@@ -353,13 +387,17 @@ export async function createAgentGatewayProcess(input: {
 			},
 			async lookupResult(operationId, authenticatedRoleRef, value) {
 				const started = performance.now();
+				const operationRef = `op:${randomUUID()}`;
 				try {
 					const result = await downstream(
 						`/actions/${encodeURIComponent(operationId)}/result`,
 						{ authenticatedRoleRef, input: value },
+						undefined,
+						operationRef,
 					);
 					emitOperation({
 						mode: "LOOKUP",
+						operationRef,
 						operationId,
 						roleRef: authenticatedRoleRef,
 						value,
@@ -370,6 +408,7 @@ export async function createAgentGatewayProcess(input: {
 				} catch (error) {
 					emitOperation({
 						mode: "LOOKUP",
+						operationRef,
 						operationId,
 						roleRef: authenticatedRoleRef,
 						value,

@@ -88,7 +88,10 @@ export function createProvisioningLane(options: {
 	getTab(tabId: number): Promise<Tab>;
 	reloadTab(tabId: number): Promise<void>;
 	sendTabMessage(tabId: number, message: unknown): Promise<unknown>;
-	onSessionState?(input: { state: "ONLINE" | "OFFLINE"; errorCode?: string }): void;
+	onSessionState?(input: {
+		state: "ONLINE" | "OFFLINE";
+		errorCode?: string;
+	}): void;
 	onCommandSettled?(outcome: ProvisioningCommandOutcome): void;
 }) {
 	let started = false;
@@ -178,7 +181,9 @@ export function createProvisioningLane(options: {
 			);
 		let editorUrl = "https://chatgpt.com/gpts/editor";
 		if (command.type === "FINALIZE_CUSTOM_GPT_AUTH") {
-			const carrierUrl = new URL(text(command.request.carrierUrl, "CARRIER_URL"));
+			const carrierUrl = new URL(
+				text(command.request.carrierUrl, "CARRIER_URL"),
+			);
 			const match = /^\/g\/(g-[A-Za-z0-9_-]+)$/.exec(carrierUrl.pathname);
 			if (
 				carrierUrl.origin !== "https://chatgpt.com" ||
@@ -224,8 +229,7 @@ export function createProvisioningLane(options: {
 							}),
 						},
 					);
-					if (!hello.ok)
-						throw new Error("PROVISIONING_BRIDGE_HELLO_REJECTED");
+					if (!hello.ok) throw new Error("PROVISIONING_BRIDGE_HELLO_REJECTED");
 					sessionOnline = true;
 					lastFailureCode = "";
 					options.onSessionState?.({ state: "ONLINE" });
@@ -251,7 +255,8 @@ export function createProvisioningLane(options: {
 						}
 						if (!response.ok)
 							throw new Error("PROVISIONING_BRIDGE_POLL_REJECTED");
-						const command = (await response.json()) as ProvisioningBridgeCommand;
+						const command =
+							(await response.json()) as ProvisioningBridgeCommand;
 						const commandStarted = performance.now();
 						const commandHeartbeat = setInterval(() => {
 							void options
@@ -305,24 +310,29 @@ export function createProvisioningLane(options: {
 						} finally {
 							clearInterval(commandHeartbeat);
 						}
-						const reported = await options.fetchBridge(
-							config,
-							`/v1/provisioning/commands/result${query}`,
-							{ method: "POST", body: JSON.stringify(result) },
-						);
-						if (!reported.ok) {
-							options.onCommandSettled?.({
-								...outcome,
-								status: "UNKNOWN",
-								errorCode: "PROVISIONING_BRIDGE_RESULT_REJECTED",
-								durationMs: performance.now() - commandStarted,
-							});
-							throw new Error("PROVISIONING_BRIDGE_RESULT_REJECTED");
+						let reported: Response | undefined;
+						try {
+							reported = await options.fetchBridge(
+								config,
+								`/v1/provisioning/commands/result${query}`,
+								{ method: "POST", body: JSON.stringify(result) },
+							);
+						} finally {
+							try {
+								options.onCommandSettled?.({
+									...outcome,
+									...(!reported?.ok
+										? {
+												status: "UNKNOWN" as const,
+												errorCode: "PROVISIONING_BRIDGE_RESULT_REJECTED",
+											}
+										: {}),
+									durationMs: performance.now() - commandStarted,
+								});
+							} catch {}
 						}
-						options.onCommandSettled?.({
-							...outcome,
-							durationMs: performance.now() - commandStarted,
-						});
+						if (!reported.ok)
+							throw new Error("PROVISIONING_BRIDGE_RESULT_REJECTED");
 					}
 				} catch (error) {
 					const code = errorCode(error, "PROVISIONING_SESSION_FAILED");

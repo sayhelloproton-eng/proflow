@@ -40,6 +40,11 @@ export type GatewayOptions = {
 	port?: number;
 	now?: () => number;
 	actionTimeoutMs?: number;
+	onIngressFailure?: (entry: {
+		status: "FAILED";
+		httpStatus: number;
+		sideEffectState: "NOT_APPLIED";
+	}) => void;
 };
 export class AgentGatewayError extends Error {
 	readonly code: string;
@@ -286,6 +291,7 @@ export async function createAgentGateway(options: GatewayOptions) {
 		response: import("node:http").ServerResponse,
 	) => {
 		inFlight += 1;
+		let ownerEntered = false;
 		try {
 			const url = new URL(request.url ?? "/", `http://${host}`);
 			if (request.method === "GET" && url.pathname === "/health") {
@@ -416,9 +422,15 @@ export async function createAgentGateway(options: GatewayOptions) {
 				40_000,
 				options.actionTimeoutMs ?? 40_000,
 			);
-			const propagationReserveMs = Math.min(1_500, Math.max(100, Math.floor(actionTimeoutMs / 10)));
-			const deadlineAt = new Date(now() + Math.max(1, actionTimeoutMs - propagationReserveMs)).toISOString();
+			const propagationReserveMs = Math.min(
+				1_500,
+				Math.max(100, Math.floor(actionTimeoutMs / 10)),
+			);
+			const deadlineAt = new Date(
+				now() + Math.max(1, actionTimeoutMs - propagationReserveMs),
+			).toISOString();
 			const actionSignal = AbortSignal.timeout(actionTimeoutMs);
+			ownerEntered = true;
 			const operation =
 				action.uncertain && options.owners.lookupResult
 					? options.owners.lookupResult(
@@ -490,6 +502,15 @@ export async function createAgentGateway(options: GatewayOptions) {
 				}),
 			);
 		} finally {
+			if (!ownerEntered && response.statusCode >= 400) {
+				try {
+					options.onIngressFailure?.({
+						status: "FAILED",
+						httpStatus: response.statusCode,
+						sideEffectState: "NOT_APPLIED",
+					});
+				} catch {}
+			}
 			inFlight -= 1;
 		}
 	};

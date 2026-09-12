@@ -6,7 +6,10 @@ import { shouldTriggerObserverRecovery } from "../src/recovery-trigger.js";
 import { createApplicationClient } from "./runtime/application-client.js";
 import { createBrowserCommandController } from "./runtime/browser-command-controller.js";
 import { createBrowserSessionLane } from "./runtime/browser-session-lane.js";
-import type { ChromeRuntime, ContentObservation } from "./runtime/chrome-runtime.js";
+import type {
+	ChromeRuntime,
+	ContentObservation,
+} from "./runtime/chrome-runtime.js";
 import { createExtensionLogger } from "./runtime/extension-logger.js";
 import { createLocalToolLane } from "./runtime/local-tool-lane.js";
 import { createObserverRecoveryController } from "./runtime/observer-recovery-controller.js";
@@ -34,12 +37,21 @@ const operationLogger = createExtensionLogger({
 	moduleVersion: extensionModuleVersion,
 	remoteWrite: applications.emitLog,
 });
-const observability = createExtensionOperationObserver({ logger: operationLogger });
+const observability = createExtensionOperationObserver({
+	logger: operationLogger,
+});
+// Logging-only retry: never replays a command or a business effect.
+setInterval(() => {
+	void operationLogger.flush();
+}, 30_000);
 const invokeObserver = observability.wrapHostApplication(
 	"observer",
 	applications.invokeObserver,
 );
-const invokeTask = observability.wrapHostApplication("task", applications.invokeTask);
+const invokeTask = observability.wrapHostApplication(
+	"task",
+	applications.invokeTask,
+);
 const invokeApproval = observability.wrapHostApplication(
 	"approval",
 	applications.invokeApproval,
@@ -58,7 +70,7 @@ const permissions = createPermissionController({
 const observerRecovery = createObserverRecoveryController({
 	storage: chrome.storage.local,
 	invokeObserver,
-	emitDiagnostic() {},
+	emitDiagnostic: observability.recovery,
 });
 
 function processContentObservation(
@@ -169,7 +181,7 @@ function initializeBackgroundRuntime(): Promise<void> {
 			extensionModuleVersion,
 			() => `extension:${crypto.randomUUID()}`,
 		);
-		await operationLogger.flush();
+		void operationLogger.flush();
 		await permissions.persist();
 		void localToolLane.start();
 		void provisioningLane.start();

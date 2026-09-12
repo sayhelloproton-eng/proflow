@@ -1,6 +1,24 @@
 export type BridgeConfig = { endpoint: string; token: string };
 
 export type BrowserStructuredLogEntry = {
+	contract?: string;
+	eventId?: string;
+	sequenceNo?: number;
+	timestamp?: string;
+	source?: string;
+	extensionInstanceId?: string;
+	moduleVersion?: string;
+	event?: string;
+	phase?: string;
+	correlationKind?: "EXACT" | "IDENTITY_MATCH" | "ADJACENT";
+	decision?: string;
+	reason?: string;
+	sideEffectState?: string;
+	durationMs?: number;
+	operationId?: string;
+	contentInstanceId?: string;
+	browserSessionEpoch?: number;
+
 	level: "DEBUG" | "INFO" | "WARN" | "ERROR";
 	component: string;
 	capability?: string;
@@ -41,7 +59,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function normalizeLogErrorCode(error: unknown, fallback: string): string {
+export function normalizeLogErrorCode(
+	error: unknown,
+	fallback: string,
+): string {
 	const value = error instanceof Error ? error.message : error;
 	return typeof value === "string" && /^[A-Z][A-Z0-9_.:-]{0,159}$/.test(value)
 		? value
@@ -95,13 +116,16 @@ export function createApplicationClient(options: {
 			},
 		});
 
-	const configFromStorage = async (key: string): Promise<BridgeConfig | null> => {
+	const configFromStorage = async (
+		key: string,
+	): Promise<BridgeConfig | null> => {
 		const stored = await options.storageLocal.get(key);
 		return parseConfig(stored[key]);
 	};
 
 	const bridgeConfig = () => configFromStorage("proflowRuntimeBridge");
-	const localToolBridgeConfig = () => configFromStorage("proflowLocalToolBridge");
+	const localToolBridgeConfig = () =>
+		configFromStorage("proflowLocalToolBridge");
 	const provisioningBridgeConfig = () =>
 		configFromStorage("proflowProvisioningBridge");
 
@@ -134,6 +158,7 @@ export function createApplicationClient(options: {
 		surface: "task" | "approval" | "observer",
 		operation: string,
 		input: Record<string, unknown>,
+		operationRef?: string,
 	): Promise<unknown> => {
 		const config =
 			surface === "approval"
@@ -147,14 +172,18 @@ export function createApplicationClient(options: {
 						? "TASK_APPLICATION_NOT_CONFIGURED"
 						: "OBSERVER_APPLICATION_NOT_CONFIGURED",
 			);
-		const response = await fetchImpl(`${config.endpoint}/application/${surface}`, {
-			method: "POST",
-			headers: {
-				authorization: `Bearer ${config.token}`,
-				"content-type": "application/json",
+		const response = await fetchImpl(
+			`${config.endpoint}/application/${surface}`,
+			{
+				method: "POST",
+				headers: {
+					authorization: `Bearer ${config.token}`,
+				...(operationRef ? {"x-proflow-operation-ref": operationRef} : {}),
+					"content-type": "application/json",
+				},
+				body: JSON.stringify({ operation, input }),
 			},
-			body: JSON.stringify({ operation, input }),
-		});
+		);
 		const body = (await response.json()) as unknown;
 		if (!response.ok) {
 			const fallback =
@@ -164,7 +193,9 @@ export function createApplicationClient(options: {
 						? "TASK_APPLICATION_REQUEST_FAILED"
 						: "OBSERVER_APPLICATION_REQUEST_FAILED";
 			const detail =
-				isRecord(body) && typeof body.error === "string" ? body.error : fallback;
+				isRecord(body) && typeof body.error === "string"
+					? body.error
+					: fallback;
 			throw new Error(detail);
 		}
 		return body;
@@ -183,6 +214,13 @@ export function createApplicationClient(options: {
 			signal: AbortSignal.timeout(bridgeTimeoutMs),
 		});
 		if (!response.ok) throw new Error("LOG_SINK_REJECTED");
+		const ack: unknown = await response.json();
+		if (
+			!isRecord(ack) ||
+			ack.accepted !== true ||
+			(entry.eventId && ack.eventId !== entry.eventId)
+		)
+			throw new Error("LOG_ACK_INVALID");
 	};
 
 	return Object.freeze({
@@ -227,18 +265,22 @@ export function createApplicationClient(options: {
 			const config = await bridgeConfig().catch(() => null);
 			if (!config) return;
 			const query = `?extensionInstanceId=${encodeURIComponent(extensionInstanceId)}`;
-			const response = await fetchBridge(config, `/v1/carrier/attentions${query}`, {
-				method: "POST",
-				body: JSON.stringify({ carrierAttentions }),
-			});
+			const response = await fetchBridge(
+				config,
+				`/v1/carrier/attentions${query}`,
+				{
+					method: "POST",
+					body: JSON.stringify({ carrierAttentions }),
+				},
+			);
 			if (!response.ok) throw new Error("CARRIER_ATTENTION_PUBLISH_REJECTED");
 		},
-		invokeTask: (operation: string, input: Record<string, unknown>) =>
-			invokeSurface("task", operation, input),
-		invokeApproval: (operation: string, input: Record<string, unknown>) =>
-			invokeSurface("approval", operation, input),
-		invokeObserver: (operation: string, input: Record<string, unknown>) =>
-			invokeSurface("observer", operation, input),
+		invokeTask: (operation: string, input: Record<string, unknown>, operationRef?: string) =>
+			invokeSurface("task", operation, input, operationRef),
+		invokeApproval: (operation: string, input: Record<string, unknown>, operationRef?: string) =>
+			invokeSurface("approval", operation, input, operationRef),
+		invokeObserver: (operation: string, input: Record<string, unknown>, operationRef?: string) =>
+			invokeSurface("observer", operation, input, operationRef),
 		emitLog,
 	});
 }

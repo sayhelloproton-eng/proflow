@@ -15,7 +15,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function hostAxes(input: Record<string, unknown>) {
 	const axes: Record<string, string | number> = {};
 	for (const key of [
-		"correlationId",
 		"taskId",
 		"nodeId",
 		"roleRef",
@@ -43,7 +42,7 @@ function pageAxes(observed: ContentObservation) {
 			? {
 					operationRef: observed.blockerFacts.fingerprint,
 					correlationId: `permission:${observed.blockerFacts.fingerprint}`,
-					correlationKind: "EXACT" as const,
+					correlationKind: "IDENTITY_MATCH" as const,
 					operationId: observed.blockerFacts.operationId,
 				}
 			: {}),
@@ -68,38 +67,49 @@ function commandAxes(command: BrowserBridgeCommand) {
 	};
 }
 
-export function createExtensionOperationObserver(options: { logger: ExtensionLogger }) {
+export function createExtensionOperationObserver(options: {
+	logger: ExtensionLogger;
+}) {
 	const emit = (input: Parameters<ExtensionLogger["emit"]>[0]): void => {
 		void options.logger.emit(input).catch(() => undefined);
 	};
 
-	const wrapHostApplication = (
-		surface: "task" | "approval" | "observer",
-		invoke: (operation: string, input: Record<string, unknown>) => Promise<unknown>,
-	) =>
-		async (operation: string, input: Record<string, unknown>): Promise<unknown> => {
+	const wrapHostApplication =
+		(
+			surface: "task" | "approval" | "observer",
+			invoke: (
+				operation: string,
+				input: Record<string, unknown>,
+				operationRef?: string,
+			) => Promise<unknown>,
+		) =>
+		async (
+			operation: string,
+			input: Record<string, unknown>,
+		): Promise<unknown> => {
 			const started = performance.now();
+			const operationRef = `op:${crypto.randomUUID()}`;
 			try {
-				const value = await invoke(operation, input);
+				const value = await invoke(operation, input, operationRef);
 				emit({
-					component: "platform-host-application-boundary",
+					component: "extension-host-client-boundary",
 					event: "HOST_APPLICATION",
 					phase: surface.toUpperCase(),
 					status: "SUCCEEDED",
 					operationId: operation,
-					operationRef: operation,
+					operationRef,
 					durationMs: performance.now() - started,
 					...hostAxes(input),
 				});
 				return value;
 			} catch (error) {
 				emit({
-					component: "platform-host-application-boundary",
+					component: "extension-host-client-boundary",
 					event: "HOST_APPLICATION",
 					phase: surface.toUpperCase(),
 					status: "FAILED",
 					operationId: operation,
-					operationRef: operation,
+					operationRef,
 					errorCode: normalizeLogErrorCode(error, "HOST_APPLICATION_FAILED"),
 					durationMs: performance.now() - started,
 					...hostAxes(input),
@@ -110,6 +120,20 @@ export function createExtensionOperationObserver(options: { logger: ExtensionLog
 
 	return Object.freeze({
 		wrapHostApplication,
+		recovery(phase: string, attemptNo: number, identityRef: string) {
+			if (!["STARTED", "COLLABORATION_RECOVERY_SETTLED"].includes(phase))
+				return;
+			emit({
+				component: "recovery-boundary",
+				event: "RECOVERY_OPERATION",
+				phase,
+				status: phase === "STARTED" ? "STARTED" : "UNKNOWN",
+				attemptNo,
+				operationRef: `${identityRef}:${attemptNo}`,
+				correlationKind: "IDENTITY_MATCH",
+				sideEffectState: "UNKNOWN",
+			});
+		},
 		lifecycle(input: {
 			operationId: "INITIALIZE";
 			status: "SUCCEEDED" | "FAILED";
@@ -175,11 +199,15 @@ export function createExtensionOperationObserver(options: { logger: ExtensionLog
 							}
 						: {}
 					: { errorCode: "BRIDGE_RESULT_REJECTED" }),
+				sideEffectState: "UNKNOWN",
 				durationMs: input.durationMs,
 				...commandAxes(input.command),
 			});
 		},
-		localToolSession(input: { state: "ONLINE" | "OFFLINE"; errorCode?: string }) {
+		localToolSession(input: {
+			state: "ONLINE" | "OFFLINE";
+			errorCode?: string;
+		}) {
 			emit({
 				component: "local-tool-session-boundary",
 				event: "LOCAL_TOOL_SESSION_STATE",
@@ -222,7 +250,8 @@ export function createExtensionOperationObserver(options: { logger: ExtensionLog
 				previous.contentInstanceId !== observed.contentInstanceId ||
 				previous.pageState !== observed.pageState ||
 				previous.activityKind !== observed.activityKind ||
-				previous.blockerFacts?.fingerprint !== observed.blockerFacts?.fingerprint;
+				previous.blockerFacts?.fingerprint !==
+					observed.blockerFacts?.fingerprint;
 			if (!changed) return;
 			const before = previous
 				? `${previous.pageState}:${previous.activityKind ?? "NONE"}`
@@ -256,7 +285,7 @@ export function createExtensionOperationObserver(options: { logger: ExtensionLog
 				operationId: outcome.operationId,
 				operationRef: outcome.operationRef,
 				correlationId: outcome.correlationId,
-				correlationKind: "EXACT",
+				correlationKind: "IDENTITY_MATCH",
 				tabId: outcome.tabId,
 				contentInstanceId: outcome.contentInstanceId,
 				conversationLocator: outcome.conversationLocator,
@@ -275,7 +304,7 @@ export function createExtensionOperationObserver(options: { logger: ExtensionLog
 				operationId: facts.operationId,
 				operationRef: facts.fingerprint,
 				correlationId: `permission:${facts.fingerprint}`,
-				correlationKind: "EXACT",
+				correlationKind: "IDENTITY_MATCH",
 				errorCode: normalizeLogErrorCode(error, "PERMISSION_OPERATION_FAILED"),
 				sideEffectState: "UNKNOWN",
 				...pageAxes(observed),
@@ -286,4 +315,3 @@ export function createExtensionOperationObserver(options: { logger: ExtensionLog
 		},
 	});
 }
-

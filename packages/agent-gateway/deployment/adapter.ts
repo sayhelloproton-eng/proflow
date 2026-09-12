@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile, mkdir, stat, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
 import {
@@ -100,22 +100,35 @@ async function compose(context: ModuleCommandContext): Promise<GatewayProcess> {
 		throw new Error(
 			"Agent role credential store is not materialized by Platform Host",
 		);
-	const logPath = join(
-		deps.stateRoot,
-		"logs",
-		"agent-gateway",
-		"events.jsonl",
-	);
+	const logPath = join(deps.stateRoot, "logs", "agent-gateway", "events.jsonl");
 	let logTail = Promise.resolve();
+	let pendingLogs = 0;
 	const log = (entry: Record<string, unknown>) => {
+		if (pendingLogs >= 1000) return;
+		pendingLogs++;
 		logTail = logTail
 			.catch(() => undefined)
 			.then(async () => {
 				await mkdir(dirname(logPath), { recursive: true, mode: 0o700 });
-				await appendFile(logPath, `${JSON.stringify(entry)}\n`, {
+				const target =
+					entry.component === "agent-gateway-process"
+						? logPath.replace("events.jsonl", "lifecycle.jsonl")
+						: logPath;
+				const info = await stat(target).catch(() => null);
+				if (
+					info &&
+					(info.size >= 5 * 1024 * 1024 ||
+						Date.now() - info.mtimeMs > 7 * 86400_000)
+				)
+					await rename(target, `${target}.1`);
+				await appendFile(target, `${JSON.stringify(entry)}\n`, {
 					encoding: "utf8",
 					mode: 0o600,
 				});
+			})
+			.catch(() => undefined)
+			.finally(() => {
+				pendingLogs--;
 			});
 		void logTail;
 	};
@@ -157,9 +170,7 @@ export const behaviorAdapter = {
 		}
 		return {
 			result: base,
-			observedEffects: service
-				? ["Manage the declared service process"]
-				: [],
+			observedEffects: service ? ["Manage the declared service process"] : [],
 		};
 	},
 	status: async (context: ModuleCommandContext) => {
@@ -215,9 +226,7 @@ export const behaviorAdapter = {
 			data: {
 				docs: readFileSync(
 					new URL(
-						import.meta.url.includes("/dist/")
-							? "../../DOCS.md"
-							: "../DOCS.md",
+						import.meta.url.includes("/dist/") ? "../../DOCS.md" : "../DOCS.md",
 						import.meta.url,
 					),
 					"utf8",
@@ -240,9 +249,7 @@ export const behaviorAdapter = {
 			return {
 				result: failed(
 					"START_FAILED",
-					error instanceof Error
-						? error.message
-						: "agent-gateway start failed",
+					error instanceof Error ? error.message : "agent-gateway start failed",
 				),
 				observedEffects: [],
 			};

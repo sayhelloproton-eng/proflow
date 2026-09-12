@@ -69,6 +69,7 @@ type StoragePort = {
 type PersistedState = {
 	nextSequence: number;
 	events: ExtensionOperationEvent[];
+	droppedEvents?: number;
 	lastFlushAt?: string;
 	lastFlushErrorCode?: string;
 };
@@ -87,19 +88,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function safeRef(value: unknown, max = 240): string | undefined {
-	return typeof value === "string" && value.length > 0 && value.length <= max
+	return typeof value === "string" &&
+		value.length > 0 &&
+		value.length <= max &&
+		safeTokenPattern.test(value)
 		? value
 		: undefined;
 }
 function safeCode(value: unknown): string | undefined {
-	return typeof value === "string" && safeCodePattern.test(value) ? value : undefined;
+	return typeof value === "string" && safeCodePattern.test(value)
+		? value
+		: undefined;
 }
 function safeToken(value: unknown): string | undefined {
-	return typeof value === "string" && safeTokenPattern.test(value) ? value : undefined;
+	return typeof value === "string" && safeTokenPattern.test(value)
+		? value
+		: undefined;
 }
 function sanitizeConversationLocator(value: string): string {
 	try {
 		const locator = new URL(value);
+		if (!["http:", "https:"].includes(locator.protocol))
+			return "[REDACTED_INVALID_LOCATOR]";
 		locator.username = "";
 		locator.password = "";
 		locator.search = "";
@@ -113,6 +123,10 @@ function normalizeStoredEvent(value: unknown): ExtensionOperationEvent | null {
 	if (!isRecord(value)) return null;
 	if (
 		value.contract !== "proflow.operation-event.v1" ||
+ Number.isNaN(Date.parse(String(value.timestamp))) ||
+ (value.sideEffectState !== undefined && !["NOT_STARTED","STARTED","APPLIED","NOT_APPLIED","UNKNOWN"].includes(String(value.sideEffectState))) ||
+ (value.level !== undefined && !["DEBUG","INFO","WARN","ERROR"].includes(String(value.level))) ||
+ Object.entries(value).some(([key,item]) => new Set(["sequenceNo","runNo","attemptNo","tabId","browserSessionEpoch","durationMs"]).has(key) ? typeof item !== "number" || !Number.isFinite(item) || item < 0 || (key !== "durationMs" && !Number.isSafeInteger(item)) : typeof item !== "string") ||
 		value.source !== "browser-extension" ||
 		typeof value.eventId !== "string" ||
 		!Number.isInteger(value.sequenceNo) ||
@@ -121,10 +135,80 @@ function normalizeStoredEvent(value: unknown): ExtensionOperationEvent | null {
 		typeof value.event !== "string" ||
 		typeof value.status !== "string" ||
 		typeof value.extensionInstanceId !== "string" ||
-		typeof value.moduleVersion !== "string"
+		typeof value.moduleVersion !== "string" ||
+		JSON.stringify(value).length > 16_384 ||
+		![
+			"STARTED",
+			"SUCCEEDED",
+			"FAILED",
+			"BLOCKED",
+			"DEFERRED",
+			"UNKNOWN",
+			"CANCELLED",
+		].includes(String(value.status)) ||
+		!["EXACT", "IDENTITY_MATCH", "ADJACENT"].includes(
+			String(value.correlationKind),
+		) ||
+		Object.entries(value).some(
+			([key, item]) =>
+				typeof item === "string" &&
+				key !== "conversationLocator" &&
+				key !== "timestamp" &&
+				!safeToken(item),
+		)
 	)
 		return null;
-	return value as ExtensionOperationEvent;
+	return Object.fromEntries(
+		Object.entries(value)
+			.filter(([key]) =>
+				new Set([
+					"contract",
+					"eventId",
+					"sequenceNo",
+					"timestamp",
+					"source",
+					"extensionInstanceId",
+					"moduleVersion",
+					"component",
+					"event",
+					"level",
+					"status",
+					"phase",
+					"correlationKind",
+					"correlationId",
+					"taskId",
+					"nodeId",
+					"runNo",
+					"agentPackageRef",
+					"roleRef",
+					"workerRef",
+					"executionRef",
+					"messageRef",
+					"artifactRef",
+					"evidenceRef",
+					"conversationLocator",
+					"operationRef",
+					"attemptNo",
+					"tabId",
+					"contentInstanceId",
+					"browserSessionEpoch",
+					"capability",
+					"operationId",
+					"decision",
+					"reason",
+					"action",
+					"errorCode",
+					"sideEffectState",
+					"durationMs",
+				]).has(key),
+			)
+			.map(([key, item]) => [
+				key,
+				key === "conversationLocator" && typeof item === "string"
+					? sanitizeConversationLocator(item)
+					: item,
+			]),
+	) as ExtensionOperationEvent;
 }
 function normalizeErrorCode(error: unknown, fallback: string): string {
 	const value =
@@ -153,6 +237,7 @@ export function createExtensionLogger(options: {
 	let loadFlight: Promise<void> | null = null;
 	let stateTail = Promise.resolve();
 	let flushFlight: Promise<void> | null = null;
+	let pendingEmits = 0;
 
 	const load = (): Promise<void> => {
 		if (loaded) return Promise.resolve();
@@ -175,8 +260,10 @@ export function createExtensionLogger(options: {
 						0,
 					);
 					state = {
+						droppedEvents: (Number.isSafeInteger(raw.droppedEvents) ? Number(raw.droppedEvents) : 0) + (Array.isArray(raw.events) ? raw.events.length - events.length : 0),
 						nextSequence:
-							Number.isInteger(raw.nextSequence) && Number(raw.nextSequence) > maxSequence
+							Number.isInteger(raw.nextSequence) &&
+							Number(raw.nextSequence) > maxSequence
 								? Number(raw.nextSequence)
 								: maxSequence + 1,
 						events,
@@ -188,13 +275,21 @@ export function createExtensionLogger(options: {
 							: {}),
 					};
 				}
+			} catch {
+				state.lastFlushErrorCode = "LOG_STORAGE_UNAVAILABLE";
 			} finally {
 				loaded = true;
 			}
 		})();
 		return loadFlight;
 	};
-	const persist = () => options.storage.set({ [stateKey]: state });
+	const persist = async () => {
+		try {
+			await options.storage.set({ [stateKey]: structuredClone(state) });
+		} catch {
+			state.lastFlushErrorCode = "LOG_STORAGE_UNAVAILABLE";
+		}
+	};
 	const serialize = <T>(work: () => Promise<T>): Promise<T> => {
 		const run = stateTail.then(work, work);
 		stateTail = run.then(
@@ -204,7 +299,9 @@ export function createExtensionLogger(options: {
 		return run;
 	};
 
-	const makeEvent = (input: ExtensionOperationEventInput): ExtensionOperationEvent => {
+	const makeEvent = (
+		input: ExtensionOperationEventInput,
+	): ExtensionOperationEvent => {
 		const sequenceNo = state.nextSequence;
 		state.nextSequence += 1;
 		const correlationId = safeRef(input.correlationId);
@@ -224,7 +321,7 @@ export function createExtensionLogger(options: {
 			level: input.level ?? "INFO",
 			status: input.status,
 			correlationKind:
-				input.correlationKind ?? (correlationId ? "EXACT" : "ADJACENT"),
+				input.correlationKind ?? (correlationId || input.operationRef ? "EXACT" : "ADJACENT"),
 			...(safeToken(input.phase) ? { phase: input.phase } : {}),
 			...(correlationId ? { correlationId } : {}),
 			...(safeRef(input.taskId) ? { taskId: input.taskId } : {}),
@@ -237,12 +334,16 @@ export function createExtensionLogger(options: {
 				: {}),
 			...(safeRef(input.roleRef) ? { roleRef: input.roleRef } : {}),
 			...(safeRef(input.workerRef) ? { workerRef: input.workerRef } : {}),
-			...(safeRef(input.executionRef) ? { executionRef: input.executionRef } : {}),
+			...(safeRef(input.executionRef)
+				? { executionRef: input.executionRef }
+				: {}),
 			...(safeRef(input.messageRef) ? { messageRef: input.messageRef } : {}),
 			...(safeRef(input.artifactRef) ? { artifactRef: input.artifactRef } : {}),
 			...(safeRef(input.evidenceRef) ? { evidenceRef: input.evidenceRef } : {}),
 			...(conversationLocator ? { conversationLocator } : {}),
-			...(safeRef(input.operationRef) ? { operationRef: input.operationRef } : {}),
+			...(safeRef(input.operationRef)
+				? { operationRef: input.operationRef }
+				: {}),
 			...(Number.isInteger(input.attemptNo) && Number(input.attemptNo) >= 0
 				? { attemptNo: Number(input.attemptNo) }
 				: {}),
@@ -257,12 +358,16 @@ export function createExtensionLogger(options: {
 				? { browserSessionEpoch: Number(input.browserSessionEpoch) }
 				: {}),
 			...(safeToken(input.capability) ? { capability: input.capability } : {}),
-			...(safeToken(input.operationId) ? { operationId: input.operationId } : {}),
+			...(safeToken(input.operationId)
+				? { operationId: input.operationId }
+				: {}),
 			...(safeCode(input.decision) ? { decision: input.decision } : {}),
 			...(safeCode(input.reason) ? { reason: input.reason } : {}),
 			...(safeToken(input.action) ? { action: input.action } : {}),
 			...(safeCode(input.errorCode) ? { errorCode: input.errorCode } : {}),
-			...(input.sideEffectState ? { sideEffectState: input.sideEffectState } : {}),
+			...(input.sideEffectState
+				? { sideEffectState: input.sideEffectState }
+				: {}),
 			...(typeof input.durationMs === "number" &&
 			Number.isFinite(input.durationMs) &&
 			input.durationMs >= 0
@@ -271,41 +376,27 @@ export function createExtensionLogger(options: {
 		};
 	};
 
-	const remoteProjection = (event: ExtensionOperationEvent): BrowserStructuredLogEntry => ({
+	const remoteProjection = (
+		event: ExtensionOperationEvent,
+	): BrowserStructuredLogEntry => ({
+		...event,
 		level: event.level ?? "INFO",
-		component: event.component,
-		operation: event.decision ? `${event.event}:${event.decision}` : event.event,
-		status: event.status,
-		...(event.errorCode || (event.reason && failureStatuses.has(event.status))
-			? { errorCode: event.errorCode ?? event.reason }
-			: {}),
-		...(event.correlationId ? { correlationId: event.correlationId } : {}),
-		...(event.taskId ? { taskId: event.taskId } : {}),
-		...(event.nodeId ? { nodeId: event.nodeId } : {}),
-		...(event.runNo === undefined ? {} : { runNo: event.runNo }),
-		...(event.agentPackageRef ? { agentPackageRef: event.agentPackageRef } : {}),
-		...(event.roleRef ? { roleRef: event.roleRef } : {}),
-		...(event.workerRef ? { workerRef: event.workerRef } : {}),
-		...(event.executionRef ? { executionRef: event.executionRef } : {}),
-		...(event.messageRef ? { messageRef: event.messageRef } : {}),
-		...(event.artifactRef ? { artifactRef: event.artifactRef } : {}),
-		...(event.evidenceRef ? { evidenceRef: event.evidenceRef } : {}),
-		...(event.conversationLocator
-			? { conversationLocator: event.conversationLocator }
-			: {}),
-		operationRef: event.operationRef ?? event.operationId ?? event.eventId,
-		...(event.attemptNo === undefined ? {} : { attemptNo: event.attemptNo }),
-		...(event.tabId === undefined ? {} : { tabId: event.tabId }),
-		...(event.capability ? { capability: event.capability } : {}),
+		operation: event.decision
+			? `${event.event}:${event.decision}`
+			: event.event,
 	});
 
 	const flush = (): Promise<void> => {
 		if (flushFlight) return flushFlight;
+		let drained = false;
 		flushFlight = (async () => {
 			await load();
 			while (true) {
 				const next = await serialize(async () => state.events[0] ?? null);
-				if (!next) return;
+				if (!next) {
+					drained = true;
+					return;
+				}
 				try {
 					await options.remoteWrite(remoteProjection(next));
 					await serialize(async () => {
@@ -325,21 +416,43 @@ export function createExtensionLogger(options: {
 					return;
 				}
 			}
-		})().finally(() => {
-			flushFlight = null;
-		});
+		})()
+			.catch(() => {
+				state.lastFlushErrorCode = "LOG_SINK_UNAVAILABLE";
+			})
+			.finally(() => {
+				flushFlight = null;
+				if (drained && state.events.length) void flush();
+			});
 		return flushFlight;
 	};
 
 	return Object.freeze({
 		async emit(input: ExtensionOperationEventInput): Promise<void> {
-			await serialize(async () => {
-				await load();
-				state.events.push(makeEvent(input));
-				if (state.events.length > limit)
-					state.events.splice(0, state.events.length - limit);
-				await persist();
-			});
+			if (pendingEmits >= limit) {
+				state.droppedEvents = (state.droppedEvents ?? 0) + 1;
+				return;
+			}
+			pendingEmits++;
+			try {
+				await serialize(async () => {
+					await load();
+					state.events.push(makeEvent(input));
+					while (
+						state.events.length > limit ||
+						JSON.stringify(state.events).length > 1_000_000 ||
+						(state.events[0] &&
+							Date.parse(state.events[0].timestamp) <
+								now().getTime() - 7 * 86400_000)
+					) {
+						state.events.shift();
+						state.droppedEvents = (state.droppedEvents ?? 0) + 1;
+					}
+					await persist();
+				});
+			} finally {
+				pendingEmits--;
+			}
 			void flush();
 		},
 		flush,
@@ -348,6 +461,7 @@ export function createExtensionLogger(options: {
 			return {
 				contract: "proflow.browser-observability-snapshot.v1",
 				bufferedEvents: state.events.length,
+				droppedEvents: state.droppedEvents ?? 0,
 				nextSequence: state.nextSequence,
 				lastEvent: state.events.at(-1) ?? null,
 				lastFlushAt: state.lastFlushAt ?? null,
