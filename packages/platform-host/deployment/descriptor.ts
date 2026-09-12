@@ -3,7 +3,7 @@ export const descriptor = {
 	contractVersion: "1.0.0",
 	moduleRef: "platform-host",
 	packageName: "@tomflow/proflow-platform-host",
-	moduleVersion: "0.1.23",
+	moduleVersion: "0.1.24",
 	kind: "service",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",
@@ -35,7 +35,6 @@ export const descriptor = {
 	requirements: [
 		{
 			kind: "runtime",
-			runtime: "node",
 			versionRange: ">=24.19.0",
 		},
 	],
