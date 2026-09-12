@@ -6,6 +6,11 @@ import {
 	writeChatGptInput,
 } from "../src/chatgpt-runtime-adapter.js";
 import {
+	PAGE_PERMISSION_BOTTOM_BUTTON_SCAN_LIMIT,
+	PAGE_PERMISSION_WATCHDOG_INTERVAL_MS,
+	hasBottomActionPermissionControls,
+} from "../src/page-permission-watchdog.js";
+import {
 	createBoundedPageObservationScheduler,
 	pageObservationMutationOptions,
 } from "../src/page-observation-scheduler.js";
@@ -146,3 +151,10 @@ const observer = new MutationObserver(() => {
 	schedulePublish.request();
 });
 observer.observe(document.documentElement, pageObservationMutationOptions);
+
+setInterval(() => {
+	const buttonLabels = [...document.querySelectorAll("button")]
+		.slice(-PAGE_PERMISSION_BOTTOM_BUTTON_SCAN_LIMIT)
+		.map((button) => button.getAttribute("aria-label") ?? button.innerText);
+	if (hasBottomActionPermissionControls(buttonLabels)) schedulePublish.request();
+}, PAGE_PERMISSION_WATCHDOG_INTERVAL_MS);

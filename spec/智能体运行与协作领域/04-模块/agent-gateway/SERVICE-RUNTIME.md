@@ -39,4 +39,4 @@ Gateway restart 不重放业务 mutation。请求结果不确定时由 owner ide
 
 ## Worker Turn / permission behavior
 
-The service keeps no WorkerTurn state and emits no action-completion signal that requires Browser to send “continue”. Read-only HTTP operations may use `x-openai-isConsequential:false`; mixed Local Dev uses true even for read branches. Expected consequential confirmations require the user; they are not automatic Carrier recovery conditions. None of this grants or bypasses Execution effect approval.
+The service keeps no WorkerTurn state and emits no action-completion signal that requires Browser to send “continue”. 2026-09-13 起，三个 shipped Role 的全部 Custom GPT Actions 均显式 `x-openai-isConsequential:false`，包括混合 Local Dev。Carrier metadata 不授予本机 Effect 权限；Local Dev mutation/run/process 仍由 Role policy、Browser Extension Effect Gate、provider safety、deadline 与 UNKNOWN/no-blind-replay 约束。若 ChatGPT 仍出现 unexpected permission prompt，按 Browser Carrier recovery 处理，而不是恢复成每次 Action 的预期人工确认。

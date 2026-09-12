@@ -14,7 +14,7 @@ contractRefs: []
 
 # 智能体运行与协作领域｜Custom GPT 官方能力与 v1 Carrier 约束
 
-> 校对日期：2026-08-12。此文件只记录 v1 设计实际依赖的 OpenAI Custom GPT 产品事实，避免未来实现者把“平台决定”和“Carrier 当前能力”混为一谈。产品行为可能变化，Carrier 升级时必须重新核对官方文档。
+> 校对日期：2026-09-13。此文件只记录 v1 设计实际依赖的 OpenAI Custom GPT 产品事实，避免未来实现者把“平台决定”和“Carrier 当前能力”混为一谈。产品行为可能变化，Carrier 升级时必须重新核对官方文档。
 
 ---
 
@@ -173,26 +173,28 @@ API Key / Bearer
 
 ---
 
-# 8. 用户控制、`x-openai-isConsequential` 与 Always Allow
+# 8. 用户控制、`x-openai-isConsequential` 与本机 Effect Gate
 
-OpenAI Action 的 UI confirmation 与 ProFlow 内部 Browser/Carrier Approval 是两层不同事实。`x-openai-isConsequential` 必须按 **GPT-facing operation 自身是否直接产生真实副作用** 设置，不能再因为“后面还有 Execution”统一把 mutation 描述成纯 intent。
+OpenAI Action 的 UI confirmation 与 ProFlow 本机 Effect Gate / 内部 Approval 是不同层。2026-09-13 用户裁决：**Product / Controller-Dev / Test-Ops 三个 shipped Custom GPT 的全部 Action operation 均显式声明 `x-openai-isConsequential:false`，包括混合读写 `localDev`。** 平台不再把 OpenAI Carrier confirmation 作为本机权限或副作用安全边界。
 
 ```text
-Task/Peer query、只读 Repomix/CodeGraph
+所有 shipped Custom GPT Actions
 → x-openai-isConsequential:false
 
-固定混合读写 POST /actions/localDev
-→ 整个 HTTP operation 为 true，包括其 read 子操作
-Product 严格只读裁剪版本才可 false，且 backend 同步拒绝 mutation/run
+真实本机 Effect
+→ Gateway Role auth / Role × Tool × Operation policy
+→ Browser Extension Effect Gate
+→ execution-local runtime validation / provider safety
+→ UNKNOWN no-blind-replay
 ```
 
 规则：
 
-- `x-openai-isConsequential:false` 只说明当前 Action 对 OpenAI Carrier 的 consequence 语义，不赋予额外本地权限；
-- 本地 Tool 最终授权仍由 Gateway Role auth、`Role × Tool × Operation` policy、server-bound Workspace、Browser Extension Effect Gate 与 `execution-local` runtime validation 共同决定；
-- Browser/Carrier 内部危险 Effect 若需要 durable Approval，继续由 Execution 内部机制负责；
-- unexpected permission prompt 继续作为 Browser Carrier recovery / human-interaction 情况处理；
-- 不把 OpenAI permission 结果写入 Task/Execution Approval truth。
+- `x-openai-isConsequential:false` 只关闭/降低 OpenAI Carrier 层的 consequence confirmation；**不赋予任何额外本地权限**；
+- Local Dev 的 `mutate/run/process` 与只读分支仍使用同一 typed Action，但真实执行权限始终由 ProFlow 自己的认证、Role policy、Workspace binding、Extension Gate 和本机 provider safety 决定；
+- Browser/Carrier 内部 durable Effect 若需要内部 Approval，继续由其 owning runtime/Execution 机制负责；
+- unexpected permission prompt 属 Carrier reality / recovery，不是 happy path 安全门；Extension 可以观察并按当前 Permission policy 处理，但不得把 OpenAI permission 结果写成 Task/Execution Approval truth；
+- 不允许因为所有 Action 都标记 false 而删除 path boundary、deadline、role/action admission、generation/digest、UNKNOWN/no-blind-replay 或明确危险操作的内部确认规则。
 
 ---
 
@@ -255,8 +257,6 @@ canonical fingerprint v1 包含 package name/version、display name、descriptio
 Browser owner 必须回读实际已发布 material，不得将输入的 expected material 作为 observation 返回，不得以上传文件名代替 Knowledge 内容 hash，不得以页面上自报 fingerprint 字符串代替实际内容。当前本地 material comparison/证据消费能力与完整 Live reader 是两项不同能力；未接入 reader 时必须保持 ACTION_REQUIRED。Registered Role 的本地登记一致性不是 Carrier READY。
 
 发现 drift 后只允许显式更新/验证原 GPT；TaskRoleBinding、Worker 与 Conversation identity 不随验证失败重建。本轮规则替代此前以 recreate 作为默认漂移恢复的约定。
-
-
 
 ---
 
@@ -400,31 +400,23 @@ Task/Peer Actions 若确有业务版本/幂等字段，继续放入 typed body/p
 
 #### A5. `x-openai-isConsequential` 必须显式设置
 
-每一个 GPT Action operation 都必须显式声明：
-
-```yaml
-x-openai-isConsequential: true
-```
-
-或：
+每一个 shipped GPT Action operation 都必须显式声明：
 
 ```yaml
 x-openai-isConsequential: false
 ```
 
-禁止依赖 OpenAI 对 GET / 非 GET 的默认推断。
-
-每个 HTTP operation 按其允许的最高真实 effect 静态声明。不能按 body.operation 动态切换；Local Dev 混合读写 endpoint 为 true，因而 read 也需确认。精确规则及代价见 `AGENT-DOC-02-03` §9。
+禁止依赖 OpenAI 对 GET / 非 GET 的默认推断，也禁止在 body.operation 分支动态切换。2026-09-13 起，Product / Controller-Dev / Test-Ops 的 canonical Action schema 全部固定为 false；Local Dev 的真实副作用安全由 ProFlow 自有 Role policy、Extension Effect Gate 与 provider safety 保证，而不是依赖 OpenAI Carrier confirmation。
 
 ```text
-OpenAI Carrier confirmation
+OpenAI Carrier confirmation metadata
 !=
 Browser Extension / Local Tool authorization
 !=
 Execution internal Browser/Carrier Approval（仅相关 durable internal Effect）
 ```
 
-三层不得混用，也不得为了同一个真实副作用重复制造审批状态机。
+三层不得混用。`false` 不能被解释为自动授权或绕过本机 Effect Gate。
 
 #### A6. Agent Package / Role capability truth
 
@@ -450,7 +442,7 @@ Custom GPT 创建/编辑仍是 Web-only Carrier 流程，但正常部署 happy p
 下面只验证“在我们的 Role / Worker / backend Task Reconciliation + Carrier 主链中是否稳定”，不是验证 OpenAI 文档是否存在：
 
 ```text
-1. x-openai-isConsequential:false 后选择 Always Allow，后续 routine read/query Actions 是否稳定无确认；
+1. 全部 x-openai-isConsequential:false 后，routine Actions 是否稳定无确认；若 Carrier 仍出现 unexpected permission prompt，Extension recovery 是否能正确识别并按 policy 处理；
 2. 一次 Worker Turn 内连续 Action A → result → Action B 是否稳定，无需 Browser 中途再次 WAKE；
 3. openaiFileResponse 返回 Task documents 后，Conversation-native file search 是否稳定满足动态 Task Context；
 4. Repomix / Local Dev / CodeGraph 新 schema 在真实 GPT 上 materialize 后，Direct Tool 调用是否直接返回 Provider result。

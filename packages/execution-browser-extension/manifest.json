@@ -4,6 +4,7 @@
 	"version": "0.1.59",
 	"permissions": [
 		"tabs",
+		"scripting",
 		"alarms",
 		"storage",
 		"notifications"

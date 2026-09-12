@@ -88,7 +88,7 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 - [ ] **CP-AGT-GW-04** — `openaiFileIdRefs` object-array normalization，最多 10 项；input single 10MB / aggregate 50MB / fetch 15s 等平台 hard gate。
 - [ ] **CP-AGT-GW-05** — filename/MIME/URL untrusted；redirect private/localhost/metadata、path traversal/control chars、MIME mismatch fail-closed。
 - [ ] **CP-AGT-GW-06** — `openaiFileResponse` inline→URL relay、10 files/10MB、no image/video；relay token opaque/GET-only/artifact-scoped/TTL=5min，headers 不泄漏本地路径/secret。
-- [ ] **CP-AGT-GW-07** — Gateway 不维护手写 `describeOpenApi`/诊断 schema 第二真源；每个 shipped Role OpenAPI operation 的 `x-openai-isConsequential` 由对应 Role Package canonical schema 与其 executable conformance proof 负责，Carrier confirmation 与 Execution Approval 独立。
+- [ ] **CP-AGT-GW-07** — Gateway 不维护手写 `describeOpenApi`/诊断 schema 第二真源；每个 shipped Role OpenAPI operation 的 `x-openai-isConsequential` 由对应 Role Package canonical schema 与其 executable conformance proof 负责，Carrier metadata 与内部 Effect authorization/Approval 独立。
 - [ ] **CP-AGT-GW-08** — Gateway 无业务 persistence；expired locator/timeout 只重试无 business mutation transport，已有 Action 先按 owner idempotency/result 查询。
 - [ ] **CP-AGT-GW-09** — process/global health 可分别报告 ingress/credential/downstream/relay 状态，但 Action admission 使用 operation-scoped readiness；无关 Model/Execution dependency 缺失不得阻塞已 READY 的 Direct Tool operation，restart 不重放业务 mutation。
 
@@ -103,8 +103,8 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 | `AGT-GW-003` | 实现 45s/<100k/429/5xx transport hard guards | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-003` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-03` | 45s/<100k/429/5xx transport hard guards | 45s ceiling 与 `<100,000 chars` request/response hard guard、真实 429/5xx semantics 可证明。 |
 | `AGT-GW-004` | 实现 openaiFileIdRefs object-array normalization 与 bounded input validation | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-004` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-04`<br>`CP-AGT-GW-05` | openaiFileIdRefs object-array normalization 与 bounded input validation | `openaiFileIdRefs` object-array normalization，最多 10 项；input single 10MB / aggregate 50MB / fetch 15s 等平台 hard gate。；filename/MIME/URL untrusted；redirect private/localhost/metadata、path traversal/control chars、MIME mismatch fail-closed。 |
 | `AGT-GW-005` | 实现 openaiFileResponse inline/URL serializer、relay TTL/token/scope/SSRF guards | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-005` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-05`<br>`CP-AGT-GW-06` | openaiFileResponse inline/URL serializer、relay TTL/token/scope/SSRF guards | filename/MIME/URL untrusted；redirect private/localhost/metadata、path traversal/control chars、MIME mismatch fail-closed。；`openaiFileResponse` inline→URL relay、10 files/10MB、no image/video；relay token opaque/GET-only/artifact-scoped/TTL=5min，headers 不泄漏本地路径/secret。 |
-| `AGT-GW-006` | 移除 Gateway OpenAPI 第二真源，并由 shipped Role schema 做 consequential metadata conformance | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-006` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-07` | 移除 Gateway OpenAPI 第二真源，并由 shipped Role schema 做 consequential metadata conformance | Gateway 不维护手写 OpenAPI 诊断子集；shipped Role schema 为 canonical Action schema，且 Carrier confirmation 与 Execution Approval 独立。 |
-| `AGT-GW-007` | 完成真实 Custom GPT Preview/Actions/File Bridge E2E | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-007` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-01`<br>`CP-AGT-GW-02`<br>`CP-AGT-GW-03`<br>`CP-AGT-GW-04`<br>`CP-AGT-GW-05`<br>`CP-AGT-GW-06`<br>`CP-AGT-GW-07`<br>`CP-AGT-GW-08`<br>`CP-AGT-GW-09` | 真实 Custom GPT Preview/Actions/File Bridge E2E | Bearer key 解析 authenticatedRoleRef，不信任 body 自报 roleRef；所有外部输入 `unknown → validate → typed`。；GPT-facing body/path/query 正规化为 internal canonical DTO，不依赖 arbitrary custom headers。；45s ceiling 与 `<100,000 chars` request/response hard guard、真实 429/5xx semantics 可证明。；`openaiFileIdRefs` object-array normalization，最多 10 项；input single 10MB / aggregate 50MB / fetch 15s 等平台 hard gate。；filename/MIME/URL untrusted；redirect private/localhost/metadata、path traversal/control chars、MIME mismatch fail-closed。；`openaiFileResponse` inline→URL relay、10 files/10MB、no image/video；relay token opaque/GET-only/artifact-scoped/TTL=5min，headers 不泄漏本地路径/secret。；Gateway 不维护手写 OpenAPI 诊断子集；shipped Role schema 为 canonical Action schema，且 Carrier confirmation 与 Execution Approval 独立。；Gateway 无业务 persistence；expired locator/timeout 只重试无 business mutation transport，已有 Action 先按 owner idempotency/result 查询。；process readiness 分别验证 ingress/credential/required downstream/relay capability；任一 blocking dependency 缺失不得 READY，restart 不重放业务 mutation。 |
+| `AGT-GW-006` | 移除 Gateway OpenAPI 第二真源，并由 shipped Role schema 做 consequential metadata conformance | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-006` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-07` | 移除 Gateway OpenAPI 第二真源，并由 shipped Role schema 做 consequential metadata conformance | Gateway 不维护手写 OpenAPI 诊断子集；shipped Role schema 为 canonical Action schema，且 Carrier metadata 与内部 Effect authorization/Approval 独立。 |
+| `AGT-GW-007` | 完成真实 Custom GPT Preview/Actions/File Bridge E2E | `AGENT-RUNTIME-COLLABORATION-TODO-AGENT-GATEWAY` § `AGT-GW-007` | `AGENT-AGENT-GATEWAY-TECH-DESIGN`<br>`AGENT-DOC-02-01`<br>`AGENT-DOC-02-02` | `CP-AGT-GW-01`<br>`CP-AGT-GW-02`<br>`CP-AGT-GW-03`<br>`CP-AGT-GW-04`<br>`CP-AGT-GW-05`<br>`CP-AGT-GW-06`<br>`CP-AGT-GW-07`<br>`CP-AGT-GW-08`<br>`CP-AGT-GW-09` | 真实 Custom GPT Preview/Actions/File Bridge E2E | Bearer key 解析 authenticatedRoleRef，不信任 body 自报 roleRef；所有外部输入 `unknown → validate → typed`。；GPT-facing body/path/query 正规化为 internal canonical DTO，不依赖 arbitrary custom headers。；45s ceiling 与 `<100,000 chars` request/response hard guard、真实 429/5xx semantics 可证明。；`openaiFileIdRefs` object-array normalization，最多 10 项；input single 10MB / aggregate 50MB / fetch 15s 等平台 hard gate。；filename/MIME/URL untrusted；redirect private/localhost/metadata、path traversal/control chars、MIME mismatch fail-closed。；`openaiFileResponse` inline→URL relay、10 files/10MB、no image/video；relay token opaque/GET-only/artifact-scoped/TTL=5min，headers 不泄漏本地路径/secret。；Gateway 不维护手写 OpenAPI 诊断子集；shipped Role schema 为 canonical Action schema，且 Carrier metadata 与内部 Effect authorization/Approval 独立。；Gateway 无业务 persistence；expired locator/timeout 只重试无 business mutation transport，已有 Action 先按 owner idempotency/result 查询。；process readiness 分别验证 ingress/credential/required downstream/relay capability；任一 blocking dependency 缺失不得 READY，restart 不重放业务 mutation。 |
 
 ## 7. Required Failure / Boundary Families
 
@@ -116,12 +116,9 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 - [ ] **RF-AGT-GW-04** — openaiFileIdRefs count/size/aggregate/fetch hard gate 失效
 - [ ] **RF-AGT-GW-05** — filename/MIME/URL/redirect/SSRF/path/control-char 边界失效
 - [ ] **RF-AGT-GW-06** — openaiFileResponse/relay size/type/token/scope/TTL/header 安全失效
-- [ ] **RF-AGT-GW-07** — Gateway 再次引入手写 OpenAPI/operation metadata 第二真源、shipped Role schema consequential metadata 缺失，或 Carrier confirmation 与 Execution Approval 混淆
+- [ ] **RF-AGT-GW-07** — Gateway 再次引入手写 OpenAPI/operation metadata 第二真源、shipped Role schema consequential metadata 缺失，或 Carrier metadata 与内部 Effect authorization/Approval 混淆
 - [ ] **RF-AGT-GW-08** — 启动时 credential/downstream/relay blocking dependency 缺失却宣称 READY，或 restart 重放业务 mutation
 - [ ] **RF-AGT-GW-09** — expired locator/timeout 在 business mutation 后盲重试或 Gateway 建立业务 persistence
-
-
-
 
 ## 8. Evidence Contract
 
@@ -193,7 +190,7 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 
 - [ ] **CP-AGT-GW-10** — Product static GPT-facing OpenAPI不含`createTask/listRegisteredRoles/getRegisteredRole` New Task主链。
 - [ ] **CP-AGT-GW-11** — 同一Worker Turn连续Actions时Gateway保持stateless/thin，不建Turn Store，不产生Browser“continue”协议。
-- [ ] **CP-AGT-GW-12** — Task/Peer routine request-intent 与 Direct Tool operation 分开声明 `x-openai-isConsequential`；Local Dev mutation/run/process 必须按实际副作用标记，禁止因为“后端还有 policy”一律设 false。Carrier permission 仍不替代内部 Execution Approval。
+- [ ] **CP-AGT-GW-12** — Product / Controller-Dev / Test-Ops 的 canonical OpenAPI 每个 operation 都必须显式 `x-openai-isConsequential:false`；该 Carrier metadata 不得被解释为本机 Effect authorization，Gateway/Extension/provider 的内部安全边界保持独立。
 - [ ] **CP-AGT-GW-13** — File Bridge inbound由Execution materialize，outbound relay引用canonical Artifact/Document；Gateway无durable File/Artifact business store。
 - [ ] **CP-AGT-GW-14** — Gateway→platform-host local transport 使用独立 Bearer credential；loopback-only ≠ authenticated transport，`authenticatedRoleRef` body 自报值不能在缺少正确 transport credential 时进入 Owner routing。
 
@@ -210,9 +207,9 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 - [ ] **CP-AGT-GW-17** — Gateway 将 Direct Tool route 交给 ProFlow API/Host admission，再由 Browser Extension Local Tool lane执行；Gateway/Host均无本机 fs/git/process/shell/CLI implementation。
 - [ ] **CP-AGT-GW-18** — Direct Tool Action 在 45s/<100k 下返回 bounded result/provider-native handle；不得返回 ProFlow `executionRef` 或要求 `getExecution/readExecutionOutput` polling。
 - [ ] **CP-AGT-GW-19** — Direct Tool readiness只依赖目标 Tool provider/Extension local-tool bridge；无关 Model/Execution outage不导致 Gateway 拒绝该 operation。
-- [ ] **CP-AGT-GW-20** — Local Dev mutation/command 的 `x-openai-isConsequential` 按真实 operation side effect定义；不能因为“内部会再判断”而全部标 false。
+- [ ] **CP-AGT-GW-20** — Local Dev `mutate/run/process` 即使 Carrier metadata 为 `x-openai-isConsequential:false`，仍必须经过 authenticated Role × Tool × Operation policy、Extension Effect Gate、Workspace/参数边界、provider safety、deadline 与 UNKNOWN/no-blind-replay；禁止把 false 当作本机授权。
 
-**Executable proof**：`packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts` + `packages/agent-gateway/tests/agent-gateway-process.test.ts` + `packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts` + `packages/platform-host/tests/direct-tools-route.test.ts` + `packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts` + `packages/agent-test-ops/tests/agent-test-ops-static.test.ts`。
+**Executable proof**：`packages/agent-gateway/tests/agent-gateway-critical-proofs.test.ts` + `packages/agent-gateway/tests/agent-gateway-process.test.ts` + `packages/agent-gateway/tests/action-surface-worker-turn-alignment.test.ts` + `packages/agent-gateway/tests/action-consequential-all-false.test.ts` + `packages/platform-host/tests/direct-tools-route.test.ts` + `packages/agent-controller-dev/tests/agent-controller-dev-static.test.ts` + `packages/agent-test-ops/tests/agent-test-ops-static.test.ts`。
 
 本 Addendum 在源码改变前只冻结行为；现有 executable tests/`08-测试用例与验证` 保持不动。
 
@@ -220,7 +217,7 @@ Gateway 是 Custom GPT Actions 公网入口；auth、传输预算、File Bridge/
 
 细化 Tool surface / admission / readiness proofs：三个 Role 的实际 shipped OpenAPI、Gateway dispatch、Host ACL 和 Provisioning material hash 要一致；旧 executeCapability/getExecution/readExecutionOutput 为零。不能以源码新版 schema 代替已部署 Custom GPT adoption。
 
-固定混合 localDev HTTP Operation Object 为 consequential=true，不在 oneOf 分支伪造该扩展字段；Product 如只读版本 false，真实 mutation/run 请求仍拒绝。Dev/Test read 的确认是预期产品代价；不得以自动点击实现 Always Allow。真实 Preview 验证 oneOf 接受、正确字段绑定和连续多 Action；schema parse unit 不能替代 Preview。
+三个 Role 的所有 shipped Action operation 固定 `x-openai-isConsequential:false`。Dev/Test `localDev` read/mutate/run/process 不再依赖 OpenAI Carrier confirmation 作为安全门；真实副作用继续由 Gateway/Host admission、Extension Effect Gate 与 provider safety 控制。真实 Preview 必须验证 schema adoption、正确字段绑定、连续多 Action，以及 unexpected permission prompt 仅作为 Carrier recovery 而非常态主链。
 
 Gateway deadline 贯穿全部 hop（总预算≤40s），排队过期拒绝、dispatch 后断连 UNKNOWN；禁止逐层 reset timeout 和 HTTP 自动重投 mutation。process.start 必须在预算内给出原生 handle。Provider 内容超限返回 bounded result/handle，不创建 Execution ref。
 

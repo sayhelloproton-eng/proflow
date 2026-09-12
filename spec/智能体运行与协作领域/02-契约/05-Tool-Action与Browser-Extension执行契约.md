@@ -159,7 +159,7 @@ Result 区分 confirmed result / rejected-before-effect / TOOL_RESULT_UNKNOWN；
 
 ## 11. Consequential 的 HTTP 粒度
 
-固定三个 Action 的 consequential、Product 只读裁剪与确认代价以 `AGENT-DOC-02-03` §9 为准。不能在 input.oneOf 上设置能动态改变 ChatGPT 权限提示的标记；Local Dev Dev/Test 混合 Action 为 true。Task/Node 等可选 correlation 只能由后台推导，不能影响 generic Tool admission。
+2026-09-13 用户裁决：Product / Controller-Dev / Test-Ops 三个 shipped Custom GPT 中，所有 Action operation 均显式 `x-openai-isConsequential:false`，包括 Dev/Test 的混合 `localDev`。该字段只控制 OpenAI Carrier UI confirmation，**不承担本机授权**。Local Dev mutation/run/process 仍必须经过 Gateway Role admission、Extension Effect Gate、Workspace/参数边界、provider safety、deadline 与 UNKNOWN no-blind-replay；不能因为 Carrier metadata 为 false 而绕过任何内部安全控制。
 
 ## 2026-09-09 用户裁决：默认 Workspace 与 trusted command
 

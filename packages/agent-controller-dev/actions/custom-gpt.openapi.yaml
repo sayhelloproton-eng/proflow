@@ -100,7 +100,7 @@ paths:
     post:
       operationId: localDev
       summary: Use Local Dev for current-disk files, commands and processes.
-      x-openai-isConsequential: true
+      x-openai-isConsequential: false
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/LocalDevActionInput'}}}}
       responses: {'200': {description: Local Dev result}}
   /actions/codeGraph:

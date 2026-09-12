@@ -240,7 +240,7 @@ TaskDocument / Execution Artifact
 
 # 11. Approval / Policy
 
-真实副作用是否需要 Approval 属于 Execution Domain。
+真实副作用是否需要内部 Approval / safety gate 由 owning runtime 决定。
 
 Agent/Gateway 不能绕过：
 
@@ -254,7 +254,7 @@ authorization
 
 Agent 可以请求动作；内部 durable Effect 由 Execution 判断，Direct Tool 由 Role policy、Extension Gate 与 provider safety 判断。
 
-OpenAI `x-openai-isConsequential` 只控制 Carrier UI confirmation，不取代 Execution Approval。只读 HTTP Action 可显式 false；混合 Local Dev Action 必须 true，后台授权不能代替该声明。内部 durable effect 仍由 Execution owner 判定。
+OpenAI `x-openai-isConsequential` 只控制 Carrier UI confirmation，不取代任何内部授权。2026-09-13 起三个 shipped Role 的全部 Action 均显式 false，包括混合 Local Dev；该选择不改变 Local Dev mutation/run/process 的真实 Effect Gate，也不授予写权限。内部 durable effect 仍由 owning runtime/Execution policy 判定。
 
 ---
 
@@ -295,17 +295,15 @@ Local Tool Action 必须在 45s Carrier ceiling 内返回 bounded result 或工�
 
 ## 12.3 `x-openai-isConsequential`
 
-每个 operation 必须显式声明 `true/false`，禁止依赖 HTTP method 默认值。
-
-平台 query/control/intent operation 若自身不直接完成不可逆真实 Effect，静态 Schema 设为：
+每个 operation 必须显式声明，禁止依赖 HTTP method 默认值。当前 shipped Product / Controller-Dev / Test-Ops schema 统一为：
 
 ```yaml
 x-openai-isConsequential: false
 ```
 
-固定混合读写 Local Dev HTTP Action 整体 consequential=true（包括 read）；不得按 body 子操作动态切换；Browser/Carrier internal Effect 继续由 Execution Policy/Approval 管理。`consequential:false` 不授予本机写权限。
+该字段不按 body 子操作动态切换，也不作为本机安全边界。Local Dev 即使执行 `mutate/run/process`，仍由 Gateway Role admission、Extension Effect Gate、Workspace/参数边界、provider safety、deadline、generation/digest 与 UNKNOWN/no-blind-replay 约束。`consequential:false` 不授予本机写权限，也不取代内部 durable Effect 的 Approval policy。
 
-`Always Allow` 是routine nonconsequential Action的目标主链；真实 Preview/E2E仍必须证明实际行为。Unexpected permission prompt保留为Carrier recovery，而不是恢复成每次Browser permission click主流程。
+目标 happy path 是 routine Action 不出现 OpenAI Carrier confirmation；若 Carrier 仍出现 unexpected permission prompt，由 Extension Page Reality + Permission recovery 处理，不把它升级成常态人工批准链。
 
 # 13. GPT Actions File Bridge
 
@@ -429,4 +427,4 @@ Gateway/OpenAI adapter 对外冻结以下 typed error codes；底层 Execution e
 - Gateway 是 Custom GPT Actions 公网 Anti-Corruption Layer，不拥有下游业务状态，不直接触达 Local/Browser Effect。
 - Dev Tunnel 改由 Deployment External Resource Module 管理；Gateway 只 Requires 一个满足 public ingress capability 的 moduleRef/逻辑能力。
 - GPT 本地 Tools 统一通过 ProFlow API → Browser Extension Local Tool lane；Browser durable Effect 才使用 Execution internal contract。Gateway 不 import execution-local/browser internal implementation。
-- GPT-facing transport 的 OpenAI hard limits 与 File Bridge 官方协议进入 Agent Carrier conformance；Always Allow、Multi-Action Worker Turn、Conversation-native file usage 与 Context Pack→Code Interpreter→Patch 已是 v1 REUSE/PRIMARY PATH，真实目标环境 proof 留到 FINAL MANUAL E2E。只有具体载体格式优化（例如 ZIP Context Pack）可继续保持 `PENDING_SPIKE`。
+- GPT-facing transport 的 OpenAI hard limits 与 File Bridge 官方协议进入 Agent Carrier conformance；Multi-Action Worker Turn、Conversation-native file usage 与 Context Pack→Code Interpreter→Patch 已是 v1 REUSE/PRIMARY PATH，真实目标环境 proof 留到 FINAL MANUAL E2E。只有具体载体格式优化（例如 ZIP Context Pack）可继续保持 `PENDING_SPIKE`。

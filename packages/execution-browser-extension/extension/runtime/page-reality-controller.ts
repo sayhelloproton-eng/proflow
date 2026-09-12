@@ -1,5 +1,6 @@
 import { createBrowserOpenObservationGate } from "../../src/carrier-identity.js";
 import type { ActionPermissionFacts } from "../../src/carrier-permission.js";
+import { recoverMissingContentReceiver } from "../../src/content-session-recovery.js";
 import { boundedRecoveryObservation } from "../../src/recovery-trigger.js";
 import type {
 	ChromeRuntime,
@@ -50,6 +51,7 @@ function parsePermissionFacts(value: unknown): ActionPermissionFacts | undefined
 export function createPageRealityController(options: {
 	tabs: ChromeRuntime["tabs"];
 	sleep(milliseconds: number): Promise<void>;
+	injectContentScript?(tabId: number): Promise<void>;
 	recoverySnapshotTimeoutMs?: number;
 }) {
 	const sessions = new Map<number, ContentObservation>();
@@ -135,6 +137,26 @@ export function createPageRealityController(options: {
 		};
 	};
 
+	const snapshotTab = async (tab: ChromeTab): Promise<ContentObservation | null> => {
+		if (tab.id === undefined || tab.windowId === undefined) return null;
+		const request = () =>
+			boundedRecoveryObservation(
+				() =>
+					options.tabs.sendMessage(tab.id as number, {
+						type: "PROFLOW_PAGE_SNAPSHOT_REQUEST",
+					}),
+				recoverySnapshotTimeoutMs,
+			);
+		const response = options.injectContentScript
+			? await recoverMissingContentReceiver({
+					observe: request,
+					inject: () => options.injectContentScript?.(tab.id as number) ?? Promise.resolve(),
+				})
+			: await request();
+		if (!isRecord(response) || response.ok !== true) return null;
+		return parseSnapshotObservation(response.value, tab);
+	};
+
 	const waitForPermissionReleased = async (
 		tabId: number,
 		fingerprint: string,
@@ -185,20 +207,7 @@ export function createPageRealityController(options: {
 		waitForSubmittedMessage,
 		async recoverObservations(): Promise<ContentObservation[]> {
 			const tabs = await options.tabs.query({ url: "https://chatgpt.com/g/*" });
-			const snapshots = await Promise.all(
-				tabs.map(async (tab) => {
-					if (tab.id === undefined || tab.windowId === undefined) return null;
-					const response = await boundedRecoveryObservation(
-						() =>
-							options.tabs.sendMessage(tab.id as number, {
-								type: "PROFLOW_PAGE_SNAPSHOT_REQUEST",
-							}),
-						recoverySnapshotTimeoutMs,
-					);
-					if (!isRecord(response) || response.ok !== true) return null;
-					return parseSnapshotObservation(response.value, tab);
-				}),
-			);
+			const snapshots = await Promise.all(tabs.map(snapshotTab));
 			return snapshots.filter(
 				(value): value is ContentObservation => value !== null,
 			);

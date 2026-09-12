@@ -25,7 +25,7 @@ contractRefs:
 3. Direct Tools 固定为 `repomix / localDev / codeGraph` 三个 Action namespace，通过 `operation` 选择精确 operation；不建立动态 Tool discovery。
 4. Task/Peer Actions 由 Owner 做业务校验；本地 Tools 由 Gateway Role auth + `Role × Tool × Operation` policy + server-bound Workspace + Browser Extension Effect Gate + `execution-local` runtime validation 防守。
 5. Direct Tool request 不允许 Task/Node/Worker/Execution identity 字段。
-6. 每个 operation 显式 `x-openai-isConsequential`，按该 Action 自身真实副作用判断；不再以“只是提交 Execution intent”为理由统一设 `false`。
+6. 每个 shipped GPT Action operation 都必须显式声明 `x-openai-isConsequential:false`；OpenAI Carrier confirmation 不作为 ProFlow 的 Effect 授权或 Approval 安全门。
 7. 一个 Worker Turn 内可连续调用 0..N Actions；不设计 Action-level Browser scheduler。
 
 ---
@@ -169,11 +169,11 @@ custom-gpt materialize/setup
 ### Consequential
 
 - consequential 是 OpenAPI HTTP Operation Object 的静态字段，不能按 body.operation/oneOf 分支动态设置；
-- 固定三个 POST Action 的 v1 选择：Repomix/CodeGraph 仅只读查询为 `false`；混合读写的 Local Dev 整个 Action 为 `true`（含 read）；
-- Product schema 若裁成严格只读 Local Dev 子集，可为 `false`；该 Role 的 Gateway/Host ACL 必须同时拒绝全部 mutation/run/process control；默认不允许 Git 任意 argv 以“只读”绕过此限制；
+- Product / Controller-Dev / Test-Ops 三套 shipped GPT Action schema 的 v1 选择统一为 `x-openai-isConsequential:false`，包括混合读写的 Local Dev HTTP Action；
+- 该 Carrier metadata 只决定 ChatGPT 自身的确认交互，不赋予任何本机 Effect 权限，也不替代 Gateway/Host/Extension/provider 的真实授权与安全校验；
 - Browser/Carrier 内部 Approval 与 ChatGPT Action permission 是不同层，互不替代。
 
-v1 主路径目标是：被声明为 nonconsequential 的 read/query HTTP Actions（不含 Dev/Test 混合 Local Dev）经用户初次 `Always Allow` 后不再成为每次业务推进阻塞点；unexpected prompt 仅作为 Carrier recovery。
+v1 主路径目标是：routine GPT Actions 不再因为 OpenAI Carrier confirmation 成为每次业务推进的阻塞点；如果 Carrier 仍出现 permission prompt，将其作为页面现实与 Carrier recovery 输入，由 Extension 观察机制和现有 Permission policy 处理，但不得把该 prompt 或点击结果写成 ProFlow Effect Approval truth。
 
 ### File Bridge
 
@@ -193,7 +193,7 @@ v1 主路径目标是：被声明为 nonconsequential 的 read/query HTTP Action
 每个 Role Package 至少验证：
 
 - OpenAPI parse/operationId unique；
-- 每 operation 显式 consequential；
+- 每 operation 显式 `x-openai-isConsequential:false`；
 - Product 不出现 createTask/Role-discovery mainline operations；
 - 三个旧 GPT-facing Execution operationId = 0；
 - `repomix/localDev/codeGraph` schema 使用精确 operation discriminator，不退化为任意 object；
@@ -202,11 +202,11 @@ v1 主路径目标是：被声明为 nonconsequential 的 read/query HTTP Action
 - File Bridge schema/transport bounds；
 - Gateway → Task/Peer owner 或 `ProFlow API → Browser Extension → execution-local Tool` 本地工具链映射；
 - 一个 Worker Turn 多 Action 不要求 Browser 每 Action WAKE；
-- real Custom GPT Preview/E2E 最终验证新 Tool schema adoption、Always Allow/Multi-action/File Bridge/CI/Web Search。
+- real Custom GPT Preview/E2E 最终验证新 Tool schema adoption、nonconsequential Action 行为、Multi-action/File Bridge/CI/Web Search。
 
-## 9. 三个 Action 的明确代价与授权粒度
+## 9. 三个 Action 的授权粒度与 Carrier 行为
 
-固定三个 Action 时，Dev/Test 的 Local Dev read 也会提示确认且没有 Always Allow；这是保留三个 endpoint 的 v1 产品代价，不能以自动点击消除。若未来要求 read 的 Always Allow，必须另行冻结 Local Dev 只读/写入 HTTP operation 分拆，不能在 body.oneOf 内伪造 consequential。
+三个 Direct Tool Action 的 shipped OpenAPI 都固定为 `x-openai-isConsequential:false`。这只是 Carrier 层产品选择：即使 Local Dev 的 `mutate/run/process` 不再依赖 ChatGPT 每次确认，真实本机 Effect 仍必须经过 Role policy、Gateway/Host admission、Browser Extension Effect Gate、Workspace/参数边界、provider safety、deadline 与 UNKNOWN/no-blind-replay 规则。若 ChatGPT 仍意外展示 permission prompt，Extension 可以观察并恢复，但不得把自动或人工点击当成本机 Effect 授权来源。
 
 Role policy 的匹配键为 Tool + operation + nested action + 参数约束；`process.list/ports/status/read` 与 `process.start/input/stop` 分开授权。Dev/Test 的 run/build/install 并不天然只读，按 command profile 校验；未明确授权的组合默认 DENY。Product 默认只含 read/list/search 和 process 的只读子集，不含 run。Provider 的内部缓存写入须限定在 server-owned cache；不得借此允许工程 mutation。
 

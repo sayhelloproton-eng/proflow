@@ -112,6 +112,12 @@ export type ChromeRuntime = {
 			},
 		): Promise<string>;
 	};
+	scripting: {
+		executeScript(details: {
+			target: { tabId: number };
+			files: string[];
+		}): Promise<unknown[]>;
+	};
 	tabs: {
 		query(query: { url?: string; currentWindow?: boolean }): Promise<ChromeTab[]>;
 		get(tabId: number): Promise<ChromeTab>;

@@ -57,7 +57,16 @@ const invokeApproval = observability.wrapHostApplication(
 	applications.invokeApproval,
 );
 
-const page = createPageRealityController({ tabs: chrome.tabs, sleep });
+const page = createPageRealityController({
+	tabs: chrome.tabs,
+	sleep,
+	async injectContentScript(tabId) {
+		await chrome.scripting.executeScript({
+			target: { tabId },
+			files: ["dist/extension/content.js"],
+		});
+	},
+});
 const permissions = createPermissionController({
 	storageSession: chrome.storage.session,
 	page,
