@@ -715,6 +715,10 @@
   dir: packages/execution-browser-extension
   intents:
     - operation-chain-observability
+"@tomflow/proflow-execution-browser-extension@0.1.59":
+  dir: packages/execution-browser-extension
+  intents:
+    - page-observation-freshness
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
