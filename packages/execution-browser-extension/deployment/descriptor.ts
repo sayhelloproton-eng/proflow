@@ -3,7 +3,7 @@ export const descriptor = {
 	contractVersion: "1.0.0",
 	moduleRef: "execution-browser-extension",
 	packageName: "@tomflow/proflow-execution-browser-extension",
-	moduleVersion: "0.1.59",
+	moduleVersion: "0.1.60",
 	kind: "browser-extension",
 	templateVersion: "1.0.0",
 	platformCompatibility: ">=1.0.0 <2.0.0",

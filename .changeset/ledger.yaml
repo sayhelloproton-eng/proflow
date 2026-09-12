@@ -731,6 +731,10 @@
   dir: packages/execution-browser-extension
   intents:
     - kind-files-speak
+"@tomflow/proflow-execution-browser-extension@0.1.60":
+  dir: packages/execution-browser-extension
+  intents:
+    - permission-watchdog-recovery
 "@tomflow/proflow-execution-browser-extension@0.1.7":
   dir: packages/execution-browser-extension
   intents:

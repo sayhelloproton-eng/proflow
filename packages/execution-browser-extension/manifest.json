@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "ProFlow Execution Browser",
-	"version": "0.1.59",
+	"version": "0.1.60",
 	"permissions": [
 		"tabs",
 		"scripting",
