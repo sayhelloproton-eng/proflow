@@ -5,6 +5,10 @@ import {
 	submitChatGptComposer,
 	writeChatGptInput,
 } from "../src/chatgpt-runtime-adapter.js";
+import {
+	createBoundedPageObservationScheduler,
+	pageObservationMutationOptions,
+} from "../src/page-observation-scheduler.js";
 import { containsSubmittedFingerprint } from "../src/submitted-message.js";
 
 type ContentCommand = {
@@ -134,16 +138,11 @@ const publish = () =>
 		observation: observation(),
 	});
 void publish();
-let publishTimer: ReturnType<typeof setTimeout> | undefined;
+const schedulePublish = createBoundedPageObservationScheduler({
+	publish,
+	schedule: (callback, delayMs) => setTimeout(callback, delayMs),
+});
 const observer = new MutationObserver(() => {
-	if (publishTimer !== undefined) clearTimeout(publishTimer);
-	publishTimer = setTimeout(() => {
-		publishTimer = undefined;
-		void publish();
-	}, 100);
+	schedulePublish.request();
 });
-observer.observe(document.documentElement, {
-	subtree: true,
-	childList: true,
-	attributes: true,
-});
+observer.observe(document.documentElement, pageObservationMutationOptions);

@@ -794,12 +794,14 @@ func screenshot(_ suffix: String) {
 }
 
 func dispatchReloadPress(_ selection: ReloadTargetSelection) throws {
-    guard let element = selection.reload.liveElement else {
-        throw HarnessDecisionError(code: "TARGET_RELOAD_LIVE_ELEMENT_MISSING")
+    guard
+        let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: selection.point, mouseButton: .left),
+        let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: selection.point, mouseButton: .left)
+    else {
+        throw HarnessDecisionError(code: "TARGET_RELOAD_POINTER_EVENT_CREATE_FAILED")
     }
-    guard AXUIElementPerformAction(element, kAXPressAction as CFString) == .success else {
-        throw HarnessDecisionError(code: "TARGET_RELOAD_PRESS_DISPATCH_FAILED")
-    }
+    down.post(tap: .cghidEventTap)
+    up.post(tap: .cghidEventTap)
 }
 
 func runHarnessSelfTests() throws {
