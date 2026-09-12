@@ -35,20 +35,21 @@ export function resolveBrowserPermissionTaskBinding(input: {
 		// An incomplete scan cannot establish an unambiguous durable identity.
 		if (bindings === null) return null;
 		for (const binding of bindings) {
+			const sameConversation =
+				binding.conversationLocator === input.conversationLocator;
+			const sameWorker =
+				binding.roleRef === input.roleRef && binding.workerRef === input.workerRef;
+			if (!sameConversation && !sameWorker) continue;
 			if (
-				binding.conversationLocator !== input.conversationLocator &&
-				!(binding.roleRef === input.roleRef && binding.workerRef === input.workerRef)
-			)
-				continue;
-			if (
-				match !== null ||
 				binding.agentPackageRef !== input.agentPackageRef ||
 				binding.roleRef !== input.roleRef ||
 				binding.workerRef !== input.workerRef ||
 				binding.conversationLocator !== input.conversationLocator
 			)
 				return null;
-			match = binding;
+			// The same durable Worker/Conversation may be reused by multiple Tasks.
+			// Exact duplicates strengthen the same identity; only disagreement is ambiguous.
+			match ??= binding;
 		}
 	}
 	return match;
