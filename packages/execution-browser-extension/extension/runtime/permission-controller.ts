@@ -1,4 +1,7 @@
-import { createCarrierAttentionRegistry } from "../../src/carrier-attention.js";
+import {
+	createCarrierAttentionRegistry,
+	shouldRetryCarrierAttention,
+} from "../../src/carrier-attention.js";
 import {
 	type CarrierContinuationDenial,
 	createCarrierContinuationControl,
@@ -197,7 +200,8 @@ export function createPermissionController(options: {
 		const existing = attentions.current(observed.tabId);
 		if (
 			existing?.contentInstanceId === observed.contentInstanceId &&
-			existing.permissionFingerprint === facts.fingerprint
+			existing.permissionFingerprint === facts.fingerprint &&
+			!shouldRetryCarrierAttention(existing.reason)
 		)
 			return null;
 		handling.set(observed.tabId, key);

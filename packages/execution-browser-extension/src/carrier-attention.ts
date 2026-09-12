@@ -22,6 +22,10 @@ export type CarrierAttentionInput = Omit<
 	"attentionRef" | "occurrenceRef"
 >;
 
+export function shouldRetryCarrierAttention(reason: string): boolean {
+	return reason === "PERMISSION_CLASSIFICATION_FAILED";
+}
+
 export function createCarrierAttentionRegistry(
 	idFactory: () => string = () => crypto.randomUUID(),
 ) {

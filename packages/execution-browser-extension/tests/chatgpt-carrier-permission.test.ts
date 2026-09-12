@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
+import { shouldRetryCarrierAttention } from "../src/carrier-attention.ts";
 import {
 	detectActionPermission,
 	permissionActionAllowed,
@@ -82,6 +83,17 @@ test("CP-EXE-BR-22 Action permission wins over an otherwise ready composer", () 
 	);
 });
 
+test("CP-EXE-BR-24 retries only transient permission classification attention", () => {
+	assert.equal(shouldRetryCarrierAttention("PERMISSION_CLASSIFICATION_FAILED"), true);
+	for (const reason of [
+		"GATEWAY_MISMATCH",
+		"CONTEXT_MISMATCH",
+		"HUMAN_DENIED",
+		"AUTO_ALLOW_FAILED",
+	])
+		assert.equal(shouldRetryCarrierAttention(reason), false, reason);
+});
+
 test("CP-EXE-BR-27 Content stays thin and Permission trust policy has its own controller", async () => {
 	const [content, background, permissionController] = await Promise.all([
 		readFile(new URL("../extension/content.ts", import.meta.url), "utf8"),
@@ -99,5 +111,6 @@ test("CP-EXE-BR-27 Content stays thin and Permission trust policy has its own co
 	assert.doesNotMatch(background, /resolveRoutineCarrierPermission|AUTO_ALLOW/);
 	assert.match(permissionController, /resolveRoutineCarrierPermission/);
 	assert.match(permissionController, /browser\.permission\.classify/);
+	assert.match(permissionController, /shouldRetryCarrierAttention/);
 	assert.doesNotMatch(permissionController, /operationId === "getTask"/);
 });
