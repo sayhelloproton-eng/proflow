@@ -65,3 +65,19 @@ test("CP-EXE-BR-22 background recovery wires scripting reinjection into current 
 	assert.match(pageReality, /recoverMissingContentReceiver/);
 	assert.match(pageReality, /PROFLOW_PAGE_SNAPSHOT_REQUEST/);
 });
+
+test("CP-EXE-BR-22 background repeats current-page recovery every ten seconds", async () => {
+	const background = await readFile(
+		new URL("../extension/background.ts", import.meta.url),
+		"utf8",
+	);
+	assert.match(background, /PAGE_PERMISSION_WATCHDOG_INTERVAL_MS/);
+	assert.match(background, /let pageRecoveryPass: Promise<void> \| null = null/);
+	assert.match(background, /if \(pageRecoveryPass\) return pageRecoveryPass/);
+	assert.match(background, /function startPageRealityWatchdog\(\): void/);
+	assert.match(
+		background,
+		/setInterval\(\(\) => \{\s*void recoverCurrentPageReality\(\)\.catch\(\(\) => undefined\);\s*\}, PAGE_PERMISSION_WATCHDOG_INTERVAL_MS\);/s,
+	);
+	assert.match(background, /startPageRealityWatchdog\(\)/);
+});

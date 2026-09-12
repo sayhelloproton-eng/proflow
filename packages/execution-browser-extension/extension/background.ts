@@ -2,6 +2,7 @@ import {
 	createBrowserReconnectOwner,
 	restoreBrowserSessionIdentity,
 } from "../src/browser-session-reconnect.js";
+import { PAGE_PERMISSION_WATCHDOG_INTERVAL_MS } from "../src/page-permission-watchdog.js";
 import { shouldTriggerObserverRecovery } from "../src/recovery-trigger.js";
 import { createApplicationClient } from "./runtime/application-client.js";
 import { createBrowserCommandController } from "./runtime/browser-command-controller.js";
@@ -101,6 +102,31 @@ function processContentObservation(
 	if (shouldRecover && !suppressed) void observerRecovery.requestRecovery();
 }
 
+let pageRecoveryPass: Promise<void> | null = null;
+let pageRealityWatchdogStarted = false;
+function recoverCurrentPageReality(): Promise<void> {
+	if (pageRecoveryPass) return pageRecoveryPass;
+	pageRecoveryPass = (async () => {
+		const observations = await page.recoverObservations();
+		for (const observed of observations) {
+			processContentObservation(observed, false);
+			permissions.consumeRecovery(undefined, observed);
+		}
+		await permissions.persist();
+		await permissions.publish().catch(() => undefined);
+	})().finally(() => {
+		pageRecoveryPass = null;
+	});
+	return pageRecoveryPass;
+}
+function startPageRealityWatchdog(): void {
+	if (pageRealityWatchdogStarted) return;
+	pageRealityWatchdogStarted = true;
+	setInterval(() => {
+		void recoverCurrentPageReality().catch(() => undefined);
+	}, PAGE_PERMISSION_WATCHDOG_INTERVAL_MS);
+}
+
 const browserCommands = createBrowserCommandController({
 	page,
 	permissions,
@@ -194,17 +220,9 @@ function initializeBackgroundRuntime(): Promise<void> {
 		await permissions.persist();
 		void localToolLane.start();
 		void provisioningLane.start();
-		void page
-			.recoverObservations()
-			.then(async (observations) => {
-				for (const observed of observations) {
-					processContentObservation(observed, false);
-					permissions.consumeRecovery(undefined, observed);
-				}
-				await permissions.persist();
-				await permissions.publish().catch(() => undefined);
-				observerRecovery.startupReady();
-			})
+		startPageRealityWatchdog();
+		void recoverCurrentPageReality()
+			.then(() => observerRecovery.startupReady())
 			.catch(() => undefined);
 		observability.lifecycle({
 			operationId: "INITIALIZE",
