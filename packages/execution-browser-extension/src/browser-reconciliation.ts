@@ -1,3 +1,6 @@
+import type { BrowserSessionState } from "./browser-session-state.ts";
+import type { BrowserRealityPort } from "./browser-reality.ts";
+import type { TaskBrowserPort } from "./execution-browser-context.ts";
 import {
 	type ExecuteCapabilityRequest,
 	type ExecutorPrecondition,
@@ -9,7 +12,16 @@ import type {
 	Reconciliation,
 } from "./execution-browser-context.ts";
 
-export function createBrowserReconciliation(context: ExecutionBrowserContext) {
+export function createBrowserReconciliation(
+	context: Pick<
+		ExecutionBrowserContext,
+		"browserEvidence" | "parseCarrierIdentity" | "browserPrecondition"
+	> & {
+		browser: Pick<BrowserRealityPort, "listTabs" | "observe" | "hasMessage">;
+	},
+	task: TaskBrowserPort,
+	sessions: Pick<BrowserSessionState, "matchingTab" | "registerContentSession">,
+) {
 	let recoveryCompleted = false;
 
 	const reconcile = async (
@@ -26,7 +38,7 @@ export function createBrowserReconciliation(context: ExecutionBrowserContext) {
 
 		const observeTarget = async (): Promise<BrowserPageObservation | null> => {
 			if (precondition.roleRef && precondition.workerRef)
-				return context.matchingTab(
+				return sessions.matchingTab(
 					precondition.roleRef,
 					precondition.workerRef,
 				);
@@ -34,7 +46,7 @@ export function createBrowserReconciliation(context: ExecutionBrowserContext) {
 				const numericTab = Number(precondition.targetRef.replace(/^tab:/, ""));
 				if (Number.isInteger(numericTab)) {
 					try {
-						return await context.options.browser.observe(numericTab);
+						return await context.browser.observe(numericTab);
 					} catch {
 						return null;
 					}
@@ -49,18 +61,18 @@ export function createBrowserReconciliation(context: ExecutionBrowserContext) {
 			if (!roleRef || !taskId || !precondition.fingerprint)
 				return { state: "UNKNOWN", evidence: [] };
 
-			const boundWorker = await context.options.task.getWorkerBinding(
+			const boundWorker = await task.getWorkerBinding(
 				taskId,
 				roleRef,
 			);
 			if (boundWorker) {
-				const observed = await context.matchingTab(
+				const observed = await sessions.matchingTab(
 					roleRef,
 					boundWorker.workerRef,
 				);
 				if (!observed) return { state: "UNKNOWN", evidence: [] };
 				if (
-					!(await context.options.browser.hasMessage(
+					!(await context.browser.hasMessage(
 						observed.tabId,
 						precondition.fingerprint,
 					))
@@ -83,13 +95,13 @@ export function createBrowserReconciliation(context: ExecutionBrowserContext) {
 			}
 
 			const candidates: BrowserPageObservation[] = [];
-			for (const tab of await context.options.browser.listTabs()) {
+			for (const tab of await context.browser.listTabs()) {
 				try {
 					const identity = context.parseCarrierIdentity(tab.url);
 					if (
 						identity.roleRef === roleRef &&
 						identity.workerRef !== null &&
-						(await context.options.browser.hasMessage(
+						(await context.browser.hasMessage(
 							tab.tabId,
 							precondition.fingerprint,
 						))
@@ -104,7 +116,7 @@ export function createBrowserReconciliation(context: ExecutionBrowserContext) {
 			if (!observed) return { state: "UNKNOWN", evidence: [] };
 			const identity = context.parseCarrierIdentity(observed.url);
 			if (!identity.workerRef) return { state: "UNKNOWN", evidence: [] };
-			await context.options.task.bindWorker({
+			await task.bindWorker({
 				taskId,
 				roleRef,
 				workerRef: identity.workerRef,
@@ -133,12 +145,12 @@ export function createBrowserReconciliation(context: ExecutionBrowserContext) {
 				!precondition.fingerprint
 			)
 				return { state: "UNKNOWN", evidence: [] };
-			const observed = await context.matchingTab(
+			const observed = await sessions.matchingTab(
 				precondition.roleRef,
 				precondition.workerRef,
 			);
 			if (!observed) return { state: "UNKNOWN", evidence: [] };
-			const delivered = await context.options.browser.hasMessage(
+			const delivered = await context.browser.hasMessage(
 				observed.tabId,
 				precondition.fingerprint,
 			);
@@ -167,12 +179,12 @@ export function createBrowserReconciliation(context: ExecutionBrowserContext) {
 				!precondition.messageRef
 			)
 				return { state: "UNKNOWN", evidence: [] };
-			const observed = await context.matchingTab(
+			const observed = await sessions.matchingTab(
 				precondition.roleRef,
 				precondition.workerRef,
 			);
 			if (!observed) return { state: "UNKNOWN", evidence: [] };
-			const delivered = await context.options.browser.hasMessage(
+			const delivered = await context.browser.hasMessage(
 				observed.tabId,
 				precondition.fingerprint,
 			);
@@ -195,7 +207,7 @@ export function createBrowserReconciliation(context: ExecutionBrowserContext) {
 		if (request.capability === "browser.submit" && precondition.fingerprint) {
 			const observed = await observeTarget();
 			if (!observed) return { state: "UNKNOWN", evidence: [] };
-			const delivered = await context.options.browser.hasMessage(
+			const delivered = await context.browser.hasMessage(
 				observed.tabId,
 				precondition.fingerprint,
 			);
@@ -246,9 +258,9 @@ export function createBrowserReconciliation(context: ExecutionBrowserContext) {
 		if (recoveryCompleted)
 			return { status: "ALREADY_COMPLETED" as const, reconciled: [] };
 		recoveryCompleted = true;
-		for (const tab of await context.options.browser.listTabs()) {
+		for (const tab of await context.browser.listTabs()) {
 			try {
-				context.registerContentSession(tab);
+				sessions.registerContentSession(tab);
 			} catch {
 				/* unrelated tab */
 			}

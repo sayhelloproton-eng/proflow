@@ -70,6 +70,10 @@ export function createProvisioningLane(options: {
 					request,
 				});
 			} catch (error) {
+				// A closed response channel may follow a successful editor mutation.
+				// Only a missing receiver proves that this dispatch never reached it.
+				if (!missingReceiver(error))
+					throw new Error("PROVISIONING_EFFECT_UNKNOWN", { cause: error });
 				if (!receiverReloaded && missingReceiver(error)) {
 					try {
 						const tab = await options.getTab(tabId);

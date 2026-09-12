@@ -48,26 +48,6 @@ test("PRESMOKE-B3-OBS-EXT-01 Extension owns Collaboration/System recovery but no
 	assert.doesNotMatch(`${background}\n${recovery}`, /task\.projection|task\.diagnostic|task\.wake/);
 });
 
-test("PRESMOKE-B3-OBS-EXT-02 Browser recovery only accelerates backend reconciliation after Collaboration recovery", async () => {
-	const recoverySource = await source(observerRecoveryUrl);
-	const start = recoverySource.indexOf("const requestRecovery =");
-	const end = recoverySource.indexOf("const rearm =", start);
-	const recovery = recoverySource.slice(start, end);
-	assert.ok(start >= 0 && end > start);
-	const collaboration = recovery.indexOf(
-		"await collaborationCarrier.recoverPending(50)",
-	);
-	const kick = recovery.indexOf(
-		'options.invokeObserver("task.reconcileAll"',
-	);
-	const system = recovery.indexOf("systemObserver");
-	assert.ok(collaboration >= 0 && kick > collaboration && system > kick);
-	assert.doesNotMatch(
-		recovery,
-		/execution\.listSignals|task\.ensureWorkers|taskObserver|task\.list/,
-	);
-});
-
 test("PRESMOKE-B3-OBS-EXT-03 Extension recovery stays single-flight with one trailing pass", async () => {
 	const recovery = await source(observerRecoveryUrl);
 	assert.match(recovery, /recoveryInFlight/);

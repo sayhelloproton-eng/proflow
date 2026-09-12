@@ -174,6 +174,25 @@ export function createObserverRecoveryController(options: {
 		});
 	};
 
+	// Diagnostic work has its own flight and never holds the physical recovery lane.
+	let assessmentInFlight: Promise<void> | null = null;
+	const requestAssessment = (): Promise<void> => {
+		if (assessmentInFlight) return assessmentInFlight;
+		assessmentInFlight = (async () => {
+			const previous = await loadState().catch(() => null);
+			const assessment = await systemObserver
+				.synthesize({
+					previousUnresolved: previous?.unresolved ?? [],
+					previousCarryForward: previous?.carryForward ?? [],
+				})
+				.catch(() => null);
+			if (assessment) await persistState(assessment).catch(() => undefined);
+		})().finally(() => {
+			assessmentInFlight = null;
+		});
+		return assessmentInFlight;
+	};
+
 	const requestRecovery = (): Promise<void> => {
 		const triggerRef = `bridge-session:${bridgeSessionEpoch}`;
 		if (recoveryInFlight) {
@@ -193,14 +212,7 @@ export function createObserverRecoveryController(options: {
 				triggerRef,
 			);
 			void options.invokeObserver("task.reconcileAll", {}).catch(() => undefined);
-			const previous = await loadState().catch(() => null);
-			const assessment = await systemObserver
-				.synthesize({
-					previousUnresolved: previous?.unresolved ?? [],
-					previousCarryForward: previous?.carryForward ?? [],
-				})
-				.catch(() => null);
-			if (assessment) await persistState(assessment).catch(() => undefined);
+			void requestAssessment();
 		})().finally(() => {
 			recoveryInFlight = null;
 			if (!trailingRequested) return;

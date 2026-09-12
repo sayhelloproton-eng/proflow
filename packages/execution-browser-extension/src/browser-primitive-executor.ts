@@ -1,3 +1,5 @@
+import type { BrowserRealityPort } from "./browser-reality.ts";
+import type { RestoreWorker } from "./worker-carrier-target.ts";
 import {
 	type ExecuteCapabilityRequest,
 	type ExecutionCapabilityResult,
@@ -11,9 +13,15 @@ import { ExecutionBrowserError } from "./execution-browser-context.ts";
 import { isVisionObservationVerified } from "./vision.ts";
 
 export async function executeBrowserPrimitive(
-	context: ExecutionBrowserContext,
+	context: Pick<
+		ExecutionBrowserContext,
+		"result" | "idFactory" | "visionObservation" | "serializeWrite" | "effectStarted"
+	> & {
+		browser: Pick<BrowserRealityPort, "observe" | "screenshot" | "hasMessage" | "perform">;
+	},
 	raw: ExecutorInvocation,
 	request: ExecuteCapabilityRequest,
+	restoreWorker: RestoreWorker,
 ): Promise<ExecutorResult> {
 	const target =
 		"targetRef" in request.input ? request.input.targetRef : request.workerRef;
@@ -24,9 +32,9 @@ export async function executeBrowserPrimitive(
 		);
 	const numericTab = Number(target.replace(/^tab:/, ""));
 	const observed = Number.isInteger(numericTab)
-		? await context.options.browser.observe(numericTab)
+		? await context.browser.observe(numericTab)
 		: request.roleRef && request.workerRef
-			? await context.ensureRestored(
+			? await restoreWorker(
 					request.taskId ?? "",
 					request.roleRef,
 					request.workerRef,
@@ -56,7 +64,7 @@ export async function executeBrowserPrimitive(
 				false,
 			);
 
-		const shot = await context.options.browser.screenshot(observed.tabId);
+		const shot = await context.browser.screenshot(observed.tabId);
 		const vision = await context.visionObservation(shot, {
 			targetRef: target,
 			pageState: observed.pageState,
@@ -112,7 +120,7 @@ export async function executeBrowserPrimitive(
 	}
 
 	if (request.capability === "browser.screenshot") {
-		const shot = await context.options.browser.screenshot(observed.tabId);
+		const shot = await context.browser.screenshot(observed.tabId);
 		const vision = await context.visionObservation(shot, {
 			targetRef: target,
 			pageState: observed.pageState,
@@ -164,7 +172,7 @@ export async function executeBrowserPrimitive(
 	}
 
 	if (request.capability === "browser.verify") {
-		const verified = await context.options.browser.hasMessage(
+		const verified = await context.browser.hasMessage(
 			observed.tabId,
 			request.input.expectedFingerprint,
 		);
@@ -182,7 +190,7 @@ export async function executeBrowserPrimitive(
 		);
 	}
 
-	const perform = context.options.browser.perform;
+	const perform = context.browser.perform;
 	if (!perform)
 		throw new ExecutionBrowserError(
 			"EXECUTOR_UNAVAILABLE",

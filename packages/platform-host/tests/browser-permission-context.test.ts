@@ -71,3 +71,37 @@ test("task-agnostic permission never trusts an unbound or unknown worker", () =>
 		null,
 	);
 });
+
+for (const conflict of [
+	complete,
+	{ ...complete, conversationLocator: "https://chatgpt.com/g/g-dev/c/stale" },
+	{ ...complete, workerRef: "c-other" },
+	{ ...complete, agentPackageRef: "foreign-package" },
+]) {
+	test(`task-agnostic permission rejects conflicting durable bindings: ${JSON.stringify(conflict)}`, () => {
+		for (const bindings of [[complete, conflict], [conflict, complete]]) {
+			assert.equal(resolveBrowserPermissionTaskBinding({
+				...complete,
+				...owner({ "task:a": [bindings[0]!], "task:b": [bindings[1]!] }),
+			}), null);
+		}
+	});
+}
+
+test("an unreadable candidate prevents trust even after an exact match", () => {
+	assert.equal(resolveBrowserPermissionTaskBinding({
+		...complete,
+		listTaskIds: () => ["task:good", "task:unreadable"],
+		getRoleBindings: (taskId) => taskId === "task:good" ? [complete] : null,
+	}), null);
+});
+
+test("task-scoped lookup never falls back to another task and rejects duplicate roles", () => {
+	for (const bindings of [[], [complete, complete]]) {
+		assert.equal(resolveBrowserPermissionTaskBinding({
+			...complete,
+			taskId: "task:requested",
+			...owner({ "task:requested": bindings, "task:other": [complete] }),
+		}), null);
+	}
+});

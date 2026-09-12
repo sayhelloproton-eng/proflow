@@ -6,7 +6,8 @@ import {
 } from "@tomflow/proflow-execution-contracts";
 import { executeBrowserPrimitive } from "./browser-primitive-executor.ts";
 import { createBrowserReconciliation } from "./browser-reconciliation.ts";
-import type { BrowserPageState } from "./browser-reality.ts";
+import { createBrowserSessionState } from "./browser-session-state.ts";
+import { createWorkerCarrierTarget } from "./worker-carrier-target.ts";
 import {
 	createExecutionBrowserContext,
 	ExecutionBrowserError,
@@ -80,7 +81,15 @@ export function createExecutionBrowserExtension(
 	options: ExecutionBrowserOptions,
 ) {
 	const context = createExecutionBrowserContext(options);
-	const recovery = createBrowserReconciliation(context);
+	const sessions = createBrowserSessionState(context);
+	const restoreWorker = createWorkerCarrierTarget({
+		task: options.task,
+		browser: options.browser,
+		matchingTab: sessions.matchingTab,
+		registerContentSession: sessions.registerContentSession,
+		parseCarrierIdentity: context.parseCarrierIdentity,
+	});
+	const recovery = createBrowserReconciliation(context, options.task, sessions);
 
 	const execute = async (
 		raw: Parameters<
@@ -94,34 +103,22 @@ export function createExecutionBrowserExtension(
 				"EXECUTOR_UNAVAILABLE",
 				"BROWSER_CAPABILITY_REQUIRED",
 			);
-		const workerResult = await executeWorkerCarrier(context, raw, request);
+		const workerResult = await executeWorkerCarrier(context, raw, request, {
+			task: options.task,
+			agent: options.agent,
+			restoreWorker,
+			registerContentSession: sessions.registerContentSession,
+		});
 		if (workerResult) return workerResult;
-		return executeBrowserPrimitive(context, raw, request);
+		return executeBrowserPrimitive(context, raw, request, restoreWorker);
 	};
 
 	return Object.freeze({
 		extensionInstanceId: context.extensionInstanceId,
 		parseCarrierIdentity: context.parseCarrierIdentity,
-		registerContentSession: context.registerContentSession,
-		isContentSessionCurrent(tabId: number, contentInstanceId: string) {
-			return context.sessions.get(tabId)?.contentInstanceId === contentInstanceId;
-		},
-		classifyProgress(input: {
-			pageState: BrowserPageState;
-			nodeInProgress: boolean;
-			millisecondsWithoutProgress: number;
-			legitimateWait: boolean;
-		}) {
-			if (input.legitimateWait) return "EXPECTED_WAIT" as const;
-			if (input.pageState === "IDLE" && input.nodeInProgress)
-				return "PROGRESS_GAP" as const;
-			if (
-				input.pageState === "BUSY" &&
-				input.millisecondsWithoutProgress > 60_000
-			)
-				return "RUNTIME_STALL" as const;
-			return "NORMAL" as const;
-		},
+		registerContentSession: sessions.registerContentSession,
+		isContentSessionCurrent: sessions.isContentSessionCurrent,
+		classifyProgress: sessions.classifyProgress,
 		async inspectScreenshot(
 			tabId: number,
 			observationContext: BrowserVisionObservationContext,
@@ -129,45 +126,8 @@ export function createExecutionBrowserExtension(
 			const shot = await options.browser.screenshot(tabId);
 			return context.visionObservation(shot, observationContext);
 		},
-		async handlePermissionFallback(tabId: number, continuationRef: string) {
-			const observed = await options.browser.observe(tabId);
-			const shot = await options.browser.screenshot(tabId);
-			const identity = context.parseCarrierIdentity(observed.url);
-			if (identity.workerRef) {
-				const key = `${identity.roleRef}:${identity.workerRef}`;
-				const lane = context.lanes.get(key);
-				if (lane)
-					context.lanes.set(key, {
-						...lane,
-						pageState: "BLOCKED",
-						activityKind: "WAITING_HUMAN",
-						continuationRef,
-					});
-			}
-			return {
-				status: "WAITING_HUMAN" as const,
-				continuationRef,
-				evidenceRef: shot.evidenceRef,
-			};
-		},
-		getSidePanelSnapshot() {
-			const snapshot = {
-				extensionInstanceId: context.extensionInstanceId,
-				observedAt: context.now().toISOString(),
-				sessions: [...context.sessions.values()].map((item) => ({
-					tabId: item.tabId,
-					windowId: item.windowId,
-					url: item.url,
-					contentInstanceId: item.contentInstanceId,
-					pageState: item.pageState,
-					activityKind: item.activityKind,
-				})),
-				lanes: [...context.lanes.values()].map((item) => ({ ...item })),
-			};
-			Object.freeze(snapshot.sessions);
-			Object.freeze(snapshot.lanes);
-			return Object.freeze(snapshot);
-		},
+		handlePermissionFallback: sessions.handlePermissionFallback,
+		getSidePanelSnapshot: sessions.getSidePanelSnapshot,
 		execute,
 		observePrecondition: async (
 			request: ExecuteCapabilityRequest,

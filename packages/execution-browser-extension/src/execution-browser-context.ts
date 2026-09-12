@@ -10,9 +10,7 @@ import {
 } from "@tomflow/proflow-execution-contracts";
 import { parseChatGptCarrierIdentity } from "./carrier-identity.ts";
 import type {
-	BrowserActivityKind,
 	BrowserPageObservation,
-	BrowserPageState,
 	BrowserRealityPort,
 } from "./browser-reality.ts";
 import type {
@@ -87,23 +85,12 @@ export class ExecutionBrowserError extends Error {
 	}
 }
 
-export type ExecutionLaneState = {
-	roleRef: string;
-	workerRef: string;
-	tabId: number;
-	pageState: BrowserPageState;
-	activityKind: BrowserActivityKind;
-	currentExecutionRef: string | null;
-	continuationRef: string | null;
-	lastProgressAt: string;
-};
-
-export function createExecutionBrowserContext(options: ExecutionBrowserOptions) {
+export function createExecutionBrowserContext(
+	options: Pick<ExecutionBrowserOptions, "browser" | "vision" | "idFactory" | "now">,
+) {
 	const idFactory = options.idFactory ?? randomUUID;
 	const now = options.now ?? (() => new Date());
 	const extensionInstanceId = `extension:${idFactory()}`;
-	const sessions = new Map<number, BrowserPageObservation>();
-	const lanes = new Map<string, ExecutionLaneState>();
 	let writeTail: Promise<void> = Promise.resolve();
 
 	const serializeWrite = async <Value>(
@@ -145,82 +132,6 @@ export function createExecutionBrowserContext(options: ExecutionBrowserOptions) 
 		observationRef: `observation:${idFactory()}`,
 		verified,
 	});
-
-	const registerContentSession = (observation: BrowserPageObservation) => {
-		const identity = parseCarrierIdentity(observation.url);
-		sessions.set(observation.tabId, structuredClone(observation));
-		if (identity.workerRef) {
-			lanes.set(`${identity.roleRef}:${identity.workerRef}`, {
-				roleRef: identity.roleRef,
-				workerRef: identity.workerRef,
-				tabId: observation.tabId,
-				pageState: observation.pageState,
-				activityKind: observation.activityKind,
-				currentExecutionRef: null,
-				continuationRef: null,
-				lastProgressAt: observation.observedAt,
-			});
-		}
-	};
-
-	const matchingTab = async (roleRef: string, workerRef: string) => {
-		for (const tab of await options.browser.listTabs()) {
-			try {
-				const identity = parseCarrierIdentity(tab.url);
-				if (identity.roleRef === roleRef && identity.workerRef === workerRef) {
-					registerContentSession(tab);
-					return tab;
-				}
-			} catch {
-				/* unrelated tab */
-			}
-		}
-		return null;
-	};
-
-	const ensureRestored = async (
-		taskId: string,
-		roleRef: string,
-		workerRef: string,
-		expectedConversationLocator?: string,
-	) => {
-		const bound = await options.task.getWorkerBinding(taskId, roleRef);
-		if (!bound || bound.workerRef !== workerRef)
-			throw new ExecutionBrowserError(
-				"PRECONDITION_FAILED",
-				"WORKER_BINDING_MISMATCH",
-			);
-		if (!bound.conversationLocator)
-			throw new ExecutionBrowserError(
-				"PRECONDITION_FAILED",
-				"CONVERSATION_LOCATOR_REQUIRED",
-			);
-		if (
-			expectedConversationLocator !== undefined &&
-			expectedConversationLocator !== bound.conversationLocator
-		)
-			throw new ExecutionBrowserError(
-				"PRECONDITION_FAILED",
-				"CONVERSATION_LOCATOR_MISMATCH",
-			);
-		const existing = await matchingTab(roleRef, workerRef);
-		if (existing?.url === bound.conversationLocator) return existing;
-		const opened = await options.browser.open(bound.conversationLocator);
-		const observed = await options.browser.observe(opened.tabId);
-		const identity = parseCarrierIdentity(observed.url);
-		if (identity.roleRef !== roleRef || identity.workerRef !== workerRef)
-			throw new ExecutionBrowserError(
-				"PRECONDITION_FAILED",
-				"RESTORE_IDENTITY_MISMATCH",
-			);
-		if (observed.url !== bound.conversationLocator)
-			throw new ExecutionBrowserError(
-				"PRECONDITION_FAILED",
-				"RESTORE_LOCATOR_MISMATCH",
-			);
-		registerContentSession(observed);
-		return observed;
-	};
 
 	const browserPrecondition = (
 		request: ExecuteCapabilityRequest,
@@ -339,18 +250,13 @@ export function createExecutionBrowserContext(options: ExecutionBrowserOptions) 
 	});
 
 	return Object.freeze({
-		options,
+		browser: options.browser,
 		idFactory,
 		now,
 		extensionInstanceId,
-		sessions,
-		lanes,
 		serializeWrite,
 		parseCarrierIdentity,
 		browserEvidence,
-		registerContentSession,
-		matchingTab,
-		ensureRestored,
 		browserPrecondition,
 		assertNotAborted,
 		effectStarted,

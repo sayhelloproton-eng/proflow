@@ -1658,6 +1658,8 @@ async function constructGraph(
 			}
 			if (operation === "browser.permission.classify") {
 				const roleRef = string(value.roleRef, "roleRef");
+				if (value.taskId !== undefined && typeof value.taskId !== "string")
+					return { decision: "HUMAN_REQUIRED", reason: "CONTEXT_MISMATCH" };
 				const taskId = typeof value.taskId === "string" ? value.taskId : undefined;
 				const operationId = string(value.operationId, "operationId");
 				const conversationLocator = string(value.conversationLocator, "conversationLocator");

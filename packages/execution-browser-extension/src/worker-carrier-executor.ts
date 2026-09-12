@@ -1,3 +1,7 @@
+import type { BrowserRealityPort } from "./browser-reality.ts";
+import type { BrowserSessionState } from "./browser-session-state.ts";
+import type { RestoreWorker } from "./worker-carrier-target.ts";
+import type { TaskBrowserPort, AgentDeliveryPort } from "./execution-browser-context.ts";
 import type { ExecuteCapabilityRequest } from "@tomflow/proflow-execution-contracts";
 import type {
 	ExecutionBrowserContext,
@@ -23,9 +27,20 @@ const workerCapabilities = new Set([
 ]);
 
 export async function executeWorkerCarrier(
-	context: ExecutionBrowserContext,
+	context: Pick<
+		ExecutionBrowserContext,
+		"serializeWrite" | "parseCarrierIdentity" | "effectStarted" | "result" | "now" | "browserEvidence"
+	> & {
+		browser: Pick<BrowserRealityPort, "open" | "observe" | "submit" | "hasMessage" | "guardWake">;
+	},
 	raw: ExecutorInvocation,
 	request: ExecuteCapabilityRequest,
+	ports: {
+		task: TaskBrowserPort;
+		agent: Pick<AgentDeliveryPort, "getPendingMessage">;
+		restoreWorker: RestoreWorker;
+		registerContentSession: BrowserSessionState["registerContentSession"];
+	},
 ): Promise<ExecutorResult | null> {
 	if (!workerCapabilities.has(request.capability)) return null;
 	if (!request.taskId)
@@ -34,7 +49,11 @@ export async function executeWorkerCarrier(
 			"TASK_ID_REQUIRED",
 		);
 	const taskId = request.taskId;
-	const { options } = context;
+	const options = {
+		browser: context.browser,
+		task: ports.task,
+		agent: ports.agent,
+	};
 
 	if (request.capability === "worker.create")
 		return context.serializeWrite(async () => {
@@ -91,7 +110,7 @@ export async function executeWorkerCarrier(
 				workerRef: identity.workerRef,
 				conversationLocator: observed.url,
 			});
-			context.registerContentSession(observed);
+			ports.registerContentSession(observed);
 			return context.result(
 				{
 					capability: "worker.create",
@@ -109,7 +128,7 @@ export async function executeWorkerCarrier(
 		});
 
 	if (request.capability === "worker.restore") {
-		const observed = await context.ensureRestored(
+		const observed = await ports.restoreWorker(
 			taskId,
 			request.input.roleRef,
 			request.input.workerRef,
@@ -136,7 +155,7 @@ export async function executeWorkerCarrier(
 					"PRECONDITION_FAILED",
 					"WAKE_TRIGGER_TYPE_INVALID",
 				);
-			const observed = await context.ensureRestored(
+			const observed = await ports.restoreWorker(
 				taskId,
 				request.input.roleRef,
 				request.input.workerRef,
@@ -198,7 +217,7 @@ export async function executeWorkerCarrier(
 					"UNKNOWN_SIDE_EFFECT",
 					"WAKE_REALITY_UNCONFIRMED",
 				);
-			context.registerContentSession(after);
+			ports.registerContentSession(after);
 			return context.result(
 				{
 					capability: "worker.wake",
@@ -231,7 +250,7 @@ export async function executeWorkerCarrier(
 					"PRECONDITION_FAILED",
 					"DELIVERY_OWNER_FACT_MISMATCH",
 				);
-			const observed = await context.ensureRestored(
+			const observed = await ports.restoreWorker(
 				taskId,
 				request.input.roleRef,
 				request.input.workerRef,
