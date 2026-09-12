@@ -41,56 +41,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function sanitizeConversationLocator(value: string): string {
-	try {
-		const locator = new URL(value);
-		locator.username = "";
-		locator.password = "";
-		locator.search = "";
-		locator.hash = "";
-		return locator.toString();
-	} catch {
-		return "[REDACTED_INVALID_LOCATOR]";
-	}
-}
-
 export function normalizeLogErrorCode(error: unknown, fallback: string): string {
 	const value = error instanceof Error ? error.message : error;
 	return typeof value === "string" && /^[A-Z][A-Z0-9_.:-]{0,159}$/.test(value)
 		? value
 		: fallback;
-}
-
-export function structuredAxes(input: Record<string, unknown>) {
-	const result: Record<string, string | number> = {};
-	for (const key of [
-		"correlationId",
-		"taskId",
-		"nodeId",
-		"agentPackageRef",
-		"roleRef",
-		"workerRef",
-		"executionRef",
-		"messageRef",
-		"artifactRef",
-		"evidenceRef",
-	] as const) {
-		const value = input[key];
-		if (typeof value === "string" && value.length > 0) result[key] = value;
-	}
-	if (
-		typeof input.conversationLocator === "string" &&
-		input.conversationLocator.length > 0
-	)
-		result.conversationLocator = sanitizeConversationLocator(
-			input.conversationLocator,
-		);
-	for (const key of ["runNo", "attemptNo", "tabId"] as const) {
-		const value = input[key];
-		if (Number.isInteger(value) && Number(value) >= 0)
-			result[key] = Number(value);
-	}
-	return result;
 }
 
 function parseConfig(value: unknown): BridgeConfig | null {
@@ -217,48 +172,17 @@ export function createApplicationClient(options: {
 
 	const emitLog = async (entry: BrowserStructuredLogEntry): Promise<void> => {
 		const config = await taskApplicationConfig();
-		if (!config) return;
-		await fetchImpl(`${config.endpoint}/application/log`, {
+		if (!config) throw new Error("LOG_SINK_NOT_CONFIGURED");
+		const response = await fetchImpl(`${config.endpoint}/application/log`, {
 			method: "POST",
 			headers: {
 				authorization: `Bearer ${config.token}`,
 				"content-type": "application/json",
 			},
 			body: JSON.stringify({ timestamp: new Date().toISOString(), ...entry }),
-		}).catch(() => undefined);
-	};
-
-	const invokeObserver = async (
-		operation: string,
-		input: Record<string, unknown>,
-	): Promise<unknown> => {
-		const component = operation.startsWith("collaboration.")
-			? "browser-collaboration-carrier"
-			: "browser-observer";
-		try {
-			const body = await invokeSurface("observer", operation, input);
-			void emitLog({
-				level: "INFO",
-				component,
-				operation,
-				status: "SUCCEEDED",
-				...structuredAxes(input),
-			});
-			return body;
-		} catch (error) {
-			void emitLog({
-				level: "WARN",
-				component,
-				operation,
-				status: "FAILED",
-				errorCode: normalizeLogErrorCode(
-					error,
-					"OBSERVER_APPLICATION_REQUEST_FAILED",
-				),
-				...structuredAxes(input),
-			});
-			throw error;
-		}
+			signal: AbortSignal.timeout(bridgeTimeoutMs),
+		});
+		if (!response.ok) throw new Error("LOG_SINK_REJECTED");
 	};
 
 	return Object.freeze({
@@ -313,7 +237,8 @@ export function createApplicationClient(options: {
 			invokeSurface("task", operation, input),
 		invokeApproval: (operation: string, input: Record<string, unknown>) =>
 			invokeSurface("approval", operation, input),
-		invokeObserver,
+		invokeObserver: (operation: string, input: Record<string, unknown>) =>
+			invokeSurface("observer", operation, input),
 		emitLog,
 	});
 }

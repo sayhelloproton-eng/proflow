@@ -33,6 +33,7 @@ const safeDownstreamErrorCodes = new Set([
 	"LOCAL_TOOL_SCOPE_DENIED",
 	"LOCAL_TOOL_COMMAND_FAILED",
 ]);
+const directToolOperationIds = new Set(["localDev", "repomix", "codeGraph"]);
 
 async function boundedDownstreamErrorCode(
 	response: Response,
@@ -93,6 +94,31 @@ function text(value: unknown, name: string): string {
 		throw new TypeError(`${name} must be a non-empty string`);
 	return value;
 }
+function logErrorCode(error: unknown): string {
+	const value =
+		error instanceof AgentGatewayError
+			? error.code
+			: error &&
+				  typeof error === "object" &&
+				  typeof Reflect.get(error, "message") === "string"
+				? String(Reflect.get(error, "message"))
+				: "GATEWAY_FAILURE";
+	return /^[A-Z][A-Z0-9_.:-]{0,159}$/.test(value)
+		? value
+		: "GATEWAY_FAILURE";
+}
+function optionalToolOperation(value: unknown): string | undefined {
+	if (
+		typeof value !== "object" ||
+		value === null ||
+		Array.isArray(value) ||
+		typeof Reflect.get(value, "operation") !== "string"
+	)
+		return undefined;
+	const operation = String(Reflect.get(value, "operation"));
+	return /^[A-Za-z0-9_.:-]{1,160}$/.test(operation) ? operation : undefined;
+}
+
 export function parseAgentGatewayProcessConfig(
 	value: unknown,
 ): AgentGatewayProcessConfig {
@@ -174,14 +200,10 @@ export async function createAgentGatewayProcess(input: {
 	config: AgentGatewayProcessConfig;
 	fetch?: typeof globalThis.fetch;
 	log?: (entry: Record<string, unknown>) => void;
+	operationLog?: (entry: Record<string, unknown>) => void;
 }) {
 	const fetchImplementation = input.fetch ?? globalThis.fetch;
 	const credentialFile = input.config.credentialFile;
-	// Fail-fast at startup so a malformed configured credential store is rejected
-	// before the process advertises readiness. Authentication re-reads the current
-	// store on every attempt below, so a rotated key takes effect without a restart
-	// and a malformed/half-written store fails closed instead of serving a stale
-	// snapshot.
 	await readCurrentCredentialStore(credentialFile);
 	if (input.config.downstreamCredentialFile)
 		await readDownstreamCredential(input.config.downstreamCredentialFile);
@@ -247,6 +269,38 @@ export async function createAgentGatewayProcess(input: {
 		}
 		return response.json();
 	};
+	const emitOperation = (inputEvent: {
+		mode: "ROUTE" | "LOOKUP";
+		operationId: string;
+		roleRef: string;
+		value: unknown;
+		status: "SUCCEEDED" | "FAILED";
+		errorCode?: string;
+		durationMs: number;
+	}) => {
+		const toolOperation = directToolOperationIds.has(inputEvent.operationId)
+			? optionalToolOperation(inputEvent.value)
+			: undefined;
+		input.operationLog?.({
+			contract: "proflow.operation-boundary.v1",
+			timestamp: new Date().toISOString(),
+			source: "agent-gateway",
+			component: "agent-gateway-ingress",
+			event:
+				inputEvent.mode === "LOOKUP"
+					? "GATEWAY_ACTION_LOOKUP"
+					: "GATEWAY_ACTION",
+			boundary: directToolOperationIds.has(inputEvent.operationId)
+				? "TOOL_INVOCATION"
+				: "ACTION",
+			status: inputEvent.status,
+			operationId: inputEvent.operationId,
+			roleRef: inputEvent.roleRef,
+			...(toolOperation ? { toolOperation } : {}),
+			...(inputEvent.errorCode ? { errorCode: inputEvent.errorCode } : {}),
+			durationMs: inputEvent.durationMs,
+		});
+	};
 	const gateway = await createAgentGateway({
 		host: input.config.host,
 		port: input.config.port,
@@ -258,30 +312,73 @@ export async function createAgentGatewayProcess(input: {
 					if (sameSecret(credential, String(stored))) return roleRef;
 				throw new Error("AUTHENTICATION_FAILED");
 			},
-			route(operationId, authenticatedRoleRef, value, context) {
-				return downstream(
-					`/actions/${encodeURIComponent(operationId)}`,
-					{
-						authenticatedRoleRef,
-						input: value,
-						deadlineAt: context?.deadlineAt,
-						...(context?.fileMaterializationInputs === undefined
-							? {}
-							: {
-									fileMaterializationInputs: context.fileMaterializationInputs,
-								}),
-					},
-					context?.signal,
-				);
+			async route(operationId, authenticatedRoleRef, value, context) {
+				const started = performance.now();
+				try {
+					const result = await downstream(
+						`/actions/${encodeURIComponent(operationId)}`,
+						{
+							authenticatedRoleRef,
+							input: value,
+							deadlineAt: context?.deadlineAt,
+							...(context?.fileMaterializationInputs === undefined
+								? {}
+								: {
+										fileMaterializationInputs: context.fileMaterializationInputs,
+									}),
+						},
+						context?.signal,
+					);
+					emitOperation({
+						mode: "ROUTE",
+						operationId,
+						roleRef: authenticatedRoleRef,
+						value,
+						status: "SUCCEEDED",
+						durationMs: performance.now() - started,
+					});
+					return result;
+				} catch (error) {
+					emitOperation({
+						mode: "ROUTE",
+						operationId,
+						roleRef: authenticatedRoleRef,
+						value,
+						status: "FAILED",
+						errorCode: logErrorCode(error),
+						durationMs: performance.now() - started,
+					});
+					throw error;
+				}
 			},
-			lookupResult(operationId, authenticatedRoleRef, value) {
-				return downstream(
-					`/actions/${encodeURIComponent(operationId)}/result`,
-					{
-						authenticatedRoleRef,
-						input: value,
-					},
-				);
+			async lookupResult(operationId, authenticatedRoleRef, value) {
+				const started = performance.now();
+				try {
+					const result = await downstream(
+						`/actions/${encodeURIComponent(operationId)}/result`,
+						{ authenticatedRoleRef, input: value },
+					);
+					emitOperation({
+						mode: "LOOKUP",
+						operationId,
+						roleRef: authenticatedRoleRef,
+						value,
+						status: "SUCCEEDED",
+						durationMs: performance.now() - started,
+					});
+					return result;
+				} catch (error) {
+					emitOperation({
+						mode: "LOOKUP",
+						operationId,
+						roleRef: authenticatedRoleRef,
+						value,
+						status: "FAILED",
+						errorCode: logErrorCode(error),
+						durationMs: performance.now() - started,
+					});
+					throw error;
+				}
 			},
 			async readiness() {
 				try {
@@ -318,6 +415,7 @@ export async function createAgentGatewayProcess(input: {
 			timestamp: new Date().toISOString(),
 			component: "agent-gateway-process",
 			event: "SERVICE_STARTED",
+			status: "SUCCEEDED",
 			...address,
 		});
 		return address;
@@ -328,6 +426,7 @@ export async function createAgentGatewayProcess(input: {
 			timestamp: new Date().toISOString(),
 			component: "agent-gateway-process",
 			event: "SERVICE_STOPPED",
+			status: "SUCCEEDED",
 		});
 	};
 	return Object.freeze({

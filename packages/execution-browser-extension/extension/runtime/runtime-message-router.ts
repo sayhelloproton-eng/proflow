@@ -32,6 +32,7 @@ export function createRuntimeMessageRouter(options: {
 	taskApplicationConfig(): Promise<unknown>;
 	approvalApplicationConfig(): Promise<unknown>;
 	loadObserverState(): Promise<ObserverState | null>;
+	observabilitySnapshot?(): Promise<unknown>;
 	invokeTask(operation: string, input: Record<string, unknown>): Promise<unknown>;
 	invokeApproval(operation: string, input: Record<string, unknown>): Promise<unknown>;
 	fetchImpl?: typeof fetch;
@@ -109,7 +110,8 @@ export function createRuntimeMessageRouter(options: {
 					options.taskApplicationConfig(),
 					options.approvalApplicationConfig(),
 					options.loadObserverState().catch(() => null),
-				]).then(([task, approval, observerState]) =>
+					options.observabilitySnapshot?.().catch(() => null) ?? Promise.resolve(null),
+				]).then(([task, approval, observerState, observability]) =>
 					sendResponse({
 						extensionInstanceId: options.getExtensionInstanceId(),
 						observedAt: new Date().toISOString(),
@@ -117,6 +119,7 @@ export function createRuntimeMessageRouter(options: {
 						carrierAttentions: options.permissions.attentionViews(),
 						taskApplicationConfigured: task !== null,
 						approvalApplicationConfigured: approval !== null,
+						observability,
 						systemObserver: observerState
 							? {
 									assessmentRef: observerState.assessmentRef,

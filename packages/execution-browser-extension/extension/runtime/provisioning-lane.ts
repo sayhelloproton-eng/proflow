@@ -13,16 +13,42 @@ type Tab = {
 	status?: "loading" | "complete";
 };
 
+export type ProvisioningCommandOutcome = {
+	commandId: string;
+	operationId: ProvisioningOperation;
+	status: "SUCCEEDED" | "FAILED" | "UNKNOWN";
+	sideEffectState: "APPLIED" | "NOT_APPLIED" | "UNKNOWN";
+	attemptNo: number;
+	durationMs: number;
+	errorCode?: string;
+};
+
+class ProvisioningCommandError extends Error {
+	readonly code: string;
+	readonly sideEffectState: "NOT_APPLIED" | "UNKNOWN";
+	readonly attemptNo: number;
+	constructor(
+		code: string,
+		sideEffectState: "NOT_APPLIED" | "UNKNOWN",
+		attemptNo: number,
+		cause?: unknown,
+	) {
+		super(code, cause === undefined ? undefined : { cause });
+		this.name = "ProvisioningCommandError";
+		this.code = code;
+		this.sideEffectState = sideEffectState;
+		this.attemptNo = attemptNo;
+	}
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-
 function text(value: unknown, name: string): string {
 	if (typeof value !== "string" || value.length === 0)
 		throw new Error(`${name}_INVALID`);
 	return value;
 }
-
 function missingReceiver(error: unknown): boolean {
 	const message = error instanceof Error ? error.message : String(error);
 	return (
@@ -30,7 +56,17 @@ function missingReceiver(error: unknown): boolean {
 		message.includes("Receiving end does not exist")
 	);
 }
-
+function errorCode(error: unknown, fallback: string): string {
+	const value =
+		error instanceof ProvisioningCommandError
+			? error.code
+			: error instanceof Error
+				? error.message
+				: error;
+	return typeof value === "string" && /^[A-Z][A-Z0-9_.:-]{0,159}$/.test(value)
+		? value
+		: fallback;
+}
 function isEditorUrl(url: string | undefined): boolean {
 	return (
 		url === "https://chatgpt.com/gpts/editor" ||
@@ -52,14 +88,18 @@ export function createProvisioningLane(options: {
 	getTab(tabId: number): Promise<Tab>;
 	reloadTab(tabId: number): Promise<void>;
 	sendTabMessage(tabId: number, message: unknown): Promise<unknown>;
+	onSessionState?(input: { state: "ONLINE" | "OFFLINE"; errorCode?: string }): void;
+	onCommandSettled?(outcome: ProvisioningCommandOutcome): void;
 }) {
 	let started = false;
+	let sessionOnline = false;
+	let lastFailureCode = "";
 
 	const contentCommand = async (
 		tabId: number,
 		operation: ProvisioningOperation,
 		request: Record<string, unknown>,
-	): Promise<unknown> => {
+	): Promise<{ value: unknown; attemptNo: number }> => {
 		let receiverReloaded = false;
 		for (let attempt = 0; attempt < 60; attempt += 1) {
 			let response: unknown;
@@ -70,11 +110,14 @@ export function createProvisioningLane(options: {
 					request,
 				});
 			} catch (error) {
-				// A closed response channel may follow a successful editor mutation.
-				// Only a missing receiver proves that this dispatch never reached it.
 				if (!missingReceiver(error))
-					throw new Error("PROVISIONING_EFFECT_UNKNOWN", { cause: error });
-				if (!receiverReloaded && missingReceiver(error)) {
+					throw new ProvisioningCommandError(
+						"PROVISIONING_EFFECT_UNKNOWN",
+						"UNKNOWN",
+						attempt + 1,
+						error,
+					);
+				if (!receiverReloaded) {
 					try {
 						const tab = await options.getTab(tabId);
 						if (tab.status === "complete" && isEditorUrl(tab.url)) {
@@ -83,7 +126,13 @@ export function createProvisioningLane(options: {
 						}
 					} catch {}
 				}
-				if (attempt === 59) throw error;
+				if (attempt === 59)
+					throw new ProvisioningCommandError(
+						"PROVISIONING_RECEIVER_MISSING",
+						"NOT_APPLIED",
+						attempt + 1,
+						error,
+					);
 				await options.sleep(250);
 				continue;
 			}
@@ -100,16 +149,33 @@ export function createProvisioningLane(options: {
 					await options.sleep(250);
 					continue;
 				}
-				throw new Error(detail);
+				const notApplied =
+					detail === "PROVISIONING_SURFACE_NOT_READY" ||
+					detail === "GPT_EDITOR_CONFIGURE_SURFACE_NOT_READY";
+				throw new ProvisioningCommandError(
+					errorCode(detail, "PROVISIONING_CONTENT_FAILED"),
+					notApplied ? "NOT_APPLIED" : "UNKNOWN",
+					attempt + 1,
+				);
 			}
-			return response.value;
+			return { value: response.value, attemptNo: attempt + 1 };
 		}
-		throw new Error("PROVISIONING_CONTENT_TIMEOUT");
+		throw new ProvisioningCommandError(
+			"PROVISIONING_CONTENT_TIMEOUT",
+			"NOT_APPLIED",
+			60,
+		);
 	};
 
-	const execute = async (command: ProvisioningBridgeCommand): Promise<unknown> => {
+	const execute = async (
+		command: ProvisioningBridgeCommand,
+	): Promise<{ value: unknown; attemptNo: number }> => {
 		if (!isRecord(command.request))
-			throw new Error("PROVISIONING_COMMAND_INVALID");
+			throw new ProvisioningCommandError(
+				"PROVISIONING_COMMAND_INVALID",
+				"NOT_APPLIED",
+				0,
+			);
 		let editorUrl = "https://chatgpt.com/gpts/editor";
 		if (command.type === "FINALIZE_CUSTOM_GPT_AUTH") {
 			const carrierUrl = new URL(text(command.request.carrierUrl, "CARRIER_URL"));
@@ -122,11 +188,16 @@ export function createProvisioningLane(options: {
 				carrierUrl.hash !== "" ||
 				!match?.[1]
 			)
-				throw new Error("PROVISIONING_CARRIER_URL_INVALID");
+				throw new ProvisioningCommandError(
+					"PROVISIONING_CARRIER_URL_INVALID",
+					"NOT_APPLIED",
+					0,
+				);
 			editorUrl = `https://chatgpt.com/gpts/editor/${match[1]}`;
 		}
 		const tab = await options.openTab(editorUrl);
-		if (!Number.isInteger(tab.id)) throw new Error("TAB_ID_INVALID");
+		if (!Number.isInteger(tab.id))
+			throw new ProvisioningCommandError("TAB_ID_INVALID", "NOT_APPLIED", 0);
 		return contentCommand(tab.id as number, command.type, command.request);
 	};
 
@@ -155,6 +226,9 @@ export function createProvisioningLane(options: {
 					);
 					if (!hello.ok)
 						throw new Error("PROVISIONING_BRIDGE_HELLO_REJECTED");
+					sessionOnline = true;
+					lastFailureCode = "";
+					options.onSessionState?.({ state: "ONLINE" });
 					let lastHeartbeatAt = 0;
 					while (true) {
 						if (Date.now() - lastHeartbeatAt >= 5_000) {
@@ -178,6 +252,7 @@ export function createProvisioningLane(options: {
 						if (!response.ok)
 							throw new Error("PROVISIONING_BRIDGE_POLL_REJECTED");
 						const command = (await response.json()) as ProvisioningBridgeCommand;
+						const commandStarted = performance.now();
 						const commandHeartbeat = setInterval(() => {
 							void options
 								.fetchBridge(
@@ -188,20 +263,44 @@ export function createProvisioningLane(options: {
 								.catch(() => undefined);
 						}, 2_000);
 						let result: Record<string, unknown>;
+						let outcome: Omit<ProvisioningCommandOutcome, "durationMs">;
 						try {
+							const executed = await execute(command);
 							result = {
 								commandId: command.commandId,
 								ok: true,
-								value: await execute(command),
+								value: executed.value,
+							};
+							outcome = {
+								commandId: command.commandId,
+								operationId: command.type,
+								status: "SUCCEEDED",
+								sideEffectState: "APPLIED",
+								attemptNo: executed.attemptNo,
 							};
 						} catch (error) {
+							const code = errorCode(
+								error,
+								"PROVISIONING_EXTENSION_COMMAND_FAILED",
+							);
+							const sideEffectState =
+								error instanceof ProvisioningCommandError
+									? error.sideEffectState
+									: "UNKNOWN";
+							const attemptNo =
+								error instanceof ProvisioningCommandError ? error.attemptNo : 0;
 							result = {
 								commandId: command.commandId,
 								ok: false,
-								error:
-									error instanceof Error
-										? error.message
-										: "PROVISIONING_EXTENSION_COMMAND_FAILED",
+								error: code,
+							};
+							outcome = {
+								commandId: command.commandId,
+								operationId: command.type,
+								status: sideEffectState === "UNKNOWN" ? "UNKNOWN" : "FAILED",
+								sideEffectState,
+								attemptNo,
+								errorCode: code,
 							};
 						} finally {
 							clearInterval(commandHeartbeat);
@@ -211,10 +310,26 @@ export function createProvisioningLane(options: {
 							`/v1/provisioning/commands/result${query}`,
 							{ method: "POST", body: JSON.stringify(result) },
 						);
-						if (!reported.ok)
+						if (!reported.ok) {
+							options.onCommandSettled?.({
+								...outcome,
+								status: "UNKNOWN",
+								errorCode: "PROVISIONING_BRIDGE_RESULT_REJECTED",
+								durationMs: performance.now() - commandStarted,
+							});
 							throw new Error("PROVISIONING_BRIDGE_RESULT_REJECTED");
+						}
+						options.onCommandSettled?.({
+							...outcome,
+							durationMs: performance.now() - commandStarted,
+						});
 					}
-				} catch {
+				} catch (error) {
+					const code = errorCode(error, "PROVISIONING_SESSION_FAILED");
+					if (sessionOnline || code !== lastFailureCode)
+						options.onSessionState?.({ state: "OFFLINE", errorCode: code });
+					sessionOnline = false;
+					lastFailureCode = code;
 					await options.sleep(1_000);
 				}
 			}

@@ -31,12 +31,19 @@ export type BrowserBridgeCommand = {
 
 type BridgeConfig = { endpoint: string; token: string };
 
-type BrowserCommandResult = {
+export type BrowserCommandResult = {
 	commandId: string;
 	ok: boolean;
 	value?: unknown;
 	error?: string;
 };
+
+function errorCode(error: unknown, fallback: string): string {
+	const value = error instanceof Error ? error.message : error;
+	return typeof value === "string" && /^[A-Z][A-Z0-9_.:-]{0,159}$/.test(value)
+		? value
+		: fallback;
+}
 
 export function createBrowserSessionLane(options: {
 	config(): Promise<BridgeConfig | null>;
@@ -52,82 +59,106 @@ export function createBrowserSessionLane(options: {
 	keepalive(): Promise<void>;
 	publishCarrierAttentions(): Promise<void>;
 	onSessionEstablished(epoch: number): void;
+	onSessionState?(input: {
+		state: "ONLINE" | "OFFLINE";
+		browserSessionEpoch: number;
+		errorCode?: string;
+	}): void;
+	onCommandSettled?(input: {
+		command: BrowserBridgeCommand;
+		result: BrowserCommandResult;
+		browserSessionEpoch: number;
+		reported: boolean;
+		durationMs: number;
+	}): void;
 	executeCommand(command: BrowserBridgeCommand): Promise<unknown>;
-	logCommandResult(
-		command: BrowserBridgeCommand,
-		result: BrowserCommandResult,
-	): void;
 }) {
 	let epoch = 0;
-
 	return Object.freeze({
 		async run(online: () => void): Promise<void> {
 			const config = await options.config();
 			if (!config) throw new Error("BRIDGE_NOT_CONFIGURED");
 			const query = `?extensionInstanceId=${encodeURIComponent(options.getExtensionInstanceId())}`;
-			const hello = await options.fetchBridge(config, "/v1/session/hello", {
-				method: "POST",
-				body: JSON.stringify({
-					extensionId: options.extensionId,
-					extensionInstanceId: options.getExtensionInstanceId(),
-					moduleVersion: options.moduleVersion,
-				}),
-			});
-			if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED");
-			epoch += 1;
-			options.onSessionEstablished(epoch);
-			await options.publishCarrierAttentions();
+			try {
+				const hello = await options.fetchBridge(config, "/v1/session/hello", {
+					method: "POST",
+					body: JSON.stringify({
+						extensionId: options.extensionId,
+						extensionInstanceId: options.getExtensionInstanceId(),
+						moduleVersion: options.moduleVersion,
+					}),
+				});
+				if (!hello.ok) throw new Error("BRIDGE_HELLO_REJECTED");
+				epoch += 1;
+				options.onSessionState?.({ state: "ONLINE", browserSessionEpoch: epoch });
+				options.onSessionEstablished(epoch);
+				await options.publishCarrierAttentions();
 
-			let lastHeartbeatAt = Date.now();
-			let lastKeepaliveAt = Date.now();
-			while (true) {
-				if (Date.now() - lastKeepaliveAt >= 20_000) {
-					await options.keepalive();
-					lastKeepaliveAt = Date.now();
-				}
-				if (Date.now() - lastHeartbeatAt >= 5_000) {
-					const heartbeat = await options.fetchBridge(
+				let lastHeartbeatAt = Date.now();
+				let lastKeepaliveAt = Date.now();
+				while (true) {
+					if (Date.now() - lastKeepaliveAt >= 20_000) {
+						await options.keepalive();
+						lastKeepaliveAt = Date.now();
+					}
+					if (Date.now() - lastHeartbeatAt >= 5_000) {
+						const heartbeat = await options.fetchBridge(
+							config,
+							`/v1/session/heartbeat${query}`,
+							{ method: "POST", body: "{}" },
+						);
+						if (!heartbeat.ok) throw new Error("BRIDGE_HEARTBEAT_REJECTED");
+						lastHeartbeatAt = Date.now();
+					}
+					const response = await options.fetchBridge(
 						config,
-						`/v1/session/heartbeat${query}`,
-						{ method: "POST", body: "{}" },
+						`/v1/commands/next${query}`,
 					);
-					if (!heartbeat.ok) throw new Error("BRIDGE_HEARTBEAT_REJECTED");
-					lastHeartbeatAt = Date.now();
-				}
-				const response = await options.fetchBridge(
-					config,
-					`/v1/commands/next${query}`,
-				);
-				if (response.status === 204) {
+					if (response.status === 204) {
+						online();
+						await options.sleep(250);
+						continue;
+					}
+					if (!response.ok) throw new Error("BRIDGE_POLL_REJECTED");
 					online();
-					await options.sleep(250);
-					continue;
+					const command = (await response.json()) as BrowserBridgeCommand;
+					const started = performance.now();
+					let result: BrowserCommandResult;
+					try {
+						result = {
+							commandId: command.commandId,
+							ok: true,
+							value: await options.executeCommand(command),
+						};
+					} catch (error) {
+						result = {
+							commandId: command.commandId,
+							ok: false,
+							error:
+								error instanceof Error ? error.message : "EXTENSION_COMMAND_FAILED",
+						};
+					}
+					const reported = await options.fetchBridge(
+						config,
+						`/v1/commands/result${query}`,
+						{ method: "POST", body: JSON.stringify(result) },
+					);
+					options.onCommandSettled?.({
+						command,
+						result,
+						browserSessionEpoch: epoch,
+						reported: reported.ok,
+						durationMs: performance.now() - started,
+					});
+					if (!reported.ok) throw new Error("BRIDGE_RESULT_REJECTED");
 				}
-				if (!response.ok) throw new Error("BRIDGE_POLL_REJECTED");
-				online();
-				const command = (await response.json()) as BrowserBridgeCommand;
-				let result: BrowserCommandResult;
-				try {
-					result = {
-						commandId: command.commandId,
-						ok: true,
-						value: await options.executeCommand(command),
-					};
-				} catch (error) {
-					result = {
-						commandId: command.commandId,
-						ok: false,
-						error:
-							error instanceof Error ? error.message : "EXTENSION_COMMAND_FAILED",
-					};
-				}
-				options.logCommandResult(command, result);
-				const reported = await options.fetchBridge(
-					config,
-					`/v1/commands/result${query}`,
-					{ method: "POST", body: JSON.stringify(result) },
-				);
-				if (!reported.ok) throw new Error("BRIDGE_RESULT_REJECTED");
+			} catch (error) {
+				options.onSessionState?.({
+					state: "OFFLINE",
+					browserSessionEpoch: epoch,
+					errorCode: errorCode(error, "BROWSER_SESSION_FAILED"),
+				});
+				throw error;
 			}
 		},
 	});

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { appendFile, mkdir } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 
 import {
 	deterministicLoopbackPort,
@@ -99,6 +100,25 @@ async function compose(context: ModuleCommandContext): Promise<GatewayProcess> {
 		throw new Error(
 			"Agent role credential store is not materialized by Platform Host",
 		);
+	const logPath = join(
+		deps.stateRoot,
+		"logs",
+		"agent-gateway",
+		"events.jsonl",
+	);
+	let logTail = Promise.resolve();
+	const log = (entry: Record<string, unknown>) => {
+		logTail = logTail
+			.catch(() => undefined)
+			.then(async () => {
+				await mkdir(dirname(logPath), { recursive: true, mode: 0o700 });
+				await appendFile(logPath, `${JSON.stringify(entry)}\n`, {
+					encoding: "utf8",
+					mode: 0o600,
+				});
+			});
+		void logTail;
+	};
 	const { createAgentGatewayProcess, parseAgentGatewayProcessConfig } =
 		await import("../src/process.ts");
 	const listener = new URL(own.localBaseUrl);
@@ -111,6 +131,8 @@ async function compose(context: ModuleCommandContext): Promise<GatewayProcess> {
 			credentialFile,
 			downstreamCredentialFile: deps.downstreamCredentialFile,
 		}),
+		log,
+		operationLog: log,
 	});
 }
 const failed = (
@@ -135,7 +157,9 @@ export const behaviorAdapter = {
 		}
 		return {
 			result: base,
-			observedEffects: service ? ["Manage the declared service process"] : [],
+			observedEffects: service
+				? ["Manage the declared service process"]
+				: [],
 		};
 	},
 	status: async (context: ModuleCommandContext) => {
@@ -191,7 +215,9 @@ export const behaviorAdapter = {
 			data: {
 				docs: readFileSync(
 					new URL(
-						import.meta.url.includes("/dist/") ? "../../DOCS.md" : "../DOCS.md",
+						import.meta.url.includes("/dist/")
+							? "../../DOCS.md"
+							: "../DOCS.md",
 						import.meta.url,
 					),
 					"utf8",
@@ -214,7 +240,9 @@ export const behaviorAdapter = {
 			return {
 				result: failed(
 					"START_FAILED",
-					error instanceof Error ? error.message : "agent-gateway start failed",
+					error instanceof Error
+						? error.message
+						: "agent-gateway start failed",
 				),
 				observedEffects: [],
 			};

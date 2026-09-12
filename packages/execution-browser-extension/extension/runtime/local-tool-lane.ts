@@ -1,5 +1,12 @@
 type BridgeConfig = { endpoint: string; token: string };
 
+function errorCode(error: unknown, fallback: string): string {
+	const value = error instanceof Error ? error.message : error;
+	return typeof value === "string" && /^[A-Z][A-Z0-9_.:-]{0,159}$/.test(value)
+		? value
+		: fallback;
+}
+
 export function createLocalToolLane(options: {
 	config(): Promise<BridgeConfig | null>;
 	getExtensionInstanceId(): string;
@@ -17,8 +24,11 @@ export function createLocalToolLane(options: {
 	): Promise<void>;
 	setBadgeText(text: string): Promise<void>;
 	setTitle(title: string): Promise<void>;
+	onSessionState?(input: { state: "ONLINE" | "OFFLINE"; errorCode?: string }): void;
 }) {
 	let started = false;
+	let sessionOnline = false;
+	let lastFailureCode = "";
 
 	const showNotices = async (command: Record<string, unknown>) => {
 		const notices = command.notices;
@@ -44,8 +54,8 @@ export function createLocalToolLane(options: {
 		} catch (error) {
 			console.warn("PROFLOW_LOCAL_TOOL_NOTICE_FALLBACK", {
 				commandId: command.commandId,
-				notices: rendered,
-				error: error instanceof Error ? error.message : String(error),
+				noticeCount: rendered.length,
+				errorCode: errorCode(error, "LOCAL_TOOL_NOTICE_FAILED"),
 			});
 			await Promise.allSettled([
 				options.setBadgeText("!"),
@@ -80,6 +90,9 @@ export function createLocalToolLane(options: {
 					);
 					if (!hello.ok)
 						throw new Error("LOCAL_TOOL_BRIDGE_HELLO_REJECTED");
+					sessionOnline = true;
+					lastFailureCode = "";
+					options.onSessionState?.({ state: "ONLINE" });
 					let lastHeartbeatAt = Date.now();
 					while (true) {
 						if (Date.now() - lastHeartbeatAt >= 5_000) {
@@ -129,7 +142,12 @@ export function createLocalToolLane(options: {
 						if (accepted.status !== 202)
 							throw new Error("LOCAL_TOOL_BRIDGE_EXECUTE_REJECTED");
 					}
-				} catch {
+				} catch (error) {
+					const code = errorCode(error, "LOCAL_TOOL_SESSION_FAILED");
+					if (sessionOnline || code !== lastFailureCode)
+						options.onSessionState?.({ state: "OFFLINE", errorCode: code });
+					sessionOnline = false;
+					lastFailureCode = code;
 					await options.sleep(1_000);
 				}
 			}

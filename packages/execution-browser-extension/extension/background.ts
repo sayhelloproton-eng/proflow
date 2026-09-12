@@ -3,16 +3,14 @@ import {
 	restoreBrowserSessionIdentity,
 } from "../src/browser-session-reconnect.js";
 import { shouldTriggerObserverRecovery } from "../src/recovery-trigger.js";
-import {
-	createApplicationClient,
-	normalizeLogErrorCode,
-	structuredAxes,
-} from "./runtime/application-client.js";
+import { createApplicationClient } from "./runtime/application-client.js";
 import { createBrowserCommandController } from "./runtime/browser-command-controller.js";
 import { createBrowserSessionLane } from "./runtime/browser-session-lane.js";
 import type { ChromeRuntime, ContentObservation } from "./runtime/chrome-runtime.js";
+import { createExtensionLogger } from "./runtime/extension-logger.js";
 import { createLocalToolLane } from "./runtime/local-tool-lane.js";
 import { createObserverRecoveryController } from "./runtime/observer-recovery-controller.js";
+import { createExtensionOperationObserver } from "./runtime/operation-observer.js";
 import { createPageRealityController } from "./runtime/page-reality-controller.js";
 import { createPermissionController } from "./runtime/permission-controller.js";
 import { createProvisioningLane } from "./runtime/provisioning-lane.js";
@@ -30,32 +28,37 @@ const applications = createApplicationClient({
 	storageLocal: chrome.storage.local,
 	runtimeConfigUrl: chrome.runtime.getURL("runtime-config.json"),
 });
+const operationLogger = createExtensionLogger({
+	storage: chrome.storage.local,
+	getExtensionInstanceId: () => extensionInstanceId,
+	moduleVersion: extensionModuleVersion,
+	remoteWrite: applications.emitLog,
+});
+const observability = createExtensionOperationObserver({ logger: operationLogger });
+const invokeObserver = observability.wrapHostApplication(
+	"observer",
+	applications.invokeObserver,
+);
+const invokeTask = observability.wrapHostApplication("task", applications.invokeTask);
+const invokeApproval = observability.wrapHostApplication(
+	"approval",
+	applications.invokeApproval,
+);
 
 const page = createPageRealityController({ tabs: chrome.tabs, sleep });
 const permissions = createPermissionController({
 	storageSession: chrome.storage.session,
 	page,
 	getExtensionInstanceId: () => extensionInstanceId,
-	invokeObserver: applications.invokeObserver,
+	invokeObserver,
 	publishCarrierAttentions: applications.publishCarrierAttentions,
 	sleep,
 });
 
 const observerRecovery = createObserverRecoveryController({
 	storage: chrome.storage.local,
-	invokeObserver: applications.invokeObserver,
-	emitDiagnostic(status, attemptNo, operationRef) {
-		void applications
-			.emitLog({
-				level: "INFO",
-				component: "browser-observer-recovery",
-				operation: "observer.recovery",
-				status,
-				attemptNo,
-				operationRef,
-			})
-			.catch(() => undefined);
-	},
+	invokeObserver,
+	emitDiagnostic() {},
 });
 
 function processContentObservation(
@@ -63,7 +66,13 @@ function processContentObservation(
 	triggerRecovery: boolean,
 ): void {
 	const previous = page.record(observed);
-	void permissions.observe(observed);
+	observability.pageTransition(previous, observed);
+	void permissions.observe(observed).then(
+		(outcome) => {
+			if (outcome) observability.permission(outcome);
+		},
+		(error) => observability.permissionFailure(observed, error),
+	);
 	const shouldRecover =
 		triggerRecovery && shouldTriggerObserverRecovery(previous, observed);
 	const suppressed =
@@ -89,6 +98,7 @@ const localToolLane = createLocalToolLane({
 	},
 	setBadgeText: (value) => chrome.action.setBadgeText({ text: value }),
 	setTitle: (value) => chrome.action.setTitle({ title: value }),
+	onSessionState: observability.localToolSession,
 });
 
 const provisioningLane = createProvisioningLane({
@@ -101,6 +111,8 @@ const provisioningLane = createProvisioningLane({
 	getTab: (tabId) => chrome.tabs.get(tabId),
 	reloadTab: (tabId) => chrome.tabs.reload(tabId),
 	sendTabMessage: (tabId, message) => chrome.tabs.sendMessage(tabId, message),
+	onSessionState: observability.provisioningSession,
+	onCommandSettled: observability.provisioningCommand,
 });
 
 const browserSessionLane = createBrowserSessionLane({
@@ -117,33 +129,9 @@ const browserSessionLane = createBrowserSessionLane({
 	},
 	publishCarrierAttentions: permissions.publish,
 	onSessionEstablished: observerRecovery.bridgeSessionEstablished,
+	onSessionState: observability.browserSession,
+	onCommandSettled: observability.browserCommand,
 	executeCommand: browserCommands.execute,
-	logCommandResult(command, result) {
-		void applications.emitLog({
-			level: result.ok ? "INFO" : "WARN",
-			component: "browser-carrier",
-			operation: command.type,
-			operationRef: command.commandId,
-			status: result.ok ? "SUCCEEDED" : "FAILED",
-			...(result.error
-				? {
-						errorCode: normalizeLogErrorCode(
-							result.error,
-							"EXTENSION_COMMAND_FAILED",
-						),
-					}
-				: {}),
-			...(command.tabId === undefined ? {} : { tabId: command.tabId }),
-			...(command.request && typeof command.request === "object"
-				? {
-						...(typeof command.request.capability === "string"
-							? { capability: command.request.capability }
-							: {}),
-						...structuredAxes(command.request),
-					}
-				: {}),
-		});
-	},
 });
 
 const runtimeMessages = createRuntimeMessageRouter({
@@ -154,8 +142,9 @@ const runtimeMessages = createRuntimeMessageRouter({
 	taskApplicationConfig: applications.taskApplicationConfig,
 	approvalApplicationConfig: applications.approvalApplicationConfig,
 	loadObserverState: observerRecovery.loadState,
-	invokeTask: applications.invokeTask,
-	invokeApproval: applications.invokeApproval,
+	observabilitySnapshot: observability.snapshot,
+	invokeTask,
+	invokeApproval,
 });
 chrome.runtime.onMessage.addListener(runtimeMessages.handle);
 
@@ -170,6 +159,7 @@ chrome.action.onClicked.addListener(() => void taskPage.open());
 let backgroundInitialization: Promise<void> | null = null;
 function initializeBackgroundRuntime(): Promise<void> {
 	if (backgroundInitialization) return backgroundInitialization;
+	const started = performance.now();
 	backgroundInitialization = (async () => {
 		await permissions.restore();
 		await applications.bootstrap();
@@ -179,6 +169,7 @@ function initializeBackgroundRuntime(): Promise<void> {
 			extensionModuleVersion,
 			() => `extension:${crypto.randomUUID()}`,
 		);
+		await operationLogger.flush();
 		await permissions.persist();
 		void localToolLane.start();
 		void provisioningLane.start();
@@ -194,8 +185,19 @@ function initializeBackgroundRuntime(): Promise<void> {
 				observerRecovery.startupReady();
 			})
 			.catch(() => undefined);
+		observability.lifecycle({
+			operationId: "INITIALIZE",
+			status: "SUCCEEDED",
+			durationMs: performance.now() - started,
+		});
 	})().catch((error: unknown) => {
 		backgroundInitialization = null;
+		observability.lifecycle({
+			operationId: "INITIALIZE",
+			status: "FAILED",
+			error,
+			durationMs: performance.now() - started,
+		});
 		throw error;
 	});
 	return backgroundInitialization;
@@ -224,9 +226,7 @@ function startBackgroundRuntime(): Promise<void> {
 	return backgroundStart;
 }
 function requestBackgroundStart(): void {
-	void startBackgroundRuntime().catch(() => {
-		console.warn("PROFLOW_BROWSER_RECONNECT_START_FAILED");
-	});
+	void startBackgroundRuntime().catch(() => undefined);
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {

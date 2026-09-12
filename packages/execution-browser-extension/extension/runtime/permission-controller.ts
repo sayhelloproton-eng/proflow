@@ -17,6 +17,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+export type PermissionObservationOutcome = {
+	status: "RELEASED" | "HUMAN_REQUIRED" | "STALE" | "FAILED";
+	decision?: CarrierPermissionDecision["decision"];
+	reason?: string;
+	action?: "allowAlways" | "allow";
+	sideEffectState: "NOT_STARTED" | "APPLIED" | "UNKNOWN";
+	tabId: number;
+	contentInstanceId: string;
+	conversationLocator: string;
+	operationId: string;
+	operationRef: string;
+	correlationId: string;
+	taskId?: string;
+	roleRef?: string;
+	workerRef?: string;
+};
+
 export function createPermissionController(options: {
 	storageSession: {
 		get(key: string): Promise<Record<string, unknown>>;
@@ -49,41 +66,56 @@ export function createPermissionController(options: {
 		observed.blockerFacts
 			? `${observed.url}:${observed.blockerFacts.fingerprint}`
 			: null;
+	const outcomeAxes = (observed: ContentObservation) => {
+		const facts = observed.blockerFacts;
+		const identity = parseChatGptCarrierIdentity(observed.url);
+		if (!facts) throw new Error("PERMISSION_FACTS_REQUIRED");
+		return {
+			tabId: observed.tabId,
+			contentInstanceId: observed.contentInstanceId,
+			conversationLocator: observed.url,
+			operationId: facts.operationId,
+			operationRef: facts.fingerprint,
+			correlationId: `permission:${facts.fingerprint}`,
+			...(facts.taskId ? { taskId: facts.taskId } : {}),
+			...(identity?.roleRef ? { roleRef: identity.roleRef } : {}),
+			...(identity?.workerRef ? { workerRef: identity.workerRef } : {}),
+		};
+	};
 
 	const attentionViews = () =>
-		attentions
-			.values()
-			.map(
-				({
-					attentionRef,
-					occurrenceRef,
-					taskId,
-					roleRef,
-					workerRef,
-					targetHost,
-					operationId,
-					reason,
-					actions,
-					observedAt,
-				}) => ({
-					attentionRef,
-					occurrenceRef,
-					taskId,
-					roleRef,
-					workerRef,
-					targetHost,
-					operationId,
-					reason,
-					actions,
-					observedAt,
-				}),
-			);
+		attentions.values().map(
+			({
+				attentionRef,
+				occurrenceRef,
+				taskId,
+				roleRef,
+				workerRef,
+				targetHost,
+				operationId,
+				reason,
+				actions,
+				observedAt,
+			}) => ({
+				attentionRef,
+				occurrenceRef,
+				taskId,
+				roleRef,
+				workerRef,
+				targetHost,
+				operationId,
+				reason,
+				actions,
+				observedAt,
+			}),
+		);
 
-	const publish = (): Promise<void> =>
-		options.publishCarrierAttentions(
+	const publish = async (): Promise<void> => {
+		await options.publishCarrierAttentions(
 			options.getExtensionInstanceId(),
 			attentionViews(),
 		);
+	};
 
 	const persist = (): Promise<void> => {
 		const value = {
@@ -149,7 +181,9 @@ export function createPermissionController(options: {
 		void publish().catch(() => undefined);
 	};
 
-	const handlePermission = async (observed: ContentObservation): Promise<void> => {
+	const handlePermission = async (
+		observed: ContentObservation,
+	): Promise<PermissionObservationOutcome | null> => {
 		const facts = observed.blockerFacts;
 		const key = permissionKey(observed);
 		if (
@@ -158,15 +192,18 @@ export function createPermissionController(options: {
 			!facts ||
 			!key
 		)
-			return;
-		if (handling.get(observed.tabId) === key) return;
+			return null;
+		if (handling.get(observed.tabId) === key) return null;
 		const existing = attentions.current(observed.tabId);
 		if (
 			existing?.contentInstanceId === observed.contentInstanceId &&
 			existing.permissionFingerprint === facts.fingerprint
 		)
-			return;
+			return null;
 		handling.set(observed.tabId, key);
+		const axes = outcomeAxes(observed);
+		let lastDecision: CarrierPermissionDecision | undefined;
+		let actionDispatched = false;
 		try {
 			const identity = parseChatGptCarrierIdentity(observed.url);
 			const humanDenied = () =>
@@ -181,15 +218,33 @@ export function createPermissionController(options: {
 				});
 			if (humanDenied()) {
 				setAttention(observed, "HUMAN_DENIED");
-				return;
+				return {
+					status: "HUMAN_REQUIRED",
+					decision: "HUMAN_REQUIRED",
+					reason: "HUMAN_DENIED",
+					sideEffectState: "NOT_STARTED",
+					...axes,
+				};
 			}
 			if (!(await restore())) {
 				setAttention(observed, "PERMISSION_ATTEMPT_STATE_UNAVAILABLE");
-				return;
+				return {
+					status: "HUMAN_REQUIRED",
+					decision: "HUMAN_REQUIRED",
+					reason: "PERMISSION_ATTEMPT_STATE_UNAVAILABLE",
+					sideEffectState: "NOT_STARTED",
+					...axes,
+				};
 			}
 			if (!identity?.workerRef) {
 				setAttention(observed, "PERMISSION_CONTEXT_INCOMPLETE");
-				return;
+				return {
+					status: "HUMAN_REQUIRED",
+					decision: "HUMAN_REQUIRED",
+					reason: "PERMISSION_CONTEXT_INCOMPLETE",
+					sideEffectState: "NOT_STARTED",
+					...axes,
+				};
 			}
 			const result = await resolveRoutineCarrierPermission({
 				facts,
@@ -208,6 +263,7 @@ export function createPermissionController(options: {
 								...(facts.taskId ? { taskId: facts.taskId } : {}),
 							},
 						);
+						let decision: CarrierPermissionDecision;
 						if (
 							!isRecord(value) ||
 							(value.decision !== "AUTO_ALLOW" &&
@@ -215,11 +271,13 @@ export function createPermissionController(options: {
 								value.decision !== "HUMAN_REQUIRED") ||
 							typeof value.reason !== "string"
 						)
-							return {
+							decision = {
 								decision: "HUMAN_REQUIRED",
 								reason: "PERMISSION_CLASSIFICATION_INVALID",
 							};
-						return { decision: value.decision, reason: value.reason };
+						else decision = { decision: value.decision, reason: value.reason };
+						lastDecision = decision;
+						return decision;
 					},
 					revalidate() {
 						const current = options.page.current(observed.tabId);
@@ -233,6 +291,7 @@ export function createPermissionController(options: {
 					async act(action) {
 						autoAttempts.begin(observed.tabId, key);
 						await persist();
+						actionDispatched = true;
 						await options.page.contentCommand(observed.tabId, {
 							operation: "permissionAction",
 							permissionFingerprint: facts.fingerprint,
@@ -240,10 +299,10 @@ export function createPermissionController(options: {
 						});
 					},
 					released: () =>
-						options.page.waitForPermissionReleased(
-							observed.tabId,
-							facts.fingerprint,
-						),
+					options.page.waitForPermissionReleased(
+						observed.tabId,
+						facts.fingerprint,
+					),
 				},
 			});
 			if (result.status === "RELEASED") {
@@ -251,11 +310,43 @@ export function createPermissionController(options: {
 				attentions.removeTab(observed.tabId);
 				await publish().catch(() => undefined);
 				await persist();
-				return;
+				return {
+					status: "RELEASED",
+					...(lastDecision
+						? { decision: lastDecision.decision, reason: lastDecision.reason }
+						: {}),
+					action: result.action,
+					sideEffectState: "APPLIED",
+					...axes,
+				};
 			}
-			if (result.status === "HUMAN_REQUIRED") setAttention(observed, result.reason);
+			if (result.status === "HUMAN_REQUIRED") {
+				setAttention(observed, result.reason);
+				return {
+					status: "HUMAN_REQUIRED",
+					decision: lastDecision?.decision ?? "HUMAN_REQUIRED",
+					reason: result.reason,
+					sideEffectState: actionDispatched ? "UNKNOWN" : "NOT_STARTED",
+					...axes,
+				};
+			}
+			return {
+				status: "STALE",
+				...(lastDecision
+					? { decision: lastDecision.decision, reason: lastDecision.reason }
+					: {}),
+				sideEffectState: "NOT_STARTED",
+				...axes,
+			};
 		} catch {
 			setAttention(observed, "AUTO_ALLOW_FAILED");
+			return {
+				status: "FAILED",
+				...(lastDecision ? { decision: lastDecision.decision } : {}),
+				reason: "AUTO_ALLOW_FAILED",
+				sideEffectState: actionDispatched ? "UNKNOWN" : "NOT_STARTED",
+				...axes,
+			};
 		} finally {
 			if (handling.get(observed.tabId) === key) handling.delete(observed.tabId);
 		}
@@ -266,7 +357,9 @@ export function createPermissionController(options: {
 		persist,
 		publish,
 		attentionViews,
-		async observe(observed: ContentObservation): Promise<void> {
+		async observe(
+			observed: ContentObservation,
+		): Promise<PermissionObservationOutcome | null> {
 			autoAttempts.observe(observed.tabId, permissionKey(observed));
 			const attention = attentions.current(observed.tabId);
 			if (
@@ -278,8 +371,9 @@ export function createPermissionController(options: {
 				attentions.removeTab(observed.tabId);
 				await publish().catch(() => undefined);
 			}
-			await handlePermission(observed);
+			const outcome = await handlePermission(observed);
 			await persist();
+			return outcome;
 		},
 		consumeRecovery(
 			previous: ContentObservation | undefined,
