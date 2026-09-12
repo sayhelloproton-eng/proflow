@@ -6,12 +6,12 @@
   },
   "agent-controller-dev": {
     "packageName": "@tomflow/proflow-agent-controller-dev",
-    "version": "0.1.20",
-    "fingerprint": "sha256:d51479df1815ce9851c4f676c52c2c4585da63c44d1265d57b110c3c79a5d892"
+    "version": "0.1.21",
+    "fingerprint": "sha256:d5c00dd5037c40995c7121bff3f44376443cf80f2e844371f1a5b54f284cf449"
   },
   "agent-test-ops": {
     "packageName": "@tomflow/proflow-agent-test-ops",
-    "version": "0.1.20",
-    "fingerprint": "sha256:f0000f40d308ece7a61eee3f9b4973c552370d5860bedcea25173ecca1613d7b"
+    "version": "0.1.21",
+    "fingerprint": "sha256:09cfd062f5706341580b9b3f6ca91c28edf698f7411a5342caa90a60214a2c6b"
   }
 }

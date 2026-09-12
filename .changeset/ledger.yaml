@@ -50,6 +50,10 @@
   dir: packages/agent-controller-dev
   intents:
     - agent-material-republish
+"@tomflow/proflow-agent-controller-dev@0.1.21":
+  dir: packages/agent-controller-dev
+  intents:
+    - page-observation-freshness
 "@tomflow/proflow-agent-controller-dev@0.1.3":
   dir: packages/agent-controller-dev
   intents:
@@ -306,6 +310,10 @@
   dir: packages/agent-test-ops
   intents:
     - agent-material-republish
+"@tomflow/proflow-agent-test-ops@0.1.21":
+  dir: packages/agent-test-ops
+  intents:
+    - page-observation-freshness
 "@tomflow/proflow-agent-test-ops@0.1.3":
   dir: packages/agent-test-ops
   intents:
