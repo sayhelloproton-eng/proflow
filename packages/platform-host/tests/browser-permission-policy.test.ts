@@ -39,6 +39,25 @@ test("CP-EXE-BR-23 trusted current Role target and operation auto-allows carrier
 	});
 });
 
+test("CP-EXE-BR-23 current ChatGPT slugged conversation locator auto-allows carrier permission", () => {
+	const conversationLocator =
+		"https://chatgpt.com/g/g-test-bu-shu-ce-shi-yan-shou/c/worker-test";
+	assert.deepEqual(
+		classifyBrowserPermission({
+			...base,
+			context: {
+				...base.context,
+				conversationLocator,
+				taskBinding: { ...base.context.taskBinding, conversationLocator },
+			},
+		}),
+		{
+			decision: "AUTO_ALLOW",
+			reason: "KNOWN_PROFLOW_ACTION",
+		},
+	);
+});
+
 test("CP-EXE-BR-23 unknown target or operation fails closed", () => {
 	assert.equal(
 		classifyBrowserPermission({ ...base, targetHost: "evil.example" }).decision,
@@ -103,6 +122,7 @@ test("CP-EXE-BR-23 malformed or non-current carrier locator fails closed", () =>
 	for (const conversationLocator of [
 		"https://chatgpt.com/g/g-test",
 		"https://chatgpt.com/g/g-other/c/worker-test",
+		"https://chatgpt.com/g/g-test-/c/worker-test",
 		"https://chatgpt.com/g/g-test/c/worker-test?stale=1",
 	]) {
 		assert.equal(

@@ -39,6 +39,16 @@ export type BrowserPermissionContext = {
 
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
+function validRoleConversationSegment(
+	roleRef: string,
+	segment: string | undefined,
+): boolean {
+	if (segment === roleRef) return true;
+	if (!segment) return false;
+	const slugPrefix = `${roleRef}-`;
+	return segment.startsWith(slugPrefix) && segment.length > slugPrefix.length;
+}
+
 function validWorkerConversation(
 	role: BrowserPermissionRole,
 	context: BrowserPermissionContext,
@@ -57,7 +67,7 @@ function validWorkerConversation(
 			locator.hash === "" &&
 			segments.length === 4 &&
 			segments[0] === "g" &&
-			segments[1] === role.roleRef &&
+			validRoleConversationSegment(role.roleRef, segments[1]) &&
 			segments[2] === "c" &&
 			segments[3] === workerRef
 		);
