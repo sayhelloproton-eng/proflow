@@ -46,6 +46,10 @@
   dir: packages/agent-controller-dev
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-agent-controller-dev@0.1.20":
+  dir: packages/agent-controller-dev
+  intents:
+    - agent-material-republish
 "@tomflow/proflow-agent-controller-dev@0.1.3":
   dir: packages/agent-controller-dev
   intents:
@@ -158,6 +162,10 @@
   dir: packages/agent-product
   intents:
     - agent-material-drift-closure
+"@tomflow/proflow-agent-product@0.1.18":
+  dir: packages/agent-product
+  intents:
+    - agent-material-republish
 "@tomflow/proflow-agent-product@0.1.2":
   dir: packages/agent-product
   intents:
@@ -214,6 +222,10 @@
   dir: packages/agent-runtime
   intents:
     - agent-material-drift-closure
+"@tomflow/proflow-agent-runtime@0.1.17":
+  dir: packages/agent-runtime
+  intents:
+    - agent-material-republish
 "@tomflow/proflow-agent-runtime@0.1.2":
   dir: packages/agent-runtime
   intents:
@@ -286,6 +298,10 @@
   dir: packages/agent-test-ops
   intents:
     - real1-generated-service-platform-closure
+"@tomflow/proflow-agent-test-ops@0.1.20":
+  dir: packages/agent-test-ops
+  intents:
+    - agent-material-republish
 "@tomflow/proflow-agent-test-ops@0.1.3":
   dir: packages/agent-test-ops
   intents:
@@ -1360,6 +1376,10 @@
   dir: packages/platform-host
   intents:
     - real3-browser-permission-owner-boundary
+"@tomflow/proflow-platform-host@0.1.26":
+  dir: packages/platform-host
+  intents:
+    - platform-host-runtime-descriptor-fix
 "@tomflow/proflow-platform-host@0.1.3":
   dir: packages/platform-host
   intents:

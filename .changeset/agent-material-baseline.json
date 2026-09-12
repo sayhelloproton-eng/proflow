@@ -1,17 +1,17 @@
 {
   "agent-product": {
     "packageName": "@tomflow/proflow-agent-product",
-    "version": "0.1.17",
-    "fingerprint": "sha256:2e9e174b5ee8e69101a7e9eb3fc411a90d1e58917c4aa423b08c2d67f16989a8"
+    "version": "0.1.18",
+    "fingerprint": "sha256:d5f0c4a4940b7c84bf783a3843140393e9d693ed08c22de67032d3605dfa09e5"
   },
   "agent-controller-dev": {
     "packageName": "@tomflow/proflow-agent-controller-dev",
-    "version": "0.1.19",
-    "fingerprint": "sha256:06da506524a04fb4a7d1d3c9f6a9c59f9f258aee1630e49e170df1c31e05df7b"
+    "version": "0.1.20",
+    "fingerprint": "sha256:d51479df1815ce9851c4f676c52c2c4585da63c44d1265d57b110c3c79a5d892"
   },
   "agent-test-ops": {
     "packageName": "@tomflow/proflow-agent-test-ops",
-    "version": "0.1.19",
-    "fingerprint": "sha256:3a15f914cba0fac981bf73e8a9a6fc59e9d29b5a110d52797a1290cac488576c"
+    "version": "0.1.20",
+    "fingerprint": "sha256:f0000f40d308ece7a61eee3f9b4973c552370d5860bedcea25173ecca1613d7b"
   }
 }
