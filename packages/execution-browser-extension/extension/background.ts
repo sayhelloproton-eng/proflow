@@ -68,9 +68,70 @@ const page = createPageRealityController({
 		});
 	},
 });
+const permissionPage = Object.freeze({
+	current: page.current,
+	sessions: page.sessions,
+	waitForPermissionReleased: page.waitForPermissionReleased,
+	async contentCommand(
+		tabId: number,
+		command: Parameters<typeof page.contentCommand>[1],
+	): Promise<unknown> {
+		if (command.operation !== "permissionAction")
+			return page.contentCommand(tabId, command);
+		const observed = page.current(tabId);
+		const started = performance.now();
+		try {
+			const value = await page.contentCommand(tabId, command);
+			await operationLogger.emit({
+				component: "permission-action-boundary",
+				event: "PERMISSION_ACTION",
+				phase: "DISPATCHED",
+				status: "SUCCEEDED",
+				operationId: "permissionAction",
+				...(command.permissionFingerprint
+					? {
+							operationRef: command.permissionFingerprint,
+							correlationId: `permission:${command.permissionFingerprint}`,
+							correlationKind: "IDENTITY_MATCH" as const,
+						}
+					: {}),
+				...(command.permissionAction ? { action: command.permissionAction } : {}),
+				sideEffectState: "STARTED",
+				tabId,
+				contentInstanceId: observed.contentInstanceId,
+				conversationLocator: observed.url,
+				durationMs: performance.now() - started,
+			});
+			return value;
+		} catch (error) {
+			await operationLogger.emit({
+				component: "permission-action-boundary",
+				event: "PERMISSION_ACTION",
+				phase: "DISPATCHED",
+				status: "FAILED",
+				operationId: "permissionAction",
+				...(command.permissionFingerprint
+					? {
+							operationRef: command.permissionFingerprint,
+							correlationId: `permission:${command.permissionFingerprint}`,
+							correlationKind: "IDENTITY_MATCH" as const,
+						}
+					: {}),
+				...(command.permissionAction ? { action: command.permissionAction } : {}),
+				errorCode: "PERMISSION_ACTION_FAILED",
+				sideEffectState: "UNKNOWN",
+				tabId,
+				contentInstanceId: observed.contentInstanceId,
+				conversationLocator: observed.url,
+				durationMs: performance.now() - started,
+			});
+			throw error;
+		}
+	},
+});
 const permissions = createPermissionController({
 	storageSession: chrome.storage.session,
-	page,
+	page: permissionPage,
 	getExtensionInstanceId: () => extensionInstanceId,
 	invokeObserver,
 	publishCarrierAttentions: applications.publishCarrierAttentions,
