@@ -35,6 +35,7 @@ export const descriptor = {
 	requirements: [
 		{
 			kind: "runtime",
+			runtime: "node",
 			versionRange: ">=24.19.0",
 		},
 	],
