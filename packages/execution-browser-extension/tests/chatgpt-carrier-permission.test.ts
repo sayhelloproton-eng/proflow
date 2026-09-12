@@ -14,7 +14,7 @@ const currentCard = {
 };
 
 const genericAllowCard = {
-	text: "“研发 + 项目总控”希望与“0br1cj2q-41705.jpe1.devtunnels.ms”对话\n工具调用：0br1cj2q_41705_jpe1_devtunnels_ms__jit_plugin.localDev\n将共享以下内容：{taskId: task-real3-final-autowake-20260912}",
+	text: "“研发 + 项目总控”希望与“0br1cj2q-41705.jpe1.devtunnels.ms”对话\n工具调用：0br1cj2q_41705_jpe1_devtunnels_ms__jit_plugin.localDev",
 	buttonLabels: ["拒绝", "允许"],
 };
 
@@ -29,13 +29,13 @@ test("CP-EXE-BR-22 detects current non-dialog ChatGPT Action permission semantic
 	assert.match(facts.fingerprint, /^permission:v1:/);
 });
 
-test("CP-EXE-BR-22 detects the current generic Allow/Deny ChatGPT Action permission", () => {
+test("CP-EXE-BR-22 detects current generic Allow/Deny permission without manufacturing Task context", () => {
 	const facts = detectActionPermission([genericAllowCard]);
 	assert.ok(facts);
 	assert.equal(facts.kind, "ACTION_PERMISSION");
 	assert.equal(facts.operationId, "localDev");
 	assert.equal(facts.targetHost, "0br1cj2q-41705.jpe1.devtunnels.ms");
-	assert.equal(facts.taskId, "task-real3-final-autowake-20260912");
+	assert.equal(facts.taskId, null);
 	assert.deepEqual(facts.actions, ["deny", "allow"]);
 	assert.equal(permissionActionAllowed(facts, facts.fingerprint, "allow"), true);
 });
@@ -82,25 +82,22 @@ test("CP-EXE-BR-22 Action permission wins over an otherwise ready composer", () 
 	);
 });
 
-test("CP-EXE-BR-27 Content stays a thin ChatGPT adapter and does not own permission trust policy", async () => {
-	const source = await readFile(
-		new URL("../extension/content.ts", import.meta.url),
-		"utf8",
-	);
-	assert.match(source, /observeChatGptPage/);
-	assert.match(source, /performChatGptPermissionAction/);
-	assert.match(source, /submitChatGptComposer/);
-	assert.doesNotMatch(source, /roleOperations|KNOWN_PROFLOW_ACTION|AUTO_ALLOW/);
-	assert.doesNotMatch(
-		source,
-		/if \(document\.querySelector\('\[role="dialog"\]'\)\)/,
-	);
-	assert.doesNotMatch(source, /send-button[^\n]*\.click\(\)/);
-	const background = await readFile(
-		new URL("../extension/background.ts", import.meta.url),
-		"utf8",
-	);
-	assert.match(background, /carrierBlockerStrategies/);
-	assert.match(background, /handleCarrierBlocker\(observed\)/);
-	assert.doesNotMatch(background, /operationId === "getTask"/);
+test("CP-EXE-BR-27 Content stays thin and Permission trust policy has its own controller", async () => {
+	const [content, background, permissionController] = await Promise.all([
+		readFile(new URL("../extension/content.ts", import.meta.url), "utf8"),
+		readFile(new URL("../extension/background.ts", import.meta.url), "utf8"),
+		readFile(
+			new URL("../extension/runtime/permission-controller.ts", import.meta.url),
+			"utf8",
+		),
+	]);
+	assert.match(content, /observeChatGptPage/);
+	assert.match(content, /performChatGptPermissionAction/);
+	assert.match(content, /submitChatGptComposer/);
+	assert.doesNotMatch(content, /roleOperations|KNOWN_PROFLOW_ACTION|AUTO_ALLOW/);
+	assert.match(background, /createPermissionController/);
+	assert.doesNotMatch(background, /resolveRoutineCarrierPermission|AUTO_ALLOW/);
+	assert.match(permissionController, /resolveRoutineCarrierPermission/);
+	assert.match(permissionController, /browser\.permission\.classify/);
+	assert.doesNotMatch(permissionController, /operationId === "getTask"/);
 });

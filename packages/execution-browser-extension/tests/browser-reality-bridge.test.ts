@@ -67,16 +67,21 @@ const observation = {
 
 test("REAL3 Browser command timeout is an abnormal watchdog, not a normal 15s workflow clock", async () => {
 	const source = await readFile(
-		new URL("../src/bridge.ts", import.meta.url),
+		new URL("../src/bridge-command-bus.ts", import.meta.url),
 		"utf8",
 	);
 	assert.match(
 		source,
-		/commandTimeoutMs = options\.commandTimeoutMs \?\? 120_000/,
+		/commandTimeoutMs: number/,
+	);
+	const bridge = await readFile(new URL("../src/bridge.ts", import.meta.url), "utf8");
+	assert.match(
+		bridge,
+		/commandTimeoutMs: options\.commandTimeoutMs \?\? 120_000/,
 	);
 	assert.doesNotMatch(
-		source,
-		/commandTimeoutMs = options\.commandTimeoutMs \?\? 15_000/,
+		bridge,
+		/commandTimeoutMs: options\.commandTimeoutMs \?\? 15_000/,
 	);
 });
 

@@ -71,10 +71,10 @@ test("CP-EXE-BR-29 pending denial survives MV3 session restoration", () => {
 
 test("CP-EXE-BR-29 Background persists deny before action and gates Observer recovery", async () => {
 	const source = await readFile(
-		new URL("../extension/background.ts", import.meta.url),
+		new URL("../extension/runtime/permission-controller.ts", import.meta.url),
 		"utf8",
 	);
-	assert.match(source, /carrierContinuationControl\.beginDenied/);
-	assert.match(source, /await persistSnapshot\(\)/);
-	assert.match(source, /carrierContinuationControl\.suppressRecovery/);
+	assert.match(source, /continuation\.beginDenied/);
+	assert.match(source, /await persist\(\)/);
+	assert.match(source, /continuation\.suppressRecovery/);
 });

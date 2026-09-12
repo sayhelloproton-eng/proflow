@@ -6,6 +6,14 @@ const manifestUrl = new URL("../manifest.json", import.meta.url);
 const pageUrl = new URL("../extension/tasks.html", import.meta.url);
 const sourceUrl = new URL("../extension/tasks.ts", import.meta.url);
 const backgroundUrl = new URL("../extension/background.ts", import.meta.url);
+const controllerUrl = new URL(
+	"../extension/runtime/task-page-controller.ts",
+	import.meta.url,
+);
+const observerRecoveryUrl = new URL(
+	"../extension/runtime/observer-recovery-controller.ts",
+	import.meta.url,
+);
 
 test("REAL3 Task UI is an independent extension page opened from the extension action", async () => {
 	const manifest = JSON.parse(await readFile(manifestUrl, "utf8")) as {
@@ -16,21 +24,23 @@ test("REAL3 Task UI is an independent extension page opened from the extension a
 	const html = await readFile(pageUrl, "utf8");
 	const source = await readFile(sourceUrl, "utf8");
 	const background = await readFile(backgroundUrl, "utf8");
+	const controller = await readFile(controllerUrl, "utf8");
+	const observerRecovery = await readFile(observerRecoveryUrl, "utf8");
 	assert.equal(manifest.side_panel, undefined);
 	assert.equal(manifest.permissions?.includes("sidePanel"), false);
 	assert.equal(manifest.action?.default_title, "Open ProFlow Tasks");
 	assert.match(background, /chrome\.action\.onClicked\.addListener/);
-	const mintIndex = background.indexOf("/v1/tasks/session");
-	const existingIndex = background.indexOf(
-		"const [existing] = await chrome.tabs.query",
+	const mintIndex = controller.indexOf("/v1/tasks/session");
+	const existingIndex = controller.indexOf(
+		"const [existing] = await options.tabs.query",
 	);
 	assert.ok(
 		mintIndex >= 0 && existingIndex >= 0 && mintIndex < existingIndex,
 		"Tasks action must mint a fresh web session before reusing an existing tab",
 	);
 	assert.match(
-		background,
-		/chrome\.tabs\.update\(existing\.id,\s*\{\s*url: body\.url,\s*active: true,?\s*\}\)/,
+		controller,
+		/options\.tabs\.update\(existing\.id, \{[\s\S]{0,120}url: body\.url,[\s\S]{0,80}active: true/,
 	);
 	assert.match(background, /extension\/tasks\.html/);
 	assert.match(html, /<title>ProFlow Tasks<\/title>/);
@@ -72,8 +82,8 @@ test("REAL3 Task UI is an independent extension page opened from the extension a
 	assert.match(source, /PROFLOW_TASK_APPLICATION/);
 	assert.match(source, /\/tasks\/api\/task/);
 	assert.match(source, /\/tasks\/api\/approval/);
-	assert.match(background, /\/v1\/tasks\/session/);
-	assert.match(background, /\/tasks/);
+	assert.match(controller, /\/v1\/tasks\/session/);
+	assert.match(controller, /\/tasks/);
 	assert.doesNotMatch(source, /\["SUCCEEDED", "FAILED", "WAITING"\]/);
 	assert.match(source, /pendingMessages/);
 	assert.match(source, /TASK_BLOCKER_UNRESOLVED|Resolve blocker/);
@@ -85,7 +95,7 @@ test("REAL3 Task UI is an independent extension page opened from the extension a
 		background,
 		/TASK_OBSERVER_|taskObserver\.drive|resumeTaskWorker/,
 	);
-	assert.match(background, /task\.reconcileAll/);
+	assert.match(observerRecovery, /task\.reconcileAll/);
 });
 
 test("REAL3 independent Task page does not seed the formal REQUIREMENT document", async () => {

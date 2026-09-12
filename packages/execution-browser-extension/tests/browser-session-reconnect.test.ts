@@ -120,10 +120,13 @@ test("AUTO_RECONNECT_AFTER_BRIDGE_RESTART paired config survives unavailable bri
 });
 
 test("background wires startup/install/alarm to the same reconnect owner and retains authenticated poll/heartbeat", async () => {
-	const source = await readFile(
-		new URL("../extension/background.ts", import.meta.url),
-		"utf8",
-	);
+	const [background, lane] = await Promise.all([
+		readFile(new URL("../extension/background.ts", import.meta.url), "utf8"),
+		readFile(
+			new URL("../extension/runtime/browser-session-lane.ts", import.meta.url),
+			"utf8",
+		),
+	]);
 	const manifest: unknown = JSON.parse(
 		await readFile(new URL("../manifest.json", import.meta.url), "utf8"),
 	);
@@ -134,23 +137,23 @@ test("background wires startup/install/alarm to the same reconnect owner and ret
 			Array.isArray(manifest.permissions) &&
 			manifest.permissions.includes("alarms"),
 	);
-	assert.match(source, /chrome\.alarms\.onAlarm\.addListener/);
+	assert.match(background, /chrome\.alarms\.onAlarm\.addListener/);
 	assert.match(
-		source,
+		background,
 		/chrome\.runtime\.onInstalled\.addListener\(requestBackgroundStart\)/,
 	);
 	assert.match(
-		source,
+		background,
 		/chrome\.runtime\.onStartup\.addListener\(requestBackgroundStart\)/,
 	);
 	assert.match(
-		source,
-		/await initializeBackgroundRuntime\(\);\s*await runBridgeSession\(online\)/,
+		background,
+		/await initializeBackgroundRuntime\(\);\s*await browserSessionLane\.run\(online\)/,
 	);
-	assert.match(source, /restoreBrowserSessionIdentity\(/);
-	assert.match(source, /\/v1\/session\/heartbeat/);
-	assert.match(source, /if \(!hello.ok\) throw/);
-	assert.match(source, /if \(response.status === 204\) \{\s*online\(\)/);
+	assert.match(background, /restoreBrowserSessionIdentity\(/);
+	assert.match(lane, /\/v1\/session\/heartbeat/);
+	assert.match(lane, /if \(!hello\.ok\) throw/);
+	assert.match(lane, /if \(response\.status === 204\) \{\s*online\(\)/);
 });
 
 test("reconnect bounds failures, backs off and allows a later alarm to retry", async () => {

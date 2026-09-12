@@ -39,22 +39,22 @@ test("CP-EXE-BR-24 invalid session data cannot manufacture an attempted permissi
 
 test("CP-EXE-BR-24 Background persists uncertainty before acting and restores it on startup", async () => {
 	const source = await readFile(
-		new URL("../extension/background.ts", import.meta.url),
+		new URL("../extension/runtime/permission-controller.ts", import.meta.url),
 		"utf8",
 	);
 	assert.match(
 		source,
-		/permissionAutoAttempts: permissionAutoAttempts\.snapshot\(\)/,
+		/permissionAutoAttempts: autoAttempts\.snapshot\(\)/,
 	);
-	assert.match(source, /restoreTransientPermissionAttempts/);
-	assert.match(source, /await restoreTransientPermissionAttempts\(\)/);
+	assert.match(source, /const restore = \(\): Promise<boolean>/);
+	assert.match(source, /autoAttempts\.load\(/);
 	const act = source.slice(
 		source.indexOf("async act(action)"),
 		source.indexOf("released:", source.indexOf("async act(action)")),
 	);
 	assert.ok(
-		act.indexOf("await persistSnapshot()") <
-			act.indexOf("await contentCommand"),
+		act.indexOf("await persist()") <
+			act.indexOf("await options.page.contentCommand"),
 		"uncertain automatic action must be durable before the page click",
 	);
 });

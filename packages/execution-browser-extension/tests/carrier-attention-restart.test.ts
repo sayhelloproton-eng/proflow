@@ -67,11 +67,15 @@ test("CP-EXE-BR-30 restart re-observes live GPT tabs without losing no-replay st
 		restored.has(7, `${input.url}:${input.permissionFingerprint}`),
 		true,
 	);
-	const [background, content] = await Promise.all([
-		readFile(new URL("../extension/background.ts", import.meta.url), "utf8"),
+	const [pageReality, content] = await Promise.all([
+		readFile(
+			new URL("../extension/runtime/page-reality-controller.ts", import.meta.url),
+			"utf8",
+		),
 		readFile(new URL("../extension/content.ts", import.meta.url), "utf8"),
 	]);
-	assert.match(background, /rebuildCarrierAttentionsFromTabs/);
-	assert.match(background, /https:\/\/chatgpt\.com\/g\/\*/);
+	assert.match(pageReality, /async recoverObservations\(\)/);
+	assert.match(pageReality, /https:\/\/chatgpt\.com\/g\/\*/);
+	assert.match(pageReality, /PROFLOW_PAGE_SNAPSHOT_REQUEST/);
 	assert.match(content, /PROFLOW_PAGE_SNAPSHOT_REQUEST/);
 });

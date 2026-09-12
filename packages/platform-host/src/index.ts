@@ -28,6 +28,7 @@ import { SqliteTaskStore } from "@tomflow/proflow-task-store-sqlite";
 import { taskMigrations } from "@tomflow/proflow-task-store-sqlite/migrations";
 import { z } from "zod";
 
+import { resolveBrowserPermissionTaskBinding } from "./browser-permission-context.ts";
 import {
 	classifyBrowserPermission,
 	type RoleCarrierValidation,
@@ -43,8 +44,6 @@ import {
 } from "./role-operations.ts";
 
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-// Business owner calls are Promise-driven. This is only a last-resort transport
-// watchdog for a hung local call, not a normal workflow deadline.
 const OWNER_INVOKE_WATCHDOG_MS = 120_000;
 
 const systemObserverReasonResultSchema = z
@@ -102,11 +101,6 @@ const browserStructuredLogSchema = z
 	})
 	.strict();
 
-// GPT transport/application boundary descriptor for an allowed TaskDocument.
-// The Task Owner keeps returning a plain TaskDocument; only after admission
-// succeeds does the Host convert the allowed document into this bounded file
-// descriptor. The Gateway owns the OpenAI wire format, owns the matching
-// `fileArtifacts` schema, and validates this output at the boundary.
 interface TaskDocumentFileBridgeOutput {
 	fileArtifacts: Array<{
 		artifactRef: string;
@@ -442,9 +436,7 @@ function createOwnerHttpClient(
 							: {}),
 					},
 					...(method === "POST"
-						? {
-								body: JSON.stringify(requestBody),
-							}
+						? { body: JSON.stringify(requestBody) }
 						: {}),
 					signal: AbortSignal.timeout(OWNER_INVOKE_WATCHDOG_MS),
 				}),
@@ -478,9 +470,6 @@ function unwrap<Value>(result: {
 	return result.data;
 }
 
-// Bounded read of the Deployment owner's explicit System Observer projection.
-// Platform Host never reads Deployment's internal state.json or derives health;
-// it consumes only the bounded summary emitted by Deployment status/verify/doctor.
 async function readDeploymentOwnerSummary(stateRoot: string): Promise<
 	| {
 			state: "READY" | "DEGRADED" | "ACTION_REQUIRED" | "NOT_READY";
@@ -523,9 +512,8 @@ async function readDeploymentOwnerSummary(stateRoot: string): Promise<
 			Number.isNaN(Date.parse(record.freshUntil)) ||
 			record.selectedModuleCount !== record.totalModuleCount ||
 			Date.parse(record.freshUntil) <= Date.now()
-		) {
+		)
 			return undefined;
-		}
 		return {
 			state: record.state as
 				| "READY"
@@ -549,10 +537,7 @@ type Graph = Awaited<ReturnType<typeof constructGraph>>;
 
 export type PlatformHostBrowserOwnerPorts = {
 	task: {
-		getWorkerBinding(
-			taskId: string,
-			roleRef: string,
-		): Promise<{
+		getWorkerBinding(taskId: string, roleRef: string): Promise<{
 			workerRef: string;
 			conversationLocator: string | null;
 		} | null>;
@@ -564,25 +549,23 @@ export type PlatformHostBrowserOwnerPorts = {
 		}): Promise<void>;
 	};
 	agent: {
-		listPendingMessages(limit: number): Promise<
-			Array<{
-				messageId: string;
-				threadId: string;
-				taskId: string;
-				kind: "QUESTION" | "REPLY";
-				fromRoleRef: string;
-				fromWorkerRef: string;
-				targetRoleRef: string;
-				targetWorkerRef: string;
-				replyToMessageId: string | null;
-				content: string;
-				status: "PENDING";
-				deliveryAttemptCount: number;
-				lastDeliveryErrorCode: string | null;
-				executionRef: string | null;
-				evidenceRef: string | null;
-			}>
-		>;
+		listPendingMessages(limit: number): Promise<Array<{
+			messageId: string;
+			threadId: string;
+			taskId: string;
+			kind: "QUESTION" | "REPLY";
+			fromRoleRef: string;
+			fromWorkerRef: string;
+			targetRoleRef: string;
+			targetWorkerRef: string;
+			replyToMessageId: string | null;
+			content: string;
+			status: "PENDING";
+			deliveryAttemptCount: number;
+			lastDeliveryErrorCode: string | null;
+			executionRef: string | null;
+			evidenceRef: string | null;
+		}>>;
 		getPendingMessage(messageRef: string): Promise<{
 			messageId: string;
 			threadId: string;
@@ -654,10 +637,7 @@ export type PlatformHostTaskDriverPorts = {
 		blockedReason: string | null;
 		resumeSignalRef: string | null;
 	}>;
-	getNodeContext(
-		taskId: string,
-		nodeId: string,
-	): Promise<{
+	getNodeContext(taskId: string, nodeId: string): Promise<{
 		task: { taskId: string; status: string; version: number };
 		node: {
 			nodeId: string;
@@ -673,7 +653,6 @@ export type PlatformHostTaskDriverPorts = {
 export type PlatformHostAgentIdentityPorts = {
 	getRegisteredRole(roleRef: string): Promise<{ roleRef: string }>;
 };
-
 export type PlatformHostRoleManagement = {
 	invoke(operation: string, input: unknown): Promise<unknown>;
 };
@@ -686,17 +665,11 @@ async function constructGraph(
 	resolveLocalToolConnection?: LocalToolConnectionResolver,
 ) {
 	const databasePath = join(config.stateRoot, "state", "task.sqlite");
-	const migration = applyMigrations({
-		databasePath,
-		migrations: taskMigrations,
-	});
+	const migration = applyMigrations({ databasePath, migrations: taskMigrations });
 	if (!migration.ok)
 		throw new Error(`TASK_MIGRATION_FAILED:${migration.error?.message}`);
 	const taskStore = new SqliteTaskStore({ databasePath });
-	const task = createTaskServices({
-		store: taskStore,
-		workspaceRoot: config.workspaceRoot,
-	});
+	const task = createTaskServices({ store: taskStore, workspaceRoot: config.workspaceRoot });
 	const taskFacts = (taskId: string) => {
 		const value = unwrap(task.queries.getTask({ taskId }));
 		return {
@@ -723,9 +696,7 @@ async function constructGraph(
 						return (
 							current.status !== "SUCCEEDED" &&
 							current.status !== "TERMINATED" &&
-							current.roleBindings.some(
-								(binding) => binding.roleRef === roleRef,
-							)
+							current.roleBindings.some((binding) => binding.roleRef === roleRef)
 						);
 					});
 				},
@@ -739,9 +710,7 @@ async function constructGraph(
 		for (const role of config.roles) {
 			const existing = agent
 				.listRegisteredRoles()
-				.find(
-					(candidate) => candidate.agentPackageRef === role.agentPackageRef,
-				);
+				.find((candidate) => candidate.agentPackageRef === role.agentPackageRef);
 			if (existing) {
 				if (
 					existing.roleRef !== role.roleRef ||
@@ -786,36 +755,25 @@ async function constructGraph(
 			for (const summary of tasks)
 				for (const binding of taskFacts(summary.taskId).roleBindings) {
 					if (binding.workerRef) bindings += 1;
-					if (binding.workerRef && !binding.conversationLocator)
-						missingLocator += 1;
+					if (binding.workerRef && !binding.conversationLocator) missingLocator += 1;
 				}
 			return {
 				summary: `boundWorkers=${bindings}; missingConversationLocator=${missingLocator}`,
-				health:
-					missingLocator === 0 ? ("HEALTHY" as const) : ("DEGRADED" as const),
+				health: missingLocator === 0 ? ("HEALTHY" as const) : ("DEGRADED" as const),
 			};
 		}
 		if (view === "collaboration") {
-			const pending = await agent.listPendingCollaborationMessages({
-				limit: 100,
-			});
+			const pending = await agent.listPendingCollaborationMessages({ limit: 100 });
 			return {
 				summary: `pendingMessages=${pending.length}`,
-				health:
-					pending.length < 100 ? ("HEALTHY" as const) : ("DEGRADED" as const),
+				health: pending.length < 100 ? ("HEALTHY" as const) : ("DEGRADED" as const),
 			};
 		}
 		if (view === "model") {
-			const status = object(
-				await model.invoke("getRuntimeStatus", {}),
-				"model status",
-			);
+			const status = object(await model.invoke("getRuntimeStatus", {}), "model status");
 			return {
 				summary: JSON.stringify(status).slice(0, 2_000),
-				health:
-					status.runtime === "READY"
-						? ("HEALTHY" as const)
-						: ("DEGRADED" as const),
+				health: status.runtime === "READY" ? ("HEALTHY" as const) : ("DEGRADED" as const),
 			};
 		}
 		if (view === "execution") {
@@ -824,22 +782,14 @@ async function constructGraph(
 				await execution.invoke("listExecutionObserverSignals", { limit: 50 }),
 				"execution observer signals",
 			);
-			const signals = Array.isArray(signalResult.signals)
-				? signalResult.signals
-				: [];
+			const signals = Array.isArray(signalResult.signals) ? signalResult.signals : [];
 			return {
 				summary: `execution owner readiness=${readiness.status}; liveness=${readiness.liveness}; pendingObserverSignals=${signals.length}`,
-				health:
-					readiness.status === "READY"
-						? ("HEALTHY" as const)
-						: ("DEGRADED" as const),
+				health: readiness.status === "READY" ? ("HEALTHY" as const) : ("DEGRADED" as const),
 			};
 		}
 		if (view === "carrier") {
-			const carrier = object(
-				await execution.invoke("getCarrierSummary", {}),
-				"carrier summary",
-			);
+			const carrier = object(await execution.invoke("getCarrierSummary", {}), "carrier summary");
 			const online = carrier.online === true;
 			return {
 				summary: `bridgeOnline=${online}; queuedCommands=${carrier.queuedCommands ?? 0}; pendingCommands=${carrier.pendingCommands ?? 0}`,
@@ -848,7 +798,7 @@ async function constructGraph(
 		}
 		if (view === "deployment") {
 			const deployment = await readDeploymentOwnerSummary(config.stateRoot);
-			if (deployment === undefined) {
+			if (deployment === undefined)
 				return {
 					summary: "deployment owner summary unavailable",
 					health: "UNKNOWN" as const,
@@ -857,24 +807,15 @@ async function constructGraph(
 						"Deployment current state is not materialized; no substitute owner readiness is inferred",
 					],
 				};
-			}
 			return {
 				summary: `deploymentOwnerState=${deployment.state}; source=${deployment.source}; selectedModules=${deployment.selectedModuleCount}; observedModules=${deployment.observedModuleCount}; blockingModules=${deployment.blockingModuleCount}; observedAt=${deployment.observedAt}`,
-				health:
-					deployment.state === "READY"
-						? ("HEALTHY" as const)
-						: ("DEGRADED" as const),
+				health: deployment.state === "READY" ? ("HEALTHY" as const) : ("DEGRADED" as const),
 				findings:
-					deployment.state === "READY"
-						? []
-						: [`Deployment owner reports ${deployment.state}`],
+					deployment.state === "READY" ? [] : [`Deployment owner reports ${deployment.state}`],
 			};
 		}
 		if (view === "artifact") {
-			const artifacts = object(
-				await execution.invoke("getArtifactSummary", {}),
-				"artifact summary",
-			);
+			const artifacts = object(await execution.invoke("getArtifactSummary", {}), "artifact summary");
 			const byKind =
 				typeof artifacts.byKind === "object" && artifacts.byKind !== null
 					? JSON.stringify(artifacts.byKind)
@@ -940,13 +881,6 @@ async function constructGraph(
 		"reopenNode",
 		"putTaskDocument",
 	]);
-	// Unified external Task-scoped Action admission. TaskRoleBinding is a Task
-	// owner fact, so participant + canonical Worker identity are derived from the
-	// Task owner facts, never from an untrusted body roleRef/workerRef. Reads only
-	// gate participation (terminal Tasks stay readable); mutations and Execution
-	// additionally run the full Agent Worker validation (which rejects terminal
-	// Tasks) before acting.
-
 	const admitTaskParticipant = async (
 		taskId: string,
 		authenticatedRoleRef: string,
@@ -956,16 +890,9 @@ async function constructGraph(
 			(candidate) => candidate.roleRef === authenticatedRoleRef,
 		);
 		if (!binding?.workerRef)
-			throw Object.assign(new Error("TASK_ROLE_BINDING_REQUIRED"), {
-				httpStatus: 403,
-			});
-		if (
-			suppliedWorkerRef !== undefined &&
-			suppliedWorkerRef !== binding.workerRef
-		)
-			throw Object.assign(new Error("TASK_WORKER_BINDING_MISMATCH"), {
-				httpStatus: 403,
-			});
+			throw Object.assign(new Error("TASK_ROLE_BINDING_REQUIRED"), { httpStatus: 403 });
+		if (suppliedWorkerRef !== undefined && suppliedWorkerRef !== binding.workerRef)
+			throw Object.assign(new Error("TASK_WORKER_BINDING_MISMATCH"), { httpStatus: 403 });
 		return binding.workerRef;
 	};
 	const route = async (
@@ -975,12 +902,8 @@ async function constructGraph(
 		context?: { fileMaterializationInputs?: unknown; deadlineAt?: string },
 	) => {
 		const role = agent.getRegisteredRole(authenticatedRoleRef);
-		if (
-			!roleOperations[role.agentPackageRef as RolePackageRef]?.has(operationId)
-		)
-			throw Object.assign(new Error("ROLE_OPERATION_DENIED"), {
-				httpStatus: 403,
-			});
+		if (!roleOperations[role.agentPackageRef as RolePackageRef]?.has(operationId))
+			throw Object.assign(new Error("ROLE_OPERATION_DENIED"), { httpStatus: 403 });
 		const input = object(rawInput, "action input");
 		if (operationId === "askPeer")
 			return agent.askPeer({ ...input, authenticatedRoleRef });
@@ -990,9 +913,7 @@ async function constructGraph(
 			const tool = operationId as LocalToolName;
 			const keys = Object.keys(input).sort();
 			if (keys.length !== 2 || keys[0] !== "input" || keys[1] !== "operation")
-				throw Object.assign(new Error("DIRECT_TOOL_INPUT_INVALID"), {
-					httpStatus: 400,
-				});
+				throw Object.assign(new Error("DIRECT_TOOL_INPUT_INVALID"), { httpStatus: 400 });
 			const toolOperation = string(input.operation, "operation");
 			const toolInput = object(input.input, "input");
 			assertNoDirectToolPlatformIdentity(toolInput);
@@ -1004,22 +925,13 @@ async function constructGraph(
 					toolInput,
 				)
 			)
-				throw Object.assign(new Error("ROLE_TOOL_OPERATION_DENIED"), {
-					httpStatus: 403,
-				});
+				throw Object.assign(new Error("ROLE_TOOL_OPERATION_DENIED"), { httpStatus: 403 });
 			const deadlineAt = context?.deadlineAt;
-			if (
-				typeof deadlineAt !== "string" ||
-				Number.isNaN(Date.parse(deadlineAt))
-			)
-				throw Object.assign(new Error("DIRECT_TOOL_DEADLINE_REQUIRED"), {
-					httpStatus: 400,
-				});
+			if (typeof deadlineAt !== "string" || Number.isNaN(Date.parse(deadlineAt)))
+				throw Object.assign(new Error("DIRECT_TOOL_DEADLINE_REQUIRED"), { httpStatus: 400 });
 			const connection = await resolveLocalToolConnection?.();
 			if (!connection)
-				throw Object.assign(new Error("LOCAL_TOOL_BRIDGE_UNAVAILABLE"), {
-					httpStatus: 503,
-				});
+				throw Object.assign(new Error("LOCAL_TOOL_BRIDGE_UNAVAILABLE"), { httpStatus: 503 });
 			try {
 				return await createLocalToolBridgeHostClient({
 					endpoint: connection.endpoint,
@@ -1044,8 +956,7 @@ async function constructGraph(
 							? 409
 							: code === "LOCAL_TOOL_SCOPE_DENIED"
 								? 403
-								: code === "LOCAL_TOOL_OFFLINE" ||
-										code === "LOCAL_TOOL_PROVIDER_UNAVAILABLE"
+								: code === "LOCAL_TOOL_OFFLINE" || code === "LOCAL_TOOL_PROVIDER_UNAVAILABLE"
 									? 503
 									: code === "LOCAL_TOOL_COMMAND_FAILED"
 										? 500
@@ -1075,14 +986,10 @@ async function constructGraph(
 			let canonicalTaskInput = input;
 			if (context?.fileMaterializationInputs !== undefined) {
 				if (operationId !== "putTaskDocument")
-					throw Object.assign(
-						new Error("FILE_MATERIALIZATION_UNSUPPORTED_OPERATION"),
-						{ httpStatus: 400 },
-					);
-				const taskMutationIdempotencyKey = string(
-					input.idempotencyKey,
-					"idempotencyKey",
-				);
+					throw Object.assign(new Error("FILE_MATERIALIZATION_UNSUPPORTED_OPERATION"), {
+						httpStatus: 400,
+					});
+				const taskMutationIdempotencyKey = string(input.idempotencyKey, "idempotencyKey");
 				const result = object(
 					await execution.invoke("materializeExternalFiles", {
 						contract: "execution.external-file-materialization",
@@ -1090,26 +997,17 @@ async function constructGraph(
 						callerRef: authenticatedRoleRef,
 						idempotencyKey: `${taskMutationIdempotencyKey}:carrier-file-materialization`,
 						correlationId: taskMutationIdempotencyKey,
-						...(typeof input.taskId === "string"
-							? { taskId: input.taskId }
-							: {}),
+						...(typeof input.taskId === "string" ? { taskId: input.taskId } : {}),
 						roleRef: authenticatedRoleRef,
-						...(canonicalWorkerRef !== undefined
-							? { workerRef: canonicalWorkerRef }
-							: {}),
+						...(canonicalWorkerRef !== undefined ? { workerRef: canonicalWorkerRef } : {}),
 						files: context.fileMaterializationInputs,
 					}),
 					"carrier file materialization result",
 				);
 				if (!Array.isArray(result.files) || result.files.length !== 1)
-					throw Object.assign(new Error("FILE_MATERIALIZATION_COUNT_INVALID"), {
-						httpStatus: 400,
-					});
+					throw Object.assign(new Error("FILE_MATERIALIZATION_COUNT_INVALID"), { httpStatus: 400 });
 				const file = object(result.files[0], "materialized carrier file");
-				const content = string(
-					file.content,
-					"materialized carrier file content",
-				);
+				const content = string(file.content, "materialized carrier file content");
 				canonicalTaskInput = { ...input, content };
 			}
 			const taskResult = await taskOperation(
@@ -1117,10 +1015,7 @@ async function constructGraph(
 					? canonicalTaskInput
 					: { ...canonicalTaskInput, actorRef },
 			);
-			if (
-				taskMutationOperations.has(operationId) &&
-				typeof input.taskId === "string"
-			)
+			if (taskMutationOperations.has(operationId) && typeof input.taskId === "string")
 				reconciliationCoordinator?.kick(input.taskId);
 			if (operationId === "getTaskDocument")
 				return fileBridgeOutputForTaskResult(taskResult);
@@ -1135,10 +1030,7 @@ async function constructGraph(
 					(candidate) => candidate.roleRef === roleRef,
 				);
 				return binding?.workerRef
-					? {
-							workerRef: binding.workerRef,
-							conversationLocator: binding.conversationLocator,
-						}
+					? { workerRef: binding.workerRef, conversationLocator: binding.conversationLocator }
 					: null;
 			},
 			async bindWorker(binding: {
@@ -1147,12 +1039,8 @@ async function constructGraph(
 				workerRef: string;
 				conversationLocator: string;
 			}) {
-				const current = unwrap(
-					task.queries.getTask({ taskId: binding.taskId }),
-				);
-				const declared = current.roleBindings.find(
-					(item) => item.roleRef === binding.roleRef,
-				);
+				const current = unwrap(task.queries.getTask({ taskId: binding.taskId }));
+				const declared = current.roleBindings.find((item) => item.roleRef === binding.roleRef);
 				if (!declared) throw new Error("AGENT_PACKAGE_NOT_ELIGIBLE");
 				if (declared.workerRef === binding.workerRef) return;
 				if (declared.workerRef) throw new Error("TASK_ROLE_BINDING_CONFLICT");
@@ -1173,22 +1061,15 @@ async function constructGraph(
 		}),
 		agent: Object.freeze({
 			async listPendingMessages(limit: number) {
-				const messages = await agent.listPendingCollaborationMessages({
-					limit,
-				});
+				const messages = await agent.listPendingCollaborationMessages({ limit });
 				return messages
 					.filter((message) => message.lastDeliveryErrorCode !== "UNKNOWN")
 					.map((message) => ({ ...message, status: "PENDING" as const }));
 			},
 			async getPendingMessage(messageRef: string) {
-				const message = agent.getCollaborationMessage({
-					messageId: messageRef,
-				});
-				if (message.status !== "PENDING")
-					throw new Error("COLLABORATION_MESSAGE_NOT_PENDING");
-				// A terminal Task must never re-enter the physical Browser delivery path.
-				if (taskIsTerminal(taskFacts(message.taskId).status))
-					throw new Error("TASK_TERMINAL");
+				const message = agent.getCollaborationMessage({ messageId: messageRef });
+				if (message.status !== "PENDING") throw new Error("COLLABORATION_MESSAGE_NOT_PENDING");
+				if (taskIsTerminal(taskFacts(message.taskId).status)) throw new Error("TASK_TERMINAL");
 				return { ...message, status: "PENDING" as const };
 			},
 			async reportDeliveryOutcome(input: {
@@ -1198,9 +1079,7 @@ async function constructGraph(
 				evidenceRef?: string;
 				errorCode?: string;
 			}) {
-				const message = agent.getCollaborationMessage({
-					messageId: input.messageRef,
-				});
+				const message = agent.getCollaborationMessage({ messageId: input.messageRef });
 				if (message.status === "DELIVERED") return;
 				await agent.reportCollaborationDelivery({
 					messageId: message.messageId,
@@ -1216,133 +1095,105 @@ async function constructGraph(
 		}),
 	});
 
-	const authorizeExecution: PlatformHostExecutionIdentityPort["authorize"] =
-		async (request) => {
-			try {
-				const browserCapability =
-					request.capability === "worker.create" ||
-					request.capability === "worker.restore" ||
-					request.capability === "worker.wake" ||
-					request.capability === "collaboration.deliver";
-				const internalBrowserCaller =
-					request.callerRef === "platform-host:carrier-controller" ||
-					request.callerRef === "platform-host:task-reconciliation" ||
-					request.callerRef === "extension:collaboration-carrier";
-				if (!internalBrowserCaller) agent.getRegisteredRole(request.callerRef);
-				if (
-					request.roleRef &&
-					!internalBrowserCaller &&
-					request.roleRef !== request.callerRef
-				)
+	const authorizeExecution: PlatformHostExecutionIdentityPort["authorize"] = async (request) => {
+		try {
+			const browserCapability =
+				request.capability === "worker.create" ||
+				request.capability === "worker.restore" ||
+				request.capability === "worker.wake" ||
+				request.capability === "collaboration.deliver";
+			const internalBrowserCaller =
+				request.callerRef === "platform-host:carrier-controller" ||
+				request.callerRef === "platform-host:task-reconciliation" ||
+				request.callerRef === "extension:collaboration-carrier";
+			if (!internalBrowserCaller) agent.getRegisteredRole(request.callerRef);
+			if (request.roleRef && !internalBrowserCaller && request.roleRef !== request.callerRef)
+				return false;
+			if (request.projectRoot && resolve(request.projectRoot) !== config.workspaceRoot)
+				return false;
+			const nodeScoped = request.nodeId !== undefined || request.runNo !== undefined;
+			if (nodeScoped && (request.nodeId === undefined || request.runNo === undefined))
+				return false;
+			if (nodeScoped && !request.taskId) return false;
+			if (request.workerRef && !request.taskId) return false;
+			if (internalBrowserCaller && (!browserCapability || !request.taskId)) return false;
+			if (browserCapability && !request.taskId) return false;
+			if (request.taskId) {
+				const taskFact = taskFacts(request.taskId);
+				if (request.capability === "collaboration.deliver" && taskIsTerminal(taskFact.status))
 					return false;
-				if (
-					request.projectRoot &&
-					resolve(request.projectRoot) !== config.workspaceRoot
-				)
-					return false;
-				const nodeScoped =
-					request.nodeId !== undefined || request.runNo !== undefined;
-				if (
-					nodeScoped &&
-					(request.nodeId === undefined || request.runNo === undefined)
-				)
-					return false;
-				if (nodeScoped && !request.taskId) return false;
-				if (request.workerRef && !request.taskId) return false;
-				if (internalBrowserCaller && (!browserCapability || !request.taskId))
-					return false;
-				if (browserCapability && !request.taskId) return false;
-				if (request.taskId) {
-					const taskFact = taskFacts(request.taskId);
-					if (
-						request.capability === "collaboration.deliver" &&
-						taskIsTerminal(taskFact.status)
-					)
-						return false;
-					if (request.workerRef && !internalBrowserCaller)
-						await agent.validateWorker({
-							authenticatedRoleRef: request.callerRef,
-							taskId: request.taskId,
-							workerRef: request.workerRef,
-						});
-					if (request.nodeId) {
-						const nodeContext = unwrap(
-							task.queries.getNodeContext({
-								taskId: request.taskId,
-								nodeId: request.nodeId,
-							}),
-						);
-						if (taskFact.status !== "ACTIVE") return false;
-						if (taskFact.currentNodeId !== nodeContext.node.nodeId)
+				if (request.workerRef && !internalBrowserCaller)
+					await agent.validateWorker({
+						authenticatedRoleRef: request.callerRef,
+						taskId: request.taskId,
+						workerRef: request.workerRef,
+					});
+				if (request.nodeId) {
+					const nodeContext = unwrap(
+						task.queries.getNodeContext({ taskId: request.taskId, nodeId: request.nodeId }),
+					);
+					if (taskFact.status !== "ACTIVE") return false;
+					if (taskFact.currentNodeId !== nodeContext.node.nodeId) return false;
+					if (request.runNo !== nodeContext.node.runNo) return false;
+					if (!browserCapability && nodeContext.node.status !== "IN_PROGRESS") return false;
+					const nodeBinding = taskFact.roleBindings.find(
+						(candidate) => candidate.agentPackageRef === nodeContext.node.requiredAgentPackageRef,
+					);
+					if (!nodeBinding?.workerRef) return false;
+					const scopedRoleRef =
+						request.roleRef ?? (internalBrowserCaller ? undefined : request.callerRef);
+					if (scopedRoleRef !== nodeBinding.roleRef) return false;
+					if (request.workerRef !== nodeBinding.workerRef) return false;
+				}
+				const browserInput = object(request.input, "execution input");
+				if (browserCapability) {
+					const targetRoleRef = string(browserInput.roleRef, "input.roleRef");
+					agent.getRegisteredRole(targetRoleRef);
+					const binding = taskFact.roleBindings.find(
+						(candidate) => candidate.roleRef === targetRoleRef,
+					);
+					if (!binding) return false;
+					if (!internalBrowserCaller && targetRoleRef !== request.callerRef) return false;
+					if (request.capability !== "worker.create") {
+						const targetWorkerRef = string(browserInput.workerRef, "input.workerRef");
+						if (binding.workerRef !== targetWorkerRef) return false;
+						if (
+							request.capability === "worker.wake" &&
+							(targetRoleRef !== request.roleRef ||
+								targetWorkerRef !== request.workerRef ||
+								browserInput.taskId !== request.taskId ||
+								browserInput.nodeId !== request.nodeId ||
+								browserInput.runNo !== request.runNo)
+						)
 							return false;
-						if (request.runNo !== nodeContext.node.runNo) return false;
-						if (!browserCapability && nodeContext.node.status !== "IN_PROGRESS")
-							return false;
-						const nodeBinding = taskFact.roleBindings.find(
-							(candidate) =>
-								candidate.agentPackageRef ===
-								nodeContext.node.requiredAgentPackageRef,
-						);
-						if (!nodeBinding?.workerRef) return false;
-						const scopedRoleRef =
-							request.roleRef ??
-							(internalBrowserCaller ? undefined : request.callerRef);
-						if (scopedRoleRef !== nodeBinding.roleRef) return false;
-						if (request.workerRef !== nodeBinding.workerRef) return false;
-					}
-					const browserInput = object(request.input, "execution input");
-					if (browserCapability) {
-						const targetRoleRef = string(browserInput.roleRef, "input.roleRef");
-						agent.getRegisteredRole(targetRoleRef);
-						const binding = taskFact.roleBindings.find(
-							(candidate) => candidate.roleRef === targetRoleRef,
-						);
-						if (!binding) return false;
-						if (!internalBrowserCaller && targetRoleRef !== request.callerRef)
-							return false;
-						if (request.capability !== "worker.create") {
-							const targetWorkerRef = string(
-								browserInput.workerRef,
-								"input.workerRef",
+						if (request.capability === "worker.wake") {
+							const nodeContext = unwrap(
+								task.queries.getNodeContext({
+									taskId: request.taskId,
+									nodeId: string(browserInput.nodeId, "input.nodeId"),
+								}),
 							);
-							if (binding.workerRef !== targetWorkerRef) return false;
-							if (
-								request.capability === "worker.wake" &&
-								(targetRoleRef !== request.roleRef ||
-									targetWorkerRef !== request.workerRef ||
-									browserInput.taskId !== request.taskId ||
-									browserInput.nodeId !== request.nodeId ||
-									browserInput.runNo !== request.runNo)
-							)
-								return false;
-							if (request.capability === "worker.wake") {
-								const nodeContext = unwrap(
-									task.queries.getNodeContext({
-										taskId: request.taskId,
-										nodeId: string(browserInput.nodeId, "input.nodeId"),
-									}),
-								);
-								const trigger = string(browserInput.trigger, "input.trigger");
-								const readyWake =
-									nodeContext.node.status === "READY" &&
-									((trigger === "NODE_READY" && nodeContext.node.runNo === 1) ||
-										(trigger === "REOPEN" && nodeContext.node.runNo > 1));
-								const resumeWake =
-									nodeContext.node.status === "IN_PROGRESS" &&
-									(trigger === "RECOVERY_RESUME" ||
-										trigger === "EXECUTION_RESULT_READY" ||
-										trigger === "TASK_RESUMED" ||
-										trigger === "PEER_REPLY_READY");
-								if (!readyWake && !resumeWake) return false;
-							}
+							const trigger = string(browserInput.trigger, "input.trigger");
+							const readyWake =
+								nodeContext.node.status === "READY" &&
+								((trigger === "NODE_READY" && nodeContext.node.runNo === 1) ||
+									(trigger === "REOPEN" && nodeContext.node.runNo > 1));
+							const resumeWake =
+								nodeContext.node.status === "IN_PROGRESS" &&
+								(trigger === "RECOVERY_RESUME" ||
+									trigger === "EXECUTION_RESULT_READY" ||
+									trigger === "TASK_RESUMED" ||
+									trigger === "PEER_REPLY_READY");
+							if (!readyWake && !resumeWake) return false;
 						}
 					}
 				}
-				return true;
-			} catch {
-				return false;
 			}
-		};
+			return true;
+		} catch {
+			return false;
+		}
+	};
 	const taskDriverPorts: PlatformHostTaskDriverPorts = Object.freeze({
 		async getTask(taskId: string) {
 			const current = unwrap(task.queries.getTask({ taskId }));
@@ -1384,20 +1235,15 @@ async function constructGraph(
 		},
 	});
 	const roleForPackage = (agentPackageRef: string) => {
-		const role = agent
-			.listRegisteredRoles()
-			.find((candidate) => candidate.agentPackageRef === agentPackageRef);
+		const role = agent.listRegisteredRoles().find(
+			(candidate) => candidate.agentPackageRef === agentPackageRef,
+		);
 		if (!role) throw new Error("ROLE_NOT_FOUND");
 		return role;
 	};
 	const browserPermissionRole = (roleRef: string) => {
-		const role = agent
-			.listRegisteredRoles()
-			.find((candidate) => candidate.roleRef === roleRef);
-		if (
-			!role ||
-			!rolePackageRefs.includes(role.agentPackageRef as RolePackageRef)
-		)
+		const role = agent.listRegisteredRoles().find((candidate) => candidate.roleRef === roleRef);
+		if (!role || !rolePackageRefs.includes(role.agentPackageRef as RolePackageRef))
 			return null;
 		return { ...role, agentPackageRef: role.agentPackageRef as RolePackageRef };
 	};
@@ -1460,9 +1306,7 @@ async function constructGraph(
 			)
 				return null;
 			const facts = object(value.facts, "agent gateway facts");
-			return typeof facts.publicBaseUrl === "string"
-				? facts.publicBaseUrl
-				: null;
+			return typeof facts.publicBaseUrl === "string" ? facts.publicBaseUrl : null;
 		} catch {
 			return null;
 		}
@@ -1481,23 +1325,15 @@ async function constructGraph(
 			if (operation === "role.validate") {
 				const doctor = agent.doctorRoleStore();
 				const issuePrefix = `${role.roleRef}`;
-				const issues = doctor.issues.filter((issue) =>
-					issue.includes(issuePrefix),
-				);
+				const issues = doctor.issues.filter((issue) => issue.includes(issuePrefix));
 				if (role.carrierUrl !== `https://chatgpt.com/g/${role.roleRef}`)
 					issues.push(`ROLE_CARRIER_URL_MISMATCH:${role.roleRef}`);
-				const expectedPackageVersion = Reflect.get(
-					value,
-					"expectedPackageVersion",
-				);
+				const expectedPackageVersion = Reflect.get(value, "expectedPackageVersion");
 				if (
 					expectedPackageVersion !== undefined &&
-					(typeof expectedPackageVersion !== "string" ||
-						expectedPackageVersion.length === 0)
+					(typeof expectedPackageVersion !== "string" || expectedPackageVersion.length === 0)
 				)
-					throw new TypeError(
-						"expectedPackageVersion must be a non-empty string",
-					);
+					throw new TypeError("expectedPackageVersion must be a non-empty string");
 				if (
 					typeof expectedPackageVersion === "string" &&
 					role.registeredPackageVersion !== expectedPackageVersion
@@ -1505,20 +1341,14 @@ async function constructGraph(
 					issues.push(
 						`ROLE_PACKAGE_VERSION_DRIFT:${role.roleRef}:${role.registeredPackageVersion}:${expectedPackageVersion}`,
 					);
-				return {
-					status: issues.length === 0 ? "PASS" : "FAIL",
-					role,
-					issues,
-				};
+				return { status: issues.length === 0 ? "PASS" : "FAIL", role, issues };
 			}
 			if (operation === "role.delete") {
 				await agent.deleteRole(role.roleRef);
 				return { deleted: true, roleRef: role.roleRef };
 			}
-			if (operation === "role.key.show")
-				return agent.showCredential(role.roleRef);
-			if (operation === "role.key.rotate")
-				return agent.rotateCredential(role.roleRef);
+			if (operation === "role.key.show") return agent.showCredential(role.roleRef);
+			if (operation === "role.key.rotate") return agent.rotateCredential(role.roleRef);
 			throw new Error("UNSUPPORTED_ROLE_MANAGEMENT_OPERATION");
 		},
 	});
@@ -1553,9 +1383,7 @@ async function constructGraph(
 				"worker create execution",
 			);
 			if (executionRecord.status !== "SUCCEEDED")
-				throw new Error(
-					`WORKER_CREATE_NOT_CONFIRMED:${String(executionRecord.status)}`,
-				);
+				throw new Error(`WORKER_CREATE_NOT_CONFIRMED:${String(executionRecord.status)}`);
 			current = unwrap(task.queries.getTask({ taskId }));
 			const persisted = current.roleBindings.find(
 				(candidate) => candidate.agentPackageRef === agentPackageRef,
@@ -1563,35 +1391,17 @@ async function constructGraph(
 			if (!persisted?.workerRef || !persisted.conversationLocator)
 				throw new Error("WORKER_CREATE_BINDING_NOT_PERSISTED");
 		};
-		// Dispatch all three fixed Workers concurrently. When `waitFor` names a
-		// subset of roleRefs (the J1 Product path), only those results gate the
-		// return; the remaining Worker creation is a durable, idempotent Execution
-		// effect whose completion backend reconciliation recovers from the
-		// durable Task binding facts — never a bare in-memory promise.
 		const waitFor = new Set(options?.waitFor ?? []);
 		const shouldWait = (agentPackageRef: string) =>
-			waitFor.size === 0 ||
-			waitFor.has(roleForPackage(agentPackageRef).roleRef);
+			waitFor.size === 0 || waitFor.has(roleForPackage(agentPackageRef).roleRef);
 		const pending = rolePackageRefs.map((agentPackageRef) => ({
 			agentPackageRef,
 			promise: provision(agentPackageRef),
 		}));
-		const awaited = pending.filter((entry) =>
-			shouldWait(entry.agentPackageRef),
-		);
-		const deferred = pending.filter(
-			(entry) => !shouldWait(entry.agentPackageRef),
-		);
-		for (const entry of deferred) {
-			entry.promise.catch(() => {
-				// Deferred Worker creation failure is recoverable: the durable
-				// binding stays unset, so a later backend reconciliation pass re-provisions
-				// only the missing role.
-			});
-		}
-		const results = await Promise.allSettled(
-			awaited.map((entry) => entry.promise),
-		);
+		const awaited = pending.filter((entry) => shouldWait(entry.agentPackageRef));
+		const deferred = pending.filter((entry) => !shouldWait(entry.agentPackageRef));
+		for (const entry of deferred) entry.promise.catch(() => {});
+		const results = await Promise.allSettled(awaited.map((entry) => entry.promise));
 		const failure = results.find(
 			(result): result is PromiseRejectedResult => result.status === "rejected",
 		);
@@ -1634,10 +1444,7 @@ async function constructGraph(
 			}),
 			"task reconciliation wake execution",
 		);
-		if (
-			wakeExecution.status !== "SUCCEEDED" ||
-			wakeExecution.sideEffectState !== "APPLIED"
-		)
+		if (wakeExecution.status !== "SUCCEEDED" || wakeExecution.sideEffectState !== "APPLIED")
 			throw new Error(
 				`TASK_WAKE_NOT_CONFIRMED:${String(wakeExecution.status)}:${String(wakeExecution.sideEffectState)}`,
 			);
@@ -1646,14 +1453,7 @@ async function constructGraph(
 	reconciliationCoordinator = createReconciliationCoordinator({
 		async listTaskPage(input) {
 			return taskStore.listReconciliationTaskIds({
-				statuses: [
-					"PENDING",
-					"READY",
-					"ACTIVE",
-					"WAITING",
-					"FAILED",
-					"PAUSED",
-				],
+				statuses: ["PENDING", "READY", "ACTIVE", "WAITING", "FAILED", "PAUSED"],
 				...input,
 			});
 		},
@@ -1668,9 +1468,7 @@ async function constructGraph(
 			return Array.isArray(batch.signals) ? batch.signals : [];
 		},
 		async acknowledgeExecutionSignal(signalRef) {
-			await execution.invoke("acknowledgeExecutionObserverSignal", {
-				signalRef,
-			});
+			await execution.invoke("acknowledgeExecutionObserverSignal", { signalRef });
 		},
 		async ensureWorkers(taskId) {
 			await ensureTaskWorkers(taskId);
@@ -1685,9 +1483,7 @@ async function constructGraph(
 				const idempotencyKey = string(value.idempotencyKey, "idempotencyKey");
 				const created = unwrap(
 					task.commands.createTask({
-						...(typeof value.taskId === "string"
-							? { taskId: value.taskId }
-							: {}),
+						...(typeof value.taskId === "string" ? { taskId: value.taskId } : {}),
 						title: string(value.title, "title"),
 						objective: string(value.objective, "objective"),
 						plan: object(value.plan, "plan"),
@@ -1707,9 +1503,6 @@ async function constructGraph(
 						idempotencyKey,
 					}),
 				);
-				// J1: return once the Product Worker is durably bound; Dev/Test
-				// continue as recoverable durable effects without blocking Product
-				// requirement discussion.
 				const provisioned = await ensureTaskWorkers(created.taskId, {
 					waitFor: [roleForPackage("@tomflow/proflow-agent-product").roleRef],
 				});
@@ -1719,15 +1512,11 @@ async function constructGraph(
 			if (operation === "task.list")
 				return unwrap(
 					task.queries.listTasks({
-						...(Array.isArray(value.statuses)
-							? { statuses: value.statuses }
-							: {}),
+						...(Array.isArray(value.statuses) ? { statuses: value.statuses } : {}),
 					}),
 				);
 			if (operation === "task.get")
-				return unwrap(
-					task.queries.getTask({ taskId: string(value.taskId, "taskId") }),
-				);
+				return unwrap(task.queries.getTask({ taskId: string(value.taskId, "taskId") }));
 			if (operation === "task.start") {
 				const taskId = string(value.taskId, "taskId");
 				const result = unwrap(
@@ -1745,9 +1534,7 @@ async function constructGraph(
 				return unwrap(
 					task.commands.acknowledgeMessage({
 						messageId: string(value.messageId, "messageId"),
-						...(typeof value.resolution === "string"
-							? { resolution: value.resolution }
-							: {}),
+						...(typeof value.resolution === "string" ? { resolution: value.resolution } : {}),
 						actorRef: "extension:human",
 						idempotencyKey: string(value.idempotencyKey, "idempotencyKey"),
 					}),
@@ -1757,10 +1544,7 @@ async function constructGraph(
 				const result = unwrap(
 					task.commands.resumeTask({
 						taskId,
-						expectedTaskVersion: positiveInteger(
-							value.expectedTaskVersion,
-							"expectedTaskVersion",
-						),
+						expectedTaskVersion: positiveInteger(value.expectedTaskVersion, "expectedTaskVersion"),
 						actorRef: "extension:human",
 						idempotencyKey: string(value.idempotencyKey, "idempotencyKey"),
 					}),
@@ -1874,32 +1658,29 @@ async function constructGraph(
 			}
 			if (operation === "browser.permission.classify") {
 				const roleRef = string(value.roleRef, "roleRef");
-				const taskId = string(value.taskId, "taskId");
+				const taskId = typeof value.taskId === "string" ? value.taskId : undefined;
 				const operationId = string(value.operationId, "operationId");
-				const conversationLocator = string(
-					value.conversationLocator,
-					"conversationLocator",
-				);
-				const workerRef =
-					typeof value.workerRef === "string" ? value.workerRef : null;
+				const conversationLocator = string(value.conversationLocator, "conversationLocator");
+				const workerRef = typeof value.workerRef === "string" ? value.workerRef : null;
 				const role = browserPermissionRole(roleRef);
 				if (!role)
-					return {
-						decision: "HUMAN_REQUIRED",
-						reason: "ROLE_VALIDATION_MISMATCH",
-					};
-				let taskBinding = null;
-				try {
-					const current = unwrap(task.queries.getTask({ taskId }));
-					taskBinding =
-						current.roleBindings.find(
-							(candidate) =>
-								candidate.roleRef === roleRef &&
-								candidate.agentPackageRef === role.agentPackageRef,
-						) ?? null;
-				} catch {
-					taskBinding = null;
-				}
+					return { decision: "HUMAN_REQUIRED", reason: "ROLE_VALIDATION_MISMATCH" };
+				const taskBinding = resolveBrowserPermissionTaskBinding({
+					...(taskId === undefined ? {} : { taskId }),
+					agentPackageRef: role.agentPackageRef,
+					roleRef,
+					workerRef,
+					conversationLocator,
+					listTaskIds: () =>
+						unwrap(task.queries.listTasks({})).tasks.map((summary) => summary.taskId),
+					getRoleBindings: (candidateTaskId) => {
+						try {
+							return unwrap(task.queries.getTask({ taskId: candidateTaskId })).roleBindings;
+						} catch {
+							return null;
+						}
+					},
+				});
 				const [validation, currentGatewayUrl] = await Promise.all([
 					roleCarrierValidation(role.agentPackageRef),
 					currentAgentGatewayUrl(),
@@ -1924,10 +1705,7 @@ async function constructGraph(
 					taskId: string(value.taskId, "taskId"),
 					roleRef: string(value.roleRef, "roleRef"),
 					workerRef: string(value.workerRef, "workerRef"),
-					conversationLocator: string(
-						value.conversationLocator,
-						"conversationLocator",
-					),
+					conversationLocator: string(value.conversationLocator, "conversationLocator"),
 				});
 				return { bound: true };
 			}
@@ -1937,18 +1715,11 @@ async function constructGraph(
 					string(value.roleRef, "roleRef"),
 				);
 			if (operation === "collaboration.listPending")
-				return browserOwnerPorts.agent.listPendingMessages(
-					Number(value.limit ?? 50),
-				);
+				return browserOwnerPorts.agent.listPendingMessages(Number(value.limit ?? 50));
 			if (operation === "collaboration.getPending")
-				return browserOwnerPorts.agent.getPendingMessage(
-					string(value.messageRef, "messageRef"),
-				);
+				return browserOwnerPorts.agent.getPendingMessage(string(value.messageRef, "messageRef"));
 			if (operation === "collaboration.execute") {
-				const request = object(
-					value.request,
-					"collaboration execution request",
-				);
+				const request = object(value.request, "collaboration execution request");
 				if (request.capability !== "collaboration.deliver")
 					throw new Error("COLLABORATION_CARRIER_CAPABILITY_DENIED");
 				return execution.invoke("executeCapability", {
@@ -1959,32 +1730,19 @@ async function constructGraph(
 			}
 			if (operation === "collaboration.reportDelivery") {
 				const outcome = string(value.outcome, "outcome");
-				if (
-					outcome !== "DELIVERED" &&
-					outcome !== "FAILED" &&
-					outcome !== "UNKNOWN"
-				)
+				if (outcome !== "DELIVERED" && outcome !== "FAILED" && outcome !== "UNKNOWN")
 					throw new Error("COLLABORATION_DELIVERY_OUTCOME_INVALID");
 				await browserOwnerPorts.agent.reportDeliveryOutcome({
 					messageRef: string(value.messageRef, "messageRef"),
 					outcome,
-					...(typeof value.evidenceRef === "string"
-						? { evidenceRef: value.evidenceRef }
-						: {}),
-					...(typeof value.executionRef === "string"
-						? { executionRef: value.executionRef }
-						: {}),
-					...(typeof value.errorCode === "string"
-						? { errorCode: value.errorCode }
-						: {}),
+					...(typeof value.evidenceRef === "string" ? { evidenceRef: value.evidenceRef } : {}),
+					...(typeof value.executionRef === "string" ? { executionRef: value.executionRef } : {}),
+					...(typeof value.errorCode === "string" ? { errorCode: value.errorCode } : {}),
 				});
 				return { reported: true };
 			}
-
 			if (operation === "system.view")
-				return boundedSystemView(
-					string(value.view, "view") as SystemObserverView,
-				);
+				return boundedSystemView(string(value.view, "view") as SystemObserverView);
 			if (operation === "system.drilldown") {
 				const topic = string(value.topic, "topic");
 				const view = systemViewForTopic(topic);
@@ -2000,22 +1758,14 @@ async function constructGraph(
 			}
 			if (operation === "system.reason") {
 				const assessmentRef = string(value.assessmentRef, "assessmentRef");
-				const observerPayload = object(
-					value.payload,
-					"system observer reason payload",
-				);
+				const observerPayload = object(value.payload, "system observer reason payload");
 				const payloadAssessmentRef = string(
 					observerPayload.assessmentRef,
 					"payload.assessmentRef",
 				);
-				if (payloadAssessmentRef !== assessmentRef) {
+				if (payloadAssessmentRef !== assessmentRef)
 					throw new Error("SYSTEM_OBSERVER_ASSESSMENT_REF_MISMATCH");
-				}
-				const {
-					assessmentRef: _assessmentRef,
-					kind,
-					...modelPayload
-				} = observerPayload;
+				const { assessmentRef: _assessmentRef, kind, ...modelPayload } = observerPayload;
 				const response = object(
 					await model.invoke("infer", {
 						contractVersion: "1.0.0",
@@ -2038,8 +1788,7 @@ async function constructGraph(
 					const code =
 						error.code === "CONTEXT_TOO_LARGE"
 							? "CONTEXT_TOO_LARGE"
-							: error.code === "MODEL_UNAVAILABLE" ||
-									error.code === "CAPABILITY_UNSUPPORTED"
+							: error.code === "MODEL_UNAVAILABLE" || error.code === "CAPABILITY_UNSUPPORTED"
 								? "REASON_UNAVAILABLE"
 								: "REASON_FAILED";
 					return { ok: false, errorCode: code };
@@ -2060,15 +1809,12 @@ async function constructGraph(
 		taskApplication,
 		approvalApplication,
 		observerApplication,
-
 		async lookup(
 			_operationId: string,
 			_authenticatedRoleRef: string,
 			_input: unknown,
 		) {
-			throw Object.assign(new Error("ACTION_RESULT_LOOKUP_UNSUPPORTED"), {
-				httpStatus: 409,
-			});
+			throw Object.assign(new Error("ACTION_RESULT_LOOKUP_UNSUPPORTED"), { httpStatus: 409 });
 		},
 		async readiness() {
 			const diagnostics = taskStore.diagnostics();
@@ -2106,10 +1852,7 @@ async function constructGraph(
 
 async function ensureRoleManagementCredential(stateRoot: string) {
 	const path = join(stateRoot, "agent", "secrets", "role-management.token");
-	await mkdir(join(stateRoot, "agent", "secrets"), {
-		recursive: true,
-		mode: 0o700,
-	});
+	await mkdir(join(stateRoot, "agent", "secrets"), { recursive: true, mode: 0o700 });
 	if (!existsSync(path)) {
 		const generated = randomBytes(32).toString("base64url");
 		try {
@@ -2121,8 +1864,7 @@ async function ensureRoleManagementCredential(stateRoot: string) {
 	await chmod(join(stateRoot, "agent", "secrets"), 0o700);
 	await chmod(path, 0o600);
 	const credential = (await readFile(path, "utf8")).trim();
-	if (credential.length < 32)
-		throw new Error("ROLE_MANAGEMENT_CREDENTIAL_INVALID");
+	if (credential.length < 32) throw new Error("ROLE_MANAGEMENT_CREDENTIAL_INVALID");
 	return credential;
 }
 
@@ -2141,8 +1883,7 @@ async function ensureExecutionIdentityCredential(stateRoot: string) {
 	await chmod(directory, 0o700);
 	await chmod(path, 0o600);
 	const credential = (await readFile(path, "utf8")).trim();
-	if (credential.length < 32)
-		throw new Error("EXECUTION_IDENTITY_CREDENTIAL_INVALID");
+	if (credential.length < 32) throw new Error("EXECUTION_IDENTITY_CREDENTIAL_INVALID");
 	return credential;
 }
 
@@ -2161,8 +1902,7 @@ async function ensureApprovalApplicationCredential(stateRoot: string) {
 	await chmod(directory, 0o700);
 	await chmod(path, 0o600);
 	const credential = (await readFile(path, "utf8")).trim();
-	if (credential.length < 32)
-		throw new Error("APPROVAL_APPLICATION_CREDENTIAL_INVALID");
+	if (credential.length < 32) throw new Error("APPROVAL_APPLICATION_CREDENTIAL_INVALID");
 	return credential;
 }
 
@@ -2181,8 +1921,7 @@ async function ensureTaskApplicationCredential(stateRoot: string) {
 	await chmod(directory, 0o700);
 	await chmod(path, 0o600);
 	const credential = (await readFile(path, "utf8")).trim();
-	if (credential.length < 32)
-		throw new Error("TASK_APPLICATION_CREDENTIAL_INVALID");
+	if (credential.length < 32) throw new Error("TASK_APPLICATION_CREDENTIAL_INVALID");
 	return credential;
 }
 
@@ -2194,8 +1933,7 @@ async function readPrivateTransportCredential(
 	if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
 		throw new Error(`${name}_TRANSPORT_CREDENTIAL_PERMISSIONS_INVALID`);
 	const credential = (await readFile(file, "utf8")).trim();
-	if (credential.length < 32)
-		throw new Error(`${name}_TRANSPORT_CREDENTIAL_INVALID`);
+	if (credential.length < 32) throw new Error(`${name}_TRANSPORT_CREDENTIAL_INVALID`);
 	return credential;
 }
 async function readGatewayTransportCredential(file: string) {
@@ -2208,10 +1946,7 @@ async function readExecutionTransportCredential(file: string) {
 	return readPrivateTransportCredential(file, "EXECUTION");
 }
 
-function managementCredentialMatches(
-	header: string | undefined,
-	expected: string,
-) {
+function managementCredentialMatches(header: string | undefined, expected: string) {
 	if (!header?.startsWith("Bearer ")) return false;
 	const supplied = Buffer.from(header.slice("Bearer ".length));
 	const target = Buffer.from(expected);
@@ -2226,9 +1961,7 @@ export function createPlatformHost(input: {
 	resolveLocalToolConnection?: LocalToolConnectionResolver;
 }) {
 	if (input.executionCredential && input.executionCredential.length < 32)
-		throw new TypeError(
-			"execution credential must contain at least 32 characters",
-		);
+		throw new TypeError("execution credential must contain at least 32 characters");
 	let lifecycle: PlatformHostStatus["process"] = "STOPPED";
 	let accepting = false;
 	let graph: Graph | undefined;
@@ -2251,26 +1984,18 @@ export function createPlatformHost(input: {
 	const stoppedDependencies = (): PlatformHostStatus["dependencies"] => ({
 		task: { owner: "task", status: "NOT_READY", liveness: "DOWN" },
 		agent: { owner: "agent", status: "NOT_READY", liveness: "DOWN" },
-		execution: {
-			owner: "execution",
-			status: "NOT_READY",
-			liveness: "DOWN",
-		},
+		execution: { owner: "execution", status: "NOT_READY", liveness: "DOWN" },
 		model: { owner: "model", status: "NOT_READY", liveness: "DOWN" },
 	});
 	const status = async (): Promise<PlatformHostStatus> => {
-		const dependencies = graph
-			? await graph.readiness()
-			: stoppedDependencies();
+		const dependencies = graph ? await graph.readiness() : stoppedDependencies();
 		return {
 			process: lifecycle,
 			liveness: lifecycle === "STOPPED" ? "DOWN" : "UP",
 			transport: server ? "UP" : "DOWN",
 			readiness:
 				accepting &&
-				[dependencies.task, dependencies.agent].every(
-					(item) => item.status === "READY",
-				)
+				[dependencies.task, dependencies.agent].every((item) => item.status === "READY")
 					? "READY"
 					: "NOT_READY",
 			accepting,
@@ -2353,37 +2078,21 @@ export function createPlatformHost(input: {
 		response.end(JSON.stringify(value));
 	};
 	const start = async () => {
-		if (lifecycle !== "STOPPED")
-			throw new Error("platform-host is not stopped");
+		if (lifecycle !== "STOPPED") throw new Error("platform-host is not stopped");
 		lifecycle = "STARTING";
 		try {
-			roleManagementCredential = await ensureRoleManagementCredential(
-				input.config.stateRoot,
-			);
-			taskApplicationCredential = await ensureTaskApplicationCredential(
-				input.config.stateRoot,
-			);
-			approvalApplicationCredential = await ensureApprovalApplicationCredential(
-				input.config.stateRoot,
-			);
-			executionIdentityCredential = await ensureExecutionIdentityCredential(
-				input.config.stateRoot,
-			);
+			roleManagementCredential = await ensureRoleManagementCredential(input.config.stateRoot);
+			taskApplicationCredential = await ensureTaskApplicationCredential(input.config.stateRoot);
+			approvalApplicationCredential = await ensureApprovalApplicationCredential(input.config.stateRoot);
+			executionIdentityCredential = await ensureExecutionIdentityCredential(input.config.stateRoot);
 			gatewayTransportCredential = input.config.gatewayTransportCredentialFile
-				? await readGatewayTransportCredential(
-						input.config.gatewayTransportCredentialFile,
-					)
+				? await readGatewayTransportCredential(input.config.gatewayTransportCredentialFile)
 				: undefined;
 			modelTransportCredential = input.config.modelTransportCredentialFile
-				? await readModelTransportCredential(
-						input.config.modelTransportCredentialFile,
-					)
+				? await readModelTransportCredential(input.config.modelTransportCredentialFile)
 				: undefined;
-			executionTransportCredential = input.config
-				.executionTransportCredentialFile
-				? await readExecutionTransportCredential(
-						input.config.executionTransportCredentialFile,
-					)
+			executionTransportCredential = input.config.executionTransportCredentialFile
+				? await readExecutionTransportCredential(input.config.executionTransportCredentialFile)
 				: input.executionCredential;
 			log("DEPENDENCY_INITIALIZATION_STARTED", {
 				order: ["task", "agent", "execution-client", "model-client"],
@@ -2404,11 +2113,7 @@ export function createPlatformHost(input: {
 						});
 					if (request.method === "GET" && url.pathname === "/ready") {
 						const current = await status();
-						return respond(
-							response,
-							current.readiness === "READY" ? 200 : 503,
-							current,
-						);
+						return respond(response, current.readiness === "READY" ? 200 : 503, current);
 					}
 					if (!accepting || !graph)
 						return respond(response, 503, { error: "SERVICE_DRAINING" });
@@ -2424,9 +2129,7 @@ export function createPlatformHost(input: {
 									executionIdentityCredential,
 								)
 							)
-								return respond(response, 401, {
-									error: "EXECUTION_IDENTITY_AUTH_FAILED",
-								});
+								return respond(response, 401, { error: "EXECUTION_IDENTITY_AUTH_FAILED" });
 							return respond(response, 200, { ready: true });
 						}
 						if (
@@ -2440,14 +2143,10 @@ export function createPlatformHost(input: {
 									executionIdentityCredential,
 								)
 							)
-								return respond(response, 401, {
-									error: "EXECUTION_IDENTITY_AUTH_FAILED",
-								});
+								return respond(response, 401, { error: "EXECUTION_IDENTITY_AUTH_FAILED" });
 							const chunks: Buffer[] = [];
 							for await (const chunk of request)
-								chunks.push(
-									Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
-								);
+								chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
 							const body = object(
 								JSON.parse(Buffer.concat(chunks).toString("utf8")),
 								"execution identity request",
@@ -2469,18 +2168,13 @@ export function createPlatformHost(input: {
 									approvalApplicationCredential,
 								)
 							)
-								return respond(response, 401, {
-									error: "APPROVAL_APPLICATION_AUTH_FAILED",
-								});
+								return respond(response, 401, { error: "APPROVAL_APPLICATION_AUTH_FAILED" });
 							const chunks: Buffer[] = [];
 							let bytes = 0;
 							for await (const chunk of request) {
-								const buffer = Buffer.isBuffer(chunk)
-									? chunk
-									: Buffer.from(chunk);
+								const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
 								bytes += buffer.byteLength;
-								if (bytes > 262_144)
-									throw new TypeError("REQUEST_BODY_TOO_LARGE");
+								if (bytes > 262_144) throw new TypeError("REQUEST_BODY_TOO_LARGE");
 								chunks.push(buffer);
 							}
 							const body = object(
@@ -2495,15 +2189,11 @@ export function createPlatformHost(input: {
 								return respond(response, 200, result);
 							} catch (error) {
 								return respond(response, 400, {
-									error:
-										error instanceof Error ? error.message : "INVALID_REQUEST",
+									error: error instanceof Error ? error.message : "INVALID_REQUEST",
 								});
 							}
 						}
-						if (
-							request.method === "POST" &&
-							url.pathname === "/application/log"
-						) {
+						if (request.method === "POST" && url.pathname === "/application/log") {
 							if (
 								!taskApplicationCredential ||
 								!managementCredentialMatches(
@@ -2511,18 +2201,13 @@ export function createPlatformHost(input: {
 									taskApplicationCredential,
 								)
 							)
-								return respond(response, 401, {
-									error: "BROWSER_LOG_AUTH_FAILED",
-								});
+								return respond(response, 401, { error: "BROWSER_LOG_AUTH_FAILED" });
 							const chunks: Buffer[] = [];
 							let bytes = 0;
 							for await (const chunk of request) {
-								const buffer = Buffer.isBuffer(chunk)
-									? chunk
-									: Buffer.from(chunk);
+								const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
 								bytes += buffer.byteLength;
-								if (bytes > 32_768)
-									throw new TypeError("REQUEST_BODY_TOO_LARGE");
+								if (bytes > 32_768) throw new TypeError("REQUEST_BODY_TOO_LARGE");
 								chunks.push(buffer);
 							}
 							try {
@@ -2544,17 +2229,11 @@ export function createPlatformHost(input: {
 								return respond(response, 200, { accepted: true });
 							} catch (error) {
 								return respond(response, 400, {
-									error:
-										error instanceof Error
-											? error.message
-											: "INVALID_LOG_ENTRY",
+									error: error instanceof Error ? error.message : "INVALID_LOG_ENTRY",
 								});
 							}
 						}
-						if (
-							request.method === "POST" &&
-							url.pathname === "/application/observer"
-						) {
+						if (request.method === "POST" && url.pathname === "/application/observer") {
 							if (
 								!taskApplicationCredential ||
 								!managementCredentialMatches(
@@ -2562,18 +2241,13 @@ export function createPlatformHost(input: {
 									taskApplicationCredential,
 								)
 							)
-								return respond(response, 401, {
-									error: "OBSERVER_APPLICATION_AUTH_FAILED",
-								});
+								return respond(response, 401, { error: "OBSERVER_APPLICATION_AUTH_FAILED" });
 							const chunks: Buffer[] = [];
 							let bytes = 0;
 							for await (const chunk of request) {
-								const buffer = Buffer.isBuffer(chunk)
-									? chunk
-									: Buffer.from(chunk);
+								const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
 								bytes += buffer.byteLength;
-								if (bytes > 262_144)
-									throw new TypeError("REQUEST_BODY_TOO_LARGE");
+								if (bytes > 262_144) throw new TypeError("REQUEST_BODY_TOO_LARGE");
 								chunks.push(buffer);
 							}
 							const body = object(
@@ -2588,15 +2262,11 @@ export function createPlatformHost(input: {
 								return respond(response, 200, result);
 							} catch (error) {
 								return respond(response, 400, {
-									error:
-										error instanceof Error ? error.message : "INVALID_REQUEST",
+									error: error instanceof Error ? error.message : "INVALID_REQUEST",
 								});
 							}
 						}
-						if (
-							request.method === "POST" &&
-							url.pathname === "/application/task"
-						) {
+						if (request.method === "POST" && url.pathname === "/application/task") {
 							if (
 								!taskApplicationCredential ||
 								!managementCredentialMatches(
@@ -2604,18 +2274,13 @@ export function createPlatformHost(input: {
 									taskApplicationCredential,
 								)
 							)
-								return respond(response, 401, {
-									error: "TASK_APPLICATION_AUTH_FAILED",
-								});
+								return respond(response, 401, { error: "TASK_APPLICATION_AUTH_FAILED" });
 							const chunks: Buffer[] = [];
 							let bytes = 0;
 							for await (const chunk of request) {
-								const buffer = Buffer.isBuffer(chunk)
-									? chunk
-									: Buffer.from(chunk);
+								const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
 								bytes += buffer.byteLength;
-								if (bytes > 262_144)
-									throw new TypeError("REQUEST_BODY_TOO_LARGE");
+								if (bytes > 262_144) throw new TypeError("REQUEST_BODY_TOO_LARGE");
 								chunks.push(buffer);
 							}
 							const body = object(
@@ -2630,15 +2295,11 @@ export function createPlatformHost(input: {
 								return respond(response, 200, result);
 							} catch (error) {
 								return respond(response, 400, {
-									error:
-										error instanceof Error ? error.message : "INVALID_REQUEST",
+									error: error instanceof Error ? error.message : "INVALID_REQUEST",
 								});
 							}
 						}
-						if (
-							request.method === "POST" &&
-							url.pathname === "/management/agent"
-						) {
+						if (request.method === "POST" && url.pathname === "/management/agent") {
 							if (
 								!roleManagementCredential ||
 								!managementCredentialMatches(
@@ -2646,18 +2307,13 @@ export function createPlatformHost(input: {
 									roleManagementCredential,
 								)
 							)
-								return respond(response, 401, {
-									error: "MANAGEMENT_AUTH_FAILED",
-								});
+								return respond(response, 401, { error: "MANAGEMENT_AUTH_FAILED" });
 							const chunks: Buffer[] = [];
 							let bytes = 0;
 							for await (const chunk of request) {
-								const buffer = Buffer.isBuffer(chunk)
-									? chunk
-									: Buffer.from(chunk);
+								const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
 								bytes += buffer.byteLength;
-								if (bytes > 65_536)
-									throw new TypeError("REQUEST_BODY_TOO_LARGE");
+								if (bytes > 65_536) throw new TypeError("REQUEST_BODY_TOO_LARGE");
 								chunks.push(buffer);
 							}
 							const body = object(
@@ -2666,10 +2322,7 @@ export function createPlatformHost(input: {
 							);
 							const operation = string(body.operation, "operation");
 							try {
-								const result = await graph.roleManagement.invoke(
-									operation,
-									body.input ?? {},
-								);
+								const result = await graph.roleManagement.invoke(operation, body.input ?? {});
 								return respond(response, 200, result);
 							} catch (error) {
 								const code =
@@ -2686,10 +2339,7 @@ export function createPlatformHost(input: {
 								});
 							}
 						}
-						if (
-							request.method !== "POST" ||
-							!url.pathname.startsWith("/actions/")
-						)
+						if (request.method !== "POST" || !url.pathname.startsWith("/actions/"))
 							return respond(response, 404, { error: "NOT_FOUND" });
 						if (
 							gatewayTransportCredential &&
@@ -2698,71 +2348,42 @@ export function createPlatformHost(input: {
 								gatewayTransportCredential,
 							)
 						)
-							return respond(response, 401, {
-								error: "GATEWAY_TRANSPORT_AUTH_FAILED",
-							});
+							return respond(response, 401, { error: "GATEWAY_TRANSPORT_AUTH_FAILED" });
 						const chunks: Buffer[] = [];
 						let bytes = 0;
 						for await (const chunk of request) {
-							const buffer = Buffer.isBuffer(chunk)
-								? chunk
-								: Buffer.from(chunk);
+							const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
 							bytes += buffer.byteLength;
-							if (bytes > 1_048_576)
-								throw new TypeError("REQUEST_BODY_TOO_LARGE");
+							if (bytes > 1_048_576) throw new TypeError("REQUEST_BODY_TOO_LARGE");
 							chunks.push(buffer);
 						}
 						const body = object(
 							JSON.parse(Buffer.concat(chunks).toString("utf8")),
 							"owner request",
 						);
-						const authenticatedRoleRef = string(
-							body.authenticatedRoleRef,
-							"authenticatedRoleRef",
-						);
+						const authenticatedRoleRef = string(body.authenticatedRoleRef, "authenticatedRoleRef");
 						const suffix = url.pathname.slice("/actions/".length);
 						const lookup = suffix.endsWith("/result");
 						const operationId = decodeURIComponent(
 							lookup ? suffix.slice(0, -"/result".length) : suffix,
 						);
 						const result = lookup
-							? await graph.lookup(
-									operationId,
-									authenticatedRoleRef,
-									body.input,
-								)
-							: await graph.route(
-									operationId,
-									authenticatedRoleRef,
-									body.input,
-
-									{
-										...(body.fileMaterializationInputs === undefined
-											? {}
-											: {
-													fileMaterializationInputs:
-														body.fileMaterializationInputs,
-												}),
-
-										...(typeof body.deadlineAt === "string"
-											? { deadlineAt: body.deadlineAt }
-											: {}),
-									},
-								);
+							? await graph.lookup(operationId, authenticatedRoleRef, body.input)
+							: await graph.route(operationId, authenticatedRoleRef, body.input, {
+								...(body.fileMaterializationInputs === undefined
+									? {}
+									: { fileMaterializationInputs: body.fileMaterializationInputs }),
+								...(typeof body.deadlineAt === "string" ? { deadlineAt: body.deadlineAt } : {}),
+							});
 						respond(response, 200, result);
 					} catch (error) {
 						const httpStatus =
 							typeof error === "object" && error !== null
 								? Reflect.get(error, "httpStatus")
 								: undefined;
-						respond(
-							response,
-							typeof httpStatus === "number" ? httpStatus : 400,
-							{
-								error:
-									error instanceof Error ? error.message : "INVALID_REQUEST",
-							},
-						);
+						respond(response, typeof httpStatus === "number" ? httpStatus : 400, {
+							error: error instanceof Error ? error.message : "INVALID_REQUEST",
+						});
 					}
 				})();
 				active.add(work);

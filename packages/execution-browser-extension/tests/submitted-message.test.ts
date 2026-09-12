@@ -32,16 +32,23 @@ test("CP-EXE-BR-09 empty or absent fingerprint cannot prove delivery", () => {
 });
 
 test("CP-EXE-BR-03/09 content and background wire structural sent-message verification before SUBMIT returns", async () => {
-	const [content, background] = await Promise.all([
+	const [content, pageReality, command] = await Promise.all([
 		readFile(new URL("../extension/content.ts", import.meta.url), "utf8"),
-		readFile(new URL("../extension/background.ts", import.meta.url), "utf8"),
+		readFile(
+			new URL("../extension/runtime/page-reality-controller.ts", import.meta.url),
+			"utf8",
+		),
+		readFile(
+			new URL("../extension/runtime/browser-command-controller.ts", import.meta.url),
+			"utf8",
+		),
 	]);
 	assert.match(content, /data-message-author-role="user"/);
 	assert.doesNotMatch(content, /document\.body\.innerText\.includes/);
-	assert.match(background, /waitForSubmittedMessage/);
+	assert.match(pageReality, /const waitForSubmittedMessage = async/);
+	assert.match(pageReality, /MESSAGE_SUBMIT_REALITY_UNCONFIRMED/);
 	assert.match(
-		background,
-		/return waitForSubmittedMessage\(tabId, fingerprint\)/,
+		command,
+		/return options\.page\.waitForSubmittedMessage\(tabId, fingerprint\)/,
 	);
-	assert.match(background, /MESSAGE_SUBMIT_REALITY_UNCONFIRMED/);
 });

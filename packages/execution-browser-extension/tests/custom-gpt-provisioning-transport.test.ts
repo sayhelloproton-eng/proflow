@@ -199,6 +199,10 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 		new URL("extension/background.ts", root),
 		"utf8",
 	);
+	const provisioning = await readFile(
+		new URL("extension/runtime/provisioning-lane.ts", root),
+		"utf8",
+	);
 	const content = await readFile(
 		new URL("extension/provisioning-content.ts", root),
 		"utf8",
@@ -211,29 +215,25 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 	assert.match(adapter, /proflowProvisioningBridge/);
 	assert.match(adapter, /provisioningBridgeEndpoint/);
 	assert.match(adapter, /provisioningBridgeTokenFile/);
-	assert.match(background, /runProvisioningBridgeLoop/);
-	assert.match(background, /\/v1\/provisioning\/session\/hello/);
-	assert.match(background, /\/v1\/provisioning\/commands\/next/);
-	assert.match(background, /PROFLOW_PROVISIONING_COMMAND/);
-	assert.match(background, /PROVISIONING_SURFACE_NOT_READY/);
-	assert.match(background, /GPT_EDITOR_CONFIGURE_SURFACE_NOT_READY/);
-	const provisioningFunctionStart = background.indexOf(
-		"async function executeProvisioningCommand",
-	);
-	const provisioningFunctionEnd = background.indexOf(
-		"async function bridgeFetch",
+	assert.match(background, /createProvisioningLane\(/);
+	assert.match(background, /provisioningLane\.start\(\)/);
+	assert.match(provisioning, /\/v1\/provisioning\/session\/hello/);
+	assert.match(provisioning, /\/v1\/provisioning\/commands\/next/);
+	assert.match(provisioning, /PROFLOW_PROVISIONING_COMMAND/);
+	assert.match(provisioning, /PROVISIONING_SURFACE_NOT_READY/);
+	assert.match(provisioning, /GPT_EDITOR_CONFIGURE_SURFACE_NOT_READY/);
+	const provisioningFunctionStart = provisioning.indexOf("const execute = async");
+	const provisioningFunctionEnd = provisioning.indexOf(
+		"return Object.freeze",
 		provisioningFunctionStart,
 	);
 	assert.ok(provisioningFunctionStart >= 0);
 	assert.ok(provisioningFunctionEnd > provisioningFunctionStart);
-	const provisioningFunction = background.slice(
+	const provisioningFunction = provisioning.slice(
 		provisioningFunctionStart,
 		provisioningFunctionEnd,
 	);
-	assert.match(
-		provisioningFunction,
-		/chrome\.tabs\.create\(\{ url: editorUrl, active: true \}\)/,
-	);
+	assert.match(provisioningFunction, /options\.openTab\(editorUrl\)/);
 	assert.match(provisioningFunction, /https:\/\/chatgpt\.com\/gpts\/editor/);
 	assert.match(provisioningFunction, /FINALIZE_CUSTOM_GPT_AUTH/);
 	assert.match(provisioningFunction, /PROVISIONING_CARRIER_URL_INVALID/);
@@ -242,11 +242,11 @@ test("CP-EXE-BR-18 extension wires provisioning bridge to the GPT editor content
 		provisioningFunction,
 		/waitForNewEditorTab|finalizeProvisioningCreate|PROFLOW_PROVISIONING_FINALIZE_CREATE/,
 	);
-	assert.doesNotMatch(provisioningFunction, /chrome\.tabs\.update/);
-	assert.match(background, /missingProvisioningReceiver/);
-	assert.match(background, /receiverReloaded/);
-	assert.match(background, /chrome\.tabs\.get\(tabId\)/);
-	assert.match(background, /chrome\.tabs\.reload\(tabId\)/);
+	assert.doesNotMatch(provisioningFunction, /tabs\.update/);
+	assert.match(provisioning, /missingReceiver/);
+	assert.match(provisioning, /receiverReloaded/);
+	assert.match(provisioning, /options\.getTab\(tabId\)/);
+	assert.match(provisioning, /options\.reloadTab\(tabId\)/);
 	assert.match(content, /PROFLOW_PROVISIONING_COMMAND/);
 	assert.doesNotMatch(content, /PROFLOW_PROVISIONING_FINALIZE_CREATE/);
 	assert.match(content, /chrome\.runtime\.onMessage\.addListener/);

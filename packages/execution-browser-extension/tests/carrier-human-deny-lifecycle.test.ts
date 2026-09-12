@@ -147,14 +147,22 @@ test("CP-EXE-BR-34 active denial is the final physical guard before backend-requ
 		}),
 		false,
 	);
-	const [background, executor] = await Promise.all([
-		readFile(new URL("../extension/background.ts", import.meta.url), "utf8"),
-		readFile(new URL("../src/index.ts", import.meta.url), "utf8"),
+	const [command, permissionController, executor] = await Promise.all([
+		readFile(
+			new URL("../extension/runtime/browser-command-controller.ts", import.meta.url),
+			"utf8",
+		),
+		readFile(
+			new URL("../extension/runtime/permission-controller.ts", import.meta.url),
+			"utf8",
+		),
+		readFile(new URL("../src/worker-carrier-executor.ts", import.meta.url), "utf8"),
 	]);
-	assert.match(background, /command\.type === "WAKE_GUARD"/);
+	assert.match(command, /command\.type === "WAKE_GUARD"/);
+	assert.match(command, /options\.permissions\.guardWake/);
 	assert.match(
-		background,
-		/carrierContinuationControl\.hasMatchingDispatchDenial/,
+		permissionController,
+		/continuation\.hasMatchingDispatchDenial/,
 	);
 	assert.match(
 		executor,
