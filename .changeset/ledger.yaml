@@ -687,6 +687,10 @@
   dir: packages/execution-browser-extension
   intents:
     - execution-browser-extension-role-material-sync
+"@tomflow/proflow-execution-browser-extension@0.1.57":
+  dir: packages/execution-browser-extension
+  intents:
+    - real3-browser-self-reload
 "@tomflow/proflow-execution-browser-extension@0.1.6":
   dir: packages/execution-browser-extension
   intents:
@@ -1352,6 +1356,10 @@
   dir: packages/platform-host
   intents:
     - real3-final-runtime-closure
+"@tomflow/proflow-platform-host@0.1.25":
+  dir: packages/platform-host
+  intents:
+    - real3-browser-permission-owner-boundary
 "@tomflow/proflow-platform-host@0.1.3":
   dir: packages/platform-host
   intents:
