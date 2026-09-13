@@ -1,8 +1,8 @@
 {
   "agent-product": {
     "packageName": "@tomflow/proflow-agent-product",
-    "version": "0.1.18",
-    "fingerprint": "sha256:d5f0c4a4940b7c84bf783a3843140393e9d693ed08c22de67032d3605dfa09e5"
+    "version": "0.1.19",
+    "fingerprint": "sha256:4bb52d8d80bc950818ace869971cd6478572ae9956c5ea8472007bcaf3025619"
   },
   "agent-controller-dev": {
     "packageName": "@tomflow/proflow-agent-controller-dev",

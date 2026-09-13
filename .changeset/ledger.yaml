@@ -114,6 +114,11 @@
   dir: packages/agent-gateway
   intents:
     - operation-chain-observability
+"@tomflow/proflow-agent-gateway@0.1.19":
+  dir: packages/agent-gateway
+  intents:
+    - real3-audit-gateway-boundaries
+    - real3-audit-gateway-role-credential-permissions
 "@tomflow/proflow-agent-gateway@0.1.2":
   dir: packages/agent-gateway
   intents:
@@ -174,6 +179,10 @@
   dir: packages/agent-product
   intents:
     - agent-material-republish
+"@tomflow/proflow-agent-product@0.1.19":
+  dir: packages/agent-product
+  intents:
+    - real3-audit-product-action-schema
 "@tomflow/proflow-agent-product@0.1.2":
   dir: packages/agent-product
   intents:
@@ -743,6 +752,10 @@
   dir: packages/execution-browser-extension
   intents:
     - permission-classification-retry
+"@tomflow/proflow-execution-browser-extension@0.1.63":
+  dir: packages/execution-browser-extension
+  intents:
+    - real3-audit-browser-carrier-boundaries
 "@tomflow/proflow-execution-browser-extension@0.1.7":
   dir: packages/execution-browser-extension
   intents:
@@ -1428,6 +1441,10 @@
   dir: packages/platform-host
   intents:
     - modern-humans-flash
+"@tomflow/proflow-platform-host@0.1.30":
+  dir: packages/platform-host
+  intents:
+    - real3-audit-platform-host-boundaries
 "@tomflow/proflow-platform-host@0.1.7":
   dir: packages/platform-host
   intents:
@@ -1488,6 +1505,11 @@
   dir: packages/task-orchestration
   intents:
     - real3-b1-runtime-adoption
+"@tomflow/proflow-task-orchestration@0.1.12":
+  dir: packages/task-orchestration
+  intents:
+    - real3-audit-persistence-recovery-cleanup
+    - real3-audit-task-worker-identity
 "@tomflow/proflow-task-orchestration@0.1.4":
   dir: packages/task-orchestration
   intents:
