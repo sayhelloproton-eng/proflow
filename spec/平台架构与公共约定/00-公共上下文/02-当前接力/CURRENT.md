@@ -35,6 +35,7 @@ Wave 22 = NOT_STARTED / ORDER_BLOCKED_BY_WAVE21
 ```text
 3b9dc12 audit(real3): close full-chain waves 01-20
 df9b583 chore(release): record Real-3 audit package facts
+942184e audit(real3): freeze Wave 21 runtime adoption gate
 ```
 
 2026-09-11 repair worktree、旧 S1/F02 pending 与旧 baseline 只属于历史过程，不再是当前入口或 blocker。
@@ -131,7 +132,7 @@ Wave14 的 capture-time runtime baseline 曾为 READY，但版本早于本次最
 ```text
 current audit source/docs mutation = ADMITTED
 stage / phase commit = AUTHORIZED by user
-unrelated WIP overwrite / reset / clean / stash = FORBIDDEN
+other unrelated WIP overwrite / reset / clean / stash = FORBIDDEN
 push = FORBIDDEN unless explicitly authorized
 publish = ALREADY_APPLIED_FOR_FINAL_RELEASE / DO_NOT_REPEAT
 install / setup / start / restart / deploy = NOT_AUTHORIZED in current turn
@@ -139,11 +140,11 @@ install / setup / start / restart / deploy = NOT_AUTHORIZED in current turn
 
 ## WORKTREE_BOUNDARY
 
-已知 unrelated WIP：
+此前唯一 unrelated WIP：
 
-`docs/audits/operation-chain-observability-2026-09-12.md` 当前 deletion。
+`docs/audits/operation-chain-observability-2026-09-12.md` deletion。
 
-保持原样；不得为了 clean-tree、versioning、W21 或提交而 restore/stage/删除。
+当前用户已明确授权将该 deletion 纳入阶段提交；本次 closure commit 同步清理 CURRENT 对其“不得 stage”的旧描述。除该已授权 deletion 外，当前没有已知 unrelated dirty WIP；提交后仍以 Git status 机械确认。
 
 ## DO_NOT_REPEAT
 
