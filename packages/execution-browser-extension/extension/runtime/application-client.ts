@@ -55,6 +55,8 @@ type ManagedRuntimeConfig = {
 	proflowApprovalApplication?: unknown;
 };
 
+type ManagedRuntimeConfigKey = keyof ManagedRuntimeConfig;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -100,6 +102,52 @@ export function createApplicationClient(options: {
 }) {
 	const fetchImpl = options.fetchImpl ?? fetch;
 	const bridgeTimeoutMs = options.bridgeTimeoutMs ?? 5_000;
+	let bootstrapFlight: Promise<void> | null = null;
+
+	const fetchManagedRuntimeConfig = async (): Promise<ManagedRuntimeConfig | null> => {
+		let response: Response;
+		try {
+			response = await fetchImpl(options.runtimeConfigUrl, {
+				cache: "no-store",
+				signal: AbortSignal.timeout(bridgeTimeoutMs),
+			});
+		} catch {
+			return null;
+		}
+		if (!response.ok) return null;
+		const raw = (await response.json()) as unknown;
+		return isRecord(raw) ? (raw as ManagedRuntimeConfig) : null;
+	};
+
+	const persistManagedRuntimeConfig = async (
+		managed: ManagedRuntimeConfig,
+	): Promise<void> => {
+		const bridge = parseConfig(managed.proflowRuntimeBridge);
+		const localTools = parseConfig(managed.proflowLocalToolBridge);
+		const provisioning = parseConfig(managed.proflowProvisioningBridge);
+		const task = parseConfig(managed.proflowTaskApplication);
+		const approval = parseConfig(managed.proflowApprovalApplication);
+		if (!bridge) throw new Error("MANAGED_RUNTIME_CONFIG_INVALID");
+		await options.storageLocal.set({
+			proflowRuntimeBridge: bridge,
+			...(localTools ? { proflowLocalToolBridge: localTools } : {}),
+			...(provisioning ? { proflowProvisioningBridge: provisioning } : {}),
+			...(task ? { proflowTaskApplication: task } : {}),
+			...(approval ? { proflowApprovalApplication: approval } : {}),
+		});
+	};
+
+	const bootstrap = (): Promise<void> => {
+		if (bootstrapFlight) return bootstrapFlight;
+		bootstrapFlight = (async () => {
+			const managed = await fetchManagedRuntimeConfig();
+			if (!managed) return;
+			await persistManagedRuntimeConfig(managed);
+		})().finally(() => {
+			bootstrapFlight = null;
+		});
+		return bootstrapFlight;
+	};
 
 	const fetchBridge = async (
 		config: BridgeConfig,
@@ -116,11 +164,20 @@ export function createApplicationClient(options: {
 			},
 		});
 
-	const configFromStorage = async (
-		key: string,
+	const readStoredConfig = async (
+		key: ManagedRuntimeConfigKey,
 	): Promise<BridgeConfig | null> => {
 		const stored = await options.storageLocal.get(key);
 		return parseConfig(stored[key]);
+	};
+
+	const configFromStorage = async (
+		key: ManagedRuntimeConfigKey,
+	): Promise<BridgeConfig | null> => {
+		const current = await readStoredConfig(key);
+		if (current) return current;
+		await bootstrap().catch(() => undefined);
+		return readStoredConfig(key);
 	};
 
 	const bridgeConfig = () => configFromStorage("proflowRuntimeBridge");
@@ -178,7 +235,7 @@ export function createApplicationClient(options: {
 				method: "POST",
 				headers: {
 					authorization: `Bearer ${config.token}`,
-				...(operationRef ? {"x-proflow-operation-ref": operationRef} : {}),
+				...(operationRef ? { "x-proflow-operation-ref": operationRef } : {}),
 					"content-type": "application/json",
 				},
 				body: JSON.stringify({ operation, input }),
@@ -224,34 +281,7 @@ export function createApplicationClient(options: {
 	};
 
 	return Object.freeze({
-		async bootstrap(): Promise<void> {
-			let response: Response;
-			try {
-				response = await fetchImpl(options.runtimeConfigUrl, {
-					cache: "no-store",
-					signal: AbortSignal.timeout(bridgeTimeoutMs),
-				});
-			} catch {
-				return;
-			}
-			if (!response.ok) return;
-			const raw = (await response.json()) as unknown;
-			if (!isRecord(raw)) return;
-			const managed = raw as ManagedRuntimeConfig;
-			const bridge = parseConfig(managed.proflowRuntimeBridge);
-			const localTools = parseConfig(managed.proflowLocalToolBridge);
-			const provisioning = parseConfig(managed.proflowProvisioningBridge);
-			const task = parseConfig(managed.proflowTaskApplication);
-			const approval = parseConfig(managed.proflowApprovalApplication);
-			if (!bridge) throw new Error("MANAGED_RUNTIME_CONFIG_INVALID");
-			await options.storageLocal.set({
-				proflowRuntimeBridge: bridge,
-				...(localTools ? { proflowLocalToolBridge: localTools } : {}),
-				...(provisioning ? { proflowProvisioningBridge: provisioning } : {}),
-				...(task ? { proflowTaskApplication: task } : {}),
-				...(approval ? { proflowApprovalApplication: approval } : {}),
-			});
-		},
+		bootstrap,
 		bridgeConfig,
 		localToolBridgeConfig,
 		provisioningBridgeConfig,
@@ -275,12 +305,21 @@ export function createApplicationClient(options: {
 			);
 			if (!response.ok) throw new Error("CARRIER_ATTENTION_PUBLISH_REJECTED");
 		},
-		invokeTask: (operation: string, input: Record<string, unknown>, operationRef?: string) =>
-			invokeSurface("task", operation, input, operationRef),
-		invokeApproval: (operation: string, input: Record<string, unknown>, operationRef?: string) =>
-			invokeSurface("approval", operation, input, operationRef),
-		invokeObserver: (operation: string, input: Record<string, unknown>, operationRef?: string) =>
-			invokeSurface("observer", operation, input, operationRef),
+		invokeTask: (
+			operation: string,
+			input: Record<string, unknown>,
+			operationRef?: string,
+		) => invokeSurface("task", operation, input, operationRef),
+		invokeApproval: (
+			operation: string,
+			input: Record<string, unknown>,
+			operationRef?: string,
+		) => invokeSurface("approval", operation, input, operationRef),
+		invokeObserver: (
+			operation: string,
+			input: Record<string, unknown>,
+			operationRef?: string,
+		) => invokeSurface("observer", operation, input, operationRef),
 		emitLog,
 	});
 }
