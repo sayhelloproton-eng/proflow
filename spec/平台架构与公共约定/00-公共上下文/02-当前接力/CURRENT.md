@@ -10,12 +10,12 @@ REAL_1 = PASS
 REAL_2 = PASS / FROZEN
 DEPLOYMENT_SUCCESS = YES / FROZEN
 REAL_3_PRODUCT_JOURNEY = TERMINAL_SUCCEEDED
-REAL_3_FINAL_AUDIT = IN_PROGRESS
+REAL_3_FINAL_AUDIT = WAVE21_BLOCKED_ON_FINAL_RUNTIME_ADOPTION
 PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = PHASE3_REAL3_FULL_CHAIN_AUDIT
+CURRENT_EXECUTION_MODE = WAVE21_FINAL_ACCEPTANCE_GATE
 ```
 
-`REAL_3_PRODUCT_JOURNEY = TERMINAL_SUCCEEDED` 只表示固定 Real-3 Task 已沿正式 Owner/Worker/Carrier 路径走到终态；Phase 3 Final GO 仍需完成当前 22-Wave 全链审计与最终 Gate，禁止把单个源码/测试结果提前升级为 Phase 3 closure。
+`REAL_3_PRODUCT_JOURNEY = TERMINAL_SUCCEEDED` 只表示固定 Real-3 Task 已沿正式 Owner/Worker/Carrier 路径走到终态；最终已发布审计版本仍需 current runtime adoption proof。Registry publish、源码测试或历史 Runtime READY 均不能单独升级为 Phase 3 Final GO。
 
 ## CURRENT_AUTHORITY
 
@@ -24,11 +24,20 @@ main repo = /Users/agent/Desktop/proton-workspace/repos/proflow
 main branch = main
 exact HEAD/status = READ_FROM_GIT_AT_EXECUTION_TIME
 active audit plan = docs/audits/phase3-real3-full-chain-audit-plan-2026-09-13.md
-current completed audit waves = 01..20
-next audit wave = 21 Final Acceptance / Gate
+Wave 01..20 = DONE
+Wave 21 = BLOCKED_ON_FINAL_RUNTIME_ADOPTION
+next executable wave = 21 Final Runtime Adoption Closure
+Wave 22 = NOT_STARTED / ORDER_BLOCKED_BY_WAVE21
 ```
 
-2026-09-11 的 `chatgpt/real3-audit-fixes-20260909` repair worktree、S1/F02 pending 状态与旧 baseline 只属于历史过程，不再是当前执行入口或 blocker。
+阶段 commits：
+
+```text
+3b9dc12 audit(real3): close full-chain waves 01-20
+df9b583 chore(release): record Real-3 audit package facts
+```
+
+2026-09-11 repair worktree、旧 S1/F02 pending 与旧 baseline 只属于历史过程，不再是当前入口或 blocker。
 
 ## SHARED_PROTOCOLS
 
@@ -40,7 +49,7 @@ ACCEPTANCE_AUTOMATION
 = /Users/agent/Desktop/proton-workspace/skills/chat-local-acceptance-automation-protocol/SKILL.md
 ```
 
-CURRENT 只定义 ProFlow 当前产品事实、checkpoint 与项目级边界。Engineering mutation/verify/tool routing 服从 Engineering Skill；真实 Browser/CLI/runtime acceptance 服从 Acceptance Skill。
+本文件只定义产品事实、checkpoint 与项目级授权边界。工程 mutation/verify 服从 Engineering Skill；真实 Browser/CLI/runtime acceptance 服从 Acceptance Skill。
 
 ## REAL3_TERMINAL_OWNER_FACTS
 
@@ -54,87 +63,98 @@ Test workerRef = 6aa2b749-87f4-83e8-bc7f-929161400e39
 REOPEN = reused original Test TaskRoleBinding / Worker / Conversation
 ```
 
-Test run 2 独立取得 Repomix / CodeGraph / Local Dev 成功证据并正式 `completeNode`。Permission 链真实出现 `ACTION_PERMISSION → browser.permission.classify SUCCEEDED → page reality continued`；Permission action dispatch observability 已在当前源码审计中补成 behavior-tested production seam，但 source audit WIP 尚未发布/adopt，因此不把它写成已部署 runtime 证据。
+Test run2 独立取得 Repomix / CodeGraph / Local Dev 成功事实并正式 `completeNode`。Real-3 真实 Browser/Carrier 证据包括 Permission classification/recovery、same-worker REOPEN、durable Dev→Test WAKE 与 terminal owner truth。不要为了刷新时间戳重新创建 Task/Worker/Conversation。
 
 ## REAL3_CLOSED_BLOCKERS
 
-以下均已从“当前 blocker”降为历史 defect/provenance，不得重新登记为当前 implementation backlog：
+以下均已从 current implementation blocker 降为正式已解决 defect/provenance，并已有 canonical design + automated proof + Real-3 evidence：
 
 - TaskRoleBinding transient 三态与 bounded `DEFER`；
 - human Deny occurrence-scoped suppression / restart guard；
 - Carrier Attention occurrence identity、restart reconstruction 与 authenticated `/tasks` 双向 relay；
-- Dev complete → Test READY 的 backend bounded reconciliation / WAKE；
+- Dev complete → Test READY backend bounded reconciliation / WAKE；
 - REOPEN → 原 Test Worker/Conversation；
 - Role package adoption/version drift 与 slugged Custom GPT Conversation URL；
 - Repomix / Local Dev / CodeGraph Direct Tool 独立执行与 provider child isolation；
 - terminal Task stop-driving / UNKNOWN no-blind-replay。
 
-上述能力是否在未来 Carrier/Chrome 版本仍兼容，继续由正式 Test Plan / Known Limitation / final Real Chrome Gate 管理，不转换回实现 TODO。
+它们在最终发布版本上的 compatibility 仍需 Wave21 final runtime adoption Gate 验证，但不得重新变成实现 TODO。
 
-## CURRENT_AUDIT
+## FINAL_RELEASE_FACTS
 
-22-Wave 全链审计按 `docs/audits/phase3-real3-full-chain-audit-plan-2026-09-13.md` 顺序执行。
+当前 main 已记录且 npm Registry exact version 已确认存在：
 
-- Wave 01..20：DONE。
-- Wave 16：Persistence recovery cleanup targeted suites PASS。
-- Wave 17：Gateway security 22/22、Browser permission/deny 34/34、相关 typecheck/changeset/diff checks PASS；Host 红项已归因为独立 teardown `ENOTEMPTY` race，不是假装 security assertion PASS。
-- Wave 18：Product `putTaskDocument.nodeId` public schema 已对齐 Task owner，Product static/typecheck/changeset/scoped diff PASS；当时独立 stale public-surface machine artifact已在 Wave 19 刷新并通过 canonical generator check。
-- Wave 19：Documentation Governance DONE。共享 Skill 第二真源已清理；CURRENT / evidence capture-time semantics 已分层；迁移期 hash manifest/conformance 已移除；Document/Test Plan indexes completeness PASS；Public Surface generated artifact 已刷新并通过 `surface-governance --check`。
-- Wave 20：Repository Hygiene DONE。迁移 provenance tracked residue、Product OpenAPI duplicate truth 与 `module-contract/src/*.js` 编译残留已移除；真实 fixture/正式 Agent Knowledge 资产/模板型重复配置保留；无有效源码 TODO/FIXME/HACK 残留。
+```text
+@tomflow/proflow-agent-gateway = 0.1.19
+@tomflow/proflow-agent-product = 0.1.19
+@tomflow/proflow-execution-browser-extension = 0.1.63
+@tomflow/proflow-platform-host = 0.1.30
+@tomflow/proflow-task-orchestration = 0.1.12
+```
 
-## WAVE19_DOCUMENTATION_GOVERNANCE
+不得重复 publish。Registry existence 只证明 package release，不证明本机 materialized/runtime adoption。
 
-最终结论：
+## WAVE21_FINAL_GATE
 
-- 5 个 generic local-automation compatibility stub 已删除；active ProFlow Runbook/Flow 直接引用共享 Engineering / Acceptance Skill。
-- `Package-Update-Loop.md` 最后一处旧 `Browser-UI自动化.md` backlink 已修正，targeted no-stubs proof PASS。
-- `IMPLEMENTATION-EVIDENCE-INDEX.json` 只表达 evidence navigation 与 `evidenceStatusAtCapture`，不能用历史 `ACTION_REQUIRED` 覆盖 CURRENT / live Owner facts。
-- stale `SPEC-MANIFEST.json` / `SPEC-CONFORMANCE.json` 迁移残留已删除；长期机器导航回到 Document/Test Plan/Module/External Resource indexes。
-- `DOCUMENT-INDEX.json = 183`、`TEST-PLAN-INDEX.json = 39`，按 current canonical baseline 规则无漏项。
-- `BATCH6-PUBLIC-SURFACE-RECONCILIATION.json` 已由当前 dirty-tree truth 的 canonical generator 在临时镜像中重建并 whole-file 应用；UI reconciliation 无变化。
+正式审计记录：
 
-历史/provenance 物理归档与一次性 artifact/空目录等仓库卫生问题不再冒充 current authority；其物理清理属于 Wave 20 Repository Hygiene。
+`docs/audits/phase3-real3-audit-wave-21-final-acceptance-gate-2026-09-13.md`
 
-## WAVE20_REPOSITORY_HYGIENE
+当前 Gate：
 
-最终结论：
+```text
+TRACEABILITY_DESIGN = PASS
+AUTOMATED_PROOF = PASS
+REAL3_HUMAN_JOURNEY = PASS
+PACKAGE_RELEASE = PASS
+CURRENT_RUNTIME_ADOPTION = PENDING
+WAVE21 = BLOCKED_ON_FINAL_RUNTIME_ADOPTION
+PHASE3_FINAL_GO = NO
+```
 
-- `spec/provenance/` 的 4 个 migration trace tracked artifact 已删除；没有 current consumer。
-- Product Custom GPT OpenAPI 只保留 `packages/agent-product/actions/custom-gpt.openapi.yaml` 正式 package owner；根级重复副本已删除，跨包测试已改读正式 asset。
-- `packages/module-contract/src/index.js` 与 `src/workspace.js` 是无 consumer 的 TypeScript 编译残留；源码真源为同名 `.ts`，package 发布面为 `dist`。
-- `task-schema-20260810.sql` fixture 有正式 migration critical proof 使用，不按文件年龄删除。
-- 三个 Agent `custom-gpt-knowledge.zip` 是正式 package asset，不作为 bundle/temp 清理。
-- 空 `.proflow` / `.throughput-fixture` 等本地 runtime 目录不是 tracked repo truth，不为 hygiene 视觉整洁去改用户运行态。
-- 既有 unrelated dirty WIP（包括 `operation-chain-observability-2026-09-12.md` 的删除）保持原样，不纳入本 Wave。
+Wave14 的 capture-time runtime baseline 曾为 READY，但版本早于本次最终 release；旧 READY 不能覆盖当前 adoption 证据。Final Gate 必须通过正式 install/setup/start/status、package-owned verify、Chrome actual Manifest/materialized Extension、Role/Host/Gateway/Task owner readback证明 final versions 已采用。
+
+只有最终 release 触及的路径需要最小 SAME_SCENE / FAST_REPLAY；禁止无理由重跑整套 Real-3 Full Fresh。
 
 ## NEXT_ACTION
 
 ```text
-1. Wave 21：Final Acceptance / Gate。
-2. 重建正式 DDD invariant → SDD → TDD → automated proof → runtime evidence → human acceptance traceability。
-3. 关键链不得用“源码存在”或 targeted test 绿色替代真实 Runtime / Browser / Human owner 证据。
-4. 对每条证据明确 CURRENT / capture-time / historical / pending external 的 authority 层级。
-5. Wave 21 结束后仍需执行 Wave 22 Performance / Engineering Throughput；只有全部 Gate 成立才裁决 REAL_3 / PHASE3_FINAL_GO。
+1. 保持 Wave21，不进入 Wave22。
+2. 需要用户明确授权 install/setup/start/restart 后，执行 final runtime adoption acceptance。
+3. Acceptance mutation 前按共享 Acceptance Skill 写 AUTOMATION_START；结束写同 runId AUTOMATION_RUN 并 check-open-runs。
+4. 若 final runtime adoption + affected SAME_SCENE/FAST_REPLAY PASS，则关闭 Wave21，再进入 Wave22 Performance / Engineering Throughput。
+5. Wave22 完成后才裁决 REAL_3 / PHASE3_FINAL_GO。
 ```
 
 ## MUTATION_AUTHORITY
 
 ```text
-current audit source/docs mutation = ADMITTED by current user instruction
-unrelated WIP overwrite / reset / clean = FORBIDDEN
-commit = NOT_AUTHORIZED in current audit turn
+current audit source/docs mutation = ADMITTED
+stage / phase commit = AUTHORIZED by user
+unrelated WIP overwrite / reset / clean / stash = FORBIDDEN
 push = FORBIDDEN unless explicitly authorized
-publish / deploy / release = NOT_ADMITTED by this audit handoff
+publish = ALREADY_APPLIED_FOR_FINAL_RELEASE / DO_NOT_REPEAT
+install / setup / start / restart / deploy = NOT_AUTHORIZED in current turn
 ```
+
+## WORKTREE_BOUNDARY
+
+已知 unrelated WIP：
+
+`docs/audits/operation-chain-observability-2026-09-12.md` 当前 deletion。
+
+保持原样；不得为了 clean-tree、versioning、W21 或提交而 restore/stage/删除。
 
 ## DO_NOT_REPEAT
 
-- 不回到 2026-09-11 repair worktree / S1-F02 旧 blocker。
-- 不重新创建已存在 Task/Worker/Conversation 来证明已通过链路。
-- 不把历史 Real-3 evidence 或 capture-time blocker 当 CURRENT。
-- 不把源码/测试 PASS 冒充真实 Runtime/Human Gate。
-- 不 reset/clean 当前 full-chain audit WIP。
+- 不回到旧 repair worktree / S1-F02 blocker。
+- 不重复 publish 已存在 exact Registry versions。
+- 不新建 Task/Worker/Conversation 来重复证明已通过的 Real-3。
+- 不把历史 runtime READY 冒充 final release current adoption。
+- 不把 source/test PASS 冒充 Runtime/Human Gate。
+- 不 reset/clean/stash unrelated WIP。
+- 不跳过 Wave21 直接进入 Wave22。
 
 ## STOP_POINT
 
-`FULL_CHAIN_AUDIT / WAVE_01_TO_20_DONE / NEXT_WAVE_21 / REAL3_TASK_SUCCEEDED_V11 / FINAL_GATE_PENDING / NO_COMMIT_NO_PUBLISH`
+`FULL_CHAIN_AUDIT / WAVE_01_TO_20_DONE / WAVE21_BLOCKED_ON_FINAL_RUNTIME_ADOPTION / FINAL_RELEASE_PUBLISHED / REAL3_TASK_SUCCEEDED_V11 / PHASE3_FINAL_GO_NO / INSTALL_RESTART_AUTH_REQUIRED`
