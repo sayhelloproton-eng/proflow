@@ -1,104 +1,196 @@
 # Phase 3 / Real-3 Audit｜Wave 21｜Final Acceptance / Gate
 
-日期：2026-09-13
-状态：BLOCKED_ON_FINAL_RUNTIME_ADOPTION
+日期：2026-09-13；最终 Runtime Adoption 收口：2026-09-14
+状态：PASS
 
 ## Scope
 
-本 Wave 重建正式 `DDD invariant → SDD design → TDD case → automated proof → runtime evidence → human acceptance` traceability，并按证据 authority 区分“当前源码/包事实”“Real-3 真实历史运行事实”与“最终已发布版本的当前运行态”。
+本 Wave 重建并关闭正式 `DDD invariant → SDD design → TDD case → automated proof → runtime evidence → human acceptance` traceability，同时证明最终 release 已由本机正式 Runtime / Browser / Role / Task owner 实际采用。
 
-本 Wave 不以源码存在、单元测试绿色、Registry 发布成功替代最终 Runtime / Browser / Human owner evidence；也不为了刷新时间戳重新创建 Task、Worker 或 Conversation。
+本 Wave 不以源码存在、单元测试绿色或 npm Registry 发布成功替代 Runtime / Browser owner evidence；也不为了刷新时间戳重新创建 Task、Worker 或 Conversation。
 
 ## Authority Classes
 
-- `CURRENT_SOURCE`：当前 main 源码、canonical spec、TDD、tests 与本轮 committed audit truth。
+- `CURRENT_SOURCE`：当前 main 源码、canonical spec、TDD、tests 与 committed audit truth。
 - `CURRENT_PACKAGE_REGISTRY`：npm Registry exact version 与 main 中已消费 release facts。
 - `REAL3_HUMAN`：固定 Real-3 Task 经真实 ChatGPT / Browser / Worker / Owner 路径得到的真人验收事实。
-- `CAPTURE_TIME_RUNTIME`：当时正式 install/setup/start/status 与 Chrome/Host/Role reality；只能证明捕获时运行版本。
-- `PENDING_CURRENT_RUNTIME`：最终发布版本尚需正式 adoption/readback 才能建立的当前运行态事实。
+- `CURRENT_RUNTIME`：本轮正式 install/setup/start/status、Chrome pairing、Role adoption、Host/Gateway/Task owner readback。
 
-## Current Calibration
+## Final Release Facts
 
-```text
-main HEAD before this Wave = df9b58311623de97ec31885992fa7a180aed7ed7
-Wave 01..20 = DONE
-Real-3 Task = task-real3-final-autowake-20260912 / SUCCEEDED v11
-Dev = real3-dev-20260912 / SUCCEEDED / run 1
-Test = real3-test-20260912 / SUCCEEDED / run 2
-Test REOPEN = original TaskRoleBinding / Worker / Conversation reused
-```
-
-当前正式 release facts：
+当前最终 release：
 
 ```text
 @tomflow/proflow-agent-gateway = 0.1.19
 @tomflow/proflow-agent-product = 0.1.19
-@tomflow/proflow-execution-browser-extension = 0.1.63
+@tomflow/proflow-execution-browser-extension = 0.1.64
 @tomflow/proflow-platform-host = 0.1.30
 @tomflow/proflow-task-orchestration = 0.1.12
 ```
 
-五个 exact npm Registry target 均已机械确认存在；不得重复 publish。
+Browser `0.1.64` supersedes `0.1.63`。W21 runtime adoption 暴露了 managed runtime config 在 `chrome.storage.local` miss 时不会重新吸收 materialized `runtime-config.json` 的真实缺口；该缺口由 `9fc95c6 fix(browser): refresh managed runtime config on storage miss` 修复，`0.1.64` 已正式发布并由 npm Registry exact readback确认存在。
+
+Release version commit：
+
+```text
+93c2033 chore(release): version execution-browser-extension 0.1.64
+```
+
+不得重复 publish 这些 exact versions。
+
+## Fixed Real-3 Owner Facts
+
+```text
+Task = task-real3-final-autowake-20260912
+Task status = SUCCEEDED v11
+currentNodeId = null
+Dev node = real3-dev-20260912 / SUCCEEDED / run 1
+Test node = real3-test-20260912 / SUCCEEDED / run 2
+Test workerRef = 6aa2b749-87f4-83e8-bc7f-929161400e39
+REOPEN = reused original Test TaskRoleBinding / Worker / Conversation
+```
+
+本轮 final adoption 后对 `task.sqlite` 的 fresh read-only owner query 仍证明 `SUCCEEDED v11 / currentNodeId=null`，三条 TaskRoleBinding 的 roleRef、workerRef、conversationLocator 均保持原值；没有新建 Task、Worker 或 Conversation。
 
 ## Traceability Matrix
 
-| Critical invariant | DDD / SDD | TDD | Automated proof | Runtime / Human proof | Final authority |
-|---|---|---|---|---|---|
-| TaskRoleBinding transient three-state / bounded DEFER | Task/Carrier binding 只允许 exact transient incomplete binding 进入 DEFER；partial/conflict/timeout fail-closed | Permission binding race / Host permission policy | `permission-binding-race.test.ts` + `browser-permission-policy.test.ts` | Real-3 真实 Permission/binding 链已通过 | `REAL3_HUMAN=PASS`; final package runtime `PENDING_CURRENT_RUNTIME` |
-| Human Deny occurrence-scoped suppression / restart guard | Deny 只抑制当前 occurrence 下一次 matching continuation，不写 Task/Execution/Approval | `CP-EXE-BR-29`, `RF-EXE-BR-25` | `carrier-human-deny-recovery.test.ts` | Real-3 Carrier 自动化 Gate 已真实覆盖 Deny precedence/restart guard | `REAL3_HUMAN=PASS`; final package runtime `PENDING_CURRENT_RUNTIME` |
-| Attention occurrence identity / restart reconstruction / authenticated relay | occurrence ref 独立、replacement stale、restart 主动 re-observe、`/tasks` authenticated relay | `CP-EXE-BR-30/31/32` | `carrier-attention-restart.test.ts`, `carrier-permission-attempt.test.ts`, `carrier-attention-web-bridge.test.ts` | Real-3 真实 Browser/Carrier 路径已消费 | `REAL3_HUMAN=PASS`; final package runtime `PENDING_CURRENT_RUNTIME` |
-| Dev complete → Test READY durable handoff | backend Reconciliation 读取 durable Owner facts + bounded catch-up；Extension event 仅 kick | `CP-TASK-ORCH-14`, `CP-HOST-19` | `task-reconciliation.test.ts` + Task observer/journey tests | Real-3 Dev run1 complete 后 Test 被正式唤醒并最终 complete | `REAL3_HUMAN=PASS`; final package runtime `PENDING_CURRENT_RUNTIME` |
-| REOPEN reuses original Worker / Conversation and advances generation | run-local workerRef 清除；TaskRoleBinding 保留；runNo+1 后重解同 Worker | `CP-TASK-ORCH-05/13`, `CP-AGT-DEV-10`, `CP-AGT-TEST-10` | Task SQLite integration + observer contract + Dev/Test journey tests | Test run2 复用原 workerRef `6aa2b749-87f4-83e8-bc7f-929161400e39`，无 duplicate Worker | `REAL3_HUMAN=PASS`; owner fact `PASS` |
-| Permission liveness / watchdog / retry / action / final page reality | ordinary nonconsequential；unexpected Permission 才走 Carrier recovery；action outcome 与 final page reality correlation | `CP-EXE-BR-43..49` | CP43..48 已绑定 behavior tests；Wave06 将 timer/log seam 升级到 production-helper behavior；Wave10 补 final reality correlation | CP49 只接受真实 Chrome SAME_SCENE；Real-3 已存在真实 Chrome SAME_SCENE 证据 | `REAL3_HUMAN=PASS`; final 0.1.63 runtime `PENDING_CURRENT_RUNTIME` |
-| Slugged GPT URL + current Role/version validation | restore 使用 durable locator；真实 `g-<roleRef>-<slug>` 合法；Role drift fail-closed 并在正式 adopt 后 re-read | `CP-HOST-22/23` | `browser-permission-policy.test.ts` | Real-3 使用真实 slugged Conversation；旧 installed baseline Role verify 曾 PASS | historical/current design `PASS`; final package runtime `PENDING_CURRENT_RUNTIME` |
-| Direct Tool independence / provider child isolation | Repomix/Local Dev/CodeGraph 走 Extension Local Tool lane，不进入 Execution lifecycle | Host/Gateway/Execution Local/Execution Runtime Direct Tool gates | `direct-tools.test.ts`、Host/Gateway/Role package tests、Real-3 targeted regression | Test run2 独立取得 Repomix / CodeGraph / Local Dev 成功事实 | `REAL3_HUMAN=PASS`; final package runtime `PENDING_CURRENT_RUNTIME` |
-| UNKNOWN no-blind-replay / terminal stop-driving | UNKNOWN 先 reality reconciliation；terminal Task 不再主动业务 WAKE | `CP-EXE-BR-09`, `CP-TASK-ORCH-13/17`, Browser terminal guard | Task observer + Browser carrier journey + Direct Tool UNKNOWN regressions | Real-3 owner failure经正式 fail→REOPEN 恢复；Task terminal `SUCCEEDED v11/currentNodeId=null` | Owner/human `PASS`; final package runtime `PENDING_CURRENT_RUNTIME` |
+| Critical invariant | Canonical design / automated proof | Real-3 / final runtime evidence | Final authority |
+|---|---|---|---|
+| TaskRoleBinding transient three-state / bounded DEFER | Permission binding race + Host permission policy tests | Real-3 Permission/binding 已通过；final TaskRoleBinding 未漂移 | PASS |
+| Human Deny occurrence-scoped suppression / restart guard | `CP-EXE-BR-29`, `RF-EXE-BR-25` behavior tests | Real-3 Carrier 路径已通过；final Extension 0.1.64 heartbeat RUNNING | PASS |
+| Attention occurrence identity / restart reconstruction / authenticated relay | `CP-EXE-BR-30/31/32` tests | Real-3 Browser/Carrier 已消费；final same-registration Extension adoption | PASS |
+| Dev complete → Test READY durable handoff | Task reconciliation + Host observer tests | Dev run1 → Test READY/complete，Task 当前仍 SUCCEEDED v11 | PASS |
+| REOPEN reuses original Worker / Conversation | Task SQLite + observer + Dev/Test journey tests | Test run2 仍绑定原 Test worker/conversation | PASS |
+| Permission liveness / watchdog / final page reality | `CP-EXE-BR-43..49` behavior tests | Real-3 SAME_SCENE 历史真人事实 + final Extension current runtime adoption | PASS |
+| Slugged GPT URL + current Role/version validation | Host Role validation tests | Product Role same `roleRef` 原地 `0.1.18 → 0.1.19` adopt | PASS |
+| Direct Tool independence / provider child isolation | Direct Tool / Host / Gateway / Execution tests | Real-3 Test run2 独立 Repomix / CodeGraph / Local Dev 成功事实 | PASS |
+| UNKNOWN no-blind-replay / terminal stop-driving | Task observer + Browser carrier regressions | Real-3 fail→REOPEN 正式恢复；terminal Task 未被本轮 adoption 驱动 | PASS |
+
+## Final Runtime Adoption Evidence
+
+### Registry / workspace package parity
+
+npm Registry exact 已确认 Browser `0.1.64` 存在。正式 workspace install 后 current installed versions 为：
+
+```text
+Gateway = 0.1.19
+Product = 0.1.19
+Browser Extension = 0.1.64
+Platform Host = 0.1.30
+Task Orchestration = 0.1.12
+```
+
+### Browser Extension current owner
+
+正式 materialized manifest 已为 `0.1.64`。现有 Chrome registration identity/path 被 helper fresh 验证后走 **RELOAD**，不是 uninstall/reinstall：
+
+```text
+extensionId = eehdadpmjffomabiedcjijiakconalab
+before loaded version = 0.1.63
+after loaded version = 0.1.64
+registration profile = Default
+loadDir = /Users/agent/Desktop/proton-workspace/.proflow/deployment/browser-extension/execution-browser-extension
+```
+
+随后 package-owned setup / pairing owner 记录：
+
+```text
+moduleVersion = 0.1.64
+serviceWorker = RUNNING
+evidenceSource = PAIRING_HEARTBEAT
+extensionInstanceId = extension:2d13fd29-61ee-4ec7-b8e3-953f35de62b1
+observedAt = 2026-09-13T20:36:19.006Z
+```
+
+### Product Role current owner
+
+Product durable Role 在 mutation 前 fresh 绑定为：
+
+```text
+roleRef = g-6aa260d2bd2c81919e229142e99025c3
+registeredPackageVersion = 0.1.18
+```
+
+0.1.64 Extension adoption 后通过正式 `platform setup --module agent-product` 原地同步，owner readback 为：
+
+```text
+roleRef = g-6aa260d2bd2c81919e229142e99025c3
+registeredPackageVersion = 0.1.19
+carrierUrl = https://chatgpt.com/g/g-6aa260d2bd2c81919e229142e99025c3
+validatedAt = 2026-09-13T20:34:21.551Z
+```
+
+`roleRef` 未变化，证明是原 GPT 原地 adopt，不是创建替代 GPT。
+
+### Platform / Host / Gateway current owner
+
+正式 `platform start`：
+
+```text
+成功 = 5
+跳过 = 18
+失败 = 0
+```
+
+启动后 Browser runtime session 曾短暂 offline；继续同一正式 setup checkpoint，并用 exact registration helper probe 当前 0.1.64 service worker 后，同一 setup transaction 完成 pairing。最终：
+
+```text
+配置进度 = 3/3
+Browser Extension = 已完成
+Remote Connection = 已完成
+FAST / THINK Model = 已完成
+PLATFORM_READY = YES
+```
+
+Fresh shared facts：
+
+```text
+Gateway localBaseUrl = http://127.0.0.1:41705
+Host endpoint = http://127.0.0.1:51443
+Gateway / Host shared facts updatedAt = 2026-09-13T20:34:45Z
+```
+
+## Affected FAST_REPLAY
+
+W21 不重复 Full Fresh Real-3。最终 `0.1.64` 相对 `0.1.63` 的真实变更是 Extension managed runtime-config / provisioning adoption，因此最小 affected FAST_REPLAY 使用正式产品路径完成：
+
+```text
+Registry 0.1.64
+→ workspace install 0.1.64
+→ materialized Extension 0.1.64
+→ exact existing Chrome registration RELOAD 0.1.63→0.1.64
+→ 0.1.64 pairing heartbeat / serviceWorker RUNNING
+→ existing Product Role targeted setup
+→ same roleRef 原地 0.1.18→0.1.19 adopt
+→ platform start
+→ Extension runtime session pairing recovery
+→ PLATFORM_READY=YES
+→ fixed Real-3 Task / TaskRoleBinding fresh owner readback unchanged
+```
+
+该 replay 直接穿过本次修复的 provisioning/config-adoption seam，并同时覆盖 Browser loaded-version、Role identity/version 与 terminal Task no-drift。没有人为制造新的 Permission prompt，也没有创建新 Task/Worker/Conversation。
 
 ## Findings
 
 ### W21-F01｜PASS｜设计到自动化 proof 无新的缺口
 
-Wave 01～20 已把 Real-3 暴露的关键 failure families 上收到 canonical DDD/SDD/TDD，并绑定到真实 executable tests。W21 未发现需要重新设计领域模型、重新引入旧 Observer、重复 Worker、Always-Allow 主链或 GPT-facing Execution lifecycle 的理由。
+Wave 01～20 已把 Real-3 暴露的关键 failure families 上收到 canonical DDD/SDD/TDD，并绑定 executable tests。本轮没有发现需要重开领域设计的缺口。
 
-### W21-F02｜PASS｜Real-3 真人 Journey 证据有效，但属于已完成运行事实
+### W21-F02｜PASS｜Real-3 真人 Journey 仍是有效固定事实
 
-固定 Task 已由正式 Owner facts证明 `SUCCEEDED v11`；Test 经 `FAILED → REOPEN → START → COMPLETE` 到 run2，原 Task-bound Test Worker/Conversation 被复用；Dev→Test durable WAKE、三 Direct Tool 独立验证、真实 Permission/Carrier 路径均有对应事实。
+固定 Task 当前仍由 owner DB 证明 `SUCCEEDED v11`；Test run2 仍复用原 Task-bound Test Worker/Conversation。Final adoption 未污染或重建该事实。
 
-这些证据足以证明 Real-3 产品 Journey 当时真实通过，不需要为了 W21 再创建 Task/Worker/Conversation。
+### W21-F03｜PASS｜最终 package release 已更新为 Browser 0.1.64
 
-### W21-F03｜PASS｜最终语义包已经正式发布并回写 main release facts
+Browser 0.1.64 已正式发布且 Registry exact 可见；其他四个 final package version 不变且已安装。
 
-五个目标版本已存在于 npm Registry；main 已通过 release-facts commit 消费 changeset并记录相同版本。发布成功不等于运行态 adoption，因此这里只关闭 `CURRENT_PACKAGE_REGISTRY` 层。
+### W21-F04｜PASS｜Current runtime adoption 已机械闭环
 
-### W21-F04｜BLOCKER｜最终 release 的 current runtime adoption 尚未被本审计证明
+正式 install/setup/start/status、Chrome same-registration reload、pairing heartbeat、Product same-role adopt、Host/Gateway/Task owner readback均为 current evidence；旧 capture-time READY 不再承担 final authority。
 
-Wave 14 的 capture-time runtime baseline 曾证明 Platform READY，但其版本是：
+### W21-F05｜PASS｜Affected FAST_REPLAY 已通过真实修复 seam
 
-```text
-Extension 0.1.62
-Host 0.1.29
-Gateway 0.1.18
-Product 0.1.18
-Execution Runtime 0.1.19
-Dev Tunnel 0.1.36
-Dev/Test 0.1.21
-```
-
-当前最终发布版本已前进到 Browser `0.1.63`、Host `0.1.30`、Gateway `0.1.19`、Product `0.1.19`、Task Orchestration `0.1.12`。本 Wave 没有当前正式 install/setup/start/status + Chrome/Role/Owner readback，因此不能把旧 capture-time READY 或 Registry publish 冒充最终 source→runtime parity。
-
-这不是新的 implementation defect；它是 Final Gate 的 **runtime adoption evidence gap**。
-
-## Required Final Runtime Acceptance
-
-只有在明确获得 install/setup/start/restart 授权后，按正式产品路径完成以下最小证明：
-
-1. 正式 install / adoption 采用 Registry exact final versions，不手改 `node_modules`、materialized runtime 或 durable Owner store。
-2. 正式 setup/start/status 证明 Platform READY，且 timeout/UNKNOWN 先 reconcile，不重复启动第二实例。
-3. package-owned verify 读取当前 installed/module/Role facts。
-4. Chrome actual Manifest / materialized Extension / verification evidence 证明 Browser `0.1.63` 已采用，不能只看 source package.json。
-5. Host/Gateway/Task/Role current owner facts 与 final package versions一致。
-6. 对最终 release 触及的 Browser/Permission/identity/reconciliation 路径做最小 `SAME_SCENE` / `FAST_REPLAY`，不得无理由重跑整套 Real-3 Full Fresh。
-7. 所有真实 Acceptance mutation 服从共享 Acceptance Skill，并使用 paired `AUTOMATION_START/AUTOMATION_RUN`。
+0.1.64 的 runtime-config refresh 修复已由实际 Product Role provisioning/adoption 成功证明；最终 Platform READY，固定 Real-3 Task owner保持不变。
 
 ## Gate Verdict
 
@@ -107,13 +199,18 @@ TRACEABILITY_DESIGN = PASS
 AUTOMATED_PROOF = PASS
 REAL3_HUMAN_JOURNEY = PASS
 PACKAGE_RELEASE = PASS
-CURRENT_RUNTIME_ADOPTION = PENDING
-WAVE21 = BLOCKED_ON_FINAL_RUNTIME_ADOPTION
+CURRENT_RUNTIME_ADOPTION = PASS
+AFFECTED_FAST_REPLAY = PASS
+WAVE21 = PASS
+WAVE22 = READY
 PHASE3_FINAL_GO = NO
 ```
 
-Wave 22 必须等待 W21 current runtime adoption Gate 收口后再进入；严格保持 01→22 顺序，不以性能审计绕过最终运行态证明。
+`PHASE3_FINAL_GO` 仍为 `NO`，因为 Wave 22 Performance / Engineering Throughput 尚未执行；Wave 21 关闭只解除顺序阻塞，不提前裁决最终 Phase 3 GO。
 
-## Boundary
+## Boundary / Next
 
-本 Wave 仅冻结 traceability / Gate 结论，不执行 install、setup、start、restart、deploy，也不新建 Task/Worker/Conversation。当前用户已授权阶段性 commit，但未在本轮明确授权最终 runtime adoption mutation；因此停止在授权边界是正确结果，不是失败。
+- 不再重复 publish/install/reload 当前 final versions，除非机械 authority 证明 drift。
+- 不新建 Task/Worker/Conversation 重放 Real-3。
+- 下一可执行 Wave 为 **Wave 22｜Performance / Engineering Throughput**。
+- Wave 22 完成后才裁决最终 `REAL_3 / PHASE3_FINAL_GO`。
