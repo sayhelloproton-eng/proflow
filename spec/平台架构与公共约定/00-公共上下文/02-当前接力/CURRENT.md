@@ -10,14 +10,13 @@ REAL_1 = PASS
 REAL_2 = PASS / FROZEN
 DEPLOYMENT_SUCCESS = YES / FROZEN
 REAL_3_PRODUCT_JOURNEY = TERMINAL_SUCCEEDED
-REAL_3_FINAL_AUDIT = WAVE21_PASS
-WAVE21_CURRENT_RUNTIME_ADOPTION = PASS
-NEXT_WAVE = WAVE22_PERFORMANCE_ENGINEERING_THROUGHPUT
-PHASE3_FINAL_GO = NO
-CURRENT_EXECUTION_MODE = WAVE22_READY
+REAL_3_FINAL_AUDIT = WAVE01_TO_22_PASS
+REAL_3 = PASS / CLOSED
+PHASE3_FINAL_GO = YES
+CURRENT_EXECUTION_MODE = PHASE3_CLOSED
 ```
 
-`REAL_3_PRODUCT_JOURNEY = TERMINAL_SUCCEEDED` 表示固定 Real-3 Task 已沿正式 Owner/Worker/Carrier 路径走到终态；Wave 21 又机械证明最终 release 已完成 current runtime adoption。Phase 3 Final GO 仍等待 Wave 22，不得把 Wave 21 PASS 提前解释为 Final GO。
+Phase 3 / Real-3 已完成正式产品 Journey、Wave01～22 全链审计、最终 release current runtime adoption 与性能/工程吞吐审计。`PHASE3_FINAL_GO=YES` 是当前最终阶段 verdict，不需要再创建 Real-3 Task/Worker/Conversation 刷新时间戳。
 
 ## CURRENT_AUTHORITY
 
@@ -25,14 +24,14 @@ CURRENT_EXECUTION_MODE = WAVE22_READY
 main repo = /Users/agent/Desktop/proton-workspace/repos/proflow
 main branch = main
 exact HEAD/status = READ_FROM_GIT_AT_EXECUTION_TIME
-active audit plan = docs/audits/phase3-real3-full-chain-audit-plan-2026-09-13.md
-Wave 01..21 = DONE
-Wave 21 = PASS
-next executable wave = 22 Performance / Engineering Throughput
-Wave 22 = READY / NOT_STARTED
+full-chain audit plan = docs/audits/phase3-real3-full-chain-audit-plan-2026-09-13.md
+Wave 01..22 = DONE
+Wave 21 = PASS / final runtime adoption closed
+Wave 22 = PASS / performance-engineering-throughput closed
+next executable wave = NONE
 ```
 
-阶段 commits：
+关键阶段 commits：
 
 ```text
 3b9dc12 audit(real3): close full-chain waves 01-20
@@ -40,7 +39,10 @@ df9b583 chore(release): record Real-3 audit package facts
 942184e audit(real3): freeze Wave 21 runtime adoption gate
 9fc95c6 fix(browser): refresh managed runtime config on storage miss
 93c2033 chore(release): version execution-browser-extension 0.1.64
+4e896a0 audit(real3): close wave 21 runtime adoption
 ```
+
+W22 closure commit 以 Git 当前 HEAD 为 authority，不在本文件自引用未来 commit hash。
 
 ## SHARED_PROTOCOLS
 
@@ -52,11 +54,9 @@ ACCEPTANCE_AUTOMATION
 = /Users/agent/Desktop/proton-workspace/skills/chat-local-acceptance-automation-protocol/SKILL.md
 ```
 
-工程 mutation/verify 服从 Engineering Skill；真实 Browser/CLI/runtime acceptance 服从 Acceptance Skill。npm publish/release 必须按当前 Engineering Skill 的非阻塞规则执行，禁止模型同步等待发布结果。
+工程 mutation/verify 服从 Engineering Skill；真实 Browser/CLI/runtime acceptance 服从 Acceptance Skill。npm publish/release 当前规则为 absolute non-blocking：启动后继续独立工作，到 dependency point 优先 exact `npm view`，禁止模型同步等待发布结果。
 
 ## REAL3_TERMINAL_OWNER_FACTS
-
-Fresh current Task owner：
 
 ```text
 Task = task-real3-final-autowake-20260912
@@ -68,23 +68,7 @@ Test workerRef = 6aa2b749-87f4-83e8-bc7f-929161400e39
 REOPEN = reused original Test TaskRoleBinding / Worker / Conversation
 ```
 
-Wave 21 final adoption 后对 `task.sqlite` 的 read-only owner query 再次证明 Task 仍为 `SUCCEEDED v11 / currentNodeId=null`。Dev / Product / Test 三条 TaskRoleBinding 的 roleRef、workerRef、conversationLocator 均保持原绑定；本轮没有创建新 Task、Worker 或 Conversation。
-
-## REAL3_CLOSED_BLOCKERS
-
-以下均为正式已解决 defect/provenance，并已有 canonical design + automated proof + Real-3 / Wave21 runtime evidence：
-
-- TaskRoleBinding transient 三态与 bounded `DEFER`；
-- human Deny occurrence-scoped suppression / restart guard；
-- Carrier Attention occurrence identity、restart reconstruction 与 authenticated `/tasks` 双向 relay；
-- Dev complete → Test READY backend bounded reconciliation / WAKE；
-- REOPEN → 原 Test Worker/Conversation；
-- Role package adoption/version drift 与 slugged Custom GPT Conversation URL；
-- Repomix / Local Dev / CodeGraph Direct Tool 独立执行与 provider child isolation；
-- terminal Task stop-driving / UNKNOWN no-blind-replay；
-- Extension managed runtime-config storage miss → materialized runtime-config refresh / provisioning adoption。
-
-不得把这些关闭项重新变成实现 TODO，除非新的机械 evidence 证明 regression。
+Wave21 final adoption 后对 `task.sqlite` 的 read-only owner query再次证明 Task 仍为 `SUCCEEDED v11 / currentNodeId=null`；Dev / Product / Test 三条 TaskRoleBinding 的 roleRef、workerRef、conversationLocator 均保持原绑定。
 
 ## FINAL_RELEASE_FACTS
 
@@ -98,15 +82,13 @@ Wave 21 final adoption 后对 `task.sqlite` 的 read-only owner query 再次证�
 @tomflow/proflow-task-orchestration = 0.1.12
 ```
 
-Browser `0.1.64` supersedes `0.1.63`，用于关闭 W21 发现的 runtime-config/provisioning adoption 缺口。所有 exact versions 已存在，不得重复 publish。
+Browser `0.1.64` supersedes `0.1.63` 并关闭 W21 runtime-config/provisioning adoption 缺口。所有 exact versions 已存在且 current-adopted，不得重复 publish/install/reload，除非 current owner authority 证明 drift。
 
 ## WAVE21_FINAL_GATE
 
-正式审计记录：
+正式记录：
 
 `docs/audits/phase3-real3-audit-wave-21-final-acceptance-gate-2026-09-13.md`
-
-当前 Gate：
 
 ```text
 TRACEABILITY_DESIGN = PASS
@@ -116,11 +98,9 @@ PACKAGE_RELEASE = PASS
 CURRENT_RUNTIME_ADOPTION = PASS
 AFFECTED_FAST_REPLAY = PASS
 WAVE21 = PASS
-WAVE22 = READY
-PHASE3_FINAL_GO = NO
 ```
 
-### Current runtime authority
+Current runtime authority：
 
 ```text
 PLATFORM_READY = YES
@@ -135,16 +115,77 @@ Host endpoint = http://127.0.0.1:51443
 Task = SUCCEEDED v11 / currentNodeId=null
 ```
 
-Wave 21 的 affected FAST_REPLAY 直接经过 `0.1.64 materialize → same-registration Chrome reload → pairing → existing Product Role 原地 adopt → platform start/status → fixed Task owner readback`；没有新建 Task/Worker/Conversation，也没有无理由重跑 Full Fresh。
+## WAVE22_FINAL_GATE
+
+正式记录：
+
+`docs/audits/phase3-real3-audit-wave-22-performance-engineering-throughput-2026-09-14.md`
+
+核心 mechanical evidence：
+
+```text
+Host reconciliation interval = 10s
+Host pageSize = 100
+Host concurrency = 4
+Host maxPendingTasks = 1024
+Host maxPendingSignals = 4096
+Host retry backoff = 500ms exponential / max 30s
+Host execution fresh-window duration p50 ≈ 6.36ms
+Host execution fresh-window duration p95 ≈ 9.88ms
+Host execution fresh-window max ≈ 61.02ms
+Browser observation mutation coalescing = 100ms single-pending
+Permission watchdog = 10s / bottom 24 buttons
+unchanged PAGE_REALITY_TRANSITION = suppressed
+Vision inference timeout = 12s / HTTP abort = timeout+1s
+```
+
+Fresh current runtime 的分钟级长尾来自低优先级/外部路径，而不是 Host sweep：`system.reason` 一次约 31.7s 失败，final Product provisioning约 23.2s 成功。现有边界保证 pending System assessment 不拥有 Task progression；当前没有性能 blocker 需要产品源码重构。
+
+Gate：
+
+```text
+WAVE22_STATIC_AUDIT = PASS
+WAVE22_CURRENT_RUNTIME_EVIDENCE = PASS
+PERFORMANCE_BLOCKER = NO
+ENGINEERING_THROUGHPUT_POLICY = PASS
+WAVE22 = PASS
+WAVE01_TO_22 = PASS
+REAL_3 = PASS / CLOSED
+PHASE3_FINAL_GO = YES
+```
+
+## REAL3_CLOSED_BLOCKERS
+
+以下均为已关闭 defect/provenance，不得在没有新机械 regression evidence 时重新变成 TODO：
+
+- TaskRoleBinding transient 三态与 bounded `DEFER`；
+- human Deny occurrence-scoped suppression / restart guard；
+- Carrier Attention occurrence identity、restart reconstruction 与 authenticated `/tasks` 双向 relay；
+- Dev complete → Test READY backend bounded reconciliation / WAKE；
+- REOPEN → 原 Test Worker/Conversation；
+- Role package adoption/version drift 与 slugged Custom GPT Conversation URL；
+- Repomix / Local Dev / CodeGraph Direct Tool 独立执行与 provider child isolation；
+- terminal Task stop-driving / UNKNOWN no-blind-replay；
+- Extension managed runtime-config storage miss → materialized runtime-config refresh / provisioning adoption；
+- Wave22 所审计的 reconciliation/Observer/loopback 当前不存在需要立即改动的性能 blocker。
+
+## PERFORMANCE_RESIDUALS
+
+仅保留监控型 residual，不是 blocker：
+
+1. System Observer / model reason 可能出现 30s 级 inference 长尾；只有证明阻塞 business critical path 或频率显著上升时才重开性能 Decision。
+2. Custom GPT provisioning 是低频外部 Browser workflow，20s+ 延迟可接受为外部操作成本；禁止用 blind retry 放大它。
+
+不要通过提高 reconciliation 扫描频率、合并 authenticated loopback lanes 或删除 UNKNOWN/Effect Gate 来“优化”这些 residual。
 
 ## NEXT_ACTION
 
 ```text
-1. Wave 21 已关闭，不再执行 runtime adoption recovery。
-2. 进入 Wave 22｜Performance / Engineering Throughput。
-3. Wave 22 只基于 current final runtime 做性能、超时、调用次数、heartbeat、工程吞吐审计；不得回退到旧 capture-time baseline。
-4. Wave 22 完成后才裁决 REAL_3 / PHASE3_FINAL_GO。
-5. 若 W22 发现 runtime/source drift，先按 owner authority 定位，不得用旧 W21 setup/reload 作为默认恢复动作。
+1. Phase 3 / Real-3 已关闭；没有 Wave 23。
+2. 后续若进入新产品阶段、生产部署迭代或专项性能优化，必须建立新的 objective / acceptance。
+3. 不重复 Real-3 Full Fresh，不新建 Task/Worker/Conversation 刷新已关闭证据。
+4. 不重复 publish/install/reload 当前 final versions，除非 owner authority 证明 drift。
+5. 新 regression 先按当前 Runtime/Browser/Task owner authority定位，不回退历史 blocker。
 ```
 
 ## MUTATION_AUTHORITY
@@ -155,26 +196,22 @@ stage / phase commit = AUTHORIZED by user
 other unrelated WIP overwrite / reset / clean / stash = FORBIDDEN
 push = FORBIDDEN unless explicitly authorized
 final package publish = APPLIED / DO_NOT_REPEAT
-runtime install/setup/start/reload = WAVE21_APPLIED / DO_NOT_REPEAT unless current authority proves drift
+current runtime adoption = APPLIED / DO_NOT_REPEAT unless authority proves drift
 ```
 
 Release-bound version/release commit 服从当前 Engineering Skill：用户明确要求 publish/release 时，不再重复询问同一 release 所必需的 commit 授权；无关 commit/push 不由此授权。
-
-## WORKTREE_BOUNDARY
-
-当前阶段提交只能包含本轮明确的 audit/CURRENT closure 变更；提交前仍以 `git status` 机械确认。禁止 reset/clean/stash 或误收其它 Chat 的并发 WIP。
 
 ## DO_NOT_REPEAT
 
 - 不回到旧 repair worktree / S1-F02 blocker。
 - 不重复 publish 已存在 exact Registry versions。
-- 不重复 install/reload 已 current-adopted Extension 0.1.64，除非 owner authority 证明 drift。
-- 不新建 Task/Worker/Conversation 来重复证明 Real-3。
-- 不把历史 runtime READY 冒充 current authority；当前 authority 已由 W21 fresh adoption 建立。
-- 不把 source/test PASS 冒充 Runtime/Human Gate。
+- 不重复 install/reload 已 current-adopted Extension 0.1.64。
+- 不新建 Task/Worker/Conversation 重复证明 Real-3。
+- 不把历史 runtime READY 冒充 current authority；当前 authority 已由 W21 fresh adoption建立。
+- 不为“减少 HTTP/层数”破坏 Browser/Local Tool/Provisioning ownership boundary。
+- 不把 System Observer 外部 inference 长尾误归因于 Host 10s sweep。
 - 不 reset/clean/stash unrelated WIP。
-- 不回退 Wave21；下一顺序是 Wave22。
 
 ## STOP_POINT
 
-`FULL_CHAIN_AUDIT / WAVE_01_TO_21_DONE / WAVE21_PASS / FINAL_RELEASE_EXTENSION_0.1.64 / PLATFORM_READY_YES / REAL3_TASK_SUCCEEDED_V11 / WAVE22_READY / PHASE3_FINAL_GO_NO`
+`PHASE3_CLOSED / REAL3_PASS / WAVE01_TO_22_PASS / FINAL_RELEASE_EXTENSION_0.1.64 / PLATFORM_READY_YES / PERFORMANCE_BLOCKER_NO / PHASE3_FINAL_GO_YES`
