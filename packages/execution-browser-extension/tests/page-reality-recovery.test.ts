@@ -3,8 +3,9 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 import { recoverMissingContentReceiver } from "../src/content-session-recovery.ts";
+import { createPageRealityRecoveryLoop } from "../extension/runtime/page-reality-watchdog.ts";
 
-test("CP-EXE-BR-22 missing content receiver is injected once and then re-observed", async () => {
+test("CP-EXE-BR-45 missing content receiver is injected once and then re-observed", async () => {
 	let observes = 0;
 	let injections = 0;
 	const result = await recoverMissingContentReceiver({
@@ -21,7 +22,7 @@ test("CP-EXE-BR-22 missing content receiver is injected once and then re-observe
 	assert.equal(injections, 1);
 });
 
-test("CP-EXE-BR-22 healthy content receiver is never injected again", async () => {
+test("CP-EXE-BR-45 healthy content receiver is never injected again", async () => {
 	let injections = 0;
 	const current = { pageState: "IDLE" as const };
 	const result = await recoverMissingContentReceiver({
@@ -34,7 +35,7 @@ test("CP-EXE-BR-22 healthy content receiver is never injected again", async () =
 	assert.equal(injections, 0);
 });
 
-test("CP-EXE-BR-22 failed reinjection fails closed without repeated observe", async () => {
+test("CP-EXE-BR-45 failed reinjection fails closed without repeated observe", async () => {
 	let observes = 0;
 	const result = await recoverMissingContentReceiver({
 		observe: async () => {
@@ -49,7 +50,7 @@ test("CP-EXE-BR-22 failed reinjection fails closed without repeated observe", as
 	assert.equal(observes, 1);
 });
 
-test("CP-EXE-BR-22 background recovery wires scripting reinjection into current GPT tabs", async () => {
+test("CP-EXE-BR-45 source wiring injects a missing receiver into current GPT tabs", async () => {
 	const [manifest, background, pageReality] = await Promise.all([
 		readFile(new URL("../manifest.json", import.meta.url), "utf8"),
 		readFile(new URL("../extension/background.ts", import.meta.url), "utf8"),
@@ -66,18 +67,53 @@ test("CP-EXE-BR-22 background recovery wires scripting reinjection into current 
 	assert.match(pageReality, /PROFLOW_PAGE_SNAPSHOT_REQUEST/);
 });
 
-test("CP-EXE-BR-22 background repeats current-page recovery every ten seconds", async () => {
+test("CP-EXE-BR-45 recurring recovery dedupes in-flight passes and schedules once", async () => {
+	const callbacks: Array<() => void> = [];
+	const delays: number[] = [];
+	let recoveries = 0;
+	let releaseFirst!: () => void;
+	const firstRecovery = new Promise<void>((resolve) => {
+		releaseFirst = resolve;
+	});
+	const loop = createPageRealityRecoveryLoop({
+		intervalMs: 10_000,
+		recover() {
+			recoveries += 1;
+			return recoveries === 1 ? firstRecovery : Promise.resolve();
+		},
+		schedule(callback, intervalMs) {
+			callbacks.push(callback);
+			delays.push(intervalMs);
+			return callbacks.length;
+		},
+	});
+
+	assert.equal(loop.start(), true);
+	assert.equal(loop.start(), false);
+	assert.deepEqual(delays, [10_000]);
+	assert.equal(callbacks.length, 1);
+
+	const first = loop.run();
+	const duplicate = loop.run();
+	assert.equal(first, duplicate);
+	await Promise.resolve();
+	assert.equal(recoveries, 1);
+	releaseFirst();
+	await first;
+
+	callbacks[0]?.();
+	await Promise.resolve();
+	await Promise.resolve();
+	assert.equal(recoveries, 2);
+});
+
+test("CP-EXE-BR-45 production background uses the behavior-tested recovery loop", async () => {
 	const background = await readFile(
 		new URL("../extension/background.ts", import.meta.url),
 		"utf8",
 	);
-	assert.match(background, /PAGE_PERMISSION_WATCHDOG_INTERVAL_MS/);
-	assert.match(background, /let pageRecoveryPass: Promise<void> \| null = null/);
-	assert.match(background, /if \(pageRecoveryPass\) return pageRecoveryPass/);
-	assert.match(background, /function startPageRealityWatchdog\(\): void/);
-	assert.match(
-		background,
-		/setInterval\(\(\) => \{\s*void recoverCurrentPageReality\(\)\.catch\(\(\) => undefined\);\s*\}, PAGE_PERMISSION_WATCHDOG_INTERVAL_MS\);/s,
-	);
-	assert.match(background, /startPageRealityWatchdog\(\)/);
+	assert.match(background, /createPageRealityRecoveryLoop/);
+	assert.match(background, /pageRealityRecovery\.start\(\)/);
+	assert.match(background, /pageRealityRecovery\s*\.run\(\)/s);
+	assert.doesNotMatch(background, /let pageRecoveryPass:/);
 });

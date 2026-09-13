@@ -45,6 +45,6 @@ Module Contract 仍是 7 个标准生命周期命令；`platform update` 是 Pla
 
 ## 自动化注意
 
-交互式 `platform setup` 统一复用 `基础动作/CLI-PTY交互自动化.md` 与 canonical `scripts/human-e2e/platform-setup.exp`；普通文本注入失败后不要重复盲发 Enter，也不要临时再造第二套 expect。setup 拉起 Browser OAuth 时继续同一个 PTY 事务，不重新启动 setup。
+交互式 `platform setup` 的 CLI/PTTY、Browser OAuth、timeout/UNKNOWN 与恢复 mechanics 直接服从 `/Users/agent/Desktop/proton-workspace/skills/chat-local-acceptance-automation-protocol/SKILL.md`。`scripts/human-e2e/platform-setup.exp` 仍是 ProFlow 的 canonical setup harness 资产，但其调用/恢复方法不在本 Runbook 复制第二套协议。
 
-CLI 全量 status/setup 需要构建完整 installed context，可能比单包动作慢。看到 spinner 先依据已知阶段等待 bounded 时间；若明显超出历史窗口，保存输出/进程证据，再定位具体 module，禁止直接通过内部状态绕过 CLI。
+CLI 全量 status/setup 需要构建完整 installed context，可能比单包动作慢。是否等待、如何保存进程证据和恢复由共享 Skill 决定；本 Runbook 只要求不得通过内部状态绕过公开 CLI 产品路径。

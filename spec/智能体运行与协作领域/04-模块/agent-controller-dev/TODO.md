@@ -15,155 +15,35 @@ contractRefs:
 - AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV
 - AGENT-DOC-02-03
 ---
+
 # `agent-controller-dev` TODO
 
-> 本文件是该 Module 的当前实施 backlog。`Status: READY` 保留原任务事实，表示任务已进入当前 backlog；`implementationReadiness: PLANNED` 表示**尚未冻结自动施工顺序**。Priority、dependsOn、逐任务 acceptance/verification 不允许由文档整理工具推断；没有可直接追溯的冻结依据时，分别保持 `PENDING_DECISION`、`NOT_FROZEN`、`ACCEPTANCE_NOT_FROZEN` / `verification: []`。
+> 本文件只保存**当前仍未完成、且已由当前 Contract/Design 明确冻结**的 Module implementation backlog。完成、迁移或被架构裁决替代的历史任务不得继续以 `READY/PLANNED` 冒充待施工事实。
 
-## Implementation Tasks
-### AGT-DEV-001
+## Current backlog
 
-```yaml
-id: AGT-DEV-001
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: CONTRACT
-owner:
-  domain: agent-runtime-collaboration
-  boundedContext: agent-runtime-collaboration
-  moduleRef: agent-controller-dev
-sourceRefs:
-- AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV
-- AGENT-DOC-02-03
-qualityRefs:
-- AGENT-DOC-05-03
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 冻结总控=项目管理+研发 Instructions、能力范围和 Action allowlist
-scope:
-  allow:
-  - packages/agent-controller-dev/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
+截至 2026-09-13 Phase 3 / Real-3 全链审计 Wave 09：**没有已冻结、仍未完成的本 Module implementation task。**
+
+Dev fixed Role package、Owner facts + Direct Tools、native capability boundary、WORKER_BIND/NODE_READY 与 same-worker reopen 已实现并有 current executable/Real-3 evidence。
+
+## Historical task identities
+
+历史任务标识 `AGT-DEV-001..004` 已从 current backlog 移除。Test Plan 中若仍引用这些 ID，它们只作为历史 traceability/provenance identity，不表示当前存在待实施工作；后续文档治理 Wave 会统一检查 dangling/重复导航。
+
+## Residual validation boundary
+
+真实 Chrome/Custom GPT/外部 Carrier 的持续兼容性、完整 Full Suite、release/adoption/runtime materialization 等属于 Test Plan / Known Limitation / Deployment / Final Gate，不因为尚需最终验证而重新创建 implementation TODO。
+
+## New task admission rule
+
+未来新增 TODO 必须同时具备：
+
+```text
+current source/design evidence
+明确 owner 与 moduleRef
+尚未实现的具体行为缺口
+scope / forbidden boundary
+acceptance + executable verification path
 ```
 
-### AGT-DEV-002
-
-```yaml
-id: AGT-DEV-002
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: agent-runtime-collaboration
-  boundedContext: agent-runtime-collaboration
-  moduleRef: agent-controller-dev
-sourceRefs:
-- AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV
-- AGENT-DOC-02-03
-qualityRefs:
-- AGENT-DOC-05-03
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 验证 Task Node/Document/Execution 协作路径
-scope:
-  allow:
-  - packages/agent-controller-dev/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-### AGT-DEV-003
-
-```yaml
-id: AGT-DEV-003
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: agent-runtime-collaboration
-  boundedContext: agent-runtime-collaboration
-  moduleRef: agent-controller-dev
-sourceRefs:
-- AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV
-- AGENT-DOC-02-03
-qualityRefs:
-- AGENT-DOC-05-03
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 对齐 File Bridge + Context Pack + Code Interpreter + Patch 主路径，并证明候选 Artifact 不直接 real apply
-scope:
-  allow:
-  - packages/agent-controller-dev/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-### AGT-DEV-004
-
-```yaml
-id: AGT-DEV-004
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: VALIDATION
-owner:
-  domain: agent-runtime-collaboration
-  boundedContext: agent-runtime-collaboration
-  moduleRef: agent-controller-dev
-sourceRefs:
-- AGENT-RUNTIME-COLLABORATION-TECH-AGENT-CONTROLLER-DEV
-- AGENT-DOC-02-03
-qualityRefs:
-- AGENT-DOC-05-03
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 完成研发 Worker provisioning/reopen/same-worker E2E
-scope:
-  allow:
-  - packages/agent-controller-dev/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-## Stop Rules
-
-- `implementationReadiness != READY_TO_IMPLEMENT` 时，Codex/Agent 不得把 TODO 当作自动施工队列；先完成实施编排。
-- 不得通过 TODO 创造新 Domain/Bounded Context/Service。
-- 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
-- `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
-- 发现正式文档内部冲突时停止实现，先修 Contract/Design。
-
-## 2026-08-14 Journey / Native Capability Addendum
-
-- [ ] Controller/Dev Worker 在 J1 只完成 WORKER_BIND 后 IDLE，不提前执行业务 Node。
-- [ ] READY WAKE 后由 Worker 读取 fresh formal context并调用 `startNode`；Task Observer不替 Worker startNode。
-- [ ] 一个 Worker Turn可连续 `0..N` Actions；不得要求Browser per-action “continue”。
-- [ ] 公网 research优先GPT Web Search；多文件分析优先File Bridge + bounded Context Pack + Code Interpreter；真实repo apply/test仍由Execution。
-- [ ] 长Execution/peer等待可结束当前Turn，result/reply ready后恢复同一workerRef/Conversation；UNKNOWN Effect不得盲重放。
+不得把历史聊天、旧 blocker、已完成的 Real-3 defect、纯 release bookkeeping 或最终验收 gate 重新包装为 implementation backlog。

@@ -41,7 +41,7 @@ Execution Effect/Result/Evidence/Approval
 Model inference/assessment business facts
 Deployment Module package/status/setup/docs truth
 Browser tab/Conversation runtime state
-Task/System Observer durable truth
+Task Observer progression state / System Observer derived assessment state
 ```
 
 ## 2. Runtime Relationship
@@ -63,7 +63,7 @@ Tool Action router 的物理目标：
              ↓
 Browser Extension (separate install/runtime)
    ├─ Task UI / Approval-Alert UI
-   ├─ System Observer（若仍部署于 Extension，必须独立于 progression lock）
+   ├─ System Observer application（当前由 Extension observer-recovery controller 组合；独立于 progression/recovery single-flight）
    ├─ Background Carrier Controller
    └─ Local Tool Effect Gate
         ├─ Local Dev
@@ -77,7 +77,7 @@ Browser Extension (separate install/runtime)
 
 > 注：上图 `agent-gateway` 为正式名称；若渲染工具不处理等宽箭头，语义仍以本文为准。
 
-Execution Runtime、Model Runtime、Agent Gateway 是独立 service/process/deployment unit；Browser Extension 独立安装。platform-host 不把它们折成一个新 Monolith Domain。
+Execution Runtime、Model Runtime、Agent Gateway 是独立 service/process/deployment unit；Browser Extension 独立安装。platform-host 不把它们折成一个新 Monolith Domain。System Observer 的当前 application loop 位于 Extension，但其 owner views / drill-down / reason 仍通过 Host application boundary 获取；Extension 的 assessment persistence 是派生诊断状态，不转移任何 Domain owner truth。
 
 ## 3. Observer / Reconciliation Composition Boundary
 
@@ -91,6 +91,7 @@ Agent/Collaboration query client
 Browser/Execution internal delivery/result query client
 Model infer/health client（diagnostic only）
 Browser Extension local-tool bridge client + operation-scoped readiness
+System Observer bounded view / drill-down / reason application endpoints
 ```
 
 但 host 不能：

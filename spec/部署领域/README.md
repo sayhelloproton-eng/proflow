@@ -50,12 +50,14 @@ contractRefs: []
 
 Setup 的产品目标固定为：**用最少用户操作、最少往返、最快达到全部 required Module `setupStatus=READY` 并进入 `platform start`**。`platform setup` 默认全量聚合；具体配置流程由各 Module 自己闭环。机器能完成的步骤必须自动完成，用户只处理真实外部选择/动作；每个 setup Step 都必须有 package-owned executable/verify 路径。
 
-## 当前 Final Freeze（2026-09-01）
+## 历史 Freeze 证据
 
-Deployment 已完成最终真实产品验收并封版。当前发布线：`@tomflow/proflow-platform-cli@0.1.50`、`@tomflow/proflow-dev-tunnel@0.1.25`、`@tomflow/proflow-execution-browser-extension@0.1.25`；Agent Runtime `0.1.13`，三个 Role package `0.1.16`。最终证据见 [`08-测试用例与验证/DEPLOYMENT-FINAL-FREEZE-20260901.json`](08-测试用例与验证/DEPLOYMENT-FINAL-FREEZE-20260901.json)。
+`08-测试用例与验证/DEPLOYMENT-FINAL-FREEZE-20260901.json` 保留为 2026-09-01 Deployment 真实产品验收的历史 freeze 证据；它不再声明当前 package release line。当前版本事实以各 package manifest、Workspace lockfile、Module `status` 与实际 materialized/runtime reality 为准，后续 Real-3/patch release 不倒写历史 freeze 证据。
 
-`DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json` 继续保留为 2026-08-21 的历史 release freeze，不得覆盖当前 Final Freeze。
+`DEPLOYMENT-CLI-0.1.36-FREEZE-EVIDENCE.json` 继续保留为 2026-08-21 的历史 release freeze，同样不得覆盖或冒充当前版本真源。
 
-## 2026-08-14 Carrier / Journey 对齐
+## Carrier / Journey 对齐
 
-Deployment 负责三个固定 Custom GPT Role 对应 Module 的标准 setup/status/docs 接缝，以及 Action auth/schema、File Bridge/Code Interpreter/Web Search capability requirement、Always Allow target configuration 与 Chrome/Carrier external-resource readiness。它不拥有 Task Worker c-id、Task/System Observer 或 Worker Turn；System Observer 只能读取 Module 当前真实 status 与公开 deployment summary。Role READY 是 behavior/capability/auth/reality based，exact model id 不是真源。
+Deployment 负责三个固定 Custom GPT Role 对应 Module 的标准 setup/status/docs 接缝，以及 Action auth/schema、File Bridge/Code Interpreter/Web Search capability requirement 与 Chrome/Carrier external-resource readiness。当前 v1 已发布 Action schema 的每个 operation 必须显式 `x-openai-isConsequential: false`；Deployment 负责验证已发布 material 与声明一致，但**不得把 `Always Allow` 当作 setup 配置项、Role READY 条件或权限真源**。
+
+若 ChatGPT 仍出现 Action Permission surface，它属于 Browser Carrier 的机械 gate/recovery reality，由 Carrier 基于当前 Role/Worker/target/operation/session 事实分类和处理；它不是 Deployment 配置，也不是 Execution Approval。Deployment 不拥有 Task Worker c-id、Task/System Observer 或 Worker Turn；System Observer 只能读取 Module 当前真实 status 与公开 deployment summary。Role READY 是 behavior/capability/auth/reality based，exact model id 不是真源。

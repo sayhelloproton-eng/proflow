@@ -1,7 +1,14 @@
 {
   "contract": "proflow.implementation-evidence-index.v1",
-  "contractVersion": "1.0.0",
-  "normativeTruth": ["DOCUMENT-INDEX.json", "SPEC-MANIFEST.json"],
+  "contractVersion": "1.1.0",
+  "semantics": "Evidence navigation only. Captured PASS/ACTION_REQUIRED values describe the named evidence snapshot at capture time and never override CURRENT or live Owner facts.",
+  "currentStateAuthority": "平台架构与公共约定/00-公共上下文/02-当前接力/CURRENT.md",
+  "normativeNavigation": [
+    "DOCUMENT-INDEX.json",
+    "平台架构与公共约定/06-测试计划/TEST-PLAN-INDEX.json",
+    "MODULE-REGISTRY.json",
+    "EXTERNAL-RESOURCE-REGISTRY.json"
+  ],
   "evidenceIsNormative": false,
   "runtimeValidationBaseline": "zod@4.1.12",
   "nonDeploymentServiceClosure": "NON-DEPLOYMENT-SERVICE-CLOSURE-EVIDENCE.json",
@@ -13,7 +20,7 @@
       "domain": "deployment-foundation",
       "evidence": "部署领域/08-测试用例与验证/foundation-closure.md",
       "additionalEvidence": "部署领域/08-测试用例与验证/CARRY-FORWARD-PUBLISHABILITY-EVIDENCE.json",
-      "status": "PASS",
+      "evidenceStatusAtCapture": "PASS",
       "limits": [
         "Static File Bridge URL conformance rejects literal private, loopback, link-local, and metadata targets.",
         "It does not prove runtime DNS resolution, DNS rebinding resistance, redirect revalidation, or connection-time IP pinning; those remain Gateway/Execution owner runtime proofs."
@@ -23,7 +30,7 @@
       "domain": "task-orchestration",
       "evidence": "任务与编排领域/08-测试用例与验证/CRITICAL-PROOF-EVIDENCE.json",
       "additionalEvidence": "任务与编排领域/08-测试用例与验证/CARRY-FORWARD-EVIDENCE.json",
-      "status": "PASS"
+      "evidenceStatusAtCapture": "PASS"
     },
     {
       "domain": "model-reasoning",
@@ -36,14 +43,14 @@
         "模型与推理领域/08-测试用例与验证/CARRY-FORWARD-HARDENING-EVIDENCE.json"
       ],
       "history": "模型与推理领域/08-测试用例与验证/REAL-PROVIDER-BLOCKER-EVIDENCE.json",
-      "status": "PASS"
+      "evidenceStatusAtCapture": "PASS"
     },
     {
       "domain": "agent-runtime-collaboration",
       "evidence": "智能体运行与协作领域/08-测试用例与验证/AGENT-CORE-WAVE4-MACHINE-EVIDENCE.json",
       "realCarrierBlockerEvidence": "智能体运行与协作领域/08-测试用例与验证/REAL-CARRIER-BLOCKER-EVIDENCE.json",
-      "status": "ACTION_REQUIRED",
-      "criticalProofs": "24/28 PASS"
+      "evidenceStatusAtCapture": "ACTION_REQUIRED",
+      "criticalProofsAtCapture": "24/28 PASS"
     },
     {
       "domain": "execution",
@@ -51,17 +58,17 @@
       "additionalEvidence": "执行领域/08-测试用例与验证/CARRY-FORWARD-REGRESSION-EVIDENCE.json",
       "sweepSafetyEvidence": "执行领域/08-测试用例与验证/NON-DEPLOYMENT-SAFETY-REMEDIATION-EVIDENCE.json",
       "browserCarrierBlockerEvidence": "执行领域/08-测试用例与验证/BROWSER-CARRIER-E3-E4-BLOCKER-EVIDENCE.json",
-      "status": "ACTION_REQUIRED",
-      "criticalProofs": "24/25 PASS",
+      "evidenceStatusAtCapture": "ACTION_REQUIRED",
+      "criticalProofsAtCapture": "24/25 PASS",
       "limits": [
         "The implemented Extension and controlled Browser executor prove the typed port, lifecycle, recovery logic, and single backend Execution truth.",
-        "Real Chrome/ChatGPT E3/E4 remains OPERATOR_ACTION_REQUIRED and is not claimed."
+        "Real Chrome/ChatGPT E3/E4 was OPERATOR_ACTION_REQUIRED at this evidence capture; current state must be read from CURRENT/live Owner facts."
       ]
     },
     {
       "domain": "platform-host",
       "evidence": "平台架构与公共约定/08-测试用例与验证/PLATFORM-HOST-EVIDENCE.json",
-      "status": "PASS"
+      "evidenceStatusAtCapture": "PASS"
     }
   ]
 }

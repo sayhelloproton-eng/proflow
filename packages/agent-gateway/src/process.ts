@@ -181,6 +181,9 @@ function parseCredentialStore(value: unknown): Record<string, string> {
 }
 
 async function readCurrentCredentialStore(file: string) {
+	const info = await stat(file);
+	if (process.platform !== "win32" && (info.mode & 0o077) !== 0)
+		throw new Error("ROLE_CREDENTIAL_STORE_PERMISSIONS_INVALID");
 	return parseCredentialStore(JSON.parse(await readFile(file, "utf8")));
 }
 
@@ -257,14 +260,16 @@ export async function createAgentGatewayProcess(input: {
 		if (!response.ok) {
 			const downstreamCode = await boundedDownstreamErrorCode(response);
 			const code =
-				response.status >= 500 || response.status === 401
+				response.status === 401
 					? "OWNER_SERVICE_UNAVAILABLE"
 					: (downstreamCode ??
-						(response.status === 400
-							? "INVALID_REQUEST"
-							: response.status === 403
-								? "ROLE_OPERATION_DENIED"
-								: "DOWNSTREAM_UNAVAILABLE"));
+						(response.status >= 500
+							? "OWNER_SERVICE_UNAVAILABLE"
+							: response.status === 400
+								? "INVALID_REQUEST"
+								: response.status === 403
+									? "ROLE_OPERATION_DENIED"
+									: "DOWNSTREAM_UNAVAILABLE"));
 			throw Object.assign(new AgentGatewayError(code), {
 				httpStatus: response.status,
 			});
@@ -291,7 +296,6 @@ export async function createAgentGatewayProcess(input: {
 					eventId: `gateway-event:${randomUUID()}`,
 					operationRef: inputEvent.operationRef,
 					correlationKind: "EXACT",
-					sideEffectState: "UNKNOWN",
 					timestamp: new Date().toISOString(),
 					source: "agent-gateway",
 					component: "agent-gateway-ingress",

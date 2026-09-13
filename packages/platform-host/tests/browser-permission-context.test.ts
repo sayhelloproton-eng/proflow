@@ -59,13 +59,13 @@ test("task-agnostic permission resolves only the same durable Worker conversatio
 	);
 });
 
-test("task-agnostic permission accepts the same durable Worker identity reused by multiple Tasks", () => {
-	assert.deepEqual(
+test("task-agnostic permission rejects the same Worker identity appearing in multiple Tasks", () => {
+	assert.equal(
 		resolveBrowserPermissionTaskBinding({
 			...complete,
 			...owner({ "task:old": [complete], "task:fresh": [complete] }),
 		}),
-		complete,
+		null,
 	);
 });
 

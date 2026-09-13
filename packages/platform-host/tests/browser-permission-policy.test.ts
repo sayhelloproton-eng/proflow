@@ -39,7 +39,7 @@ test("CP-EXE-BR-23 trusted current Role target and operation auto-allows carrier
 	});
 });
 
-test("CP-EXE-BR-23 current ChatGPT slugged conversation locator auto-allows carrier permission", () => {
+test("CP-HOST-22 current ChatGPT slugged conversation locator auto-allows carrier permission", () => {
 	const conversationLocator =
 		"https://chatgpt.com/g/g-test-bu-shu-ce-shi-yan-shou/c/worker-test";
 	assert.deepEqual(
@@ -118,12 +118,14 @@ test("CP-EXE-BR-23 unbound or locator-mismatched Worker context fails closed", (
 	);
 });
 
-test("CP-EXE-BR-23 malformed or non-current carrier locator fails closed", () => {
+test("CP-HOST-22 wrong role, worker, query or hash in carrier locator fails closed", () => {
 	for (const conversationLocator of [
 		"https://chatgpt.com/g/g-test",
 		"https://chatgpt.com/g/g-other/c/worker-test",
+		"https://chatgpt.com/g/g-test/c/worker-other",
 		"https://chatgpt.com/g/g-test-/c/worker-test",
 		"https://chatgpt.com/g/g-test/c/worker-test?stale=1",
+		"https://chatgpt.com/g/g-test/c/worker-test#stale",
 	]) {
 		assert.equal(
 			classifyBrowserPermission({
@@ -131,6 +133,7 @@ test("CP-EXE-BR-23 malformed or non-current carrier locator fails closed", () =>
 				context: { ...base.context, conversationLocator },
 			}).decision,
 			"HUMAN_REQUIRED",
+			conversationLocator,
 		);
 	}
 });
@@ -157,12 +160,26 @@ test("CP-EXE-BR-23 stale validation target cannot override current Provider fact
 		);
 });
 
-test("CP-EXE-BR-23 stale role-carrier validation cannot establish trust", () => {
-	assert.equal(
+test("CP-HOST-23 stale role-carrier identity validation fails closed", () => {
+	assert.deepEqual(
 		classifyBrowserPermission({
 			...base,
 			validation: { ...base.validation, roleRef: "g-other" },
-		}).decision,
-		"HUMAN_REQUIRED",
+		}),
+		{ decision: "HUMAN_REQUIRED", reason: "ROLE_VALIDATION_MISMATCH" },
 	);
+});
+
+test("CP-HOST-23 package-version drift fails closed and current validation restores trust", () => {
+	assert.deepEqual(
+		classifyBrowserPermission({
+			...base,
+			validation: { ...base.validation, registeredPackageVersion: "0.0.9" },
+		}),
+		{ decision: "HUMAN_REQUIRED", reason: "ROLE_VALIDATION_MISMATCH" },
+	);
+	assert.deepEqual(classifyBrowserPermission(base), {
+		decision: "AUTO_ALLOW",
+		reason: "KNOWN_PROFLOW_ACTION",
+	});
 });

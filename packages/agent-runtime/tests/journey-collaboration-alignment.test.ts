@@ -8,7 +8,7 @@ async function source(): Promise<string> {
 
 test("CP-AGT-RUNTIME-07 v1 is exactly three fixed logical Agent Packages; registry is not Product New Task discovery", async () => {
 	const productOpenApi = await readFile(
-		new URL("../../agent-product/custom-gpt.openapi.yaml", import.meta.url),
+		new URL("../../agent-product/actions/custom-gpt.openapi.yaml", import.meta.url),
 		"utf8",
 	);
 	for (const forbidden of [

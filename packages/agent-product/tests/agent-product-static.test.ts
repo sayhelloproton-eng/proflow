@@ -25,10 +25,15 @@ type OpenApiOperation = {
 	"x-openai-isConsequential": boolean;
 	requestBody?: unknown;
 };
+type OpenApiSchema = {
+	required?: string[];
+	properties?: Record<string, { type?: string | string[] }>;
+};
 type OpenApi = {
 	openapi: string;
 	security: unknown[];
 	paths: Record<string, Record<string, OpenApiOperation>>;
+	components?: { schemas?: Record<string, OpenApiSchema> };
 };
 const document = (text: string) => parse(text) as OpenApi;
 const operations = (text: string) =>
@@ -90,6 +95,14 @@ test("CP-AGT-PROD-02 Product GPT-facing OpenAPI is static and excludes New Task 
 		openapi,
 		/createTask|listRegisteredRoles|getRegisteredRole|executeAnything|updateStatus/i,
 	);
+});
+
+test("W18 Product putTaskDocument requires an explicit nullable nodeId matching the Task owner contract", async () => {
+	const { openapi } = await artifacts();
+	const schema = document(openapi).components?.schemas?.PutTaskDocumentInput;
+	assert.ok(schema);
+	assert.equal(schema.required?.includes("nodeId"), true);
+	assert.deepEqual(schema.properties?.nodeId?.type, ["string", "null"]);
 });
 
 test("CP-AGT-PROD-03 + CP-AGT-PROD-04 Extension-first Task ownership is reflected by the Product surface while real c-id binding remains external", async () => {
@@ -177,7 +190,6 @@ test("CP-REAL2-PROV-01 Product package owns complete Custom GPT provisioning mat
 		imageGeneration: true,
 		codeInterpreter: true,
 	});
-	assert.equal(material.actionSchema, "actions/custom-gpt.openapi.yaml");
 	assert.equal(material.knowledgeBundle, "knowledge/custom-gpt-knowledge.zip");
 	assert.equal("knowledgeFiles" in material, false);
 	const bundle = await readFile(

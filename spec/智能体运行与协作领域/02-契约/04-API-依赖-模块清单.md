@@ -162,7 +162,7 @@ Custom GPT
 → Browser Extension Effect Gate（本机 Tool）
 ```
 
-约束：45s ceiling、request/response `<100k chars`、真实429/5xx、无arbitrary custom headers、File Bridge、显式`x-openai-isConsequential`。
+约束：45s ceiling、request/response `<100k chars`、真实429/5xx、无arbitrary custom headers、File Bridge、显式`x-openai-isConsequential:false`。
 
 Gateway薄：auth / schema / protocol normalize / routing / serializer；不拥有文件、Task、Execution、Tool Router AI。
 
@@ -204,13 +204,13 @@ Message Center保存logical thread/message/participants/reply/delivery state/ide
 Task start confirmation channel → startTask, no Task approval fact
 Execution safety Approval → Execution owner
 Module.setup ACTION_REQUIRED → human/external action + Module re-observe
-ChatGPT Action permission → Always Allow / carrier recovery
+ChatGPT Action permission → unexpected Browser Carrier gate/recovery; not ProFlow approval
 ```
 
-Routine Action `consequential:false`不能绕过Execution effect policy。
+三个 shipped GPT Action schema 的所有 operation 都显式 `x-openai-isConsequential:false`。ordinary Action 不依赖预配置 `Always Allow`；unexpected Permission 由 Carrier 按 current Role/Worker/target/operation/session reality 分类处理。该 metadata 或 Carrier permission 均不能绕过 Local Tool Effect Gate / Execution effect policy。
 
 ## 审计补充：消除 Agent 的间接启动环
 
-目标 descriptor 还必须删除 `agent-runtime.requires: execution`；保留 `task-orchestration`。真实 Agent adapter 只创建 Role store，start/stop 为 library no-op；逻辑 Collaboration 接收 delivery evidence，不要求 Execution 服务参与初始化。ExecutionRef 作为消息投递证据字段不构成启动依赖。
+目标 descriptor 必须保持 `agent-runtime` 不以 `execution-runtime` 作为 startup dependency；保留 `task-orchestration`。真实 Agent adapter 只创建 Role store，start/stop 为 library no-op；逻辑 Collaboration 接收 delivery evidence，不要求 Execution 服务参与初始化。ExecutionRef 作为消息投递证据字段不构成启动依赖。
 
-否则新增 Execution → Extension 后会形成 `execution-runtime → execution-browser-extension → agent-runtime → execution-runtime` 环，也会让 Host/Task/Peer 间接依赖 Execution。Delivery 的请求期 durable Execution 依赖仍保留在 Carrier/composition，不删除消息 Evidence 语义。全量演算必须包含 Agent descriptor，不能只验证三个修改模块的子图。
+否则会形成 `execution-runtime → execution-browser-extension → agent-runtime → execution-runtime` 环，也会让 Host/Task/Peer 间接依赖 Execution。Delivery 的请求期 durable Execution 依赖仍保留在 Carrier/composition，不删除消息 Evidence 语义。全量演算必须包含 Agent descriptor，不能只验证三个修改模块的子图。

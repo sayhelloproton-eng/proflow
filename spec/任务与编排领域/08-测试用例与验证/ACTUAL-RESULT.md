@@ -51,7 +51,7 @@ Task SUCCEEDED; currentNodeId = null
 
 WAITING、FAILED、PAUSED 分离验证：waitNode 创建 PendingMessage 并阻止推进；acknowledgeMessage 只审计/确认消息而不推进 Task；resume 保留当前 run；failNode 产生技术 FAILED；PAUSED 是 Task gate，没有 Node PAUSED。
 
-reopen 验证 old history preserved、runNo 递增、workerRef 清空、后续 Node PENDING、currentNodeId 回退、binding/document/event 保留，下一次 startNode 从稳定 binding 重新解析同一 Worker。double startTask/startNode/completeNode/reopenNode 通过 stored idempotent response 验证。
+reopen 验证 old history preserved、目标 runNo 递增、workerRef 清空、后续 Node PENDING、currentNodeId 回退、binding/document/event 保留，下一次 startNode 从稳定 binding 重新解析同一 Worker。额外的真实 SQLite 多 Node 回归证明：已开始过且被回退失效的后续 Node 会先归档旧 run 再 `runNo + 1`，从未开始的后续 Node 不虚增 generation；后续 Node 的新 run 可以再次完成并写入新的 `(nodeId, runNo)` history，不与旧 run 唯一键冲突。double startTask/startNode/completeNode/reopenNode 通过 stored idempotent response 验证。
 
 ## Markdown, filesystem, Git, and hash reality
 

@@ -1,4 +1,4 @@
-# ProFlow 项目执行知识｜Routing Index（兼容路径）
+# ProFlow 项目执行知识｜Routing Index（兼容目录名）
 
 > `03-自动化知识库` 名称为历史兼容。当前目录只拥有 **ProFlow 项目特有的 package/resource/Journey/Flow 产品知识**，不再拥有跨项目 ChatGPT 本机自动化协议。
 
@@ -9,19 +9,7 @@
 
 Browser/UI、CLI/PTTY、MCP/runtime、auth、timeout/UNKNOWN、recovery、Acceptance mode、checkpoint automation、testing harness、telemetry、tool routing 与高吞吐本机工程方法，统一由共享 Skill 拥有。
 
-**Chat 高吞吐本机工程不再保留 ProFlow 项目内兼容入口或规则正文；任何当前引用都必须直接指向 Engineering Skill。**
-
-## 通用旧路径｜仅兼容指针
-
-以下非吞吐通用文件暂时保留路径只为避免 CURRENT/历史链接失效，不再维护方法正文：
-
-- `00-自动化模拟人工总原则.md` → Acceptance Skill
-- `基础动作/Browser-UI自动化.md` → Acceptance Skill
-- `基础动作/CLI-PTY交互自动化.md` → Acceptance Skill
-- `基础动作/Round-PID-Log与恢复.md` → Acceptance Skill / Engineering Skill
-- `基础动作/Tool-Runtime-gptweb-mcp.md` → Acceptance Skill / Engineering Skill
-
-旧版本详细内容由 Git history / `90-历史记录` 解释，不参与当前动作裁决。
+旧的通用兼容入口已从 active 项目知识中删除；历史形成过程只由 Git history / `90-历史记录` 解释。任何当前项目文档需要这些 mechanics 时，直接引用对应共享 Skill，不再经过项目内 stub。
 
 ## ProFlow Package / 外部资源路由
 
@@ -33,7 +21,7 @@ Browser/UI、CLI/PTTY、MCP/runtime、auth、timeout/UNKNOWN、recovery、Accept
 | Provider URL/FAST/THINK/inventory 的产品 contract | `包能力/model-provider-runtime.md` |
 | Custom GPT/Role/Worker 的产品 identity 与 provisioning contract | `包能力/custom-gpt-provisioning.md` |
 
-这些 Runbook 可以定义 ProFlow 产品专属命令、identity、状态与 STOP 条件；其中若出现通用 Browser/CLI/MCP/recovery 方法，以当前 Acceptance Skill 为准。
+这些 Runbook 可以定义 ProFlow 产品专属命令、identity、状态与 STOP 条件；其中若涉及通用 Browser/CLI/MCP/recovery 方法，直接服从当前共享 Skill。
 
 ## ProFlow 项目动作
 

@@ -18,40 +18,32 @@ contractRefs:
 
 # `agent-product` TODO
 
-> Product Role v1 只负责已存在 Task 内的需求澄清、Requirement/TaskDocument 与协作；Extension 承担 New Task/Worker teaming。Product GPT 不创建Task、不动态发现Role。
+> 本文件只保存**当前仍未完成、且已由当前 Contract/Design 明确冻结**的 Module implementation backlog。完成、迁移或被架构裁决替代的历史任务不得继续以 `READY/PLANNED` 冒充待施工事实。
 
-## AGT-PROD-001｜Package / Instructions / Carrier Requirements
+## Current backlog
 
-- [ ] 固定generic Product职责，不混入Dev/Test专业Role。
-- [ ] packageName作为logical Role type；roleRef/credential由Deployment/Registry配置。
-- [ ] Knowledge specialization defer；不把动态Task docs写进fixed context。
+截至 2026-09-13 Phase 3 / Real-3 全链审计 Wave 09：**没有已冻结、仍未完成的本 Module implementation task。**
 
-## AGT-PROD-002｜Static Actions OpenAPI
+Product fixed Role package、static Actions、PENDING Task Requirement flow、native capability boundary 与真实 Worker identity 主链已进入 current implementation/Real-3 journey。
 
-- [ ] 只暴露Product实际需要：getTask、TaskDocument、askPeer/replyPeer等business-purpose Actions。
-- [ ] 不暴露`createTask/listRegisteredRoles/getRegisteredRole`主链。
-- [ ] no arbitrary custom headers；typed identity/idempotency/version fields。
-- [ ] routine Action显式`x-openai-isConsequential:false`。
+## Historical task identities
 
-## AGT-PROD-003｜J1 Product Worker Behavior
+历史任务标识 `AGT-PROD-001..005` 已从 current backlog 移除。Test Plan 中若仍引用这些 ID，它们只作为历史 traceability/provenance identity，不表示当前存在待实施工作；后续文档治理 Wave 会统一检查 dangling/重复导航。
 
-- [ ] Extension先createTask(PENDING)并创建/绑定Product Conversation。
-- [ ] Product一旦bound即可开始Requirement discussion，不等待Dev/Test全部完成。
-- [ ] Requirement正式写TaskDocument；不把Conversation内容当Task truth。
-- [ ] Dev/Test仍由Extension background完成bind-only teaming。
+## Residual validation boundary
 
-## AGT-PROD-004｜Worker Turn / Native Capabilities
+真实 Chrome/Custom GPT/外部 Carrier 的持续兼容性、完整 Full Suite、release/adoption/runtime materialization 等属于 Test Plan / Known Limitation / Deployment / Final Gate，不因为尚需最终验证而重新创建 implementation TODO。
 
-- [ ] Conversation context优先；fresh Task facts按需Action读取。
-- [ ] File Bridge / Code Interpreter / Web Search使用边界写入Instructions。
-- [ ] one wake→0..N Actions；不依赖Browser per-action continue。
+## New task admission rule
 
-## AGT-PROD-005｜Real GPT E2E
+未来新增 TODO 必须同时具备：
 
-- [ ] real GPT materialization / auth / Actions。
-- [ ] Product Worker identity由Browser c-id/locator observation绑定，不猜测。
-- [ ] Task terminal/reopen/history语义不被Conversation文本覆盖。
+```text
+current source/design evidence
+明确 owner 与 moduleRef
+尚未实现的具体行为缺口
+scope / forbidden boundary
+acceptance + executable verification path
+```
 
-## STOP
-
-若实现需要Product GPT自行createTask、dynamic Role discovery、Browser DOM大Context、Knowledge v1、或从GPT自然语言推进Task，停止并按架构drift处理。
+不得把历史聊天、旧 blocker、已完成的 Real-3 defect、纯 release bookkeeping 或最终验收 gate 重新包装为 implementation backlog。

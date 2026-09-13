@@ -73,10 +73,10 @@ Conversation memory 可以减少重复解释，但不能替代 Owner current sta
 
 ## 6. Routine Action permission
 
-Role OpenAPI 对不直接产生不可逆真实 Effect 的平台 query/control/intent operation 可显式 `x-openai-isConsequential:false`，但 Worker Turn 不假设用户历史上的一次 `Always Allow` 会永久消除 ChatGPT Permission。
+当前 Product / Controller-Dev / Test-Ops 三套 shipped Role OpenAPI 的所有 operation 均显式 `x-openai-isConsequential:false`，包括 Local Dev 的 read/mutate/run/process 共用 HTTP operation。Worker Turn 不把该 metadata 当授权，也不假设用户历史上的一次 `Always Allow` 会永久消除 ChatGPT Permission；ordinary happy path 应直接执行 Action，而不依赖 Permission 主链。
 
-Permission 是 Browser Carrier mechanical gate：Carrier 从当前页面提取 permission facts，再以当前 Role/Worker、trusted ProFlow target、Role authorized operation 与稳定 fingerprint 做分类。可信 routine automation 可由 Carrier 自动 `Always Allow` 并验证 Turn 继续；未知 target/operation/context 或无法消歧时 fail closed，进入 Carrier Attention/diagnostic。Worker/Workflow/Collaboration 不感知具体 Permission DOM case。
+若 legacy conversation、Carrier drift 或 ChatGPT UI 变化仍出现 Permission，它只是 Browser Carrier mechanical gate：Carrier 从当前页面提取 permission facts，以 current Role/Worker、trusted ProFlow target、Role authorized operation、session/URL 与稳定 fingerprint 做分类。可信 routine automation 可 `AUTO_ALLOW`，并只执行当前页面真实提供的 `allowAlways`，或其不存在时 `allow`；未知 target/operation/context、无法消歧或只有 `allowOnce` 时 fail closed，进入 Carrier Attention/diagnostic。Worker/Workflow/Collaboration 不感知具体 Permission DOM case。
 
-`x-openai-isConsequential:false` 不是单独的 auto-grant 依据；Execution Effect Approval 仍完全独立，Carrier permission 不得替代或绕过它。
+人工 `allowOnce` 是 occurrence-scoped exception；`deny` 只否决当前 continuation occurrence。`x-openai-isConsequential:false`、Carrier auto-allow 与人工 permission action 都不能替代 Gateway/Effect Gate/provider safety，也不能替代 Execution Effect Approval。
 
-首次 Worker Turn 的 Permission 可能早于 TaskRoleBinding 完成绑定。只有 current Role/target/operation 与真实 `/g/{role}/c/{worker}` 已全部验证，且相同 Task/Role binding 已存在但 `workerRef + conversationLocator` 同时为空时，Carrier 才可短暂 `DEFER` 并 bounded reclassify；期间不得点击或通知人工。任何 binding 冲突或超时仍 fail closed。人工 `deny` 只否决当前 Carrier continuation occurrence，不是 Role/Worker 永久禁用，也不是 Agent/Collaboration fact。
+首次 Worker Turn 的 Permission 可能早于 TaskRoleBinding 完成绑定。只有 current Role/target/operation 与真实 `/g/{role}/c/{worker}` 已全部验证，且相同 Task/Role binding 已存在但 `workerRef + conversationLocator` 同时为空时，Carrier 才可短暂 `DEFER` 并 bounded reclassify；期间不得点击或通知人工。任何 binding 冲突或超时仍 fail closed。人工 `deny` 不是 Role/Worker 永久禁用，也不是 Agent/Collaboration fact。

@@ -23,7 +23,7 @@ test("Host common boundary preserves return/error despite sink failure and separ
 		}),
 		(e) => e === error,
 	);
-	assert.equal(entries.at(-1)?.sideEffectState, "UNKNOWN");
+	assert.equal("sideEffectState" in (entries.at(-1) ?? {}), false);
 	assert.doesNotMatch(JSON.stringify(entries), /secret text/);
 	assert.notEqual(entries[0]?.operationRef, entries[1]?.operationRef);
 });

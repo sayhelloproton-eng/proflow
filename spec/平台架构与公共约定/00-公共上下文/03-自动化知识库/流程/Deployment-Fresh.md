@@ -13,7 +13,7 @@
 → platform setup
 ```
 
-交互驱动先加载 `基础动作/CLI-PTY交互自动化.md`；涉及真实 Chrome 前加载 `基础动作/Tool-Runtime-gptweb-mcp.md` + `基础动作/Browser-UI自动化.md`。已有 canonical harness/helper 时禁止临时重建第二套工具链。
+CLI/PTTY、Browser/UI、timeout/UNKNOWN 与 Acceptance 自动化 mechanics 直接服从 `/Users/agent/Desktop/proton-workspace/skills/chat-local-acceptance-automation-protocol/SKILL.md`。本 Flow 只组合 ProFlow 产品 checkpoint、identity 与 PASS/FAIL/STOP 条件；已有 canonical harness/helper 时不得为同一产品动作另造第二套项目内自动化协议。
 
 之后 setup 的具体能力只按 Runbook 组合：
 

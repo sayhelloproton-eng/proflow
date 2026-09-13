@@ -17,39 +17,32 @@ contractRefs:
 
 # `platform-host` TODO
 
-> 目标：完成 Application Composition Root，组合 bounded deterministic reconciliation，不扩张为第六领域或通用业务 Scheduler。
+> 本文件只保存**当前仍未完成、且已由当前 Contract/Design 明确冻结**的 Module implementation backlog。完成、迁移或被架构裁决替代的历史任务不得继续以 `READY/PLANNED` 冒充待施工事实。
 
-## PH-001｜Composition Graph
+## Current backlog
 
-- [ ] 装配 `task-orchestration` 与 `agent-runtime` 独立 package。
-- [ ] 注入 Execution / Model public clients。
-- [ ] 禁止 deep import 与 shared repository。
+截至 2026-09-13 Phase 3 / Real-3 全链审计 Wave 09：**没有已冻结、仍未完成的本 Module implementation task。**
 
-## PH-002｜Local Public Transport
+Composition/typed transport/backend reconciliation/lifecycle/architecture guards 已进入 current implementation；Real-3 durable handoff、signal fencing 与 terminal stop-driving 有 current executable proof。
 
-- [ ] 为 Owner Command/Query 提供 typed local routing。
-- [ ] 保留 actor/idempotency/version/correlation 字段，不在 host 改写业务语义。
-- [ ] dependency unavailable 返回 typed transport/dependency error。
+## Historical task identities
 
-## PH-003｜Observer Consumer Support
+历史任务标识 `PH-001..005` 已从 current backlog 移除。Test Plan 中若仍引用这些 ID，它们只作为历史 traceability/provenance identity，不表示当前存在待实施工作；后续文档治理 Wave 会统一检查 dangling/重复导航。
 
-- [ ] backend Task Observer/Reconciliation 可读取 Task drive projection 并做 bounded catch-up；Extension 只提供 Carrier/page kick。
-- [ ] Extension System Observer 可读取 bounded public health/fact views，并调用 Model public `infer`。
-- [ ] host 实现 bounded deterministic Task progression detection；不拥有 Task workflow truth 或 System assessment batching/carry-forward/store。
-- [ ] host 不直接 WAKE Browser 或 complete/reopen/approve。
+## Residual validation boundary
 
-## PH-004｜Lifecycle / Health
+真实 Chrome/Custom GPT/外部 Carrier 的持续兼容性、完整 Full Suite、release/adoption/runtime materialization 等属于 Test Plan / Known Limitation / Deployment / Final Gate，不因为尚需最终验证而重新创建 implementation TODO。
 
-- [ ] startup/shutdown/drain deterministic。
-- [ ] process/transport/dependency health 与 Domain READY 分层。
-- [ ] restart 重新读取 owner current reality，不 replay mutation。
+## New task admission rule
 
-## PH-005｜Architecture Guard
+未来新增 TODO 必须同时具备：
 
-- [ ] machine gate：host 无 Task/Agent/Execution business repository。
-- [ ] machine gate：无 universal scheduler/event bus/global mutable mirror。
-- [ ] machine gate：Domain packages 不反向依赖 platform-host。
+```text
+current source/design evidence
+明确 owner 与 moduleRef
+尚未实现的具体行为缺口
+scope / forbidden boundary
+acceptance + executable verification path
+```
 
-## Acceptance
-
-`platform-host` 只证明 composition/transport/lifecycle；Task Journey、Task/System Observer、Browser Carrier、Execution Effect 与 Model assessment 均由各自测试计划证明。
+不得把历史聊天、旧 blocker、已完成的 Real-3 defect、纯 release bookkeeping 或最终验收 gate 重新包装为 implementation backlog。

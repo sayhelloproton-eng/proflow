@@ -25,11 +25,11 @@ FUTURE = 不属于 v1 当前范围
 
 任何 `PENDING_SPIKE` 都不得成为没有 fallback 的 correctness dependency。只有真实 E2E/实验通过，并确认不破坏 ownership / contract / recovery 后，才可提升为正式主路径。
 
-## OAI-CARRIER-001｜Always Allow 真实环境证明
+## OAI-CARRIER-001｜Ordinary nonconsequential Action / unexpected Permission fallback 真实环境证明
 - Architecture Status: `FROZEN_PRIMARY_PATH`
-- Validation Status: `FINAL_MANUAL_E2E_PENDING`
-- 正式路径：routine Action 使用 `x-openai-isConsequential:false`，用户完成 `Always Allow` 后 happy path 不再由 Browser 逐次点击 permission。
-- Unexpected permission prompt: Carrier recovery / human interaction condition，不是 Execution Approval，也不恢复 action-level Browser scheduler。
+- Validation Status: `FINAL_MANUAL_E2E_REQUIRED`
+- 正式路径：三个 shipped Role 的 ordinary Action operation 均显式 `x-openai-isConsequential:false`；happy path 不依赖用户预先配置 `Always Allow`，也不把 ChatGPT confirmation 当成 ProFlow 本机授权。
+- 若 legacy Conversation、Carrier 漂移或 ChatGPT UI 变化仍出现 Permission surface：Carrier 只在 authoritative Role/Worker/target/operation/context 全部匹配时 `AUTO_ALLOW`，优先选择当前页面真实提供的 `allowAlways`，否则选择 `allow`；`allowOnce` 只属于人工 Attention，并必须以真实 release/page reality 收口。
 
 ## OAI-CARRIER-002｜Multi-Action Worker Turn 真实环境证明
 - Architecture Status: `FROZEN_PRIMARY_PATH`

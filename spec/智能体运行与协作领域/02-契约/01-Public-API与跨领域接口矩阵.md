@@ -142,7 +142,7 @@ Task binding 统一表达：
 - `workerRef` = Task-scoped Conversation identity；
 - `conversationLocator` = page restore locator；
 - Task 不持久化 tab/frame；
-- reopen 保留整条 TaskRoleBinding。
+- reopen 保留整条 TaskRoleBinding，但新的 Node run 在 START 前重新从该 binding 解析 run-local workerRef。
 
 ### 3.2 Node role requirement
 
@@ -316,6 +316,12 @@ workspace/provider/credential → server-bound config
 
 Direct Tool request 不允许 `taskId/nodeId/runNo/workerRef/roleRef/actorRef/executionRef` 充当工具身份字段。模型不得自由伪造 `roleRef/actorRef`；Browser 不参与 Role credential 验证。
 
+### 9.1 Gateway error translation
+
+Gateway 只拥有 transport/auth/protocol adaptation，不得把下游已经判定的安全 typed failure 改写成另一种业务语义。下游响应中命中 Gateway allowlist 的稳定 error code（例如 `LOCAL_TOOL_COMMAND_TIMEOUT / LOCAL_TOOL_RESULT_UNKNOWN / LOCAL_TOOL_PROVIDER_UNAVAILABLE / LOCAL_TOOL_COMMAND_FAILED`）必须跨 HTTP status 保留；调用方据此区分“已知失败 / 结果未知 / provider 不可用”。
+
+只有无法安全解析/不在 allowlist 的下游错误，或 Gateway↔Owner transport 本身不可达时，才归一化为 `OWNER_SERVICE_UNAVAILABLE / DOWNSTREAM_UNAVAILABLE`。下游 transport credential 401 始终按 owner transport failure 隐藏，不透出内部认证细节。任何技术/transport/Tool error 都不得自动调用 `waitNode` 或把 Task/Node 改为 `WAITING`；真正业务 blocker 只能由 Worker 通过 Task Owner 正式 `waitNode` 表达。
+
 ---
 
 ## 10. OpenAI transport boundary
@@ -324,7 +330,7 @@ GPT-facing contract 不依赖 arbitrary custom headers。Task/Peer Actions 若�
 
 `openaiFileIdRefs/openaiFileResponse/x-openai-isConsequential` 只属于 Carrier transport，不进入 Owner business identity。
 
-每个 Action 显式 `x-openai-isConsequential`。Task query/Peer query 等按真实语义设置；Direct Tool read 通常为 `false`，Local Dev mutation/command 按真实副作用设置，不能再以“只是提交 Execution intent”为理由统一标 `false`。
+当前 shipped Product / Controller-Dev / Test-Ops 三套 Custom GPT Action schema 的**每个 operation 均显式 `x-openai-isConsequential:false`**，包括 Dev/Test 的混合 `localDev` HTTP operation。该 metadata 只控制 OpenAI Carrier 的 confirmation UX；本机 read/mutate/run/process 的真实授权与安全始终由 Gateway Role admission、Browser Extension Effect Gate、Workspace/参数约束、provider safety、deadline 与 UNKNOWN/no-blind-replay 决定，不能从该 flag 推导 effect risk。
 
 ---
 

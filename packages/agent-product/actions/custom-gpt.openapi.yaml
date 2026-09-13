@@ -87,10 +87,10 @@ components:
     PutTaskDocumentInput:
       type: object
       additionalProperties: false
-      required: [taskId, documentType, expectedTaskVersion, idempotencyKey]
+      required: [taskId, nodeId, documentType, expectedTaskVersion, idempotencyKey]
       properties:
         taskId: {type: string}
-        nodeId: {type: [string, 'null'], description: Optional. Requirement setup during PENDING is Task-scoped and normally has no nodeId.}
+        nodeId: {type: [string, 'null'], description: Required field. Use null for Task-scoped Product documents during PENDING before a node exists.}
         documentType: {type: string}
         content: {type: string}
         openaiFileIdRefs:

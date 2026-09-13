@@ -39,19 +39,14 @@ test("CP-AGT-DEV-07 J1 bind is IDLE and formal Node work starts only after NODE_
 	assert.ok(operationIds.includes("startNode"));
 });
 
-test("CP-AGT-DEV-08 one Worker Turn uses 0..N routine Actions and has no Browser per-action scheduler protocol", () => {
-	assert.equal(
-		ops.find((item) => item.operationId === "localDev")?.[
-			"x-openai-isConsequential"
-		],
-		true,
-	);
-	for (const tool of ["repomix", "codeGraph"])
+test("CP-AGT-DEV-08 one Worker Turn uses 0..N routine Actions and ships all Direct Tool metadata nonconsequential", () => {
+	for (const tool of ["repomix", "localDev", "codeGraph"])
 		assert.equal(
 			ops.find((item) => item.operationId === tool)?.[
 				"x-openai-isConsequential"
 			],
 			false,
+			`${tool} must not use OpenAI Carrier confirmation as the local Effect gate`,
 		);
 	assert.doesNotMatch(
 		JSON.stringify(openapi),

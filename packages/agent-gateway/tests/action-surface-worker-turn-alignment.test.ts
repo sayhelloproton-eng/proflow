@@ -8,7 +8,7 @@ async function gatewaySource(): Promise<string> {
 
 async function productOpenApi(): Promise<string> {
 	return readFile(
-		new URL("../../agent-product/custom-gpt.openapi.yaml", import.meta.url),
+		new URL("../../agent-product/actions/custom-gpt.openapi.yaml", import.meta.url),
 		"utf8",
 	);
 }

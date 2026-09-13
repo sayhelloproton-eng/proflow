@@ -229,13 +229,14 @@ v1 `maxActiveTasks` 必须为 1。
 | `requiredAgentPackageRef` | Node 的**逻辑岗位要求**；第一版就是三个固定 Agent packageName 之一 |
 | `roleBindings[].agentPackageRef` | Task 内逻辑岗位 stable key |
 | `roleBindings[].roleRef` | 当前实际部署的 Custom GPT g-id；opaque |
-| `roleBindings[].workerRef` | Task-scoped Worker / Conversation identity；创建时允许 null |
-| `roleBindings[].conversationLocator` | 可恢复同一 Conversation 页面的 locator；创建时允许 null |
+| `roleBindings[].workerRef` | Task-scoped Worker / Conversation identity；`createTask` 时必须为 null，后续只由 `bindTaskWorker` 写入 |
+| `roleBindings[].conversationLocator` | 可恢复同一 Conversation 页面的 locator；`createTask` 时必须为 null，后续只由 `bindTaskWorker` 写入 |
 
 ### 约束
 
 - `agentPackageRef` 在 Task 内唯一；v1 必须声明 Product / Controller-Dev / Test-Ops 三个固定岗位。
 - `roleRef` 是 deployed GPT identity，不是 logical role type。
+- Worker/Conversation identity 是 Task-scoped：不同 Task 不得复用同一 `workerRef` 或 `conversationLocator`；同一 Task 的 reopen/resume 复用原 binding。
 - Task 不持久化 `tabId/frameId/windowId`。
 - Requirement 阶段默认不是一个 Product business Node；Product 在 PENDING 阶段将正式 Requirement 写入 TaskDocument。
 - 如果未来某 Task 明确需要 Product business Node，可由 Plan 显式声明，但不能用它替代 J1 requirement setup。

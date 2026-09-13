@@ -129,13 +129,15 @@ async function bindAll(
 	services: ReturnType<typeof createTaskServices>,
 	taskId: string,
 	startVersion: number,
+	workerSuffix = "",
 ) {
 	let version = startVersion;
-	for (const [key, agentPackageRef, roleRef, workerRef] of [
+	for (const [key, agentPackageRef, roleRef, workerBase] of [
 		["product", PACKAGES.product, ROLES.product, "c-product"],
 		["dev", PACKAGES.dev, ROLES.dev, "c-dev"],
 		["test", PACKAGES.test, ROLES.test, "c-test"],
 	] as const) {
+		const workerRef = `${workerBase}${workerSuffix}`;
 		const result = ok(
 			services.commands.bindTaskWorker({
 				taskId,
@@ -416,6 +418,155 @@ test("CP-TASK-ORCH-05 reopen preserves binding/conversation/history and incremen
 	assert.equal(restarted.workerRef, "c-dev");
 });
 
+test("RF-TASK-ORCH-05 reopen advances every invalidated started downstream generation before rerun", async (context) => {
+	const { services, store } = await fixture(context);
+	const taskId = "task-reopen-generations";
+	const base = taskInput(taskId);
+	const created = ok(
+		services.commands.createTask({
+			...base,
+			plan: {
+				nodes: [
+					{
+						nodeId: `${taskId}-dev-1`,
+						title: "Development one",
+						objective: "First development run",
+						requiredAgentPackageRef: PACKAGES.dev,
+						inputDocuments: ["REQUIREMENT"],
+						outputDocuments: [],
+					},
+					{
+						nodeId: `${taskId}-test`,
+						title: "Test",
+						objective: "Validate the first development run",
+						requiredAgentPackageRef: PACKAGES.test,
+						inputDocuments: ["REQUIREMENT"],
+						outputDocuments: [],
+					},
+					{
+						nodeId: `${taskId}-dev-2`,
+						title: "Development two",
+						objective: "Later development run",
+						requiredAgentPackageRef: PACKAGES.dev,
+						inputDocuments: ["REQUIREMENT"],
+						outputDocuments: [],
+					},
+				],
+			},
+		}),
+	);
+	await bindAll(services, taskId, created.version);
+	let task = ok(services.queries.getTask({ taskId }));
+	task = ok(
+		services.commands.startTask({
+			taskId,
+			expectedTaskVersion: task.version,
+			actorRef: "human:operator",
+			idempotencyKey: "generation:start-task",
+		}),
+	);
+
+	const runNode = (nodeId: string, workerRef: string, key: string) => {
+		const versions = nodeVersion(services, taskId, nodeId);
+		return ok(
+			services.commands.startNode({
+				taskId,
+				nodeId,
+				expectedTaskVersion: versions.taskVersion,
+				expectedNodeVersion: versions.nodeVersion,
+				actorRef: `worker:${workerRef}`,
+				idempotencyKey: `${key}:start`,
+			}),
+		);
+	};
+	const completeNode = (nodeId: string, workerRef: string, key: string) => {
+		const current = ok(services.queries.getTask({ taskId }));
+		const node = current.nodes.find((item) => item.nodeId === nodeId);
+		assert.ok(node);
+		return ok(
+			services.commands.completeNode({
+				taskId,
+				nodeId,
+				resultSummary: `${key} done`,
+				expectedTaskVersion: current.version,
+				expectedNodeVersion: node.version,
+				actorRef: `worker:${workerRef}`,
+				idempotencyKey: `${key}:complete`,
+			}),
+		);
+	};
+
+	runNode(`${taskId}-dev-1`, "c-dev", "generation:dev1:run1");
+	completeNode(`${taskId}-dev-1`, "c-dev", "generation:dev1:run1");
+	runNode(`${taskId}-test`, "c-test", "generation:test:run1");
+	completeNode(`${taskId}-test`, "c-test", "generation:test:run1");
+	runNode(`${taskId}-dev-2`, "c-dev", "generation:dev2:run1");
+
+	task = ok(services.queries.getTask({ taskId }));
+	const reopened = ok(
+		services.commands.reopenNode({
+			taskId,
+			nodeId: `${taskId}-dev-1`,
+			reason: "invalidate downstream generations",
+			expectedTaskVersion: task.version,
+			actorRef: "controller:c-dev",
+			idempotencyKey: "generation:reopen-dev1",
+		}),
+	);
+	assert.equal(reopened.runNo, 2);
+
+	let after = ok(services.queries.getTask({ taskId }));
+	const node1 = after.nodes.find((item) => item.nodeId === `${taskId}-dev-1`);
+	const node2 = after.nodes.find((item) => item.nodeId === `${taskId}-test`);
+	const node3 = after.nodes.find((item) => item.nodeId === `${taskId}-dev-2`);
+	assert.ok(node1 && node2 && node3);
+	assert.deepEqual(
+		[node1.status, node1.runNo, node1.workerRef],
+		["READY", 2, null],
+	);
+	assert.deepEqual(
+		[node2.status, node2.runNo, node2.workerRef],
+		["PENDING", 2, null],
+	);
+	assert.deepEqual(
+		[node3.status, node3.runNo, node3.workerRef],
+		["PENDING", 2, null],
+	);
+	let history = store.read((repositories) =>
+		repositories.executionHistory.listByTask(taskId),
+	);
+	assert.deepEqual(
+		history.map((item) => [item.nodeId, item.runNo]),
+		[
+			[`${taskId}-dev-1`, 1],
+			[`${taskId}-test`, 1],
+			[`${taskId}-dev-2`, 1],
+		],
+	);
+
+	runNode(`${taskId}-dev-1`, "c-dev", "generation:dev1:run2");
+	completeNode(`${taskId}-dev-1`, "c-dev", "generation:dev1:run2");
+	runNode(`${taskId}-test`, "c-test", "generation:test:run2");
+	completeNode(`${taskId}-test`, "c-test", "generation:test:run2");
+
+	after = ok(services.queries.getTask({ taskId }));
+	const readyThird = after.nodes.find(
+		(item) => item.nodeId === `${taskId}-dev-2`,
+	);
+	assert.ok(readyThird);
+	assert.equal(readyThird.status, "READY");
+	assert.equal(readyThird.runNo, 2);
+	history = store.read((repositories) =>
+		repositories.executionHistory.listByTask(taskId),
+	);
+	assert.deepEqual(
+		history
+			.filter((item) => item.nodeId === `${taskId}-test`)
+			.map((item) => item.runNo),
+		[1, 2],
+	);
+});
+
 test("CP-TASK-ORCH-06 Task-scoped nodeId:null documents are owner-validated and durable", async (context) => {
 	const { services } = await fixture(context);
 	const created = ok(
@@ -683,7 +834,7 @@ test("CP-TASK-ORCH-07 TaskGroup remains serial and predecessor success gates the
 				idempotencyKey: `group:create:${taskId}`,
 			}),
 		);
-		await bindAll(services, created.taskId, created.version);
+		await bindAll(services, created.taskId, created.version, `-${taskId}`);
 	}
 	const beforeStart = ok(
 		services.queries.listTasks({ taskGroupId: group.taskGroupId }),
@@ -902,4 +1053,82 @@ test("PRESMOKE-B6-TASK-02 a TERMINATED Task is rejected by reopenNode with zero 
 	assert.equal(afterDev.status, "SUCCEEDED");
 	assert.equal(afterDev.version, beforeDev.version);
 	assert.equal(afterDev.runNo, beforeDev.runNo);
+});
+
+
+test("RF-TASK-ORCH-03 createTask cannot pre-bind a Worker or Conversation", async (context) => {
+	const { services } = await fixture(context);
+	const input = taskInput("task-prebound");
+	assert.equal(
+		errorCode(
+			services.commands.createTask({
+				...input,
+				roleBindings: input.roleBindings.map((binding) =>
+					binding.agentPackageRef === PACKAGES.dev
+						? {
+								...binding,
+								workerRef: "c-prebound",
+								conversationLocator:
+									"https://chatgpt.com/g/g-dev/c/c-prebound",
+							}
+						: binding,
+				),
+			}),
+		),
+		"INVALID_REQUEST",
+	);
+});
+
+test("RF-TASK-ORCH-03 different Tasks cannot reuse a Worker or Conversation identity", async (context) => {
+	const { services } = await fixture(context);
+	const first = ok(services.commands.createTask(taskInput("task-worker-a")));
+	ok(
+		services.commands.bindTaskWorker({
+			taskId: first.taskId,
+			agentPackageRef: PACKAGES.dev,
+			roleRef: ROLES.dev,
+			workerRef: "c-shared",
+			conversationLocator: "https://chatgpt.com/g/g-dev/c/c-shared",
+			expectedTaskVersion: first.version,
+			actorRef: "platform-host:worker-provisioning",
+			idempotencyKey: "identity:a:dev",
+		}),
+	);
+	const second = ok(services.commands.createTask(taskInput("task-worker-b")));
+	for (const [workerRef, conversationLocator, key] of [
+		[
+			"c-shared",
+			"https://chatgpt.com/g/g-dev/c/c-other-locator",
+			"worker",
+		],
+		[
+			"c-other-worker",
+			"https://chatgpt.com/g/g-dev/c/c-shared",
+			"conversation",
+		],
+	] as const) {
+		assert.equal(
+			errorCode(
+				services.commands.bindTaskWorker({
+					taskId: second.taskId,
+					agentPackageRef: PACKAGES.dev,
+					roleRef: ROLES.dev,
+					workerRef,
+					conversationLocator,
+					expectedTaskVersion: second.version,
+					actorRef: "platform-host:worker-provisioning",
+					idempotencyKey: `identity:b:${key}`,
+				}),
+			),
+			"TASK_ROLE_BINDING_CONFLICT",
+		);
+	}
+	const after = ok(services.queries.getTask({ taskId: second.taskId }));
+	const dev = after.roleBindings.find(
+		(binding) => binding.agentPackageRef === PACKAGES.dev,
+	);
+	assert.deepEqual(
+		[dev?.workerRef, dev?.conversationLocator, after.version],
+		[null, null, second.version],
+	);
 });

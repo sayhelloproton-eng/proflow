@@ -1,6 +1,6 @@
 # ProFlow Implementation Baseline
 
-`spec/` 是 ProFlow 当前唯一实施规范真源。
+`spec/` 是 ProFlow 当前实施规范真源；具体事实继续由各自 canonical Markdown/frontmatter、代码 Contract/schema 与正式 Test Plan owner 持有。
 
 ## 当前工程基线
 
@@ -27,11 +27,14 @@ Runtime validation:
 - approved implementation library: Zod 4.1.12
 ```
 
-## Normative truth 与 implementation evidence
+## Normative truth、机器导航与 implementation evidence
 
-- `DOCUMENT-INDEX.json` / `SPEC-MANIFEST.json` 描述 canonical normative specification，不因实现结果而静默改写。
-- `IMPLEMENTATION-EVIDENCE-INDEX.json` 与各领域 `08-测试用例与验证/` 是实现后机器证据索引，不构成第二份规范真源。
-- 实现证据若否定规范假设，必须走 Contract/Design Change；不得把证据文件伪装为 normative manifest。
+- 当前 normative Markdown/frontmatter 与 canonical code Contract/schema 拥有正式语义；机器索引不得成为第二业务真源。
+- `DOCUMENT-INDEX.json` 是普通规范文档的派生导航；`平台架构与公共约定/06-测试计划/TEST-PLAN-INDEX.json` 是正式 Test Plan 的派生导航。
+- `MODULE-REGISTRY.json` / `EXTERNAL-RESOURCE-REGISTRY.json` 是当前 Module / External Resource 机器导航，并受对应规范与代码 owner 约束。
+- `IMPLEMENTATION-EVIDENCE-INDEX.json` 与各领域 `08-测试用例与验证/` 只导航实现/验收证据；其中历史 capture 状态不能覆盖 `00-公共上下文/02-当前接力/CURRENT.md` 或当前 Owner reality。
+- 迁移期 hash snapshot / migration conformance 只属于迁移验证过程，不作为长期 tracked current baseline；长期保留一个会随正文持续漂移的 hash manifest 会制造第二真源。
+- 实现证据若否定规范假设，必须走 Contract/Design Change；不得把 evidence 文件伪装为 normative manifest。
 
 ## Legacy boundary
 

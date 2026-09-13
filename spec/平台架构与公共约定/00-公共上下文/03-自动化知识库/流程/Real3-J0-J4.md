@@ -145,3 +145,12 @@ backend Reconciliation 对非终态 Task 做 bounded catch-up，并从 durable O
 F9 已由 trusted local command 权限裁决关闭，当前进入分 Wave 源码实现；shipped Actions 与部署采用状态仍以真实证据为准。获准的 test/build/install 继承 OS 用户权限；Workspace 越界、确认提示和本机工程如何处理，统一服从当前 Engineering/Acceptance Skill，不在本 Flow 再维护第二套通用规则。
 
 记录 `DESIGN_AUDIT / SOURCE_IMPLEMENTATION / PROVIDER_REALITY / REAL_3` 四种结果。test-governance 在 testcase 重绑前可报告 stale/unmapped，保持原报告并在正式实现后更新；禁止现在生成 08 evidence 来造 PASS。
+
+
+## 2026-09-13 Real-3 terminal calibration
+
+固定 Real-3 Task `task-real3-final-autowake-20260912` 已由 Owner facts 证明 `SUCCEEDED v11 / currentNodeId=null`：Dev 为 `SUCCEEDED run 1`；Test 经正式 `FAILED → REOPEN → START → COMPLETE` 后为 `SUCCEEDED run 2`，REOPEN 复用原 TaskRoleBinding / Worker / Conversation，没有 duplicate Worker。Test run 2 独立获得 Repomix / CodeGraph / Local Dev 成功证据并正式 `completeNode`。
+
+因此 binding 三态、Deny suppression、Attention 双向桥/restart occurrence、Dev→Test durable WAKE、same-worker REOPEN、owner failure recovery、三 Direct Tool 独立 Test 等已解决 defect 不再属于当前 implementation blocker。它们仍必须保留自动化防回归与最终 Runtime/Carrier compatibility gate。
+
+当前 22-Wave full-chain audit 继续验证源码、规范、测试、runtime/deployment 与最终 human evidence 的一致性；在最终 traceability Gate 完成前，不把该单个 terminal Task 自动等价为整个 Phase 3 Final GO。实时控制面只看 `02-当前接力/CURRENT.md`。

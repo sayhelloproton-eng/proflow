@@ -7,7 +7,7 @@ import {
 	pageObservationMutationOptions,
 } from "../src/page-observation-scheduler.ts";
 
-test("CP-EXE-BR-22 page observation includes text-node hydration", () => {
+test("CP-EXE-BR-43 page observation includes text-node hydration via characterData", () => {
 	assert.deepEqual(pageObservationMutationOptions, {
 		subtree: true,
 		childList: true,

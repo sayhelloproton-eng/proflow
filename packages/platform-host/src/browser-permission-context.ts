@@ -47,9 +47,11 @@ export function resolveBrowserPermissionTaskBinding(input: {
 				binding.conversationLocator !== input.conversationLocator
 			)
 				return null;
-			// The same durable Worker/Conversation may be reused by multiple Tasks.
-			// Exact duplicates strengthen the same identity; only disagreement is ambiguous.
-			match ??= binding;
+			// Worker/Conversation identity is Task-scoped. A second Task match is
+			// ambiguous even when every field is byte-identical; fail closed rather
+			// than authorizing a permission against the wrong Task occurrence.
+			if (match !== null) return null;
+			match = binding;
 		}
 	}
 	return match;

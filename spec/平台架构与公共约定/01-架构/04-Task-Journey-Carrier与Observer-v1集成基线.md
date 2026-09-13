@@ -18,7 +18,7 @@ contractRefs: []
 
 # 04｜Task Journey、Custom GPT Carrier 与 Observer v1 集成基线
 
-> 本文冻结 2026-08-14 Batch4 前跨领域架构收敛。它不是第六领域，也不创造新的业务真源；它只定义 Task、Agent、Execution、Model、Deployment、Extension 在同一 Task Journey 中如何组合。发生冲突时，各 Owner Domain 的 canonical 文档仍负责本领域状态/Contract 细节，本文负责跨域组合边界。
+> 本文冻结 2026-08-14 Batch4 前跨领域架构收敛，并持续按后续 Real-3 已验证事实校准当前组合边界。它不是第六领域，也不创造新的业务真源；它只定义 Task、Agent、Execution、Model、Deployment、Extension 在同一 Task Journey 中如何组合。发生冲突时，各 Owner Domain 的 canonical 文档仍负责本领域状态/Contract 细节，本文负责跨域组合边界。
 
 ## 1. v1 总体目标
 
@@ -33,7 +33,7 @@ FAST/REASON/Vision         → Model Domain
 Module governance / install-status-setup-start-stop → Deployment Domain
 page create/restore/wake   → Execution-owned Browser Carrier
 Task next-step detection + lost-trigger reconciliation → backend Task Observer / Reconciliation application
-system assessment          → System Observer + Model REASON（不占 progression 临界区）
+system assessment          → Extension-composed System Observer + Model REASON（不占 progression 临界区）
 ```
 
 ## 2. 固定三角色
@@ -96,7 +96,9 @@ WAKE 成功只表示物理消息进入正确 Conversation，不表示 Node/Execu
 
 ### J5
 
-Tool result 直接回到当前 Worker；Peer reply、Browser/Carrier durable effect result 等真正跨 Turn 事实由对应 Owner/Carrier 产生后再触发 continuation。Agent 根据业务完成度显式调用 `completeNode / waitNode / failNode / reopenNode`，Tool success 不自动推进 Task。只有真正 workflow 被业务阻塞时才进入 Task WAITING。Reopen 是业务返工：same taskId/nodeId/workerRef/Conversation，`runNo + 1`；Recovery 是技术恢复，不改变 Task business truth。
+Tool result 直接回到当前 Worker；Peer reply、Browser/Carrier durable effect result 等真正跨 Turn 事实由对应 Owner/Carrier 产生后再触发 continuation。Agent 根据业务完成度显式调用 `completeNode / waitNode / failNode / reopenNode`，Tool success 不自动推进 Task。只有真正 workflow 被业务阻塞时才进入 Task WAITING。
+
+Reopen 是业务返工：保持同一 `taskId/nodeId` 与同一 TaskRoleBinding 中的 `workerRef/conversationLocator`，`runNo + 1`；Task owner 会先清空旧 run 的 run-local `node.workerRef`，新 run READY 后再从 TaskRoleBinding 解析并绑定回原 Worker，因此不得把“复用原 Worker”实现成创建新 Conversation，也不得把旧 run-local workerRef 原样冒充新 run 已启动。Recovery 是技术恢复，不改变 Task business truth。
 
 ### J6
 
@@ -176,7 +178,7 @@ Browser/Carrier durable Effect → Execution
 
 ### System Observer
 
-最低优先级独立系统评估器。它不是“全局待办处理器”，而是读取 Task、Worker/Role、Collaboration、Execution、Carrier、Model、Deployment、Logs/Artifacts/Evidence 的 bounded views，使用手机 REASON 形成 system assessment/findings/risks/recommendations。Assessment 是派生诊断，不覆盖 Owner facts。
+最低优先级独立系统评估器。当前由 Browser Extension 的 observer-recovery application line 组合：Extension 负责最低优先级触发、carry-forward 与 assessment 持久化；各 bounded view / drill-down / reason 仍通过 Platform Host owner applications 获取，不让 Extension 成为业务真源。它不是“全局待办处理器”，而是读取 Task、Worker/Role、Collaboration、Execution、Carrier、Model、Deployment、Logs/Artifacts/Evidence 的 bounded views，使用手机 REASON 形成 system assessment/findings/risks/recommendations。Assessment 是派生诊断，不覆盖 Owner facts，也不得占用 Task progression/recovery single-flight。
 
 ## 8. System Observer 推理方式
 
@@ -226,7 +228,7 @@ Module.setup ACTION_REQUIRED → human/external action + Module re-observe reali
 ChatGPT Action permission → Browser Carrier mechanical gate；不是业务 Approval
 ```
 
-ChatGPT Action permission 不再假设“用户此前已手工 Always Allow”即可永久消失。Carrier 必须能够从真实页面识别 Permission，并用当前 Role/Worker、trusted ProFlow target、Role authorized operation、当前 session/URL/fingerprint 做确定性分类：可信 routine automation 可自动 `Always Allow` 并重新观察 reality；未知/不可信/无法消歧则保持 BLOCKED，进入 Carrier Attention/diagnostic。不得把这一机械 gate 写入 `execution_approvals`，也不得让它绕过真正 Execution Approval。
+当前 v1 已发布 Custom GPT Action schema 的所有 operation 都必须显式 `x-openai-isConsequential: false`；ordinary Action 主链不依赖用户预先配置 `Always Allow`，也不把 Carrier Permission 当正常每次 Action 的调度步骤。若 legacy/旧 conversation、Carrier 漂移或 ChatGPT UI 变化仍产生 Action Permission surface，Carrier 必须从真实页面识别 Permission，并用当前 Role/Worker、trusted ProFlow target、Role authorized operation、当前 session/URL/fingerprint 做确定性分类：可信 routine automation 可 `AUTO_ALLOW`，并仅从当前真实页面提供的受支持动作中选择自动动作（优先 `allowAlways`，否则 `allow`），随后重新观察 release reality；未知/不可信/无法消歧、只有 `allowOnce` 等不能满足自动策略的情况保持 BLOCKED，进入 Carrier Attention/diagnostic。不得把这一机械 gate 写入 `execution_approvals`，也不得让 nonconsequential metadata 或 Carrier auto-allow 绕过真正 Execution Approval。
 
 首次 Permission 与 Task binding 写入之间允许一个极窄 transient `DEFER`：仅当真实 `/g/{role}/c/{worker}`、Role/target/operation 均可信，且同 Task/Role binding 已存在但 `workerRef + conversationLocator` 仍同时为空时成立。Carrier 只在相同 transient identity 上 bounded reclassify；不点击、不升级 Attention。精确 binding 到达后恢复正常分类，超时、缺失、部分绑定或冲突一律 fail closed。
 

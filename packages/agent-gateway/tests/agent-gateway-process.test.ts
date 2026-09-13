@@ -95,7 +95,7 @@ test("CP-AGT-GW-14/RF-AGT-GW-14 formal agent-gateway process authenticates downs
 	}
 });
 
-test("B2-GW-02 running gateway consumes current credential authority and fails closed on malformed store", async () => {
+test("B2-GW-02 running gateway consumes current credential authority and fails closed on malformed or over-permissive store", async () => {
 	const root = await mkdtemp(join(tmpdir(), "proflow-gateway-rotate-"));
 	const credentialFile = join(root, "credentials.json");
 	const oldKey = "old-credential-value-long";
@@ -178,6 +178,11 @@ test("B2-GW-02 running gateway consumes current credential authority and fails c
 		);
 		assert.equal((await auth(baseUrl, oldKey)).status, 401);
 
+		await chmod(credentialFile, 0o644);
+		assert.equal((await auth(baseUrl, newKey)).status, 401);
+		await chmod(credentialFile, 0o600);
+		assert.equal((await auth(baseUrl, newKey)).status, 200);
+
 		await writeFile(credentialFile, "{ not-valid json", { mode: 0o600 });
 		assert.equal((await auth(baseUrl, newKey)).status, 401);
 		assert.equal((await auth(baseUrl, oldKey)).status, 401);
@@ -203,7 +208,7 @@ test("B2-GW-02 running gateway consumes current credential authority and fails c
 	}
 });
 
-test("RF-AGT-GW-14 downstream transport credential rejects group/world-readable files", async (t) => {
+test("RF-AGT-GW-14 role and downstream transport credentials reject group/world-readable files", async (t) => {
 	if (process.platform === "win32") return t.skip("POSIX mode proof");
 	const root = await mkdtemp(
 		join(tmpdir(), "proflow-agent-gateway-permissions-"),
@@ -221,6 +226,22 @@ test("RF-AGT-GW-14 downstream transport credential rejects group/world-readable 
 		"downstream-transport-credential-value\n",
 		{ mode: 0o600 },
 	);
+	await chmod(credentialFile, 0o644);
+	await assert.rejects(
+		() =>
+			createAgentGatewayProcess({
+				config: {
+					host: "127.0.0.1",
+					port: 0,
+					publicBaseUrl: "https://gateway.example.test",
+					downstreamBaseUrl: "http://127.0.0.1:47830",
+					credentialFile,
+					downstreamCredentialFile,
+				},
+			}),
+		/ROLE_CREDENTIAL_STORE_PERMISSIONS_INVALID/,
+	);
+	await chmod(credentialFile, 0o600);
 	await chmod(downstreamCredentialFile, 0o644);
 	await assert.rejects(
 		() =>
@@ -264,6 +285,18 @@ test("B1-GW-01 downstream typed errors are bounded, safe, and preserve actionabl
 					credential: "SECRET_TOKEN",
 				}),
 			);
+		}
+		if (request.url === "/actions/tool-timeout") {
+			response.statusCode = 504;
+			return response.end(JSON.stringify({ error: "LOCAL_TOOL_COMMAND_TIMEOUT" }));
+		}
+		if (request.url === "/actions/provider-unavailable") {
+			response.statusCode = 503;
+			return response.end(JSON.stringify({ error: "LOCAL_TOOL_PROVIDER_UNAVAILABLE" }));
+		}
+		if (request.url === "/actions/tool-failed") {
+			response.statusCode = 500;
+			return response.end(JSON.stringify({ error: "LOCAL_TOOL_COMMAND_FAILED" }));
 		}
 		if (request.url === "/actions/failure") {
 			response.statusCode = 500;
@@ -319,6 +352,21 @@ test("B1-GW-01 downstream typed errors are bounded, safe, and preserve actionabl
 	assert.deepEqual(JSON.parse(admission.text), {
 		error: "TASK_ROLE_BINDING_REQUIRED",
 	});
+	const timeout = await call("tool-timeout");
+	assert.equal(timeout.status, 504);
+	assert.deepEqual(JSON.parse(timeout.text), {
+		error: "LOCAL_TOOL_COMMAND_TIMEOUT",
+	});
+	const providerUnavailable = await call("provider-unavailable");
+	assert.equal(providerUnavailable.status, 503);
+	assert.deepEqual(JSON.parse(providerUnavailable.text), {
+		error: "LOCAL_TOOL_PROVIDER_UNAVAILABLE",
+	});
+	const toolFailed = await call("tool-failed");
+	assert.equal(toolFailed.status, 500);
+	assert.deepEqual(JSON.parse(toolFailed.text), {
+		error: "LOCAL_TOOL_COMMAND_FAILED",
+	});
 	const failure = await call("failure");
 	assert.equal(failure.status, 500);
 	assert.deepEqual(JSON.parse(failure.text), {
@@ -329,7 +377,15 @@ test("B1-GW-01 downstream typed errors are bounded, safe, and preserve actionabl
 	assert.deepEqual(JSON.parse(malformed.text), {
 		error: "DOWNSTREAM_UNAVAILABLE",
 	});
-	for (const result of [invalid, admission, failure, malformed]) {
+	for (const result of [
+		invalid,
+		admission,
+		timeout,
+		providerUnavailable,
+		toolFailed,
+		failure,
+		malformed,
+	]) {
 		assert.doesNotMatch(result.text, /SECRET|STACK|TOKEN|PASSWORD/i);
 		assert.ok(result.text.length < 256);
 	}

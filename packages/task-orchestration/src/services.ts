@@ -438,6 +438,21 @@ function recomputeReadiness(
 function matchesWorker(actorRef: string, workerRef: string | null): boolean {
 	return workerRef !== null && actorRef === `worker:${workerRef}`;
 }
+function workerIdentityBoundToAnotherTask(
+	tx: TaskRepositories,
+	input: Pick<BindInput, "taskId" | "workerRef" | "conversationLocator">,
+): boolean {
+	for (const task of tx.tasks.list()) {
+		if (task.taskId === input.taskId) continue;
+		for (const binding of tx.roleBindings.listByTask(task.taskId))
+			if (
+				binding.workerRef === input.workerRef ||
+				binding.conversationLocator === input.conversationLocator
+			)
+				return true;
+	}
+	return false;
+}
 
 export function createTaskServices(options: {
 	store: TaskStore;
@@ -615,11 +630,13 @@ export function createTaskServices(options: {
 			: `id-${createHash("sha256").update(taskId).digest("hex")}`;
 	const stageDocumentPath = (taskId: string, type: DocumentType): string =>
 		`.proflow/recovery/task-create/${safeTaskId(taskId)}/${type.toLowerCase().replaceAll("_", "-")}.md`;
+	const documentUpdateRecoveryTaskRoot = (taskId: string): string =>
+		`.proflow/recovery/task-document/${safeTaskId(taskId)}`;
 	const documentUpdateRecoveryRoot = (
 		taskId: string,
 		type: DocumentType,
 	): string =>
-		`.proflow/recovery/task-document/${safeTaskId(taskId)}/${type.toLowerCase().replaceAll("_", "-")}`;
+		`${documentUpdateRecoveryTaskRoot(taskId)}/${type.toLowerCase().replaceAll("_", "-")}`;
 	const documentUpdateRecoveryPath = (
 		taskId: string,
 		type: DocumentType,
@@ -630,13 +647,27 @@ export function createTaskServices(options: {
 		previousHash: string | null;
 		requestHash: string;
 	};
+	const cleanupDocumentRecoveryTaskRoot = (taskId: string): void => {
+		const taskRootAbsolute = join(
+			workspaceRoot,
+			documentUpdateRecoveryTaskRoot(taskId),
+		);
+		if (
+			existsSync(taskRootAbsolute) &&
+			readdirSync(taskRootAbsolute).length === 0
+		)
+			rmSync(taskRootAbsolute, { recursive: true, force: true });
+	};
 	const recoverPendingDocumentUpdates = (
 		taskId: string,
 		type: DocumentType,
 	): void => {
 		const recoveryRoot = documentUpdateRecoveryRoot(taskId, type);
 		const recoveryRootAbsolute = join(workspaceRoot, recoveryRoot);
-		if (!existsSync(recoveryRootAbsolute)) return;
+		if (!existsSync(recoveryRootAbsolute)) {
+			cleanupDocumentRecoveryTaskRoot(taskId);
+			return;
+		}
 		const canonicalPath = relativeDocumentPath(taskId, type);
 		const canonicalAbsolute = join(workspaceRoot, canonicalPath);
 		const currentMetadata = store.read((tx) => tx.documents.get(taskId, type));
@@ -695,6 +726,7 @@ export function createTaskServices(options: {
 		}
 		if (readdirSync(recoveryRootAbsolute).length === 0)
 			rmSync(recoveryRootAbsolute, { recursive: true, force: true });
+		cleanupDocumentRecoveryTaskRoot(taskId);
 	};
 	const cleanupCreateStage = (taskId: string): void => {
 		rmSync(
@@ -1050,6 +1082,11 @@ export function createTaskServices(options: {
 						throw new DomainError(
 							"ROLE_BINDING_MISMATCH",
 							"RoleRef does not match the declared binding.",
+						);
+					if (workerIdentityBoundToAnotherTask(tx, input))
+						throw new DomainError(
+							"TASK_ROLE_BINDING_CONFLICT",
+							"Worker or Conversation identity is already bound to another Task.",
 						);
 					if (
 						old.workerRef === input.workerRef &&
@@ -1622,11 +1659,14 @@ export function createTaskServices(options: {
 					tx.nodes.update(reopened);
 					for (const later of tx.nodes.listByTask(task.taskId))
 						if (later.sequenceNo > target.sequenceNo) {
+							const invalidatedStartedRun =
+								later.startedAt !== null || later.workerRef !== null;
 							preserveRunHistory(tx, later, later.status, timestamp);
 							tx.nodes.update({
 								...later,
 								status: "PENDING",
 								version: later.version + 1,
+								runNo: later.runNo + (invalidatedStartedRun ? 1 : 0),
 								workerRef: null,
 								resultSummary: null,
 								errorCode: null,

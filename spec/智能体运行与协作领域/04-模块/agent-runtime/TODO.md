@@ -18,245 +18,35 @@ contractRefs:
 - AGENT-DOC-03-03
 - AGENT-DOC-03-05
 ---
+
 # `agent-runtime` TODO
 
-> 本文件是该 Module 的当前实施 backlog。`Status: READY` 保留原任务事实，表示任务已进入当前 backlog；`implementationReadiness: PLANNED` 表示**尚未冻结自动施工顺序**。Priority、dependsOn、逐任务 acceptance/verification 不允许由文档整理工具推断；没有可直接追溯的冻结依据时，分别保持 `PENDING_DECISION`、`NOT_FROZEN`、`ACCEPTANCE_NOT_FROZEN` / `verification: []`。
+> 本文件只保存**当前仍未完成、且已由当前 Contract/Design 明确冻结**的 Module implementation backlog。完成、迁移或被架构裁决替代的历史任务不得继续以 `READY/PLANNED` 冒充待施工事实。
 
-## Implementation Tasks
-### AGT-RUNTIME-001
+## Current backlog
 
-```yaml
-id: AGT-RUNTIME-001
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: agent-runtime-collaboration
-  boundedContext: agent-runtime-collaboration
-  moduleRef: agent-runtime
-sourceRefs:
-- AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME
-- AGENT-DOC-02-01
-- AGENT-DOC-03-01
-- AGENT-DOC-03-03
-- AGENT-DOC-03-05
-qualityRefs:
-- AGENT-DOC-05-01
-- AGENT-DOC-05-03
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 实现 Role Registry list/get/register/delete local management boundary
-scope:
-  allow:
-  - packages/agent-runtime/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
+截至 2026-09-13 Phase 3 / Real-3 全链审计 Wave 09：**没有已冻结、仍未完成的本 Module implementation task。**
+
+Role Registry/credential、Task-bound Worker defensive validation、Collaboration durable truth、terminal/missing/duplicate 防御与 cross-domain ports 已存在并通过 current critical proofs。
+
+## Historical task identities
+
+历史任务标识 `AGT-RUNTIME-001..006` 已从 current backlog 移除。Test Plan 中若仍引用这些 ID，它们只作为历史 traceability/provenance identity，不表示当前存在待实施工作；后续文档治理 Wave 会统一检查 dangling/重复导航。
+
+## Residual validation boundary
+
+真实 Chrome/Custom GPT/外部 Carrier 的持续兼容性、完整 Full Suite、release/adoption/runtime materialization 等属于 Test Plan / Known Limitation / Deployment / Final Gate，不因为尚需最终验证而重新创建 implementation TODO。
+
+## New task admission rule
+
+未来新增 TODO 必须同时具备：
+
+```text
+current source/design evidence
+明确 owner 与 moduleRef
+尚未实现的具体行为缺口
+scope / forbidden boundary
+acceptance + executable verification path
 ```
 
-### AGT-RUNTIME-002
-
-```yaml
-id: AGT-RUNTIME-002
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: agent-runtime-collaboration
-  boundedContext: agent-runtime-collaboration
-  moduleRef: agent-runtime
-sourceRefs:
-- AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME
-- AGENT-DOC-02-01
-- AGENT-DOC-03-01
-- AGENT-DOC-03-03
-- AGENT-DOC-03-05
-qualityRefs:
-- AGENT-DOC-05-01
-- AGENT-DOC-05-03
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 实现 roleRef↔credential 安全绑定与 key rotation
-scope:
-  allow:
-  - packages/agent-runtime/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-### AGT-RUNTIME-003
-
-```yaml
-id: AGT-RUNTIME-003
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: agent-runtime-collaboration
-  boundedContext: agent-runtime-collaboration
-  moduleRef: agent-runtime
-sourceRefs:
-- AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME
-- AGENT-DOC-02-01
-- AGENT-DOC-03-01
-- AGENT-DOC-03-03
-- AGENT-DOC-03-05
-qualityRefs:
-- AGENT-DOC-05-01
-- AGENT-DOC-05-03
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 实现 Task-bound Worker context defensive validation，不复制/解析出第二套 Task binding
-scope:
-  allow:
-  - packages/agent-runtime/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-### AGT-RUNTIME-004
-
-```yaml
-id: AGT-RUNTIME-004
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: agent-runtime-collaboration
-  boundedContext: agent-runtime-collaboration
-  moduleRef: agent-runtime
-sourceRefs:
-- AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME
-- AGENT-DOC-02-01
-- AGENT-DOC-03-01
-- AGENT-DOC-03-03
-- AGENT-DOC-03-05
-qualityRefs:
-- AGENT-DOC-05-01
-- AGENT-DOC-05-03
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 实现 Collaboration Message Center 与 askPeer/replyPeer 串行状态
-scope:
-  allow:
-  - packages/agent-runtime/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-### AGT-RUNTIME-005
-
-```yaml
-id: AGT-RUNTIME-005
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: IMPLEMENTATION
-owner:
-  domain: agent-runtime-collaboration
-  boundedContext: agent-runtime-collaboration
-  moduleRef: agent-runtime
-sourceRefs:
-- AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME
-- AGENT-DOC-02-01
-- AGENT-DOC-03-01
-- AGENT-DOC-03-03
-- AGENT-DOC-03-05
-qualityRefs:
-- AGENT-DOC-05-01
-- AGENT-DOC-05-03
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 实现 terminal Task / missing participant / duplicate message 防御
-scope:
-  allow:
-  - packages/agent-runtime/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-### AGT-RUNTIME-006
-
-```yaml
-id: AGT-RUNTIME-006
-status: READY
-implementationReadiness: PLANNED
-priority: PENDING_DECISION
-type: VALIDATION
-owner:
-  domain: agent-runtime-collaboration
-  boundedContext: agent-runtime-collaboration
-  moduleRef: agent-runtime
-sourceRefs:
-- AGENT-RUNTIME-COLLABORATION-TECH-AGENT-RUNTIME
-- AGENT-DOC-02-01
-- AGENT-DOC-03-01
-- AGENT-DOC-03-03
-- AGENT-DOC-03-05
-qualityRefs:
-- AGENT-DOC-05-01
-- AGENT-DOC-05-03
-dependencyState: NOT_FROZEN
-dependsOn: []
-goal: 完成与 Task/Execution 的 contract integration tests
-scope:
-  allow:
-  - packages/agent-runtime/**
-  forbid:
-  - 其他 Domain 的业务 Store/Repository
-  - 其他领域内部实现的 deep import
-  - 任何未经 Contract Change 的 Domain/Bounded Context/Service/Public Contract 变更
-acceptance:
-- ACCEPTANCE_NOT_FROZEN
-verification: []
-evidence: []
-```
-
-## Stop Rules
-
-- `implementationReadiness != READY_TO_IMPLEMENT` 时，Codex/Agent 不得把 TODO 当作自动施工队列；先完成实施编排。
-- 不得通过 TODO 创造新 Domain/Bounded Context/Service。
-- 不得 deep import 其他领域内部实现或直接读写其他领域 Store。
-- `PENDING_SPIKE` 不转成 IMPLEMENTATION 任务，除非先完成验证并更新正式状态。
-- 发现正式文档内部冲突时停止实现，先修 Contract/Design。
-
-## 2026-08-14 Fixed-role / Collaboration Addendum
-
-- [ ] Role Registry 保留 management/Deployment/Carrier lookup，不进入 Product GPT New Task动态发现主链。
-- [ ] v1固定三个Agent Package logical roles；不新增RoleType/Persona/dynamic capability matching。
-- [ ] `roleRef↔credential`认证与Task `agentPackageRef→workerRef` binding职责分离；Browser不读取credential。
-- [ ] askPeer/replyPeer只写Collaboration Message Center；message可带taskId/nodeId/runNo correlation，但不创建Task Node/WAIT/transition。
-- [ ] physical peer delivery/return wake由Extension Carrier path执行；Agent Runtime不保存tab/frame，也不成为Browser scheduler。
+不得把历史聊天、旧 blocker、已完成的 Real-3 defect、纯 release bookkeeping 或最终验收 gate 重新包装为 implementation backlog。

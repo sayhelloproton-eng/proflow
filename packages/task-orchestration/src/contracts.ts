@@ -103,6 +103,15 @@ const schemas: Record<PublicOperationName, z.ZodType> = {
 					path: ["sequenceNo"],
 				});
 			}
+			input.roleBindings.forEach((binding, index) => {
+				if (binding.workerRef !== null || binding.conversationLocator !== null)
+					context.addIssue({
+						code: "custom",
+						message:
+							"createTask roleBindings must start with workerRef and conversationLocator unset",
+						path: ["roleBindings", index],
+					});
+			});
 			const declaredAgentPackageRefs = new Set(
 				input.roleBindings.map((binding) => binding.agentPackageRef),
 			);

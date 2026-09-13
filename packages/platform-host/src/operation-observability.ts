@@ -171,6 +171,12 @@ export function createHostOperationObserver(
 				errorValue && typeof errorValue === "object"
 					? code(Reflect.get(errorValue, "code")) ?? code(Reflect.get(errorValue,"message"))
 					: undefined;
+			const sideEffectState = Reflect.get(result, "sideEffectState");
+			const hasAuthoritativeSideEffectState =
+				typeof sideEffectState === "string" &&
+				["NOT_STARTED", "STARTED", "APPLIED", "NOT_APPLIED", "UNKNOWN"].includes(
+					sideEffectState,
+				);
 			const entry = {
 				contract: "proflow.operation-boundary.v1",
 				eventId: `host-event:${randomUUID()}`,
@@ -193,7 +199,7 @@ export function createHostOperationObserver(
 				...axes,
  decision: code(Reflect.get(result,"decision")), reason: code(Reflect.get(result,"reason")),
  status: failed ? "FAILED" : Reflect.get(result,"decision") === "HUMAN_REQUIRED" ? "BLOCKED" : Reflect.get(result,"decision") === "DEFER" ? "DEFERRED" : "SUCCEEDED",
-				sideEffectState: ["APPLIED","NOT_APPLIED","NOT_STARTED","UNKNOWN"].includes(String(Reflect.get(result,"sideEffectState"))) ? String(Reflect.get(result,"sideEffectState")) : "UNKNOWN",
+				...(hasAuthoritativeSideEffectState ? { sideEffectState } : {}),
 				...(failed
 					? { errorCode: errorCode ?? "HOST_APPLICATION_FAILED" }
 					: {}),

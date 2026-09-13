@@ -45,7 +45,7 @@ Task/Agent Public facts 提供业务身份与 scope；Model Public Contract 提�
 
 ## Downstream
 
-Task/Agent/Gateway 消费 Result/Artifact/Evidence；Browser/Local executors 由 Execution Runtime 统一调度。Task/System Observer 只能通过 Public Facts 观察 Execution readiness/result/unknown，不拥有或镜像 Execution state。
+Task/Agent/Gateway 消费 durable Execution 场景产生的 Result/Artifact/Evidence；Browser/Carrier 与其它需要 durable effect semantics 的内部 executor 由 Execution Runtime 调度。GPT-facing Repomix / Local Dev / CodeGraph 不属于该 downstream lifecycle：它们经 `Action → Gateway → Platform Host application → Browser Extension Local Tool lane → execution-local → macOS` 直接执行并返回当前 Worker，不创建 executionRef，也不由 Execution Runtime 调度。Task/System Observer 只能通过 Public Facts 观察 Execution readiness/result/unknown，不拥有或镜像 Execution state。
 
 下游只能通过本 Context/Domain Public Contract 使用能力，不得 deep import 内部 Module。
 

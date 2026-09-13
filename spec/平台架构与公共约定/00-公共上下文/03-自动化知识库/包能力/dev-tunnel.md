@@ -58,8 +58,7 @@ QUERY_TIMEOUT / CLI_ERROR / UNKNOWN
 
 这是一道 start 内部的第二层防线：高成本 Real-3/生产验收仍应在消费 start 前做只读 remote preflight；即使 preflight 后 token 又过期，真正的 Dev Tunnel start 也必须先完成既有 Browser Auth，再进入 host。setup 与 start 共用同一个 `ensureLogin()` owner，禁止维护两套授权实现。
 
-需要观察/操作 GitHub Browser Auth 时，先加载 `基础动作/Tool-Runtime-gptweb-mcp.md` + `基础动作/Browser-UI自动化.md`，**复用当前真实 Chrome 的 Playwright 控制链**。Playwright `connect.html` 不是 GitHub Auth；若它意外出现，先恢复工具 runtime，不重新启动 `platform setup`，也不把工具连接页当 Tunnel blocker。
-
+需要观察/操作 GitHub Browser Auth 时，直接服从 `/Users/agent/Desktop/proton-workspace/skills/chat-local-acceptance-automation-protocol/SKILL.md` 的 Browser/CLI automation mechanics；本 Runbook 只定义 Dev Tunnel 产品状态、identity、STOP 条件与恢复前提。Playwright `connect.html` 不是 GitHub Auth，也不是 Tunnel blocker。
 
 ## 高成本 Start 前 Remote Reality Gate
 

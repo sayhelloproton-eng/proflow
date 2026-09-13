@@ -15,7 +15,7 @@ const facts = {
 	fingerprint: "permission:v1:test",
 };
 
-test("CP-EXE-BR-24 trusted routine permission auto-allows exactly once and verifies release", async () => {
+test("CP-EXE-BR-47 trusted routine permission prefers persistent allow and verifies release", async () => {
 	const actions: string[] = [];
 	const result = await resolveRoutineCarrierPermission({
 		facts: { ...facts, actions: [...facts.actions] },
@@ -37,7 +37,7 @@ test("CP-EXE-BR-24 trusted routine permission auto-allows exactly once and verif
 	assert.deepEqual(actions, ["allowAlways"]);
 });
 
-test("CP-EXE-BR-24 trusted routine permission uses generic allow when persistent allow is unavailable", async () => {
+test("CP-EXE-BR-47 trusted routine permission uses generic allow but never auto-uses allowOnce", async () => {
 	const actions: string[] = [];
 	const result = await resolveRoutineCarrierPermission({
 		facts: { ...facts, actions: ["deny", "allow"] },

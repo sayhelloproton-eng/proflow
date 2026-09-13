@@ -58,7 +58,7 @@ agent package Module.setup
 
 `createCustomGptRole` 对同一 Workspace 使用串行 queue，多个 Role 复用同一公共 provisioning 能力。**Custom GPT 浏览器创建路径已 FROZEN / DO NOT TOUCH**：无新的可复现 regression + 用户明确裁决时，不改 selectors、点击顺序、等待策略、create-only 语义、串并行策略，也不临时写第二套浏览器创建脚本。
 
-创建前先按 `基础动作/Tool-Runtime-gptweb-mcp.md` 复用真实 Chrome；普通 Web 操作用 Playwright，不能通过重启 Chrome、重连第二条控制链或修改产品 state 来“准备环境”。
+涉及真实 Browser / ChatGPT UI 的操作、观察和工具链恢复时，直接服从 `/Users/agent/Desktop/proton-workspace/skills/chat-local-acceptance-automation-protocol/SKILL.md`；本 Runbook 只提供 ProFlow 的 Role/GPT identity、Frozen 产品约束和 checkpoint。
 
 ## 不可逆远端资源的恢复
 

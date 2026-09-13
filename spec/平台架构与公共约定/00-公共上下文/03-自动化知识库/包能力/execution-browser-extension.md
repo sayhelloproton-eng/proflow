@@ -44,7 +44,7 @@ Browser AX 临界区内禁止 Playwright/ChatGPT/Terminal 抢前台。稳定模�
 
 Playwright 主要负责观察真实 Browser 页面、业务 Chat、结构证据；AX helper 负责 `chrome://extensions` 和系统文件选择器。两者不要同时争抢焦点。
 
-必须区分 **Playwright MCP Extension（测试基础设施）** 与 **ProFlow Execution Browser Extension（产品）**。Playwright 的 `connect.html`、调试 banner、relay token 都不属于 ProFlow 产品状态；出现连接页时按 `基础动作/Tool-Runtime-gptweb-mcp.md` 恢复工具链，禁止把它误判成产品扩展未连接或 Dev Tunnel 登录页。
+必须区分 **Playwright MCP Extension（测试基础设施）** 与 **ProFlow Execution Browser Extension（产品）**。Playwright 的 `connect.html`、调试 banner、relay token 都不属于 ProFlow 产品状态；工具链恢复、Browser/UI 操作与 Acceptance mechanics 直接服从 `/Users/agent/Desktop/proton-workspace/skills/chat-local-acceptance-automation-protocol/SKILL.md`，不得把工具连接页误判成产品扩展未连接或 Dev Tunnel 登录页。
 
 ## Runtime Content Script / 错误页判别
 
@@ -151,7 +151,7 @@ Registry = target version
 
 `platform setup` 中 Browser Extension 步骤变成“已完成”不能替代 fresh Chrome loaded-version 证明。若 setup 已进入后续 Tunnel/Model 步骤，但最后一张 fresh `chrome://extensions` 截图仍显示旧版本，则只能裁决“setup Browser step satisfied / loaded version 尚未视觉证明”，禁止把两者合并成 `Chrome update PASS`。
 
-当唯一剩余动作只是 Chrome runtime adoption（Reload/Load unpacked）时，必须按 `Browser-UI自动化.md` 的 privileged 一次前台原子回合处理：一次截图定位、一次 mutation、一次截图验证，然后立即回后台用 heartbeat / platform status / 目标 Browser 行为回读。禁止在一张截图已经足够后继续尝试 Playwright privileged navigation、AppleScript JS 或多套 AX 路径。
+当唯一剩余动作只是 Chrome runtime adoption（Reload/Load unpacked）时，privileged UI 的具体自动化与恢复直接服从 `/Users/agent/Desktop/proton-workspace/skills/chat-local-acceptance-automation-protocol/SKILL.md`；ProFlow 这里只保留“一次 fresh reality → 一次目标 mutation → Browser/owner readback”的产品验收要求，禁止为同一产品事实并行发明多套 UI 路径。
 
 `browser-extension-ui.swift` 的 Extension Manager mutation 必须以 `PROFLOW_BROWSER_EXTENSION_ID`（默认当前 ProFlow Extension ID）+ `PROFLOW_BROWSER_EXTENSION_NAME` 先确认目标 identity，但**禁止再把“最小 AX 祖先/卡片容器 + descendants”当作可靠 mutation 边界**。Chrome 152 已实证该启发式可跨到相邻扩展卡片。Reload/Remove 必须在当前 fresh AX + screenshot 下额外验证与目标 ID 的可见/几何关系；selector 未经当前 Chrome 版本 fresh validation 不得直接复用。Remove 等 destructive action 还必须在 Chrome 原生确认 UI 中再次核对目标名称/身份，二次校验失败立即 STOP。禁止依赖“第几个卡片”“名称之后第一个按钮”或任何未经本轮 reality 验证的 AX ancestor 假设。
 

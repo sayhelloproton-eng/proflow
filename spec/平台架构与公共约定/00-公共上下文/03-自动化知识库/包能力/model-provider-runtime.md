@@ -17,7 +17,7 @@ Base URL
 → READY
 ```
 
-`platform setup` 的交互驱动统一走 `基础动作/CLI-PTY交互自动化.md`；历史已证明普通 PTY 文本注入在模型选择 prompt 上可能不稳定，失败一次后直接复用 canonical `scripts/human-e2e/platform-setup.exp`，不要反复向同一 prompt 盲发 Enter/文本。
+`platform setup` 的 CLI/PTTY 交互、输入恢复和 Acceptance mechanics 直接服从 `/Users/agent/Desktop/proton-workspace/skills/chat-local-acceptance-automation-protocol/SKILL.md`；本 Runbook 只定义 Provider/Runtime 产品事实、READY 条件与 fail-closed 边界。
 
 多个已合格候选且无法唯一决策时才询问用户。URL / inventory / probe UNKNOWN 时 fail closed。
 

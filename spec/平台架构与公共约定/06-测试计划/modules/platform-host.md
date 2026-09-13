@@ -108,14 +108,12 @@ STOP：必须新增host-owned state/scheduler/Observer authority/Browser runtime
 
 **Executable proof**：`packages/platform-host/tests/presmoke-batch2-agent-collaboration.test.ts`。
 
-
 ## 2026-08-15 Pre-Smoke Batch 3｜Browser Application / Observer / Carrier Addendum
 
 - [ ] **CP-HOST-11** — Extension Task Application 通过 authenticated loopback composition 实际完成 `Task.create(PENDING) → 固定三 Role Worker 经 Execution 创建并回写 TaskRoleBinding → Task READY → Task.start(ACTIVE)`；UI/host 均不复制 Task readiness/state-machine truth。
 - [ ] **RF-HOST-11** — Worker 创建绕过 Execution、UI/host 直接写 Task binding/readiness、缺失 binding 被假定成功、或通过第二套 Task Store 完成 J1。
 
 **Executable proof**：`packages/platform-host/tests/task-application-entry.test.ts` 中 `R2-P1-18-APP-03 Product binds durably while Dev/Test are held; recovery fills only missing Workers`；该测试继续通过 Task Application 执行 `task.start` 并确认 `ACTIVE`。
-
 
 ### Batch 3 host boundary proof mapping
 
@@ -124,7 +122,6 @@ STOP：必须新增host-owned state/scheduler/Observer authority/Browser runtime
 - `CP-HOST-11` → `packages/platform-host/tests/task-application-entry.test.ts`：真实 application HTTP 路径证明 `Task.create(PENDING) → 3×worker.create → TaskRoleBinding → READY → startTask`；缺失 Worker/Conversation 的恢复由 backend Reconciliation 内部 Worker recovery 负责，不再暴露人工 Worker-recovery operation。bounded rediscovery / recovery 的 executable proof 归 `packages/platform-host/tests/task-reconciliation.test.ts`。
 - Collaboration Browser physical lifecycle 的 Owner/Carrier proof 归 `execution-browser-extension`；Host 只做 `collaboration.*` transport/composition，不以此 Test Plan 宣称 physical Browser E2E。
 - Browser Executor 注入唯一 `execution-runtime` binary/readiness 属 **Batch 4 / P1-15**，Host/Browser 本批不得建立 alternate Execution Runtime。
-
 
 ### CP-HOST-12 / RF-HOST-12 — GPT-facing Execution surface removed
 
@@ -192,3 +189,12 @@ Host remains transport/composition only: it must not become Approval owner, Arti
 冷启动图测试既调用现有 buildDependencyGraph，也启动实际 module lifecycle 验证 Host facts 缺失时 bridge 可监听、Model/Execution absent 时 Host 可认证 Task 请求。不能把声明 DAG PASS 当 runtime bootstrap PASS。
 
 目标图验收必须显式包含 `agent-runtime.requires`：先保留旧 execution 边重现 DEPENDENCY_CYCLE，再删除该非启动依赖后验证全模块 DAG；并验证 Execution absent 时 Role store/Task/Peer 可工作，physical delivery 仍按 operation unavailable，不伪造 delivery success。
+
+## 2026-09-13 Real-3｜Permission Context / Role Validation Closure Addendum
+
+- [ ] **CP-HOST-22** — `browser.permission.classify` 对当前 Task-bound Conversation 必须接受真实 ChatGPT locator `/g/g-<roleRef>-<slug>/c/<workerRef>`，同时兼容不带 slug 的 canonical role segment；必须拒绝错误 roleRef、错误 workerRef、附加 query/hash 或非当前 conversation URL，不能把真实 slugged GPT URL 误判成 `CONTEXT_MISMATCH`。
+- [ ] **CP-HOST-23** — Permission classification 使用当前 Role registration + role-carrier validation facts；`registeredPackageVersion/roleRef/carrierUrl` 任一漂移都 fail-closed，但正式 Role adopt/reload 后必须 re-read current durable registration，不能让旧 Host cache 永久产生 `ROLE_VALIDATION_MISMATCH`。
+- [ ] **RF-HOST-22** — parser 只接受裸 `roleRef` path segment，导致真实 `g-<roleRef>-<slug>` Conversation 全部误拒绝，或放宽到可接受 wrong role/worker/query/hash。
+- [ ] **RF-HOST-23** — durable Role registration 已更新但 Host 仍用旧缓存分类 Permission，或版本不匹配时反而 AUTO_ALLOW。
+
+**Executable proof target**：`packages/platform-host/tests/browser-permission-policy.test.ts` 必须覆盖 slugged URL allow + wrong role/worker/query/hash reject + role registration/version mismatch/reload cases；真实 SAME_SCENE Permission 仍由 Real Chrome gate 证明，不以 pure policy test 冒充页面 E2E。

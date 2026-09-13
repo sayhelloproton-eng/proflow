@@ -16,6 +16,8 @@ import { createLocalToolLane } from "./runtime/local-tool-lane.js";
 import { createObserverRecoveryController } from "./runtime/observer-recovery-controller.js";
 import { createExtensionOperationObserver } from "./runtime/operation-observer.js";
 import { createPageRealityController } from "./runtime/page-reality-controller.js";
+import { createPageRealityRecoveryLoop } from "./runtime/page-reality-watchdog.js";
+import { createPermissionActionLoggingPage } from "./runtime/permission-action-page.js";
 import { createPermissionController } from "./runtime/permission-controller.js";
 import { createProvisioningLane } from "./runtime/provisioning-lane.js";
 import { createRuntimeMessageRouter } from "./runtime/runtime-message-router.js";
@@ -68,66 +70,10 @@ const page = createPageRealityController({
 		});
 	},
 });
-const permissionPage = Object.freeze({
-	current: page.current,
-	sessions: page.sessions,
-	waitForPermissionReleased: page.waitForPermissionReleased,
-	async contentCommand(
-		tabId: number,
-		command: Parameters<typeof page.contentCommand>[1],
-	): Promise<unknown> {
-		if (command.operation !== "permissionAction")
-			return page.contentCommand(tabId, command);
-		const observed = page.current(tabId);
-		const started = performance.now();
-		try {
-			const value = await page.contentCommand(tabId, command);
-			await operationLogger.emit({
-				component: "permission-action-boundary",
-				event: "PERMISSION_ACTION",
-				phase: "DISPATCHED",
-				status: "SUCCEEDED",
-				operationId: "permissionAction",
-				...(command.permissionFingerprint
-					? {
-							operationRef: command.permissionFingerprint,
-							correlationId: `permission:${command.permissionFingerprint}`,
-							correlationKind: "IDENTITY_MATCH" as const,
-						}
-					: {}),
-				...(command.permissionAction ? { action: command.permissionAction } : {}),
-				sideEffectState: "STARTED",
-				tabId,
-				contentInstanceId: observed.contentInstanceId,
-				conversationLocator: observed.url,
-				durationMs: performance.now() - started,
-			});
-			return value;
-		} catch (error) {
-			await operationLogger.emit({
-				component: "permission-action-boundary",
-				event: "PERMISSION_ACTION",
-				phase: "DISPATCHED",
-				status: "FAILED",
-				operationId: "permissionAction",
-				...(command.permissionFingerprint
-					? {
-							operationRef: command.permissionFingerprint,
-							correlationId: `permission:${command.permissionFingerprint}`,
-							correlationKind: "IDENTITY_MATCH" as const,
-						}
-					: {}),
-				...(command.permissionAction ? { action: command.permissionAction } : {}),
-				errorCode: "PERMISSION_ACTION_FAILED",
-				sideEffectState: "UNKNOWN",
-				tabId,
-				contentInstanceId: observed.contentInstanceId,
-				conversationLocator: observed.url,
-				durationMs: performance.now() - started,
-			});
-			throw error;
-		}
-	},
+const permissionPage = createPermissionActionLoggingPage({
+	page,
+	logger: operationLogger,
+	now: () => performance.now(),
 });
 const permissions = createPermissionController({
 	storageSession: chrome.storage.session,
@@ -163,11 +109,12 @@ function processContentObservation(
 	if (shouldRecover && !suppressed) void observerRecovery.requestRecovery();
 }
 
-let pageRecoveryPass: Promise<void> | null = null;
-let pageRealityWatchdogStarted = false;
-function recoverCurrentPageReality(): Promise<void> {
-	if (pageRecoveryPass) return pageRecoveryPass;
-	pageRecoveryPass = (async () => {
+const pageRealityRecovery = createPageRealityRecoveryLoop({
+	intervalMs: PAGE_PERMISSION_WATCHDOG_INTERVAL_MS,
+	schedule(callback, intervalMs) {
+		return setInterval(callback, intervalMs);
+	},
+	async recover() {
 		const observations = await page.recoverObservations();
 		for (const observed of observations) {
 			processContentObservation(observed, false);
@@ -175,18 +122,8 @@ function recoverCurrentPageReality(): Promise<void> {
 		}
 		await permissions.persist();
 		await permissions.publish().catch(() => undefined);
-	})().finally(() => {
-		pageRecoveryPass = null;
-	});
-	return pageRecoveryPass;
-}
-function startPageRealityWatchdog(): void {
-	if (pageRealityWatchdogStarted) return;
-	pageRealityWatchdogStarted = true;
-	setInterval(() => {
-		void recoverCurrentPageReality().catch(() => undefined);
-	}, PAGE_PERMISSION_WATCHDOG_INTERVAL_MS);
-}
+	},
+});
 
 const browserCommands = createBrowserCommandController({
 	page,
@@ -281,8 +218,9 @@ function initializeBackgroundRuntime(): Promise<void> {
 		await permissions.persist();
 		void localToolLane.start();
 		void provisioningLane.start();
-		startPageRealityWatchdog();
-		void recoverCurrentPageReality()
+		pageRealityRecovery.start();
+		void pageRealityRecovery
+			.run()
 			.then(() => observerRecovery.startupReady())
 			.catch(() => undefined);
 		observability.lifecycle({

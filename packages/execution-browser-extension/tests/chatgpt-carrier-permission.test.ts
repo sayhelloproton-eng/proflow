@@ -30,7 +30,7 @@ test("CP-EXE-BR-22 detects current non-dialog ChatGPT Action permission semantic
 	assert.match(facts.fingerprint, /^permission:v1:/);
 });
 
-test("CP-EXE-BR-22 detects current generic Allow/Deny permission without manufacturing Task context", () => {
+test("CP-EXE-BR-47 detects generic Allow/Deny permission without manufacturing Task context", () => {
 	const facts = detectActionPermission([genericAllowCard]);
 	assert.ok(facts);
 	assert.equal(facts.kind, "ACTION_PERMISSION");
@@ -83,7 +83,7 @@ test("CP-EXE-BR-22 Action permission wins over an otherwise ready composer", () 
 	);
 });
 
-test("CP-EXE-BR-24 retries only transient permission classification attention", () => {
+test("CP-EXE-BR-46 retries only transient permission classification attention", () => {
 	assert.equal(shouldRetryCarrierAttention("PERMISSION_CLASSIFICATION_FAILED"), true);
 	for (const reason of [
 		"GATEWAY_MISMATCH",

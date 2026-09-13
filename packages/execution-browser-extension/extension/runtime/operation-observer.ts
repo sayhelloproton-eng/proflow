@@ -4,6 +4,7 @@ import type {
 	BrowserCommandResult,
 } from "./browser-session-lane.js";
 import type { ExtensionLogger } from "./extension-logger.js";
+import { pageRealityPermissionCorrelation } from "./page-reality-correlation.js";
 import type { PermissionObservationOutcome } from "./permission-controller.js";
 import type { ProvisioningCommandOutcome } from "./provisioning-lane.js";
 import { normalizeLogErrorCode } from "./application-client.js";
@@ -33,19 +34,15 @@ function hostAxes(input: Record<string, unknown>) {
 	return axes;
 }
 
-function pageAxes(observed: ContentObservation) {
+function pageAxes(
+	observed: ContentObservation,
+	previous?: ContentObservation,
+) {
 	return {
 		tabId: observed.tabId,
 		contentInstanceId: observed.contentInstanceId,
 		conversationLocator: observed.url,
-		...(observed.blockerFacts?.fingerprint
-			? {
-					operationRef: observed.blockerFacts.fingerprint,
-					correlationId: `permission:${observed.blockerFacts.fingerprint}`,
-					correlationKind: "IDENTITY_MATCH" as const,
-					operationId: observed.blockerFacts.operationId,
-				}
-			: {}),
+		...pageRealityPermissionCorrelation(previous, observed),
 	};
 }
 
@@ -131,7 +128,6 @@ export function createExtensionOperationObserver(options: {
 				attemptNo,
 				operationRef: `${identityRef}:${attemptNo}`,
 				correlationKind: "IDENTITY_MATCH",
-				sideEffectState: "UNKNOWN",
 			});
 		},
 		lifecycle(input: {
@@ -199,7 +195,6 @@ export function createExtensionOperationObserver(options: {
 							}
 						: {}
 					: { errorCode: "BRIDGE_RESULT_REJECTED" }),
-				sideEffectState: "UNKNOWN",
 				durationMs: input.durationMs,
 				...commandAxes(input.command),
 			});
@@ -262,7 +257,7 @@ export function createExtensionOperationObserver(options: {
 				event: "PAGE_REALITY_TRANSITION",
 				status: observed.pageState === "BLOCKED" ? "BLOCKED" : "SUCCEEDED",
 				phase: `${before}->${after}`,
-				...pageAxes(observed),
+				...pageAxes(observed, previous),
 			});
 		},
 		permission(outcome: PermissionObservationOutcome) {
@@ -306,7 +301,6 @@ export function createExtensionOperationObserver(options: {
 				correlationId: `permission:${facts.fingerprint}`,
 				correlationKind: "IDENTITY_MATCH",
 				errorCode: normalizeLogErrorCode(error, "PERMISSION_OPERATION_FAILED"),
-				sideEffectState: "UNKNOWN",
 				...pageAxes(observed),
 			});
 		},
